@@ -18,14 +18,16 @@ version the repository chose, with no installation step before the first command
 | `./harnessw <command>` | explicit, the documented invocation | runs the pinned version; downloads it over HTTPS and verifies its checksum when it is not cached; exits 1 naming the cause when it cannot (no downloader, download failure, checksum mismatch) |
 | `harness <command>` | explicit, optional global install | inside a repository whose `.harness/wrapper.yaml` pins a different version, execs the pinned version from the cache, downloading it through the same verified path (never from a hook); elsewhere runs itself |
 | task shims (`front_door: mise`) | explicit | one-line mise tasks that exec `./harnessw <command>` |
-| `./harnessw --no-download <command>` | implicit: rendered agent hooks | runs only a cached binary and never downloads; when none is cached, prints one stderr line naming `./harnessw` and exits 0 |
+| `./harnessw --no-download <command>` | implicit: rendered agent hooks | runs only a cached binary and never downloads; when none is cached, prints one stderr line naming `./harnessw`, and for the session-start event also the one context line below, then exits 0 |
 
 - Implicit entry points MUST NOT download. Only an invocation a person or agent makes on purpose fetches a binary.
   Why: a hook fires on every matching agent event; a download there stalls the session and fails offline.
-- When the pinned version is not cached, the rendered session-start hook adds one line to the agent's session
-  context: `harness <version> is not cached on this machine; run ./harnessw version once to fetch it.` Every other
-  implicit entry point stays silent apart from its stderr line. Why: the agent learns once per session why hooks,
-  notifications and standing context are absent, without a message on every tool call.
+- When the pinned version is not cached, the rendered session-start hook prints its stderr line and also adds one line
+  to the agent's session context: `harness <version> is not cached on this machine; run ./harnessw version once to
+  fetch it.` Every other implicit entry point prints only its stderr line. The wrapper prints both lines itself, as
+  fixed text from its template, selected by the event the hook names. Why: the agent learns once per session why hooks,
+  notifications and standing context are absent, without a message on every tool call, and only the wrapper is present
+  to say it ([ADR 0017](../adrs/0017-engine-version.md)).
 - Documentation, help examples, the `AGENTS.md` and `README.md` `commands` blocks and the harness skill write commands
   that run inside a repository as `./harnessw <command>`, and show `harness <command>` as the equivalent when harness
   is installed globally. Commands that span repositories (`harness fleet …`) are written with `harness`. Why: a
@@ -39,9 +41,9 @@ version the repository chose, with no installation step before the first command
 ### Every spelling is the same command
 
 An agent may invoke a command as `./harnessw <command>`, `harness <command>`, `harnessw <command>` or through a task
-shim. A policy entry that names a harness command is written once, as `[harness, …]`, and rendered for every one of
-those spellings ([configuration-standards.md](configuration-standards.md#policy-entries)). Why: an entry rendered for
-one spelling would leave the others open.
+shim. These four are the rendered spellings: a policy entry that names a harness command is written once, as
+`[harness, …]`, and rendered for each of them ([configuration-standards.md](configuration-standards.md#policy-entries)).
+Why: an entry rendered for one spelling would leave the others open.
 
 Guards never rely on those entries alone. The binary itself refuses `harness lifecycle run` inside a Ralph worker or
 an `agent` action (the launcher sets `HARNESS_WORKER=1` in the agent's environment, and the binary checks it), and it
@@ -87,10 +89,10 @@ harness ralph-worker <agent> [agent args...]
 | --- | --- |
 | `scaffold` | refuses, exit 3, where a `.harness/` directory exists without a harness `config.yaml` or `manifest.json` (another product's directory), naming the conflict, because harness never writes into a directory it did not create. Pins the running binary's own version: it fetches that release's signed checksum file over HTTPS, verifies the signature with the keys embedded in the running binary, and writes `wrapper.yaml` only then; it exits 1 when the file is unreachable or the signature does not verify, and writes nothing |
 | `scaffold --adopt --import <scope>[,<scope>]...` | imports existing permission and hook configuration into `policy.yaml` and `hooks.yaml`. `--import` takes a comma-separated set from the closed enumeration `project`, `local`, `user`, `none`; the default is `project` with `--adopt` and `none` without it. Imports from `local` and `user` are marked for review in the to-do ([compatibility-standards.md](compatibility-standards.md#adoption-equivalence)). A harness pin found in a task runner's tool list is copied into `wrapper.yaml`, and removing it from that file is listed as a to-do; harness never edits the task runner's file |
-| `remove` | undo: deletes owned content (without `--module`, `harnessw`, `wrapper.yaml` and the manifest included) and the seeded repository files in `.harness/` (listed first in its output), then `.harness/` once empty; removes every managed block and owned native key and entry; writes imported project-scope settings back as plain native settings; leaves the state directories in place and lists them ([generated-content-standards.md](generated-content-standards.md#removal)) |
-| `remove --eject` | eject: stops managing and keeps the result. Convention blocks lose their markers and stay; tool blocks are removed; `.gitignore` entries stay; rendered native files and keys stay as hand-owned content without their headers; `raw` hooks stay; hooks that call harness and task shims that exec `harnessw` are removed and listed; the harness skill and its links, `harnessw` and `.harness/` are removed. Not combined with `--module`; accepts `--force` |
+| `remove` | undo: deletes owned content (without `--module`, `harnessw`, `wrapper.yaml` and the manifest included) and the seeded repository files in `.harness/` (listed first in its output); deletes a seeded file outside `.harness/`, such as a memory skeleton file, only while it matches its recorded hash; lists and leaves any file the manifest does not record, and deletes `.harness/` once nothing else is in it; removes every managed block and owned native key and entry; writes imported project-scope settings back as plain native settings; leaves the state directories in place and lists them ([generated-content-standards.md](generated-content-standards.md#removal)) |
+| `remove --eject` | eject: stops managing and keeps the result. Convention blocks lose their markers and stay; tool blocks are removed; `.gitignore` entries stay; rendered native files and keys stay as hand-owned content without their headers; `raw` hooks stay; hooks that call harness, permission entries that name a harness command and task shims that exec `harnessw` are removed and listed; the harness skill and its links, `harnessw`, and the owned and seeded files in `.harness/` are removed; a file the manifest does not record is listed and left, and `.harness/` is deleted once nothing else is in it. Not combined with `--module`; accepts `--force` |
 | `wrapper` | without flags, prints the pin, whether it is cached and the newest release, and writes nothing |
-| `wrapper --version <tag>`, `wrapper --latest` | the running binary fetches the target release's signed checksum file and verifies the signature with its embedded keys; only then does it download this platform's asset, verify its sha256, and have the new release write `version` and `checksums` into `.harness/wrapper.yaml` and render `harnessw`. Any failure exits 1 and writes nothing. The change reaches review as a diff. `harness fleet wrapper --version <tag> --deliver` does the same across repositories |
+| `wrapper --version <tag>`, `wrapper --latest` | the running binary fetches the target release's signed checksum file and verifies the signature with its embedded keys; only then does it download this platform's asset, verify its sha256, and have the new release write `version` and `checksums` into `.harness/wrapper.yaml` and render the repository: `harnessw`, the harness skill and every other artefact the new release renders differently. Any failure exits 1 and writes nothing. The pin and its rendered effects reach review as one diff ([ADR 0017](../adrs/0017-engine-version.md)). `harness fleet wrapper --version <tag> --deliver` does the same across repositories |
 | `explain <topic>` | prints the built-in documentation for one topic: `layout`, `profile`, `policy`, `hooks`, `lifecycle`, `context`, `adoption`, `verify`, `ralph`, `invariants`, `blocks`, `presets`, `wrapper`, `safety`, `pitfalls` |
 | `context show` | prints, without writing anything, the standing context that would be injected for a role (`interactive` or `worker`, default `interactive`), given the files read or edited (`--path`) and a prompt (`--prompt`), with the entry and trigger behind each item. It is a deterministic preview of what the hooks inject |
 | `render --refresh` | re-resolves presets whose `extends` has no `@<ref>` and records the new commits in the manifest; plain `render` and `render --check` reuse the recorded commits |
@@ -98,10 +100,10 @@ harness ralph-worker <agent> [agent args...]
 | `lifecycle run <event>` | runs the event's declared actions, in declaration order, for one scope; never asks for confirmation; refuses, exit 3, inside a Ralph worker or an `agent` action |
 | `fleet <command> --deliver` | after the command, commits the tool-owned changes on a new local branch `<branch_prefix><command>` cut from the fetched default branch, runs `harness verify` (no lanes are needed for a change outside `app_paths`), then fires `deliver` (scope `change`) in that repository, running every declared `deliver` action for that scope |
 
-The binary contains no hosting-platform logic: no command and no flag pushes, opens a pull request or writes to a
-hosting platform by itself. Those effects exist only as declared actions
-([principles.md](principles.md#7-nothing-leaves-the-clone-undeclared)). Why: delivery conventions differ per
-organization and platform, and a declared action is reviewed where the convention is decided.
+The binary contains no logic for the platform that hosts the team's work: no command and no flag pushes, opens a pull
+request or writes to a hosting platform by itself ([ADR 0012](../adrs/0012-write-boundary.md)). Those effects exist
+only as declared actions ([principles.md](principles.md#7-nothing-leaves-the-clone-undeclared)). Why: delivery
+conventions differ per organization and platform, and a declared action is reviewed where the convention is decided.
 
 ## Command grammar
 
@@ -177,7 +179,7 @@ Rules:
 
 - A boolean flag is true when present: `--check`, `--full`, `--headless`, `--force`.
 - A `--no-<x>` flag exists only when the default is on: `--no-bootstrap`, and the wrapper's `--no-download`, which
-  belongs to the wrapper rather than the binary and is its first argument (`./harnessw --no-download hook`). Why: the
+  belongs to the wrapper rather than the binary and is its first argument (`./harnessw --no-download hook <event>`). Why: the
   wrapper reads its own flag before it knows whether a binary exists to receive the rest.
 - `--x=false` is not a documented form, because one spelling per state keeps policy entries and docs exact.
 
@@ -262,15 +264,18 @@ narrower the scope of a source, the more deliberate the choice it expresses.
 | Code | Meaning | Examples |
 | --- | --- | --- |
 | 0 | success; nothing to report or nothing left to do | `render` wrote or found everything up to date; `doctor` found nothing beyond notes; every action of a `lifecycle run` passed, or the event declares no actions |
-| 1 | error: the command could not do its job | invalid usage, unknown key in a repository file, a state path inside `.harness/` or `.agents/`, missing prerequisite tool, I/O failure; an explicit entry point that cannot obtain the pinned binary (no downloader, download failure, checksum mismatch); `wrapper --version` or `scaffold` meeting a release whose signed checksum file is unreachable or does not verify |
+| 1 | error: the command could not do its job | invalid usage, unknown key in a repository file, a state path inside `.harness/` or `.agents/`, I/O failure; an explicit entry point that cannot obtain the pinned binary (no downloader, download failure, checksum mismatch); `wrapper --version` or `scaffold` meeting a release whose signed checksum file is unreachable or does not verify |
 | 2 | a check ran and failed | `render --check` found drift, `doctor` reported a finding (a second harness pin in a task runner's file, a locked skill whose hash does not match, a pinned release whose signed checksum file no longer matches `wrapper.yaml`), `verify --check` or `task complete` met an invalid receipt; a lifecycle action exited non-zero; `scaffold --adopt` found a project-scope rule no longer in effect |
-| 3 | blocked: the next step is a person's decision | confirmation needed with no TTY and no `--yes`; `remove` refused a hand-edited file without `--force`; `scaffold` found a `.harness/` directory harness did not create; the repository schema is newer than the binary (only when the pin is bypassed); a lifecycle guard refused (`deliver` on the default branch, with uncommitted changes, or, when the verify module is enabled, without a valid receipt; any event inside a Ralph worker or an `agent` action) |
+| 3 | blocked: the next step is a person's decision | confirmation needed with no TTY and no `--yes`; a prerequisite tool a person must install is missing (Node for `skills sync`, `ralph-tui`, `bd`); `remove` refused a hand-edited file without `--force`; `scaffold` found a `.harness/` directory harness did not create; the repository schema is newer than the binary (only when the pin is bypassed); a lifecycle guard refused (`deliver` on the default branch, with uncommitted changes, or, when the verify module is enabled, without a valid receipt; any event inside a Ralph worker or an `agent` action) |
 
 - Codes 2 and 3 tell an agent what to do next: 2 means "fix the finding and run again"; 3 means "stop and ask a
   person". A new failure mode MUST map to one of the four codes; no other code is used. Why: an agent acts on the
   code, and four codes with fixed meanings are all it needs to choose between retry, repair and escalation.
+- A missing prerequisite tool exits 3, not 1, because installing software on a machine is a person's decision that an
+  agent cannot make; the message names the tool and the command that installs it.
 - `doctor` notes (an `AGENTS.md` budget overrun, a standing-context budget overrun, an agent that lacks an event a hook
-  needs, an automatic `agent` action, a `harness` on `PATH` that is another program, a newer upstream preset commit)
+  needs, an automatic `agent` action, a `harness` on `PATH` that is another program, a running binary other than the
+  pinned release, a newer upstream preset commit, a newer release than the pin)
   never change the exit code, because they inform a choice rather than report a failure.
 - Invalid usage exits 1, so that 2 stays unambiguous for CI.
 - When a harness command run without a TTY exits 3 outside a worker, harness fires the out-of-band `blocked`
@@ -309,7 +314,8 @@ Format and wording: [messages-and-docs.md](messages-and-docs.md#error-messages).
   needless questions train people to answer yes without reading.
 - `harness lifecycle run` never asks for confirmation, and a lifecycle action fired automatically at its trigger point
   (`auto: true`) never asks either. The gate for agents is the policy: scaffolded repositories seed
-  `[harness, lifecycle, run, deliver]` under `ask`, rendered for every spelling. Why: the declared action is the
+  `[harness, lifecycle, run, deliver]` under `ask`, rendered for every rendered spelling; it is a seeded entry the
+  repository owns and may change ([ADR 0015](../adrs/0015-development-lifecycle.md)). Why: the declared action is the
   reviewed decision; the policy decides who may trigger it.
 - A confirmation is asked only when stdin and stderr are TTYs. Otherwise the command stops before acting and exits 3,
   naming `--yes`, because a prompt nobody can answer would hang an unattended run.
@@ -443,8 +449,10 @@ caller sees the correct form and where to read more.
 ## Version and compatibility output
 
 - `harness version` prints the binary version (semantic versioning) and, per repository file, the schema versions it
-  reads. With `--json`, the same as data. Why: a schema refusal names schemas, so the user needs to see which ones the
-  binary reads.
+  reads. With `--json`, the same as data. Why: a schema refusal names the file's schema, the newest schema the binary
+  reads and the pinned release that reads the file
+  ([configuration-standards.md](configuration-standards.md#schema-versioning)), so the user needs to see what the
+  binary in hand reads.
 - `harness version --check-update` checks for a newer release on request. Moving the repository to it is
   `harness wrapper --version <tag>`, because the version a repository runs is a reviewed change, not a machine update.
 - Agent and tool version support (Claude Code, Codex, `bd`, `ralph-tui`) is reported by `harness doctor`, which names

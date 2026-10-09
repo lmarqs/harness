@@ -114,7 +114,9 @@ review.
 Two ways ([remove](remove.md)). `./harnessw remove` undoes the adoption: it deletes what `harness` added and writes
 back the permission rules and hooks adoption imported. `./harnessw remove --eject` stops `harness` managing the
 repository and keeps the result: the conventions in `AGENTS.md` and `.gitignore`, the permissions and the `raw` hooks
-stay as hand-owned files. Both delete `harnessw` and `.harness/`.
+stay as hand-owned files. Both delete `harnessw` and the files in `.harness/` that `harness` owns or seeded, then
+`.harness/` once it is empty; a file the manifest does not record, such as `.harness/ralph/prompt.hbs`, is listed and
+left.
 
 ### Does anything keep working after an eject?
 
@@ -203,9 +205,9 @@ like code before moving it to `allow` ([safety](safety.md)).
 ### Can a Ralph worker deliver its own work?
 
 No. The binary refuses `harness lifecycle run` inside a worker, whatever spelling the agent uses, and the built-in
-base also denies `harness lifecycle` to every worker, rendered for every spelling. The launcher fires events and runs
-their actions in its own process, never inside the worker, once the worker's verified commit has landed on the run
-branch.
+base also denies `harness lifecycle` to every worker, rendered for each spelling `harness` renders. The launcher fires
+events and runs their actions in its own process, never inside the worker, once the worker's verified commit has
+landed on the run branch.
 
 ### A preset changed upstream, but `render` changed nothing.
 
@@ -249,9 +251,10 @@ the only pin, and `doctor` reports a second one as a finding.
 
 ### How do I upgrade?
 
-`./harnessw wrapper --latest`, or `--version <tag>`, rewrites the pin; `./harnessw render` lets the new release
-refresh what it renders; commit both. `harness fleet wrapper --version <tag> --deliver` does the same across many
-repositories ([wrapper](wrapper.md#upgrading)).
+`./harnessw wrapper --version <tag>`, or `--latest`, moves the pin and renders the repository with the new release in
+the same change, so the pin and everything the new release renders differently arrive as one diff; review it and
+commit it. `harness fleet wrapper --version <tag> --deliver` does the same across many repositories
+([wrapper](wrapper.md#upgrading)).
 
 ### A teammate's `harness` refuses our repository.
 
@@ -270,4 +273,6 @@ never download ([installation](installation.md#release-trust)).
 
 ### How do I turn off the update notice?
 
-`export HARNESS_NO_UPDATE_CHECK=1`, or `session_start.update_notice: false` in `.harness/hooks.yaml` for agent sessions.
+`export HARNESS_NO_UPDATE_CHECK=1`. The notice is one stderr line on explicit commands, at most once a day, plus a
+`doctor` note; it never appears in agent sessions, because moving the pin is a reviewed decision, not one an agent
+takes because it read a notice ([installation](installation.md#update-notice)).

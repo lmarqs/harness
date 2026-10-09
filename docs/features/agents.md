@@ -25,8 +25,8 @@ rendered for it.
 
 | Role | Meaning | Native files carry | As a Ralph worker |
 | --- | --- | --- | --- |
-| `interactive` | people use this agent in the repository | the shared policy (`shared.*`) | Claude Code: `worker.deny`, including the built-in `[harness, lifecycle]` in every spelling, is added at launch. Codex: refused, because its denies can only come from rendered rules |
-| `worker` | the agent runs here only as a Ralph worker | the shared policy plus `worker.deny`, including the built-in `[harness, lifecycle]` in every spelling | allowed |
+| `interactive` | people use this agent in the repository | the shared policy (`shared.*`) | Claude Code: `worker.deny`, including the built-in `[harness, lifecycle]` in each spelling `harness` renders, is added at launch. Codex: refused, because its denies can only come from rendered rules |
+| `worker` | the agent runs here only as a Ralph worker | the shared policy plus `worker.deny`, including the built-in `[harness, lifecycle]` in each spelling `harness` renders | allowed |
 
 A repository where people use Codex interactively and also want Codex workers chooses one: interactive Codex, or
 Codex workers. Claude Code can be both, since its worker denies are passed at launch.
@@ -55,7 +55,7 @@ hooks and its next attempt run.
 | Harness skill | `.claude/skills/harness` | `.codex/skills/harness` |
 | Never written | `.claude/settings.local.json` (read only by `scaffold --import local`), `.claude/worktrees/` (never scanned) | `*.local.toml` (read only by `scaffold --import local`) |
 
-Both adapters write the same hook command, `"$(git rev-parse --show-toplevel)/harnessw" --no-download hook`. It runs
+Both adapters write the same hook command, `"$(git rev-parse --show-toplevel)/harnessw" --no-download hook <event>`. It runs
 the pinned binary of the checkout the agent works in, from the cache, and never downloads: when the binary is not
 cached it prints one line naming `./harnessw` and exits 0 ([hooks](hooks.md#the-missing-binary-guard)).
 
@@ -97,7 +97,7 @@ partial adapter is not accepted, because each item backs an invariant.
 | Instructions | how the agent reaches `AGENTS.md` (reads it directly, or through an import in its own instruction file) |
 | Permission rendering | how `allow`, `ask`, `deny`, prefix lists, alternatives, native rule strings, bare strings and, for `role: worker`, `worker.deny` map to the agent's native format, and which forms it cannot express (those are listed as agent-only in the `policy` block of `AGENTS.md`) |
 | Owned native content | the exact files, keys and entries it writes; everything else is preserved; local override files are never written, and read only by `scaffold --import local` |
-| Hook rendering | the events it supports, the matcher semantics, and how the wrapper's hook command (`harnessw --no-download hook`) and `raw` entries are written; which native events carry `attention`, `turn_end` and each standing-context trigger, and which it lacks |
+| Hook rendering | the events it supports, the matcher semantics, and how the wrapper's hook command (`harnessw --no-download hook <event>`) and `raw` entries are written; which native events carry `attention`, `turn_end` and each standing-context trigger, and which it lacks |
 | Payload normalisation | how its hook payload maps to the normalised event, tool, edited and read files, working directory, the person's prompt text and the agent's notification message, and which tools are edits or reads |
 | Skill location | where the harness skill link goes |
 | Worker launch | the tool-owned files the tamper check restores and compares; the non-bypass permission mode it pins; how `worker.deny` applies (launch flags, or rendered rules, which then requires `role: worker`); the bypass flags and configuration keys it refuses; the sandbox roots it opens; how a model and an effort are substituted; how the prompt is passed |

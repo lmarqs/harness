@@ -214,8 +214,10 @@ Leave `modules.tasks: false` and `tracker.default: none`; worktrees and `harness
 - GitHub stays the record: the binary contains no logic for any hosting platform and never writes issues, projects,
   comments, reviews or labels. Through `harness`, a pull request is opened only by a `deliver` action the
   repository declares.
-- An existing `.beads/`, including one synchronised across machines or tracked in git, is used as found. With a
-  synchronised database, claims made by sessions and Ralph workers are visible to the other machines.
+- Task state `harness` creates stays in the clone. An existing `.beads/`, including one synchronised across machines
+  or tracked in git, is used as found, so what `harness` writes into it (claims, notes, verification comments) travels
+  where that synchronisation sends it; `harness` never configures the synchronisation
+  ([ADR 0012](../adrs/0012-write-boundary.md)).
 - `harness` does not change `core.hooksPath` and initialises Beads without git hooks.
 
 See [compatibility](compatibility.md#beads).

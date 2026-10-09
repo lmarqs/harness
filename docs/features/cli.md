@@ -15,11 +15,11 @@ harness scaffold [--adopt] [--import <scope>[,<scope>]...] [--preset <go|node|te
 harness remove [--module <name>]... [--force] [--dry-run]
 harness remove --eject [--force] [--dry-run]
 harness render [--check] [--refresh] [--dry-run]
-harness wrapper [--version <tag> | --latest] [--dry-run]
+harness wrapper [--version <tag> | --latest] [--yes] [--dry-run]
 harness doctor [--json]
 harness explain <topic>
 harness context show [--role interactive|worker] [--path <file>]... [--prompt <text>] [--json]
-harness hook
+harness hook <session-start|post-tool-use|prompt-submit|attention|turn-end>
 harness lifecycle list [--json]
 harness lifecycle run <event> [--action <name>]... [--scope task|run|change] [--task <id>] [--session <id>]
                       [--dry-run]
@@ -45,7 +45,8 @@ harness version [--check-update]
 
 `harnessw` resolves the release pinned in `.harness/wrapper.yaml`, downloads and verifies it when it is not cached,
 and execs `harness` with the remaining arguments. `--no-download`, which must come first, runs only a cached release:
-when none is cached it prints one line naming `./harnessw` on stderr and exits 0. Rendered agent hooks use it.
+when none is cached it prints one line naming `./harnessw` on stderr, and for `hook session-start` also one line of
+agent context on stdout, then exits 0. Rendered agent hooks use it.
 
 | Exit code | Meaning |
 | --- | --- |
@@ -64,7 +65,7 @@ release, downloading it through the same verified path only when the command was
 | `-C <dir>` | every command | Run as if started in `<dir>` |
 | `--json` | commands whose output is data: `doctor`, `context show`, `lifecycle list`, `fleet`, `scaffold` (the to-do), `version` | Print one JSON document instead of text |
 | `--dry-run` | commands that change files or run actions: `scaffold`, `remove`, `render`, `wrapper`, `worktree`, `lifecycle run`, `skills sync`, `fleet` (passed to each repository's command; no branch, commit or delivery) | Print what would change or run; change nothing |
-| `--yes` | commands that ask for confirmation: `scaffold`, `remove` (with or without `--eject`), `render` (schema migration), `fleet` (passed through) | Answer yes; required without a terminal |
+| `--yes` | commands that ask for confirmation: `scaffold`, `remove` (with or without `--eject`), `render` and `wrapper` (schema migration), `fleet` (passed through) | Answer yes; required without a terminal |
 | `--verbose` | every command | Print each command `harness` runs and why |
 
 Commands never prompt without a terminal: where confirmation is needed and `--yes` is absent, they stop with exit 3.
@@ -77,9 +78,9 @@ says.
 | Code | Meaning | Typical causes |
 | --- | --- | --- |
 | 0 | Success | |
-| 1 | Error | invalid flags or files, a missing tool, a failed external command, a failed download or checksum check, a release whose signed checksum file does not verify |
+| 1 | Error | invalid flags or files, a failed external command, a failed download or checksum check, a release whose signed checksum file does not verify |
 | 2 | A check or an action failed | `render --check` drift; a `doctor` finding; `verify` lint, validator, build or lane failure; `verify --check` or `task complete` without a valid receipt; a failing post-edit hook; the adoption equivalence check; a failing action in `lifecycle run` or `fleet --deliver` |
-| 3 | Blocked: a person must act | a confirmation without a terminal; uncommitted changes where committed state is required; a resource owned by another session or run; a repository schema newer than the running release; an unfinished Ralph run; a lifecycle guard refusing `deliver`; an owned path edited by hand before `remove`; a `.harness/` directory another tool owns, at `scaffold` |
+| 3 | Blocked: a person must act | a confirmation without a terminal; a prerequisite a person must install, such as Node for the `skills` CLI, `bd` or `ralph-tui`; uncommitted changes where committed state is required; a resource owned by another session or run; a repository schema newer than the running release; an unfinished Ralph run; a lifecycle guard refusing `deliver`; an owned path edited by hand before `remove`; a `.harness/` directory another tool owns, at `scaffold` |
 
 A command run without a terminal that exits 3 fires the [`blocked`](lifecycle.md#events) lifecycle event for the
 scope of its work, with the refusal in `HARNESS_REASON`, so a declared notification reaches the person who must act.
@@ -115,11 +116,11 @@ verify module is enabled), the automatic `deliver` does not fire, and the comman
 | `scaffold` | Set up a repository, `harnessw` and `wrapper.yaml` included, pinning the running release after verifying its signed checksum file; `--adopt` imports an existing setup, `--import` chooses the scopes | 0 set up; 1 error, already scaffolded, the release's checksum file unreachable or not verified; 2 the equivalence check lost a rule; 3 confirmation needed, or a `.harness/` directory another tool owns | [scaffold](scaffold.md) |
 | `remove` | Undo the adoption, or one module, using the manifest; `--eject` stops managing and keeps the result | 0 removed or ejected; 1 error; 3 an owned path changed by hand, or confirmation needed | [remove](remove.md) |
 | `render` | Render native files, `harnessw`, task shims, the skill, blocks; `--check` for drift; `--refresh` re-resolves presets | 0 rendered or no drift; 1 invalid file, unresolvable preset; 2 drift; 3 newer schema, or migration needs confirmation | [render](render.md) |
-| `wrapper` | Pin a release in `.harness/wrapper.yaml` (`--version`, `--latest`): verify the release's signed checksum file with the running release's embedded keys, then download and verify this platform's binary, then have the new release render `harnessw` and write `wrapper.yaml`. Without a flag, print the pin, whether it is cached and the newest release, and write nothing | 0 pinned, already pinned, or status printed; 1 unknown tag, no network, a signature that does not verify, missing checksums, checksum mismatch, invalid `wrapper.yaml`; nothing is written | [wrapper](wrapper.md#harness-wrapper) |
+| `wrapper` | Pin a release in `.harness/wrapper.yaml` (`--version`, `--latest`): verify the release's signed checksum file with the running release's embedded keys, then download and verify this platform's binary, then have the new release render the repository: `harnessw`, `wrapper.yaml`, every file it renders differently, and a migration of older-schema files after confirmation. Without a flag, print the pin, whether it is cached and the newest release, and write nothing | 0 pinned, already pinned, or status printed; 1 unknown tag, no network, a signature that does not verify, missing checksums, checksum mismatch, invalid `wrapper.yaml`; 3 a migration needs confirmation without a terminal; nothing is written unless every step passes | [wrapper](wrapper.md#harness-wrapper) |
 | `doctor` | Read-only health checks, the wrapper, the single pin, the release signature and the cached release, the adoption to-do, notes, landed branches with the command that fires `landed` | 0 no findings; 1 cannot run; 2 a finding or an open to-do item | [doctor](doctor.md) |
 | `explain <topic>` | Built-in documentation. Topics: `layout`, `profile`, `policy`, `hooks`, `lifecycle`, `context`, `adoption`, `verify`, `ralph`, `invariants`, `blocks`, `presets`, `wrapper`, `safety`, `pitfalls` | 0 printed; 1 unknown topic | [explain](explain.md) |
 | `context show` | Preview the standing context a session would receive for a role, paths and a prompt, and why | 0 printed; 1 invalid `context` declarations, a missing skill or file, an unknown role | [context](context.md#harness-context-show) |
-| `hook` | Handle an agent event read from stdin (Claude Code or Codex payload): run post-edit commands and validators, add session context, inject standing context, run `attention` and `turn_end` hooks. Called by rendered hook entries through `harnessw --no-download` | 0 nothing to do or passed; 2 a post-edit command or validator failed | [hooks](hooks.md) |
+| `hook <event>` | Handle an agent event read from stdin (Claude Code or Codex payload): run post-edit commands and validators, add session context, inject standing context, run `attention` and `turn_end` hooks. Called by rendered hook entries through `harnessw --no-download`, with the entry's event as argument | 0 nothing to do or passed; 2 a post-edit command or validator failed | [hooks](hooks.md) |
 | `lifecycle list` | List events, their actions, `auto` flags, scopes and sources (repository or preset) | 0 listed; 1 invalid hooks file or preset | [lifecycle](lifecycle.md) |
 | `lifecycle run` | Run an event's actions by hand, or as a coordinating agent, `blocked` included; never asks for confirmation | 0 every action passed, or none declared; 1 error; 2 an action failed; 3 a guard refused (including any event inside a Ralph worker) | [lifecycle](lifecycle.md) |
 | `worktree create` | Create a managed task worktree; fires `start` | 0 created; 1 error | [worktrees](worktrees.md) |
@@ -143,9 +144,9 @@ Paths under `.work/` are shown at their defaults; the profile moves them with `s
 | --- | --- | --- |
 | `harnessw` | `.harness/wrapper.yaml`, `$HARNESS_HOME/versions/<version>/harness` | `$HARNESS_HOME/versions/<version>/harness`, on a verified download only |
 | `scaffold` | marker files, git metadata, mise configuration and tasks, native agent files, `CLAUDE.md`, `.gitignore`; with `--import`, the permission and hook files of each chosen scope; the running release's checksum file and its signature | the three repository files, `.harness/wrapper.yaml`, `.agents/memory/` skeleton, everything `render` writes (`harnessw` included) |
-| `remove` | the manifest and the paths it lists; `.harness/policy.yaml` and `.harness/hooks.yaml` for the provenance of imported entries | deletes owned paths, `harnessw` and `.harness/`; rewrites native files and block hosts (undo restores imported settings; `--eject` keeps rendered content and strips markers); `.harness/config.yaml` with `--module` |
-| `render` | the three repository files, `.harness/wrapper.yaml`, presets at their recorded commits, the manifest, native files, block hosts, `.agents/memory/`, the files and skills of `static` context entries with `skills-lock.json`, the git index | native files (owned keys and entries), `harnessw`, `.codex/rules/harness.rules`, `.mise/tasks/` task shims, `.agents/skills/harness/`, skill links, blocks in `AGENTS.md`, `README.md`, `CLAUDE.md`, `.gitignore`, the manifest (with each preset's resolved commit) |
-| `wrapper` | `.harness/wrapper.yaml`, the manifest, the target release's checksum file and its signature | `$HARNESS_HOME/versions/<version>/harness`, then `.harness/wrapper.yaml`, `harnessw` when its template changed and the manifest, only after every verification passed |
+| `remove` | the manifest and the paths it lists; `.harness/policy.yaml` and `.harness/hooks.yaml` for the provenance of imported entries | deletes owned paths, `harnessw`, every file the manifest records in `.harness/`, and `.harness/` once nothing else is in it (an unrecorded file is listed and left); on undo, the memory skeleton files still matching their seeded hash; rewrites native files and block hosts (undo restores imported settings; `--eject` keeps rendered content and strips markers); `.harness/config.yaml` with `--module` |
+| `render` | the three repository files, `.harness/wrapper.yaml`, presets at their recorded commits, the manifest, native files, block hosts, `.agents/memory/`, the files and skills of `static` context entries with `skills-lock.json`, the git index | native files (owned keys and entries), `harnessw`, `.codex/rules/harness.rules`, `.mise/tasks/` task shims, `.agents/skills/harness/`, skill links, blocks in `AGENTS.md`, `README.md`, `CLAUDE.md`, `.gitignore`, the manifest (with each preset's resolved commit); the `.agents/memory/` skeleton, once, the first time it renders with the memory module on |
+| `wrapper` | `.harness/wrapper.yaml`, the manifest, the target release's checksum file and its signature, everything `render` reads | `$HARNESS_HOME/versions/<version>/harness`, then `.harness/wrapper.yaml`, the manifest and every file `render` writes that the new release renders differently (`harnessw` included), and migrated repository files, only after every verification passed |
 | `doctor` | everything `render` reads, `harnessw`, `$HARNESS_HOME`, `mise tasks`, `mise.toml`, `.mise.toml`, `.tool-versions`, tool versions, `.work/` session records, `.work/lifecycle.jsonl`, online the pinned release's signed checksum file | `$HARNESS_HOME` (update and signature checks) only |
 | `explain` | nothing | nothing |
 | `context show` | the profile, the skills and files `context` entries name, `skills-lock.json`; with `--role worker`, those files at `HEAD` | nothing |
@@ -153,11 +154,11 @@ Paths under `.work/` are shown at their defaults; the profile moves them with `s
 | `lifecycle list` | the hooks file, presets | nothing |
 | `lifecycle run` | the hooks file, presets, `.work/session.json`, `.work/verified.json`, git | `.work/lifecycle.jsonl`; whatever the actions write |
 | `worktree create` | the profile, git | `.work/worktrees/<name>/`, branch `work/<name>`, its `.work/session.json`; `.beads/` when initialising Beads; `.work/lifecycle.jsonl` |
-| `worktree remove` | git, the hooks file | removes `.work/worktrees/<name>/`; `.work/lifecycle.jsonl`; whatever `landed` actions write |
+| `worktree remove` | git, the hooks file | removes `.work/worktrees/<name>/`; `.work/lifecycle.jsonl`; whatever `landed` actions write; for a `landed` `agent` action, a recorded worktree `.work/worktrees/landed-<slug>-<n>` on branch `work/landed-<slug>-<n>` |
 | `verify` | the profile, git, changed files, `.work/session.json` | `.work/verified.json`; `.work/lifecycle.jsonl` |
 | `task` | `.work/session.json`, `.work/verified.json` | the Beads database through `bd`, or the PRD file; `.work/lifecycle.jsonl` |
-| `ralph run` / `resume` | the profile, policy, hooks file (from the base commit), the PRD or Beads | `.work/ralph.lock`, the coordinator worktree under `.work/ralph-worktrees/` and its `.ralph-tui/`, task and worker checkouts, branches `work/ralph-*` and `ralph/session-*`, `.work/lifecycle.jsonl` |
-| `ralph clean` | `.work/` session records, git | removes recorded worktrees and landed branches; `.work/lifecycle.jsonl` |
+| `ralph run` / `resume` | the profile, policy, hooks file (from the base commit), the PRD or Beads | `.work/ralph.lock`, the coordinator worktree `.work/worktrees/ralph-<id>` and its `.ralph-tui/`, sequential task worktrees `.work/worktrees/ralph-<id>-<task>`, ralph-tui's parallel worker checkouts under `.work/ralph-worktrees/`, branches `work/ralph-*` and `ralph/session-*`, `.work/lifecycle.jsonl` |
+| `ralph clean` | `.work/` session records, git | removes recorded worktrees and landed branches; `.work/lifecycle.jsonl`; for a `landed` `agent` action, a recorded worktree `.work/worktrees/landed-<slug>-<n>` |
 | `skills sync` | the profile | `.agents/skills/`, `skills-lock.json` (through the `skills` CLI) |
 | `fleet` | the fleet file | whatever the command writes; with `--deliver`, a local branch, a commit and a receipt per changed repository, `.work/lifecycle.jsonl`, and whatever its `deliver` actions write |
 | `version` | `$HARNESS_HOME` | `$HARNESS_HOME` with `--check-update` |
@@ -169,8 +170,8 @@ Variables that configure `harnessw` and `harness`:
 | Variable | Read by | Effect |
 | --- | --- | --- |
 | `HARNESS_HOME` | `harnessw`, `harness` | The per-user cache directory, default `$XDG_CACHE_HOME/harness`, or `~/.cache/harness` when `XDG_CACHE_HOME` is unset: downloaded releases at `versions/<version>/harness`, the update-check result, fetched presets |
-| `HARNESS_BINARY` | `harnessw` | A path to a `harness` binary to exec instead of the pinned release; no download and no checksum check, so it bypasses the pin ([wrapper](wrapper.md#air-gapped-machines)) |
-| `HARNESS_NO_UPDATE_CHECK=1` | `harness` | Disable the daily release check in `doctor` and the `SessionStart` hook |
+| `HARNESS_BINARY` | `harnessw` | A path to a `harness` binary to exec instead of the pinned release; no download and no checksum check, so it bypasses the pin, and `harness doctor` notes it ([wrapper](wrapper.md#air-gapped-machines)) |
+| `HARNESS_NO_UPDATE_CHECK=1` | `harness` | Disable the daily release check on explicit commands and in `doctor` |
 | `HARNESS_NO_CONTEXT=1` | `harness hook` | Inject no [standing context](context.md) in this environment and every process started from it; `static` entries in `AGENTS.md` stay |
 | `HARNESS_WORKER=1` | `harness` | Set by the Ralph worker launcher and for `agent` actions, never by hand: selects the `worker` role for standing context, makes the binary refuse `harness lifecycle run`, and keeps every command from firing events |
 

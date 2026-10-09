@@ -36,15 +36,16 @@ finds nothing to import and behaves like a plain scaffold.
 4. **Seed** the repository files, once:
    - `.harness/config.yaml` from the stack preset (commands, lanes, post-edit hooks, modules);
    - `.harness/policy.yaml` with one seeded entry, `[harness, lifecycle, run, deliver]` under `shared.ask`, rendered
-     for every spelling of the command, so the agent's own permission prompt asks a person before an agent runs the
-     repository's delivery actions; the repository may move or remove it ([policy](policy.md#the-seeded-entry));
+     for each spelling `harness` renders, so the agent's own permission prompt asks a person before an agent
+     runs the repository's delivery actions; it is a seeded entry the repository owns and may change
+     ([policy](policy.md#the-seeded-entry), [ADR 0015](../adrs/0015-development-lifecycle.md));
    - `.harness/hooks.yaml` from the stack preset, with no `lifecycle` actions: the binary ships none;
-   - `.harness/wrapper.yaml`, pinning the release that runs `scaffold`: its exact version, and the checksums of its
-     four platform binaries. They come from that release's checksum file, fetched over HTTPS and accepted only after
-     its signature verifies against the release keys embedded in the running binary
-     ([wrapper](wrapper.md#harnesswrapperyaml), [safety](safety.md#the-pinned-binary));
    - `.agents/memory/` skeleton, when the `memory` module is on.
-5. **Render** everything else, exactly as [`harness render`](render.md) does: `harnessw`, native agent files, the
+5. **Pin** the release that runs `scaffold` in `.harness/wrapper.yaml`, an owned file: its exact version, and the
+   checksums of its four platform binaries. They come from that release's checksum file, fetched over HTTPS and
+   accepted only after its signature verifies against the release keys embedded in the running binary
+   ([wrapper](wrapper.md#harnesswrapperyaml), [safety](safety.md#the-pinned-binary)).
+6. **Render** everything else, exactly as [`harness render`](render.md) does: `harnessw`, native agent files, the
    harness skill and its links, task shims, managed blocks, the manifest.
 
 After this, the seeded files belong to the repository. `scaffold` never rewrites them; `render` reads them. People and
@@ -212,7 +213,8 @@ What adoption cannot resolve deterministically, it prints as a to-do. The same l
 
 Adoption also prints notes that need a decision but are not to-do items, because keeping things as they are is valid:
 
-- `CLAUDE.md` has content: consider moving instructions shared by every agent to `AGENTS.md`.
+- `CLAUDE.md` has content: instructions every agent needs belong in `AGENTS.md`, which Codex reads too;
+  Claude-specific ones stay in `CLAUDE.md`.
 - A root `.ralph-tui/config.toml` exists: direct ralph-tui use keeps working; set `ralph.config: inherit` to reuse
   its agents and templates in harness-launched runs (see [ralph](ralph.md#managed-and-inherited-configuration)).
 - The settings listed under [Not policy](#not-policy-notes).
@@ -253,8 +255,8 @@ Files read: marker files for detection, `.git` (default branch, tracked paths), 
 `.claude/settings.json`, `.codex/rules/`, `.codex/hooks.json`, `CLAUDE.md`, `.claude/CLAUDE.md`, `.gitignore`,
 `.claude/skills`; with `--import local`, `.claude/settings.local.json` and `.codex/*.local.toml`; with
 `--import user`, `~/.claude/settings.json` and `~/.codex/rules/`.
-Files written: see [render](render.md#what-render-writes) (`harnessw` included), plus the seeded
-`.harness/config.yaml`, `.harness/policy.yaml`, `.harness/hooks.yaml`, `.harness/wrapper.yaml` and `.agents/memory/`.
+Files written: see [render](render.md#what-render-writes) (`harnessw` included), the owned `.harness/wrapper.yaml`,
+plus the seeded `.harness/config.yaml`, `.harness/policy.yaml`, `.harness/hooks.yaml` and `.agents/memory/`.
 
 ## Examples
 
@@ -324,7 +326,7 @@ note: defaultMode in .claude/settings.json is not policy; left in place
 $ harness scaffold --adopt --yes
 to-do:
   1. mise task "verify" exists; task shim written as harness:verify
-note: CLAUDE.md has content; consider moving shared instructions to AGENTS.md
+note: CLAUDE.md has content; instructions every agent needs belong in AGENTS.md
 $ claude "finish the harness adoption"
 $ ./harnessw doctor
 ```
@@ -357,7 +359,7 @@ to-do:
 | Exit 1: the checksum file's signature does not verify | The file is not signed by a release key the running binary trusts | Do not work around it; obtain `harness` again from the project's releases and report it ([safety](safety.md#the-pinned-binary)) |
 | Exit 3 in a script | No terminal to confirm | Pass `--yes` |
 | Exit 3 naming `.harness/` | The directory belongs to another tool, such as Harness.io pipelines | `harness` cannot share it; see [compatibility](compatibility.md#harnessio) |
-| Exit 2 naming a rule | The equivalence check found a project rule the new files would not keep in effect | Report the rule to the `harness` project; meanwhile adopt with the rule moved to `settings.local.json` |
+| Exit 2 naming a rule | The equivalence check found a project rule the new files would not keep in effect; nothing was written | Keep the repository unadopted and report the rule to the `harness` project, with the rule and the agent version ([ADR 0016](../adrs/0016-permission-adoption.md)) |
 | Wrong stack detected | Marker files of another stack are present (for example a `package.json` for tooling in a Go repository) | Rerun with `--preset`, or edit the profile afterwards |
 | Task shims named `harness:verify` | The repository already had a `verify` task | Reconcile the two tasks, remove the old one, run `./harnessw render` |
 | A rule allowing a force push is missing after adopt | It weakens a built-in invariant and was dropped | Nothing to restore; the invariant holds in every repository |

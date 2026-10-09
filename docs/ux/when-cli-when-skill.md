@@ -76,9 +76,9 @@ Where it is declared:
   add the organization's CI-trigger commit, post to the organization's chat).
 - In the repository's **`hooks.yaml`** when it holds for one repository.
 
-Never in the binary. The binary contains no hosting-platform logic and ships no actions; a command or flag that pushes,
-opens a pull request or calls a hosting platform is a design error, whatever the convenience
-([principles.md](principles.md#7-nothing-leaves-the-clone-undeclared)).
+Never in the binary. The binary contains no logic for the platform that hosts the team's work and ships no actions
+([ADR 0012](../adrs/0012-write-boundary.md)); a command or flag that pushes, opens a pull request or calls a hosting
+platform is a design error, whatever the convenience ([principles.md](principles.md#7-nothing-leaves-the-clone-undeclared)).
 
 ### Choosing the kind
 
@@ -155,7 +155,7 @@ Each row shows a request and where it goes.
 | Post to the team chat when a task completes | deterministic, leaves the clone, a notification channel | a `completed` action of kind `http` with `url_env`, `auto: true` |
 | Ping me when the agent is waiting for my answer | deterministic, a notification, per person or repository | an `attention` action of kind `http` (or `run` for a desktop notifier) in `hooks.yaml` |
 | Tell me when an unattended Ralph run stops unfinished | deterministic, a notification at the moment work stops | a `blocked` action of kind `http`, `auto: true` |
-| Write lessons into memory after a change lands | judgement, after an event | a `landed` action of kind `agent`; its edits stay uncommitted for review |
+| Write lessons into memory after a change lands | judgement, after an event | a `landed` action of kind `agent`; it runs in a fresh worktree of the default branch, and its edits stay uncommitted there for review |
 | Look something up through an MCP-only service before delivery | needs an MCP tool | the coordinating agent before it runs `harness lifecycle run deliver`, or an `agent` action; never the binary |
 | Choose which Ralph task commits go into which pull request and reword them | judgement (grouping, wording), conventions vary by organization | an agent guided by an organization or personal skill; the agent then runs `harness lifecycle run deliver` |
 | Remove the worktree after its branch is merged | deterministic, reacts to a merge, every repository | binary: `harness doctor` lists the landed branch and prints the command; `harness worktree remove` fires `landed`, then removes the worktree |

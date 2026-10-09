@@ -49,7 +49,7 @@ A repository with several stacks gets them merged. See [scaffold](scaffold.md#st
 | --- | --- | --- |
 | Path | `../presets/harness` | the filesystem, relative to the repository root |
 | Git URL | `https://github.com/acme/agent-presets.git//harness`, `git@github.com:acme/agent-presets.git//harness@v2` | `git`, with your credentials |
-| GitHub shorthand | `github:acme/agent-presets//harness`, `github:acme/agent-presets//harness@v2` | `git`, against GitHub |
+| GitHub shorthand | `github:acme/agent-presets//harness`, `github:acme/agent-presets//harness@v2` | `git`: shorthand for the git URL `https://github.com/acme/agent-presets.git`; no platform API is called |
 
 `//` separates the repository from the directory inside it. `@<ref>` at the end pins a git source to a tag, a branch
 or a commit; without it, the source follows its default branch.
@@ -196,8 +196,9 @@ lifecycle:
       scope: [task, change]
 ```
 
-A repository extends one preset, and a preset does not extend another, so an organization preset declares its whole
-delivery sequence. One whose CI runs only on commits carrying a trigger adds that commit before the push:
+Each `extends` names one preset: the profile's brings a whole preset, the policy file's only a preset's policy
+entries. A preset does not extend another, so an organization preset declares its whole delivery sequence. One whose
+CI runs only on commits carrying a trigger adds that commit before the push:
 
 ```yaml
 # acme/agent-presets/harness/hooks.yaml

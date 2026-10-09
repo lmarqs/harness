@@ -25,7 +25,6 @@ Commands are named `harness <command>` on this page. Run them through the reposi
 | The edited file formatted or linted right after every agent edit | a `post_edit` entry |
 | A repository check run when certain files are edited | `validators` |
 | A session in a managed worktree to know its task and tracker | `session_start.context: true` |
-| An update notice in agent sessions | `session_start.update_notice: true` |
 | A message when an agent waits for you: a permission prompt, a question, idle input | an `attention` action |
 | A message when an agent finishes a turn | a `turn_end` action |
 | A skill or directive in the agent's context without invoking it | a `context` entry in the profile ([context](context.md)) |
@@ -50,7 +49,7 @@ The events `harness` renders, per agent:
 
 | Purpose | Claude Code 2.1.x | Codex CLI 0.16x | Rendered when |
 | --- | --- | --- | --- |
-| Session context, update notice, `always` context | `SessionStart` | `SessionStart` | always, with `modules.hooks` |
+| Session context, `always` context | `SessionStart` | `SessionStart` | always, with `modules.hooks` |
 | `post_edit`, validators, `when.paths` context | `PostToolUse` (matcher `Edit\|Write\|MultiEdit`, and `Read` when `when.paths` entries exist) | `PostToolUse` (every tool, filtered by `harness hook`) | `post_edit`, validators or `when.paths` entries exist |
 | `when.prompt` context | `UserPromptSubmit` | `UserPromptSubmit` | `when.prompt` entries exist |
 | `attention` | `Notification` | none | `attention` actions exist |
@@ -62,11 +61,13 @@ Codex has no event for an agent waiting for a person, so `attention` never reach
 The harness entry's command is:
 
 ```sh
-"$(git rev-parse --show-toplevel)/harnessw" --no-download hook
+"$(git rev-parse --show-toplevel)/harnessw" --no-download hook <event>
 ```
 
-It runs the wrapper committed in the checkout the agent works in, the primary checkout or a worktree, so the hook
-runs the version that checkout pins. It never depends on `harness` being on the agent's `PATH`.
+`<event>` is the neutral event the entry is for: `session-start`, `post-tool-use`, `prompt-submit`, `attention` or
+`turn-end`. The command runs the wrapper committed in the checkout the agent works in, the primary checkout or a
+worktree, so the hook runs the version that checkout pins. It never depends on `harness` being on the agent's
+`PATH`.
 
 ### The missing-binary guard
 
@@ -84,14 +85,15 @@ The session continues normally, without lint-on-edit, standing context or notifi
 cached: any explicit command, such as `./harnessw version` or a task shim, downloads and verifies it. A teammate who
 never runs one loses only that feedback.
 
-The session-start entry is the one exception to silence: so that the agent itself knows why it has no standing
-context, it adds one line to the session context instead of printing to stderr:
+The session-start entry also adds one line to the session context, in addition to the stderr line, so that the
+agent itself knows why it has no standing context:
 
 ```text
 harness v0.9.0 is not cached on this machine; run ./harnessw version once to fetch it.
 ```
 
-It still never downloads and still exits 0. Directives a session must never miss belong in
+The wrapper prints both lines itself, as fixed text from its template, because no binary is there to print them; it
+recognises the session-start entry by the `session-start` argument. It still never downloads and still exits 0. Directives a session must never miss belong in
 [static context](context.md#static-entries), which is part of `AGENTS.md`.
 
 Raw entries are rendered as native hook entries running their own commands, not through `harness hook`, so they keep
@@ -119,8 +121,10 @@ Files outside the checkout are ignored.
 | Setting | Output, as additional context for the agent |
 | --- | --- |
 | `context: true` | In a [managed worktree](worktrees.md), one line: the tracker, the task, and the command to verify. Outside managed worktrees, nothing |
-| `update_notice: true` | One line when a release newer than the pinned version exists, naming the upgrade command, `./harnessw wrapper --version <tag>`. The check runs at most once a day, is cached, never blocks, and is off with `HARNESS_NO_UPDATE_CHECK=1` ([upgrading](wrapper.md#upgrading)) |
 | `context.always` in the profile | The `always` entries for the session's role, each headed by one line naming it ([context](context.md)) |
+
+Agent sessions never receive an update notice: moving the pin is a reviewed supply-chain decision, so the notice goes
+to people, on the stderr of explicit commands and in `harness doctor` ([update notice](installation.md#update-notice)).
 
 ### Post edit
 
@@ -246,7 +250,6 @@ lifecycle actions like code; see [safety](safety.md).
 | `validators[].when` | list of globs | required | Run when an edited file matches |
 | `validators[].run` | command | required | The check |
 | `session_start.context` | boolean | `true` | Add the managed-worktree context line |
-| `session_start.update_notice` | boolean | `true` | Add the update notice line |
 | `raw` | map of event name to list | `{}` | Hooks `harness` does not model, rendered as written |
 | `raw.<Event>[].matcher` | string | none | The agent's matcher for the event (for example a tool-name pattern) |
 | `raw.<Event>[].run` | command | required | The hook command |
@@ -278,7 +281,7 @@ turns off standing-context injection only ([context](context.md#environment)).
 Files read: stdin (the payload), `.harness/wrapper.yaml` (by the wrapper), `.harness/hooks.yaml`,
 `.harness/config.yaml`, `session.json` and `hook-checks.json` in the checkout's state directory, the read and edited
 files, the skills and files `context` entries name, `skills-lock.json`, the cache directory (`$HARNESS_HOME`, default
-`$XDG_CACHE_HOME/harness`, otherwise `~/.cache/harness`) for the binary and the update check.
+`$XDG_CACHE_HOME/harness`, otherwise `~/.cache/harness`) for the binary.
 Files written: `hook-checks.json`, `context/<session-id>.json` in the state directory, whatever the declared commands
 write (for example a formatter fixing the file).
 
@@ -294,7 +297,7 @@ post_edit:
     exclude: [src/migrations/**]
     run: npx eslint --fix {file}
 validators: { from: verify.validators }
-session_start: { context: true, update_notice: true }
+session_start: { context: true }
 attention:
   - name: ping-me
     http:
@@ -324,7 +327,7 @@ post_edit:
   - { paths: ["**/*.tf"], run: terraform fmt {file} }
 validators:
   - { when: [modules/**/variables.tf], run: ./scripts/check-variable-docs.sh }
-session_start: { context: true, update_notice: false }
+session_start: { context: true }
 raw:
   PreToolUse: [{ matcher: Edit|Write, run: ./scripts/protect-state-files.sh }]
 ```
@@ -336,7 +339,7 @@ schema: 1
 post_edit:
   - { paths: ["**/*.go"], exclude: ["**/*_gen.go"], run: gofmt -w {file} }
 validators: { from: verify.validators }
-session_start: { context: true, update_notice: true }
+session_start: { context: true }
 raw: {}
 ```
 

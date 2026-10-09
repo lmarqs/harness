@@ -28,12 +28,15 @@ Then run `harness render` and review the diff of the rendered files.
 The effective policy is the union of:
 
 1. the built-in base ([below](#the-built-in-base));
-2. allow entries for the commands of each enabled module, rendered for every spelling of those commands
+2. allow entries for the commands of each enabled module, rendered for each spelling `harness` renders
    ([below](#entries-for-harness-commands));
 3. entries from the preset named by `extends` ([presets](presets.md));
 4. the entries in `.harness/policy.yaml`, applied after the preset's.
 
-Lists are unions: no source removes an entry from another, and nothing removes a built-in invariant. When a command
+Lists are unions: no source removes an entry from another, and nothing removes a built-in invariant. An entry in the
+policy file or a preset that would weaken an invariant, such as an `allow` for a force push to the default branch, is
+not a validation error: `render` leaves it out of the output, renders the invariant, and reports the entry, and
+`doctor` reports it as a finding until it is removed ([ADR 0011](../adrs/0011-safety-invariants.md)). When a command
 matches entries with different decisions, the decision is taken in this order, in every agent:
 
 ```text
@@ -53,7 +56,7 @@ costs a prompt in every unattended run. A matching `allow` skips the auto-mode c
 | --- | --- | --- | --- |
 | 1. Prefix list | `[git, push]` | every shell command whose leading words are `git push` | Claude Code and Codex |
 | 1. Prefix list with alternatives | `[gh, pr, [view, list, diff]]` | `gh pr view …`, `gh pr list …`, `gh pr diff …` | Claude Code and Codex |
-| 2. Native rule string | `"WebFetch(domain:example.com)"`, `"Read(./secrets/**)"`, `"WebSearch"`, `"mcp__datadog__get_*"`, `"Bash(npm run test *)"` | what the agent's own rule syntax matches, globs included | Claude Code verbatim; Codex only for `Bash(<words> *)` with a plain word prefix |
+| 2. Native rule string | `"WebFetch(domain:example.com)"`, `"Read(./secrets/**)"`, `"WebSearch"`, `"mcp__acme-observability__search_*"`, `"Bash(npm run test *)"` | what the agent's own rule syntax matches, globs included | Claude Code verbatim; Codex only for `Bash(<words> *)` with a plain word prefix |
 | 3. Bare string | `"gh pr merge *--admin*"` | shorthand for `Bash(<string>)`, where `*` matches anything anywhere | Claude Code only |
 
 A nested list is a set of alternatives for one word, one level deep. Use quotes for words YAML would otherwise parse,
@@ -88,7 +91,7 @@ once, as `harness`:
 - [harness, lifecycle, run, deliver]
 ```
 
-`render` writes such an entry for every spelling: `harness …`, `./harnessw …`, `harnessw …`, and the task shim's
+`render` writes such an entry for each rendered spelling: `harness …`, `./harnessw …`, `harnessw …`, and the task shim's
 `mise run <task> …` when a shim exists for that command. The built-in base, the module entries and the seeded entry
 are written the same way.
 
@@ -107,7 +110,7 @@ and shown in the `policy` block of `AGENTS.md`.
 | --- | --- |
 | No force push to the default branch | `shared.deny` entries equivalent to the list below, with `main` replaced by the branch `origin/HEAD` names |
 | No mise `:::` chaining, which runs a second task in the same command and could carry an unlisted task past every rule | `shared.deny`: `"mise * ::: *"` (Claude-only: Codex cannot match mid-command) |
-| Lifecycle actions never run inside a Ralph worker | `worker.deny`: `[harness, lifecycle]`, rendered for every spelling. The binary refuses `harness lifecycle run` inside a worker on its own; lifecycle actions run in the launcher process ([lifecycle](lifecycle.md)) |
+| Lifecycle actions never run inside a Ralph worker | `worker.deny`: `[harness, lifecycle]`, rendered for each spelling `harness` renders. The binary refuses `harness lifecycle run` inside a worker on its own; lifecycle actions run in the launcher process ([lifecycle](lifecycle.md)) |
 | Workers never bypass permissions | not a policy entry: the Ralph worker refuses bypass flags; see [ralph](ralph.md#the-worker-contract) |
 
 ```yaml
@@ -136,11 +139,12 @@ ask:
   - [harness, lifecycle, run, deliver]
 ```
 
-`render` writes it for every spelling of the command. Permitting an agent to run `harness lifecycle run deliver` permits everything the `deliver` actions do: they run as
-child processes of `harness`, where the agent's per-command permissions do not reach. The seeded `ask` keeps a person
-in the loop before delivery. It is the repository's entry, not an invariant: a repository whose `deliver` actions only
-open draft pull requests may move it to `allow`. Lifecycle actions are committed configuration; review them like
-code ([lifecycle](lifecycle.md), [safety](safety.md)).
+`render` writes it for each spelling `harness` renders. Permitting an agent to run `harness lifecycle run deliver`
+permits everything the `deliver` actions do: they run as child processes of `harness`, where the agent's per-command
+permissions do not reach. The seeded `ask` keeps a person in the loop before delivery. It is a seeded entry the
+repository owns and may change, not an invariant ([ADR 0015](../adrs/0015-development-lifecycle.md)): a repository whose
+`deliver` actions only open draft pull requests may move it to `allow`. Lifecycle actions are committed
+configuration; review them like code ([lifecycle](lifecycle.md), [safety](safety.md)).
 
 ### Adoption
 
@@ -319,7 +323,8 @@ More:
 - Do comment each group of entries with the reason; the reason is what a reviewer evaluates.
 - Do put organization-wide entries in a [preset](presets.md) rather than copying them into every repository.
 - Do express a rule as a prefix list whenever Codex must also enforce it.
-- Do write an entry for a `harness` command once, as `[harness, …]`; `render` writes it for every spelling.
+- Do write an entry for a `harness` command once, as `[harness, …]`; `render` writes it for each spelling it renders,
+  and the binary's own guards catch the others.
 - Don't use `allow` entries broader than the reason you wrote for them.
 
 [Safety guidelines](safety.md) explains the threat model behind these rules.

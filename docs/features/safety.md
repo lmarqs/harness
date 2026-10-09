@@ -128,7 +128,8 @@ So, before leaving a session alone: every `ask` it reaches is either acceptable 
 A Ralph worker is the least trusted actor, so `harness` does not rely on its permissions alone:
 
 1. The worker wrapper refuses permission-bypass flags from arguments and from inherited or global ralph-tui
-   configuration, and names the key that injected one.
+   configuration, and names the file and key that injected one. It reads the global configuration only for this and
+   never writes it ([ADR 0012](../adrs/0012-write-boundary.md)).
 2. It pins the permission mode: Claude Code in `auto` with `worker.deny` as disallowed tools; Codex in the
    `workspace-write` sandbox with `worker.deny` in the rendered rules.
 3. Before every agent launch it restores the tool-owned files (rendered rules, owned settings keys, hook entries,
@@ -156,7 +157,8 @@ that fired them, outside the agent's per-command permission checks.
   `deliver` action, including commands the policy denies to the agent itself.
 - **Permitting a trigger point permits its automatic actions.** An agent allowed to run `harness task complete` fires
   every `completed` and `deliver` action with `auto: true`; the same holds for `harness verify`,
-  `harness worktree create`, `harness task claim`, `harness worktree remove`, `harness doctor` and `harness ralph`.
+  `harness worktree create`, `harness task claim`, `harness worktree remove` and `harness ralph`. `harness doctor`
+  never fires events ([lifecycle](lifecycle.md#events)).
 - **Actions from a preset run with your credentials.** Pin presets with `@<ref>` and review a bump like a dependency
   update.
 - **Every action sees the whole environment.** A webhook URL exported for one `http` action is visible to every `run`
@@ -168,7 +170,9 @@ What follows:
 - Keep the seeded `ask` on `[harness, lifecycle, run, deliver]` until the actions are ones you accept an agent running
   unasked. Moving it to `allow` is a decision about the actions, not about the command.
 - Check `harness lifecycle list` for `auto: true` before granting an agent a command with a trigger point.
-- Keep actions to delivery and notification. An action never writes the team's record and never touches production.
+- Keep actions to delivery and notification. `harness` itself never writes the team's record; an action can, with
+  the credentials it runs with, so declare one only when the team decided it, and never one that touches production
+  ([ADR 0012](../adrs/0012-write-boundary.md)).
 - `harness` is never an MCP client. An integration that needs an MCP tool is an `agent` action, which uses the agent's
   own MCP connections and their credentials under the worker contract; a deterministic one uses the service's API
   through `http` or its CLI through `run` ([ADR 0019](../adrs/0019-action-kinds.md)).
@@ -218,7 +222,7 @@ Every clone runs the `harness` release that `.harness/wrapper.yaml` pins, throug
 - **Downloads are verified.** The wrapper fetches the release over HTTPS and checks its sha256 against the checksum
   for the platform in `wrapper.yaml`. A mismatch exits 1 and caches nothing.
 - **Implicit entry points never download.** Rendered hooks run
-  `"$(git rev-parse --show-toplevel)/harnessw" --no-download hook`: an agent starting a session or editing a file runs
+  `"$(git rev-parse --show-toplevel)/harnessw" --no-download hook <event>`: an agent starting a session or editing a file runs
   a binary already in the cache, or skips the hook, and never fetches code. A download happens only when a person or
   an agent runs an explicit command, such as `./harnessw verify` or a task shim.
 - **Pins are signed.** `./harnessw wrapper --version <tag>` and `harness scaffold` write a pin only after the running

@@ -23,7 +23,7 @@ global install, `harness <command>` is equivalent.
 | Check | Finds |
 | --- | --- |
 | Repository files | `.harness/config.yaml`, `.harness/policy.yaml` or `.harness/hooks.yaml` missing, invalid, or with an unsupported `schema` |
-| Wrapper file | `.harness/wrapper.yaml` missing or invalid: no `schema`, a `version` that is not an exact tag, a `source` that is not `github:<owner>/<repo>`, or a checksum missing or not 64 hexadecimal characters for one of `linux-amd64`, `linux-arm64`, `darwin-amd64`, `darwin-arm64` |
+| Wrapper file | `.harness/wrapper.yaml` missing or invalid: no `schema`, a `version` that is not an exact tag, a `source` that is neither `github:<owner>/<repo>` nor an HTTPS base URL ([release source](wrapper.md#release-source)), or a checksum missing or not 64 hexadecimal characters for one of `linux-amd64`, `linux-arm64`, `darwin-amd64`, `darwin-arm64` |
 | Wrapper script | `harnessw` missing, not executable, or different from the pinned release's template |
 | One pin | `mise.toml`, `.mise.toml` or `.tool-versions` also pins `harness` (`github:lmarqs/harness` or `harness`). `.harness/wrapper.yaml` is the only pin; `harness` never edits the task runner's file, so remove the line yourself |
 | Release signature | online only, at most once a day and cached: the pinned release's signed checksum file does not verify with the keys embedded in the running release, or its checksums differ from those in `.harness/wrapper.yaml` ([wrapper](wrapper.md#security)) |
@@ -34,7 +34,8 @@ global install, `harness <command>` is equivalent.
 | Commands | `commands`, lane `select`/`full`, `bootstrap`, validator and post-edit commands that call a mise task the repository does not define |
 | Globs | `verify.app_paths`, `verify.lint_paths`, lane `required_when`, validator `when` and post-edit `paths` that match no tracked file |
 | Default branch | `origin/HEAD` cannot be resolved, so the built-in force-push deny cannot name the branch |
-| Tools | `claude`, `codex`, `bd` and `ralph-tui` versions outside the supported range, for the tools the profile uses |
+| Tools | `claude`, `codex`, `bd` and `ralph-tui` versions outside the supported range, for the tools the profile uses; `mise` when task shims are rendered (`front_door: mise`); the `skills` CLI when `modules.skills` is on |
+| Policy | an entry that would weaken a built-in invariant, such as an `allow` for a force push to the default branch; `render` leaves it out and renders the invariant, and the entry stays a finding until it is removed ([ADR 0011](../adrs/0011-safety-invariants.md)) |
 | Skills | declared skill sources that are not installed (`modules.skills`) |
 | Context | invalid `context` declarations, a skill or file an entry names that does not exist, and a skill whose content does not match its hash in `skills-lock.json`, which is therefore not injected ([context](context.md#sources-and-trust)) |
 | Adoption to-do | the open items described in [scaffold](scaffold.md#the-to-do) |
@@ -43,8 +44,8 @@ Notes never change the exit code:
 
 | Note | Shown when |
 | --- | --- |
-| Newer release available | the [update check](installation.md#update-notice) found a release newer than the one `.harness/wrapper.yaml` pins (at most one network check per day, cached; skipped offline or with `HARNESS_NO_UPDATE_CHECK=1`); `./harnessw wrapper --latest` moves the pin ([wrapper](wrapper.md#upgrading)) |
-| Newer embedded harness skill | the pinned release's skill text differs from `.agents/skills/harness/SKILL.md` only because the pin moved to a newer release; `./harnessw render` refreshes it. This is not drift |
+| Newer release available | the [update check](installation.md#update-notice) found a release newer than the one `.harness/wrapper.yaml` pins, with a signed checksum file that verifies (at most one network check per day, cached; skipped offline or with `HARNESS_NO_UPDATE_CHECK=1`); the note names `./harnessw wrapper --version <tag>`, which moves the pin ([wrapper](wrapper.md#upgrading)) |
+| Not the pinned release | `HARNESS_BINARY` makes `doctor` run as another release than the one `.harness/wrapper.yaml` pins: `running v0.8.2, the pin names v0.9.0; drift results may differ` |
 | Newer preset commit | a preset declared without `@<ref>` has a newer upstream commit than the one recorded in the manifest; `./harnessw render --refresh` moves to it ([presets](presets.md#resolved-commits)) |
 | Failed lifecycle run | the latest run of an event in `.work/lifecycle.jsonl` failed or was refused by a guard; the note names the event, the action and the exit status |
 | Settings that are not policy | adoption left `defaultMode`, `additionalDirectories`, `approval_policy`, `sandbox_mode` or MCP server definitions in place |
@@ -113,7 +114,7 @@ to-do
 landed
   work/fix-invoice-rounding has landed: run ./harnessw worktree remove fix-invoice-rounding to fire landed
 note
-  harness v0.9.0 is available (this repository pins v0.8.2): run ./harnessw wrapper --latest
+  harness v0.9.0 is available (this repository pins v0.8.2): run ./harnessw wrapper --version v0.9.0
   preset github:acme/agent-presets//harness has a newer commit (4e1a9c0); run ./harnessw render --refresh
   context for interactive sessions is 134 lines, over the budget of 120: karpathy-guidelines 96, house-rules 38
 $ echo $?
@@ -159,4 +160,5 @@ CI step, after `render --check`:
 | pinned release not cached | nothing has run `./harnessw` on this machine since the pin changed | `./harnessw version` |
 | `harness` pinned in `mise.toml` too | the repository pinned the tool through mise before it had a wrapper, or adoption copied that pin | delete the line from the task runner's file; `.harness/wrapper.yaml` keeps the pin |
 | release signature does not verify, or checksums differ | `wrapper.yaml` was edited by hand, or the release was replaced after it was pinned | do not run the release; re-pin with `./harnessw wrapper --version <tag>` and review the diff, and report a replaced release to the project |
+| a policy entry weakens an invariant | `.harness/policy.yaml` allows or asks for something a built-in invariant denies; `render` already leaves it out | delete the entry from the policy |
 | context skill does not match the lock | the skill was edited after the `skills` CLI installed it | reinstall it with `./harnessw skills sync`, or update the lock through the `skills` CLI |

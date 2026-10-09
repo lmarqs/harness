@@ -25,8 +25,10 @@ that `remove --module` also sets the module to `false` in the profile for you.
 
 The [manifest](concepts.md#ownership-and-the-manifest) separates two kinds of content, and the two modes treat them
 differently ([ADR 0007](../adrs/0007-ownership.md)). **Owned** content is what `render` writes and rewrites. **Seeded**
-files are the ones `scaffold` wrote once and the repository has owned since: `.harness/config.yaml`,
-`.harness/policy.yaml`, `.harness/hooks.yaml` and the `.agents/memory/` skeleton. Managed blocks are owned, and each is
+files are the ones `harness` wrote once and the repository has owned since: `.harness/config.yaml`,
+`.harness/policy.yaml` and `.harness/hooks.yaml`, from `scaffold`, and the `.agents/memory/` skeleton, from `scaffold`
+or the first `render` after the memory module was turned on. The manifest records each with the hash it was created
+with. Managed blocks are owned, and each is
 either a convention block or a tool block ([block ids](render.md#block-ids)).
 
 | What | `remove` (undo) | `remove --eject` |
@@ -37,13 +39,13 @@ either a convention block or a tool block ([block ids](render.md#block-ids)).
 | `harnessw` | deleted | deleted |
 | Convention blocks: `worktrees`, `tasks`, `ralph`, `policy`, `memory`, `context` in `AGENTS.md`; `import` in `CLAUDE.md`; every `.gitignore` block | removed, text and entries included | markers removed, text and entries kept |
 | Tool blocks: `commands`, `layout`, `verify`, `lifecycle` in `AGENTS.md`; `commands` in `README.md` | removed | removed |
-| Permissions in `.claude/settings.json`, and `.codex/rules/harness.rules` | removed; the rules adoption imported from the project's native files are written back as plain settings | kept as hand-owned content; the generated header is removed; entries that name a `harness` command (every spelling) are removed and listed |
+| Permissions in `.claude/settings.json`, and `.codex/rules/harness.rules` | removed; the rules adoption imported from the project's native files are written back as plain settings | kept as hand-owned content; the generated header is removed; entries that name a `harness` command (every rendered spelling) are removed and listed |
 | `raw` hooks | removed; the hooks adoption imported from the project's native files are written back as plain hooks | kept as plain hooks |
 | Hook entries that run `harnessw`: modelled hooks, notification hooks, context delivery, the Codex `notify` key | removed | removed, and listed |
 | Other owned keys, such as the `.codex/config.toml` keys that enable project hooks | removed | kept as hand-owned content |
 | Task shims | deleted | deleted when they exec `harnessw`, which every rendered shim does, and listed; a task that does not is kept |
 | The harness skill and its links | deleted | deleted |
-| The `.agents/memory/` skeleton | a file whose content still matches what `scaffold` seeded is deleted; an edited file is knowledge and stays | kept |
+| The `.agents/memory/` skeleton | a file whose content still matches the hash it was seeded with is deleted; an edited file is knowledge and stays, listed | kept |
 | Knowledge: `AGENTS.md` prose, edited memory, domain skills, `.agents/commands/`, `.agents/REVIEW.md` | kept | kept |
 | State: the [state paths](profile.md#state-paths) (default under `.work/`), `.beads/`, `.ralph-tui/` | left in place and listed; no longer ignored | left in place, still ignored |
 
@@ -85,7 +87,7 @@ Entries the repository added after adoption leave with `.harness/policy.yaml`; t
    eject.
 5. Keep the rendered native files and owned keys as hand-owned content, and remove their generated headers. Remove
    every hook entry that runs `harnessw`, the Codex `notify` key when it does, and every permission entry that names a
-   `harness` command in any spelling, and list them; `raw` hooks stay.
+   `harness` command in any rendered spelling, and list them; `raw` hooks stay.
 6. Delete the task shims that exec `harnessw` and list them; keep any task that does not.
 7. Delete the harness skill and its links, `harnessw`, and the owned and seeded files in `.harness/`, the manifest
    included; then `.harness/` once nothing else is in it.
@@ -111,7 +113,7 @@ After an eject the repository keeps working without `harness`:
 | `verify` | the `verify` task shim, the module's allow entries, the `verify` block |
 | `tasks` | the `task` task shim, the `tasks` blocks in `AGENTS.md` and `.gitignore`, the `beads` block |
 | `ralph` | the `ralph` and `ralph:clean` task shims, the module's allow entries, the `ralph` blocks in `AGENTS.md` and `.gitignore` |
-| `memory` | the `memory` block; the `.agents/memory/` content stays, it is knowledge |
+| `memory` | the `memory` block, and the skeleton files that still match the hash they were seeded with; edited files stay, listed: they are knowledge |
 | `skills` | nothing on disk; `skills sync` and the pending check stop. Installed skills stay |
 
 Repeat `--module` to remove several. A path the module's `.gitignore` block listed stays in place and is listed.
@@ -219,5 +221,5 @@ git commit -am "chore: drop harness ralph module"
 | `.work/` shows up in `git status` after an undo | Its `.gitignore` block was removed with the rest | Delete it, or add your own ignore entry |
 | The agent lost its lint-on-edit hook | Modelled hooks run through `harness hook`; `--module hooks`, undo and eject all remove them | Re-enable `modules.hooks` and render, or write the command as a plain hook in the agent's settings |
 | The lanes and delivery steps are gone from `AGENTS.md` after an eject | `verify` and `lifecycle` are tool blocks, and an eject removes tool blocks | Write the checks you still want into `AGENTS.md` prose |
-| An undo kept a memory file | The file changed since `scaffold` seeded it, so it is knowledge | Expected; delete it yourself if the repository no longer wants it |
+| An undo kept a memory file | The file changed since it was seeded, so it is knowledge | Expected; delete it yourself if the repository no longer wants it |
 | `.harness/` is still there after a removal | It holds a file `harness` neither owns nor seeded, such as `ralph/prompt.hbs`; the output listed it | Delete the file, or keep it, as you choose |

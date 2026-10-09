@@ -19,7 +19,7 @@ run's commits for review, writing memory and skills. The embedded
 
 | Directory | Belongs to | Holds | After `harness` is removed |
 | --- | --- | --- | --- |
-| `.harness/` | `harness`: its own versioned configuration | `config.yaml` (the profile), `policy.yaml`, `hooks.yaml`, `wrapper.yaml`, `manifest.json`, an optional `ralph/prompt.hbs` | deleted by both [removal modes](remove.md); a file there that `harness` neither owns nor seeded, such as `ralph/prompt.hbs`, is listed and left for you to delete |
+| `.harness/` | `harness`: its own versioned configuration | `config.yaml` (the profile), `policy.yaml`, `hooks.yaml`, `wrapper.yaml`, `manifest.json`, an optional `ralph/prompt.hbs` | every file `harness` recorded there is deleted by both [removal modes](remove.md), and the directory once nothing else is in it; a file there that `harness` neither owns nor seeded, such as `ralph/prompt.hbs`, is listed and left for you to delete |
 | `.agents/` | the cross-tool agent-content convention, shared with the `skills` CLI and the `AGENTS.md` ecosystem | `skills/` (including the tool-owned `skills/harness/`), `memory/`, `commands/`, `REVIEW.md` | kept, except the harness skill and, on undo, memory skeleton files nobody edited: other tools and agents read the rest |
 
 Nothing in `.harness/` is state, and nothing in it is ignored: every file there is committed and reviewed. State lives
@@ -34,7 +34,7 @@ A [preset](presets.md) directory mirrors `.harness/`: it holds `config.yaml`, `p
 | Layer | Who writes it | Committed | In an adopted repository |
 | --- | --- | --- | --- |
 | Engine | nobody in the repository; the release the pin names, downloaded per machine by `harnessw` | no | the `harness` binary in `$HARNESS_HOME` (default `$XDG_CACHE_HOME/harness`, or `~/.cache/harness` when `XDG_CACHE_HOME` is unset) |
-| Pin | `scaffold` and [`harness wrapper`](wrapper.md#harness-wrapper), after the running binary verifies the release's signed checksum file; never edited by hand | yes | `.harness/wrapper.yaml` |
+| Pin | `scaffold` and [`harness wrapper`](wrapper.md#harness-wrapper), after the running binary verifies the release's signed checksum file; owned, never edited by hand | yes | `.harness/wrapper.yaml` |
 | Profile, policy, hooks | people and agents; seeded once by `scaffold` | yes | `.harness/config.yaml`, `.harness/policy.yaml`, `.harness/hooks.yaml` |
 | Rendered | `harness render`; never edited by hand | yes | `harnessw`, owned keys of `.claude/settings.json` and `.codex/config.toml`, owned entries of `.codex/hooks.json`, `.codex/rules/harness.rules`, task shims under `.mise/tasks/`, `.agents/skills/harness/SKILL.md`, skill links, `.harness/manifest.json` |
 | Managed blocks | `harness render`, only between markers | yes | blocks inside `AGENTS.md`, `README.md`, `CLAUDE.md`, `.gitignore` |
@@ -96,7 +96,7 @@ kinds of content:
 | Kind | What it is | Entries |
 | --- | --- | --- |
 | Owned | content `harness` renders and rewrites; never edited by hand | every owned file with its content hash (`harnessw`, `.harness/wrapper.yaml`, `.codex/rules/harness.rules`, task shims, the harness skill and its links); every managed block, with the file it lives in and its content hash; every owned key or entry inside a native file that `harness` merge-renders, including rendered `raw` hooks |
-| Seeded | files `scaffold` writes once; from then on the repository owns them and `render` never rewrites them | `.harness/config.yaml`, `.harness/policy.yaml`, `.harness/hooks.yaml` and the `.agents/memory/` skeleton, each with the hash of the content `scaffold` wrote |
+| Seeded | files `harness` writes once; from then on the repository owns them and `render` never rewrites them | `.harness/config.yaml`, `.harness/policy.yaml` and `.harness/hooks.yaml`, written by `scaffold`, and the `.agents/memory/` skeleton, written when the memory module is enabled, by `scaffold` or by the first `render` after the module is turned on; each with the hash of the content it was created with |
 
 It also records the commit every git preset resolved to ([presets](presets.md#resolved-commits)) and the `schema` the
 files were rendered with.
@@ -111,7 +111,7 @@ How the commands use it:
 | --- | --- |
 | [`render`](render.md) | write exactly the owned set, and drop files and blocks that are no longer produced |
 | [`render --check`](render.md#drift-check) | compare the owned set against what the sources produce now |
-| [`remove`](remove.md) | undo: delete the owned content and the seeded files it lists; `--eject`: keep convention blocks and rendered native content as hand-owned, delete the rest of what it lists; refuse an owned path whose hash changed unless `--force` |
+| [`remove`](remove.md) | undo: delete the owned content, the seeded files in `.harness/`, and seeded files elsewhere only while they still match the hash they were created with; `--eject`: keep convention blocks and rendered native content as hand-owned, delete the rest of what it lists; both: refuse an owned path whose hash changed unless `--force`, and list and leave any file the manifest does not record |
 | [`doctor`](doctor.md) | report missing, modified or dangling owned paths |
 
 ### Marking
@@ -120,7 +120,7 @@ Ownership is also visible in the files themselves:
 
 | Where | Marker |
 | --- | --- |
-| Owned whole files that allow comments | first line `# generated by harness (schema 1): edit .harness/<source> and run ./harnessw render`; scripts carry it right after their `#!` line, and `SKILL.md` as the first line inside its front matter |
+| Owned whole files that allow comments | first line `# generated by harness (schema 1): edit .harness/<source> and run ./harnessw render`; scripts carry it right after their `#!` line, and `SKILL.md` as a YAML comment on the first line inside its front matter, right after the opening `---`. `.harness/wrapper.yaml`, which no source renders, carries `# generated by harness: change with ./harnessw wrapper --version <tag>` |
 | Managed blocks in Markdown | `<!-- harness:<id> -->` … `<!-- /harness:<id> -->` |
 | Managed blocks in hash-comment files: `.gitignore`, YAML, TOML, shell | `# harness:<id>` … `# /harness:<id>` |
 | Owned keys in JSON files | none in the file; the manifest is the record |
@@ -186,7 +186,7 @@ The profile's `modules:` map turns features on and off. Each module is opt-in an
 | `verify` | `harness verify`; the `verify` task shim; allow entries for the command; the `verify` block in `AGENTS.md` |
 | `tasks` | `harness task`; the `task` task shim; Beads or PRD tracking; the `tasks` blocks in `AGENTS.md` and `.gitignore`, and the `beads` block when `harness` created the Beads database |
 | `ralph` | `harness ralph`; the `ralph` and `ralph:clean` task shims; allow entries for the commands; the `ralph` blocks in `AGENTS.md` and `.gitignore` |
-| `memory` | the `.agents/memory/` skeleton (seeded once) and the `memory` block in `AGENTS.md` |
+| `memory` | the `.agents/memory/` skeleton (seeded when the module is enabled, never re-rendered) and the `memory` block in `AGENTS.md` |
 | `skills` | `harness skills sync` and the pending-skills check in `doctor` |
 
 Always present, whatever the modules: the `.harness/` files, `harnessw`, the rendered policy, the harness skill and
@@ -265,7 +265,7 @@ A repository adopts `harness` without forcing anyone else to.
 
 | Who | What they experience |
 | --- | --- |
-| A teammate whose machine has not downloaded the pinned release | Committed rendered files give their agent the same permissions and instructions, convention blocks and `static` context included. The first `./harnessw` command or task shim downloads and verifies the release. Until then, the session-start hook adds one line to the agent's context, `harness <version> is not cached on this machine; run ./harnessw version once to fetch it.`, every other harness hook prints one line on stderr and exits 0, `raw` hooks keep running, and hook-delivered context, notification hooks and lifecycle events do nothing. |
+| A teammate whose machine has not downloaded the pinned release | Committed rendered files give their agent the same permissions and instructions, convention blocks and `static` context included. The first `./harnessw` command or task shim downloads and verifies the release. Until then, every harness hook prints one line on stderr and exits 0, the session-start hook also adds one line to the agent's context, `harness <version> is not cached on this machine; run ./harnessw version once to fetch it.`, `raw` hooks keep running, and hook-delivered context, notification hooks and lifecycle events do nothing. |
 | CI | Builds, tests, deploys and releases are unchanged; nothing requires the binary. `./harnessw render --check` and `./harnessw doctor` are optional steps; the wrapper downloads and verifies the pinned release ([wrapper](wrapper.md#ci)). |
 | A person who stops using it | `harness remove` undoes the adoption from the manifest; `harness remove --eject` stops managing the repository and keeps the result: convention blocks, `.gitignore` entries, permissions and `raw` hooks ([remove](remove.md)). |
 | A person who uses only part of it | Every module is opt-in; disabling one removes its files and blocks on the next render. |
@@ -286,11 +286,11 @@ These hold in every repository and cannot be turned off by any repository file o
 7. Hooks never decide permissions.
 8. Lifecycle and notification actions never run inside a Ralph worker: lifecycle actions run in the launcher
    process, the binary refuses `harness lifecycle` inside a worker, and the built-in worker deny covers it in every
-   spelling (`harness`, `./harnessw`, `harnessw`, task shims).
+   rendered spelling (`harness`, `./harnessw`, `harnessw`, task shims).
 9. `deliver` always refuses on the default branch and with uncommitted changes and, when the verify module is enabled,
    without a valid receipt for the work's base.
-10. The binary never writes knowledge (prose, memory, domain skills), contains no logic for any hosting platform, and
-    never writes issues, projects, boards, comments, reviews or labels.
+10. The binary never writes knowledge (prose, memory, domain skills), contains no logic for the platform that hosts
+    the team's work, and never writes issues, projects, boards, comments, reviews or labels.
 11. The binary never reconfigures state it did not create: an existing `.beads/`, a root `.ralph-tui/`,
     `core.hooksPath`, existing mise tasks, a task runner's tool versions, `CLAUDE.md` content, a `.harness/`
     directory another tool owns.

@@ -174,9 +174,10 @@ trigger points and the full reference: [lifecycle guide](../features/lifecycle.m
 
 Permission to run `harness lifecycle run <event>` is permission for everything that event's actions do: the actions
 run as child processes of harness, outside the agent's per-command permission checks. The scaffolded repository policy
-therefore seeds `[harness, lifecycle, run, deliver]` under `ask`, rendered for every spelling an agent may use
-(`harness`, `./harnessw`, `harnessw` and the task shim), and the repository MAY move it. The rendered entries are
-defence in depth: the guards themselves are enforced by the binary.
+therefore seeds `[harness, lifecycle, run, deliver]` under `ask`, rendered for every rendered spelling (`harness`,
+`./harnessw`, `harnessw` and the task shim). It is a seeded entry: the repository owns it and MAY change it
+([ADR 0015](../adrs/0015-development-lifecycle.md)). The rendered entries are defence in depth: other spellings, such
+as an absolute path to the binary, match no prefix rule, and the guards themselves are enforced by the binary.
 
 ## 8. Conventions outlive the tool
 

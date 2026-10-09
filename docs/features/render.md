@@ -14,7 +14,6 @@ global install, `harness <command>` is equivalent.
 | --- | --- |
 | You edited `.harness/config.yaml`, `.harness/policy.yaml` or `.harness/hooks.yaml` | `./harnessw render` |
 | You turned a module on or off, moved a state path, or changed the `context` section | `./harnessw render` |
-| You moved the pin with `./harnessw wrapper` | `./harnessw render`, so the new release refreshes what it renders |
 | A preset named by `extends` changed upstream and you want the change | `./harnessw render --refresh` |
 | You want CI or a reviewer to confirm rendered files match their sources | `./harnessw render --check` |
 | You want to see what would change | `./harnessw render --dry-run` |
@@ -28,9 +27,17 @@ global install, `harness <command>` is equivalent.
 4. Write what changed, delete what is no longer produced (for example the files and blocks of a module you turned
    off), and rewrite the manifest.
 
+A policy entry that would weaken a built-in invariant, such as an `allow` for a force push to the default branch, is
+not a validation error: `render` leaves it out of every agent's output, renders the invariant, and prints the entry
+it dropped; [`harness doctor`](doctor.md) reports it as a finding until the entry is removed from the policy
+([ADR 0011](../adrs/0011-safety-invariants.md)).
+
 Rendering is deterministic: the same inputs produce the same bytes on linux and macOS, and a second run changes
-nothing. Output depends on the repository files, the presets at their recorded commits and the `schema`, not on the
-binary's version. See [presets](presets.md#resolved-commits) for how a preset's commit is recorded and moved.
+nothing. Output depends on the repository files, the presets at their recorded commits and the pinned release that
+renders them, and no output records that release: only `.harness/wrapper.yaml` names it. A new release can render
+differently, so [`harness wrapper --version <tag>`](wrapper.md#upgrading) renders the repository with the new release
+in the same change, and the pin and its effect are reviewed as one diff. See [presets](presets.md#resolved-commits)
+for how a preset's commit is recorded and moved.
 
 ### What render writes
 
@@ -55,9 +62,12 @@ binary's version. See [presets](presets.md#resolved-commits) for how a preset's 
 An agent that emits no event for a declared hook or context trigger, such as Codex for `attention`, gets nothing
 rendered for it, and [`harness doctor`](doctor.md) notes the gap.
 
-`.harness/wrapper.yaml` is not rendered: `scaffold` writes it and [`harness wrapper`](wrapper.md#harness-wrapper)
-rewrites it, each after verifying the release's signed checksum file. The seeded files (`config.yaml`, `policy.yaml`,
-`hooks.yaml` and the memory skeleton) are never rendered: `scaffold` writes them once and the repository owns them.
+`.harness/wrapper.yaml` is owned but not written by `render`: `scaffold` writes it and
+[`harness wrapper`](wrapper.md#harness-wrapper) rewrites it, each after verifying the release's signed checksum file.
+The manifest records it, so a hand edit is drift. The seeded files are never re-rendered: `scaffold` writes
+`config.yaml`, `policy.yaml` and `hooks.yaml` once, and the memory skeleton is seeded when the memory module is
+enabled, by `scaffold` or by the first `render` after the module is turned on. From then on the repository owns them;
+the manifest records each with the hash it was created with ([memory](memory.md#the-skeleton)).
 Lifecycle actions are not rendered either: `harness` reads them from `hooks.yaml` and runs them itself
 ([lifecycle](lifecycle.md)).
 
@@ -79,15 +89,18 @@ not.
 
 ### The hook command
 
-Every harness hook entry, for every agent and event, runs the same command:
+Every harness hook entry, for every agent, runs the same command with the entry's event as its last argument:
 
 ```sh
-"$(git rev-parse --show-toplevel)/harnessw" --no-download hook
+"$(git rev-parse --show-toplevel)/harnessw" --no-download hook <event>
 ```
 
-It resolves the wrapper from the root of the checkout the agent works in, primary or worktree, and never downloads:
-when the pinned release is not cached, it prints one line naming `./harnessw` on stderr and exits 0, and the session
-continues. The session-start entry also adds one line to the agent's context, so the agent can tell the person:
+`<event>` is the neutral event the entry is for: `session-start`, `post-tool-use`, `prompt-submit`, `attention` or
+`turn-end`. The command resolves the wrapper from the root of the checkout the agent works in, primary or worktree,
+and never downloads: when the pinned release is not cached, the wrapper prints one line naming `./harnessw` on stderr
+and exits 0, and the session continues. For `session-start` it also prints one line of agent context, so the agent
+can tell the person. The wrapper prints both lines itself, as fixed text from its template, because no binary is
+there to print them:
 
 ```text
 harness v0.9.0 is not cached on this machine; run ./harnessw version once to fetch it.
@@ -226,9 +239,11 @@ block and its line count, so a long preset block or a long lane list is visible 
 - Exit 0: everything matches.
 - Exit 2: something differs. Each differing file, block or key is listed with the command that fixes it.
 - Presets are compared at their recorded commits, so a change upstream never fails the check by itself.
-- A harness skill that differs only because the pinned release is newer than the one that last rendered is not
-  drift: `harness doctor` reports it as a note, and `./harnessw render` refreshes the skill. Moving the pin alone
-  never fails the check.
+- The check runs as the pinned release, and no owned artefact is exempt, the harness skill included
+  ([ADR 0007](../adrs/0007-ownership.md)). An upgrade renders the repository with the new release in the same change
+  ([wrapper](wrapper.md#upgrading)), so the pinned release's output and the committed files agree, and a difference is
+  always a real one. A binary other than the pinned release (`HARNESS_BINARY`) can report differences the pinned
+  release would not; `harness doctor` notes when it runs.
 
 Run it in CI as an optional step. The wrapper downloads and verifies the release the pull request pins:
 
@@ -251,9 +266,17 @@ cache the download between runs, see [wrapper](wrapper.md#ci).
 
 ## Schema migration
 
-When the repository files use an older `schema` than the running release's, `render` migrates them, shows the diff
-and asks before writing (`--yes` skips the question). This happens after the pin moves to a newer release. When they
-use a newer one, which happens only when the pin is bypassed, `render` refuses and names the schema (exit 3).
+When the repository files use an older `schema` than the running release's, they are migrated: the diff is shown
+and confirmed before anything is written (`--yes` skips the question). This happens when
+[`harness wrapper --version <tag>`](wrapper.md#harness-wrapper) moves the pin to a release with a newer schema, inside
+the same change, and with `render` when a pinned release meets older files. When the files use a newer schema than
+the running binary supports, which happens only when the pin is bypassed, `render` refuses with exit 3 and a message
+naming the file's schema, the newest schema this binary supports, and the release to run, the one
+`.harness/wrapper.yaml` pins:
+
+```text
+harness: .harness/config.yaml uses schema 2; this binary (v0.8.2) supports schema 1. Run the pinned release, v0.9.0: ./harnessw render
+```
 
 ## Reference
 
@@ -266,6 +289,8 @@ harness render [--check] [--refresh] [--dry-run]
 | `--check` | off | Compare only; exit 2 on drift |
 | `--refresh` | off | Re-resolve every preset declared without `@<ref>` to its current upstream commit and record it |
 | `--dry-run` | off | Print what would be written or deleted; write nothing |
+
+Global flags `-C <dir>`, `--yes` and `--verbose` also apply; see [CLI reference](cli.md).
 
 | Exit code | Meaning |
 | --- | --- |

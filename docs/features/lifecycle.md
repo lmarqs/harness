@@ -201,8 +201,10 @@ Trigger-point details:
   is unmet and the record shows the event as skipped. A `change` has no `completed` event, so its `deliver` fires only
   when triggered manually or by `harness fleet --deliver`.
 - `harness worktree remove` and `harness ralph clean` fire `landed` once per recorded branch whose patches are on the
-  default branch, before they remove its worktree, so the actions still run in it. Each recorded branch fires
-  `landed` at most once successfully; a failed `landed` is re-fired manually with `harness lifecycle run landed`.
+  default branch, before they remove its worktree. `run` and `http` actions on `landed` run in the primary checkout,
+  because the work is already on the default branch and its worktree is about to be removed; an `agent` action on
+  `landed` runs in a fresh worktree ([`agent`](#agent)). Each recorded branch fires `landed` at most once
+  successfully; a failed `landed` is re-fired manually with `harness lifecycle run landed`.
 - `harness doctor` never fires events or runs actions. It reports recorded branches that have landed and prints the
   command that fires `landed` for each ([doctor](doctor.md#landed-branches)).
 - An automatic event never undoes the command that fired it and never changes its exit code: the receipt stays
@@ -218,7 +220,7 @@ These are [built-in invariants](concepts.md#built-in-invariants). No repository 
 
 | Guard | Effect |
 | --- | --- |
-| No actions inside a Ralph worker | Lifecycle actions, `blocked` included, run in the launcher process, never inside the worker. The binary refuses `harness lifecycle run` inside a worker whatever the spelling: the worker launcher sets `HARNESS_WORKER=1`, and the binary checks it. `[harness, lifecycle]` is also in the built-in `worker.deny`, rendered for every spelling, as defence in depth. Automatic trigger points inside a worker fire nothing |
+| No actions inside a Ralph worker | Lifecycle actions, `blocked` included, run in the launcher process, never inside the worker. The binary refuses `harness lifecycle run` inside a worker whatever the spelling: the worker launcher sets `HARNESS_WORKER=1`, and the binary checks it. `[harness, lifecycle]` is also in the built-in `worker.deny`, rendered for each spelling `harness` renders, as defence in depth. Automatic trigger points inside a worker fire nothing |
 | Actions of a run come from its base | For events the Ralph launcher fires, actions are read from the run's base commit, so a worker cannot add or change an action its own task triggers |
 | `deliver` refuses unsafe work | Always on the default branch or with no branch checked out, and with uncommitted changes (tracked or untracked, not ignored). When the verify module is enabled (`modules.verify: true`), also without a valid receipt for the work's base (`harness verify --check`). For scope `run`, the run must have finished: each integrated task already passed its replay, so the run branch holds only replayed work. A refusal exits 3 and runs no action |
 | Values only as environment variables | `harness` never substitutes a value into a `run` command's text, so a task title or a branch name cannot inject shell syntax. `http` and `agent` actions expand `$NAME` only as described in [Action kinds](#action-kinds) |
@@ -228,9 +230,10 @@ These are [built-in invariants](concepts.md#built-in-invariants). No repository 
 
 The scaffolded repository policy seeds `[harness, lifecycle, run, deliver]` under `ask`, because permitting an agent
 to run an event permits everything its actions do ([safety](safety.md#lifecycle-actions-are-code)). `render` writes it
-for every spelling of the command: `harness …`, `./harnessw …`, `harnessw …`, and the task shim where one exists
-([policy](policy.md#entries-for-harness-commands)). This entry is the repository's own, not an invariant: the
-repository may move it. The guards above do not depend on it: the binary enforces them whoever runs the command.
+for each spelling `harness` renders: `harness …`, `./harnessw …`, `harnessw …`, and the task shim where one exists
+([policy](policy.md#entries-for-harness-commands)). It is a seeded entry the repository owns and may change, not an
+invariant ([ADR 0015](../adrs/0015-development-lifecycle.md)). The guards above do not depend on it: the binary
+enforces them whoever runs the command.
 
 ## The `lifecycle` block in `AGENTS.md`
 
@@ -385,8 +388,12 @@ The shell expands the [environment](#environment); `harness` substitutes nothing
   receives the `worker` role's [standing context](context.md).
 - It cannot commit, push or fire lifecycle events. Its file changes stay uncommitted in the checkout it ran in, and
   the output and the lifecycle log list the changed paths for a person to review and commit.
-- It runs in the work's checkout, except on `landed`, where it runs in the primary checkout, because the worktree of
-  landed work is about to be removed.
+- It runs in the work's worktree, except on `landed`. There, `harness` creates a fresh worktree of the default branch,
+  `<worktrees.dir>/landed-<name>-<n>` on branch `work/landed-<name>-<n>`, where `<name>` is the landed work's worktree
+  name or session id and `<n>` counts from 1, records it, and runs the agent in it. The worktree of landed work is
+  about to be removed, and the primary checkout holds whatever a person is doing, so neither receives the agent's
+  edits ([ADR 0019](../adrs/0019-action-kinds.md)). The fresh worktree stays, with the edits uncommitted, until a
+  person commits them or runs `harness worktree remove landed-<name>-<n>`.
 - `auto: true` is allowed on an `agent` action, as on any other, and must be written explicitly. `harness doctor`
   lists every automatic `agent` action as a note: each one costs a model run and gives a different result each time.
 - `harness` never calls a model itself. It starts the agent's own CLI, as the Ralph worker launcher does.
@@ -395,10 +402,10 @@ The shell expands the [environment](#environment); `harness` substitutes nothing
 
 ### Environment
 
-Actions run in the worktree of the work and inherit the environment of the process that fired them, plus the
-variables below: `run` commands see them as shell variables, `http` and `agent` actions expand them as `$NAME`
-([Action kinds](#action-kinds)). When the work has no worktree, as for a manual `landed` after a removal, the actions
-run in the primary checkout. A variable that does not apply is unset, not empty.
+Actions run in the worktree of the work, except on `landed`, where `run` and `http` actions run in the primary
+checkout and an `agent` action runs in a fresh worktree ([`agent`](#agent)). They inherit the environment of the
+process that fired them, plus the variables below: `run` commands see them as shell variables, `http` and `agent`
+actions expand them as `$NAME` ([Action kinds](#action-kinds)). A variable that does not apply is unset, not empty.
 
 | Variable | Value | Set |
 | --- | --- | --- |
@@ -596,13 +603,13 @@ lifecycle:
 
 ```sh
 ./harnessw doctor                                # lists work/invoice-rounding as landed, with the command below
-./harnessw worktree remove invoice-rounding      # fires landed in the worktree, then removes it
+./harnessw worktree remove invoice-rounding      # fires landed, then removes the worktree
 ```
 
 `harness doctor` only reports the merged `work/invoice-rounding`; `harness worktree remove` fires `landed` before it
-removes the worktree, so the action runs in it. When the action fails, the removal still happens and keeps its own
-exit code; fix the action and run `harness lifecycle run landed --task acme-api-7f2` to fire it again. Ralph sessions
-are cleaned by `harness ralph clean`, which fires `landed` with scope `run`.
+removes the worktree, and the action runs in the primary checkout. When the action fails, the removal still happens
+and keeps its own exit code; fix the action and run `harness lifecycle run landed --task acme-api-7f2` to fire it
+again. Ralph sessions are cleaned by `harness ralph clean`, which fires `landed` with scope `run`.
 
 ### A chat notification when work completes or stops
 
@@ -652,12 +659,14 @@ lifecycle:
 
 ```sh
 ./harnessw worktree remove invoice-rounding                              # fires landed: automatic actions only
-./harnessw lifecycle run landed --task acme-api-7f2 --action lessons     # the agent runs in the primary checkout
-git status --short .agents/memory/                                       # its edits, uncommitted, for review
+./harnessw lifecycle run landed --task acme-api-7f2 --action lessons     # the agent runs in a fresh worktree
+git -C .work/worktrees/landed-invoice-rounding-1 status --short          # its edits, uncommitted, for review
 ```
 
 The action has no `auto: true`: each run costs a model run, so a person or a coordinating agent starts it when the
-change taught something. The agent cannot commit; a person reviews its edits and commits them.
+change taught something. The agent cannot commit; a person reviews its edits in
+`.work/worktrees/landed-invoice-rounding-1`, commits them on `work/landed-invoice-rounding-1` and delivers that branch,
+or removes the worktree.
 
 ### A Terraform repository: push only
 
@@ -763,6 +772,6 @@ moved it.
 | An `http` action fails before sending: variable unset | The variable named in `url_env` or `headers_env` is not in the environment that fired the event | Export it in the shell, or the CI job, that runs the work |
 | An `http` action fails with a 3xx status | The endpoint redirected to another host | Use the final URL in the variable |
 | A notification shows an empty value | A `$NAME` in `json` is unset for this scope; the output noted it | Limit the action with `scope`, or name a variable that applies |
-| An `agent` action left edits in the primary checkout | `agent` actions on `landed` run there, and never commit | Review them with `git status`, then commit or discard them |
+| A `landed-<name>-<n>` worktree is left behind | An `agent` action on `landed` ran in it; it never commits | Review its edits with `git -C <path> status`, then commit and deliver them, or `harness worktree remove landed-<name>-<n>` |
 | An `agent` action fails the tamper check | The agent edited a tool-owned file | Read the action's output; the tool-owned files are restored from `HEAD` |
 | No notification from an unattended run that stopped | No `blocked` action, or it has no `auto: true` | Declare one with `auto: true`; test it with `harness lifecycle run blocked` |

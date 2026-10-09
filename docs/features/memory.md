@@ -21,8 +21,13 @@ Needs `modules.memory: true` in the [profile](profile.md).
 ### The skeleton
 
 When the module is on, `harness scaffold` (or the first `harness render` after turning the module on) creates
-`.agents/memory/` with a starter file explaining what belongs there. From then on the directory and everything in it
-is knowledge: `harness` does not own it, does not list it in the manifest, and never rewrites or deletes it.
+`.agents/memory/` with a starter file explaining what belongs there. The starter file is seeded: the manifest records
+it with the hash it was created with, and `harness` never rewrites it. Everything people and agents write in
+`.agents/memory/` is knowledge, which `harness` never writes or deletes.
+
+An [undo](remove.md#undo), or `harness remove --module memory`, deletes the starter file only while it still matches
+its recorded hash; once someone edits it, it is knowledge and stays, and the output lists it. An
+[eject](remove.md#eject) keeps it.
 
 ### The convention in `AGENTS.md`
 
@@ -54,10 +59,11 @@ files, but the list no longer follows additions and renames, so keep it current 
 
 | Path | Owner | Written by |
 | --- | --- | --- |
-| `.agents/memory/` | the repository | `scaffold` or `render` once (the skeleton), then people and agents |
+| `.agents/memory/` | the repository | `scaffold` or `render` once (the skeleton, seeded and recorded in the manifest with its hash), then people and agents |
 | `AGENTS.md` block `memory` | `harness` | `render` |
 
-Turning the module off, or `harness remove --module memory`, removes the block and leaves `.agents/memory/` in place.
+Turning the module off removes the block and leaves `.agents/memory/` in place. `harness remove --module memory`
+removes the block and also deletes the starter file while it is unedited; every other file stays.
 
 ## Examples
 

@@ -12,10 +12,12 @@ Commands are named `harness <command>` on this page. The examples run them throu
 
 ## The harness skill
 
-`.agents/skills/harness/SKILL.md` is a tool-owned file, written by `scaffold` and refreshed by every `render`. A skill
-that differs only because the binary is newer is a [`doctor`](doctor.md) note, not drift. It
-carries the same text as [`harness explain`](explain.md): the standards `harness` applies and the reasoning behind
-each, written for an agent.
+`.agents/skills/harness/SKILL.md` is a tool-owned file, written by `scaffold` and refreshed by every `render`. Like
+every owned file, it is drift-checked by the pinned release: it must match the text that release embeds, and an
+upgrade refreshes it in the same change that moves the pin ([wrapper](wrapper.md#upgrading),
+[ADR 0007](../adrs/0007-ownership.md)). Its header is a YAML comment on the line after the opening `---` of its front
+matter, so agents and the `skills` CLI still read the front matter. It carries the same text as
+[`harness explain`](explain.md): the standards `harness` applies and the reasoning behind each, written for an agent.
 
 It teaches an agent to:
 

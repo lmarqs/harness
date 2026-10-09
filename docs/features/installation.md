@@ -3,8 +3,9 @@
 An adopted repository carries its own entry point: [`harnessw`](wrapper.md), a committed script that downloads the
 `harness` release the repository pins, verifies its checksum and runs it. Working in such a repository needs nothing
 installed beyond a POSIX `sh`, `curl` or `wget`, and `sha256sum` or `shasum`, and the last two only for the first run
-of a pinned release. `harness` itself is a single static binary with no runtime dependencies. A global install is
-optional: it puts `harness` on your PATH and, inside a pinned repository, defers to the pinned release.
+of a pinned release. `harness` itself is a single binary that needs only the operating system and git at runtime
+([ADR 0004](../adrs/0004-runtime-dependencies.md)). A global install is optional: it puts `harness` on your PATH and,
+inside a pinned repository, defers to the pinned release.
 
 Examples on this page run commands as `./harnessw <command>`; with a global install, `harness <command>` is
 equivalent.
@@ -27,8 +28,9 @@ cd ~/src/acme-api
 ./harnessw version
 ```
 
-The first run downloads the release pinned in `.harness/wrapper.yaml` from the project's GitHub releases over HTTPS,
-checks its sha256 against the pinned checksum, stores it in the per-user cache, `$HARNESS_HOME/versions/<version>/`
+The first run downloads the release pinned in `.harness/wrapper.yaml` over HTTPS from the release source the file
+names, the project's GitHub releases by default or a mirror ([release source](wrapper.md#release-source)), checks its
+sha256 against the pinned checksum, stores it in the per-user cache, `$HARNESS_HOME/versions/<version>/`
 (by default `$XDG_CACHE_HOME/harness`, or `~/.cache/harness` when `XDG_CACHE_HOME` is unset), and runs it. Later
 runs start from the cache and need no network. Every clone, teammate and CI job that goes through the wrapper
 runs the same release.
@@ -45,7 +47,7 @@ release is cached. An agent session on such a machine also gets one line in its 
 fetch it for you:
 
 ```text
-harness v0.9.0 is not cached on this machine; run `./harnessw version` once to fetch it.
+harness v0.9.0 is not cached on this machine; run ./harnessw version once to fetch it.
 ```
 
 The [wrapper](wrapper.md) page covers the cache, `HARNESS_HOME`, the checksum and `HARNESS_BINARY`.
@@ -103,15 +105,16 @@ command, and never from a hook. Everywhere else it runs itself. See
 A repository moves to another release by changing its pin, in a commit:
 
 ```sh
-./harnessw wrapper --latest          # or --version <tag>: rewrites .harness/wrapper.yaml and, when needed, harnessw
-./harnessw render                    # the new release refreshes the harness skill and migrates older-schema files
+./harnessw wrapper --version <tag>   # or --latest: pins the release and renders the repository with it
 git diff
 git add -A && git commit -m "chore: upgrade harness"
 ```
 
 `wrapper` writes nothing until the running release has verified the target release's signed checksum file with its
-embedded release keys, downloaded the binary for this platform and matched it against that file; the new release then
-writes `harnessw` and `wrapper.yaml`. A step that fails leaves both untouched.
+embedded release keys, downloaded the binary for this platform and matched it against that file. The new release then
+renders the repository: `harnessw`, `wrapper.yaml`, every file it renders differently, and a migration of the
+repository files when it reads a newer `schema`. A step that fails leaves everything untouched. The pin and its effect
+are one diff ([upgrading](wrapper.md#upgrading)).
 
 Many repositories at once: `harness fleet wrapper --version <tag> --deliver`
 ([wrapper](wrapper.md#many-repositories)).
@@ -127,21 +130,29 @@ verified the target release's checksum file against those keys; `harnessw`, a pl
 download against the checksums committed in `wrapper.yaml`. `harness doctor`, when online, re-verifies the pinned
 release's signed checksum file against `wrapper.yaml`.
 
-Trust starts with the first binary you install, from the project's GitHub releases or a package manager. From then on,
+Trust starts with the first binary you install, from the project's releases or a package manager. From then on,
 every pin change is verified by a binary you already trust, and shows in review as a diff of `.harness/wrapper.yaml`
 ([wrapper](wrapper.md#security)).
 
 ## Update notice
 
-`harness doctor` and the `SessionStart` hook check the project's GitHub releases for a release newer than the one the
-repository pins:
+Explicit commands and `harness doctor` look for a release newer than the one the repository pins. The check fetches
+the newest release's signed checksum file from a fixed path under the release source and verifies its signature
+before naming the release; it calls no hosting platform's API ([release source](wrapper.md#release-source)). It is:
 
 - at most once per day; the result is cached under `$HARNESS_HOME`;
-- never blocking: offline, rate-limited or slow checks are skipped silently;
+- never blocking: an offline, unreachable or slow check is skipped silently;
 - informational: a newer release never changes an exit code.
 
-When a newer release exists, you see one line naming the pinned and the newer version, and the command that moves the
-pin: `./harnessw wrapper --latest`. An agent session sees it in its session context.
+When a newer release exists, an explicit command prints one line on stderr, and `harness doctor` a note, naming the
+pinned and the newer version and the exact command that moves the pin:
+
+```text
+harness v0.10.0 is available (this repository pins v0.9.0): run ./harnessw wrapper --version v0.10.0
+```
+
+Agent sessions never get the notice, and hooks never check: moving the pin is a supply-chain decision a person
+reviews, not a step an agent takes on its own.
 
 `./harnessw version --check-update` checks immediately, ignoring the daily cache.
 
@@ -150,9 +161,6 @@ Turn the check off for a shell, a CI job or a machine:
 ```sh
 export HARNESS_NO_UPDATE_CHECK=1
 ```
-
-A repository can also turn off the notice in agent sessions with `session_start.update_notice: false` in
-[`.harness/hooks.yaml`](hooks.md).
 
 ## Version skew
 
@@ -163,8 +171,8 @@ binary version.
 | The running release vs the repository files | What happens |
 | --- | --- |
 | Same schema | Normal operation |
-| The files use an older schema, after an upgrade | `./harnessw render` migrates them and shows the diff before writing |
-| The files use a newer schema | Happens only when the pin is bypassed: `HARNESS_BINARY` names an older release, or a global binary too old to defer to the pin runs the command. Every command that reads the files refuses with a message naming the schema (exit 3) |
+| The files use an older schema | `./harnessw wrapper --version <tag>` migrates them as part of the upgrade, showing the diff before writing; `./harnessw render` does the same when a pinned release meets older files |
+| The files use a newer schema | Happens only when the pin is bypassed: `HARNESS_BINARY` names an older release, or a global binary too old to defer to the pin runs the command. Every command that reads the files refuses with exit 3 and a message naming the file's schema, the newest schema the binary supports, and the release to run, the one `.harness/wrapper.yaml` pins, through `./harnessw` |
 
 ## Before the first download
 
@@ -185,8 +193,9 @@ happen.
 ## Uninstall
 
 To take `harness` out of a repository, see [remove](remove.md): `./harnessw remove` undoes the adoption, and
-`./harnessw remove --eject` stops managing the repository and keeps the result. Both delete `harnessw` and
-`.harness/`.
+`./harnessw remove --eject` stops managing the repository and keeps the result. Both delete `harnessw` and every file
+`harness` recorded in `.harness/`; a file it did not record is listed and left, and `.harness/` goes once nothing else
+is in it.
 
 Remove a global install:
 
@@ -219,4 +228,4 @@ rm -rf "${HARNESS_HOME:-${XDG_CACHE_HOME:-$HOME/.cache}/harness}" ~/.config/harn
 | Agent session shows `harness: v0.9.0 not downloaded, hook skipped; run: ./harnessw version` | Hooks never download, and the pinned release is not cached on this machine | Run `./harnessw version` once |
 | `harness: command not found` after `mise use -g` | mise shims or activation are not on PATH in this shell | Activate mise in your shell profile (`mise activate`), or add mise's shims directory to PATH; inside an adopted repository, `./harnessw` needs neither |
 | A command refuses because the repository schema is newer than the binary supports | The pin is bypassed: `HARNESS_BINARY` names an older release, or a global binary is too old to defer to the pin | Unset `HARNESS_BINARY`, or run `./harnessw <command>`; update the global install |
-| The update notice never appears | `HARNESS_NO_UPDATE_CHECK=1` is set, the machine is offline, or `update_notice: false` | Run `./harnessw version --check-update` |
+| The update notice never appears | `HARNESS_NO_UPDATE_CHECK=1` is set, the machine is offline, or the release source is unreachable; agent sessions never show it | Run `./harnessw version --check-update` |

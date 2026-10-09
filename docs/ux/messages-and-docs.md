@@ -85,9 +85,11 @@ the pinned version, because the hook itself never downloads.
   every line of it is paid in the agent's context.
 - Session-start context lists commands and rules, not explanations an agent can load from the skill on demand, for
   the same reason.
-- When the pinned binary is not cached, the session-start hook adds exactly one line:
+- When the pinned binary is not cached, the session-start hook prints its stderr skip line and also adds exactly one
+  line to the agent's context:
   `harness <version> is not cached on this machine; run ./harnessw version once to fetch it.` One line per session
-  explains every missing hook, notification and injection without repeating on each tool call.
+  explains every missing hook, notification and injection without repeating on each tool call. The wrapper prints it
+  from its template, because no binary is present.
 - An injected standing-context pointer is exactly one line: `Apply the <name> skill now: read <path>`, so the agent
   learns what applies and where to read it, at the cost of one line.
 
@@ -149,8 +151,10 @@ A section with no content is omitted rather than left empty.
   readers arrive from search and links, not from page one.
 - Relative links between pages. Tables for reference material. Fenced code blocks with a language tag for commands,
   YAML and output.
-- No organization or company names. Examples use `acme` for an organization and `acme/api` for a repository, because
-  harness is open source and its docs must fit any organization.
+- No organization names in examples or in content harness carries; examples use `acme` for an organization and
+  `acme/api` for a repository, because harness is open source and its docs must fit any organization. Third-party
+  products (Claude Code, Codex, GitHub, the `skills` CLI, Harness.io) are named where their behaviour matters, because
+  a reader needs to know which tool a rule is about.
 - Example commands are complete and run as written; example output is copied from a real run of the documented
   release, so a reader can trust what they copy.
 - Commands that run inside a repository are written as `./harnessw <command>`, with `harness <command>` shown as the

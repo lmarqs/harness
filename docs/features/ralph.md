@@ -66,7 +66,8 @@ ralph-tui decides whether to run tasks one after another or in parallel workers.
 
 Each task commit carries a verification summary in its body: the lanes and patterns run, and the reason for each
 skipped lane. With Beads, the same summary is added as a comment on the task after integration; a comment that fails
-costs only the comment, never the verified task.
+costs only the comment, never the verified task. In a database the repository synchronises, the comment travels where
+that synchronisation sends it ([tasks](tasks.md#coexistence)).
 
 ### The worker contract
 
@@ -111,9 +112,9 @@ Stopping Ralph stops the agent and any replayed checks, with every process they 
 
 Workers never commit, push, merge, close tasks, edit PRD status or fire lifecycle events themselves. The embedded
 prompt says so; the binary refuses `harness lifecycle run` under `HARNESS_WORKER=1`, whatever spelling started it; the
-built-in base also denies `harness lifecycle` to every worker, rendered for every spelling, as defence in depth; and
-the repository's `worker.deny` denies the rest ([policy](policy.md#a-node-api)). A worker that lacks a permission
-reports the task as blocked.
+built-in base also denies `harness lifecycle` to every worker, rendered for each spelling `harness` renders, as
+defence in depth; and the repository's `worker.deny` denies the rest ([policy](policy.md#a-node-api)). A worker that
+lacks a permission reports the task as blocked.
 
 ### Lifecycle events
 
@@ -156,8 +157,11 @@ In both modes these keys are forced, whatever the base says:
 | parallel target branch | `ralph/session-<session-id>`, never a direct merge |
 | Beads working directory | the primary checkout, so every worktree shares the clone's database |
 
-The root `.ralph-tui/config.toml` is only read, never written, and only with `inherit`. Trackers other than `beads` and
-`json` (PRD) in an inherited configuration are not supported by the launcher.
+The root `.ralph-tui/config.toml` is never written, and is read only with `inherit`. ralph-tui's global configuration,
+`~/.config/ralph-tui/config.toml`, which ralph-tui merges into every run it starts, is never written either; the
+launcher reads it for one purpose, to find and name a bypass setting it would inject into a harness-launched run
+([ADR 0012](../adrs/0012-write-boundary.md)). Trackers other than `beads` and `json` (PRD) in an inherited configuration
+are not supported by the launcher.
 
 ### The prompt
 
@@ -202,9 +206,10 @@ still runs in that coordinator.
 | empty session directories | branches whose commits are not on the default branch, and branches checked out in a worktree |
 
 For each recorded branch that has landed, `clean` fires the `landed` event once, before it removes the session's
-worktrees, so the actions still run in them. Each recorded branch fires `landed` at most once successfully; a failed
-`landed` is re-fired manually with `harness lifecycle run landed --session <session-id>`. A failing action never
-changes `clean`'s exit code.
+worktrees. Its `run` and `http` actions run in the primary checkout, and an `agent` action runs in a fresh worktree of
+the default branch ([lifecycle](lifecycle.md#agent)). Each recorded branch fires `landed` at most once successfully;
+a failed `landed` is re-fired manually with `harness lifecycle run landed --session <session-id>`. A failing action
+never changes `clean`'s exit code.
 
 It refuses to run while a Ralph run holds the clone's lock. Branches and worktrees `harness` did not record, such as
 `ralph/session-*` branches from direct ralph-tui runs, are never touched.
@@ -337,10 +342,10 @@ worker must not hold.
 
 ### Running it from an agent session
 
-A coordinating Claude Code session started with `claude --permission-mode auto` can launch, monitor and deliver a
-run: the module's allow entries cover every spelling of `harness ralph`. For delivery it arranges the task commits on
-branches, guided by the harness skill, then runs `harness lifecycle run deliver` on each; the seeded `ask` entry for
-that command asks a person first ([policy](policy.md#the-seeded-entry)).
+A coordinating Claude Code session started with `claude --permission-mode auto` can launch, monitor and deliver a run:
+the module's allow entries cover each rendered spelling of `harness ralph`. For delivery it arranges the task commits
+on branches, guided by the harness skill, then runs `harness lifecycle run deliver` on each; the seeded `ask` entry
+for that command asks a person first ([policy](policy.md#the-seeded-entry)).
 
 ## Guidelines
 
@@ -380,8 +385,10 @@ Running:
 
 ## Coexistence with direct ralph-tui use
 
-- A root `.ralph-tui/` belongs to whoever runs ralph-tui directly. Harness-launched runs never read or write it,
-  unless `ralph.config: inherit`, which reads it.
+- A root `.ralph-tui/` belongs to whoever runs ralph-tui directly. Harness-launched runs never write it, and read it
+  only with `ralph.config: inherit`.
+- The global `~/.config/ralph-tui/config.toml` is never written; it is read only to refuse and name a bypass setting
+  before it reaches a harness-launched worker.
 - Direct runs keep their own configuration, including bypass settings; the worker contract applies only to runs
   launched by `harness ralph`.
 - `harness ralph clean` never touches sessions it did not record: direct runs' branches, ralph-tui's sibling

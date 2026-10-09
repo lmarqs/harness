@@ -163,8 +163,8 @@ Commands are named `harness <command>` on this page. Run them through the reposi
   the policy denies to it.
 - **Why.** Actions run as child processes of `harness`, outside the agent's per-command checks. The permission to
   start the event is the permission for every action declared on it.
-- **What `harness` does.** Seeds `[harness, lifecycle, run, deliver]` under `ask` in a scaffolded policy, rendered for
-  every spelling; denies `[harness, lifecycle]` to workers in the built-in base and refuses `lifecycle run` inside a
+- **What `harness` does.** Seeds `[harness, lifecycle, run, deliver]` under `ask` in a scaffolded policy, in
+  every rendered spelling; denies `[harness, lifecycle]` to workers in the built-in base and refuses `lifecycle run` inside a
   worker in the binary; refuses unsafe delivery with its guards ([lifecycle](lifecycle.md#built-in-guards)).
 - **What you do.** Read `harness lifecycle list` before allowing the command, and review every change to the actions
   like code ([safety](safety.md#lifecycle-actions-are-code)).
@@ -193,11 +193,11 @@ Commands are named `harness <command>` on this page. Run them through the reposi
   machine, and after the pin moves to a new release.
 - **Why.** Rendered hooks are implicit entry points and never download: they run `harnessw --no-download`, which exits
   0 when the pinned version is not in the cache ([hooks](hooks.md#the-missing-binary-guard)).
-- **What `harness` does.** Adds the one session-context line at session start, prints one stderr line on every other
-  hook, and continues. Raw hooks and static context entries work regardless. Explicit entry points,
+- **What `harness` does.** Prints one stderr line on every harness hook and, at session start, also adds the one
+  session-context line; then continues. Raw hooks and static context entries work regardless. Explicit entry points,
   `./harnessw <command>` and the task shims, download and verify the pinned version, and exit non-zero when they
   cannot, so a skipped verification never reads as a pass.
-- **What you do.** Run `./harnessw doctor` once on each machine after cloning and after each upgrade. Treat hooks as
+- **What you do.** Run `./harnessw version` once on each machine after cloning and after each upgrade. Treat hooks as
   feedback; `harness verify` and CI are the proof. Declare directives every session must have as
   [static context](context.md#static-entries).
 
@@ -391,9 +391,10 @@ Commands are named `harness <command>` on this page. Run them through the reposi
 - **Why.** `attention` and `turn_end` are agent hooks, and agent hooks are implicit entry points: they never download,
   so they do nothing until the pinned release is in the machine's cache. The variable an `http` action reads must also
   be set in that machine's environment.
-- **What `harness` does.** Adds one line to the first session's context naming `./harnessw doctor`, prints one line on
-  stderr on every other hook, and exits 0.
-- **What you do.** Run `./harnessw doctor` once on every machine, and set the notification's variables in each
+- **What `harness` does.** Prints one line on stderr on every harness hook and, at session start, adds one line to the
+  session's context: `harness v0.9.0 is not cached on this machine; run ./harnessw version once to fetch it.` Every
+  hook exits 0.
+- **What you do.** Run `./harnessw version` once on every machine, and set the notification's variables in each
   developer's own shell profile. Do not rely on notifications for unattended runs; declare `blocked` and `completed`
   lifecycle actions, which the launcher fires.
 
@@ -416,15 +417,17 @@ Commands are named `harness <command>` on this page. Run them through the reposi
 - **What you do.** Export only the variables the declared actions need, in the shell or CI job that fires them. Review
   every action, preset actions included, as code that can read them ([safety](safety.md#secrets)).
 
-### An `agent` action leaves edits uncommitted in the primary checkout
+### A landed `agent` action leaves a worktree with uncommitted edits
 
-- **Symptom.** After `landed`, `git status` in the primary checkout shows changes nobody made by hand, mixed with your
-  own work in progress.
-- **Why.** An `agent` action cannot commit. On `landed` it runs in the primary checkout, because the landed work's
-  worktree is about to be removed, so its edits land where you work.
-- **What `harness` does.** Lists the changed paths in the action's output and in the lifecycle log.
-- **What you do.** Run `landed` agent actions from a clean primary checkout, review their edits, then commit or discard
-  them. Keep such actions manual.
+- **Symptom.** After `landed`, a worktree `.work/worktrees/landed-<slug>-<n>` holds changes nobody committed, and more
+  of them appear with every landed branch.
+- **Why.** An `agent` action cannot commit. On `landed`, the work's own worktree is about to be removed and the primary
+  checkout holds whatever you are doing, so `harness` gives the agent a fresh worktree of the default branch, on branch
+  `work/landed-<slug>-<n>`, and leaves the agent's edits there ([lifecycle](lifecycle.md)).
+- **What `harness` does.** Records the worktree like any managed worktree, never touches the primary checkout, and
+  lists the worktree and its changed paths in the action's output and in the lifecycle log.
+- **What you do.** Review each such worktree: commit its edits and deliver them as a change, or remove it with
+  `./harnessw worktree remove landed-<slug>-<n>`. Keep such actions manual if nobody reviews them promptly.
 
 ### Values in an `agent` prompt address the agent
 
@@ -472,7 +475,7 @@ Commands are named `harness <command>` on this page. Run them through the reposi
 - **Symptom.** The same repository's sessions follow the coding guidelines on one machine and not on another.
 - **Why.** Hook-delivered context comes from `harness hook`, which does not run until the pinned release is cached.
 - **What `harness` does.** Adds the not-cached line to the session's context, so the agent can tell the person.
-- **What you do.** Run `./harnessw doctor` once per machine. Declare what every session must have as
+- **What you do.** Run `./harnessw version` once per machine. Declare what every session must have as
   [static context](context.md#static-entries), which is part of `AGENTS.md`.
 
 ### Codex reads files without firing `paths` entries
@@ -556,7 +559,7 @@ Commands are named `harness <command>` on this page. Run them through the reposi
   names, and a global `harness` from a release without wrapper deferral runs itself instead of the pinned version.
 - **What `harness` does.** A global binary with wrapper deferral execs the pinned version inside any repository that
   has `.harness/wrapper.yaml`. A binary older than the repository's schema refuses rather than render a format it does
-  not know.
+  not know, naming the pinned release to run. `harness doctor` notes when it runs as another release than the pin.
 - **What you do.** Run `./harnessw`, or update the global binary. Set `HARNESS_BINARY` only on an air-gapped machine
   or while developing `harness`, and unset it afterwards.
 

@@ -13,8 +13,11 @@ once.
 | The version a repository runs | an exact release tag, pinned per repository | `version` in `.harness/wrapper.yaml` |
 | Rendered files and managed blocks | the schema of their sources | the generated-file header and the manifest |
 
-- Rendered content carries the schema, never the binary version, so upgrading the binary alone never makes
-  `render --check` fail ([ADR 0005](../adrs/0005-schema-compatibility.md)).
+- Rendered content carries the schema, never the binary version ([ADR 0005](../adrs/0005-schema-compatibility.md)).
+  It depends on the sources, the recorded preset commits and the pinned release, and `harness wrapper --version <tag>`
+  renders the repository with the new release in the same change as the pin, so moving the pin never leaves drift
+  behind ([ADR 0017](../adrs/0017-engine-version.md)). Why: a version stamp would change every file on every upgrade
+  and bury the changes that matter.
 - The public contract covered by semantic versioning is: command names and grammar, flags, operands, enumerated values,
   `HARNESS_*` environment variables (those harness and its wrapper read and those it passes to actions), exit-code
   meanings, JSON output shapes, `harness explain` topic names, the repository file schemas (`wrapper.yaml` included),
@@ -37,7 +40,7 @@ once.
 | Standing context | removing a trigger or a role; changing what a trigger matches | adding an optional key whose absence keeps existing behaviour |
 | JSON output | removing, renaming or retyping a field; changing array order | adding a field |
 | Repository files | removing, renaming or redefining a key; changing a default; tightening validation of values that used to be accepted | adding an optional key whose absence keeps existing behaviour |
-| Rendered output | different bytes for unchanged inputs and schema | different bytes because the inputs changed |
+| Rendered output | for unchanged inputs and schema, a change in what the rendered files make an agent do, other than a new invariant | for unchanged inputs and schema, different bytes that leave agent behaviour unchanged (the harness skill's text, formatting), shipped in a minor release and reviewed in the upgrade diff; different bytes because the inputs changed |
 | Managed blocks and header | changing marker syntax, a block id, a block's class or the header line | adding a new block id |
 | Invariants | weakening one (never allowed) | adding one; it changes rendered output and therefore follows the rendered-output rule |
 | Supported agents and tools | removing an agent adapter | adding an agent or a version; narrowing a version range in a minor release, listed in its notes |
@@ -48,19 +51,18 @@ keeps in a repository.
 
 ### Rendered output across releases
 
-Within one major version and one schema, rendered bytes for unchanged inputs do not change, so a teammate on another
-patch or minor release renders the same diff. When an agent's own format change forces different output, or a new
-invariant adds an entry, the release is treated as breaking: its notes name the affected files, and
-`harness render --check` and `harness doctor` report the drift until `harness render` runs.
+Rendered bytes depend on the repository files, the recorded preset commits and the pinned release. A patch release
+never changes them for unchanged inputs. A minor release may: the harness skill teaches the commands of the release
+that renders it, and a rendering fix changes bytes. When an agent's own format change forces different output, or a new
+invariant adds an entry, the release is breaking and its notes name the affected files.
 
-The harness skill is the one owned file whose content follows the binary: `harness render` refreshes it, and a skill
-that differs from the embedded one only because the binary is newer is a `doctor` note, not drift
-([generated-content-standards.md](generated-content-standards.md#idempotency-and-drift)). Why: the skill teaches the
-commands of the binary that runs, so it moves with that binary.
-
-The wrapper script `harnessw` follows the pin: it is rendered from the template of the version `wrapper.yaml` names,
-and `harness wrapper --version <tag>` rewrites the pin and re-renders the script in one reviewable diff, so the script
-and the binary it runs never disagree.
+Every such change reaches a repository the same way: `harness wrapper --version <tag>` renders the repository with the
+new release in the same change as the pin, `harnessw` and the harness skill included, so the pin and its effects reach
+review as one diff. The drift check is run by the pinned release, and no owned file is exempt from it. A binary other
+than the pinned release (`HARNESS_BINARY`) gets a `harness doctor` note naming both versions, because its drift
+results may differ. Why: with upgrades rendered in their own diff, the pinned release's output and the repository
+always agree, and an exemption would hide exactly the hand edits the check exists to catch
+([ADR 0007](../adrs/0007-ownership.md)).
 
 ### Presets across upstream changes
 
@@ -140,8 +142,8 @@ An adopted repository behaves for non-users exactly as it did before adoption
 
 - A clone builds, tests, deploys and starts its agents without the binary.
 - Implicit entry points degrade: rendered agent hooks run `./harnessw --no-download`, never download, and exit 0
-  after one stderr line naming `./harnessw` when no binary is cached. The session-start hook adds one line to the
-  agent's context saying the pinned version is not cached and how to fetch it.
+  after one stderr line naming `./harnessw` when no binary is cached. The session-start hook also adds one line to the
+  agent's context saying the pinned version is not cached and how to fetch it; the wrapper prints both lines itself.
 - On a machine without the cached binary, hook-delivered standing context and notification actions do nothing.
   Standing-context entries declared `static` are written into `AGENTS.md` and reach agents without the binary, so a
   directive that must always apply does not depend on it.
@@ -168,11 +170,11 @@ owners depend on them as they are ([ADR 0012](../adrs/0012-write-boundary.md)).
 
 | Already present | harness behaviour |
 | --- | --- |
-| A hosting platform's issues, projects, boards, comments, reviews and labels as the record of work | never written; the binary has no hosting-platform logic; tasks stay clone-local; linking work to issues is an agent's job |
+| A hosting platform's issues, projects, boards, comments, reviews and labels as the record of work | never written; the binary has no logic for the platform that hosts the team's work; task state harness creates stays clone-local; linking work to issues is an agent's job |
 | Pull requests, pushes, CI conventions and notification channels | produced only by actions the repository or its preset declares; the binary ships none |
 | MCP servers an agent is configured to use | never contacted by harness; work that needs them is an `agent` action or the coordinating agent's job |
-| An existing `.beads/` | used as found; never initialised again, localised or reconfigured |
-| A root `.ralph-tui/` and a global ralph-tui configuration | never read or written by harness-launched runs, unless the profile sets `ralph.config: inherit` |
+| An existing `.beads/` | used as found; never initialised again, localised or reconfigured; when the repository synchronises it, the claims and comments harness writes there travel where that synchronisation sends them ([ADR 0012](../adrs/0012-write-boundary.md)) |
+| A root `.ralph-tui/` and a global ralph-tui configuration (`~/.config/ralph-tui/config.toml`) | never written; read only when the profile sets `ralph.config: inherit`, or to find and name a bypass setting that ralph-tui would apply to a run harness launches, which harness then refuses. Why: ralph-tui merges that configuration into every run it starts, so harness must see it to refuse what it would inject ([ADR 0012](../adrs/0012-write-boundary.md)) |
 | Branches and worktrees from direct ralph-tui runs | `harness ralph clean` touches only sessions harness recorded |
 | `.claude/worktrees/` | Claude Code's; never scanned or cleaned |
 | An existing mise task with a name harness would use | never overwritten; harness generates `harness:<name>` and lists the collision as a to-do |
@@ -200,7 +202,8 @@ Why: one pinned release per repository means every machine and pipeline runs the
 change of version is a reviewed diff ([ADR 0017](../adrs/0017-engine-version.md)).
 
 - The version is pinned per repository, in exactly one place. `.harness/wrapper.yaml` names an exact release tag, its
-  source (default `github:lmarqs/harness`) and the sha256 checksum of the release asset for each supported platform
+  source (default `github:lmarqs/harness`, or a mirror at any HTTPS base URL laid out the same way) and the sha256
+  checksum of the release asset for each supported platform
   (`linux-amd64`, `linux-arm64`, `darwin-amd64`, `darwin-arm64`). The committed wrapper `harnessw` runs that version,
   so every machine runs the same version against one repository and version skew within a repository does not occur.
 - The wrapper looks for the pinned version in the cache (`$HARNESS_HOME`, default `$XDG_CACHE_HOME/harness`, falling
@@ -221,8 +224,12 @@ change of version is a reviewed diff ([ADR 0017](../adrs/0017-engine-version.md)
   refuses a repository file newer than it reads, and never renders something different. With the wrapper, this
   refusal occurs only when the pin is bypassed (`HARNESS_BINARY`, or a global binary too old to defer to the pin).
 - Upgrading is a reviewed change to the repository: `harness wrapper --version <tag>` (or `--latest`) rewrites the
-  version and checksums in `wrapper.yaml` and re-renders `harnessw`, under the trust rules below. Across repositories:
-  `harness fleet wrapper --version <tag> --deliver`.
+  version and checksums in `wrapper.yaml` and renders the repository with the new release in the same change, under
+  the trust rules below. Across repositories: `harness fleet wrapper --version <tag> --deliver`.
+- The release source serves plain files over HTTPS at fixed paths: a release's assets, `checksums.txt` and
+  `checksums.txt.sig` at `<source>/download/<tag>/`, and the newest release's at `<source>/latest/download/`. No
+  platform API is called. Why: a mirror is then a copy of files, for networks that cannot reach the project's release
+  host, and the binary carries no platform logic ([ADR 0012](../adrs/0012-write-boundary.md)).
 
 ### Release trust
 
@@ -255,12 +262,17 @@ Wrapper reference: [wrapper](../features/wrapper.md). Installing the optional gl
 Why: a repository's pin moves only when someone decides, so people need to learn that a newer release exists without
 anything changing on its own.
 
-- `harness doctor` and the SessionStart hook check for a newer release at most once per day per machine, using a
-  cached result, so the check costs one request a day.
+- Explicit commands and `harness doctor` check for a newer release at most once per day per machine, using a cached
+  result, so the check costs one request a day.
+- The check reads the newest release's `checksums.txt` and its signature from the release source, verifies the
+  signature with the running binary's embedded keys, and takes the tag from that file. A release whose signature does
+  not verify produces no notice, so a compromised host cannot advertise a release
+  ([ADR 0017](../adrs/0017-engine-version.md)).
 - The check never blocks: a network failure or timeout is silent, and the check never changes a command's exit code
   or stdout, because a notice must never break the work it accompanies.
-- A notice is one stderr line naming the pinned version, the available version and the upgrade command
-  (`./harnessw wrapper --version <tag>`).
-- `HARNESS_NO_UPDATE_CHECK=1` disables the check on a machine. `session_start.update_notice: false` in `hooks.yaml`
-  disables the notice in a repository's sessions.
+- A notice is one stderr line on an explicit command, and a `harness doctor` note, naming the pinned version, the
+  available version and the exact upgrade command with its tag (`./harnessw wrapper --version <tag>`).
+- Notices never appear in an agent's session context and never come from hooks. Why: moving the pin is a reviewed
+  supply-chain decision, and a notice in an agent's context invites the agent to make it.
+- `HARNESS_NO_UPDATE_CHECK=1` disables the check on a machine.
 - `harness version --check-update` checks on request.

@@ -48,7 +48,7 @@ platform's own CLI. A repository that declares none never has anything leave the
 | --- | --- |
 | No `.beads/` and `--tracker beads` | `harness` creates a local database: prefix from the profile, no git hooks, no agent files, no remotes, automatic export off |
 | An existing `.beads/` | used exactly as found: remotes, sync settings and hooks untouched |
-| A database synchronised across machines | works; claims made by sessions and Ralph workers become visible on the other machines |
+| A database synchronised across machines | works; what `harness` writes into it (claims, notes, verification comments) travels where the repository's synchronisation sends it, and `harness` never configures that synchronisation ([ADR 0012](../adrs/0012-write-boundary.md)) |
 | `.beads/` tracked in git | works; no `beads` block is written to `.gitignore` |
 | A tracker remote you want agents never to push to | add a `deny` entry to the policy or a preset; the built-in base has none |
 
@@ -58,7 +58,7 @@ platform's own CLI. A repository that declares none never has anything leave the
 | --- | --- |
 | A root `.ralph-tui/config.toml` for direct runs | untouched; direct runs keep working with their own settings |
 | Reusing that configuration in harness-launched runs | `ralph.config: inherit` reads it as the base, with the worker-contract keys forced |
-| A global `~/.config/ralph-tui/config.toml` | never written; a bypass setting it injects is refused by the worker, with the key named |
+| A global `~/.config/ralph-tui/config.toml` | never written; read only to find a bypass setting it would inject into a harness-launched run, which the worker refuses, naming the file and key |
 | Direct-run branches (`ralph/session-*`) and sibling `../.ralph-worktrees/` | never cleaned: `harness ralph clean` acts only on sessions it recorded |
 | Trackers other than Beads and PRD JSON (for example `beads-bv`) | not supported by `harness ralph`; direct use is unaffected |
 
@@ -162,13 +162,19 @@ An adopted repository's CI/CD is unchanged:
   release's signed checksum file with the release keys it embeds. The wrapper then checks each download against the
   committed checksums. `doctor`, when online, re-verifies the pinned release's signed checksum file against
   `wrapper.yaml` ([wrapper](wrapper.md#security)).
-- Rendered files carry the `schema`, not the binary version.
-- After the pin moves to a newer release, `render` migrates older-schema files with a shown diff. A binary older than
-  the repository's schema refuses; that happens only when the pin is bypassed, through `HARNESS_BINARY` or a global
-  binary too old to defer to the pin ([installation](installation.md#version-skew)).
-- `harness doctor` checks `claude`, `codex`, `bd` and `ralph-tui` against the release's supported versions and
-  reports a version outside that range as a finding.
-- A harness skill that differs only because the pin moved to a newer release is a `doctor` note, not drift.
+- Rendered output depends on the sources and on the pinned release, and never records the release; rendered files
+  carry the `schema`.
+- `harness wrapper --version <tag>` renders the repository with the new release in the same change, migrating
+  older-schema files, so the pin and every artefact the new release renders differently land in one diff
+  ([wrapper](wrapper.md#upgrading)). A binary older than the repository's schema refuses, naming the pinned release to
+  run; that happens only when the pin is bypassed, through `HARNESS_BINARY` or a global binary too old to defer to the
+  pin ([installation](installation.md#version-skew)).
+- `harness doctor` checks `claude`, `codex`, `bd` and `ralph-tui`, and `mise` when task shims are rendered and the
+  `skills` CLI when the skills module is enabled, against the release's supported versions, and reports a version
+  outside that range as a finding.
+- The drift check is run by the pinned release and fails on any difference, the harness skill included
+  ([ADR 0007](../adrs/0007-ownership.md)). A binary other than the pinned release, run through `HARNESS_BINARY`, gets a
+  `doctor` note, because its drift results may differ.
 
 ## After removal
 
@@ -188,8 +194,9 @@ The tool blocks, which describe how to use `harness` (`commands`, `layout`, `ver
 nothing left behind names a command that no longer exists.
 
 An undo, `harness remove` without `--eject`, instead returns the repository to the setup it had before adoption: every
-block and its text is removed, and the settings adoption imported are written back. Both modes delete `harnessw` and
-`.harness/`, and both leave state where it is.
+block and its text is removed, and the settings adoption imported are written back. Both modes delete `harnessw`, the
+files `.harness/` holds that `harness` owns or seeded, and then `.harness/` once nothing else is in it; a file the
+manifest does not record, such as `.harness/ralph/prompt.hbs`, is listed and left. Both leave state where it is.
 
 ## Not supported
 

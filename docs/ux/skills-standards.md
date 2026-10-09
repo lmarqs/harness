@@ -25,7 +25,7 @@ among skills ([configuration-standards.md](configuration-standards.md#where-file
 
 | Situation | Kind | Why |
 | --- | --- | --- |
-| Agents misuse a harness file or command in many unrelated repositories | harness skill (change ships in a release) | the fix reaches every repository with the binary |
+| Agents misuse a harness file or command in many unrelated repositories | harness skill (change ships in a release) | the fix reaches each repository in the diff that moves its pin to that release |
 | A new `harness explain` topic is needed | harness skill reference with the same text | both come from one embedded source |
 | A convention holds across one organization's repositories and needs judgement | organization skill | the organization owns and reviews it once |
 | A procedure or body of knowledge is specific to one repository | repository skill | it is reviewed where it applies |
