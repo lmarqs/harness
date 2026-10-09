@@ -23,10 +23,11 @@ global install, `harness <command>` is equivalent.
 | Check | Finds |
 | --- | --- |
 | Repository files | `.harness/config.yaml`, `.harness/policy.yaml` or `.harness/hooks.yaml` missing, invalid, or with an unsupported `schema` |
-| Wrapper file | `.harness/wrapper.yaml` missing or invalid: no `schema`, a `version` that is not an exact tag, a `source` that is neither `github:<owner>/<repo>` nor an HTTPS base URL ([release source](wrapper.md#release-source)), or a checksum missing or not 64 hexadecimal characters for one of `linux-amd64`, `linux-arm64`, `darwin-amd64`, `darwin-arm64` |
+| Wrapper file | `.harness/wrapper.yaml` missing or invalid: no `schema`, a `version` that is not an exact tag, a `source` that is neither `github:<owner>/<repo>` nor an HTTPS base URL ([release source](wrapper.md#release-source)), or a checksum missing or not 64 hexadecimal characters for one of `linux-amd64`, `linux-arm64`, `darwin-amd64`, `darwin-arm64`. `checksums: pending` is valid and reported as the next row |
+| Pending pin | `.harness/wrapper.yaml` has `checksums: pending`, written by `scaffold --offline`: no machine without the release in its cache can run `./harnessw` until `harness wrapper --version <the pinned tag>` completes it ([wrapper](wrapper.md#a-pending-pin)) |
 | Wrapper script | `harnessw` missing, not executable, or different from the pinned release's template |
 | One pin | `mise.toml`, `.mise.toml` or `.tool-versions` also pins `harness` (`github:lmarqs/harness` or `harness`). `.harness/wrapper.yaml` is the only pin; `harness` never edits the task runner's file, so remove the line yourself |
-| Release signature | online only, at most once a day and cached: the pinned release's signed checksum file does not verify with the keys embedded in the running release, or its checksums differ from those in `.harness/wrapper.yaml` ([wrapper](wrapper.md#security)) |
+| Release signature | online only, at most once a day and cached: the pinned release's signed checksum file does not verify with the keys embedded in the running release, or its checksums differ from those in `.harness/wrapper.yaml` ([wrapper](wrapper.md#security)); a pending pin has none to compare and is reported as pending |
 | Cached release | the pinned release is not in `$HARNESS_HOME` on this machine and `HARNESS_BINARY` is unset, so agent hooks skip until `./harnessw version` runs |
 | Rendered files | the same drift `harness render --check` reports |
 | Manifest | owned paths missing, modified by hand, or present but no longer produced |
@@ -158,6 +159,7 @@ CI step, after `render --check`:
 | `harnessw` differs from the template | the script was edited by hand | `./harnessw render` |
 | `harnessw` is not executable | the executable bit was lost | `chmod +x harnessw`, then `git add --chmod=+x harnessw` |
 | pinned release not cached | nothing has run `./harnessw` on this machine since the pin changed | `./harnessw version` |
+| pin pending | the repository was scaffolded with `--offline` | with network access, `harness wrapper --version <the pinned tag>`, then commit `.harness/wrapper.yaml` and the manifest |
 | `harness` pinned in `mise.toml` too | the repository pinned the tool through mise before it had a wrapper, or adoption copied that pin | delete the line from the task runner's file; `.harness/wrapper.yaml` keeps the pin |
 | release signature does not verify, or checksums differ | `wrapper.yaml` was edited by hand, or the release was replaced after it was pinned | do not run the release; re-pin with `./harnessw wrapper --version <tag>` and review the diff, and report a replaced release to the project |
 | a policy entry weakens an invariant | `.harness/policy.yaml` allows or asks for something a built-in invariant denies; `render` already leaves it out | delete the entry from the policy |

@@ -476,7 +476,9 @@ Commands are named `harness <command>` on this page. Run them through the reposi
 - **Why.** Hook-delivered context comes from `harness hook`, which does not run until the pinned release is cached.
 - **What `harness` does.** Adds the not-cached line to the session's context, so the agent can tell the person.
 - **What you do.** Run `./harnessw version` once per machine. Declare what every session must have as
-  [static context](context.md#static-entries), which is part of `AGENTS.md`.
+  [static context](context.md#static-entries), which is part of `AGENTS.md`. A static entry reaches every role, so a
+  directive only workers or only interactive sessions must receive cannot be static: it reaches its role through the
+  hook, and only where the pinned release is cached.
 
 ### Codex reads files without firing `paths` entries
 
@@ -537,6 +539,20 @@ Commands are named `harness <command>` on this page. Run them through the reposi
 - **What you do.** Run `./harnessw version` once while online, after cloning and after each upgrade. On an air-gapped
   machine, bring the pinned release in, check it against the checksum in `.harness/wrapper.yaml`, and pre-fill the
   cache with it or point `HARNESS_BINARY` at it ([air-gapped machines](wrapper.md#air-gapped-machines)).
+
+### A pending pin stops every machine without the release
+
+- **Symptom.** After a pull, `./harnessw <command>` and the task shims exit 3 with
+  `harness: pin of v0.9.0 is pending, nothing downloaded; with network access, run: harness wrapper --version v0.9.0`,
+  and agent hooks skip. The machine that scaffolded the repository works.
+- **Why.** The repository was scaffolded with `--offline`, which writes `.harness/wrapper.yaml` with
+  `checksums: pending`, and that pin was pushed before it was completed. The wrapper has no checksum to verify a
+  download against, so it downloads nothing; only a machine that already has the release in its cache can run it.
+- **What `harness` does.** Refuses every download against a pending pin, runs a release already in the cache, and
+  reports the pending pin as a `doctor` finding, so a CI job that runs `doctor` stops it before it merges
+  ([wrapper](wrapper.md#a-pending-pin)).
+- **What you do.** With network access and any installed `harness`, run `harness wrapper --version <the pinned tag>`
+  and commit the result: the diff is the checksums and the manifest. Complete a pending pin before you push it.
 
 ### A checksum mismatch refuses the download
 

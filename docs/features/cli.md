@@ -11,7 +11,7 @@ page use `harness`.
 
 ```text
 harness scaffold [--adopt] [--import <scope>[,<scope>]...] [--preset <go|node|terraform|python|generic>]
-                 [--front-door mise|binary] [--yes] [--dry-run]
+                 [--front-door mise|binary] [--offline] [--yes] [--dry-run]
 harness remove [--module <name>]... [--force] [--dry-run]
 harness remove --eject [--force] [--dry-run]
 harness render [--check] [--refresh] [--dry-run]
@@ -52,7 +52,8 @@ agent context on stdout, then exits 0. Rendered agent hooks use it.
 | --- | --- |
 | any | the exit code of `harness`, which the wrapper execs |
 | 0 | `--no-download`, and the pinned release is not cached; nothing ran |
-| 1 | the wrapper could not run `harness`: invalid `wrapper.yaml`, unsupported platform, no downloader or sha256 tool, a failed download, a checksum mismatch |
+| 1 | the wrapper could not run `harness`: invalid `wrapper.yaml`, unsupported platform, a failed download, a checksum mismatch |
+| 3 | a person must act first: install `curl` or `wget`, or `sha256sum` or `shasum`; or complete a [pending pin](wrapper.md#a-pending-pin) whose release is not cached |
 
 A global `harness` defers to the pin: inside a repository whose `wrapper.yaml` pins another release, it execs that
 release, downloading it through the same verified path only when the command was typed, never from a hook. See
@@ -113,10 +114,10 @@ verify module is enabled), the automatic `deliver` does not fire, and the comman
 
 | Command | Does | Exit codes | Page |
 | --- | --- | --- | --- |
-| `scaffold` | Set up a repository, `harnessw` and `wrapper.yaml` included, pinning the running release after verifying its signed checksum file; `--adopt` imports an existing setup, `--import` chooses the scopes | 0 set up; 1 error, already scaffolded, the release's checksum file unreachable or not verified; 2 the equivalence check lost a rule; 3 confirmation needed, or a `.harness/` directory another tool owns | [scaffold](scaffold.md) |
+| `scaffold` | Set up a repository, `harnessw` and `wrapper.yaml` included, pinning the running release after verifying its signed checksum file, or, with `--offline`, writing a [pending pin](wrapper.md#a-pending-pin) and making no network request; `--adopt` imports an existing setup, `--import` chooses the scopes | 0 set up; 1 error, already scaffolded, the release's checksum file unreachable without `--offline`, or not verified; 2 the equivalence check lost a rule; 3 confirmation needed, or a `.harness/` directory another tool owns | [scaffold](scaffold.md) |
 | `remove` | Undo the adoption, or one module, using the manifest; `--eject` stops managing and keeps the result | 0 removed or ejected; 1 error; 3 an owned path changed by hand, or confirmation needed | [remove](remove.md) |
 | `render` | Render native files, `harnessw`, task shims, the skill, blocks; `--check` for drift; `--refresh` re-resolves presets | 0 rendered or no drift; 1 invalid file, unresolvable preset; 2 drift; 3 newer schema, or migration needs confirmation | [render](render.md) |
-| `wrapper` | Pin a release in `.harness/wrapper.yaml` (`--version`, `--latest`): verify the release's signed checksum file with the running release's embedded keys, then download and verify this platform's binary, then have the new release render the repository: `harnessw`, `wrapper.yaml`, every file it renders differently, and a migration of older-schema files after confirmation. Without a flag, print the pin, whether it is cached and the newest release, and write nothing | 0 pinned, already pinned, or status printed; 1 unknown tag, no network, a signature that does not verify, missing checksums, checksum mismatch, invalid `wrapper.yaml`; 3 a migration needs confirmation without a terminal; nothing is written unless every step passes | [wrapper](wrapper.md#harness-wrapper) |
+| `wrapper` | Pin a release in `.harness/wrapper.yaml` (`--version`, `--latest`): verify the release's signed checksum file with the running release's embedded keys, then download and verify this platform's binary, then have the new release render the repository: `harnessw`, `wrapper.yaml`, every file it renders differently, and a migration of older-schema files after confirmation. Without a flag, print the pin, whether it is cached and the newest release, and write nothing | 0 pinned, a pending pin completed, already pinned, or status printed; 1 unknown tag, no network, a signature that does not verify, missing checksums, checksum mismatch, invalid `wrapper.yaml`; 3 a migration needs confirmation without a terminal; nothing is written unless every step passes | [wrapper](wrapper.md#harness-wrapper) |
 | `doctor` | Read-only health checks, the wrapper, the single pin, the release signature and the cached release, the adoption to-do, notes, landed branches with the command that fires `landed` | 0 no findings; 1 cannot run; 2 a finding or an open to-do item | [doctor](doctor.md) |
 | `explain <topic>` | Built-in documentation. Topics: `layout`, `profile`, `policy`, `hooks`, `lifecycle`, `context`, `adoption`, `verify`, `ralph`, `invariants`, `blocks`, `presets`, `wrapper`, `safety`, `pitfalls` | 0 printed; 1 unknown topic | [explain](explain.md) |
 | `context show` | Preview the standing context a session would receive for a role, paths and a prompt, and why | 0 printed; 1 invalid `context` declarations, a missing skill or file, an unknown role | [context](context.md#harness-context-show) |

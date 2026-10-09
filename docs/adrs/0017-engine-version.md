@@ -30,6 +30,9 @@
   tells them.
 - Some networks reach only an internal mirror, not the project's release host. The binary contains no client for any
   hosting platform's API ([0012](0012-write-boundary.md)).
+- A binary cannot contain its own release's checksums, because they are computed over the binary. Adoption therefore
+  fetches them from the release source ([0021](0021-release-trust.md)); a machine that is offline, or reaches neither
+  the release host nor a mirror, cannot.
 
 ## Decision
 
@@ -38,11 +41,12 @@
    ([0007](0007-ownership.md)).
 2. The repository pins one exact release in a committed file in the tool configuration directory
    ([0014](0014-directory-layout.md)), together with the SHA-256 checksum of that release's binary for each supported
-   platform. The pin is owned content recorded in the manifest ([0007](0007-ownership.md)), and it exists in exactly
+   platform, or a mark that they are pending (point 13). The pin is owned content recorded in the manifest ([0007](0007-ownership.md)), and it exists in exactly
    one place.
-3. A pin is written only by adoption and by an explicit upgrade operation, for a release admitted under
-   [0021](0021-release-trust.md). The upgrade renders the repository with the new release in the same change, so the
-   pin and every artefact the new release renders differently land in one reviewed diff.
+3. A pin is written only by adoption and by an explicit upgrade operation. Its checksums come only from a release
+   admitted under [0021](0021-release-trust.md), except that point 13 lets adoption leave them pending. The upgrade
+   renders the repository with the new release in the same change, so the pin and every artefact the new release
+   renders differently land in one reviewed diff.
 4. The wrapper resolves the pinned release in a per-user cache. When the release is absent and the call is explicit,
    the wrapper downloads it over HTTPS, verifies it against the committed checksum, refuses on a mismatch without
    caching anything, and then executes it with the caller's arguments. Once cached, it runs offline.
@@ -71,6 +75,12 @@
     file, and the newest release's signed checksum file, at fixed paths over plain HTTPS. The project's own release
     host and any mirror laid out the same way serve equally, and no platform API is involved
     ([0012](0012-write-boundary.md)).
+13. An adoption that cannot reach the release source writes a pending pin when the person asks for one: the release
+    and its source, without checksums. An upgrade never writes one. Nothing is downloaded against a pending pin: the
+    wrapper and a global installation run the pinned release only when it is already cached, an explicit call that
+    would need a download stops and names the step that completes the pin, and implicit entry points behave as for an
+    uncached release (point 5). That step is the upgrade operation of point 3 for the pinned release; a global
+    installation runs it itself instead of deferring to the pin. The health check reports a pending pin as a finding.
 
 ## Reasons
 
@@ -116,6 +126,19 @@
   ([0012](0012-write-boundary.md)). Serving the newest release's signed checksum file at a fixed path lets the update
   notice learn about a release and verify it in one request, so a compromised host cannot advertise an unsigned
   release.
+- **13.** A binary cannot carry its own checksums, so an adoption that cannot reach the release source cannot verify
+  them, and refusing it would block adoption on every machine that is offline or reaches neither the release host nor
+  a mirror, although nothing else in adoption needs the network. A pending pin defers the verification without
+  skipping it: no download happens against it, so it fails closed, and its cost is availability on machines that lack
+  the release, never an unverified binary. A release already in the cache was verified against a committed checksum
+  when it was downloaded (point 4), so running it under a pending pin trusts nothing new. Writing a pending pin only on
+  request keeps a network failure from producing, unnoticed, a pin that other machines cannot use. Completing it
+  through the upgrade operation keeps one operation that writes checksums, so every committed checksum is one a
+  trusted binary verified ([0021](0021-release-trust.md)). A global installation runs that operation itself because
+  deferring to a release nobody can obtain would leave the pin with no way to be completed; the binary that runs it is
+  one the person already trusts, and it verifies the release with its embedded keys before writing. An upgrade never
+  pends, because the repository keeps its verified pin while it waits for the network. Reporting a pending pin as a
+  finding lets a pipeline that runs the health check stop a pin that other machines cannot use.
 
 ## Rejected alternatives
 
@@ -151,6 +174,25 @@ loses because every machine needs a container runtime ([0004](0004-runtime-depen
 measured 565 to 875 ms against the 50 ms hook budget ([0003](0003-implementation-language.md)); and the tool must reach
 the working tree and the git state from inside the container.
 
+### Refuse adoption without access to the release source
+
+At its best, every committed pin carries verified checksums from its first commit, and no pin exists that other
+machines cannot use. It loses because adoption then depends on the network at the moment a person adopts, for the one
+step that needs it, while a pending pin keeps the guarantee the checksums exist for: no download runs unverified.
+
+### Seed the cache with the adopting binary
+
+An offline adoption copies the running binary into the per-user cache as the pinned release. At its best, the adopting
+machine's hooks and wrapper work at once, with no network. It loses because every other cache entry was verified
+against a signed checksum, and the cache is shared by every repository on the machine: the unverified entry would run
+as the pinned release in repositories whose pins were verified.
+
+### Complete the pin on the first online command
+
+Any explicit command that finds the release source reachable fills in the checksums. At its best, nobody has to
+remember a step. It loses because an unrelated command would rewrite a committed, security-relevant file as a side
+effect, and the checksums would reach the repository outside the one operation that writes every other pin.
+
 ## Consequences
 
 Costs:
@@ -165,6 +207,8 @@ Costs:
   and a global binary too old to defer to pins, are the two ways to run another release inside a pinned repository.
 - The repository carries one tool-owned script longer than one line; a hand edit to it is drift
   ([0007](0007-ownership.md)).
+- A committed pending pin leaves every machine that lacks the pinned release in its cache unable to run explicit entry
+  points until someone completes the pin.
 - Windows is not served ([0003](0003-implementation-language.md)).
 
 Must be maintained:
@@ -192,5 +236,10 @@ Must be maintained:
   network access.
 - An upgrade fixture produces one diff holding the pin and every artefact the new release renders differently, and the
   drift check run by the new release passes on it.
+- An offline adoption fixture writes a pending pin and makes no network access. With an empty cache, an explicit call
+  exits non-zero naming the completing step and downloads nothing, a hook exits 0 as for an uncached release, and the
+  health check reports a finding. The upgrade operation for the pinned release completes the pin, and its diff touches
+  only the pin and the pin's manifest entry.
+- An upgrade fixture whose release source is unreachable writes nothing.
 - CI runs the wrapper tests on Linux and macOS with each supported downloader and checksum tool.
 - The hook benchmark of [0003](0003-implementation-language.md) runs through the wrapper and fails above 50 ms at p95.

@@ -33,6 +33,7 @@ Examples on this page run commands as `./harnessw <command>`; with a
 | Move the repository to another release | `./harnessw wrapper --latest`, or `--version <tag>`: see [Upgrading](#upgrading) |
 | Move many repositories to another release | `harness fleet wrapper --version <tag> --deliver` ([fleet](fleet.md)) |
 | Scaffold a repository that has no `harnessw` yet | a `harness` binary, once: see [installation](installation.md#scaffolding-a-new-repository) |
+| Scaffold a repository without network access | `harness scaffold --offline`, then complete the [pending pin](#a-pending-pin) |
 | A machine without network access | `HARNESS_BINARY`, or a pre-filled cache: see [Air-gapped machines](#air-gapped-machines) |
 | A network that reaches only an internal mirror | `source` set to the mirror's base URL: see [Release source](#release-source) |
 | CI | nothing; or the opt-in `./harnessw render --check`: see [CI](#ci) |
@@ -50,11 +51,13 @@ Every invocation follows the same steps:
 5. Otherwise, with `--no-download`, print one line on stderr naming `./harnessw`; when the command is
    `hook session-start`, also print the session-context line on stdout, which the agent adds to its context. Both
    lines are fixed text from the wrapper's template. Exit 0.
-6. Otherwise download the release's binary for the platform from `<source>/download/<version>/<asset>` over HTTPS
+6. Otherwise, when the pin is [pending](#a-pending-pin) (`checksums: pending`), print one line on stderr naming the
+   command that completes it and exit 3. Nothing is downloaded: there is no checksum to verify a download against.
+7. Otherwise download the release's binary for the platform from `<source>/download/<version>/<asset>` over HTTPS
    ([release source](#release-source)), with `curl` or `wget`, into a temporary file in the cache.
-7. Compute its sha256 with `sha256sum` or `shasum -a 256` and compare it with the pinned checksum. On a mismatch,
+8. Compute its sha256 with `sha256sum` or `shasum -a 256` and compare it with the pinned checksum. On a mismatch,
    delete the file, print the expected and the found value, and exit 1: nothing is cached and nothing runs.
-8. Move the verified binary into place in one step, so two first runs at once end with one verified binary, and exec
+9. Move the verified binary into place in one step, so two first runs at once end with one verified binary, and exec
    it with the arguments.
 
 `exec` hands the process over: standard input, output, error and the exit code are those of `harness`.
@@ -87,8 +90,8 @@ knows why it has no standing context or lint-on-edit, and tells the person:
 harness v0.9.0 is not cached on this machine; run ./harnessw version once to fetch it.
 ```
 
-Explicit entry points never succeed without running: a task shim that cannot download exits 1, so no verification
-or task command claims work that did not happen.
+Explicit entry points never succeed without running: a task shim that cannot obtain the release exits 1, or 3 when a
+person must act first, so no verification or task command claims work that did not happen.
 
 ### A global install defers to the pin
 
@@ -98,6 +101,7 @@ A global `harness` (one on your PATH) looks for `.harness/wrapper.yaml` in the r
 | --- | --- |
 | A repository whose `wrapper.yaml` pins its own version | runs itself |
 | A repository whose `wrapper.yaml` pins another version | execs the pinned release from the cache; when it is not cached, downloads it through the same verified path if the command was typed, and never from a hook |
+| A repository whose `wrapper.yaml` pin of another version is [pending](#a-pending-pin) | execs the pinned release from the cache; when it is not cached, runs `harness wrapper` itself, which completes the pin, and exits 3 naming that command for anything else |
 | Anywhere else | runs itself |
 
 A global install is a convenience, never a source of version skew: within one repository every machine runs the
@@ -141,7 +145,9 @@ flowchart LR
   every pin is verified by a binary that was itself pinned through a verified step, and every pin change is a
   `wrapper.yaml` diff a reviewer sees.
 - **`harness scaffold`** pins the running binary's own release the same way: it fetches that release's `checksums.txt`
-  and signature and verifies them, because a binary cannot embed its own checksums.
+  and signature and verifies them, because a binary cannot embed its own checksums. With `--offline` it writes a
+  [pending pin](#a-pending-pin) instead, which admits no download until a binary verifies the release and completes
+  it.
 - **`harness wrapper --version <tag>`** verifies the target release's signed checksum file before it downloads or writes
   anything ([`harness wrapper`](#harness-wrapper)). A release whose signature does not verify is refused with exit 1,
   and nothing is written.
@@ -177,6 +183,39 @@ running binary embeds before it pins it, and the update check, `harness wrapper`
 the newest release's signed checksum file before they name it, so a host cannot offer a release its publisher did not
 sign.
 
+### A pending pin
+
+`harness scaffold --offline` sets a repository up with no network request. A binary cannot contain its own release's
+checksums, and offline it cannot fetch them, so it writes the pin without them:
+
+```yaml
+# generated by harness: change with ./harnessw wrapper --version <tag>
+schema: 1
+version: v0.9.0
+source: github:lmarqs/harness
+checksums: pending
+```
+
+A pending pin never admits a download, because there is nothing to verify one against:
+
+| Entry point | Pinned release in the cache | Pinned release not in the cache |
+| --- | --- | --- |
+| `./harnessw <command>`, task shims | runs it | exit 3: `harness: pin of v0.9.0 is pending, nothing downloaded; with network access, run: harness wrapper --version v0.9.0` |
+| Agent hooks | run it | skip, as for [an uncached release](#which-entry-points-download) |
+| A global `harness` of the pinned version | runs itself | runs itself |
+| A global `harness` of another version | runs the cached release | runs `harness wrapper` itself, so it can complete the pin; any other command exits 3 as above |
+
+A cached release was checked against a committed checksum when it was downloaded, so running it under a pending pin
+trusts nothing new.
+
+To complete the pin, run `harness wrapper --version <the pinned tag>` with network access, from a global `harness` or
+with `HARNESS_BINARY` set. It verifies that release's signed checksum file with the running binary's keys, writes the
+four checksums, and caches this platform's binary after checking it. The release that renders is the one already
+pinned, so the diff touches only `.harness/wrapper.yaml` and the manifest. Until then, `harness doctor` reports the
+pending pin as a finding (exit 2), so a CI job that runs `doctor` stops it before it merges. An upgrade never leaves a
+pin pending: without network access it writes nothing, and the repository keeps its verified pin. The reasoning is in
+[ADR 0017](../adrs/0017-engine-version.md).
+
 ## Reference
 
 ### `.harness/wrapper.yaml`
@@ -198,14 +237,15 @@ checksums:
 | `schema` | integer | required | File format version, `1` |
 | `version` | string | required | The exact release tag to run, such as `v0.9.0`; never a range or `latest` |
 | `source` | string | `github:lmarqs/harness` | Where releases are downloaded from: `github:<owner>/<repo>`, shorthand for `https://github.com/<owner>/<repo>/releases`, or an HTTPS base URL laid out the same way ([release source](#release-source)) |
-| `checksums` | map | required | The sha256 of the release binary for each platform, 64 hexadecimal characters each: `linux-amd64`, `linux-arm64`, `darwin-amd64`, `darwin-arm64` |
+| `checksums` | map, or `pending` | required | The sha256 of the release binary for each platform, 64 hexadecimal characters each: `linux-amd64`, `linux-arm64`, `darwin-amd64`, `darwin-arm64`. `pending` when `scaffold --offline` wrote the pin: no download is admitted until `harness wrapper --version <tag>` completes it ([a pending pin](#a-pending-pin)) |
 
 [`harness scaffold`](scaffold.md) writes the file and [`harness wrapper`](#harness-wrapper) rewrites it, always with
 `version` and `checksums` from the same release's signed checksum file, verified first
-([the trust chain](#the-trust-chain)). It is owned content, recorded in the manifest, committed and never ignored;
-its first line is the generated header. `harnessw` reads it with plain `sh`, so the file keeps this flat shape: one
-key per line, no anchors, no flow style. Change it through `harness wrapper`, not by hand: a hand edit is drift, and
-`harness doctor` reports checksums that differ from the release's signed checksum file.
+([the trust chain](#the-trust-chain)), or, with `scaffold --offline`, with `checksums: pending`. It is owned content,
+recorded in the manifest, committed and never ignored; its first line is the generated header. `harnessw` reads it with
+plain `sh`, so the file keeps this flat shape: one key per line, no anchors, no flow style. Change it through
+`harness wrapper`, not by hand: a hand edit is drift, and `harness doctor` reports checksums that differ from the
+release's signed checksum file.
 
 ### `harnessw`
 
@@ -224,7 +264,7 @@ Every other argument is passed to `harness` unchanged.
 | any | The exit code of `harness`, which the wrapper execs |
 | 0 | `--no-download`, and the pinned release is not cached; nothing ran |
 | 1 | The wrapper could not run `harness`: `wrapper.yaml` missing or invalid, unsupported platform, the download failed, the checksum did not match, or `HARNESS_BINARY` is not executable |
-| 3 | A person must install a prerequisite first: no `curl` or `wget`, or no `sha256sum` or `shasum` |
+| 3 | A person must act first: install a prerequisite (no `curl` or `wget`, or no `sha256sum` or `shasum`), or complete a [pending pin](#a-pending-pin) whose release is not cached |
 
 | Requirement | When |
 | --- | --- |
@@ -264,6 +304,8 @@ With a version to pin, it:
    the harness skill. When the new release reads a newer `schema`, the repository files are migrated in the same step;
    the migration's diff is shown and confirmed first (`--yes` skips the question). The manifest records it all.
 
+Pinning the release a pending pin already names completes it: the same steps, and only the checksums change.
+
 Nothing is written when any step fails. The pin and every file the new release rendered differently are one change,
 so the drift check, run by the pinned release, passes on it.
 
@@ -280,7 +322,7 @@ Global flags `-C <dir>` and `--verbose` also apply; see [CLI reference](cli.md).
 
 | Exit code | Meaning |
 | --- | --- |
-| 0 | Pinned, already pinned to that release, or status printed |
+| 0 | Pinned, a pending pin completed, already pinned to that release, or status printed |
 | 1 | Error: unknown tag, no network, a release without a checksum file, a signature, or a checksum for one of the platforms, a signature that does not verify with the embedded keys, a checksum mismatch, an invalid `wrapper.yaml`, or both `--version` and `--latest` |
 | 3 | A schema migration needs confirmation and there is no terminal: rerun with `--yes`. Nothing was written |
 
@@ -369,9 +411,10 @@ install -m 0755 ./harness "$dir/harness"
 
 ## Security
 
-- **Signed releases.** A pin is written only after a running `harness` binary verifies the release's `checksums.txt`
-  against its ed25519 signature with the keys it embeds. A release whose signature does not verify is never pinned
-  ([the trust chain](#the-trust-chain)).
+- **Signed releases.** Checksums enter a pin only after a running `harness` binary verifies the release's
+  `checksums.txt` against its ed25519 signature with the keys it embeds. A release whose signature does not verify is
+  never pinned ([the trust chain](#the-trust-chain)), and a [pending pin](#a-pending-pin), which has no checksums,
+  admits no download.
 - **Verified downloads.** The wrapper fetches the binary over HTTPS and runs it only after its sha256 matches the
   checksum committed in `wrapper.yaml`. A mismatch deletes the download and exits 1, so a changed release asset, a
   rewriting proxy or a hand-edited `version` cannot run.
@@ -394,6 +437,8 @@ install -m 0755 ./harness "$dir/harness"
 - Do run `./harnessw version` once after cloning, so agent hooks have a cached release from their first session.
 - Do upgrade in its own pull request: `./harnessw wrapper --version <tag>` pins and renders in one step, so the pin,
   the checksums and the rendered changes are reviewed together.
+- Do complete a [pending pin](#a-pending-pin) before you push it: until then, no machine without the release in its
+  cache can run `./harnessw`.
 - Do commit `harnessw` with its executable bit. `scaffold` writes it with mode `0755`; a filesystem that loses the bit
   needs `git add --chmod=+x harnessw`.
 - Don't edit `wrapper.yaml` by hand: a `version` without its matching `checksums` is refused on every machine at its
@@ -412,6 +457,8 @@ install -m 0755 ./harness "$dir/harness"
 | `harness: no curl or wget`, exit 3 | Neither downloader is on PATH | Install one, or use an [air-gapped setup](#air-gapped-machines) |
 | `harness: no sha256sum or shasum`, exit 3 | Neither checksum tool is on PATH | Install one: `sha256sum` comes with GNU coreutils, `shasum` with macOS |
 | The first run fails offline | The pinned release is not cached and the source is unreachable | Connect once and run `./harnessw version`, or pre-fill the cache |
+| `harness: pin of v0.9.0 is pending, nothing downloaded`, exit 3 | The repository was scaffolded with `--offline` and the pin was never completed | With network access and an installed `harness`: `harness wrapper --version v0.9.0`, then commit `.harness/wrapper.yaml` and the manifest |
+| `doctor` finding: the pin is pending | `.harness/wrapper.yaml` has `checksums: pending` | The same: `harness wrapper --version <the pinned tag>` with network access |
 | An agent session shows `harness: v0.9.0 not downloaded, hook skipped; run: ./harnessw version` | Hooks never download, and nothing has run `./harnessw` on this machine since the pin changed | Run `./harnessw version` once |
 | `./harnessw: Permission denied` | The executable bit was lost | `chmod +x harnessw`, then commit the mode with `git add --chmod=+x harnessw` |
 | `harness: unsupported platform`, exit 1 | The machine is not linux or macOS on amd64 or arm64 | Run on a supported platform |

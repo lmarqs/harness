@@ -44,7 +44,9 @@ finds nothing to import and behaves like a plain scaffold.
 5. **Pin** the release that runs `scaffold` in `.harness/wrapper.yaml`, an owned file: its exact version, and the
    checksums of its four platform binaries. They come from that release's checksum file, fetched over HTTPS and
    accepted only after its signature verifies against the release keys embedded in the running binary
-   ([wrapper](wrapper.md#harnesswrapperyaml), [safety](safety.md#the-pinned-binary)).
+   ([wrapper](wrapper.md#harnesswrapperyaml), [safety](safety.md#the-pinned-binary)). With `--offline`, `scaffold`
+   makes no network request and writes a [pending pin](wrapper.md#a-pending-pin) instead: the version and the source,
+   with `checksums: pending`.
 6. **Render** everything else, exactly as [`harness render`](render.md) does: `harnessw`, native agent files, the
    harness skill and its links, task shims, managed blocks, the manifest.
 
@@ -230,7 +232,7 @@ those entries as you would any policy change; see [safety](safety.md).
 
 ```text
 harness scaffold [--adopt] [--import <scope>[,<scope>]...] [--preset <go|node|terraform|python|generic>]
-                 [--front-door mise|binary] [--yes] [--dry-run]
+                 [--front-door mise|binary] [--offline] [--yes] [--dry-run]
 ```
 
 | Flag | Default | Meaning |
@@ -239,6 +241,7 @@ harness scaffold [--adopt] [--import <scope>[,<scope>]...] [--preset <go|node|te
 | `--import <scope>[,<scope>]...` | `project` with `--adopt`, else `none` | Scopes to import, as a comma-separated set from the closed enumeration `project`, `local`, `user`, `none` |
 | `--preset <name>` | detected | Use this stack preset instead of detection: `go`, `node`, `terraform`, `python`, `generic` |
 | `--front-door mise\|binary` | `mise` when mise is configured, else `binary` | Whether to write task shims |
+| `--offline` | off | Make no network request. The pin is written [pending](wrapper.md#a-pending-pin), without checksums, and is completed later with `harness wrapper --version <tag>` |
 | `--yes` | off | Do not ask for confirmation |
 | `--dry-run` | off | Print the plan, the generated `policy.yaml` and `hooks.yaml`, and the equivalence report; write nothing |
 
@@ -247,7 +250,7 @@ Global flags `-C <dir>`, `--json`, `--verbose` also apply; see [CLI reference](c
 | Exit code | Meaning |
 | --- | --- |
 | 0 | Scaffolded or adopted. With `--adopt`, open to-do items do not change the exit code |
-| 1 | Error, including a repository that already has `.harness/config.yaml`, a checksum file of the pinned release that cannot be fetched, and one whose signature does not verify |
+| 1 | Error, including a repository that already has `.harness/config.yaml`, a checksum file of the pinned release that cannot be fetched without `--offline`, and one whose signature does not verify. Nothing is written |
 | 2 | The equivalence check found a project-scope rule that would not be in effect; nothing was written |
 | 3 | A person must act: confirmation needed and no terminal (rerun with `--yes`, or from a terminal), or a `.harness/` directory that belongs to another tool |
 
@@ -290,6 +293,23 @@ $ harness scaffold --preset terraform --front-door binary --yes
 
 The profile gets `validate` and `plan` lanes and `modules.ralph: false`; no task shims are written, and the `commands`
 block in `AGENTS.md` shows `./harnessw verify …`.
+
+### Offline, completed later
+
+```sh
+$ cd ~/src/acme-api
+$ harness scaffold --offline --yes
+harness: pin of v0.9.0 is pending; with network access, run: harness wrapper --version v0.9.0
+$ git add -A && git commit -m "chore: adopt harness"
+# later, with network access:
+$ harness wrapper --version v0.9.0       # verifies v0.9.0's signed checksum file, writes the checksums
+$ git diff --stat                        # .harness/wrapper.yaml and .harness/manifest.json only
+$ git commit -am "chore: complete the harness pin" && git push
+```
+
+Everything else works offline at once on this machine through the global `harness`. Agent hooks and `./harnessw` start
+working here once the pin is complete and the release is in the cache; on other machines they need the completed pin
+([wrapper](wrapper.md#a-pending-pin)).
 
 ### A Go repository with hand-written Claude and Codex settings
 
@@ -343,6 +363,8 @@ to-do:
 
 - Do run `--dry-run` first on any repository you did not create, and read the equivalence report.
 - Do commit the scaffold as its own commit, so later changes to the repository files are reviewable on their own.
+- Do complete a pending pin before you push: until then, no machine without the release in its cache can run
+  `./harnessw`.
 - Do review the seeded lanes and commands: presets guess from the stack, the repository knows its real commands.
 - Do give the to-do to an agent with the harness skill; it is written for that.
 - Do import `local` or `user` only when those settings are meant for everyone, and review each entry they bring.
@@ -355,7 +377,7 @@ to-do:
 | Symptom | Cause | Fix |
 | --- | --- | --- |
 | `.harness/config.yaml already exists` | The repository is already scaffolded | Use `./harnessw render`; to start over, `./harnessw remove` first |
-| Exit 1: the checksum file of the pinned release cannot be fetched | No network access to the release source, which `wrapper.yaml` needs | Rerun with network access |
+| Exit 1: the checksum file of the pinned release cannot be fetched | No network access to the release source, which the pin's checksums come from | Rerun with network access, or with `--offline` and complete the [pending pin](wrapper.md#a-pending-pin) before you push |
 | Exit 1: the checksum file's signature does not verify | The file is not signed by a release key the running binary trusts | Do not work around it; obtain `harness` again from the project's releases and report it ([safety](safety.md#the-pinned-binary)) |
 | Exit 3 in a script | No terminal to confirm | Pass `--yes` |
 | Exit 3 naming `.harness/` | The directory belongs to another tool, such as Harness.io pipelines | `harness` cannot share it; see [compatibility](compatibility.md#harnessio) |

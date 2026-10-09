@@ -158,10 +158,11 @@ An adopted repository's CI/CD is unchanged:
 
 - Within one repository there is no version skew: `.harness/wrapper.yaml` pins one release, and both `./harnessw` and
   a global install run it. It is the only pin; a second pin in a task runner's file is a `doctor` finding.
-- A pin changes only through `harness wrapper` or `scaffold`, which write it after the running binary verifies the
-  release's signed checksum file with the release keys it embeds. The wrapper then checks each download against the
-  committed checksums. `doctor`, when online, re-verifies the pinned release's signed checksum file against
-  `wrapper.yaml` ([wrapper](wrapper.md#security)).
+- A pin changes only through `harness wrapper` or `scaffold`, which write its checksums after the running binary
+  verifies the release's signed checksum file with the release keys it embeds; `scaffold --offline` leaves them
+  [pending](wrapper.md#a-pending-pin), and nothing downloads against a pending pin. The wrapper then checks each
+  download against the committed checksums. `doctor`, when online, re-verifies the pinned release's signed checksum
+  file against `wrapper.yaml` ([wrapper](wrapper.md#security)).
 - Rendered output depends on the sources and on the pinned release, and never records the release; rendered files
   carry the `schema`.
 - `harness wrapper --version <tag>` renders the repository with the new release in the same change, migrating

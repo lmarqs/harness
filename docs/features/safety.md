@@ -225,9 +225,11 @@ Every clone runs the `harness` release that `.harness/wrapper.yaml` pins, throug
   `"$(git rev-parse --show-toplevel)/harnessw" --no-download hook <event>`: an agent starting a session or editing a file runs
   a binary already in the cache, or skips the hook, and never fetches code. A download happens only when a person or
   an agent runs an explicit command, such as `./harnessw verify` or a task shim.
-- **Pins are signed.** `./harnessw wrapper --version <tag>` and `harness scaffold` write a pin only after the running
-  binary verifies the release's signed checksum file with the release keys it embeds. Trust passes from the first
-  binary a person installs to every later pin ([the trust chain](wrapper.md#the-trust-chain)).
+- **Pins are signed.** `./harnessw wrapper --version <tag>` and `harness scaffold` write a pin's checksums only after
+  the running binary verifies the release's signed checksum file with the release keys it embeds. A
+  [pending pin](wrapper.md#a-pending-pin), written by `scaffold --offline`, has no checksums and admits no download.
+  Trust passes from the first binary a person installs to every later pin
+  ([the trust chain](wrapper.md#the-trust-chain)).
 - **An upgrade is a diff.** Review the change to `wrapper.yaml` like a dependency bump: the version is the one you
   meant, and `source` did not move.
 - **One pin.** `wrapper.yaml` is the only place `harness` is pinned; `harness doctor` reports a second pin in a task

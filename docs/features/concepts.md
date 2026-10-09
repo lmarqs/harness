@@ -34,7 +34,7 @@ A [preset](presets.md) directory mirrors `.harness/`: it holds `config.yaml`, `p
 | Layer | Who writes it | Committed | In an adopted repository |
 | --- | --- | --- | --- |
 | Engine | nobody in the repository; the release the pin names, downloaded per machine by `harnessw` | no | the `harness` binary in `$HARNESS_HOME` (default `$XDG_CACHE_HOME/harness`, or `~/.cache/harness` when `XDG_CACHE_HOME` is unset) |
-| Pin | `scaffold` and [`harness wrapper`](wrapper.md#harness-wrapper), after the running binary verifies the release's signed checksum file; owned, never edited by hand | yes | `.harness/wrapper.yaml` |
+| Pin | `scaffold` and [`harness wrapper`](wrapper.md#harness-wrapper), after the running binary verifies the release's signed checksum file (`scaffold --offline` writes a [pending pin](wrapper.md#a-pending-pin)); owned, never edited by hand | yes | `.harness/wrapper.yaml` |
 | Profile, policy, hooks | people and agents; seeded once by `scaffold` | yes | `.harness/config.yaml`, `.harness/policy.yaml`, `.harness/hooks.yaml` |
 | Rendered | `harness render`; never edited by hand | yes | `harnessw`, owned keys of `.claude/settings.json` and `.codex/config.toml`, owned entries of `.codex/hooks.json`, `.codex/rules/harness.rules`, task shims under `.mise/tasks/`, `.agents/skills/harness/SKILL.md`, skill links, `.harness/manifest.json` |
 | Managed blocks | `harness render`, only between markers | yes | blocks inside `AGENTS.md`, `README.md`, `CLAUDE.md`, `.gitignore` |

@@ -148,7 +148,7 @@ An adopted repository behaves for non-users exactly as it did before adoption
   Standing-context entries declared `static` are written into `AGENTS.md` and reach agents without the binary, so a
   directive that must always apply does not depend on it.
 - Explicit entry points fetch or fail: `./harnessw <command>` and the task shims that exec it download and verify
-  the pinned version on first use; when they cannot (no downloader, no network, checksum mismatch) they exit 1 naming
+  the pinned version on first use; when they cannot they exit non-zero naming
   the cause, so a skipped verification never reads as a pass.
 - Raw hooks declared in `hooks.yaml` render as native entries that run their own command, so they keep working
   without the binary.
@@ -217,7 +217,9 @@ change of version is a reviewed diff ([ADR 0017](../adrs/0017-engine-version.md)
   wrapper's first run, not runtime dependencies of the binary or of the repository. Windows is not supported.
 - A global install of `harness` is optional. Inside a repository whose `wrapper.yaml` pins a different version, it
   execs the pinned version from the cache, downloading it through the same verified path when invoked explicitly and
-  never from a hook. Outside such a repository it runs itself.
+  never from a hook. Under a pending pin whose release is not cached, it runs `harness wrapper` itself and refuses
+  every other command with exit 3. Why: nothing can be downloaded against a pending pin, and `harness wrapper` is the
+  command that completes it. Outside such a repository it runs itself.
 - `HARNESS_BINARY=<path>` makes the wrapper exec that binary instead of the pinned one (air-gapped machines,
   development of harness itself). It bypasses the pin and its checksum.
 - The schema rules in [configuration-standards.md](configuration-standards.md#schema-versioning) apply: a binary
@@ -245,7 +247,10 @@ from one release to the next ([ADR 0021](../adrs/0021-release-trust.md)).
   with the keys embedded in the running binary, and only then writes `version` and `checksums` into `wrapper.yaml`. A
   release whose signature does not verify is refused (exit 1) and nothing is written.
 - `harness scaffold` pins the running binary's own version the same way, from the verified checksum file of that
-  release, so the first pin is as trustworthy as every later one.
+  release, so the first pin is as trustworthy as every later one. With `--offline` it writes the pin with
+  `checksums: pending` instead; the wrapper downloads nothing against a pending pin, and `harness wrapper --version
+  <tag>` completes it through the same verification, so deferring the check never skips it
+  ([ADR 0017](../adrs/0017-engine-version.md)).
 - `harnessw` verifies only the sha256 of the downloaded asset against `wrapper.yaml`. Signatures are checked by
   binaries, never by the shell script, because a POSIX shell has no portable signature tool and the wrapper must run
   on a bare machine.

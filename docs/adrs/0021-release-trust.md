@@ -23,8 +23,9 @@
 1. Every release publishes a checksum file covering each platform asset, and a detached signature over that file.
 2. Every binary embeds the release public keys it trusts. A release signed by the current key introduces the next key,
    and later binaries trust both until a release retires the old one.
-3. A pin is written, at adoption and at upgrade, only after a running binary verifies the release's signed checksum
-   file with its embedded keys. A release that fails verification is refused, and nothing is written.
+3. Checksums enter a pin, at adoption and at upgrade, only after a running binary verifies the release's signed
+   checksum file with its embedded keys. A release that fails verification is refused, and nothing is written. A pin
+   without checksums admits no download ([0017](0017-engine-version.md)).
 4. The wrapper verifies only the downloaded asset's checksum against the committed pin. Signatures are verified only by
    binaries.
 5. The trust root is the first binary a person installs.
@@ -40,7 +41,8 @@
   forward without a gap, and the overlap lets binaries of both generations verify the releases between them.
 - **3.** This moves the trust decision from whatever the person upgrading downloaded to what a binary already trusted
   verified, which closes the gap that checksums alone leave. Writing nothing on failure keeps the repository on its last
-  verified pin, and every accepted change still arrives as a diff for review.
+  verified pin, and every accepted change still arrives as a diff for review. A pin without checksums gives the wrapper
+  nothing to compare a download with, so it admits none: verification can be deferred, never skipped.
 - **4.** A shell script cannot verify signatures portably, and the binary can with no runtime dependency
   ([0004](0004-runtime-dependencies.md)). Because a verifying binary wrote the committed checksums (point 3), the
   wrapper's checksum comparison carries that verification over to each download.

@@ -59,7 +59,9 @@ No. Nothing in a repository's build, test, deploy or release depends on it. `./h
 
 Yes, once the pinned release is cached: the wrapper makes no network request after the first download. A machine that
 never has network access uses `HARNESS_BINARY` or a pre-filled cache
-([wrapper](wrapper.md#air-gapped-machines)).
+([wrapper](wrapper.md#air-gapped-machines)). Adoption works offline too: `harness scaffold --offline` writes everything
+and leaves the pin [pending](wrapper.md#a-pending-pin) until a later `harness wrapper --version <tag>` with network
+access verifies the release and records its checksums. Complete it before you push.
 
 ### Which agents are supported?
 

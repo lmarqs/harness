@@ -69,8 +69,9 @@ checksums:
   repository's choice ([ADR 0017](../adrs/0017-engine-version.md)).
 - `wrapper.yaml` is the only place the harness version is pinned. A second pin in `mise.toml`, `.mise.toml` or
   `.tool-versions` is a `harness doctor` finding, because two pins disagree as soon as one moves.
-- `harness wrapper --version <tag>` (or `--latest`) and `harness scaffold` write `version` and `checksums` only from
-  the release's checksum file after the running binary has verified its signature
+- `harness wrapper --version <tag>` (or `--latest`) and `harness scaffold` write `checksums` only from the release's
+  checksum file after the running binary has verified its signature, or, with `scaffold --offline`, write the literal
+  `pending`, which admits no download
   ([compatibility-standards.md](compatibility-standards.md#release-trust)), so a person never copies a checksum by
   hand and a forged release is refused before anything is written. The change reaches review as a diff.
 - `wrapper.yaml` is part of the public contract ([compatibility-standards.md](compatibility-standards.md#versioning)).
@@ -474,5 +475,6 @@ the ADR that decides it, because a setting that weakens them would copy along wi
 - Implicit entry points (rendered agent hooks) never download a binary.
 - The wrapper never caches or executes a downloaded binary whose checksum does not match `wrapper.yaml`, and downloads
   only over HTTPS.
-- A pin is written only after the running binary verifies the release's signed checksum file.
+- A pin's checksums are written only after the running binary verifies the release's signed checksum file; a pending
+  pin admits no download.
 - Whether local override files (`settings.local.json`, `*.local.toml`) are written: they never are.

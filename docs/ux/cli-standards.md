@@ -15,8 +15,8 @@ version the repository chose, with no installation step before the first command
 
 | Entry point | Kind | Behaviour |
 | --- | --- | --- |
-| `./harnessw <command>` | explicit, the documented invocation | runs the pinned version; downloads it over HTTPS and verifies its checksum when it is not cached; exits 1 naming the cause when it cannot (no downloader, download failure, checksum mismatch) |
-| `harness <command>` | explicit, optional global install | inside a repository whose `.harness/wrapper.yaml` pins a different version, execs the pinned version from the cache, downloading it through the same verified path (never from a hook); elsewhere runs itself |
+| `./harnessw <command>` | explicit, the documented invocation | runs the pinned version; downloads it over HTTPS and verifies its checksum when it is not cached; exits non-zero naming the cause when it cannot: 1 for a failed download or a checksum mismatch, 3 when a person must act first (no downloader or sha256 tool, or a pending pin whose release is not cached) |
+| `harness <command>` | explicit, optional global install | inside a repository whose `.harness/wrapper.yaml` pins a different version, execs the pinned version from the cache, downloading it through the same verified path (never from a hook); under a pending pin whose release is not cached, runs `harness wrapper` itself, the command that completes the pin, and exits 3 for any other command, because nothing can be downloaded against a pending pin; elsewhere runs itself |
 | task shims (`front_door: mise`) | explicit | one-line mise tasks that exec `./harnessw <command>` |
 | `./harnessw --no-download <command>` | implicit: rendered agent hooks | runs only a cached binary and never downloads; when none is cached, prints one stderr line naming `./harnessw`, and for the session-start event also the one context line below, then exits 0 |
 
@@ -54,7 +54,7 @@ entries are defence in depth and the binary is the enforcement ([ADR 0011](../ad
 
 ```text
 harness scaffold [--adopt] [--import <scope>[,<scope>]...] [--preset go|node|terraform|python|generic]
-                 [--front-door mise|binary] [--yes] [--dry-run]
+                 [--front-door mise|binary] [--offline] [--yes] [--dry-run]
 harness remove [--module <name>]... [--force] [--dry-run]
 harness remove --eject [--force] [--dry-run]
 harness render [--check] [--refresh] [--dry-run]
@@ -87,7 +87,7 @@ harness ralph-worker <agent> [agent args...]
 
 | Command or flag | Behaviour governed by these standards |
 | --- | --- |
-| `scaffold` | refuses, exit 3, where a `.harness/` directory exists without a harness `config.yaml` or `manifest.json` (another product's directory), naming the conflict, because harness never writes into a directory it did not create. Pins the running binary's own version: it fetches that release's signed checksum file over HTTPS, verifies the signature with the keys embedded in the running binary, and writes `wrapper.yaml` only then; it exits 1 when the file is unreachable or the signature does not verify, and writes nothing |
+| `scaffold` | refuses, exit 3, where a `.harness/` directory exists without a harness `config.yaml` or `manifest.json` (another product's directory), naming the conflict, because harness never writes into a directory it did not create. Pins the running binary's own version: it fetches that release's signed checksum file over HTTPS, verifies the signature with the keys embedded in the running binary, and writes `wrapper.yaml` only then; it exits 1 when the file is unreachable or the signature does not verify, and writes nothing. With `--offline` it makes no network request and writes the pin with `checksums: pending`, which admits no download until `harness wrapper --version <tag>` completes it; a pending pin is opt-in so that a network failure never produces one unnoticed |
 | `scaffold --adopt --import <scope>[,<scope>]...` | imports existing permission and hook configuration into `policy.yaml` and `hooks.yaml`. `--import` takes a comma-separated set from the closed enumeration `project`, `local`, `user`, `none`; the default is `project` with `--adopt` and `none` without it. Imports from `local` and `user` are marked for review in the to-do ([compatibility-standards.md](compatibility-standards.md#adoption-equivalence)). A harness pin found in a task runner's tool list is copied into `wrapper.yaml`, and removing it from that file is listed as a to-do; harness never edits the task runner's file |
 | `remove` | undo: deletes owned content (without `--module`, `harnessw`, `wrapper.yaml` and the manifest included) and the seeded repository files in `.harness/` (listed first in its output); deletes a seeded file outside `.harness/`, such as a memory skeleton file, only while it matches its recorded hash; lists and leaves any file the manifest does not record, and deletes `.harness/` once nothing else is in it; removes every managed block and owned native key and entry; writes imported project-scope settings back as plain native settings; leaves the state directories in place and lists them ([generated-content-standards.md](generated-content-standards.md#removal)) |
 | `remove --eject` | eject: stops managing and keeps the result. Convention blocks lose their markers and stay; tool blocks are removed; `.gitignore` entries stay; rendered native files and keys stay as hand-owned content without their headers; `raw` hooks stay; hooks that call harness, permission entries that name a harness command and task shims that exec `harnessw` are removed and listed; the harness skill and its links, `harnessw`, and the owned and seeded files in `.harness/` are removed; a file the manifest does not record is listed and left, and `.harness/` is deleted once nothing else is in it. Not combined with `--module`; accepts `--force` |
@@ -264,9 +264,9 @@ narrower the scope of a source, the more deliberate the choice it expresses.
 | Code | Meaning | Examples |
 | --- | --- | --- |
 | 0 | success; nothing to report or nothing left to do | `render` wrote or found everything up to date; `doctor` found nothing beyond notes; every action of a `lifecycle run` passed, or the event declares no actions |
-| 1 | error: the command could not do its job | invalid usage, unknown key in a repository file, a state path inside `.harness/` or `.agents/`, I/O failure; an explicit entry point that cannot obtain the pinned binary (no downloader, download failure, checksum mismatch); `wrapper --version` or `scaffold` meeting a release whose signed checksum file is unreachable or does not verify |
+| 1 | error: the command could not do its job | invalid usage, unknown key in a repository file, a state path inside `.harness/` or `.agents/`, I/O failure; an explicit entry point that cannot obtain the pinned binary (download failure, checksum mismatch); `wrapper --version`, or `scaffold` without `--offline`, meeting a release whose signed checksum file is unreachable or does not verify |
 | 2 | a check ran and failed | `render --check` found drift, `doctor` reported a finding (a second harness pin in a task runner's file, a locked skill whose hash does not match, a pinned release whose signed checksum file no longer matches `wrapper.yaml`), `verify --check` or `task complete` met an invalid receipt; a lifecycle action exited non-zero; `scaffold --adopt` found a project-scope rule no longer in effect |
-| 3 | blocked: the next step is a person's decision | confirmation needed with no TTY and no `--yes`; a prerequisite tool a person must install is missing (Node for `skills sync`, `ralph-tui`, `bd`); `remove` refused a hand-edited file without `--force`; `scaffold` found a `.harness/` directory harness did not create; the repository schema is newer than the binary (only when the pin is bypassed); a lifecycle guard refused (`deliver` on the default branch, with uncommitted changes, or, when the verify module is enabled, without a valid receipt; any event inside a Ralph worker or an `agent` action) |
+| 3 | blocked: the next step is a person's decision | confirmation needed with no TTY and no `--yes`; a prerequisite tool a person must install is missing (Node for `skills sync`, `ralph-tui`, `bd`, the wrapper's downloader or sha256 tool); an explicit entry point meets a pending pin whose release is not cached; `remove` refused a hand-edited file without `--force`; `scaffold` found a `.harness/` directory harness did not create; the repository schema is newer than the binary (only when the pin is bypassed); a lifecycle guard refused (`deliver` on the default branch, with uncommitted changes, or, when the verify module is enabled, without a valid receipt; any event inside a Ralph worker or an `agent` action) |
 
 - Codes 2 and 3 tell an agent what to do next: 2 means "fix the finding and run again"; 3 means "stop and ask a
   person". A new failure mode MUST map to one of the four codes; no other code is used. Why: an agent acts on the
@@ -292,9 +292,10 @@ narrower the scope of a source, the more deliberate the choice it expresses.
 - `harness hook` follows the calling agent's hook contract for its exit code and output, as defined by each adapter,
   because the agent interprets them.
 - Entry points without the binary ([principles.md](principles.md#1-optional-and-transparent)): an explicit entry point
-  (`./harnessw <command>`, a task shim, a global `harness`) that cannot obtain the pinned version exits 1 naming the
-  cause; an implicit entry point (a rendered agent hook entry, `./harnessw --no-download`) with no cached binary exits
-  0 after one stderr line naming `./harnessw`.
+  (`./harnessw <command>`, a task shim, a global `harness`) that cannot obtain the pinned version exits non-zero naming
+  the cause (1 for a failed download, 3 for a missing downloader or sha256 tool or a pending pin); an implicit entry
+  point (a rendered agent hook entry, `./harnessw --no-download`) with no cached binary exits 0 after one stderr line
+  naming `./harnessw`.
 
 ## Errors
 

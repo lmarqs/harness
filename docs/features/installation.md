@@ -56,7 +56,9 @@ The [wrapper](wrapper.md) page covers the cache, `HARNESS_HOME`, the checksum an
 
 [`harness scaffold`](scaffold.md) writes `harnessw` and `.harness/wrapper.yaml`, pinned to the release that runs it,
 with checksums it accepts only after verifying that release's signed checksum file ([release trust](#release-trust)).
-So the first scaffold of a repository needs a `harness` binary from somewhere, once:
+Without network access, `harness scaffold --offline` writes the pin [pending](wrapper.md#a-pending-pin), and you
+complete it later with `harness wrapper --version <tag>`. So the first scaffold of a repository needs a `harness`
+binary from somewhere, once:
 
 ```sh
 cd ~/src/acme-api
@@ -125,10 +127,11 @@ pinned repositories.
 ## Release trust
 
 Every release publishes a checksum file covering its platform binaries, and a signature over that file. Every `harness`
-binary embeds the release keys it trusts. `scaffold` and `harness wrapper` write a pin only after the running binary has
-verified the target release's checksum file against those keys; `harnessw`, a plain `sh` script, then checks each
-download against the checksums committed in `wrapper.yaml`. `harness doctor`, when online, re-verifies the pinned
-release's signed checksum file against `wrapper.yaml`.
+binary embeds the release keys it trusts. `scaffold` and `harness wrapper` write a pin's checksums only after the
+running binary has verified the target release's checksum file against those keys, and a
+[pending pin](wrapper.md#a-pending-pin) from `scaffold --offline` admits no download until they do; `harnessw`, a plain
+`sh` script, then checks each download against the checksums committed in `wrapper.yaml`. `harness doctor`, when online,
+re-verifies the pinned release's signed checksum file against `wrapper.yaml`.
 
 Trust starts with the first binary you install, from the project's releases or a package manager. From then on,
 every pin change is verified by a binary you already trust, and shows in review as a diff of `.harness/wrapper.yaml`
@@ -180,7 +183,7 @@ A clone of an adopted repository works before its pinned release is cached on a 
 
 | Entry point | Before the pinned release is cached |
 | --- | --- |
-| `./harnessw <command>` (explicit: a person or an agent calls it) | downloads, verifies and runs; without network, a downloader or a sha256 tool it exits 1 and runs nothing |
+| `./harnessw <command>` (explicit: a person or an agent calls it) | downloads, verifies and runs; without network it exits 1, and without a downloader or a sha256 tool, or under a [pending pin](wrapper.md#a-pending-pin), it exits 3; either way it runs nothing |
 | Task shims (explicit) | the same: they exec `./harnessw <command>` |
 | Agent hooks (implicit: the agent calls them) | print `harness: v0.9.0 not downloaded, hook skipped; run: ./harnessw version` on stderr and exit 0; the session-start hook also adds the one line above to the agent's session context |
 | `raw` hooks | keep running; they are rendered as their own commands |

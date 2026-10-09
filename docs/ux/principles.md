@@ -21,7 +21,8 @@ committed files of those that did, so anything harness requires of them is impos
     failing hook interrupts sessions of people who never installed harness.
   - An explicit entry point is one a person or agent runs on purpose: `./harnessw <command>`, a task shim (which execs
     `./harnessw`), or a global `harness <command>`. It downloads and verifies the pinned version on first use, and
-    MUST exit 1 naming the cause when it cannot obtain it. Why: a skipped verification that exits 0 reads as a pass.
+    MUST exit non-zero naming the cause when it cannot obtain it: 1 for a failed download, 3 when a person must act
+    first. Why: a skipped verification that exits 0 reads as a pass.
 - CI MUST NOT need the binary or the wrapper, because an adopting repository's pipelines keep their own steps.
   `./harnessw render --check` and `./harnessw doctor` are optional CI steps a repository MAY add; the wrapper downloads
   and verifies the pinned version for them.
@@ -88,7 +89,8 @@ follow every model change; a tool that competed with them would carry credential
 - No hidden network access, because a user must be able to say what a command contacted. The network calls harness
   makes on its own are: the wrapper's download of the version pinned in `.harness/wrapper.yaml` (on an explicit
   invocation only, over HTTPS, verified against the pinned checksum); the release's signed checksum file, fetched by
-  `harness scaffold` and `harness wrapper` before they write a pin and re-verified by `harness doctor` at most daily;
+  `harness scaffold` (not with `--offline`) and `harness wrapper` before they write a pin and re-verified by
+  `harness doctor` at most daily;
   preset fetches declared by `extends`; the daily release check; and `skills sync` (through the `skills` CLI). Each is
   documented and the release check can be disabled. Any other network access is a declared action (an `http` action,
   or a `run` or `agent` action whose command reaches the network), visible in `harness lifecycle list` and in
