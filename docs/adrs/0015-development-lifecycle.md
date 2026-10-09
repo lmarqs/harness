@@ -33,11 +33,11 @@
    stops, a task is skipped after its retries, or a command run without a terminal refuses because a person must act.
    It carries the stop reason. Its actions never run inside an unattended agent, and it has no other guard.
 3. Each event applies to one or more scopes: a single task, an unattended run, or a change. The events, their order
-   and their scopes are part of the binary; repositories and presets cannot add events.
+   and their scopes are part of the binary; repositories cannot add events.
 4. The binary decides when an event fires and enforces the guards that apply to it. The ready-for-delivery event fires
    only for concluded work: committed, with a clean tree, on a branch other than the default branch and, when
    verification is enabled, with a valid proof of verification for the work's base ([0011](0011-safety-invariants.md)).
-5. The repository, and the presets it extends, declare the actions for each event ([0019](0019-action-kinds.md)):
+5. The repository declares the actions for each event ([0019](0019-action-kinds.md)):
    run in order, optionally limited to some of the event's scopes, each with a rule for whether its failure stops the
    remaining actions. The binary ships no actions.
 6. Every event can be triggered by a person, by a coordinating agent, or automatically at its trigger point, and every
@@ -58,9 +58,9 @@
 
 ## Reasons
 
-- **1, 3.** The recurring points are common to every change, so one fixed vocabulary serves every repository: a preset
-  written for one repository applies to all of them ([0013](0013-organization-content.md)), and the shipped
-  documentation describes one lifecycle instead of one per repository. A set that repositories could extend would give
+- **1, 3.** The recurring points are common to every change, so one fixed vocabulary serves every repository: actions
+  written for one repository carry over to another unchanged, and the shipped documentation describes one lifecycle
+  instead of one per repository. A set that repositories could extend would give
   each repository its own event names, which is the dialect problem the hand-ported copies show. The trade is that a
   step that fits no event stays outside the tool.
 - **2.** A stop is the moment a person is needed, and in an unattended run it is also the moment nobody is watching.
@@ -129,7 +129,8 @@ Costs:
 - Permitting an agent to trigger an event permits every action declared for that event. Actions run outside the
   agent's per-command permission checks, so a command the policy denies to the agent still runs when an action
   contains it. The seeded ask entry of point 11 covers delivery; other events need their own entries.
-- Actions inherit the environment, including credentials. An action from a preset runs with the person's credentials.
+- Actions inherit the environment, including credentials, so an action runs with the credentials of whoever triggers
+  it.
 - A step that fits no event stays outside the tool.
 - Automatic delivery at the scope of an unattended run delivers the whole run as one unit.
 - A repository that declares no actions gets no delivery from the binary, and its stops reach nobody beyond the

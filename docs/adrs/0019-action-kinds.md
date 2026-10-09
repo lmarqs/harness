@@ -2,7 +2,7 @@
 
 ## Context
 
-- Repositories and presets declare actions on lifecycle events ([0015](0015-development-lifecycle.md)).
+- Repositories declare actions on lifecycle events ([0015](0015-development-lifecycle.md)).
 - Agents signal the moments a person cares about. Claude Code 2.1.x has hook events for a notification (the agent is
   waiting for a person) and for the end of a turn; Codex CLI 0.16x runs a configured notification program at the end
   of a turn. Their other events, such as each tool call, fire many times per turn.

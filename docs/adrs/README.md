@@ -126,7 +126,7 @@ Must be maintained:
 | [0010](0010-dependence-on-the-binary.md) | What depends on the binary being installed? | Nothing in an adopted repository depends on the binary |
 | [0011](0011-safety-invariants.md) | Where do safety rules live? | Safety invariants are built into the binary, never configured |
 | [0012](0012-write-boundary.md) | What may the binary write? | The binary writes only content it owns |
-| [0013](0013-organization-content.md) | Where does organization-specific content live? | Organization-specific content lives in presets, never in the binary |
+| [0013](0013-organization-content.md) | Where does organization-specific content live? | Organization-specific content lives in each repository's own files |
 | [0014](0014-directory-layout.md) | Where does each kind of file live? | Tool configuration, agent content and state have separate homes |
 | [0015](0015-development-lifecycle.md) | How are the steps of a change automated? | The development lifecycle is a fixed set of events the binary fires |
 | [0016](0016-permission-adoption.md) | What happens to existing permission rules at adoption? | Adoption keeps every native permission rule in effect |

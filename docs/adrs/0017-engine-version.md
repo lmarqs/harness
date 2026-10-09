@@ -41,8 +41,8 @@
    ([0007](0007-ownership.md)).
 2. The repository pins one exact release in a committed file in the tool configuration directory
    ([0014](0014-directory-layout.md)), together with the SHA-256 checksum of that release's binary for each supported
-   platform, or a mark that they are pending (point 13). The pin is owned content recorded in the manifest ([0007](0007-ownership.md)), and it exists in exactly
-   one place.
+   platform, or a mark that they are pending (point 13). The pin is owned content recorded in the manifest
+   ([0007](0007-ownership.md)), and it exists in exactly one place.
 3. A pin is written only by adoption and by an explicit upgrade operation. Its checksums come only from a release
    admitted under [0021](0021-release-trust.md), except that point 13 lets adoption leave them pending. The upgrade
    renders the repository with the new release in the same change, so the pin and every artefact the new release

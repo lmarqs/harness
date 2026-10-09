@@ -1,4 +1,4 @@
-# 0013. Organization-specific content lives in presets, never in the binary
+# 0013. Organization-specific content lives in each repository's own files
 
 ## Context
 
@@ -7,53 +7,57 @@
   generic rules, a deny on synchronising the task database to remotes, allows for deployment tasks, read patterns for
   an observability service, and a commit trailer that triggers CI. Other teams need different choices; a team that
   synchronises its task database across machines needs that deny absent.
-- An organization applies its choices across many repositories, including how its work is delivered
-  ([0015](0015-development-lifecycle.md), [0019](0019-action-kinds.md)). Copying them into each repository is the
-  divergence this tool removes ([0006](0006-repository-contract.md)).
+- Repositories on the same technology stack start from the same facts: how to lint an edited file, how to run the
+  tests, how to build. Of 32 surveyed repositories of one organization, 17 use Node, 7 Python, 3 Terraform and 1 Go,
+  some of them several.
+- People reviewing a change, and agents working on one, read the files of the repository in front of them. Content
+  resolved from another repository or from a per-user cache is not among those files.
 - Drift checks run in CI and on developer machines ([0007](0007-ownership.md)). A check whose result changes when
   someone else publishes a change fails pipelines that changed nothing.
+- Every change a repository accepts is reviewed in that repository. A shared source pinned per repository still needs
+  a reviewed change in every repository to move to a newer version of it.
 - Policy entries and actions run with the credentials of the person or pipeline that renders and triggers them.
 
 ## Decision
 
 1. The binary contains no organization-specific content: no organization names, hosts, services, policy entries or
-   conventions. Built-in content is limited to the invariants ([0011](0011-safety-invariants.md)), to defaults keyed
-   by technology stack, and to the starting entries seeded into a newly adopted repository, which the repository then
-   owns ([0015](0015-development-lifecycle.md)).
-2. A repository's data may extend presets: extensions that an organization or a person publishes. A preset is
-   referenced by a local path, a git URL or a subpath of a hosted repository, optionally pinned to a git reference. It
-   supplies policy entries, hook declarations, actions ([0019](0019-action-kinds.md)), standing-context entries
-   ([0020](0020-standing-context.md)), managed-block text and defaults. Presets are fetched and cached per user.
-3. The resolved commit of every preset is recorded in the manifest ([0007](0007-ownership.md)). Rendering and drift
-   checks use the recorded commit. Moving to a newer upstream commit is an explicit operation whose result is reviewed
-   as a diff; the health check reports a newer upstream commit as a note.
-4. Repository entries apply after preset entries. Lists are unions; a named item the repository declares overrides the
-   preset's item of the same name.
-5. Nothing in a preset or in a repository removes or weakens a built-in invariant ([0011](0011-safety-invariants.md)).
+   conventions. Built-in content is limited to the invariants ([0011](0011-safety-invariants.md)), to presets keyed by
+   technology stack (point 3), and to the starting entries seeded into a newly adopted repository
+   ([0015](0015-development-lifecycle.md)).
+2. What the tool renders and runs in a repository is determined by that repository's own files and the release it
+   pins ([0017](0017-engine-version.md)), and by nothing else. Repository data has no inheritance, no includes and no
+   references to sources outside the repository.
+3. A preset is a set of starting entries for one technology stack, embedded in the binary. Applying a preset happens
+   only on request, at adoption or at any later time. It writes the preset's entries into the repository's own files
+   and adds only what they lack: an entry already present stays as it is, an item the repository already names is
+   never replaced, and nothing is removed. Once written, the entries are the repository's like any it wrote itself,
+   and nothing records where they came from.
+4. An organization's choices reach its repositories as changes to each repository's files, written by a person or an
+   agent, for example one following a skill the organization publishes, and reviewed in each repository as a diff.
 
 ## Reasons
 
 - **1.** Organization content inside the binary couples releases to organizations, publishes their content in the
-  tool, and makes every other user carry entries they never use. Stack defaults are different in kind: they follow
-  the technology a repository uses, which is a fact about the repository, not a choice of an organization. Seeded
-  starting entries are generic and belong to the repository from the moment they are written, so any organization
-  changes them like its own.
-- **2.** An organization's choices must reach its repositories without being copied into each one. A preset is data
-  the organization keeps in a repository it controls and reviews, so its delivery conventions, policy and guidance
-  live in one place. Caching per user fetches each preset commit once per machine, so rendering works offline after the
-  first fetch and many repositories that extend one preset share one copy. Referencing presets by path or git needs no
-  registry and no hosting-platform logic ([0012](0012-write-boundary.md)).
-- **3.** Recording the resolved commit makes rendering reproducible: the same repository commit renders the same bytes
-  on every machine and every day, so an upstream publish never fails a check by itself. Moving forward is explicit, so
-  each repository reviews the organization's change as a diff, like any other change it accepts. A newer upstream
-  commit is a note, not a failure, because the repository's own state is consistent; the note only tells it there is
-  something to review.
-- **4.** A repository knows its own case best, so its entries apply last. Unions let it add to what the preset grants
-  or denies; a named item lets it override one action, block or default without restating the rest. The trade is that
-  a repository cannot drop a single list entry its preset declares; it extends another preset or none.
-- **5.** The invariants are never a legitimate choice ([0011](0011-safety-invariants.md)), and a preset grants
-  permissions and declares actions that run with the person's credentials. Letting a preset lower the floor would make
-  choosing a preset a way to lose the floor.
+  tool, and makes every other user carry entries they never use. Stack presets are different in kind: they follow the
+  technology a repository uses, which is a fact about the repository, not a choice of an organization. Seeded starting
+  entries are generic and belong to the repository from the moment they are written, so any organization changes them
+  like its own.
+- **2.** People and agents learn what a repository does from its files. A rule resolved from elsewhere acts in the
+  repository while its source sits outside it: an agent working there cannot read it, a reviewer sees its effect in
+  the rendered output but not why it is there, and the repository's behaviour cannot be explained from the repository.
+  With the repository's files and the pinned release as the only inputs, the same commit renders the same bytes on
+  every machine and every day, with no fetch, no cache and no check that fails because someone else published a
+  change. A shared source would save only the writing, because each repository still reviews every move to a newer
+  version of it. The trade is that a choice shared by many repositories is written in each of them.
+- **3.** Stack facts are the same in every repository on that stack, so the binary can supply them deterministically
+  ([0002](0002-division-of-work.md)). Applying only on request keeps every write to a repository's files something a
+  person asked for. Adding only what is missing keeps the repository's own entries authoritative and makes a second
+  application harmless, so a repository can take a later release's improvements to a preset by applying it again and
+  reading the diff. Leaving no record of origin keeps one source of truth for each entry, the file it is in, and gives
+  the tool nothing it could later use to change those entries by itself.
+- **4.** An organization's choices differ between its repositories (Context), so applying them takes judgement, which
+  belongs to people and agents guided by documentation and skills ([0002](0002-division-of-work.md)). Each repository
+  reviews the change as it reviews any other, and afterwards the change is in its files.
 
 ## Rejected alternatives
 
@@ -67,35 +71,42 @@ content becomes public in the tool, and every other user carries entries they do
 At its best, each organization has full control. It loses because forks are the divergence this tool exists to
 remove.
 
-### No extension mechanism
+### Shared sources resolved at every render
 
-Each repository lists all of its entries. At its best, everything a repository does is in the repository. It loses
-because an organization's entries are duplicated across its repositories, which is the copying problem again.
+A repository names shared sources, pinned to a commit, and the tool merges their entries into every render. At its
+best, an organization changes a rule in one place, and each repository takes it with a one-line change of the pinned
+commit. It loses because the rule never appears in the repository it governs (point 2); each repository still reviews
+every move, so only the writing is saved; and merging needs fetching, a per-user cache, recorded commits and override
+rules that a person must learn before they can predict what a repository does. Without the pin, the same commit
+renders differently on different days, and the drift check fails in repositories that changed nothing.
 
-### Always render the latest upstream preset
+### Applied presets recorded in the manifest
 
-At its best, an organization's change reaches every repository without any action in them. It loses because the same
-commit renders differently on different days, and a drift check fails in repositories that changed nothing.
+The manifest records which presets a repository applied, so the tool can report a preset's new entries or apply them
+again. At its best, a repository learns when a preset it used gains an entry. It loses because the record ties the
+repository's own entries to a definition outside its files: applying from it would be the hidden coupling point 2
+excludes, and reporting from it nags a repository that removed an entry on purpose. A repository that wants a newer
+preset's entries applies it again and reads the diff.
 
 ## Consequences
 
 Costs:
 
-- An organization's change reaches a repository only when that repository moves to the newer commit.
-- The first use of a preset at a recorded commit needs network access.
-- A preset can grant permissions and declare actions that run with the person's credentials, so choosing a preset
-  source is a security decision for the repository.
-- A repository cannot remove one list entry of a preset it extends.
+- A choice shared by many repositories is written into each of them, and changing it is a change in each.
+- A later release's improvements to a preset reach a repository only when someone applies the preset again.
+- Two repositories of one organization can hold different entries for the same choice, because each was applied with
+  judgement.
 
 Must be maintained:
 
-- The preset format and the layering order, as part of the public contract ([0006](0006-repository-contract.md)).
+- The built-in presets for each supported stack, and the rule that applying a preset only adds.
 
 ## Confirmation
 
 - CI scans the binary's embedded assets for organization identifiers and fails on a match.
-- A fixture that extends a preset renders the preset's entries; a fixture whose preset contradicts an invariant still
-  renders the invariant.
-- A fixture whose preset gains a new upstream commit passes the drift check unchanged, and the health check reports the
-  newer commit.
-- A fixture whose repository declares a named item that its preset also declares renders the repository's item.
+- Validation of every repository file rejects a key that names a source outside the repository.
+- A fixture renders the same bytes with no network access and an empty per-user cache as on any other machine.
+- Applying a preset to a fixture that already holds some of its entries adds only the missing ones and changes no
+  existing line; applying it a second time changes nothing.
+- A fixture that names an item the preset also names keeps its own item after the preset is applied, and the
+  difference is reported.

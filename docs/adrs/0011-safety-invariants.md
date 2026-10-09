@@ -28,8 +28,8 @@
 
 ## Decision
 
-The following hold in every repository. They are built into the binary, are not expressible in repository data or
-presets, and cannot be removed or weakened by them. Repository policy and presets add to them.
+The following hold in every repository. They are built into the binary, are not expressible in repository data, and
+cannot be removed or weakened by it. Repository policy adds to them.
 
 1. Unattended agents never run with permission bypass. Bypass flags in arguments or in inherited configuration are
    refused with a message that names their source.
@@ -103,8 +103,9 @@ a repository can edit is an entry a copy can drop.
 
 ### An opt-in safety preset
 
-At its best, teams choose their own floor and the binary stays smaller. It loses the same way, by omission: a
-repository that never extends the preset has no floor.
+The invariants ship as a preset a repository applies. At its best, teams choose their own floor and the binary stays
+smaller. It loses the same way, by omission: a repository that never applies the preset, or edits its entries away,
+has no floor.
 
 ### Invariants with an override switch
 

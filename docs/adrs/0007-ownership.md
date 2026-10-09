@@ -15,7 +15,6 @@
 - A hand edit to generated output has to be detected. Otherwise the next render discards it silently, or a check passes
   over it.
 - JSON allows no comments, so ownership of a key inside a JSON file cannot be marked in the file itself.
-- Presets resolve to upstream commits that move ([0013](0013-organization-content.md)).
 - A team that stops using the tool wants one of two outcomes: the repository as it was before adoption, or the setup the
   tool produced, kept and maintained by hand.
 - Clone-local state can hold uncommitted work, and cleanup acts only on what the tool recorded creating
@@ -25,8 +24,7 @@
 
 1. Ownership is recorded, not inferred. A manifest committed in the repository lists every owned path, managed block and
    owned key set, each with a content hash; every seeded file, created once by adoption and owned by the repository from
-   then on, with the hash it was created with; the resolved commit of every preset
-   ([0013](0013-organization-content.md)); and the schema version ([0005](0005-schema-compatibility.md)).
+   then on, with the hash it was created with; and the schema version ([0005](0005-schema-compatibility.md)).
 2. Generated artefacts are committed.
 3. Inside files people write, owned text sits between begin and end markers that carry a block id, written in the file
    format's comment syntax. Text outside the markers is never written. Owned whole files that allow comments carry a
@@ -53,8 +51,7 @@
 - **1.** Removal and the drift check both need the exact set of things the tool wrote. Markers cannot mark keys inside
   JSON, and without a recorded hash a hand-edited output cannot be told from a generated one. Recording seeded files
   separately lets undo remove them while the drift check leaves them alone, since the repository edits them; their
-  creation hash tells an untouched skeleton from content someone wrote. Recording
-  each preset's resolved commit makes every render reproducible ([0013](0013-organization-content.md)).
+  creation hash tells an untouched skeleton from content someone wrote.
 - **2.** Harnesses read configuration from the clone when a session starts, so it has to exist in every clone, including
   clones without the binary ([0010](0010-dependence-on-the-binary.md)). Committed artefacts also show every permission
   change to reviewers as a diff.

@@ -34,9 +34,8 @@
    tool creates stays in the clone; a task database the repository already synchronises is used as found (point 4),
    so what the tool writes into it travels where that synchronisation sends it.
 3. Delivery is everything that leaves the clone: a push, a pull request, a CI trigger, a notification. It happens only
-   through actions that the repository, or a preset it extends ([0013](0013-organization-content.md)), declares on
-   lifecycle events ([0015](0015-development-lifecycle.md), [0019](0019-action-kinds.md)). The binary ships no
-   actions.
+   through actions that the repository declares on lifecycle events ([0015](0015-development-lifecycle.md),
+   [0019](0019-action-kinds.md)). The binary ships no actions.
 4. The binary never reconfigures state it did not create:
    - an existing third-party database is used as found;
    - third-party configuration at its default location is never written, and is read only when the repository opts in

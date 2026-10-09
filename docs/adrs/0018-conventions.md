@@ -56,7 +56,7 @@
 - **5.** Every line in an instruction file is read in every session, so the tool's share of that file is a recurring
   cost multiplied by every session of every agent. Bounding it keeps the cost fixed, while the full rules are read on
   demand from the shipped documentation. A report instead of a refusal leaves the choice with a repository that accepts
-  a larger block, for example from a preset.
+  a larger block, for example one that declares many standing-context entries.
 - **6.** A reader needs the convention, not a note about the tool. Text that does not describe itself as generated
   reads correctly after eject strips the markers.
 
