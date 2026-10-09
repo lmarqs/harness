@@ -1,9 +1,20 @@
 # Generated-content standards
 
-Rules for anything harness writes into a repository. Readers of an adopted repository, with or without the binary,
-must be able to tell what harness owns, see every change it makes, read every convention it establishes, and get their
-repository back intact when it leaves. Why: content whose owner is unclear is either never cleaned up or deleted with
-someone's work in it ([ADR 0007](../adrs/0007-ownership.md)).
+## Objective
+
+**Problem.** A tool that writes into a repository shares its files with developers, reviewers, other tools and teammates
+who never use it. When nobody can tell the tool's content from a person's, a hand edit is silently overwritten, or
+someone's work is deleted with the tool's. A reviewer cannot judge a change hidden among lines that move on every run, a
+convention only the tool knows disappears when it leaves, and a team that stops using it cannot get a working repository
+back.
+
+**Goal.** Anyone reading an adopted repository, with or without the tool, can tell which content the tool wrote, and
+every change to that content, by the tool or by hand, is visible in review. When the tool leaves, the repository works,
+has lost nothing a person wrote, and keeps the conventions the team chose to keep.
+
+## Overview
+
+Rules for anything harness writes into a repository.
 
 ## Kinds of generated content
 

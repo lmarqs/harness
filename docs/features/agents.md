@@ -1,5 +1,18 @@
 # Agents
 
+## Objective
+
+**Problem.** Teams often use more than one coding agent, and each agent reads its permissions, hooks and instructions
+from its own files, in its own syntax, with its own events. Kept by hand once per agent, these copies drift, so one
+repository lets one agent run a command it forbids another, and an agent left to work unattended can be started in a
+mode that skips its permission checks. A maintainer who adds another agent has to write the whole setup again.
+
+**Goal.** Every agent a repository uses follows the same permissions, hooks and instructions from one set of
+declarations, and none of them runs unattended with its permission checks off. Supporting another agent changes no
+repository's declarations.
+
+## Overview
+
 `harness` supports two agents, Claude Code (`claude`) and Codex CLI (`codex`). Each is handled by an adapter that
 knows where the agent reads its configuration, how its permissions and hooks are expressed, what its hook payloads
 look like and how to launch it safely as a Ralph worker. A repository declares which agents it uses, and in which

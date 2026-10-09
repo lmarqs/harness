@@ -1,5 +1,19 @@
 # Skills standards
 
+## Objective
+
+**Problem.** Agents do the judgement work around the tool by following written guidance they load for a task: guidance
+the tool ships to everyone, guidance an organization shares across its repositories, and guidance one repository keeps.
+When that guidance has no shared rules, it fails to load when the task needs it or loads where it does not belong, it
+restates what a command does and drifts from it, and it gives orders without reasons that an agent drops when they seem
+inconvenient. A developer then gets an agent that edits the wrong files, skips the checks a command would have run, or
+follows rules the release in use no longer has, and nobody finds out until the agent acts.
+
+**Goal.** Whichever guidance an agent follows loads when the task needs it, agrees with the release the repository runs,
+and ends in a result a check confirms rather than one taken on trust.
+
+## Overview
+
 A skill is a directory with a `SKILL.md` that an agent loads when its description matches the task, or that harness
 injects through standing context. Skills carry the judgement half of the work; the binary carries the deterministic
 half ([when-cli-when-skill.md](when-cli-when-skill.md)). This page covers the skill harness ships and the rules harness

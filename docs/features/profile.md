@@ -1,5 +1,17 @@
 # Profile: `.harness/config.yaml`
 
+## Objective
+
+**Problem.** Every repository has facts only it knows: how to prepare a fresh checkout, how to lint a file and build,
+which tests show a change works, which agents and task tracker the team uses. Agents and the developers directing them
+need those facts at every step. When the facts live in someone's memory, in prose an agent may misread, or in a copy of
+another repository's setup, each agent guesses, and the same step runs differently from one session to the next.
+
+**Goal.** Every fact a repository's agent workflow depends on is written once in that repository and reviewed like code,
+and every agent and tool working there uses the same answer.
+
+## Overview
+
 The profile tells `harness` what a repository is: which modules it uses, how to bootstrap a checkout, how to lint and
 build, which verification lanes exist, which task tracker and agents it uses, Ralph defaults, skill sources, and the
 standing context agents receive. It is seeded and then repository-owned: `scaffold` seeds it once, with the entries

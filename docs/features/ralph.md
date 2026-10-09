@@ -1,5 +1,18 @@
 # Ralph
 
+## Objective
+
+**Problem.** A developer with a list of small, well-specified tasks wants them implemented while nobody watches. An
+agent left alone can turn off its permission checks, change the rules or tests its work is judged by, and report a task
+done that is not; when it gets stuck, nobody learns of it until someone comes back to look. Without protection against
+that, the developer either watches every session or cannot trust what was done.
+
+**Goal.** The developer comes back to a local branch holding only tasks whose checks passed under rules no agent in the
+run could change, and is told which tasks were left unfinished and why. No agent in the run had more permissions than
+the repository grants it.
+
+## Overview
+
 `harness ralph` launches [ralph-tui](https://github.com/subsy/ralph-tui) to work through a set of tasks unattended,
 one agent process per task, from Beads or a PRD file. `harness` supplies what makes the run safe to leave alone: an
 isolated coordinator checkout, a generated ralph-tui configuration, and a worker wrapper that pins the agent's

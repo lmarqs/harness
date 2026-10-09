@@ -1,8 +1,22 @@
 # Compatibility standards
 
+## Objective
+
+**Problem.** Many repositories depend on the tool, along with the scripts and agents that drive it and the CI pipelines
+that check them, and each repository moves to a new release at its own pace. A release that changes something they rely
+on breaks all of them at once, often without a message. Other tools and teammates who never use the tool share the same
+repositories, and they pay when adopting it loses a rule someone wrote or changes something they already rely on. When
+machines run different releases, or a download is not the release its publisher made, the same commit gives different
+results on different machines, or a machine runs code its publisher never released.
+
+**Goal.** A teammate or pipeline without the tool works exactly as before adoption, and what scripts, agents and other
+tools rely on changes only through a change someone has seen and reviewed. Every machine runs the same genuine release
+for the same commit.
+
+## Overview
+
 What harness promises to the people, agents, CI systems and repositories that depend on it, and how those promises
-change. Why: many repositories and machines depend on one binary, so every promise it breaks is broken everywhere at
-once.
+change.
 
 ## Versioning
 

@@ -1,5 +1,19 @@
 # CLI standards
 
+## Objective
+
+**Problem.** People type the tool's commands, scripts and agents read what the commands print, and CI pipelines and
+unattended agents run them with nobody watching. When each command picks its own names, flags, output and exit codes,
+what a person learns on one command fails on the next, a script breaks when a message is reworded, and an agent cannot
+tell from a failure whether to retry, fix something or stop and ask a person. A command that waits for an answer nobody
+is there to give stalls an unattended run.
+
+**Goal.** Anyone who knows one command can predict how any other is invoked and what its output and exit code mean. A
+script, a pipeline or an unattended agent can run every command with nobody at a terminal and choose its next step from
+the result alone.
+
+## Overview
+
 Rules for every command, flag, output stream and exit code of `harness`. The [reference surface](#reference-surface)
 below is the command set these rules govern; a new command or flag MUST follow them, and a deviation is a change to
 this standard, with its reason ([README.md](README.md#changing-a-standard)).

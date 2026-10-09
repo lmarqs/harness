@@ -1,5 +1,17 @@
 # User-facing principles
 
+## Objective
+
+**Problem.** No set of specific rules foresees every case, and the concerns behind them pull against each other, such as
+convenience against keeping someone's work intact. When contributors and reviewers settle such a case by their own sense
+of what matters, a teammate who never chose the tool, a developer whose repository it writes to or a CI pipeline is
+protected by one feature and let down by the next.
+
+**Goal.** Two people deciding the same uncovered case, or the same conflict between two concerns, reach the same
+decision and can give the same reason for it.
+
+## Overview
+
 Every other page in these standards applies one or more of the principles below. When a case is not covered by a
 specific rule, decide it from these principles and write the decision, with its reason, into the standard it belongs
 to ([README.md](README.md#changing-a-standard)).

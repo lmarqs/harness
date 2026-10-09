@@ -1,5 +1,17 @@
 # explain
 
+## Objective
+
+**Problem.** A developer or an agent about to edit a repository's permissions, hooks or settings, or puzzled by a
+refusal, needs the rules and the reasons behind them for the exact release the repository runs. Documentation on the web
+may describe another release or be out of reach offline, and rules pasted into prompts and instruction files go stale
+with the next release. A person and an agent who read different texts end up following different rules.
+
+**Goal.** Anyone working in a repository, online or offline, can read the rules and their reasons as they hold for the
+release that repository runs, and a person and an agent asking the same question get the same answer.
+
+## Overview
+
 `harness explain <topic>` prints the built-in documentation for one topic: what the standard is, and the reasoning
 behind it. It is the same text the [harness skill](skills.md#the-harness-skill) carries, so a person at a terminal and
 an agent in a session learn the same rules.

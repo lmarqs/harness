@@ -1,5 +1,18 @@
 # Pitfalls, gaps and traps
 
+## Objective
+
+**Problem.** Agents, their permission systems, git worktrees and task trackers each have behaviours that surprise a
+careful developer: a rule that reads as forbidding a command lets a variant of it through, an unattended run stalls on a
+question nobody answers, a check passes without testing the change. A developer or reviewer usually meets each of these
+alone and after something has gone wrong, with the explanation spread across several vendors' documentation, or written
+nowhere.
+
+**Goal.** A reader who meets a surprising behaviour finds it in one place, with why it happens and what to do about it,
+and can check a setup against the known traps before relying on it.
+
+## Overview
+
 The places where agents, permission systems, worktrees and trackers behave differently from what a reasonable person
 expects, and what `harness` does about each. Every entry has four parts: the **symptom** you see, **why** it happens,
 what **`harness` does** about it, and what **you do**.

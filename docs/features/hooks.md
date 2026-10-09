@@ -1,5 +1,18 @@
 # Hooks: `.harness/hooks.yaml`
 
+## Objective
+
+**Problem.** A developer wants the same things to happen around an agent's work in every session: the edited file
+formatted and linted right away, a repository check run when certain files change, a message when the agent waits for
+them or finishes. Each agent has its own hook format and events, so these are written by hand once per agent and drift
+apart, and a hook that fails on a teammate's machine interrupts every session there. The steps around a change, such as
+pushing a branch or posting to a chat, are repeated by hand at each stage, and each person does them differently.
+
+**Goal.** Every agent in the repository gives the same feedback after edits and sends the same notifications, the steps
+at each stage of a change run the same way whoever reaches it, and none of it breaks a teammate's session.
+
+## Overview
+
 The hooks file declares, once and agent-neutrally, two kinds of automation:
 
 - **agent hooks**, which run when an agent starts a session, edits a file, waits for a person or finishes a turn:

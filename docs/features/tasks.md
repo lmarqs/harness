@@ -1,5 +1,17 @@
 # Tasks
 
+## Objective
+
+**Problem.** A developer who splits a piece of work into small steps, for several agent sessions or an unattended run in
+one clone, needs to know which session holds which step and which steps are really finished. Without that, two sessions
+work on the same step or close each other's, a step is marked finished before its checks pass, and the bookkeeping is
+either lost between sessions or spills into the issues and pull requests the team reads.
+
+**Goal.** Each step is held by one session at a time and counts as finished only after its checks pass, and the team's
+record of work stays as the team writes it.
+
+## Overview
+
 `harness task` claims, annotates, completes and releases tasks in a clone-local tracker: a Beads database or a PRD JSON
 file. Each managed worktree has its own actor, so two sessions cannot complete each other's tasks, and completion
 requires a valid [verification receipt](verify.md).

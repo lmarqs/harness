@@ -1,5 +1,19 @@
 # Concepts
 
+## Objective
+
+**Problem.** A developer or an agent working in an adopted repository meets files written by different hands: some by
+people, some generated from other files, some local state that must never be committed. Without knowing which is which,
+they edit a generated file and lose the edit or fail a check, commit state that belongs to one machine, or cannot tell
+what would remain if the repository stopped using the tool. A newcomer also cannot tell which work follows fixed rules
+and which is left to their judgement.
+
+**Goal.** For any file in an adopted repository, a reader can tell who writes it, whether it is committed, where a
+change to it belongs and what happens to it if the tool is removed. For any piece of setup work, they can tell whether
+it follows a fixed rule or needs judgement.
+
+## Overview
+
 This page explains how `harness` divides a repository into layers and directories, how it knows which files it owns,
 how the conventions it sets up are written down, how it adapts to repositories in different starting states, and why
 a repository keeps working without it.

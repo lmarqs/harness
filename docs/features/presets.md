@@ -1,5 +1,18 @@
 # Presets
 
+## Objective
+
+**Problem.** Repositories on the same technology stack need the same starting commands: how to lint a file an agent has
+just edited, how to build, which tests show a change works. A developer setting up a repository, or a maintainer of many
+on one stack, writes them from scratch or copies them from another repository, and each copy comes out a little
+different. Shared from a place outside the repository instead, they leave a reviewer or an agent reading the repository
+unable to tell what it runs.
+
+**Goal.** A repository on a common stack gets working lint, build and test commands in one reviewed change, and
+everything it runs afterwards can be read from its own files.
+
+## Overview
+
 A preset is a set of starting entries for one technology stack, embedded in the `harness` binary: how to lint an
 edited file, how to build, which test lanes to run, which command formats or lints a file after an agent edits it. The
 binary holds four: `go`, `node`, `terraform` and `python`. `harness preset apply <name>` writes a preset's entries into

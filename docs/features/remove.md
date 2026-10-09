@@ -1,5 +1,19 @@
 # remove
 
+## Objective
+
+**Problem.** A team that tried an agent setup in a repository, or no longer wants one of its practices, has to take out
+what was added across many shared files without touching what people wrote themselves. A piece left behind keeps acting
+on every agent session, and a piece removed too eagerly takes a teammate's settings or hand edits with it. A team that
+stops using the tool may still want to keep the working agreements, permissions and hooks it relies on, as its own
+files.
+
+**Goal.** Taking out the whole setup or one practice is one step that removes exactly what was added, and either
+restores the setup the repository had before or leaves the result in place as the team's own files. No hand edit to
+generated content, and nothing people wrote themselves, disappears without anyone noticing.
+
+## Overview
+
 `harness remove` takes `harness`, or one of its modules, out of a repository, in one of two modes. **Undo**, the
 default, deletes what `harness` added and returns the repository to the setup it had before adoption. **Eject**,
 `--eject`, stops `harness` managing the repository and keeps the result: its convention blocks, permissions and hooks

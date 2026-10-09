@@ -1,5 +1,17 @@
 # Glossary
 
+## Objective
+
+**Problem.** The documentation uses many words in a precise sense of its own, such as owned, seeded, receipt, lane or
+landed, and readers arrive at a page from a search or a link without having read the page that defines them. A developer
+or an agent who reads such a word in its everyday sense draws the wrong conclusion, for example about what removal
+deletes or when work counts as done.
+
+**Goal.** A reader who meets an unfamiliar term on any page can learn its exact meaning, and where it is explained,
+without reading the pages before it.
+
+## Terms
+
 **The game master.** `harness` is to agents what a game master is to a tabletop game: it rules the world and never
 plays. Developers are the players, who decide what gets built. Agents are the characters, who act within the rules.
 Repositories are the world. The three repository files are the rulebook, and the built-in invariants are the rules no

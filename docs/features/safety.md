@@ -1,5 +1,18 @@
 # Safety guidelines
 
+## Objective
+
+**Problem.** An agent acts on everything it reads, including task and issue text anyone can write, and runs commands
+with the credentials of the person who started it. A developer who lets agents work in a repository, above all
+unattended, has to keep the default branch, production systems, credentials, shared local state and the agents' own
+rules out of their reach. Each available protection, from an agent's permission system to code review, stops some of
+this and misses the rest, so a setup that looks safe can still leave one of these open.
+
+**Goal.** Before leaving agents alone in a repository, a developer knows what protects each thing that must stay safe
+and what that protection does not stop, and every gap left open is one they chose.
+
+## Overview
+
 `harness` lets agents work in a repository, attended or not, without handing them more than the work needs. This page
 explains what it defends against, which layers do the defending, and how to configure a repository so the layers
 hold: where to place a policy entry, what changes when nobody is watching, why lifecycle actions are code, what an

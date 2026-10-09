@@ -1,5 +1,17 @@
 # harness
 
+## Objective
+
+**Problem.** A developer meeting the tool for the first time, in a repository they cloned or as a maintainer weighing it
+for their own repositories, needs to know what it does, what it leaves alone and what it asks of them and their
+teammates. Without one starting point that answers this and points onward, they piece it together from pages written for
+readers who already know the tool, or judge it by what its name suggests.
+
+**Goal.** After one read, a newcomer can say what the tool is for and what it never does, can try it on a repository,
+and can find the page for any part of it.
+
+## Overview
+
 `harness` is a command-line tool that sets up, constrains and checks the environment coding agents work in. It
 writes the permission rules, hooks and instructions that Claude Code and Codex read; it gives people and agents the
 same commands for task worktrees, verification receipts and local task tracking; and it launches unattended

@@ -1,5 +1,17 @@
 # fleet
 
+## Objective
+
+**Problem.** A maintainer of many repositories who wants to roll out a practice, move to a new release or withdraw
+something has to visit each repository in turn: run the same steps, commit, and send the change for review. Some
+repositories get missed or are left halfway, each change comes out slightly different, and nobody has one view of which
+repositories succeeded.
+
+**Goal.** A change made once reaches, or is withdrawn from, every repository the maintainer names, as a change each
+repository reviews on its own, and the maintainer sees which repositories passed and which did not.
+
+## Overview
+
 `harness fleet` runs one `harness` command across an explicit list of repositories and prints a pass/fail summary.
 With `--deliver`, it also commits each repository's changes on a new local branch and fires that repository's
 [`deliver` event](lifecycle.md), so the change leaves the clone through the actions the repository declares. It is how

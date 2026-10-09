@@ -1,5 +1,20 @@
 # Configuration standards
 
+## Objective
+
+**Problem.** Developers and agents edit a repository's tool configuration, reviewers approve changes to it, and every
+teammate's machine and CI pipeline acts on it. When each new setting goes wherever its author chose, one fact sits in
+two places that disagree, a reviewer has to search several files to see one permission change, and a mistyped key, or a
+file written for a different release, is quietly ignored or misread and drops a rule someone declared. When a setting
+can come from outside the repository, nobody reading the repository can tell what it does there, and a credential
+written into a setting is published to everyone who can read the repository.
+
+**Goal.** Each fact has one place in the repository's own files, anyone can tell from those files alone what the tool
+does in that repository, and the files hold no credential. Every file is either read exactly as written or refused with
+its mistake named, never partly applied.
+
+## Overview
+
 Rules for files that people and agents edit and harness reads. Field-by-field reference lives in
 [../features/](../features/) and in `harness explain profile|policy|hooks|lifecycle|context`.
 

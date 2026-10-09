@@ -1,5 +1,18 @@
 # doctor
 
+## Objective
+
+**Problem.** An adopted repository can be broken in ways no single file shows: a hook names a task that no longer
+exists, a path pattern matches no file, a teammate's machine lacks the release the repository pins, or an adoption was
+left half finished. A developer sees only the symptom, such as a check that never runs or an unattended run that refuses
+to start, and an agent finishing an adoption has no list of what remains. Branches whose work already reached the
+default branch pile up unnoticed.
+
+**Goal.** A developer, an agent or a CI pipeline can tell, without changing anything, whether a repository's agent setup
+is complete and working on this machine, what fixes each problem, and which finished branches are ready to clean up.
+
+## Overview
+
 `harness doctor` checks that a repository's `harness` setup is complete and healthy, lists what is left to do, and
 reports work that has landed on the default branch. It is read-only: it never edits files in the clone, never fires
 lifecycle events and never runs actions. Agents use its JSON output to finish an adoption; CI can run it as an

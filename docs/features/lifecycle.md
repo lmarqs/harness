@@ -1,5 +1,18 @@
 # Development lifecycle
 
+## Objective
+
+**Problem.** Every change passes the same points: work starts, is verified, is complete, is sent for review and lands on
+the default branch. A developer, an agent working with them and an unattended run each handle those points their own
+way, by hand or by following written instructions. A branch gets pushed before its checks pass, or a pull request is
+opened from the default branch, and such mistakes are hard to take back once they are published. When unattended work
+stops halfway, nobody hears about it until someone looks.
+
+**Goal.** Whoever moves a change forward, the same steps run at the same point, work that is not ready is never
+published, and a person learns when work finishes or stops and needs them.
+
+## Overview
+
 This page follows a change through its whole life with `harness`: from the plan to the moment its commits are on the
 default branch. For each stage it says who acts, what `harness` guarantees and what is left to judgement. The second
 half is the reference for lifecycle events: the points where `harness` runs the actions a repository declares, such as

@@ -1,5 +1,18 @@
 # Policy: `.harness/policy.yaml`
 
+## Objective
+
+**Problem.** A team decides what agents in a repository may do on their own, what needs a person's confirmation first
+and what must never happen, but every agent reads its permissions in its own format. Kept by hand in each format, the
+rules drift: one agent runs what another is refused, a limit such as never force-pushing the default branch disappears
+in an edit, and unattended runs stall on a question nobody answers or do what nobody allowed. A team that already wrote
+rules by hand can lose one when it changes how they are kept, and nobody notices until it matters.
+
+**Goal.** Every agent in a repository works under the same reviewed permissions, every rule the team had already written
+carries over, and the limits that must always hold stay in force whatever anyone edits.
+
+## Overview
+
 The policy says what agents may do without asking (`allow`), only after a person confirms (`ask`), or never (`deny`),
 plus what Ralph workers alone may not do. It is written once, agent-neutrally where the agents allow it, and rendered
 into each agent's native permission format. A built-in base that holds the tool's invariants is always added and

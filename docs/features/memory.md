@@ -1,5 +1,17 @@
 # Memory
 
+## Objective
+
+**Problem.** An agent starts every session without what the team has learned about the repository: the patterns,
+conventions and lessons the code does not show. It repeats mistakes that reviewers already corrected, so reviewers
+correct them again, and what one session learns is lost to the next. Knowledge kept in one person's head or private
+notes never reaches the rest of the team or their agents.
+
+**Goal.** What the team has reviewed and agreed about a repository reaches every agent working on the area it covers,
+and reviewers do not correct the same mistake twice.
+
+## Overview
+
 Memory is a repository's durable, reviewed knowledge for agents: patterns, conventions and lessons that are not
 obvious from the code. `harness` provides the place for it and keeps an index of it in `AGENTS.md`. People and agents
 write the content; `harness` never does.

@@ -1,5 +1,17 @@
 # CLI reference
 
+## Objective
+
+**Problem.** A developer writing a script or a CI step, and an agent deciding what to run, need the exact form of each
+command: its flags, what each exit status means and which environment variables change its behaviour. Spread across the
+feature pages, these details take many pages to collect, and a misspelled flag or a misread exit status breaks a
+pipeline or lets a script treat a refusal as a success.
+
+**Goal.** A reader can look up the exact form of any invocation, what each of its exit statuses means and what in the
+environment changes it, without reading the feature pages.
+
+## Overview
+
 Every `harness` command, flag, exit code and environment variable on one page. Each command links to its feature page
 for behaviour and examples.
 

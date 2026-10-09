@@ -1,9 +1,20 @@
 # Worktrees
 
+## Objective
+
+**Problem.** A developer who wants an agent to work on a task while they keep using their own checkout, or several
+agents on several tasks at once, needs a separate working copy for each. Made by hand, each copy lands somewhere
+different, starts from a commit nobody recorded, lacks the dependencies it needs to build, and can be deleted along with
+work nobody committed.
+
+**Goal.** Every task gets its own working copy, ready to build, starting from a known commit, in the place every
+teammate and agent expects, and no copy is removed while it holds uncommitted work.
+
+## Overview
+
 `harness worktree` creates and removes managed task worktrees: separate git checkouts, nested inside the clone in the
 configured worktrees directory (`worktrees.dir`, default `.work/worktrees`), each on its own branch, with a recorded
-starting commit, an actor identity and an optional task tracker. People and agents use them to work on several tasks
-at once without touching the primary checkout.
+starting commit, an actor identity and an optional task tracker.
 
 Commands are named `harness <command>` on this page. The examples run them through the repository's wrapper,
 `./harnessw <command>`, from the root of a checkout; with a global install, `harness <command>` is equivalent

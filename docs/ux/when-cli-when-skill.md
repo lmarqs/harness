@@ -1,9 +1,22 @@
 # Where new behaviour goes
 
-Every new capability has exactly one home. This page is the rule for choosing it. It applies to proposals for harness
-itself and to the advice harness gives repositories through its skill. Why: a capability with two homes is implemented
-twice and drifts; one with the wrong home is either unreviewable (judgement hidden in code) or unenforced (rules left
-to prose) ([ADR 0002](../adrs/0002-division-of-work.md)).
+## Objective
+
+**Problem.** Contributors proposing a new capability, reviewers judging the proposal, and agents advising a repository
+all have to decide where the capability belongs: in the tool's code, in a repository's own files, or in guidance an
+agent follows. Decided case by case, the same capability is built in two places that drift apart, judgement ends up in
+code that guesses wrong in the first repository nobody foresaw, and a rule that must hold is left to prose an agent can
+skip. A reviewer then cannot tell that a proposal is in the wrong place until it fails.
+
+**Goal.** Two people placing the same capability independently choose the same home for it. Work with one right answer
+comes out the same, and checkable, in every repository, and work that needs judgement stays with the people and agents
+who can exercise it.
+
+## Overview
+
+Every new capability has exactly one home. This page is the rule for choosing it
+([ADR 0002](../adrs/0002-division-of-work.md)). It applies to proposals for harness itself and to the advice harness
+gives repositories through its skill.
 
 ## Destinations
 

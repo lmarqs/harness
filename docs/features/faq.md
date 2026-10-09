@@ -1,5 +1,21 @@
 # FAQ
 
+## Objective
+
+**Problem.** Someone evaluating the tool, adopting it or meeting it in a teammate's repository usually has a few short,
+specific questions: whether teammates must install anything, whether it pushes code or writes to the hosting platform,
+whether an unattended agent can skip its permission checks, how to stop using it. The answers exist, but spread across
+pages organised by feature rather than by question, so the reader has to read most of the documentation to answer one,
+or guesses.
+
+**Goal.** A reader with a common question finds a short, direct answer and the page that covers it in full, without
+reading the feature pages first.
+
+## Overview
+
+Short answers to the questions people ask most often, grouped by subject. Each answer links the page that
+covers it in full.
+
 Commands on this page run as `./harnessw <command>`, through the repository's [wrapper](wrapper.md); with a global
 install, `harness <command>` is equivalent.
 

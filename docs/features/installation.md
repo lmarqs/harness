@@ -1,5 +1,17 @@
 # Installation
 
+## Objective
+
+**Problem.** A developer who clones an adopted repository, a CI pipeline that builds it and a maintainer setting up a
+new one all need the tool, at the release the repository expects, wherever they run. When each of them installs it by
+hand, a newcomer must find and install the right release before anything works, machines running different releases
+disagree about the same commit, and a download nobody checked runs with the person's credentials.
+
+**Goal.** In an adopted repository, a newcomer's first command works with nothing installed beforehand beyond standard
+shell tools, and every person, machine and pipeline runs the same verified release.
+
+## Overview
+
 An adopted repository carries its own entry point: [`harnessw`](wrapper.md), a committed script that downloads the
 `harness` release the repository pins, verifies its checksum and runs it. Working in such a repository needs nothing
 installed beyond a POSIX `sh`, `curl` or `wget`, and `sha256sum` or `shasum`, and the last two only for the first run

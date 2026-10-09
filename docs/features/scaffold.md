@@ -1,5 +1,19 @@
 # scaffold
 
+## Objective
+
+**Problem.** A developer bringing agents into a repository has to set up permissions, hooks, instructions and working
+conventions, and done by hand, each repository comes out different. Many repositories already have such a setup, built
+up by hand, and moving it to a new arrangement risks losing a rule: agents gain a permission someone denied, or
+unattended runs stall on a prompt for a command someone had allowed, and nobody notices until it matters. Part of what
+is already there needs a person's judgement to carry over, not a mechanical copy.
+
+**Goal.** Any repository, with or without an agent setup, gets a working one in one reviewed change, in which every
+permission rule and hook that applied before still applies, and anything that cannot be kept is named before anything is
+written. Whatever needs a person's judgement is listed as work to do, not guessed.
+
+## Overview
+
 `harness scaffold` sets a repository up for `harness`. On a repository with no agent setup it seeds the repository files
 with the [presets](presets.md) of the stacks it detects (greenfield). With `--adopt` it takes over an existing
 hand-written setup, imports every permission rule and hook it finds into the repository files without losing one, and

@@ -1,5 +1,18 @@
 # Wrapper: `harnessw`
 
+## Objective
+
+**Problem.** Developers, agents and CI pipelines work in the same repository on different machines, and what the tool
+writes and checks depends on which release runs it. When each machine runs whatever release it happens to have, the same
+commit passes a check on one machine and fails it on another, and a newcomer has to find and install the right release
+before their first command works. A release fetched onto each machine also runs with that person's credentials, so one
+its publisher did not build would run everywhere.
+
+**Goal.** Every machine and pipeline gives the same answer for the same commit, a newcomer's first command works with
+nothing installed beforehand, and a release runs only if its publisher signed it.
+
+## Overview
+
 `harnessw` is a POSIX `sh` script committed at the root of every adopted repository. It runs the `harness` release
 the repository pins in `.harness/wrapper.yaml`: the first time a machine needs that release, the wrapper downloads it
 over HTTPS, checks its sha256 against the pinned checksum, caches it and runs it; afterwards it runs it from the cache,

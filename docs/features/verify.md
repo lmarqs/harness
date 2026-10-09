@@ -1,5 +1,17 @@
 # verify
 
+## Objective
+
+**Problem.** A developer, a reviewer, or an automated step that delivers a change needs to know whether the change was
+checked. An agent's word that the tests pass does not say which checks ran, whether they were the ones the change needs,
+or whether the code changed after they passed. Agents skip checks, run unrelated ones and keep editing after a passing
+run, and nobody downstream can tell.
+
+**Goal.** A change counts as checked only when the checks it needs passed on exactly its current content, and any later
+edit makes it unchecked again.
+
+## Overview
+
 `harness verify` runs the checks a change needs and, when they pass, writes a receipt: a small record bound to the
 change's base commit and to the exact content of every changed file. Any later edit invalidates it. Task completion
 and Ralph workers require a valid receipt; `harness verify --check` tells you whether you have one.

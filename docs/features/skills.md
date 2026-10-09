@@ -1,5 +1,18 @@
 # Skills
 
+## Objective
+
+**Problem.** An agent knows about a repository only what it reads there. Asked to change the repository's agent setup,
+it does not know the rules for doing so and edits the wrong files or weakens a permission. A skill a team maintains for
+many repositories, copied into each by hand, goes stale in some of them, and a skill that should guide every relevant
+session guides only those where the agent happens to judge it relevant.
+
+**Goal.** Every agent in the repository can read how to work with its agent setup, the shared skills the repository asks
+for are present and identical in every clone, and a skill the repository wants applied without anyone asking reaches
+every session it covers and no other.
+
+## Overview
+
 Skills are folders of instructions agents load on demand. `harness` handles three things about them: it installs and
 refreshes its own skill, the **harness skill**, in every adopted repository; it installs the shared skill sources a
 repository declares, by delegating to the [`skills` CLI](https://github.com/vercel-labs/skills); and it injects

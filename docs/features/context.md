@@ -1,10 +1,22 @@
 # Standing context: `context` in `.harness/config.yaml`
 
+## Objective
+
+**Problem.** A repository keeps guidance its agents should follow, such as a coding standard, a checklist for database
+migrations or rules for time zones, but an agent loads that guidance only when the model judges it relevant. Developers
+retype the same requests at the start of their sessions, and guidance nobody remembers to ask for is not followed.
+Writing all of it into the instructions every agent reads instead fills every session's context, mostly with guidance
+that does not apply to the task at hand.
+
+**Goal.** Known guidance reaches every session where it applies without anyone asking for it, and adds nothing to the
+sessions where it does not.
+
+## Overview
+
 Standing context is guidance a repository declares once, as a skill or a file, that `harness` puts into an agent's
-context whenever a declared trigger matches: every session, the first time the agent reads or edits a matching file,
-or when the person's message contains a listed word. Nobody has to remember to invoke the skill, and the agent does
-not have to recognise from a skill's description that it applies. Agent hooks deliver the entries; an entry declared
-`static: true` is written into `AGENTS.md` instead, so it reaches agents without the binary.
+context whenever a declared trigger matches: every session, the first time the agent reads or edits a matching file, or
+when the person's message contains a listed word. Agent hooks deliver the entries; an entry declared `static: true` is
+written into `AGENTS.md` instead, so it reaches agents without the binary.
 
 The triggers are deterministic: the same session, files and words give the same context on every machine. Entries
 come only from files committed in the repository and from installed skills that match their lock, and nothing is

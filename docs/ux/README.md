@@ -1,5 +1,17 @@
 # User-experience standards
 
+## Objective
+
+**Problem.** Developers, reviewers, interactive and unattended agents, CI pipelines and teammates who never chose the
+tool all meet it through what it shows them and what it leaves in their repositories. When each feature decides on its
+own how it treats them, what someone learns from one feature does not hold for the next, a new feature can impose on
+people who never adopted the tool, and nobody can tell whether a behaviour they meet is intended or a defect.
+
+**Goal.** Every feature, present and future, behaves the same predictable way toward each of these users, and anyone who
+meets a behaviour can tell whether it is intended or a defect.
+
+## Overview
+
 These pages hold the rules for everything `harness` presents to the people, agents and systems that meet it:
 commands, flags, output, exit codes, configuration files, generated content, skills and documentation. They are
 normative, like architecture decision records, but they govern how harness is experienced rather than how it is built.

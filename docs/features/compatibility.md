@@ -1,9 +1,22 @@
 # Compatibility and coexistence
 
-`harness` joins repositories that already have tools, conventions and people. This page lists what it shares a
-repository with and how it stays out of the way. The rule behind every row: **`harness` never reconfigures state it did
-not create, never writes knowledge, and contains no logic for any hosting platform.** What it sets up does not depend
-on it either: every convention is written down in plain text, and an eject keeps it.
+## Objective
+
+**Problem.** A repository that adopts the tool already holds tools, settings and records that people depend on: an issue
+tracker, a task database, a loop runner's configuration, git hooks, CI pipelines and hand-kept agent settings. A
+developer weighing adoption, and a teammate who never chose it, need to know which of these change, because a tool that
+rewrites them breaks work in ways that are hard to undo. They also need to know what still works if the repository stops
+using the tool.
+
+**Goal.** Everything people and other tools relied on before adoption works the same after it and after removal, and a
+reader can check that for each tool before adopting.
+
+## Overview
+
+This page lists what `harness` shares a repository with and how it stays out of the way. The rule behind every row:
+**`harness` never reconfigures state it did not create, never writes knowledge, and contains no logic for any hosting
+platform.** What it sets up does not depend on it either: every convention is written down in plain text, and an eject
+keeps it.
 
 Commands on this page run as `./harnessw <command>`, through the repository's [wrapper](wrapper.md); with a global
 install, `harness <command>` is equivalent.

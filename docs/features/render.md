@@ -1,5 +1,18 @@
 # render
 
+## Objective
+
+**Problem.** Each agent and tool in a repository reads its permissions, hooks and instructions from its own files, in
+its own format, and some of those files also hold settings people keep there themselves. Kept by hand, they drift from
+each other and from what the team decided: agents get different rules in the same repository, a quick edit silently
+undoes a decision, and a reviewer cannot tell whether what is committed still matches what was agreed.
+
+**Goal.** Every file an agent or tool reads follows from the repository's declared choices, byte for byte the same on
+every machine, the settings people keep in those files stay as they wrote them, and any hand change to the generated
+part is detected.
+
+## Overview
+
 `harness render` turns the three repository files into the files each agent and tool reads: native permission and
 hook configuration, the wrapper `harnessw`, task shims, the harness skill and its links, and the managed blocks inside
 human-written files. `harness render --check` reports drift without writing.

@@ -1,8 +1,21 @@
 # Messages and documentation
 
+## Objective
+
+**Problem.** Developers, reviewers and agents act on the text the tool prints, puts into agent sessions and ships as
+documentation. When a message is vague, blames its reader, names the wrong thing or leaves out what to do next, a person
+has to search for the next step, and an agent, which reads literally, takes a wrong action. When documentation pages
+each take their own shape, or describe how things used to be, a reader looks in the wrong place or acts on what is no
+longer true.
+
+**Goal.** A person or an agent reading any message knows what to do next without searching, and both understand it the
+same way. A reader of any documentation page finds what is true now, in the place they expect to find it.
+
+## Overview
+
 Voice, tone and structure for every text harness produces or ships: CLI messages, hook output, `doctor` findings,
 injected standing context, the harness skill, `harness explain`, managed-block content and the documentation in this
-repository. Why: people and agents act on this text, so every ambiguity in it becomes a wrong action somewhere.
+repository.
 
 ## Voice
 
@@ -139,6 +152,11 @@ The section is a few plain sentences that a reader understands without any data.
 examples, design and reference come after it. Why: a reader has to know why a subject is on the table before reading
 how it is handled, or they judge it against a purpose they assumed; and something whose objective nobody can state
 should not exist ([philosophy](../philosophy.md#start-from-the-objective)).
+
+The Objective section holds only those two parts. What the document is and what it covers follows under its own
+heading: `## Overview` on a features page or a standard, `## Context` in an ADR. Why: a reader scanning the outline,
+or an agent handed one section, takes everything under a heading as part of it, so an introduction left under the
+objective reads as part of the problem or the goal.
 
 ### Features pages
 
