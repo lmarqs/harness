@@ -22,12 +22,14 @@ whatever it looks like. Why: a header or a marker can be copied into a file harn
 what harness created.
 
 Owned content is rendered and replaced on every render; a hand edit to it is drift. Seeded content is written once and
-then edited by people and agents; harness never re-renders it. Why: the seeded files hold the repository's choices and
-knowledge, which harness cannot recompute.
+then edited by people and agents; harness never re-renders it, and adds to the repository files only when a person
+applies a preset (`harness preset apply`), and then only what they lack. Why: the seeded files hold the repository's
+choices and knowledge, which harness cannot recompute.
 
-The repository files are seeded by `harness scaffold`. The `.agents/memory/` skeleton is seeded when the memory module
-is enabled, by `harness scaffold` or by the first `harness render` after the module is enabled, and is never
-re-rendered. The recorded creation hash is what lets undo tell an untouched skeleton from content someone wrote
+The repository files are seeded by `harness scaffold`, which applies the presets of the detected stacks as it seeds them
+([configuration-standards.md](configuration-standards.md#presets)). The `.agents/memory/` skeleton is seeded when the
+memory module is enabled, by `harness scaffold` or by the first `harness render` after the module is enabled, and is
+never re-rendered. The recorded creation hash is what lets undo tell an untouched skeleton from content someone wrote
 ([ADR 0007](../adrs/0007-ownership.md)).
 
 ## Header
@@ -76,15 +78,18 @@ Worktrees in this project are created in `.work/worktrees/<name>`, on branch `wo
   shell files use `#` comments (`# harness:<id>` … `# /harness:<id>`). Why: markers in the file's own comment syntax
   never change how the file reads or parses.
 - Block ids come from a documented, closed set. An id is never renamed except through a schema migration, because
-  presets, `blocks/<id>.md` files and the manifest refer to it.
+  the manifest and the markers already committed in repositories refer to it.
 - A file holds at most one block per id, so an id names exactly one place.
 - Everything between the markers is owned by harness and replaced on render. Everything outside them is never read
   for writing, reordered or reformatted, because it belongs to whoever wrote it.
 - A new block is appended at the end of the file. Once present, a block may be moved anywhere in the file by a person,
   and harness updates it where it is, so a team can arrange its own file.
-- Block content is derived from the repository files: fixed sentences that state a convention with its configured
-  values, tables, lists, one-line imports. It is never free prose, opinion or knowledge, because the binary does only
-  deterministic work ([ADR 0002](../adrs/0002-division-of-work.md)).
+- Block text comes only from the binary's templates and the repository's values: fixed sentences that state a
+  convention with its configured values, tables, lists, one-line imports, and, in the `context` block, the text of the
+  repository files and installed skills that `static` entries name. It is never free prose, opinion or knowledge,
+  because the binary does only deterministic work ([ADR 0002](../adrs/0002-division-of-work.md)), and no source
+  outside the repository adds text to a block, because text there acts in every session while its source would sit
+  where nobody working in the repository reads it ([ADR 0013](../adrs/0013-organization-content.md)).
 - A `.gitignore` block omits any path the repository tracks, so ignoring never hides a committed file.
 - Each module writes its own `.gitignore` entries, even when another module's entry already covers them (for example
   `/.work/` and `/.work/worktrees/`). Why: removing one module must never un-ignore another module's paths.
@@ -108,10 +113,10 @@ some only explains how to use it; eject must keep the first and must not leave t
 ### The `AGENTS.md` budget
 
 All harness blocks in `AGENTS.md` together stay within 40 lines by default (`blocks.agents_md_budget` in the profile),
-and each block within 8 lines. Detail lives in `harness explain <topic>` and the harness skill. `harness doctor`
-reports a note when the budget is exceeded, for example by a long preset block. Why: agents read `AGENTS.md` at the
-start of every session, so every line harness adds is paid in every session and dilutes the repository's own
-instructions.
+and each block within 8 lines. Detail lives in `harness explain <topic>` and the harness skill. `harness doctor` reports
+a note when the budget is exceeded, for example by a `lifecycle` block listing many actions. Why: agents read
+`AGENTS.md` at the start of every session, so every line harness adds is paid in every session and dilutes the
+repository's own instructions.
 
 Static standing-context entries in the `context` block count against `context.budget`
 ([configuration-standards.md](configuration-standards.md#standing-context)), not against this budget, because their
@@ -188,10 +193,11 @@ Why: native files are shared with people and other tools, so harness owns the ke
 
 Why: two teammates rendering the same commit must produce the same diff, or every render is noise in review.
 
-- The same repository files, preset commits (as recorded in the manifest) and pinned release produce the same bytes
-  on every supported operating system. A new release may render differently, the harness skill and `harnessw`
-  included; `harness wrapper --version <tag>` renders the repository with the new release in the same change as the
-  pin, so every such difference reaches review in the upgrade's diff
+- The same repository files and pinned release produce the same bytes on every supported operating system, with no
+  network access and an empty per-user cache, because nothing else is an input
+  ([ADR 0013](../adrs/0013-organization-content.md)). A new release may render differently, the harness skill and
+  `harnessw` included; `harness wrapper --version <tag>` renders the repository with the new release in the same change
+  as the pin, so every such difference reaches review in the upgrade's diff
   ([compatibility-standards.md](compatibility-standards.md#rendered-output-across-releases),
   [ADR 0017](../adrs/0017-engine-version.md)). Rendered content never records the release that rendered it
   ([ADR 0005](../adrs/0005-schema-compatibility.md)).
@@ -226,6 +232,8 @@ Why: two teammates rendering the same commit must produce the same diff, or ever
   on branches it created.
 - Reviewers judge the source change (`policy.yaml`, `hooks.yaml`, `config.yaml`); the rendered diff shows its effect
   on each agent.
+- `harness preset apply` writes its additions and renders them in the same change, so the entries and their rendered
+  effect reach review as one diff, and the drift check passes on it.
 - A version upgrade reaches review as one diff: `wrapper.yaml` (the version and its checksums) and every artefact the
   new release renders differently, `harnessw` and the harness skill included. The checksums were written only after
   the running binary verified the release's signed checksum file, so reviewers confirm that the version is the one
@@ -256,7 +264,8 @@ without harness:
 - It deletes the owned files and links, removes every managed block including its markers and text, and removes owned
   keys and entries from native files. Without `--module`, it also deletes `harnessw`, `wrapper.yaml`, the manifest and
   the seeded repository files in `.harness/`, listing the seeded files first, and then `.harness/` once nothing else
-  is in it; their history stays in version control. Why: the seeded files have no meaning without harness.
+  is in it; their history stays in version control. Entries a preset added are part of those files and go with them.
+  Why: the seeded files have no meaning without harness.
 - A seeded file outside `.harness/` (the `.agents/memory/` skeleton) is deleted only while it still matches the hash
   the manifest recorded when it was seeded; an edited one is kept and listed. Why: an untouched skeleton is harness
   output, while a file someone wrote into is the repository's knowledge, which harness never removes

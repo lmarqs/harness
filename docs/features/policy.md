@@ -30,14 +30,15 @@ The effective policy is the union of:
 1. the built-in base ([below](#the-built-in-base));
 2. allow entries for the commands of each enabled module, rendered for each spelling `harness` renders
    ([below](#entries-for-harness-commands));
-3. entries from the preset named by `extends` ([presets](presets.md));
-4. the entries in `.harness/policy.yaml`, applied after the preset's.
+3. the entries in `.harness/policy.yaml`.
 
-Lists are unions: no source removes an entry from another, and nothing removes a built-in invariant. An entry in the
-policy file or a preset that would weaken an invariant, such as an `allow` for a force push to the default branch, is
-not a validation error: `render` leaves it out of the output, renders the invariant, and reports the entry, and
-`doctor` reports it as a finding until it is removed ([ADR 0011](../adrs/0011-safety-invariants.md)). When a command
-matches entries with different decisions, the decision is taken in this order, in every agent:
+Nothing else contributes an entry: no file outside the repository is read
+([ADR 0013](../adrs/0013-organization-content.md)). Lists are unions: no source removes an entry from another, and
+nothing removes a built-in invariant. An entry in the policy file that would weaken an invariant, such as an `allow` for
+a force push to the default branch, is not a validation error: `render` leaves it out of the output, renders the
+invariant, and reports the entry, and `doctor` reports it as a finding until it is removed
+([ADR 0011](../adrs/0011-safety-invariants.md)). When a command matches entries with different decisions, the decision
+is taken in this order, in every agent:
 
 ```text
 deny  >  ask  >  allow  >  (unlisted: the agent's own default)
@@ -127,7 +128,8 @@ The prefix forms catch the flag-first spellings for both agents; the bare string
 Claude Code.
 
 Organization choices are not in the base: denying a tracker's remote sync, allowing deploy status tasks, MCP read
-rules. They belong in the repository file or a preset.
+rules. They belong in each repository's policy file, written there by a person or an agent and reviewed like any other
+change ([organization choices](presets.md#organization-choices)).
 
 ### The seeded entry
 
@@ -156,14 +158,14 @@ provenance comment, and an equivalence check proves no project rule was lost. Se
 ### The convention in `AGENTS.md`
 
 `harness render` writes the effective permissions, in plain language, into the `policy` block of `AGENTS.md`: the
-decision order, then every entry grouped by decision, with its source when it is not the repository's file (the
-built-in base, or a preset by its source) and each Claude-only entry marked.
+decision order, then every entry grouped by decision, with each entry of the built-in base and each Claude-only
+entry marked.
 
 `policy` is a convention block ([concepts](concepts.md#conventions-outlive-the-tool)): it describes the permissions the
 agents' native settings enforce, and stays true when `harness` is gone. Entries for `harness`'s own commands are
 therefore left out of it, since those commands no longer exist after an eject; `./harnessw explain policy` prints the
-complete effective policy, those entries included. For the [Node API](#a-node-api) below, with every module on, task
-shims and no preset:
+complete effective policy, those entries included. For the [Node API](#a-node-api) below, with every module on and
+task shims:
 
 ```markdown
 <!-- harness:policy -->
@@ -206,7 +208,6 @@ settings file has to be made by hand in the other agent's file and in this text.
 | Field | Type | Default | Meaning |
 | --- | --- | --- | --- |
 | `schema` | integer | required | `1` |
-| `extends` | string | none | A preset source whose policy entries are added; see [presets](presets.md#extends) |
 | `shared.allow` | list of entries | `[]` | Run without a prompt, in every session |
 | `shared.ask` | list of entries | `[]` | Always ask a person first |
 | `shared.deny` | list of entries | `[]` | Never run |
@@ -321,7 +322,9 @@ Placing an entry:
 More:
 
 - Do comment each group of entries with the reason; the reason is what a reviewer evaluates.
-- Do put organization-wide entries in a [preset](presets.md) rather than copying them into every repository.
+- Do write an organization's entries into each repository's policy through a reviewed change, for example by an agent
+  following the organization's skill: each repository reviews them, and they are readable where they apply
+  ([organization choices](presets.md#organization-choices)).
 - Do express a rule as a prefix list whenever Codex must also enforce it.
 - Do write an entry for a `harness` command once, as `[harness, …]`; `render` writes it for each spelling it renders,
   and the binary's own guards catch the others.

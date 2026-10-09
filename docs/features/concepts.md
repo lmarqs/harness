@@ -26,20 +26,16 @@ Nothing in `.harness/` is state, and nothing in it is ignored: every file there 
 at [configurable paths](#state) outside it. The repository root holds the wrapper, `harnessw`, and the files that
 carry [managed blocks](render.md#managed-blocks): `AGENTS.md`, `CLAUDE.md`, `README.md` and `.gitignore`.
 
-A [preset](presets.md) directory mirrors `.harness/`: it holds `config.yaml`, `policy.yaml`, `hooks.yaml`, and
-`blocks/<id>.md` for block text.
-
 ## Layers
 
 | Layer | Who writes it | Committed | In an adopted repository |
 | --- | --- | --- | --- |
 | Engine | nobody in the repository; the release the pin names, downloaded per machine by `harnessw` | no | the `harness` binary in `$HARNESS_HOME` (default `$XDG_CACHE_HOME/harness`, or `~/.cache/harness` when `XDG_CACHE_HOME` is unset) |
 | Pin | `scaffold` and [`harness wrapper`](wrapper.md#harness-wrapper), after the running binary verifies the release's signed checksum file (`scaffold --offline` writes a [pending pin](wrapper.md#a-pending-pin)); owned, never edited by hand | yes | `.harness/wrapper.yaml` |
-| Profile, policy, hooks | people and agents; seeded once by `scaffold` | yes | `.harness/config.yaml`, `.harness/policy.yaml`, `.harness/hooks.yaml` |
+| Profile, policy, hooks | people and agents; seeded once by `scaffold`, which applies the [presets](presets.md#the-presets) of the detected stacks; `harness preset apply` adds a preset's entries on request | yes | `.harness/config.yaml`, `.harness/policy.yaml`, `.harness/hooks.yaml` |
 | Rendered | `harness render`; never edited by hand | yes | `harnessw`, owned keys of `.claude/settings.json` and `.codex/config.toml`, owned entries of `.codex/hooks.json`, `.codex/rules/harness.rules`, task shims under `.mise/tasks/`, `.agents/skills/harness/SKILL.md`, skill links, `.harness/manifest.json` |
 | Managed blocks | `harness render`, only between markers | yes | blocks inside `AGENTS.md`, `README.md`, `CLAUDE.md`, `.gitignore` |
 | Knowledge | people and agents; never generated | yes | `AGENTS.md` prose, `.agents/memory/*`, domain skills, `.agents/commands/`, `.agents/REVIEW.md` |
-| Presets | an organization or a person, in their own repository | in their own repository | sources named by `extends` |
 | State | `harness`, `bd`, `ralph-tui` | never (gitignored) | the [state paths](#state) (default under `.work/`), `.beads/`, `<coordinator>/.ralph-tui/` |
 
 The three repository files are the contract between a repository and the tool. Each has one audience:
@@ -49,6 +45,15 @@ The three repository files are the contract between a repository and the tool. E
 | `.harness/config.yaml` (the profile) | What is this repository: modules, commands, lanes, tracker, agents, state paths, Ralph defaults, skill sources, standing context? | [profile](profile.md), [context](context.md) |
 | `.harness/policy.yaml` (the policy) | What may agents run without asking, only after asking, or never? | [policy](policy.md) |
 | `.harness/hooks.yaml` (the hooks file) | What runs when an agent starts a session, edits a file, waits for a person or ends a turn, and what runs at each lifecycle event? | [hooks](hooks.md), [lifecycle](lifecycle.md) |
+
+What `harness` renders and runs in a repository comes from the repository's own files and the release
+`.harness/wrapper.yaml` pins, and from nothing else: no inheritance, no includes, no sources outside the repository
+([ADR 0013](../adrs/0013-organization-content.md)). Rendering reads nothing else and needs no network, so the same
+commit renders the same bytes on every machine, and people and agents learn what a repository does by reading its
+files. A [preset](presets.md) reaches a repository only as entries `harness preset apply` or `scaffold` writes into
+the profile and the hooks file; once written, they are the repository's own. An organization's choices reach a
+repository the same way, as a reviewed change to its files, usually written by an agent following a skill the
+organization publishes.
 
 Rendered files are committed on purpose: a clone works before its pinned release is downloaded, and reviewers see
 every permission change as a diff.
@@ -98,8 +103,7 @@ kinds of content:
 | Owned | content `harness` renders and rewrites; never edited by hand | every owned file with its content hash (`harnessw`, `.harness/wrapper.yaml`, `.codex/rules/harness.rules`, task shims, the harness skill and its links); every managed block, with the file it lives in and its content hash; every owned key or entry inside a native file that `harness` merge-renders, including rendered `raw` hooks |
 | Seeded | files `harness` writes once; from then on the repository owns them and `render` never rewrites them | `.harness/config.yaml`, `.harness/policy.yaml` and `.harness/hooks.yaml`, written by `scaffold`, and the `.agents/memory/` skeleton, written when the memory module is enabled, by `scaffold` or by the first `render` after the module is turned on; each with the hash of the content it was created with |
 
-It also records the commit every git preset resolved to ([presets](presets.md#resolved-commits)) and the `schema` the
-files were rendered with.
+It also records the `schema` the files were rendered with.
 
 The manifest is committed and rewritten by `render`, `scaffold`, `wrapper` and `remove`. Do not edit it. The
 difference between owned and seeded content decides what each [removal mode](remove.md#undo-and-eject-compared)
@@ -237,8 +241,8 @@ Work moves through five [lifecycle events](lifecycle.md): `start`, `verified`, `
 sixth event, `blocked`, fires out of band at any stage: when a Ralph run stops unfinished, when the launcher skips a
 task after its retries, and when a command run without a terminal stops with exit 3 for a person to act. `harness`
 fires each event at fixed trigger points in its own commands, and a person or a coordinating agent can fire one by
-hand with `harness lifecycle run <event>`. What happens at an event is the repository's or its preset's declared
-actions; the binary ships none. Everything that leaves the clone, such as a push, a pull request or a chat
+hand with `harness lifecycle run <event>`. What happens at an event is the actions the repository declares in
+`.harness/hooks.yaml`; the binary ships none. Everything that leaves the clone, such as a push, a pull request or a chat
 notification, is one of those actions.
 
 Every action has one kind ([action kinds](lifecycle.md#action-kinds)):
@@ -272,7 +276,7 @@ A repository adopts `harness` without forcing anyone else to.
 
 ## Built-in invariants
 
-These hold in every repository and cannot be turned off by any repository file or preset
+These hold in every repository and cannot be turned off by any repository file
 ([ADR 0011](../adrs/0011-safety-invariants.md)):
 
 1. Ralph workers never run with permission bypass; bypass flags are refused.

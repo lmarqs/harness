@@ -23,6 +23,7 @@ Commands are named `harness <command>` on this page. Run them through the reposi
 | You want | Declare |
 | --- | --- |
 | The edited file formatted or linted right after every agent edit | a `post_edit` entry |
+| The stack's usual format-on-edit or lint-on-edit hook | `./harnessw preset apply <name>`, which adds it as a `post_edit` entry ([presets](presets.md)) |
 | A repository check run when certain files are edited | `validators` |
 | A session in a managed worktree to know its task and tracker | `session_start.context: true` |
 | A message when an agent waits for you: a permission prompt, a question, idle input | an `attention` action |
@@ -93,8 +94,9 @@ harness v0.9.0 is not cached on this machine; run ./harnessw version once to fet
 ```
 
 The wrapper prints both lines itself, as fixed text from its template, because no binary is there to print them; it
-recognises the session-start entry by the `session-start` argument. It still never downloads and still exits 0. Directives a session must never miss belong in
-[static context](context.md#static-entries), which is part of `AGENTS.md`.
+recognises the session-start entry by the `session-start` argument. It still never downloads and still exits 0.
+Directives a session must never miss belong in [static context](context.md#static-entries), which is part of
+`AGENTS.md`.
 
 Raw entries are rendered as native hook entries running their own commands, not through `harness hook`, so they keep
 running without the binary, exactly as they did before adoption. The manifest records them as owned, so `render`
@@ -232,7 +234,8 @@ In short:
 - `auto: true` runs the action at the event's automatic trigger point; every action also runs when a person or a
   coordinating agent fires the event with `harness lifecycle run <event>`;
 - lifecycle actions never run inside a Ralph worker;
-- the binary ships no actions: the repository or its [preset](presets.md#lifecycle-actions-in-a-preset) declares them.
+- the binary ships no actions and no [preset](presets.md) holds any: every action is one the repository declares in
+  this file.
 
 An action runs with the permissions of the process that fired it, outside any agent's permission checks. Review
 lifecycle actions like code; see [safety](safety.md).

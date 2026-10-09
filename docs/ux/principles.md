@@ -63,8 +63,8 @@ follow every model change; a tool that competed with them would carry credential
 - The binary never writes knowledge: no free prose, no memory entries, no domain skills, no policy entries invented on
   the user's behalf, because knowledge needs judgement. It writes rendered files, managed blocks whose text is derived
   from the repository files (fixed sentences stating a convention with its configured values, tables, lists), the
-  repository files (`config.yaml`, `policy.yaml`, `hooks.yaml`) only when seeding or migrating them, and the owned pin
-  `wrapper.yaml` only when scaffolding or re-pinning.
+  repository files (`config.yaml`, `policy.yaml`, `hooks.yaml`) only when seeding them, migrating them or applying a
+  preset a person asked for, and the owned pin `wrapper.yaml` only when scaffolding or re-pinning.
 - The binary contains no logic for any hosting platform and never writes the team's record of work: no issues,
   projects, boards, comments, reviews or labels. Why: the team's record already has writers under the team's own
   conventions, and platform logic in the binary binds every release to one platform. Everything that leaves the
@@ -76,25 +76,26 @@ follow every model change; a tool that competed with them would carry credential
 
 ## 4. Least surprise
 
-- A command does what its name says and nothing else. Read commands (`doctor`, `explain`, `version`,
-  `context show`, `lifecycle list`, `render --check`, `verify --check`) MUST NOT modify the repository, fire lifecycle
-  events or run actions. Why: agents and CI call read commands freely; a side effect there happens without anyone
-  deciding it.
+- A command does what its name says and nothing else. Read commands (`doctor`, `explain`, `version`, `context show`,
+  `lifecycle list`, `preset list`, `preset show`, `render --check`, `verify --check`) MUST NOT modify the repository,
+  fire lifecycle events or run actions. Why: agents and CI call read commands freely; a side effect there happens
+  without anyone deciding it.
 - The same invocation in the same state gives the same result. Running a mutation twice changes nothing the second
   time and says so, because agents retry and a retry must be safe.
 - Environment and machine affect presentation (color, notices, verbosity), never the bytes written into a
   repository, because two teammates rendering the same commit must produce the same diff. A binary upgrade changes
   those bytes only under the rules in
   [compatibility-standards.md](compatibility-standards.md#rendered-output-across-releases).
-- No hidden network access, because a user must be able to say what a command contacted. The network calls harness
-  makes on its own are: the wrapper's download of the version pinned in `.harness/wrapper.yaml` (on an explicit
-  invocation only, over HTTPS, verified against the pinned checksum); the release's signed checksum file, fetched by
+- No hidden network access, because a user must be able to say what a command contacted. The network calls harness makes
+  on its own are: the wrapper's download of the version pinned in `.harness/wrapper.yaml` (on an explicit invocation
+  only, over HTTPS, verified against the pinned checksum); the release's signed checksum file, fetched by
   `harness scaffold` (not with `--offline`) and `harness wrapper` before they write a pin and re-verified by
-  `harness doctor` at most daily;
-  preset fetches declared by `extends`; the daily release check; and `skills sync` (through the `skills` CLI). Each is
-  documented and the release check can be disabled. Any other network access is a declared action (an `http` action,
-  or a `run` or `agent` action whose command reaches the network), visible in `harness lifecycle list` and in
-  `.harness/hooks.yaml`.
+  `harness doctor` at most daily; the daily release check; and `skills sync` (through the `skills` CLI). Each is
+  documented and the release check can be disabled. Rendering and applying a preset need none of them, because their
+  only inputs are the repository's files and the pinned release
+  ([principle 9](#9-everything-a-repository-does-is-in-its-own-files)). Any other network access is a declared action
+  (an `http` action, or a `run` or `agent` action whose command reaches the network), visible in
+  `harness lifecycle list` and in `.harness/hooks.yaml`.
 - Names, flags and output look the same across commands ([cli-standards.md](cli-standards.md)), so what a user learns
   on one command holds on the next.
 
@@ -136,21 +137,21 @@ Why: two ways to do one thing drift apart, and a reader cannot tell which one is
 
 ## 7. Nothing leaves the clone undeclared
 
-The binary contains no logic for any hosting platform. Everything that leaves the clone (a push, a pull request, a
-CI trigger, a notification, a call to a service) happens only through a **declared action**: an action that the
-repository or one of its presets declares on a lifecycle event (`start`, `verified`, `completed`, `deliver`, `landed`,
-or the out-of-band `blocked`) or on an agent notification event (`attention`, `turn_end`). Why: a side effect outside
-the clone is visible to others and hard to undo, so it must be written down, reviewed and guarded before it can
-happen ([ADR 0015](../adrs/0015-development-lifecycle.md), [ADR 0019](../adrs/0019-action-kinds.md)). Stages,
-trigger points and the full reference: [lifecycle guide](../features/lifecycle.md).
+The binary contains no logic for any hosting platform. Everything that leaves the clone (a push, a pull request, a CI
+trigger, a notification, a call to a service) happens only through a **declared action**: an action that the repository
+declares on a lifecycle event (`start`, `verified`, `completed`, `deliver`, `landed`, or the out-of-band `blocked`) or
+on an agent notification event (`attention`, `turn_end`). Why: a side effect outside the clone is visible to others and
+hard to undo, so it must be written down, reviewed and guarded before it can happen
+([ADR 0015](../adrs/0015-development-lifecycle.md), [ADR 0019](../adrs/0019-action-kinds.md)). Stages, trigger points
+and the full reference: [lifecycle guide](../features/lifecycle.md).
 
-- **Declared.** Actions live in `.harness/hooks.yaml` or a preset. The binary ships no actions, so what "deliver" means
-  is decided by the repository and its organization.
+- **Declared.** Actions live in `.harness/hooks.yaml`. The binary, its presets included, ships no actions, so what
+  "deliver" means is decided in the repository, where an organization's delivery convention is written like any other
+  entry.
 - **Three kinds.** An action is a shell command (`run`), an HTTP request harness performs itself (`http`), or a
   headless agent run (`agent`). Notification events accept `run` and `http` only, so an agent hook never starts
   another agent.
-- **Visible.** `harness lifecycle list` shows every event, action, kind, scope, `auto` flag and source (repository or
-  preset).
+- **Visible.** `harness lifecycle list` shows every event, action, kind, scope and `auto` flag.
 - **Dry-runnable.** `harness lifecycle run <event> --dry-run` prints each action and the `HARNESS_*` environment it
   would receive, and runs nothing.
 - **Recorded.** Every run appends its event, scope, and each action's name, kind, exit status and duration to the
@@ -205,19 +206,43 @@ that follows rules nobody wrote down ([ADR 0018](../adrs/0018-conventions.md)).
   removes tool blocks, so the conventions remain in force after harness leaves and no instruction names a command that
   no longer exists ([generated-content-standards.md](generated-content-standards.md#removal)).
 
+## 9. Everything a repository does is in its own files
+
+What harness renders and runs in a repository comes from that repository's files and the release it pins, and from
+nothing else: no inheritance, no includes, no source outside the repository. Why: people and agents learn what a
+repository does by reading it. A rule that acts in a repository from somewhere else cannot be read by an agent working
+there, and a reviewer sees its effect without its reason ([ADR 0013](../adrs/0013-organization-content.md)).
+
+- The same commit renders the same bytes on every machine and every day, with no network and an empty per-user cache,
+  because no input can change without a commit in the repository.
+- No repository file has a key that names a source outside the repository for what harness renders or runs
+  ([configuration-standards.md](configuration-standards.md#inputs)), so reading the repository is enough to predict
+  what it does.
+- Every write to the repository files is one a person or agent asked for: seeding them, migrating them, applying a
+  preset with `harness preset apply`, or an edit. Why: a file that changes by itself holds decisions nobody made.
+- A built-in preset reaches a repository only as entries written into its files, and nothing records where an entry
+  came from, so each entry has one source of truth: the file it is in
+  ([configuration-standards.md](configuration-standards.md#presets)).
+- An organization's choices reach its repositories as changes to each repository's files, written by a person or by
+  an agent following the organization's skill, and reviewed there as a diff. The cost is that a choice shared by many
+  repositories is written, and changed, in each of them.
+
 ## When principles conflict
 
 Apply them in this order, because each earlier principle protects something harder to recover than the next:
 
-1. The built-in invariants ([ADR 0011](../adrs/0011-safety-invariants.md)). No principle, setting, preset or flag
-   weakens them.
+1. The built-in invariants ([ADR 0011](../adrs/0011-safety-invariants.md)). No principle, setting or flag weakens
+   them.
 2. Never destroy.
 3. Nothing leaves the clone undeclared.
 4. Optional and transparent.
 5. Conventions outlive the tool.
-6. Deterministic in the binary, judgement to agents.
-7. Least surprise.
-8. One way to do each thing.
+6. Everything a repository does is in its own files.
+7. Deterministic in the binary, judgement to agents.
+8. Least surprise.
+9. One way to do each thing.
 
 Example: a convenient default that would overwrite a hand-edited file loses to "never destroy"; the command refuses
-and names `--force` instead.
+and names `--force` instead. A shared source that would let an organization change a rule once for all its
+repositories loses to "everything a repository does is in its own files", even though one place for the rule would
+serve "one way to do each thing": the rule is written into each repository instead.

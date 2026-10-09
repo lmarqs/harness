@@ -132,12 +132,31 @@ contract, injected standing context and the hooks that called `harness`.
 
 ### Can a repository remove the built-in force-push deny?
 
-No. The built-in base holds invariants that no repository file or preset can remove. It is deliberately small: only
-what is unsafe in every repository.
+No. The built-in base holds invariants that no repository file can remove. It is deliberately small: only what is
+unsafe in every repository.
 
 ### Why is my organization's deny list not built in?
 
-The binary contains no organization-specific entry. Put shared entries in an [`extends` preset](presets.md#extends).
+The binary contains no organization-specific entry. Organization content in the binary would tie its releases to one
+organization, publish that organization's choices in an open-source tool, and make every other user carry entries
+they never use ([ADR 0013](../adrs/0013-organization-content.md)). Write the deny list into each repository's
+`.harness/policy.yaml`, as the next answer describes.
+
+### How do we share our organization's choices across repositories?
+
+Write them into each repository. What `harness` renders and runs in a repository comes only from that repository's
+files and the release it pins, so a reviewer and an agent working there can read every rule that applies, and the
+same commit renders the same bytes on every machine ([ADR 0013](../adrs/0013-organization-content.md)).
+
+- **Choices that take judgement**, such as MCP read patterns, deploy denies, a CI trigger in delivery or tracker
+  rules: publish a skill that describes them, install it with `npx skills add acme/agent-skills`, and have an agent
+  following it change each repository's `.harness/policy.yaml`, `.harness/hooks.yaml` or profile. Each repository
+  reviews the change as a diff, so two repositories can hold different entries for the same choice when they need to.
+- **`harness` commands**, such as applying a stack preset or moving to a new release: run them across repositories
+  with [`harness fleet`](fleet.md), for example `harness fleet preset apply node --yes --deliver` with a fleet file
+  of Node repositories.
+- **Stack facts**, such as how to lint, test and build a Node project: these are the built-in
+  [presets](presets.md#the-presets), which `scaffold` applies and `harness preset apply` applies on request.
 
 ### An allowed command still prompts. Why?
 
@@ -187,9 +206,9 @@ No. An existing `.beads/` is used as found; `harness` configures only a database
 
 ### Does `harness` push or open pull requests?
 
-Not by itself. Everything that leaves the clone is a lifecycle action the repository or its preset declares, such as
-`git push` and `gh pr create` under `deliver`. The binary ships no actions and contains no hosting-platform logic
-([lifecycle](lifecycle.md)).
+Not by itself. Everything that leaves the clone is a lifecycle action the repository declares in its own
+`.harness/hooks.yaml`, such as `git push` and `gh pr create` under `deliver`. The binary ships no actions and contains
+no hosting-platform logic ([lifecycle](lifecycle.md)).
 
 ### Can it notify a chat channel when work finishes or an agent needs me?
 
@@ -211,12 +230,6 @@ base also denies `harness lifecycle` to every worker, rendered for each spelling
 events and runs their actions in its own process, never inside the worker, once the worker's verified commit has
 landed on the run branch.
 
-### A preset changed upstream, but `render` changed nothing.
-
-`render` uses the preset commit recorded in the manifest, so every clone and CI render the same bytes. Run
-`./harnessw render --refresh` to move to the newest commit; `doctor` notes when one exists
-([presets](presets.md#resolved-commits)).
-
 ## Ralph
 
 ### Can Ralph workers run with `--dangerously-skip-permissions`?
@@ -232,10 +245,10 @@ against the final content, with rules read from the base commit, before it relea
 ### Does `harness` open the pull request after a run?
 
 The binary has no logic for pull requests or any hosting platform. A run ends on a local branch. What happens next is
-the repository's `deliver` actions, for example `git push` and `gh pr create` from a preset: they run automatically
-when declared with `auto: true`, or when a person or a coordinating agent runs `./harnessw lifecycle run deliver`. Most
-runs need judgement first (which task commits go together, how to word them), so an agent arranges the commits with a
-skill and then fires `deliver` ([ralph](ralph.md#delivery)).
+the repository's `deliver` actions, for example `git push` and `gh pr create` declared in `.harness/hooks.yaml`: they
+run automatically when declared with `auto: true`, or when a person or a coordinating agent runs
+`./harnessw lifecycle run deliver`. Most runs need judgement first (which task commits go together, how to word them),
+so an agent arranges the commits with a skill and then fires `deliver` ([ralph](ralph.md#delivery)).
 
 ### I run ralph-tui directly with my own config. Does `harness` interfere?
 
@@ -257,6 +270,13 @@ the only pin, and `doctor` reports a second one as a finding.
 the same change, so the pin and everything the new release renders differently arrive as one diff; review it and
 commit it. `harness fleet wrapper --version <tag> --deliver` does the same across many repositories
 ([wrapper](wrapper.md#upgrading)).
+
+### We upgraded, but the new release's preset entries are not in the repository.
+
+A preset's entries reach a repository only when someone applies it. The upgrade renders the repository's files with
+the new release and leaves their entries as they are. Run `./harnessw preset apply node --dry-run` to see what the
+newer `node` preset would add; without `--dry-run` it shows the same diff, asks, adds only what the repository lacks,
+and renders ([presets](presets.md#how-apply-works)).
 
 ### A teammate's `harness` refuses our repository.
 

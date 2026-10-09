@@ -11,21 +11,23 @@ once.
 | The binary and its CLI | semantic versioning: `MAJOR.MINOR.PATCH` | `harness version`, release tags |
 | Each repository file (`config.yaml`, `policy.yaml`, `hooks.yaml`, `wrapper.yaml`) | an integer `schema`, per file | the file's first key |
 | The version a repository runs | an exact release tag, pinned per repository | `version` in `.harness/wrapper.yaml` |
+| Built-in presets | none of their own: each release holds its version of every preset | `harness preset list` and `harness preset show <name>` of the running release |
 | Rendered files and managed blocks | the schema of their sources | the generated-file header and the manifest |
 
-- Rendered content carries the schema, never the binary version ([ADR 0005](../adrs/0005-schema-compatibility.md)).
-  It depends on the sources, the recorded preset commits and the pinned release, and `harness wrapper --version <tag>`
-  renders the repository with the new release in the same change as the pin, so moving the pin never leaves drift
-  behind ([ADR 0017](../adrs/0017-engine-version.md)). Why: a version stamp would change every file on every upgrade
-  and bury the changes that matter.
+- Rendered content carries the schema, never the binary version ([ADR 0005](../adrs/0005-schema-compatibility.md)). It
+  depends only on the repository files and the pinned release ([ADR 0013](../adrs/0013-organization-content.md)), and
+  `harness wrapper --version <tag>` renders the repository with the new release in the same change as the pin, so moving
+  the pin never leaves drift behind ([ADR 0017](../adrs/0017-engine-version.md)). Why: a version stamp would change
+  every file on every upgrade and bury the changes that matter.
 - The public contract covered by semantic versioning is: command names and grammar, flags, operands, enumerated values,
   `HARNESS_*` environment variables (those harness and its wrapper read and those it passes to actions), exit-code
-  meanings, JSON output shapes, `harness explain` topic names, the repository file schemas (`wrapper.yaml` included),
-  the wrapper's name, location and flags (`harnessw` at the repository root, `--no-download`), lifecycle event names
-  and trigger points, notification event names, action kinds and their keys, standing-context triggers and roles, the
-  profile's state path keys and their defaults, managed-block ids, their markers and their class (convention or tool),
-  the generated-file header, the manifest location, and the format of the release's signed checksum file. Why: each of
-  these is read by scripts, agents, policy entries or other repositories, and changes there break them.
+  meanings, JSON output shapes, `harness explain` topic names, the names of the built-in presets, the repository file
+  schemas (`wrapper.yaml` included), the wrapper's name, location and flags (`harnessw` at the repository root,
+  `--no-download`), lifecycle event names and trigger points, notification event names, action kinds and their keys,
+  standing-context triggers and roles, the profile's state path keys and their defaults, managed-block ids, their
+  markers and their class (convention or tool), the generated-file header, the manifest location, and the format of the
+  release's signed checksum file. Why: each of these is read by scripts, agents, policy entries or other repositories,
+  and changes there break them.
 - Human-readable output text is not part of the contract and may change in any release, because people read it and
   JSON exists for programs.
 
@@ -45,16 +47,17 @@ once.
 | Invariants | weakening one (never allowed) | adding one; it changes rendered output and therefore follows the rendered-output rule |
 | Supported agents and tools | removing an agent adapter | adding an agent or a version; narrowing a version range in a minor release, listed in its notes |
 | Release trust | removing a key a released binary trusts without a rotation release | introducing the next key in a release signed by the current one |
+| Built-in presets | removing or renaming a preset | adding a preset; changing what one holds, because a repository's entries change only when someone applies a preset, and applying only adds ([below](#presets-across-releases)) |
 
 Moving a block between the convention and tool classes is breaking because it changes what `harness remove --eject`
 keeps in a repository.
 
 ### Rendered output across releases
 
-Rendered bytes depend on the repository files, the recorded preset commits and the pinned release. A patch release
-never changes them for unchanged inputs. A minor release may: the harness skill teaches the commands of the release
-that renders it, and a rendering fix changes bytes. When an agent's own format change forces different output, or a new
-invariant adds an entry, the release is breaking and its notes name the affected files.
+Rendered bytes depend on the repository files and the pinned release, and on nothing else. A patch release never changes
+them for unchanged inputs. A minor release may: the harness skill teaches the commands of the release that renders it,
+and a rendering fix changes bytes. When an agent's own format change forces different output, or a new invariant adds an
+entry, the release is breaking and its notes name the affected files.
 
 Every such change reaches a repository the same way: `harness wrapper --version <tag>` renders the repository with the
 new release in the same change as the pin, `harnessw` and the harness skill included, so the pin and its effects reach
@@ -64,18 +67,19 @@ results may differ. Why: with upgrades rendered in their own diff, the pinned re
 always agree, and an exemption would hide exactly the hand edits the check exists to catch
 ([ADR 0007](../adrs/0007-ownership.md)).
 
-### Presets across upstream changes
+### Presets across releases
 
-A preset is an input, and its version is recorded like any other input. Why: a check whose result changes when
-someone else publishes a commit fails pipelines that changed nothing ([ADR 0013](../adrs/0013-organization-content.md)).
+A preset is not an input to rendering: its entries take effect only once they are written into the repository's files,
+and from then on they are the repository's own. Why: a check whose result changes when someone else publishes a change
+fails pipelines that changed nothing, and an entry that changes without a change in the repository cannot be explained
+from the repository ([ADR 0013](../adrs/0013-organization-content.md)).
 
-- The manifest records the commit every preset resolved to. `harness render` and `harness render --check` reuse that
-  commit, so a change upstream never fails a check or changes rendered bytes by itself.
-- `harness render --refresh` re-resolves presets whose `extends` has no `@<ref>`, records the new commits, and renders;
-  the resulting diff reaches review like any other change.
-- A preset pinned with `@<ref>` changes only when the repository edits the ref.
-- `harness doctor` reports a newer upstream commit for an unpinned preset as a note, never as a finding, because
-  staying on a reviewed commit is not a failure.
+- Moving the pin never applies a preset. A newer release's additions to a preset reach a repository only when someone
+  applies it again: `./harnessw preset apply node --dry-run` shows what it would add, and applying adds only what the
+  repository lacks.
+- Nothing records which presets a repository applied, so no command reports that a preset gained entries. Why: such a
+  report would nag a repository that removed an entry on purpose; a repository that wants a newer preset's entries
+  applies it again and reads the diff.
 
 ## Adoption equivalence
 
@@ -157,8 +161,8 @@ An adopted repository behaves for non-users exactly as it did before adoption
 - No generated file adds a runtime dependency, a required CI step, or a change to build, test, deploy or release
   outputs.
 - CI never needs the binary or the wrapper. A CI that opts in runs `./harnessw render --check` and `./harnessw doctor`.
-  They need the network only to download the pinned version (verified against its checksum), to re-verify its signed
-  checksum file and to fetch a preset that is not cached; the release check never affects their result.
+  They need the network only to download the pinned version (verified against its checksum) and to re-verify its
+  signed checksum file; the release check never affects their result.
 - Managed blocks are plain Markdown or comments and read correctly without harness. Convention blocks state the
   repository's conventions as fact, and `harness remove --eject` keeps them as the repository's own text
   ([principles.md](principles.md#8-conventions-outlive-the-tool)).
@@ -171,7 +175,7 @@ owners depend on them as they are ([ADR 0012](../adrs/0012-write-boundary.md)).
 | Already present | harness behaviour |
 | --- | --- |
 | A hosting platform's issues, projects, boards, comments, reviews and labels as the record of work | never written; the binary has no logic for the platform that hosts the team's work; task state harness creates stays clone-local; linking work to issues is an agent's job |
-| Pull requests, pushes, CI conventions and notification channels | produced only by actions the repository or its preset declares; the binary ships none |
+| Pull requests, pushes, CI conventions and notification channels | produced only by actions the repository declares in `hooks.yaml`; the binary ships none |
 | MCP servers an agent is configured to use | never contacted by harness; work that needs them is an `agent` action or the coordinating agent's job |
 | An existing `.beads/` | used as found; never initialised again, localised or reconfigured; when the repository synchronises it, the claims and comments harness writes there travel where that synchronisation sends them ([ADR 0012](../adrs/0012-write-boundary.md)) |
 | A root `.ralph-tui/` and a global ralph-tui configuration (`~/.config/ralph-tui/config.toml`) | never written; read only when the profile sets `ralph.config: inherit`, or to find and name a bypass setting that ralph-tui would apply to a run harness launches, which harness then refuses. Why: ralph-tui merges that configuration into every run it starts, so harness must see it to refuse what it would inject ([ADR 0012](../adrs/0012-write-boundary.md)) |

@@ -10,7 +10,7 @@ expects of the skills around it.
 | Kind | Lives in | Written by | Reaches a repository by | Holds |
 | --- | --- | --- | --- | --- |
 | **Harness skill** | the binary; installed at `.agents/skills/harness/` | harness maintainers | `harness render` (tool-owned, listed in the manifest) | how to run harness (`./harnessw <command>`), edit the repository files in `.harness/`, finish an adoption, read `doctor` findings, when to run `harness lifecycle run <event>`, and why the invariants exist |
-| **Organization skill** | an organization's skills repository | the organization | `skills.sources` in the profile, installed by `harness skills sync` through the `skills` CLI | conventions shared by one organization's repositories: delivery, review, observability, domain vocabulary |
+| **Organization skill** | an organization's skills repository | the organization | `skills.sources` in the profile, installed by `harness skills sync` through the `skills` CLI | conventions shared by one organization's repositories, and how to write them into one repository's files: delivery actions, policy entries (observability read patterns, deploy denies), review, domain vocabulary |
 | **Repository skill** | `.agents/skills/<name>/` in the repository | people and agents in that repository | committed directly | knowledge of one repository: its modules, risks, procedures |
 
 The binary writes only the harness skill. Organization and repository skills are knowledge; the binary never creates,
@@ -27,14 +27,14 @@ among skills ([configuration-standards.md](configuration-standards.md#where-file
 | --- | --- | --- |
 | Agents misuse a harness file or command in many unrelated repositories | harness skill (change ships in a release) | the fix reaches each repository in the diff that moves its pin to that release |
 | A new `harness explain` topic is needed | harness skill reference with the same text | both come from one embedded source |
-| A convention holds across one organization's repositories and needs judgement | organization skill | the organization owns and reviews it once |
+| A convention holds across one organization's repositories, as judgement or as entries harness enforces (a deny, a delivery action) | organization skill that guides an agent to write it into each repository's files ([below](#organization-skills-that-write-repository-entries)) | the organization owns and reviews the skill once; applying it to a repository takes judgement, and each repository reviews the result |
 | A procedure or body of knowledge is specific to one repository | repository skill | it is reviewed where it applies |
 | Known guidance must apply every session, or whenever certain files or words appear | an existing skill plus a standing-context entry ([configuration-standards.md](configuration-standards.md#standing-context)) | the trigger is deterministic; the skill stays the single text |
-| The behaviour is deterministic | not a skill: a command, flag, profile field or preset | prose would drift from the behaviour |
+| The behaviour is deterministic and organization neutral | not a skill: a command, flag, profile field or built-in preset | prose would drift from the behaviour |
 | A one-off instruction for a single session | not a skill: the prompt | a skill outlives the session it was written for |
 
 The harness skill names no organization, vendor or company convention, because it ships to every user of an open-source
-tool. Anything that would need one belongs in an organization skill or a preset.
+tool. Anything that would need one belongs in an organization skill, and from there in each repository's files.
 
 ## Structure
 
@@ -76,6 +76,22 @@ for standing context:
 
 A directive that must apply even without the binary is declared `static`, so it is written into `AGENTS.md` and does
 not depend on a hook.
+
+## Organization skills that write repository entries
+
+An organization's choices that harness enforces (observability read patterns, deploy denies, a CI-trigger commit in
+delivery, tracker rules) reach a repository only as entries in its own files, written by a person or by an agent
+following the organization's skill. Why: no repository file can name a source outside the repository, and the
+organization's choices differ between its repositories, so applying them takes judgement
+([ADR 0013](../adrs/0013-organization-content.md)). Such a skill:
+
+- states each entry with the reason the organization holds it, and how to fit it to the repository in front of the
+  agent: which entries apply, and what to do with an entry the repository already has, because the agent decides per
+  repository;
+- has the agent edit `.harness/policy.yaml`, `.harness/hooks.yaml` or `.harness/config.yaml`, never a rendered file or
+  a managed block, because those are replaced by the next render;
+- ends by running `harness render` and then `harness doctor`, so the entries and their rendered effect reach review as
+  one diff and the binary checks the result.
 
 ## Explain the reasoning
 

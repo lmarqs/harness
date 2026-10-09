@@ -25,7 +25,7 @@ Commands are named `harness <command>` on this page. Run them through the reposi
 | An `agent` action | an unattended agent | it runs headless on a prompt, often with values written by people and agents in it; it runs under the worker contract |
 | Standing context: the skills and files `context` entries name | instructions | every matching session reads them as guidance; whoever can change them steers the agents |
 | `HARNESS_MESSAGE`, `HARNESS_REASON`, task titles and summaries | untrusted input | agents and task text shape them; they reach notifications and `agent` prompts |
-| An `extends` preset | code from another repository | its policy entries, hooks and actions reach every adopter at render |
+| A built-in preset, applied with `harness preset apply` or by `scaffold` | code from the pinned release | it writes commands, lanes, validators and post-edit hooks into the repository's files, which run them with the credentials of whoever triggers them; `apply` shows the additions as a diff before writing, and the commit is reviewed like any other |
 | The pinned release: `harnessw` and `.harness/wrapper.yaml` | code fetched from the network | the wrapper downloads the release the pin names and runs it with your credentials; the checksums committed next to the pin are what make the download trustworthy |
 
 What must stay safe:
@@ -159,14 +159,16 @@ that fired them, outside the agent's per-command permission checks.
   every `completed` and `deliver` action with `auto: true`; the same holds for `harness verify`,
   `harness worktree create`, `harness task claim`, `harness worktree remove` and `harness ralph`. `harness doctor`
   never fires events ([lifecycle](lifecycle.md#events)).
-- **Actions from a preset run with your credentials.** Pin presets with `@<ref>` and review a bump like a dependency
-  update.
+- **The hooks file is the complete list.** Every action is declared in the repository's own `.harness/hooks.yaml`,
+  and nothing outside the repository adds one ([ADR 0013](../adrs/0013-organization-content.md)). Reviewing that file
+  reviews everything an event can run.
 - **Every action sees the whole environment.** A webhook URL exported for one `http` action is visible to every `run`
   and `agent` action of every event fired from that shell.
 
 What follows:
 
-- Review `lifecycle` changes in `.harness/hooks.yaml` and in presets like code.
+- Review `lifecycle` changes in `.harness/hooks.yaml` like code, including those an agent wrote while following an
+  organization's skill.
 - Keep the seeded `ask` on `[harness, lifecycle, run, deliver]` until the actions are ones you accept an agent running
   unasked. Moving it to `allow` is a decision about the actions, not about the command.
 - Check `harness lifecycle list` for `auto: true` before granting an agent a command with a trigger point.
@@ -222,9 +224,9 @@ Every clone runs the `harness` release that `.harness/wrapper.yaml` pins, throug
 - **Downloads are verified.** The wrapper fetches the release over HTTPS and checks its sha256 against the checksum
   for the platform in `wrapper.yaml`. A mismatch exits 1 and caches nothing.
 - **Implicit entry points never download.** Rendered hooks run
-  `"$(git rev-parse --show-toplevel)/harnessw" --no-download hook <event>`: an agent starting a session or editing a file runs
-  a binary already in the cache, or skips the hook, and never fetches code. A download happens only when a person or
-  an agent runs an explicit command, such as `./harnessw verify` or a task shim.
+  `"$(git rev-parse --show-toplevel)/harnessw" --no-download hook <event>`: an agent starting a session or editing a
+  file runs a binary already in the cache, or skips the hook, and never fetches code. A download happens only when a
+  person or an agent runs an explicit command, such as `./harnessw verify` or a task shim.
 - **Pins are signed.** `./harnessw wrapper --version <tag>` and `harness scaffold` write a pin's checksums only after
   the running binary verifies the release's signed checksum file with the release keys it embeds. A
   [pending pin](wrapper.md#a-pending-pin), written by `scaffold --offline`, has no checksums and admits no download.
@@ -241,8 +243,8 @@ Every clone runs the `harness` release that `.harness/wrapper.yaml` pins, throug
 
 ## Secrets
 
-- Never write a secret in the profile, the policy, the hooks file, a preset or an action. They are committed, rendered
-  into files every clone has, and shown in diffs.
+- Never write a secret in the profile, the policy, the hooks file or an action. They are committed, rendered into
+  files every clone has, and shown in diffs.
 - Actions, hooks, validators, lanes and agents inherit the environment. Start unattended runs from a shell that holds
   only the credentials the run needs: no production tokens, no cloud administrator profile.
 - An `http` action reads its URL and header values only from the variables `url_env` and `headers_env` name, never
@@ -274,8 +276,8 @@ person's own settings keep applying to them.
 
 ## Reviewing rendered diffs
 
-Rendered files are committed so every permission change is a diff. After `harness render`, `render --refresh` or a
-preset bump, read:
+Rendered files are committed so every permission change is a diff. After `harness render`, `harness preset apply`
+or an upgrade, read:
 
 | File | Look for |
 | --- | --- |
@@ -283,10 +285,10 @@ preset bump, read:
 | `.codex/rules/harness.rules` | the same decisions as Claude Code; a deny present for Claude Code but missing here is Claude-only |
 | `.codex/hooks.json`, `.codex/config.toml` | hook entries and the keys that enable them |
 | The `policy` block in `AGENTS.md` | Claude-only entries; the built-in base |
-| `.harness/hooks.yaml` and the preset's `hooks.yaml` | new or changed `lifecycle`, `attention` and `turn_end` actions, especially `auto: true`, `agent` actions and their prompts, and the variables `http` actions read |
+| `.harness/hooks.yaml` | new or changed `post_edit` hooks and `lifecycle`, `attention` and `turn_end` actions, especially `auto: true`, `agent` actions and their prompts, and the variables `http` actions read |
+| `commands`, `verify.lanes` and `verify.validators` in `.harness/config.yaml` | new or changed lint and build commands, lanes and validators, such as those `harness preset apply` adds: `harness verify` and the agent hooks run them with the credentials of the person or agent at work |
 | `context` in `.harness/config.yaml`, the `context` block in `AGENTS.md` | new or changed entries, the files and skills they inject, and which roles they reach |
 | `.agents/skills/`, `skills-lock.json` | a skill's content and its locked hash changing together, from the source you expect |
-| `.harness/manifest.json` | a preset's recorded commit moving: read the upstream diff between the two commits |
 | `.harness/wrapper.yaml` | a version change you intended, with checksums that match the release's published checksum file; a `source` that moved |
 | `harnessw` | changes only together with an upgrade whose release brings a new wrapper |
 

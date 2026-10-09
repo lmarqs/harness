@@ -27,7 +27,7 @@ wrapper as `./harnessw <command>` ([cli-standards.md](cli-standards.md#entry-poi
 | Repository owner or teammate who does not use harness | committed files only | a clone that builds, tests and runs agents without the binary; conventions written in plain language in `AGENTS.md` and `.gitignore` |
 | Repository that stops using harness | `harness remove`, `harness remove --eject` | undo returns the repository to a working state without harness; eject keeps its conventions, permissions and hooks as the repository's own |
 | Pull-request reviewer | diffs of rendered files, managed blocks and the pin | every generated change visible and traceable to a source file; every version change traceable to a signed release |
-| Workflow maintainer | `fleet`, presets, declared actions, schemas | one way to do each thing, safe across many repositories; nothing leaves a clone undeclared |
+| Workflow maintainer | `fleet`, built-in presets and `harness preset apply`, declared actions, organization skills, schemas | one way to do each thing, safe across many repositories; nothing leaves a clone undeclared; nothing reaches a repository except as a reviewed change to its own files |
 | Open-source user | any of the above | no organization-specific content in the binary, its skill or its docs |
 
 ## Normative language
@@ -64,9 +64,9 @@ describe what harness is, so a standard and the behaviour it describes change to
 | --- | --- |
 | [principles.md](principles.md) | The user-facing principles every other standard derives from, and how they rank when they conflict |
 | [cli-standards.md](cli-standards.md) | Entry points (the wrapper, a global install, implicit hooks), command grammar, naming, flags, output, exit codes, errors, confirmations, dry-run, non-interactive use, environment variables, help, version, deprecation |
-| [when-cli-when-skill.md](when-cli-when-skill.md) | Where new behaviour goes: command, flag, profile field, declared action, standing-context entry, skill, preset or the repository itself |
+| [when-cli-when-skill.md](when-cli-when-skill.md) | Where new behaviour goes: command, flag, profile field, declared action, standing-context entry, skill, built-in preset or the repository itself |
 | [skills-standards.md](skills-standards.md) | The harness skill, organization skills and repository skills: when to create each, structure, use as standing context, evaluation |
-| [configuration-standards.md](configuration-standards.md) | Where files live (`.harness/`, `.agents/`, state paths) and the user-editable files: the wrapper pin, schemas, defaults, validation, policy entry forms, declared actions and their kinds, standing context, presets, secrets, what never becomes a setting |
+| [configuration-standards.md](configuration-standards.md) | Where files live (`.harness/`, `.agents/`, state paths) and the user-editable files: the wrapper pin, inputs (only the repository's own files and its pinned release), schemas, defaults, validation, policy entry forms, declared actions and their kinds, standing context, applying presets, secrets, what never becomes a setting |
 | [generated-content-standards.md](generated-content-standards.md) | Everything harness writes into a repository: headers, owned and seeded files, managed-block markers, ids and classes, the `AGENTS.md` budget, determinism, review, removal (undo and eject) |
 | [messages-and-docs.md](messages-and-docs.md) | Voice and tone for CLI messages, agent-facing text, block text and documentation; the features page template |
-| [compatibility-standards.md](compatibility-standards.md) | Versioning, breaking changes, preset resolution, adoption equivalence, deprecation windows, supported agents, coexistence, transparency, version pinning and release trust, update notices |
+| [compatibility-standards.md](compatibility-standards.md) | Versioning, breaking changes, presets across releases, adoption equivalence, deprecation windows, supported agents, coexistence, transparency, version pinning and release trust, update notices |

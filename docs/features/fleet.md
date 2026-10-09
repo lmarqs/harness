@@ -3,10 +3,16 @@
 `harness fleet` runs one `harness` command across an explicit list of repositories and prints a pass/fail summary.
 With `--deliver`, it also commits each repository's changes on a new local branch and fires that repository's
 [`deliver` event](lifecycle.md), so the change leaves the clone through the actions the repository declares. It is how
-a practice reaches many repositories at once, and how it is withdrawn.
+a `harness` change reaches many repositories at once, and how it is withdrawn.
 
 `harness` itself never pushes, opens pull requests or writes to a hosting platform. What delivery means in a
-repository (a push, a pull request, a CI trigger) is that repository's or its preset's declared `deliver` actions.
+repository (a push, a pull request, a CI trigger) is the `deliver` actions that repository declares in its own
+`.harness/hooks.yaml`.
+
+`fleet` runs the same `harness` command in every repository it lists. A choice that takes judgement in each
+repository, such as an organization's MCP read patterns, deploy denies or delivery convention, is written into each
+repository by a person or an agent, typically one following a skill the organization publishes, and reviewed there as
+a diff; `fleet` does not run that agent ([ADR 0013](../adrs/0013-organization-content.md)).
 
 Commands are named `harness <command>` on this page. The examples run `fleet` through an adopted repository's wrapper,
 `./harnessw fleet …`; with a global install, `harness fleet …` is equivalent and runs from any directory
@@ -17,7 +23,7 @@ Commands are named `harness <command>` on this page. The examples run `fleet` th
 | You want to | Command |
 | --- | --- |
 | Check every adopted repository | `harness fleet doctor` |
-| Pick up a newer preset commit everywhere, delivered for review | `harness fleet render --refresh --deliver` |
+| Apply a stack's preset to every repository on that stack, delivered for review | `harness fleet preset apply node --yes --deliver --repos <file>` |
 | Pick up a schema change everywhere | `harness fleet render --yes --deliver` |
 | Move every repository to a new `harness` release | `harness fleet wrapper --version <tag> --deliver` |
 | Install a skill source in every repository | `harness fleet skills sync --deliver` |
@@ -49,9 +55,9 @@ commit_message: "chore(harness): <command>"
 
 `--repos <file>` uses another file with the same format.
 
-A convention such as a CI-trigger commit or a commit trailer belongs in a `deliver` action of the repository or its
-[preset](presets.md#lifecycle-actions-in-a-preset), not in the fleet file: it then applies to every delivery from that
-repository, not only to fleet runs.
+A convention such as a CI-trigger commit or a commit trailer belongs in a `deliver` action in the repository's own
+`.harness/hooks.yaml`, not in the fleet file: it then applies to every delivery from that repository, not only to
+fleet runs ([lifecycle](lifecycle.md#an-organization-convention-a-ci-trigger-commit-before-the-pull-request)).
 
 ### For each repository
 
@@ -104,7 +110,7 @@ harness fleet <command> [command args...] [--repos <file>] [--deliver] [--contin
 
 | Flag | Default | Meaning |
 | --- | --- | --- |
-| `<command> [command args...]` | required | Any repository-level `harness` command and its arguments: `scaffold`, `render`, `remove`, `doctor`, `skills sync`, `wrapper`, `explain`, `version` |
+| `<command> [command args...]` | required | Any repository-level `harness` command and its arguments: `scaffold`, `render`, `preset`, `remove`, `doctor`, `skills sync`, `wrapper`, `explain`, `version` |
 | `--repos <file>` | `~/.config/harness/fleet.yaml` | Fleet file |
 | `--deliver` | off | Commit each changed repository on a new local branch and fire its `deliver` event (scope `change`) |
 | `--continue-on-error` | off | Keep going after a repository fails or is blocked |
@@ -122,12 +128,6 @@ in each repository; with `--deliver`, a local branch, a commit, a receipt, the
 
 ## Examples
 
-Roll a newer preset commit out to every adopter:
-
-```sh
-./harnessw fleet render --refresh --deliver --continue-on-error
-```
-
 Move every repository to a new release, delivered for review:
 
 ```sh
@@ -142,6 +142,23 @@ branch exists only for a release the project signed; reviewers check the version
 runs after the commit already uses the new version. Once these branches land, `fleet render --deliver` picks up what
 the new release renders differently ([wrapper](wrapper.md#many-repositories)).
 
+A newer release's preset entries reach a repository only when someone applies the preset again. With a fleet file
+that lists the Node repositories, read what each would receive, then deliver it for review:
+
+```yaml
+# ~/fleets/node.yaml
+repos: [~/src/acme-api, ~/src/acme-web]
+```
+
+```sh
+./harnessw fleet preset apply node --dry-run --repos ~/fleets/node.yaml
+./harnessw fleet preset apply node --yes --deliver --continue-on-error --repos ~/fleets/node.yaml
+```
+
+Each repository runs the release it pins, so it receives the entries of that release's `node` preset that it lacks;
+every entry and item it already holds stays as it is, and a repository with nothing to add ends **unchanged**
+([presets](presets.md#how-apply-works)).
+
 Adopt three new repositories, Node, Go and Terraform, with a separate fleet file:
 
 ```yaml
@@ -155,9 +172,10 @@ commit_message: "chore: adopt harness"
 ./harnessw fleet scaffold --adopt --yes --deliver --repos ~/fleets/new-adopters.yaml
 ```
 
-The binary ships no actions, so a freshly scaffolded repository declares no `deliver` actions and ends as
-**committed, not delivered**: deliver those branches by hand, or add `extends` to a preset that declares them and run
-`harness lifecycle run deliver` on each branch.
+Each repository gets the presets of the stacks `scaffold` detects in it. The binary ships no actions and no preset
+holds one, so a freshly scaffolded repository declares no `deliver` actions and ends as **committed, not
+delivered**: deliver those branches by hand, or declare `deliver` actions in each branch's `.harness/hooks.yaml`,
+commit them, and run `harness lifecycle run deliver` there.
 
 Health check before a release:
 
@@ -169,6 +187,10 @@ Health check before a release:
 
 - Do keep the fleet file to repositories you are responsible for.
 - Do run a command once by hand in one repository before running it across the fleet.
+- Do keep one fleet file per stack for `preset apply`: a preset holds one stack's commands, lanes and hooks, and in a
+  repository on another stack its entries do not fit.
+- Do give a change that takes judgement in each repository, such as an organization's convention, to a person or an
+  agent working in that repository: `fleet` runs the same command everywhere and cannot adapt it.
 - Do use `--deliver` for anything that changes files, and declare `deliver` actions that put the change where each
   repository's owners review it, such as a pull request.
 - Do read `harness lifecycle list` in one repository before a fleet delivery: `--deliver` runs every `deliver` action
@@ -183,8 +205,8 @@ Health check before a release:
 | Symptom | Cause | Fix |
 | --- | --- | --- |
 | A repository is blocked | Uncommitted changes, or the branch already exists | Commit or stash; delete or merge the old branch |
-| `scaffold` exits 3 in every repository | It needs confirmation and the fleet runs without a terminal | Add `--yes` |
-| A repository ends **committed, not delivered** | It declares no `deliver` actions | Add them to the repository or its preset, then `harness lifecycle run deliver` on that branch |
+| `scaffold` or `preset apply` exits 3 in every repository | It needs confirmation and the fleet runs without a terminal | Add `--yes`, after reading the `--dry-run` output |
+| A repository ends **committed, not delivered** | It declares no `deliver` actions | Declare them in its `.harness/hooks.yaml`, then `harness lifecycle run deliver` on that branch |
 | A `deliver` action fails | The action's own tool failed, for example an unauthenticated CLI | Read the action's output in the summary or the lifecycle log; fix it, then `harness lifecycle run deliver` on that branch |
 | A repository fails right after `fleet wrapper` | The new release cannot be downloaded or fails its checksum on this machine | See [pitfalls](pitfalls.md#the-first-run-needs-the-network) and [the checksum entry](pitfalls.md#a-checksum-mismatch-refuses-the-download) |
 | The fleet stopped after the first failure | Default behaviour | Add `--continue-on-error` |

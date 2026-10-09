@@ -1,9 +1,10 @@
 # scaffold
 
-`harness scaffold` sets a repository up for `harness`. On a repository with no agent setup it writes everything from a
-stack preset (greenfield). With `--adopt` it takes over an existing hand-written setup, imports every permission rule
-and hook it finds into the repository files without losing one, and lists what needs judgement as a to-do for an
-agent. Either way it writes the repository's [wrapper](wrapper.md), `harnessw`, pinned to the release that runs it.
+`harness scaffold` sets a repository up for `harness`. On a repository with no agent setup it seeds the repository files
+with the [presets](presets.md) of the stacks it detects (greenfield). With `--adopt` it takes over an existing
+hand-written setup, imports every permission rule and hook it finds into the repository files without losing one, and
+lists what needs judgement as a to-do for an agent. Either way it writes the repository's [wrapper](wrapper.md),
+`harnessw`, pinned to the release that runs it.
 
 `scaffold` runs from a `harness` binary, because a repository has no `harnessw` until `scaffold` writes it
 ([installation](installation.md#scaffolding-a-new-repository)). Every later command runs as `./harnessw <command>`;
@@ -27,19 +28,21 @@ finds nothing to import and behaves like a plain scaffold.
 
 ### Greenfield
 
-1. **Detect.** The stack from marker files, the default branch from `origin/HEAD`, whether mise is configured. A
+1. **Detect.** The stacks from marker files, the default branch from `origin/HEAD`, whether mise is configured. A
    `.harness/` directory that holds neither a `harness` profile nor a manifest belongs to another tool: `scaffold`
    stops with exit 3 and names it, before planning anything.
 2. **Plan.** Build the list of files, blocks and links to write. With `--dry-run`, print it and stop.
 3. **Confirm.** Show the plan and ask. `--yes` skips the question. Without a terminal and without `--yes`, nothing is
    written and the command exits 3.
 4. **Seed** the repository files, once:
-   - `.harness/config.yaml` from the stack preset (commands, lanes, post-edit hooks, modules);
+   - `.harness/config.yaml`: its skeleton, plus the detected stacks' preset entries (commands, lanes, validators,
+     module switches);
    - `.harness/policy.yaml` with one seeded entry, `[harness, lifecycle, run, deliver]` under `shared.ask`, rendered
      for each spelling `harness` renders, so the agent's own permission prompt asks a person before an agent
      runs the repository's delivery actions; it is a seeded entry the repository owns and may change
      ([policy](policy.md#the-seeded-entry), [ADR 0015](../adrs/0015-development-lifecycle.md));
-   - `.harness/hooks.yaml` from the stack preset, with no `lifecycle` actions: the binary ships none;
+   - `.harness/hooks.yaml`: its skeleton, plus the presets' post-edit hooks, with no `lifecycle` actions: the binary
+     ships none;
    - `.agents/memory/` skeleton, when the `memory` module is on.
 5. **Pin** the release that runs `scaffold` in `.harness/wrapper.yaml`, an owned file: its exact version, and the
    checksums of its four platform binaries. They come from that release's checksum file, fetched over HTTPS and
@@ -56,17 +59,24 @@ agents edit the profile, the policy and the hooks file; the pin changes only thr
 
 ### Stack detection and presets
 
-| Preset | Detected from | Seeds |
+`scaffold` detects each stack from its marker files and applies its [preset](presets.md#the-presets) to the files it
+seeds, with the same rules as [`harness preset apply`](presets.md#how-apply-works):
+
+| Preset | Detected from | Adds |
 | --- | --- | --- |
-| `node` | `package.json` | lint and build commands, test lanes, a lint-on-edit hook for source files |
 | `go` | `go.mod` | lint and build commands, a `go test` lane, a format-on-edit hook for `*.go` |
+| `node` | `package.json` | lint and build commands, test lanes, a lint-on-edit hook for source files |
 | `terraform` | `*.tf` files | format command, `validate` and `plan` lanes, a format-on-edit hook, `modules.ralph: false` |
 | `python` | `pyproject.toml` or `requirements.txt` | lint command, a test lane, a lint-on-edit hook |
-| `generic` | nothing recognised | no lanes and no post-edit hook; every module off except the core |
 
-A polyglot repository gets the presets of every detected stack merged: their lanes, commands and hooks side by side.
-`--preset` replaces detection with one preset. Stack presets only seed the first version of the profile and hooks
-file; they are not related to the [`extends` presets](presets.md) that keep adding entries at every render.
+A polyglot repository gets the presets of every detected stack, applied in the order of this table: their lanes and
+hooks side by side, and, for an item both name, such as `commands.lint`, the first preset's entry, with the other
+reported as kept. `--preset <name>` replaces detection with one preset, and `--preset none` applies none. A repository
+whose stack is not recognised gets no preset: the seeded files hold their skeleton and the seeded delivery `ask` entry
+only.
+
+The applied entries are the repository's from the moment they are written, and nothing records which presets were
+applied. A stack the repository gains later gets its entries with `./harnessw preset apply <name>`.
 
 ### Front door
 
@@ -231,7 +241,7 @@ those entries as you would any policy change; see [safety](safety.md).
 ## Reference
 
 ```text
-harness scaffold [--adopt] [--import <scope>[,<scope>]...] [--preset <go|node|terraform|python|generic>]
+harness scaffold [--adopt] [--import <scope>[,<scope>]...] [--preset <go|node|terraform|python|none>]
                  [--front-door mise|binary] [--offline] [--yes] [--dry-run]
 ```
 
@@ -239,7 +249,7 @@ harness scaffold [--adopt] [--import <scope>[,<scope>]...] [--preset <go|node|te
 | --- | --- | --- |
 | `--adopt` | off | Import an existing setup and emit a to-do |
 | `--import <scope>[,<scope>]...` | `project` with `--adopt`, else `none` | Scopes to import, as a comma-separated set from the closed enumeration `project`, `local`, `user`, `none` |
-| `--preset <name>` | detected | Use this stack preset instead of detection: `go`, `node`, `terraform`, `python`, `generic` |
+| `--preset <name>` | detected | Apply this one [preset](presets.md) instead of the detected ones: `go`, `node`, `terraform`, `python`; `none` applies none |
 | `--front-door mise\|binary` | `mise` when mise is configured, else `binary` | Whether to write task shims |
 | `--offline` | off | Make no network request. The pin is written [pending](wrapper.md#a-pending-pin), without checksums, and is completed later with `harness wrapper --version <tag>` |
 | `--yes` | off | Do not ask for confirmation |
@@ -369,7 +379,7 @@ to-do:
 - Do give the to-do to an agent with the harness skill; it is written for that.
 - Do import `local` or `user` only when those settings are meant for everyone, and review each entry they bring.
 - Don't run `scaffold` again to "refresh" a repository: edit the repository files and run `./harnessw render`; to
-  move to another release, run `./harnessw wrapper`.
+  add a stack's entries, run `./harnessw preset apply <name>`; to move to another release, run `./harnessw wrapper`.
 - Don't hand-edit rendered files to finish an adoption; the next render overwrites them and `render --check` fails.
 
 ## Troubleshooting
@@ -382,7 +392,7 @@ to-do:
 | Exit 3 in a script | No terminal to confirm | Pass `--yes` |
 | Exit 3 naming `.harness/` | The directory belongs to another tool, such as Harness.io pipelines | `harness` cannot share it; see [compatibility](compatibility.md#harnessio) |
 | Exit 2 naming a rule | The equivalence check found a project rule the new files would not keep in effect; nothing was written | Keep the repository unadopted and report the rule to the `harness` project, with the rule and the agent version ([ADR 0016](../adrs/0016-permission-adoption.md)) |
-| Wrong stack detected | Marker files of another stack are present (for example a `package.json` for tooling in a Go repository) | Rerun with `--preset`, or edit the profile afterwards |
+| Wrong stack detected | Marker files of another stack are present (for example a `package.json` for tooling in a Go repository) | Before scaffolding, pass `--preset <name>`, after checking with `harness preset list`; afterwards, delete the entries that do not apply from `.harness/config.yaml` and `.harness/hooks.yaml` and run `./harnessw render`; `./harnessw preset apply <name>` adds the right stack's entries if they are missing |
 | Task shims named `harness:verify` | The repository already had a `verify` task | Reconcile the two tasks, remove the old one, run `./harnessw render` |
 | A rule allowing a force push is missing after adopt | It weakens a built-in invariant and was dropped | Nothing to restore; the invariant holds in every repository |
 

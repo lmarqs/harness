@@ -47,7 +47,6 @@ Notes never change the exit code:
 | --- | --- |
 | Newer release available | the [update check](installation.md#update-notice) found a release newer than the one `.harness/wrapper.yaml` pins, with a signed checksum file that verifies (at most one network check per day, cached; skipped offline or with `HARNESS_NO_UPDATE_CHECK=1`); the note names `./harnessw wrapper --version <tag>`, which moves the pin ([wrapper](wrapper.md#upgrading)) |
 | Not the pinned release | `HARNESS_BINARY` makes `doctor` run as another release than the one `.harness/wrapper.yaml` pins: `running v0.8.2, the pin names v0.9.0; drift results may differ` |
-| Newer preset commit | a preset declared without `@<ref>` has a newer upstream commit than the one recorded in the manifest; `./harnessw render --refresh` moves to it ([presets](presets.md#resolved-commits)) |
 | Failed lifecycle run | the latest run of an event in `.work/lifecycle.jsonl` failed or was refused by a guard; the note names the event, the action and the exit status |
 | Settings that are not policy | adoption left `defaultMode`, `additionalDirectories`, `approval_policy`, `sandbox_mode` or MCP server definitions in place |
 | `AGENTS.md` over budget | the managed blocks in `AGENTS.md`, the `context` block excepted, take more than `blocks.agents_md_budget` lines (default 40), or one of them more than 8; the note lists each block with its line count ([render](render.md#the-agentsmd-budget)) |
@@ -96,8 +95,8 @@ Files read: the three repository files, `.harness/wrapper.yaml`, the manifest an
 included), native agent files, `.mise/tasks/` and mise configuration (through `mise tasks`), `mise.toml`,
 `.mise.toml` and `.tool-versions`, the git index and branches, `.agents/skills/` and `skills-lock.json`, the files
 `context` entries name, the session records and `lifecycle.jsonl` under the state directory (default `.work/`),
-`$HARNESS_HOME` (default `$XDG_CACHE_HOME/harness`, or `~/.cache/harness`), upstream preset sources, and online the
-pinned release's signed checksum file.
+`$HARNESS_HOME` (default `$XDG_CACHE_HOME/harness`, or `~/.cache/harness`), and online the pinned release's signed
+checksum file.
 Files written: nothing in the clone; only the update-check and signature-check results under `$HARNESS_HOME`.
 
 ## Examples
@@ -116,7 +115,6 @@ landed
   work/fix-invoice-rounding has landed: run ./harnessw worktree remove fix-invoice-rounding to fire landed
 note
   harness v0.9.0 is available (this repository pins v0.8.2): run ./harnessw wrapper --version v0.9.0
-  preset github:acme/agent-presets//harness has a newer commit (4e1a9c0); run ./harnessw render --refresh
   context for interactive sessions is 134 lines, over the budget of 120: karpathy-guidelines 96, house-rules 38
 $ echo $?
 2

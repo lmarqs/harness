@@ -2,8 +2,9 @@
 
 The profile tells `harness` what a repository is: which modules it uses, how to bootstrap a checkout, how to lint and
 build, which verification lanes exist, which task tracker and agents it uses, Ralph defaults, skill sources, and the
-standing context agents receive. It is seeded and then repository-owned: `scaffold` seeds it once from a [stack preset](presets.md#stack-presets), and from then on people and
-agents edit it and `harness render` reads it.
+standing context agents receive. It is seeded and then repository-owned: `scaffold` seeds it once, with the entries
+of the [presets](presets.md) of the stacks it detects, and from then on people and agents edit it,
+`harness preset apply` adds a stack's entries to it, and `harness render` reads it.
 
 Examples on this page run commands as `./harnessw <command>`, through the repository's [wrapper](wrapper.md); with a
 global install, `harness <command>` is equivalent.
@@ -24,6 +25,7 @@ global install, `harness <command>` is equivalent.
 | Move where state, managed worktrees, PRD files or Ralph worktrees live | `state.dir`, `worktrees.dir`, `tasks.prd_dir`, `ralph.worktrees_dir` |
 | Give agents a directive or a skill without anyone invoking it: always, on certain files, or on certain words | `context` |
 | Let the managed blocks in `AGENTS.md` take more or fewer lines | `blocks.agents_md_budget` |
+| Add the starting commands, lanes and module switches of a stack | nothing by hand: run `./harnessw preset apply <name>` ([presets](presets.md)) |
 
 Run `./harnessw render` after every edit, and `./harnessw doctor` to check globs and commands.
 
@@ -46,7 +48,6 @@ Run `./harnessw render` after every edit, and `./harnessw doctor` to check globs
 | --- | --- | --- | --- |
 | `schema` | integer | required | File format version. `1` for this release line |
 | `name` | string | the repository directory name | Repository name, used in messages and as the default Beads prefix |
-| `extends` | string | none | A preset source, optionally pinned with `@<ref>`; see [presets](presets.md#extends) |
 | `modules` | map | every module off | Which modules are on |
 | `front_door` | `mise` \| `binary` | set by `scaffold` | Whether task shims are rendered |
 | `bootstrap` | list of commands | `[]` | Run in order in a new worktree, and once in each Ralph task worktree |
@@ -198,8 +199,7 @@ An entry:
 Sources are repository files and skills installed under `.agents/skills/`; nothing is fetched when a hook runs. A skill
 listed in `skills-lock.json` is injected only while it matches its locked hash, and `doctor` reports a mismatch as a
 finding. A Ralph worker receives the entries as they are at its session's base commit. Hook delivery needs
-`modules.hooks`; `static` entries do not. A preset can declare entries too; a repository entry naming the same skill
-or file replaces the preset's. Preview what a session would receive with
+`modules.hooks`; `static` entries do not. Preview what a session would receive with
 [`harness context show`](context.md#harness-context-show); `HARNESS_NO_CONTEXT=1` turns injection off for one process
 tree.
 
@@ -251,7 +251,6 @@ Rules for the paths:
 # .harness/config.yaml
 schema: 1
 name: acme-api
-extends: github:acme/agent-presets//harness
 modules: { hooks: true, verify: true, tasks: true, ralph: true, memory: true, skills: true }
 front_door: mise
 bootstrap: [mise trust, mise install, npm ci]
@@ -335,7 +334,8 @@ ralph: { config: managed, default_agent: claude, max_iterations: 8, agents: { cl
 skills: { sources: [lmarqs/skills] }
 ```
 
-Patterns for the Go lanes are package paths: `./harnessw verify --lane test=./internal/billing/... --lane vet=./internal/billing/...`.
+Patterns for the Go lanes are package paths:
+`./harnessw verify --lane test=./internal/billing/... --lane vet=./internal/billing/...`.
 
 ## Guidelines
 

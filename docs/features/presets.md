@@ -1,270 +1,280 @@
 # Presets
 
-`harness` uses two kinds of presets:
+A preset is a set of starting entries for one technology stack, embedded in the `harness` binary: how to lint an
+edited file, how to build, which test lanes to run, which command formats or lints a file after an agent edits it. The
+binary holds four: `go`, `node`, `terraform` and `python`. `harness preset apply <name>` writes a preset's entries into
+the repository's own files, `.harness/config.yaml` and `.harness/hooks.yaml`, adds only what those files lack, and
+renders the repository, so the additions and their rendered effect are one diff to review. `harness scaffold` applies
+the presets of the stacks it detects the same way.
 
-| Kind | Where it comes from | When it applies | What it does |
-| --- | --- | --- | --- |
-| [Stack preset](#stack-presets) | built into the binary: `go`, `node`, `terraform`, `python`, `generic` | once, at `harness scaffold` | seeds the first version of the profile and the hooks file |
-| [`extends` preset](#extends) | a source an organization or a person maintains | at every `harness render`, at the commit recorded in the manifest | adds policy entries, hook declarations, lifecycle and notification actions, standing-context entries, lane defaults and block text on top of the repository's own |
-
-The binary contains no organization-specific entry and no lifecycle action. Anything an organization wants in every
-repository (its MCP read rules, its deploy denies, its tracker conventions, how work is delivered) lives in an
-`extends` preset it owns.
+Once written, the entries are the repository's own, like entries anyone wrote by hand. Nothing records which presets a
+repository applied, and people and agents change or delete the entries by editing the file. What `harness` renders and
+runs in a repository comes from that repository's files and the release it pins, and from nothing else: no inheritance,
+no includes, no source outside the repository. Rendering needs no network
+([ADR 0013](../adrs/0013-organization-content.md)).
 
 Commands are named `harness <command>` on this page. The examples run them through the repository's wrapper,
 `./harnessw <command>`, from the root of a checkout; with a global install, `harness <command>` is equivalent
 ([wrapper](wrapper.md)).
 
-## Stack presets
+## When to use it
 
-A stack preset is chosen by detection or by `harness scaffold --preset <name>`. It writes values into
-`.harness/config.yaml` and `.harness/hooks.yaml`; after that, those files are the repository's and the preset plays no
-further part.
-
-| Preset | Detected from | Seeds |
-| --- | --- | --- |
-| `node` | `package.json` | lint and build commands, test lanes, lint-on-edit for source files |
-| `go` | `go.mod` | lint and build commands, a `go test` lane, format-on-edit for `*.go` |
-| `terraform` | `*.tf` files | format command, `validate` and `plan` lanes, format-on-edit, Ralph off |
-| `python` | `pyproject.toml` or `requirements.txt` | lint command, a test lane, lint-on-edit |
-| `generic` | nothing recognised | no lanes, no post-edit hook |
-
-A repository with several stacks gets them merged. See [scaffold](scaffold.md#stack-detection-and-presets).
-
-## `extends`
-
-### When to use it
-
-- Several repositories share policy entries: an organization's deny list, read-only MCP tools, tracker rules.
-- Several repositories share lane definitions or validators.
-- Several repositories deliver the same way: push, open a pull request, trigger CI.
-- An organization wants the same paragraph (for example its pull-request conventions) inside the managed blocks of
-  every `AGENTS.md`.
-- An organization wants the same guidance skills in every session, without anyone invoking them by hand
-  ([context](context.md)).
-
-### Sources
-
-| Form | Example | Resolved by |
-| --- | --- | --- |
-| Path | `../presets/harness` | the filesystem, relative to the repository root |
-| Git URL | `https://github.com/acme/agent-presets.git//harness`, `git@github.com:acme/agent-presets.git//harness@v2` | `git`, with your credentials |
-| GitHub shorthand | `github:acme/agent-presets//harness`, `github:acme/agent-presets//harness@v2` | `git`: shorthand for the git URL `https://github.com/acme/agent-presets.git`; no platform API is called |
-
-`//` separates the repository from the directory inside it. `@<ref>` at the end pins a git source to a tag, a branch
-or a commit; without it, the source follows its default branch.
-
-### Resolved commits
-
-The manifest records the commit every git preset resolved to. `render` and `render --check` reuse the recorded
-commit, so a change upstream never fails a check by itself, and every clone renders the same bytes.
-
-| Event | What happens |
+| Situation | Command |
 | --- | --- |
-| First render, or the `extends` value changed (a new source or a new `@<ref>`) | the source is resolved and its commit recorded |
-| `harness render` | the recorded commit is used |
-| `harness render --check` | the recorded commit is used |
-| `harness render --refresh` | every preset declared without `@<ref>` is re-resolved to the current commit of its default branch, and the new commit recorded |
-| `harness doctor` | a newer upstream commit for a preset without `@<ref>` is reported as a note |
+| Set up a new repository with the entries of its stacks | `harness scaffold`: it detects the stacks and applies their presets ([scaffold](scaffold.md#stack-detection-and-presets)) |
+| Set up a new repository with one chosen preset, or with none | `harness scaffold --preset <name>`, `harness scaffold --preset none` |
+| The repository gained a stack, such as a Node front end in a Go repository | `./harnessw preset apply node` |
+| See which presets the pinned release holds, and which fit this repository | `./harnessw preset list` |
+| Read the entries a preset holds | `./harnessw preset show <name>` |
+| See what a newer release's preset adds, after moving the pin | `./harnessw preset apply <name> --dry-run` |
+| Apply a preset in many repositories, each delivered for review | `harness fleet preset apply <name> --yes --deliver` ([fleet](fleet.md)) |
+| Bring an organization's conventions into a repository | a reviewed change to the repository's files: see [Organization choices](#organization-choices) |
 
-To move a pinned preset, change its `@<ref>` and run `harness render`. Fetched commits are cached in the cache
-directory (`$HARNESS_HOME`, by default `$XDG_CACHE_HOME/harness`, or `~/.cache/harness` when `XDG_CACHE_HOME` is
-unset); a render needs the network only when the recorded commit is not cached, and fails (exit 1) when it can neither
-find nor fetch it. A path source is read from disk at every
-render.
+### Organization choices
 
-### Contents of a preset
+A preset holds only facts that are the same in every repository on its stack. An organization's choices, such as the
+MCP tools its agents may read, the deploy tasks they must never run, a trailer its CI needs on delivery commits, or the
+rules for its tracker, differ between its repositories, so applying them takes judgement. A person or an agent writes
+them into each repository's own files, typically an agent following a skill the organization publishes, and each
+repository reviews the change as a diff like any other:
 
-A preset directory mirrors a repository's `.harness/` directory. It holds any of these files, each in the same schema
-as the repository file of the same name:
+```sh
+npx skills add acme/agent-skills                        # the organization's skill, installed in the repository
+claude "apply the acme agent conventions to this repository"
+./harnessw render
+git diff .harness/ .claude/settings.json .codex/ AGENTS.md
+```
 
-| File | May contain | Effect |
-| --- | --- | --- |
-| `config.yaml` | `verify.lanes`, `verify.validators`, `context` | lanes the repository does not declare are added; validators and standing-context entries are added |
-| `policy.yaml` | `shared.allow`, `shared.ask`, `shared.deny`, `worker.deny` | entries are added to the repository's |
-| `hooks.yaml` | `post_edit`, `validators`, `raw`, `lifecycle`, `attention`, `turn_end` | declarations and actions are added to the repository's |
-| `blocks/<id>.md` | Markdown | the text is placed inside the managed block with that id, after the generated content: `blocks/lifecycle.md` adds to the `lifecycle` block of `AGENTS.md`, `blocks/policy.md` to the `policy` block |
+Afterwards the entries are in the repository's files, where its people and agents read them, and the repository
+renders the same bytes on every machine without fetching anything.
 
-Text for a convention block, such as `policy`, `tasks` or `worktrees`, must state facts that stay true without
-`harness` and name no `harness` command, because an eject keeps it; text for a tool block, such as `commands` or
-`lifecycle`, may name `./harnessw` commands. Preset text counts against the `AGENTS.md` block budget, and `doctor`
-notes a budget it pushes over ([render](render.md#the-agentsmd-budget)).
+## The presets
 
-A standing-context entry in a preset names a skill or a file the way a repository entry does: a skill installed under
-`.agents/skills/`, or a path in the repository. Nothing is fetched from the preset when a hook runs, so an adopter
-installs the skills its preset names, and `doctor` reports an entry whose skill or file is missing as a finding.
+| Preset | Stack | Fits a repository with | Holds |
+| --- | --- | --- | --- |
+| `go` | Go | `go.mod` | lint and build commands, a `go test` lane, a format-on-edit hook for `*.go` |
+| `node` | Node.js | `package.json` | lint and build commands, test lanes, a lint-on-edit hook for source files |
+| `terraform` | Terraform | `*.tf` files | a format command, `validate` and `plan` lanes, a format-on-edit hook, `modules.ralph: false` |
+| `python` | Python | `pyproject.toml` or `requirements.txt` | a lint command, a test lane, a lint-on-edit hook |
 
-A preset's files do not carry `extends` of their own.
+Commands, lanes, validators and module switches go into `.harness/config.yaml`; post-edit hooks go into
+`.harness/hooks.yaml`. `./harnessw preset show <name>` prints every entry a preset holds. Policy entries, lifecycle
+actions and standing context are choices each repository makes in its own files, so presets hold none.
+
+The presets are those of the running release, which in an adopted repository is the pinned one. A newer release may
+hold more entries in a preset; they reach a repository only when someone applies the preset again
+([Applying again](#applying-again)).
+
+A stack the table does not list gets no preset. `harness scaffold` then seeds the skeleton of each repository file and
+the seeded delivery `ask` entry ([policy](policy.md#the-seeded-entry)), and the repository writes its commands and
+lanes itself.
+
+## How apply works
+
+`harness preset apply <name>...` applies one or more presets, in the order given, to an adopted repository:
+
+1. **Check.** The repository needs `.harness/config.yaml`; without it, `apply` exits 1 and names `harness scaffold`.
+   Every name must be a preset of the running release; an unknown name exits 1. On either failure nothing is written.
+2. **Plan** the additions to the files the presets hold entries for: `.harness/config.yaml` (commands, lanes,
+   validators, module switches) and `.harness/hooks.yaml` (post-edit hooks). Each preset is planned against the files
+   as the presets before it leave them, following the [merge rules](#merge-rules).
+3. **Confirm.** Show the additions as a diff, and every item kept with its difference, then ask. `--yes` skips the
+   question. Without a terminal and without `--yes`, nothing is written and the command exits 3. `--dry-run` prints
+   the diff and writes nothing.
+4. **Write** the additions into the files.
+5. **Render** the repository, as [`harness render`](render.md) does, so the additions and their rendered effect are
+   one diff and the drift check passes on it.
+
+When there is nothing to add, `apply` says so, writes nothing and exits 0.
 
 ### Merge rules
 
-Repository entries are applied after preset entries.
+Applying only adds. The repository's own entries stay authoritative.
 
 | Element | Rule |
 | --- | --- |
-| Policy entries | union of built-in base, module entries, preset and repository; precedence is still deny > ask > allow |
-| Hook declarations | union: preset entries run alongside the repository's |
-| Lifecycle and notification actions | per event, the preset's actions run first, then the repository's; a repository action with the same `name` replaces the preset's in its place |
-| Standing-context entries | union; a repository entry naming the same skill or file replaces the preset's; both count against `context.budget` |
-| Lanes | a lane in the repository's profile replaces a preset lane with the same name, as a whole |
-| Validators | union |
-| Block text | appended inside the block; the repository cannot edit it, only stop extending the preset |
+| A list entry: a post-edit hook declaration, a validator | added when the list holds no equal entry, one with the same fields and values |
+| A named item: a command, a lane | added when the repository has none by that name; when it has one that differs, the repository's stays and the difference is reported: `kept lanes.unit: differs from preset node` |
+| A scalar key, such as `modules.ralph` | written only when the file lacks it; a value already there is the repository's choice and stays, and a value that differs from the preset's is reported: `kept modules.ralph: differs from preset terraform` |
+| Everything already in the files | nothing is removed, replaced or reordered; comments, key order and blank lines are preserved |
 
-Nothing in a preset can remove a built-in invariant. `harness lifecycle list` shows each action's source.
+Additions go at the end of the list or map they belong to; a section the file lacks is added at its end. Two presets
+applied together follow the same rules: when both name the same item, such as `commands.lint`, the first one's entry
+is added and the second one's is reported as kept.
 
-### Profile `extends` and policy `extends`
+### Applying again
 
-| Declared in | Brings |
-| --- | --- |
-| `.harness/config.yaml` | everything the preset contains |
-| `.harness/policy.yaml` | only the preset's `policy.yaml` |
+Applying is idempotent: a second `apply` of the same preset by the same release adds nothing, because every entry is
+already there. That makes applying again the way to take a later release's improvements to a preset: after moving the
+pin ([wrapper](wrapper.md#upgrading)), `./harnessw preset apply node --dry-run` shows what the new release would add,
+and `./harnessw preset apply node` adds it, as a diff to review.
 
-Use the profile form for an organization preset. Use the policy form when a repository wants another source's policy
-entries without its lanes, hooks or block text.
+Applying again also adds back an entry the repository deleted, because nothing records that it was removed on purpose.
+Read the diff before confirming.
 
-### Example: an organization preset
+### After applying
+
+Nothing records which presets a repository applied: not the manifest, not a comment in the file. Each entry's one
+source of truth is the file it is in, and `harness` holds no record it could later use to change those entries by
+itself ([ADR 0013](../adrs/0013-organization-content.md)). Change or delete an applied entry by editing the file, then
+run `./harnessw render`.
+
+No command removes a preset: its entries are the repository's like any other, and leave the same way, by editing the
+file. Both removal modes of [`harness remove`](remove.md) delete the seeded `.harness/` files whatever they hold, so
+applied entries go with them.
+
+## Reference
 
 ```text
-acme/agent-presets
-└── harness/
-    ├── config.yaml
-    ├── policy.yaml
-    ├── hooks.yaml
-    └── blocks/
-        └── commands.md
+harness preset list
+harness preset show <name>
+harness preset apply <name>... [--yes] [--dry-run]
 ```
 
-```yaml
-# harness/config.yaml
-schema: 1
-verify:
-  validators:
-    # Every acme repository checks its CI workflows when they change.
-    - { when: [.github/workflows/**], run: actionlint }
+`preset` follows the `harness <noun> <verb>` shape. `apply` has no inverse, because the entries it writes become the
+repository's own and are removed like any other entry.
+
+### `harness preset list`
+
+Prints the presets of the running release, each with the stack it fits, its marker files, and whether those files are
+present in this repository. It reads only the marker files and works in a repository that is not scaffolded yet, so it
+also helps choose `scaffold --preset`.
+
+| Exit code | Meaning |
+| --- | --- |
+| 0 | Listed |
+
+Files read: the marker files of each stack. Files written: nothing.
+
+### `harness preset show`
+
+Prints every entry the preset holds, as the YAML it adds, grouped by the file it goes into. It does not compare the
+entries with the repository; `apply --dry-run` shows what applying would add here.
+
+| Exit code | Meaning |
+| --- | --- |
+| 0 | Printed |
+| 1 | Unknown preset name; the valid names are listed |
+
+Files read: nothing. Files written: nothing.
+
+### `harness preset apply`
+
+Applies one or more presets, in the order given ([How apply works](#how-apply-works)).
+
+| Flag | Default | Meaning |
+| --- | --- | --- |
+| `<name>...` | required | One or more presets: `go`, `node`, `terraform`, `python` |
+| `--yes` | off | Apply without asking; required without a terminal |
+| `--dry-run` | off | Print the additions and the kept items; write nothing |
+
+Global flags `-C <dir>`, `--json` and `--verbose` also apply; see [CLI reference](cli.md). With `--json`, the output
+lists the entries added and the items kept, each with its file and key.
+
+| Exit code | Meaning |
+| --- | --- |
+| 0 | Applied, or nothing to add; `--dry-run` printed |
+| 1 | Error: an unknown preset, a repository that is not scaffolded, an invalid repository file. Nothing is written |
+| 3 | Confirmation needed and there is no terminal: rerun with `--yes`; or the repository files use a newer schema than the running release supports. Nothing is written |
+
+Files read: `.harness/config.yaml`, `.harness/hooks.yaml`, and everything [`render`](render.md#reference) reads.
+Files written: `.harness/config.yaml` and `.harness/hooks.yaml`, additions only; then every file `render` writes
+([what render writes](render.md#what-render-writes)).
+
+## Examples
+
+### Add a preset to an adopted repository
+
+The repository was scaffolded with `--preset none`, and its people already wrote their own `build` command:
+
+```text
+$ ./harnessw preset apply node
+.harness/config.yaml
++  lint: npm run lint -- {file}
++  unit: { select: npm test -- {pattern}, full: npm test }
+.harness/hooks.yaml
++  - { paths: ["src/**/*.{ts,js}"], run: npx eslint --fix {file} }
+kept commands.build: differs from preset node
+apply these additions? [y/N] y
+applied node: 3 entries added, 1 kept; rendered .claude/settings.json, .codex/hooks.json, AGENTS.md
+$ git add -A && git commit -m "chore: apply the harness node preset"
 ```
 
-```yaml
-# harness/policy.yaml
-schema: 1
-shared:
-  allow:
-    - [mise, run, ["deploy:status", "deploy:diff"]]
-    # Read-only observability tools.
-    - "mcp__acme_observability__search_*"
-    - "mcp__acme_observability__get_*"
-  deny:
-    # Beads databases are clone-local in every acme repository.
-    - [bd, dolt, [push, pull]]
-worker:
-  deny:
-    - [mise, run, ["deploy:run", "deploy:rollback"]]
-    - [aws]
-    - [kubectl, [apply, delete, edit, patch, scale]]
-```
+### Read a preset
 
-```markdown
-<!-- harness/blocks/commands.md -->
-Pull requests follow the acme convention: `<type>(<scope>): <description>`.
-```
-
-Each repository then declares:
-
-```yaml
+```text
+$ ./harnessw preset show go
 # .harness/config.yaml
-extends: github:acme/agent-presets//harness@v3
+commands:
+  lint: gofmt -l {file} | (! grep .)
+  build: go build ./...
+verify:
+  lanes:
+    test: { select: go test {pattern}, full: go test ./... }
+
+# .harness/hooks.yaml
+post_edit:
+  - { paths: ["**/*.go"], run: gofmt -w {file} }
 ```
+
+### Choose a preset before scaffolding
+
+```text
+$ cd ~/src/acme-web
+$ harness preset list
+preset     stack       marker files                       in this repository
+go         Go          go.mod                             no
+node       Node.js     package.json                       yes
+terraform  Terraform   *.tf                               no
+python     Python      pyproject.toml, requirements.txt   yes
+$ harness scaffold --preset node --dry-run
+```
+
+`requirements.txt` here only pins a documentation tool, so the scaffold takes `node` alone.
+
+### After an upgrade
 
 ```sh
-./harnessw render
-git diff AGENTS.md .claude/settings.json .harness/manifest.json
+./harnessw wrapper --version v0.10.0
+./harnessw preset apply go --dry-run      # what v0.10.0's go preset holds that the files lack
+./harnessw preset apply go --yes
+git diff
 ```
 
-## Lifecycle actions in a preset
+### Many repositories
 
-A preset is where delivery conventions live, so the binary needs no knowledge of any hosting platform. A `github`
-preset that delivers through pull requests:
-
-```yaml
-# github/hooks.yaml
-schema: 1
-lifecycle:
-  deliver:
-    - name: push
-      run: git push -u origin "$HARNESS_BRANCH"
-    - name: open-pr
-      run: gh pr create --draft --fill --base "$HARNESS_DEFAULT_BRANCH" --head "$HARNESS_BRANCH"
-      scope: [task, change]
+```sh
+harness fleet preset apply node --yes --deliver
 ```
 
-Each `extends` names one preset: the profile's brings a whole preset, the policy file's only a preset's policy
-entries. A preset does not extend another, so an organization preset declares its whole delivery sequence. One whose
-CI runs only on commits carrying a trigger adds that commit before the push:
-
-```yaml
-# acme/agent-presets/harness/hooks.yaml
-schema: 1
-lifecycle:
-  deliver:
-    - name: ci-trigger
-      run: git commit --allow-empty -m "chore: trigger ci #ci"
-    - name: push
-      run: git push -u origin "$HARNESS_BRANCH"
-    - name: open-pr
-      run: gh pr create --draft --fill --base "$HARNESS_DEFAULT_BRANCH" --head "$HARNESS_BRANCH"
-      scope: [task, change]
-```
-
-An empty commit changes no content, so the receipt stays valid. A repository that wants a different pull-request
-command declares its own `open-pr` action, which replaces the preset's in place. See [lifecycle](lifecycle.md) for
-events, scopes and guards.
-
-Actions in a preset come in the same three kinds as a repository's: `run` (a shell command), `http` (a request
-`harness` performs itself) and `agent` (a headless agent run under the worker contract). An `http` action takes its URL
-and header values only from environment variables, so a preset can declare an organization's notification without
-holding its secret:
-
-```yaml
-# acme/agent-presets/harness/hooks.yaml (continued)
-lifecycle:
-  blocked:
-    - name: notify-team
-      http:
-        url_env: ACME_CHAT_WEBHOOK_URL
-        json: { text: "$HARNESS_REPO is blocked: $HARNESS_REASON" }
-      auto: true
-      on_failure: continue
-attention:
-  - name: notify-me
-    http:
-      url_env: ACME_CHAT_WEBHOOK_URL
-      json: { text: "$HARNESS_AGENT is waiting for you in $HARNESS_REPO: $HARNESS_MESSAGE" }
-```
-
-Each person who wants the notification sets `ACME_CHAT_WEBHOOK_URL` in their own environment; where it is unset, the
-action fails and, with `on_failure: continue`, nothing else is affected.
+Each repository that lacks some of the preset's entries gets a branch with the additions and their rendered effect,
+delivered through its own `deliver` actions; a repository that already holds every entry is reported as unchanged
+([fleet](fleet.md)). The command runs without a terminal in each repository, so it needs `--yes`.
 
 ## Guidelines
 
-- Do keep presets small and commented: every adopter's reviewers read their effect in rendered diffs and in
-  `harness lifecycle list`.
-- Do pin presets with `@<ref>` where a change must be adopted deliberately, and move the ref in a reviewed change.
-- Do run `harness fleet render --refresh --deliver` after changing an unpinned preset, so every adopter picks the
-  change up through its own delivery ([fleet](fleet.md)).
-- Do review lifecycle actions in a preset as code: they run in every adopter's clone with the permissions of whoever
-  fires them.
-- Do keep secrets out of presets: `http` actions read URLs and headers from `*_env` variables, and `run` actions read
-  credentials from the environment of whoever fires them.
-- Don't declare `auto: true` on an `agent` action in a preset unless every adopter wants that cost on every event;
-  `doctor` lists automatic agent actions as notes.
-- Don't put repository facts (commands, lanes specific to one codebase) in a preset.
-- Don't name a path preset outside the repository unless every clone has it at the same relative location.
+- Do read the diff `apply` shows before confirming: once written, the entries are the repository's own and nothing
+  marks where they came from.
+- Do edit applied entries to fit the repository: a preset guesses from the stack, the repository knows its real
+  commands, and applying again never overwrites an item you changed.
+- Do run `./harnessw preset apply <name> --dry-run` for the repository's stacks after moving the pin to a newer
+  release: new preset entries reach the repository only when someone applies the preset again.
+- Do commit the additions together with the files `apply` rendered, so the diff explains itself.
+- Do write an organization's choices into each repository through a reviewed change, such as an agent following the
+  organization's skill: they differ between repositories, and a preset holds only what every repository on a stack
+  shares ([Organization choices](#organization-choices)).
+- Don't apply a preset again to restore an item you changed: `apply` keeps every item the repository names. Delete
+  yours first if you want the preset's.
 
 ## Troubleshooting
 
 | Symptom | Cause | Fix |
 | --- | --- | --- |
-| `doctor` notes a newer preset commit | The preset changed upstream; the repository still renders the recorded commit | `harness render --refresh`, review the diff, commit |
-| `render` fails resolving a private source in CI | The job has no read access to it and the recorded commit is not cached | Give the job credentials for the preset repository |
-| A preset action does not run | The repository declares an action with the same `name` | Rename the repository's action, or remove it |
-| A preset lane is ignored | The repository declares a lane with the same name | Remove or rename the repository's lane |
-| A preset entry cannot be removed | Entries are additive | Stop extending that preset, or change the preset |
+| `kept lanes.unit: differs from preset node` | The repository already has a `unit` lane, and `apply` never replaces an item the repository names | Nothing, if yours is right. To take the preset's, delete yours and apply again |
+| `preset apply` exits 1 naming `harness scaffold` | The repository has no `.harness/config.yaml` | Run `harness scaffold`, which applies the detected stacks' presets |
+| `preset apply` or `preset show` exits 1: unknown preset | The name is not a preset of the running release | `./harnessw preset list` prints the names |
+| `preset apply` exits 3 | No terminal to confirm, and no `--yes` | Review with `--dry-run`, then rerun with `--yes`; under `fleet`, always pass `--yes` |
+| An entry you deleted is back after `preset apply` | `apply` adds every entry the files lack, and nothing records that you removed it | Delete it again, and read the diff before confirming the next apply |
+| `preset apply` after an upgrade adds nothing | The files already hold every entry of the preset, or equal ones | Expected |
+| Only one stack's lint command is in the profile | `commands.lint` is one named item: the first preset applied wrote it, and the next one's was reported as kept | Write a lint command that covers both stacks, such as a mise task that dispatches on the file's extension |
+| Entries of the wrong stack after `scaffold` | Marker files of another stack are present, such as a `package.json` for tooling in a Go repository | Delete the entries that do not apply from `.harness/config.yaml` and `.harness/hooks.yaml`, then `./harnessw render`; on the next repository, `harness scaffold --preset <name>` |

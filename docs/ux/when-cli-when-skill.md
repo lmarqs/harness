@@ -9,15 +9,15 @@ to prose) ([ADR 0002](../adrs/0002-division-of-work.md)).
 
 | Destination | What it is | Who maintains it |
 | --- | --- | --- |
-| **Built-in invariant** | a rule compiled into the binary that no file, preset or flag can remove | harness |
+| **Built-in invariant** | a rule compiled into the binary that no file or flag can remove | harness |
 | **New command** | a new verb or noun-verb in the binary | harness |
 | **Flag on an existing command** | a variation of an operation the binary already performs | harness |
 | **Profile field** | a per-repository value that parametrises a deterministic binary behaviour (`config.yaml`; permissions in `policy.yaml`, hooks in `hooks.yaml`, the pinned version in `wrapper.yaml`) | the repository |
-| **Declared action** (in a repository or a preset) | an action on a lifecycle event (`lifecycle:`) or an agent notification event (`attention:`, `turn_end:`) in `.harness/hooks.yaml` or a preset, of kind `run` (a shell command), `http` (a request harness performs) or `agent` (a headless agent run) | the repository, or the organization through its preset |
-| **Standing-context entry** | a declared trigger (`always`, `when.paths`, `when.prompt`) that puts an existing skill or repository file in front of an agent, under `context:` in `config.yaml` | the repository, or the organization through its preset |
+| **Declared action** | an action on a lifecycle event (`lifecycle:`) or an agent notification event (`attention:`, `turn_end:`) in `.harness/hooks.yaml`, of kind `run` (a shell command), `http` (a request harness performs) or `agent` (a headless agent run) | the repository |
+| **Standing-context entry** | a declared trigger (`always`, `when.paths`, `when.prompt`) that puts an existing skill or repository file in front of an agent, under `context:` in `config.yaml` | the repository |
 | **Harness skill or explain topic** | guidance an agent follows to do judgement work around harness | harness (embedded, shipped with the binary) |
-| **Preset** | organization or personal data pulled by `extends`: policy entries, hook declarations, declared actions, standing-context entries, block text, lane defaults | the organization |
-| **Organization or personal skill** | guidance for judgement work specific to an organization's conventions | the organization |
+| **Built-in preset** | the starting entries for one technology stack (`go`, `node`, `terraform`, `python`): commands, lanes, validators, module switches and post-edit hooks, which `harness scaffold` and `harness preset apply` write into the repository's files on request | harness (embedded, shipped with the binary); once written, the entries are the repository's |
+| **Organization or personal skill** | guidance an agent follows for judgement work specific to an organization's conventions, including writing the organization's choices (policy entries, actions, standing-context entries) into a repository's files | the organization; the entries it leads to are the repository's |
 | **Left to the repository** | a mise task, a repository skill, prose in `AGENTS.md`, memory | the repository |
 
 ## Criteria
@@ -40,7 +40,8 @@ to prose) ([ADR 0002](../adrs/0002-division-of-work.md)).
 | --- | --- | --- | --- | --- | --- | --- |
 | yes | yes | yes | no | no | built-in invariant | a rule every repository needs and none may drop cannot be a setting, or it is lost by copying |
 | yes | yes | no | no | no | command, flag, or profile field (see below) | one implementation serves every repository and is fixed in one release |
-| yes | any | no | yes | no | preset | organization content stays out of an open-source binary and is reviewed by the organization |
+| yes | in every repository of one stack | no | no | no | built-in preset, applied with `harness preset apply` | stack facts are the same in every repository on that stack, so the binary supplies them; applying on request keeps every write something a person asked for |
+| yes | any | no | yes | no | entries in each repository's files, written by an agent following an organization skill | organization content stays out of an open-source binary; it differs between an organization's repositories, so applying it takes judgement, and each repository reviews the result as a diff |
 | yes | any | no | yes, or one repository | no | declared action, when it reaches outside the clone at a lifecycle or agent event ([below](#declared-actions)) | side effects outside the clone must be declared, reviewed and guarded |
 | yes | no | no | no | no | left to the repository (a mise task or a profile value) | one repository's need does not justify a contract every user carries |
 | no | yes | any | no | yes | harness skill, with a binary check that proves the outcome | judgement belongs to agents, and the check keeps it honest |
@@ -51,9 +52,10 @@ When guidance already exists as a skill or a file and the only question is when 
 destination is a standing-context entry, whatever the other columns say ([below](#standing-context)). Why: the timing
 is deterministic even when the guidance is not.
 
-A safety-relevant rule that is organization specific (a deploy deny, a protected branch other than the default) is a
-preset entry. It is enforced by the rendered policy like any other entry, but it is not a built-in invariant, because
-the binary contains no organization-specific content.
+A safety-relevant rule that is organization specific (a deploy deny, a protected branch other than the default) is an
+entry in each repository's `policy.yaml`, written there by a person or by an agent following the organization's skill.
+It is enforced by the rendered policy like any other entry, but it is not a built-in invariant, because the binary
+contains no organization-specific content.
 
 ## Declared actions
 
@@ -70,11 +72,11 @@ A behaviour is a declared action when all of these hold:
 Why: these are the side effects whose form differs per team, so the team declares them and harness only fires them
 under its guards ([ADR 0015](../adrs/0015-development-lifecycle.md), [ADR 0019](../adrs/0019-action-kinds.md)).
 
-Where it is declared:
-
-- In a **preset** when it holds for an organization's repositories (open a pull request on a given hosting platform,
-  add the organization's CI-trigger commit, post to the organization's chat).
-- In the repository's **`hooks.yaml`** when it holds for one repository.
+Where it is declared: in the repository's **`hooks.yaml`**, always. An action that holds for an organization's
+repositories (open a pull request on a given hosting platform, add the organization's CI-trigger commit, post to the
+organization's chat) is written into each repository's `hooks.yaml` by a person or by an agent following the
+organization's skill, and reviewed there as a diff. Why: an action runs in its repository with the credentials of
+whoever fires it, so it must be readable and reviewed where it runs ([ADR 0013](../adrs/0013-organization-content.md)).
 
 Never in the binary. The binary contains no logic for the platform that hosts the team's work and ships no actions
 ([ADR 0012](../adrs/0012-write-boundary.md)); a command or flag that pushes, opens a pull request or calls a hosting
@@ -140,6 +142,16 @@ of owner:
 Adoption is the model: `harness scaffold --adopt` imports what it can map and lists the rest as a to-do; the harness
 skill guides the agent through the to-do; `harness doctor` confirms the result.
 
+Repository content follows the same split ([ADR 0013](../adrs/0013-organization-content.md)):
+
+- Stack facts need no judgement, so they are built-in presets the binary writes on request (`harness scaffold`,
+  `harness preset apply <name>`), adding only what the repository lacks.
+- An organization's conventions differ between its repositories, so an agent following the organization's skill
+  decides which entries a repository needs and writes them into its files; `harness render` renders them and
+  `harness doctor` checks the result.
+- Either way the entries end in the repository's own files and reach review as a diff; the binary never reads an
+  organization's conventions from anywhere else.
+
 ## Worked examples
 
 Each row shows a request and where it goes.
@@ -149,9 +161,13 @@ Each row shows a request and where it goes.
 | Render permissions for Claude Code and Codex from one policy | deterministic, every repository, safety relevant | binary: `harness render` |
 | Deny force pushes to the default branch | deterministic, every repository, safety relevant, organization neutral | built-in invariant |
 | Allow `mise run deploy:status` in one repository | deterministic, one repository | `policy.yaml` in that repository |
-| Read-only patterns for an organization's observability MCP server | deterministic, organization specific | preset |
-| Open a pull request when work is concluded | deterministic command, leaves the clone, hosting-platform specific, belongs at `deliver` | a preset's `deliver` action of kind `run` (push, then the hosting platform's pull-request command) |
-| Add a CI trigger commit before the pull request | deterministic, leaves the clone with the push, organization convention, belongs at `deliver` | an organization preset's `deliver` action, declared before the pull-request action |
+| Read-only patterns for an organization's observability MCP server | deterministic entries, organization specific, applied with judgement per repository | `shared.allow` entries in each repository's `policy.yaml`, written by an agent following the organization's skill |
+| Open a pull request when work is concluded | deterministic command, leaves the clone, hosting-platform specific, belongs at `deliver` | a `deliver` action of kind `run` in `hooks.yaml` (push, then the hosting platform's pull-request command) |
+| Add a CI trigger commit before the pull request | deterministic, leaves the clone with the push, organization convention, belongs at `deliver` | a `deliver` action in each repository's `hooks.yaml`, declared before the pull-request action and written there by an agent following the organization's skill |
+| Give a Node repository its lint, build and test commands and a lint-on-edit hook | deterministic, the same in every Node repository | built-in preset `node`: applied by `harness scaffold` when it detects `package.json`, or by `harness preset apply node` |
+| Add a stack's entries to a repository that took it up after adoption | deterministic, stack facts | `harness preset apply <name>`; the additions are shown as a diff and confirmed |
+| Take a newer release's additions to a preset after an upgrade | deterministic, on request | `./harnessw preset apply node --dry-run` shows them; `./harnessw preset apply node` writes them; across repositories, `harness fleet preset apply node --yes --deliver` |
+| Apply an organization's conventions to many repositories | judgement per repository, organization specific | an agent following the organization's skill in each repository, reviewed as a diff in each; `harness fleet` runs harness commands, never agents |
 | Post to the team chat when a task completes | deterministic, leaves the clone, a notification channel | a `completed` action of kind `http` with `url_env`, `auto: true` |
 | Ping me when the agent is waiting for my answer | deterministic, a notification, per person or repository | an `attention` action of kind `http` (or `run` for a desktop notifier) in `hooks.yaml` |
 | Tell me when an unattended Ralph run stops unfinished | deterministic, a notification at the moment work stops | a `blocked` action of kind `http`, `auto: true` |
@@ -188,8 +204,15 @@ Each of these breaks a principle; the reason is given with it.
 
 - A command that writes free prose, memory or skill content: the binary does only deterministic work. Managed blocks
   hold only fixed convention statements derived from the repository files.
-- A setting that turns off an invariant, or a preset that removes one: the invariants are lost by copying as soon as
-  they are optional.
+- A setting that turns off an invariant: the invariants are lost by copying as soon as they are optional.
+- A key that names a source outside the repository for entries harness renders or runs (an inherited file, an
+  include, a remote set of entries): a rule whose source sits outside the repository cannot be read or reviewed where
+  it acts ([ADR 0013](../adrs/0013-organization-content.md)).
+- Organization content in a built-in preset: presets are stack facts shipped in an open-source binary, and every other
+  user would carry entries they never use.
+- A preset applied by a command that was not asked to apply it (a render, an upgrade), or a record of which presets a
+  repository applied: every write to a repository's files is one someone asked for, and a record would tie the
+  repository's own entries to a definition outside its files.
 - A heuristic in the binary that guesses where an agent should decide: a wrong guess silently rewrites a team's
   configuration.
 - A skill that lists the steps a command performs instead of calling the command: the description drifts from the
@@ -201,8 +224,8 @@ Each of these breaks a principle; the reason is given with it.
   side effects outside the clone are declared, reviewed and guarded.
 - harness acting as an MCP client, or calling a model: the agent owns those connections; harness configures agents and
   never acts as one.
-- A webhook URL, token or header value written literally in `hooks.yaml` or a preset: committed files are readable by
-  everyone with access, so a secret there is published.
+- A webhook URL, token or header value written literally in `hooks.yaml`: committed files are readable by everyone
+  with access, so a secret there is published.
 - An `agent` action on a notification event, or an `agent` action that commits or pushes: agents do not start agents
   from agent hooks, and an agent run's edits are reviewed before they leave the clone.
 - A declared action that needs judgement to run correctly, as a `run` or `http` action: the judgement belongs to an

@@ -26,7 +26,7 @@ makes removal pick files out of a tree others write, and state inside a committe
 
 | File | Scope | Holds |
 | --- | --- | --- |
-| `.harness/config.yaml` | repository, committed | the profile: modules, front door, commands, lanes, tracker, agent roles, Ralph defaults, skill sources, standing context, block budget, state paths, `extends` |
+| `.harness/config.yaml` | repository, committed | the profile: modules, front door, commands, lanes, tracker, agent roles, Ralph defaults, skill sources, standing context, block budget, state paths |
 | `.harness/policy.yaml` | repository, committed | permission entries added to the built-in base |
 | `.harness/hooks.yaml` | repository, committed | agent-neutral hook declarations, notification actions (`attention`, `turn_end`) and lifecycle actions |
 | `.harness/wrapper.yaml` | repository, committed | the pinned release: `schema`, `version`, `source`, `checksums`; owned: written only by `harness scaffold` and `harness wrapper`, never by hand |
@@ -113,10 +113,10 @@ ralph:
 
 - The repository files `config.yaml`, `policy.yaml` and `hooks.yaml` are seeded: harness writes them once at `scaffold`
   or `scaffold --adopt`, and from then on they belong to the repository. harness writes them again only to migrate a
-  schema. `wrapper.yaml` and `manifest.json` are owned: harness writes `wrapper.yaml` on scaffold and re-pin
-  (`harness wrapper`) and `manifest.json` on scaffold, render and re-pin; `wrapper.yaml` carries a header naming the
-  operation that changes it, and `manifest.json`, being JSON, carries none. Each such write is shown before it happens,
-  through `--dry-run` and the confirmation rules in
+  schema or to apply a preset a person asked for ([below](#presets)). `wrapper.yaml` and `manifest.json` are owned:
+  harness writes `wrapper.yaml` on scaffold and re-pin (`harness wrapper`) and `manifest.json` on scaffold, render and
+  re-pin; `wrapper.yaml` carries a header naming the operation that changes it, and `manifest.json`, being JSON, carries
+  none. Each such write is shown before it happens, through `--dry-run` and the confirmation rules in
   [cli-standards.md](cli-standards.md#confirmations---yes-and---force). Why: the seeded files hold the repository's
   choices, so harness must not overwrite them; the owned files hold facts harness computes.
 - When harness writes one of these files, it preserves comments, key order and blank lines that it does not need to
@@ -125,8 +125,32 @@ ralph:
   (`# imported from .claude/settings.json (project)`). The comment belongs to the repository from then on: harness
   never rewrites or removes it, and a person MAY delete it once the entry is reviewed. Undo uses project-scope
   provenance comments to write those entries back as native settings.
-- Machine-level files (fleet file, the cache under `$HARNESS_HOME`) never affect what is rendered into a repository,
-  so two machines render the same bytes.
+
+## Inputs
+
+What harness renders and runs in a repository is determined by the repository's own files and the release it pins,
+and by nothing else ([ADR 0013](../adrs/0013-organization-content.md)).
+
+- No repository file has a key that names a source outside the repository for what harness renders or runs: no
+  inheritance, no includes, no remote sources. Validation rejects such a key like any other unknown key. Why: people
+  and agents learn what a repository does from its files. A rule resolved from elsewhere acts in the repository while
+  its source sits outside it, so an agent working there cannot read it and a reviewer sees its effect without its
+  reason. With the repository's files and the pinned release as the only inputs, the same commit renders the same
+  bytes on every machine and every day, with no fetch, no cache and no check that fails because someone else
+  published a change.
+- Two keys name a source outside the repository, and neither is an input to rendering. `source` in `wrapper.yaml`
+  is where the wrapper downloads the pinned release, which it runs only when the download matches the committed
+  checksums. `skills.sources` in the profile is read by `harness skills sync`, which installs skills into
+  `.agents/skills/` and `skills-lock.json`, and by the pending-skills check of `harness doctor`. Why: what arrives from
+  either location takes effect only as the pinned release or as files the repository commits and reviews.
+- Machine-level files (the fleet file, the cache under `$HARNESS_HOME`) never affect what is rendered into a
+  repository, so two machines render the same bytes.
+- An organization's choices (observability read patterns, deploy denies, a CI-trigger commit in delivery, tracker
+  rules) are entries in each repository's files, written by a person or by an agent following a skill the
+  organization publishes, and reviewed in each repository as a diff ([when-cli-when-skill.md](when-cli-when-skill.md)).
+  Why: those choices differ between an organization's repositories, so applying them takes judgement, and afterwards
+  each choice is in the files of the repository it governs. The cost is that a choice shared by many repositories is
+  written, and changed, in each of them.
 
 ## Schema versioning
 
@@ -250,11 +274,12 @@ cannot express is lost when harness takes ownership of the native key
 
 ## Declared actions
 
-Actions are declared in `.harness/hooks.yaml` or in a preset: lifecycle actions under the top-level `lifecycle:` key,
-notification actions under `attention:` and `turn_end:`, beside the agent-hook keys (`post_edit`, `validators`,
-`session_start`, `raw`). Behaviour, trigger points and guards: [lifecycle guide](../features/lifecycle.md) and
+Actions are declared in `.harness/hooks.yaml`: lifecycle actions under the top-level `lifecycle:` key, notification
+actions under `attention:` and `turn_end:`, beside the agent-hook keys (`post_edit`, `validators`, `session_start`,
+`raw`). Behaviour, trigger points and guards: [lifecycle guide](../features/lifecycle.md) and
 [hooks](../features/hooks.md). Why: everything that leaves the clone is written down and reviewed before it can happen
-([principles.md](principles.md#7-nothing-leaves-the-clone-undeclared)).
+([principles.md](principles.md#7-nothing-leaves-the-clone-undeclared)), in the repository where it runs
+([ADR 0013](../adrs/0013-organization-content.md)).
 
 ```yaml
 lifecycle:
@@ -343,9 +368,8 @@ single meaning.
   contract bounds what an injected instruction can do.
 - `auto: true` on an `agent` action is allowed and is reported by `harness doctor` as a note, because each automatic
   run costs tokens and gives a different result each time.
-- Actions run in declaration order: the preset's actions first, then the repository's. A repository action with the
-  same name as a preset action replaces it in place, so a repository can adjust an organization's action without
-  copying the rest.
+- An event's actions run in the order `hooks.yaml` declares them, so the order a reviewer reads is the order they
+  run.
 - Actions are code. They are committed, reviewed like code, and run as child processes of harness with the
   permissions of the person or process that fired the event, outside any agent's per-command permission checks.
 - `auto` defaults to false, so adding an action never makes anything leave the clone unattended; `auto: true` is a
@@ -405,33 +429,58 @@ context:
 
 ## Presets
 
-- `extends` names one source: a path, a git URL or `github:owner/repo//path`, optionally pinned with `@<ref>`
-  (`github:acme/harness-presets//presets/api@v2`). `github:owner/repo//path` is shorthand for the git URL
-  `https://github.com/owner/repo.git` and the path inside it; it is fetched with git and calls no platform API, so any
-  git host serves presets the same way ([ADR 0012](../adrs/0012-write-boundary.md)).
-- A preset adds policy entries, hook declarations, declared actions, standing-context entries, block text and lane
-  defaults, so an organization states its choices once for all its repositories
-  ([ADR 0013](../adrs/0013-organization-content.md)).
-- A preset directory mirrors `.harness/`: `config.yaml`, `policy.yaml`, `hooks.yaml`, and `blocks/<id>.md` for block
-  text, one file per block id.
-- Precedence: repository entries are applied after preset entries. Lists (policy entries, hook entries, actions,
-  context entries) are unions; a repository lane with the same name as a preset lane replaces it; a repository action
-  with the same name as a preset action replaces it; nothing removes a built-in invariant. Why: the repository knows
-  its own case best, and the invariants hold everywhere.
-- The manifest records the commit every preset resolved to. `harness render` and `harness render --check` reuse the
-  recorded commit, so a change upstream never alters rendering or fails a check by itself. `harness render --refresh`
-  re-resolves presets without `@<ref>`; `harness doctor` reports a newer upstream commit as a note.
-- A preset that cannot be fetched and is not cached is an error naming the source; a cached copy is used offline.
-- Choosing a preset is a security decision: its actions run with the credentials of whoever fires them, and its
-  context entries steer agents.
+A preset is a set of starting entries for one technology stack, built into the binary: `go`, `node`, `terraform` and
+`python` (contents: [presets](../features/presets.md#the-presets)). Applying a preset writes its entries into the
+repository's own files, where they belong to the repository like any entry it wrote itself. Why: stack facts (how to
+lint an edited file, run the tests, build) are the same in every repository on that stack, so the binary supplies them
+deterministically, while each repository keeps the final say over its own files
+([ADR 0013](../adrs/0013-organization-content.md), [ADR 0002](../adrs/0002-division-of-work.md)).
+
+- A preset holds entries for `.harness/config.yaml` (commands, lanes, validators, module switches) and
+  `.harness/hooks.yaml` (post-edit hooks) only. Why: these are facts about a stack, while permissions, actions and
+  standing context are a repository's own choices, and the binary ships no actions
+  ([ADR 0012](../adrs/0012-write-boundary.md)).
+- A preset is applied only on request: by `harness scaffold`, to the files it seeds (the detected stacks, or the one
+  `--preset` names), and by `harness preset apply <name>...` at any later time. No other command writes a preset's
+  entries. Why: every write to a repository's files is then one a person asked for.
+- Applying adds only what the repository lacks, and never removes or reorders anything. Why: the repository's own
+  entries stay authoritative, and a second application of the same preset by the same release adds nothing, which
+  makes applying again harmless.
+  - A list entry (a hook declaration, a validator) is added when no equal entry exists, because an equal entry already
+    says the same thing.
+  - A named item (a command, a lane) is added only when the repository has none by that name. When the repository's
+    item differs from the preset's, the repository's stays and the difference is reported
+    (`kept lanes.unit: differs from preset node`). Why: an item the repository names is its decision, made and
+    reviewed there; replacing it would undo that decision, and reporting the difference lets a person choose.
+  - A scalar key (such as `modules.ralph`) is written only when absent, because a value that is present is the
+    repository's choice, even when it equals the default. A present value that differs from the preset's is reported
+    like a kept item, so nothing the preset would have changed goes unmentioned.
+- Comments, key order and blank lines are preserved. Why: people annotate these files, and the diff of an application
+  must show only its additions.
+- The additions are shown as a diff and confirmed before anything is written. `--yes` answers the question;
+  `--dry-run` prints the diff and writes nothing; without a terminal and without `--yes`, nothing is written and the
+  command exits 3 ([cli-standards.md](cli-standards.md#confirmations---yes-and---force)). Why: once written, the
+  entries are the repository's own and nothing marks where they came from, so the diff before writing is the one
+  moment a person sees them as a preset's additions.
+- After writing, the command renders the repository as `harness render` does, so the additions and their rendered
+  effect reach review as one diff and the drift check passes on it.
+- Nothing records which presets a repository applied: not the manifest, not a comment. Why: each entry then has one
+  source of truth, the file it is in, and the tool has nothing it could later use to change those entries by itself. A
+  report built on such a record would also nag a repository that removed an entry on purpose.
+- Applied entries are changed or removed by editing the file, like any other entry, and removing harness
+  (`harness remove`, `harness remove --eject`) deletes the seeded files in `.harness/` whatever they hold, so applying
+  a preset has no inverse ([cli-standards.md](cli-standards.md#command-grammar)).
+- A newer release may hold more entries in a preset. They reach a repository only when someone applies the preset
+  again: after an upgrade, `./harnessw preset apply node --dry-run` shows what it would add. Why: an upgrade changes
+  the release a repository runs, never the entries it owns.
 
 ## No secrets
 
-Why: the repository files and presets are committed and readable by everyone with access to them, and a secret in a
-committed file is published.
+Why: the repository files are committed and readable by everyone with access to them, and a secret in a committed
+file is published.
 
-- The repository files in `.harness/` and every preset MUST NOT contain tokens, passwords, keys or internal
-  credentials, in values, comments, action commands, URLs or headers.
+- The repository files in `.harness/` MUST NOT contain tokens, passwords, keys or internal credentials, in values,
+  comments, action commands, URLs or headers.
 - A setting or action that needs a credential refers to an environment variable by name (`url_env`, `headers_env`, or
   a variable a `run` command reads), or relies on the authentication of the tool it calls (`git`, the hosting
   platform's CLI). Actions inherit the environment of the process that fires them; that environment, never a file,
@@ -445,11 +494,11 @@ committed file is published.
 
 ## What never becomes a setting
 
-The following are not keys in any file, preset or flag. They are architecture decisions: changing one is a change to
-the ADR that decides it, because a setting that weakens them would copy along with the file that sets it
+The following are not keys in any file or flag. They are architecture decisions: changing one is a change to the ADR
+that decides it, because a setting that weakens them would copy along with the file that sets it
 ([ADR 0011](../adrs/0011-safety-invariants.md), [ADR 0012](../adrs/0012-write-boundary.md),
-[ADR 0014](../adrs/0014-directory-layout.md), [ADR 0017](../adrs/0017-engine-version.md),
-[ADR 0021](../adrs/0021-release-trust.md)).
+[ADR 0013](../adrs/0013-organization-content.md), [ADR 0014](../adrs/0014-directory-layout.md),
+[ADR 0017](../adrs/0017-engine-version.md), [ADR 0021](../adrs/0021-release-trust.md)).
 
 - Workers never bypass permissions.
 - Force pushes to the detected default branch are denied.
@@ -470,6 +519,9 @@ the ADR that decides it, because a setting that weakens them would copy along wi
 - The binary never writes knowledge and never writes the team's record of work (issues, projects, boards, comments,
   reviews, labels).
 - The binary never reconfigures state it did not create.
+- What harness renders and runs comes only from the repository's files and its pinned release; no repository file
+  names a source outside the repository for it.
+- A preset is applied only on request and only adds; nothing records which presets a repository applied.
 - The managed-block marker syntax, the block classes, the generated-file header and the manifest location.
 - The locations of harness configuration (`.harness/`) and agent content (`.agents/`); only state paths are settings.
 - The harness version is pinned only in `.harness/wrapper.yaml`.

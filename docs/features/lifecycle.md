@@ -6,10 +6,15 @@ half is the reference for lifecycle events: the points where `harness` runs the 
 pushing a branch, opening a pull request or posting a chat notification.
 
 `harness` contains no logic for any hosting platform. Everything that leaves the clone (a push, a pull request, a CI
-trigger, a notification) is an **action** that the repository or one of its [presets](presets.md#extends) declares on
-a **lifecycle event**. An action is a shell command, an HTTP request `harness` makes itself, or a headless agent run.
+trigger, a notification) is an **action** that the repository declares on a **lifecycle event** in its own
+`.harness/hooks.yaml`. An action is a shell command, an HTTP request `harness` makes itself, or a headless agent run.
 The binary decides when an event fires and enforces its guards; it ships no actions
 ([ADR 0015](../adrs/0015-development-lifecycle.md), [ADR 0019](../adrs/0019-action-kinds.md)).
+
+Every lifecycle action and every [notification hook](hooks.md#agent-notifications) a repository runs is written in
+that file, so the people who review a change and the agents that work on it read there everything an event or a
+notification runs. An organization's delivery convention reaches a repository the same way: written into its
+`.harness/hooks.yaml` and reviewed there as a diff ([ADR 0013](../adrs/0013-organization-content.md)).
 
 Commands are named `harness <command>` on this page. The examples run them through the repository's wrapper,
 `./harnessw <command>`, from the root of a checkout; with a global install, `harness <command>` is equivalent
@@ -21,8 +26,8 @@ Commands are named `harness <command>` on this page. The examples run them throu
   triggers it.
 - You want something to happen at a fixed point of every change: once work starts, once it is verified, once it is
   complete, when it is ready to leave the clone, and once it has landed.
-- You want an organization's delivery convention (draft pull requests, a CI-trigger commit) in one
-  [preset](presets.md) instead of copied into every repository.
+- You want each repository to follow your organization's delivery convention (draft pull requests, a CI-trigger
+  commit), declared in its own files where its reviewers and agents read it.
 - You want to be told when work finishes or stops for a person, for example in a chat channel, without watching the
   terminal.
 - You want an agent to do a judgement step after an event, such as writing down lessons once a change has landed.
@@ -177,7 +182,7 @@ flowchart TD
 | `landed` | when `harness ralph clean` or `harness worktree remove` handles a recorded branch whose patches are on the default branch, before the worktree is removed | `task`, `run`, `change` |
 | `blocked` | out of band, at any stage: when a Ralph run stops unfinished (scope `run`); when the Ralph launcher skips a task after its retries (scope `task`); when a `harness` command run without a terminal exits 3 for a person to act (the scope of that command's work, otherwise `change`) | `task`, `run`, `change` |
 
-The set and its order are fixed. Repositories and presets declare actions on these events; they cannot add events.
+The set and its order are fixed. Repositories declare actions on these events; they cannot add events.
 The first five follow the order of the work; `blocked` can fire between any two of them, and its actions receive the
 reason in `HARNESS_REASON`.
 
@@ -216,7 +221,7 @@ Trigger-point details:
 
 ## Built-in guards
 
-These are [built-in invariants](concepts.md#built-in-invariants). No repository file, preset or flag removes them.
+These are [built-in invariants](concepts.md#built-in-invariants). No repository file or flag removes them.
 
 | Guard | Effect |
 | --- | --- |
@@ -226,7 +231,7 @@ These are [built-in invariants](concepts.md#built-in-invariants). No repository 
 | Values only as environment variables | `harness` never substitutes a value into a `run` command's text, so a task title or a branch name cannot inject shell syntax. `http` and `agent` actions expand `$NAME` only as described in [Action kinds](#action-kinds) |
 | `agent` actions run under the worker contract | The agent starts in auto permission mode with the built-in and repository `worker.deny`, bypass flags are refused, and the tamper check restores and compares the tool-owned files. It cannot commit, push or fire lifecycle events ([ralph](ralph.md#the-worker-contract)) |
 | Every run is recorded | Each run, refused and skipped ones included, is appended to the [lifecycle log](#the-lifecycle-log). Dry runs are not recorded |
-| The binary ships no actions | Every action comes from `.harness/hooks.yaml` or an `extends` preset, and `harness lifecycle list` shows which |
+| The binary ships no actions | Every action is one the repository declares in `.harness/hooks.yaml`; neither the seeded files nor any [preset](presets.md#the-presets) holds one. `harness lifecycle list` prints them all |
 
 The scaffolded repository policy seeds `[harness, lifecycle, run, deliver]` under `ask`, because permitting an agent
 to run an event permits everything its actions do ([safety](safety.md#lifecycle-actions-are-code)). `render` writes it
@@ -241,7 +246,8 @@ enforces them whoever runs the command.
 delivery, the conditions work must meet, and, for each event that has actions, their names and kinds in order. A
 repository that declares no actions gets one line saying that work is pushed and pull requests are opened by hand. For
 the actions of the [GitHub example](#delivery-on-github-push-and-a-draft-pull-request), the
-[landed example](#landed-tidy-up-after-the-merge) and the [chat notification](#a-chat-notification-when-work-completes-or-stops):
+[landed example](#landed-tidy-up-after-the-merge) and the
+[chat notification](#a-chat-notification-when-work-completes-or-stops):
 
 ```markdown
 <!-- harness:lifecycle -->
@@ -293,7 +299,7 @@ lifecycle:
 | Field | Type | Default | Meaning |
 | --- | --- | --- | --- |
 | `lifecycle` | map of event to list | `{}` | Actions per event. Keys: `start`, `verified`, `completed`, `deliver`, `landed`, `blocked`; any other key is an error |
-| `lifecycle.<event>[].name` | string | required | Unique within the event. Used by `--action` and in the record. A repository action with the name of a preset action replaces it |
+| `lifecycle.<event>[].name` | string | required | Unique within the event. Used by `--action` and in the record |
 | `lifecycle.<event>[].run` | command | one of `run`, `http`, `agent` | A shell command; see [Action kinds](#action-kinds) |
 | `lifecycle.<event>[].http` | map | one of `run`, `http`, `agent` | An HTTP request `harness` makes; see [Action kinds](#action-kinds) |
 | `lifecycle.<event>[].agent` | map | one of `run`, `http`, `agent` | A headless agent run; see [Action kinds](#action-kinds) |
@@ -303,11 +309,9 @@ lifecycle:
 
 An action with none or more than one of `run`, `http` and `agent` is an error.
 
-Order and merge:
+Order and result:
 
-- Actions run in declaration order. Actions from an `extends` preset come before the repository's own; lists are
-  unions, and a repository action with a preset action's name replaces it. `harness lifecycle list` shows the
-  resulting order and each action's source.
+- Actions run in the order the file declares them, and `harness lifecycle list` prints them in that order.
 - The event exits 2 if any action failed, whatever its `on_failure`; the record keeps each action's own exit status.
 
 ### Action kinds
@@ -433,14 +437,13 @@ people and agents: treat them as untrusted text wherever they end up.
 harness lifecycle list [--json]
 ```
 
-Prints every event with its actions, their kind, `auto` flag, scopes, `on_failure` and source (`repository`, or the
-preset source with its resolved commit). For `http` actions it shows the variable names, never their values. It reads
-the hooks file and the presets and writes nothing.
+Prints every event with its actions in the order they run: their kind, `auto` flag, scopes and `on_failure`. For
+`http` actions it shows the variable names, never their values. It reads the hooks file and writes nothing.
 
 | Exit code | Meaning |
 | --- | --- |
 | 0 | Listed |
-| 1 | Error: invalid `lifecycle` declarations, unresolvable preset |
+| 1 | Error: invalid `lifecycle` declarations |
 
 ### `harness lifecycle run`
 
@@ -468,8 +471,8 @@ way to test a notification.
 | 2 | An action exited non-zero, with `on_failure: stop` or `continue` |
 | 3 | Blocked: a guard refused (`deliver` on the default branch, with uncommitted changes, without a valid receipt when the verify module is enabled, or for an unfinished run; any event inside a Ralph worker). No action ran |
 
-Files read: `.harness/hooks.yaml` (from the run's base commit for events the Ralph launcher fires), presets,
-`session.json` and `verified.json` in the checkout's state directory, git. Files written: the lifecycle log; whatever
+Files read: `.harness/hooks.yaml` (from the run's base commit for events the Ralph launcher fires), `session.json`
+and `verified.json` in the checkout's state directory, git. Files written: the lifecycle log; whatever
 the actions write.
 
 ### The lifecycle log
@@ -479,7 +482,7 @@ checkout's state directory (`state.dir`, default `.work`), shared by every workt
 Dry runs are not recorded. It holds no environment values, and never a URL, a header, a request body or a prompt.
 
 ```json
-{"time":"2026-10-09T14:02:11Z","event":"deliver","scope":"task","trigger":"auto","worktree":"invoice-rounding","branch":"work/invoice-rounding","task":"acme-api-7f2","actions":[{"name":"push","kind":"run","source":"repository","status":0,"duration_ms":1840},{"name":"open-pr","kind":"run","source":"github:acme/agent-presets//github@v2","status":0,"duration_ms":2310}],"status":0,"duration_ms":4150}
+{"time":"2026-10-09T14:02:11Z","event":"deliver","scope":"task","trigger":"auto","worktree":"invoice-rounding","branch":"work/invoice-rounding","task":"acme-api-7f2","actions":[{"name":"push","kind":"run","status":0,"duration_ms":1840},{"name":"open-pr","kind":"run","status":0,"duration_ms":2310}],"status":0,"duration_ms":4150}
 ```
 
 | Field | Meaning |
@@ -488,7 +491,7 @@ Dry runs are not recorded. It holds no environment values, and never a URL, a he
 | `event`, `scope` | the event and its scope |
 | `trigger` | `manual` or `auto` |
 | `worktree`, `branch`, `task`, `session` | the work, as far as it applies |
-| `actions` | each action run: `name`, `kind` (`run`, `http` or `agent`), `source`, `status` (`0` on success; otherwise the exit code of a `run` or `agent` action, the HTTP status of an `http` response, or `1` when the request could not be made), `duration_ms`; for an `agent` action, `changed`: the paths it left uncommitted |
+| `actions` | each action run: `name`, `kind` (`run`, `http` or `agent`), `status` (`0` on success; otherwise the exit code of a `run` or `agent` action, the HTTP status of an `http` response, or `1` when the request could not be made), `duration_ms`; for an `agent` action, `changed`: the paths it left uncommitted |
 | `status` | the event's exit code: `0`, `2`, or `3` for a refusal; `skipped` with the unmet condition for an automatic `deliver` on work that is not concluded |
 | `duration_ms` | the whole event |
 
@@ -496,10 +499,10 @@ Dry runs are not recorded. It holds no environment values, and never a URL, a he
 
 ### Delivery on GitHub: push and a draft pull request
 
-A preset for GitHub-hosted repositories, maintained by the organization:
+A GitHub-hosted repository pushes the branch and opens a draft pull request:
 
 ```yaml
-# acme/agent-presets: github/hooks.yaml
+# .harness/hooks.yaml
 schema: 1
 lifecycle:
   deliver:
@@ -512,11 +515,6 @@ lifecycle:
         gh pr create --draft --fill --base "$HARNESS_DEFAULT_BRANCH" --head "$HARNESS_BRANCH"
 ```
 
-```yaml
-# .harness/config.yaml
-extends: github:acme/agent-presets//github@v2
-```
-
 ```sh
 ./harnessw lifecycle list
 ./harnessw lifecycle run deliver --dry-run
@@ -524,18 +522,21 @@ extends: github:acme/agent-presets//github@v2
 ```
 
 ```text
-event      action   auto   scopes             on_failure  source
-deliver    push     false  task, run, change  stop        github:acme/agent-presets//github@v2 (4b1e9c0)
-deliver    open-pr  false  task, run, change  stop        github:acme/agent-presets//github@v2 (4b1e9c0)
+event      action   kind  auto   scopes             on_failure
+deliver    push     run   false  task, run, change  stop
+deliver    open-pr  run   false  task, run, change  stop
 ```
 
 ### An organization convention: a CI-trigger commit before the pull request
 
-The organization's CI runs a pull request only when its tip commit carries `#ci`. Its preset declares the whole chain,
-so every repository that extends it delivers the same way:
+At acme, CI runs a pull request only when its tip commit carries `#ci`. That is a choice of the organization, not a
+fact of any stack, so each repository that follows it declares the whole chain in its own hooks file. The change is
+usually written by an agent following the skill acme publishes for its repositories
+(`npx skills add acme/agent-skills`), and each repository reviews it as a diff like any other change
+([ADR 0013](../adrs/0013-organization-content.md)):
 
 ```yaml
-# acme/agent-presets: harness/hooks.yaml
+# .harness/hooks.yaml
 schema: 1
 lifecycle:
   deliver:
@@ -553,10 +554,15 @@ lifecycle:
 The guards are checked before the first action, so the empty commit never meets them. It changes no file content, so
 the receipt stays valid for any later run.
 
+Applying the convention takes judgement, because repositories of one organization differ: an agent following the
+skill reads each repository's CI configuration first, and a repository whose CI does not wait for `#ci` gets no
+`ci-trigger` action. To bring the convention to many repositories, run the agent with the skill in each of them;
+[`harness fleet`](fleet.md) runs `harness` commands across repositories and does not run the agent for you.
+
 ### Automatic delivery of tasks
 
-A Node API where each task is one pull request. The repository makes both preset actions automatic for tasks by
-redeclaring them under the same names:
+A Node API where each task is one pull request. The repository declares both delivery actions automatic, for tasks
+only:
 
 ```yaml
 # .harness/hooks.yaml
@@ -737,8 +743,9 @@ moved it.
   and their variables.
 - Do set `auto: true` only on actions you accept running every time, with nobody watching.
 - Do prefer draft pull requests from automatic delivery: a person marks them ready.
-- Do put an organization's delivery convention in its [preset](presets.md) and pin it with `@<ref>`; every adopter
-  then reviews a change as a diff.
+- Do write an organization's delivery convention into each repository's `.harness/hooks.yaml`, by hand or with an
+  agent following the organization's skill, and review it there as a diff: the actions a repository runs are then
+  the ones its reviewers and agents can read ([ADR 0013](../adrs/0013-organization-content.md)).
 - Do review changes to `lifecycle` like code: an action runs with your credentials, outside the agent's permission
   checks ([safety](safety.md#lifecycle-actions-are-code)).
 - Don't write the team's record in actions: no issue comments, reviews, labels or board moves.
@@ -768,7 +775,7 @@ moved it.
 | `landed` never fires for a merged branch | Squash merge of several commits: no patch on the default branch matches | Delete the branch and remove the worktree by hand |
 | `landed` failed during `worktree remove` or `ralph clean` | An action exited non-zero; the removal went ahead | Read the lifecycle log; fix the action, then `harness lifecycle run landed` with `--task` or `--session` |
 | `lifecycle run` exits 3 inside a Ralph worker | Workers never run lifecycle actions | Nothing to fix: the launcher fires the events and runs their actions in its own process |
-| A preset action cannot be removed | Preset lists are unions | Declare an action with the same name in the repository to replace it, or stop extending the preset |
+| One repository delivers without the organization's convention | Each repository declares its own actions, and this one was never given them | Add them to its `.harness/hooks.yaml`, by hand or with an agent following the organization's skill, and review the diff |
 | An `http` action fails before sending: variable unset | The variable named in `url_env` or `headers_env` is not in the environment that fired the event | Export it in the shell, or the CI job, that runs the work |
 | An `http` action fails with a 3xx status | The endpoint redirected to another host | Use the final URL in the variable |
 | A notification shows an empty value | A `$NAME` in `json` is unset for this scope; the output noted it | Limit the action with `scope`, or name a variable that applies |

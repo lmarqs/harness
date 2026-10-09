@@ -43,9 +43,10 @@ Each entry names one source, a skill installed under `.agents/skills/<name>/` or
 | `when.paths` | the first time in the session the agent reads or edits a file that matches one of the globs | once per session | `pointer`: one line naming the file to read |
 | `when.prompt` | the first time in the session a message from the person contains one of the words or phrases, compared case-insensitively as whole words | once per session | `pointer` |
 
-A `pointer` is one line. For a skill: `Apply the timezone-handling skill now: read .agents/skills/timezone-handling/SKILL.md`.
-For a file: `Read .agents/directives/house-rules.md now and apply it.` A `content` entry is the skill's `SKILL.md`
-body without its front matter, or the file as written.
+A `pointer` is one line. For a skill:
+`Apply the timezone-handling skill now: read .agents/skills/timezone-handling/SKILL.md`. For a file:
+`Read .agents/directives/house-rules.md now and apply it.` A `content` entry is the skill's `SKILL.md` body without its
+front matter, or the file as written.
 
 Every injected entry starts with one line that names it and what triggered it, so the agent and a person reading the
 transcript see why it is there:
@@ -165,8 +166,10 @@ Validation errors (exit 1 from `render`, `doctor` and `context show`): an entry 
 `file`; a `when` entry with both or neither of `paths` and `prompt`; `static` on a `when` entry, or with a narrower
 `for`; a `file` outside the repository or inside a state directory; an unknown role.
 
-An [`extends` preset](presets.md) can declare `context` entries. They are applied before the repository's own, and a
-repository entry naming the same `skill` or `file` replaces the preset's.
+Every entry a session receives is declared in this section of the repository's own profile
+([ADR 0013](../adrs/0013-organization-content.md)). Directives an organization wants in all its repositories are
+written into each profile, typically by an agent following a skill the organization publishes, and reviewed there
+like any other change.
 
 ### `harness context show`
 

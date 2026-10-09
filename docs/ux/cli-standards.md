@@ -53,11 +53,14 @@ entries are defence in depth and the binary is the enforcement ([ADR 0011](../ad
 ## Reference surface
 
 ```text
-harness scaffold [--adopt] [--import <scope>[,<scope>]...] [--preset go|node|terraform|python|generic]
+harness scaffold [--adopt] [--import <scope>[,<scope>]...] [--preset go|node|terraform|python|none]
                  [--front-door mise|binary] [--offline] [--yes] [--dry-run]
 harness remove [--module <name>]... [--force] [--dry-run]
 harness remove --eject [--force] [--dry-run]
-harness render [--check] [--refresh] [--dry-run]
+harness render [--check] [--dry-run]
+harness preset list
+harness preset show <name>
+harness preset apply <name>... [--yes] [--dry-run]
 harness doctor [--json]
 harness explain <topic>
 harness context show [--role interactive|worker] [--path <file>]... [--prompt <text>] [--json]
@@ -87,7 +90,7 @@ harness ralph-worker <agent> [agent args...]
 
 | Command or flag | Behaviour governed by these standards |
 | --- | --- |
-| `scaffold` | refuses, exit 3, where a `.harness/` directory exists without a harness `config.yaml` or `manifest.json` (another product's directory), naming the conflict, because harness never writes into a directory it did not create. Pins the running binary's own version: it fetches that release's signed checksum file over HTTPS, verifies the signature with the keys embedded in the running binary, and writes `wrapper.yaml` only then; it exits 1 when the file is unreachable or the signature does not verify, and writes nothing. With `--offline` it makes no network request and writes the pin with `checksums: pending`, which admits no download until `harness wrapper --version <tag>` completes it; a pending pin is opt-in so that a network failure never produces one unnoticed |
+| `scaffold` | refuses, exit 3, where a `.harness/` directory exists without a harness `config.yaml` or `manifest.json` (another product's directory), naming the conflict, because harness never writes into a directory it did not create. Pins the running binary's own version: it fetches that release's signed checksum file over HTTPS, verifies the signature with the keys embedded in the running binary, and writes `wrapper.yaml` only then; it exits 1 when the file is unreachable or the signature does not verify, and writes nothing. With `--offline` it makes no network request and writes the pin with `checksums: pending`, which admits no download until `harness wrapper --version <tag>` completes it; a pending pin is opt-in so that a network failure never produces one unnoticed. Detects the repository's stacks and applies their presets to the files it seeds, as `preset apply` does; `--preset <name>` applies that preset instead of detection, and `--preset none` applies none |
 | `scaffold --adopt --import <scope>[,<scope>]...` | imports existing permission and hook configuration into `policy.yaml` and `hooks.yaml`. `--import` takes a comma-separated set from the closed enumeration `project`, `local`, `user`, `none`; the default is `project` with `--adopt` and `none` without it. Imports from `local` and `user` are marked for review in the to-do ([compatibility-standards.md](compatibility-standards.md#adoption-equivalence)). A harness pin found in a task runner's tool list is copied into `wrapper.yaml`, and removing it from that file is listed as a to-do; harness never edits the task runner's file |
 | `remove` | undo: deletes owned content (without `--module`, `harnessw`, `wrapper.yaml` and the manifest included) and the seeded repository files in `.harness/` (listed first in its output); deletes a seeded file outside `.harness/`, such as a memory skeleton file, only while it matches its recorded hash; lists and leaves any file the manifest does not record, and deletes `.harness/` once nothing else is in it; removes every managed block and owned native key and entry; writes imported project-scope settings back as plain native settings; leaves the state directories in place and lists them ([generated-content-standards.md](generated-content-standards.md#removal)) |
 | `remove --eject` | eject: stops managing and keeps the result. Convention blocks lose their markers and stay; tool blocks are removed; `.gitignore` entries stay; rendered native files and keys stay as hand-owned content without their headers; `raw` hooks stay; hooks that call harness, permission entries that name a harness command and task shims that exec `harnessw` are removed and listed; the harness skill and its links, `harnessw`, and the owned and seeded files in `.harness/` are removed; a file the manifest does not record is listed and left, and `.harness/` is deleted once nothing else is in it. Not combined with `--module`; accepts `--force` |
@@ -95,8 +98,10 @@ harness ralph-worker <agent> [agent args...]
 | `wrapper --version <tag>`, `wrapper --latest` | the running binary fetches the target release's signed checksum file and verifies the signature with its embedded keys; only then does it download this platform's asset, verify its sha256, and have the new release write `version` and `checksums` into `.harness/wrapper.yaml` and render the repository: `harnessw`, the harness skill and every other artefact the new release renders differently. Any failure exits 1 and writes nothing. The pin and its rendered effects reach review as one diff ([ADR 0017](../adrs/0017-engine-version.md)). `harness fleet wrapper --version <tag> --deliver` does the same across repositories |
 | `explain <topic>` | prints the built-in documentation for one topic: `layout`, `profile`, `policy`, `hooks`, `lifecycle`, `context`, `adoption`, `verify`, `ralph`, `invariants`, `blocks`, `presets`, `wrapper`, `safety`, `pitfalls` |
 | `context show` | prints, without writing anything, the standing context that would be injected for a role (`interactive` or `worker`, default `interactive`), given the files read or edited (`--path`) and a prompt (`--prompt`), with the entry and trigger behind each item. It is a deterministic preview of what the hooks inject |
-| `render --refresh` | re-resolves presets whose `extends` has no `@<ref>` and records the new commits in the manifest; plain `render` and `render --check` reuse the recorded commits |
-| `lifecycle list` | prints every lifecycle event (the out-of-band `blocked` included), its actions, their kinds, `auto` flags, scopes and source (repository or preset) |
+| `preset list` | prints the presets of the running release, each with the stack it fits and whether that stack's marker files are present in the repository; writes nothing |
+| `preset show <name>` | prints the entries the preset holds, as the YAML it would add, grouped by file; writes nothing; an unknown name exits 1 |
+| `preset apply <name>...` | applies the named presets, in order, to an adopted repository: needs `.harness/config.yaml` (otherwise exit 1, naming `harness scaffold`); adds to `.harness/config.yaml` and `.harness/hooks.yaml` only what they lack, never replacing an item the repository names and reporting each item it kept ([configuration-standards.md](configuration-standards.md#presets)); shows the additions as a diff and asks; then writes them and renders the repository as `render` does. Nothing to add exits 0; `--json` lists the entries added and the items kept |
+| `lifecycle list` | prints every lifecycle event (the out-of-band `blocked` included), its actions, their kinds, `auto` flags and scopes |
 | `lifecycle run <event>` | runs the event's declared actions, in declaration order, for one scope; never asks for confirmation; refuses, exit 3, inside a Ralph worker or an `agent` action |
 | `fleet <command> --deliver` | after the command, commits the tool-owned changes on a new local branch `<branch_prefix><command>` cut from the fetched default branch, runs `harness verify` (no lanes are needed for a change outside `app_paths`), then fires `deliver` (scope `change`) in that repository, running every declared `deliver` action for that scope |
 
@@ -113,7 +118,7 @@ command lives without reading help.
 | Shape | Used for | Commands |
 | --- | --- | --- |
 | `harness <verb>` | an operation on the repository as a whole | `scaffold`, `remove`, `render`, `doctor`, `verify`, `explain`, `version`, `wrapper` |
-| `harness <noun> <verb>` | an operation on one kind of object the repository holds | `worktree create\|remove`, `task claim\|note\|complete\|release`, `lifecycle list\|run`, `context show`, `ralph run\|resume\|clean`, `skills sync` |
+| `harness <noun> <verb>` | an operation on one kind of object the repository holds | `worktree create\|remove`, `task claim\|note\|complete\|release`, `lifecycle list\|run`, `context show`, `preset list\|show\|apply`, `ralph run\|resume\|clean`, `skills sync` |
 | `harness fleet <command>` | a repository-level command run across a declared list of repositories | `fleet render`, `fleet doctor`, `fleet scaffold`, `fleet wrapper`, … |
 
 Internal commands are called by agents or by files harness generates, not by people: `harness hook` (reads an agent
@@ -126,15 +131,20 @@ Rules:
 
 - A verb that applies to the whole repository goes at the top level. A verb that applies to one object goes under
   that object's noun, so related operations are listed together in help.
-- A noun is singular when each invocation targets one instance (`worktree`, `task`, a `lifecycle` event, the
-  `context` of one session) and plural when the operation covers a set (`skills`), so the name says how many things
-  the command touches.
+- A noun is singular when it is a kind of object whose instances commands pick by name or id (`worktree <name>`,
+  `task <id>`, `preset <name>`, a `lifecycle` event, the `context` of one session) and plural when the operation always
+  covers the whole set (`skills sync`, every declared source), so the name says whether a command can pick what it
+  touches.
 - Operands identify the target (`<name>`, `<id>`, `<topic>`, `<session-id>`); flags modify how the operation runs.
   An operand is never optional in one command and positional-required in its sibling, because siblings are learned
   together.
 - Inverse operations use the established pairs: `scaffold`/`remove`, `create`/`remove`, `claim`/`release`,
-  `run`/`clean`. New commands reuse these verbs before introducing new ones; `delete`, `rm`, `destroy`, `init`,
-  `install` and `uninstall` are not used. Why: one verb per meaning keeps the inverse of every command guessable.
+  `run`/`clean`. New commands reuse these verbs before introducing new ones (`preset list` and `preset show` reuse
+  `list` and `show`); `delete`, `rm`, `destroy`, `init`, `install` and `uninstall` are not used. Why: one verb per
+  meaning keeps the inverse of every command guessable.
+- `apply` writes entries into the repository's own files and has no inverse. Why: the entries it writes become the
+  repository's own, like entries it wrote itself, so they are changed or removed by editing the file, and removing
+  harness deletes them with the seeded files in `.harness/` ([ADR 0013](../adrs/0013-organization-content.md)).
 - Checking is a flag, not a verb: `render --check`, `verify --check`. A command whose only job is to check is
   `doctor`. Why: a check and the operation it checks share their inputs, so they share a command.
 
@@ -264,7 +274,7 @@ narrower the scope of a source, the more deliberate the choice it expresses.
 | Code | Meaning | Examples |
 | --- | --- | --- |
 | 0 | success; nothing to report or nothing left to do | `render` wrote or found everything up to date; `doctor` found nothing beyond notes; every action of a `lifecycle run` passed, or the event declares no actions |
-| 1 | error: the command could not do its job | invalid usage, unknown key in a repository file, a state path inside `.harness/` or `.agents/`, I/O failure; an explicit entry point that cannot obtain the pinned binary (download failure, checksum mismatch); `wrapper --version`, or `scaffold` without `--offline`, meeting a release whose signed checksum file is unreachable or does not verify |
+| 1 | error: the command could not do its job | invalid usage, unknown key in a repository file, a state path inside `.harness/` or `.agents/`, I/O failure; an unknown preset, or `preset apply` in a repository without `.harness/config.yaml`; an explicit entry point that cannot obtain the pinned binary (download failure, checksum mismatch); `wrapper --version`, or `scaffold` without `--offline`, meeting a release whose signed checksum file is unreachable or does not verify |
 | 2 | a check ran and failed | `render --check` found drift, `doctor` reported a finding (a second harness pin in a task runner's file, a locked skill whose hash does not match, a pinned release whose signed checksum file no longer matches `wrapper.yaml`), `verify --check` or `task complete` met an invalid receipt; a lifecycle action exited non-zero; `scaffold --adopt` found a project-scope rule no longer in effect |
 | 3 | blocked: the next step is a person's decision | confirmation needed with no TTY and no `--yes`; a prerequisite tool a person must install is missing (Node for `skills sync`, `ralph-tui`, `bd`, the wrapper's downloader or sha256 tool); an explicit entry point meets a pending pin whose release is not cached; `remove` refused a hand-edited file without `--force`; `scaffold` found a `.harness/` directory harness did not create; the repository schema is newer than the binary (only when the pin is bypassed); a lifecycle guard refused (`deliver` on the default branch, with uncommitted changes, or, when the verify module is enabled, without a valid receipt; any event inside a Ralph worker or an `agent` action) |
 
@@ -275,8 +285,8 @@ narrower the scope of a source, the more deliberate the choice it expresses.
   agent cannot make; the message names the tool and the command that installs it.
 - `doctor` notes (an `AGENTS.md` budget overrun, a standing-context budget overrun, an agent that lacks an event a hook
   needs, an automatic `agent` action, a `harness` on `PATH` that is another program, a running binary other than the
-  pinned release, a newer upstream preset commit, a newer release than the pin)
-  never change the exit code, because they inform a choice rather than report a failure.
+  pinned release, a newer release than the pin) never change the exit code, because they inform a choice rather than
+  report a failure.
 - Invalid usage exits 1, so that 2 stays unambiguous for CI.
 - When a harness command run without a TTY exits 3 outside a worker, harness fires the out-of-band `blocked`
   lifecycle event (scope of that command's work, or `change`) with `HARNESS_REASON` set to the one-line refusal. Why:
@@ -310,9 +320,12 @@ Format and wording: [messages-and-docs.md](messages-and-docs.md#error-messages).
 
 ## Confirmations, `--yes` and `--force`
 
-- A command asks for confirmation only before an action that cannot be undone from the repository's own history, or
-  that reaches beyond the current repository (`fleet … --deliver`). Why: everything else is reversible from git, and
-  needless questions train people to answer yes without reading.
+- A command asks for confirmation only before an action that cannot be undone from the repository's own history,
+  that reaches beyond the current repository (`fleet … --deliver`), or that writes into the repository's own files
+  (`scaffold`, `preset apply`, a schema migration). Why: everything else is reversible from git, and needless questions
+  train people to answer yes without reading; what harness writes into the repository's own files becomes the
+  repository's, with nothing marking that harness wrote it, so the person accepts it while it is still shown as a
+  change.
 - `harness lifecycle run` never asks for confirmation, and a lifecycle action fired automatically at its trigger point
   (`auto: true`) never asks either. The gate for agents is the policy: scaffolded repositories seed
   `[harness, lifecycle, run, deliver]` under `ask`, rendered for every rendered spelling; it is a seeded entry the
@@ -368,7 +381,7 @@ reference, so the prefix alone tells a reader the variable belongs to harness.
 
 | Variable | Read by | Effect |
 | --- | --- | --- |
-| `HARNESS_HOME` | the wrapper, and a global `harness` deferring to a pin | cache directory for downloaded releases, the update-check result and fetched presets; default `$XDG_CACHE_HOME/harness`, falling back to `~/.cache/harness`; each release at `<home>/versions/<version>/harness` |
+| `HARNESS_HOME` | the wrapper, and a global `harness` deferring to a pin | cache directory for downloaded releases, the update-check result and the result of `harness doctor`'s signed-checksum check, and nothing else; default `$XDG_CACHE_HOME/harness`, falling back to `~/.cache/harness`; each release at `<home>/versions/<version>/harness` |
 | `HARNESS_BINARY` | the wrapper | path of a binary to exec instead of the pinned version (air-gapped machines, development of harness itself); bypasses the pin and its checksum |
 | `HARNESS_NO_UPDATE_CHECK` | the binary | when on, disables the daily release check |
 | `HARNESS_NO_CONTEXT` | the binary | when on, disables standing-context injection for the process tree it is set in, for debugging what an agent sees without it |

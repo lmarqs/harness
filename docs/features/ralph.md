@@ -91,7 +91,8 @@ wrapper:
    - Claude Code: `--permission-mode auto`, plus `worker.deny` as disallowed tools.
    - Codex: the `workspace-write` sandbox with network access; besides the task checkout, the only writable roots are
      the clone's shared state directory, mise's cache directory and, with Beads, the clone's `.beads/`; `worker.deny`
-     applies through the rendered rules, which the tamper check keeps intact, which is why Codex must have `role: worker` to run as a worker ([agents](agents.md#roles)).
+     applies through the rendered rules, which the tamper check keeps intact, which is why Codex must have
+     `role: worker` to run as a worker ([agents](agents.md#roles)).
 6. Claims the task as the run's actor (`ralph:<session-id>`), when using Beads.
 7. Runs the profile's `bootstrap` once per task checkout.
 8. Runs the agent with the task prompt and `HARNESS_WORKER=1` in its environment, buffering its output instead of
@@ -167,10 +168,10 @@ are not supported by the launcher.
 
 Workers receive the embedded prompt unless the repository provides `.harness/ralph/prompt.hbs`, a ralph-tui Handlebars
 template (`{{taskId}}`, `{{taskTitle}}`, `{{taskDescription}}`, `{{acceptanceCriteria}}`, `{{prdContent}}`,
-`{{recentProgress}}`). The embedded prompt tells the agent to read `AGENTS.md`, implement only its task in the
-worktree it is in, run `./harnessw verify` with explicit lanes or skip reasons, leave completion, commits and integration
-to Ralph, report missing permissions as blocked, and signal completion only after verifying. `harness explain ralph`
-prints it. Start an override from that text and keep its first line: it carries the task identity the worker reads.
+`{{recentProgress}}`). The embedded prompt tells the agent to read `AGENTS.md`, implement only its task in the worktree
+it is in, run `./harnessw verify` with explicit lanes or skip reasons, leave completion, commits and integration to
+Ralph, report missing permissions as blocked, and signal completion only after verifying. `harness explain ralph` prints
+it. Start an override from that text and keep its first line: it carries the task identity the worker reads.
 
 ### Model, effort and iterations
 
@@ -255,9 +256,10 @@ reports a missing permission as blocked work. The result of a run is a local bra
 `ralph.config: inherit`.
 
 These are convention blocks: they state the convention as a fact and name no `harness` command. After
-[`harness remove --eject`](remove.md#eject) the markers go and the text and ignore entries stay: ralph-tui keeps running from its own configuration, and people and agents know where
-runs live and what a worker may do. Nothing enforces the worker contract any more: no bypass refusal, no tamper check,
-no replay. `harness remove --module ralph` removes the blocks and leaves coordinators and run branches in place.
+[`harness remove --eject`](remove.md#eject) the markers go and the text and ignore entries stay: ralph-tui keeps running
+from its own configuration, and people and agents know where runs live and what a worker may do. Nothing enforces the
+worker contract any more: no bypass refusal, no tamper check, no replay. `harness remove --module ralph` removes the
+blocks and leaves coordinators and run branches in place.
 
 ## Reference
 
@@ -337,8 +339,9 @@ If the run stops unfinished:
 
 ### A Terraform repository
 
-The `terraform` stack preset turns Ralph off (`modules.ralph: false`): `plan` needs credentials and judgement a
-worker must not hold.
+The `terraform` [preset](presets.md#the-presets) writes `modules.ralph: false` into a profile that does not set
+`modules.ralph` yet: `plan` needs credentials and judgement a worker must not hold. A profile that already sets it
+keeps its own value.
 
 ### Running it from an agent session
 

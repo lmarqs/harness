@@ -66,9 +66,10 @@ Commands are named `harness <command>` on this page. Run them through the reposi
   the wrapper and `sh harnessw …` all start with different words.
 - **What `harness` does.** Renders every entry that names `harness` for each spelling it can know: `harness …`,
   `./harnessw …`, `harnessw …`, and the task shim where one exists ([policy](policy.md#entries-for-harness-commands)).
-  It cannot enumerate absolute paths or interpreters, so the guards that matter live in the binary: `harness
-  lifecycle run` refuses inside a Ralph worker whatever the spelling, because the worker launcher sets
-  `HARNESS_WORKER=1`, and the `deliver` guards hold whoever runs the command ([safety](safety.md#guards-live-in-the-binary)).
+  It cannot enumerate absolute paths or interpreters, so the guards that matter live in the binary:
+  `harness lifecycle run` refuses inside a Ralph worker whatever the spelling, because the worker launcher sets
+  `HARNESS_WORKER=1`, and the `deliver` guards hold whoever runs the command
+  ([safety](safety.md#guards-live-in-the-binary)).
 - **What you do.** Write each entry for a `harness` command once, as `[harness, …]`. Treat the policy entries as
   defence in depth and the binary's refusals as the guarantee; deny in `worker.deny` what workers must never run.
 
@@ -163,8 +164,8 @@ Commands are named `harness <command>` on this page. Run them through the reposi
   the policy denies to it.
 - **Why.** Actions run as child processes of `harness`, outside the agent's per-command checks. The permission to
   start the event is the permission for every action declared on it.
-- **What `harness` does.** Seeds `[harness, lifecycle, run, deliver]` under `ask` in a scaffolded policy, in
-  every rendered spelling; denies `[harness, lifecycle]` to workers in the built-in base and refuses `lifecycle run` inside a
+- **What `harness` does.** Seeds `[harness, lifecycle, run, deliver]` under `ask` in a scaffolded policy, in every
+  rendered spelling; denies `[harness, lifecycle]` to workers in the built-in base and refuses `lifecycle run` inside a
   worker in the binary; refuses unsafe delivery with its guards ([lifecycle](lifecycle.md#built-in-guards)).
 - **What you do.** Read `harness lifecycle list` before allowing the command, and review every change to the actions
   like code ([safety](safety.md#lifecycle-actions-are-code)).
@@ -340,8 +341,9 @@ Commands are named `harness <command>` on this page. Run them through the reposi
   reviewers.
 - **What `harness` does.** Keeps the result on a local branch and fires nothing that leaves the clone unless an action
   says so.
-- **What you do.** Have a coordinating agent cherry-pick the task commits onto a branch from the default branch,
-  reword them, verify, then run `harness lifecycle run deliver` ([lifecycle](lifecycle.md#ralph-delivery-per-run-or-delivery-after-judgement)).
+- **What you do.** Have a coordinating agent cherry-pick the task commits onto a branch from the default branch, reword
+  them, verify, then run `harness lifecycle run deliver`
+  ([lifecycle](lifecycle.md#ralph-delivery-per-run-or-delivery-after-judgement)).
 
 ### An automatic run-scope deliver opens one pull request per run
 
@@ -409,13 +411,13 @@ Commands are named `harness <command>` on this page. Run them through the reposi
 
 ### Every action sees every secret in the environment
 
-- **Symptom.** A webhook token exported for one notification appears in the environment of a `run` action from a
-  preset, or of an `agent` action.
+- **Symptom.** A webhook token exported for one notification appears in the environment of every other `run` action,
+  and of an `agent` action.
 - **Why.** Actions inherit the environment of the process that fires them. `url_env` and `headers_env` keep secrets
   out of the committed file, not out of the other actions.
 - **What `harness` does.** Never writes those values to output, `--dry-run` or the lifecycle log.
 - **What you do.** Export only the variables the declared actions need, in the shell or CI job that fires them. Review
-  every action, preset actions included, as code that can read them ([safety](safety.md#secrets)).
+  every action as code that can read them ([safety](safety.md#secrets)).
 
 ### A landed `agent` action leaves a worktree with uncommitted edits
 
@@ -493,20 +495,25 @@ Commands are named `harness <command>` on this page. Run them through the reposi
 
 - **Symptom.** `harness render --check` exits 2; an edit to `.claude/settings.json` permissions or inside a managed
   block disappears after `harness render`.
-- **Why.** Rendered files and blocks are outputs of the three repository files and presets.
+- **Why.** Rendered files and blocks are outputs of the three repository files and the pinned release.
 - **What `harness` does.** Rewrites what it owns, preserves everything else byte for byte, and reports differences
   ([render](render.md#drift-check)).
 - **What you do.** Edit the source (`policy.yaml`, `hooks.yaml`, `config.yaml`) and render.
 
-### A preset change does not reach the repository by itself
+### A newer release's preset entries reach a repository only when the preset is applied again
 
-- **Symptom.** A preset was changed upstream, and `harness render` changes nothing.
-- **Why.** The manifest records the resolved commit of every preset, and `render` and `render --check` reuse it, so
-  an upstream change never fails a check by itself.
-- **What `harness` does.** Reports a newer upstream commit as a note in `harness doctor`; `harness render --refresh`
-  re-resolves presets that are not pinned with `@<ref>`.
-- **What you do.** Run `harness render --refresh` (or change the `@<ref>`), review the diff, commit. Across many
-  repositories, use [fleet](fleet.md).
+- **Symptom.** After an upgrade, the new release's `node` preset holds an entry the repository lacks, such as a lane
+  or a post-edit hook, and `harness render` does not add it.
+- **Why.** A preset's entries are written into the repository's files when someone applies it, and from then on they
+  are the repository's own; nothing records which presets were applied. What `harness` renders comes only from the
+  repository's files and the pinned release, so a preset never changes a repository's entries by itself
+  ([ADR 0013](../adrs/0013-organization-content.md)).
+- **What `harness` does.** `harness preset apply <name>` adds only the entries the repository lacks: every entry it
+  holds stays as it is, an item it names that differs from the preset's is kept and reported, and a second apply adds
+  nothing ([presets](presets.md#how-apply-works)).
+- **What you do.** After an upgrade, run `./harnessw preset apply node --dry-run` to see what the preset would add,
+  then apply it, review the diff and commit. Applying again also adds back an entry the repository deleted on
+  purpose, so read the diff before confirming. Across many repositories, use [fleet](fleet.md).
 
 ### A mise task with the same name keeps its name
 
@@ -623,8 +630,9 @@ Commands are named `harness <command>` on this page. Run them through the reposi
 - **Why.** Eject stops managing and keeps the result. Convention blocks (`worktrees`, `tasks`, `ralph`, `policy`,
   `memory`, `context`) keep their text without markers, and the `.gitignore` entries, the rendered permissions and the
   raw hooks stay as the repository's own. Tool blocks (`commands`, `layout`, `verify`, `lifecycle`) are removed, because
-  they describe `harness` commands that do not exist after the eject, and so are the hooks that called `harness`. Receipts, the
-  worker contract, the tamper check, the lifecycle guards and the drift check need the binary, so they stop.
+  they describe `harness` commands that do not exist after the eject, and so are the hooks that called `harness`.
+  Receipts, the worker contract, the tamper check, the lifecycle guards and the drift check need the binary, so they
+  stop.
 - **What `harness` does.** Lists every block, hook and task shim it removed ([remove](remove.md#eject)), and nothing
   after that.
 - **What you do.** Decide which guarantees the repository still needs and move each one where something enforces it:

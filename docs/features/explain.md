@@ -14,6 +14,8 @@ global install, `harness <command>` is equivalent.
 - An agent is finishing an adoption: `explain adoption`.
 - Someone asks why `harness` refuses something: `explain invariants`, `explain safety`.
 - An agent declares or triggers lifecycle actions, or a notification: `explain lifecycle`, `explain hooks`.
+- Someone wants a stack's starting commands, lanes and hooks, or reads a `kept` line from `preset apply`:
+  `explain presets`.
 - Someone wants a directive or a skill applied without invoking it each time: `explain context`.
 - Someone asks how the repository pins, downloads and verifies the release it runs: `explain wrapper`.
 - Something behaves unexpectedly: `explain pitfalls`.
@@ -39,7 +41,7 @@ The text is embedded in the binary and matches its version, which in an adopted 
 | `ralph` | the coordinator, the worker contract and its tamper check, managed and inherited configuration, the embedded prompt, delivery after a run |
 | `invariants` | the built-in invariants and why none can be turned off |
 | `blocks` | managed blocks, their markers, the per-module ids, convention blocks and tool blocks, the `AGENTS.md` budget, the editing rules |
-| `presets` | stack presets, `extends` sources, `@<ref>` pinning and recorded commits |
+| `presets` | the built-in stack presets and what each holds, `harness preset list`, `show` and `apply`, the merge rules, why applying only adds and records nothing, applying again after an upgrade |
 | `wrapper` | `harnessw`, `.harness/wrapper.yaml` as the only pin, the cache, checksum and signature verification, `--no-download`, global-install deferral, upgrades, air-gapped machines |
 | `safety` | the threat model, the layers of defence, how to place a policy entry, unattended runs, actions as code, secrets, agent actions and prompt injection |
 | `pitfalls` | known pitfalls, gaps and traps, each with its symptom, cause and what to do |

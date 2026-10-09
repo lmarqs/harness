@@ -120,7 +120,7 @@ Setting up a repository
 
 - [scaffold](scaffold.md): greenfield scaffold, `--adopt` and `--import`
 - [remove](remove.md): undo the adoption, eject and keep the conventions, or remove one module
-- [render](render.md): rendered files, managed blocks and their ids, merge-rendering, drift checks, `--refresh`
+- [render](render.md): rendered files, managed blocks and their ids, merge-rendering, drift checks
 - [doctor](doctor.md): health checks and the adoption to-do
 - [explain](explain.md): built-in documentation for people and agents
 
@@ -130,7 +130,8 @@ Configuration
 - [Policy](policy.md): `.harness/policy.yaml`, the built-in base, rendering per agent
 - [Hooks](hooks.md): `.harness/hooks.yaml`, the hook runtime, notification hooks and lifecycle actions
 - [Context](context.md): standing context, directives and skills injected by declared triggers
-- [Presets](presets.md): stack presets, `extends`, pinning and preset lifecycle actions
+- [Presets](presets.md): the built-in stack presets, `harness preset list`, `show` and `apply`, and where an
+  organization's choices live
 
 Daily work
 

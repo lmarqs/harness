@@ -1,9 +1,8 @@
 # render
 
-`harness render` turns the three repository files, plus any [presets](presets.md), into the files each agent and
-tool reads: native permission and hook configuration, the wrapper `harnessw`, task shims, the harness skill and its
-links, and the managed blocks inside human-written files. `harness render --check` reports drift without writing, and
-`harness render --refresh` moves unpinned presets to their newest upstream commit.
+`harness render` turns the three repository files into the files each agent and tool reads: native permission and
+hook configuration, the wrapper `harnessw`, task shims, the harness skill and its links, and the managed blocks inside
+human-written files. `harness render --check` reports drift without writing.
 
 Examples on this page run commands as `./harnessw <command>`, through the repository's [wrapper](wrapper.md); with a
 global install, `harness <command>` is equivalent.
@@ -14,14 +13,13 @@ global install, `harness <command>` is equivalent.
 | --- | --- |
 | You edited `.harness/config.yaml`, `.harness/policy.yaml` or `.harness/hooks.yaml` | `./harnessw render` |
 | You turned a module on or off, moved a state path, or changed the `context` section | `./harnessw render` |
-| A preset named by `extends` changed upstream and you want the change | `./harnessw render --refresh` |
+| You want a stack's starting commands, lanes and post-edit hooks | `./harnessw preset apply <name>`, which writes them and renders ([presets](presets.md)) |
 | You want CI or a reviewer to confirm rendered files match their sources | `./harnessw render --check` |
 | You want to see what would change | `./harnessw render --dry-run` |
 
 ## How it works
 
-1. Read the repository files, resolve `extends` at the commit recorded in the manifest (or, with `--refresh`, at the
-   current upstream commit), and validate everything against the schema.
+1. Read the repository files and validate them against the schema.
 2. Compute every output: owned files, owned keys inside native files, managed blocks, links.
 3. Compare with the manifest and the working tree.
 4. Write what changed, delete what is no longer produced (for example the files and blocks of a module you turned
@@ -33,11 +31,11 @@ it dropped; [`harness doctor`](doctor.md) reports it as a finding until the entr
 ([ADR 0011](../adrs/0011-safety-invariants.md)).
 
 Rendering is deterministic: the same inputs produce the same bytes on linux and macOS, and a second run changes
-nothing. Output depends on the repository files, the presets at their recorded commits and the pinned release that
-renders them, and no output records that release: only `.harness/wrapper.yaml` names it. A new release can render
-differently, so [`harness wrapper --version <tag>`](wrapper.md#upgrading) renders the repository with the new release
-in the same change, and the pin and its effect are reviewed as one diff. See [presets](presets.md#resolved-commits)
-for how a preset's commit is recorded and moved.
+nothing. Output depends on the repository's own files and the pinned release that renders them, and on nothing else:
+`render` reads no source outside the repository, and nothing from the network or the per-user cache
+([ADR 0013](../adrs/0013-organization-content.md)). No output records the release: only `.harness/wrapper.yaml` names
+it. A new release can render differently, so [`harness wrapper --version <tag>`](wrapper.md#upgrading) renders the
+repository with the new release in the same change, and the pin and its effect are reviewed as one diff.
 
 ### What render writes
 
@@ -57,7 +55,7 @@ for how a preset's commit is recorded and moved.
 | `.mise/tasks/task` | owned file | `front_door: mise` and `modules.tasks` | task shim |
 | `.mise/tasks/ralph/_default`, `.mise/tasks/ralph/clean` | owned files | `front_door: mise` and `modules.ralph` | task shims for `mise run ralph` and `mise run ralph:clean` |
 | Managed blocks | blocks | see [Block ids](#block-ids) | |
-| `.harness/manifest.json` | owned file | always | the ownership record, including each preset's resolved commit |
+| `.harness/manifest.json` | owned file | always | the ownership record |
 
 An agent that emits no event for a declared hook or context trigger, such as Codex for `attention`, gets nothing
 rendered for it, and [`harness doctor`](doctor.md) notes the gap.
@@ -198,8 +196,8 @@ Block ids are per module and per convention: a module owns its blocks, and turni
 | `.gitignore` | `ralph` | convention | `/.ralph-tui/` and `/<ralph.worktrees_dir>/` | `ralph` |
 | `.gitignore` | `beads` | convention | `/.beads/` | `tasks`, only when `harness` created the Beads database and the path is not tracked |
 
-The paths come from the profile ([state paths](profile.md#state-paths)); a [preset](presets.md) can supply block text
-from its `blocks/<id>.md`, and that text follows the class of its block.
+The paths come from the profile ([state paths](profile.md#state-paths)). Every block's text is generated from the
+repository files.
 
 `.gitignore` blocks omit any path the repository tracks. Each block lists its own module's paths even when another
 block already covers them: `state` ignores `/.work/` and `worktrees` ignores `/.work/worktrees/`. Removing one module
@@ -218,7 +216,7 @@ blocks in `AGENTS.md` stay within a budget:
 
 Detail belongs in [`./harnessw explain <topic>`](explain.md) and the harness skill, which agents open when they need
 it. A render that exceeds a budget still writes the blocks; [`harness doctor`](doctor.md) reports a note naming each
-block and its line count, so a long preset block or a long lane list is visible in review.
+block and its line count, so a long lane list is visible in review.
 
 ### Rules for blocks
 
@@ -238,7 +236,7 @@ block and its line count, so a long preset block or a long lane list is visible 
 
 - Exit 0: everything matches.
 - Exit 2: something differs. Each differing file, block or key is listed with the command that fixes it.
-- Presets are compared at their recorded commits, so a change upstream never fails the check by itself.
+- The check reads only the checkout, so its result changes only when the repository's files or its pin change.
 - The check runs as the pinned release, and no owned artefact is exempt, the harness skill included
   ([ADR 0007](../adrs/0007-ownership.md)). An upgrade renders the repository with the new release in the same change
   ([wrapper](wrapper.md#upgrading)), so the pinned release's output and the committed files agree, and a difference is
@@ -261,8 +259,8 @@ jobs:
           HARNESS_NO_UPDATE_CHECK: "1"
 ```
 
-If the repository uses an `extends` preset from a private source, the CI job needs read access to that source. To
-cache the download between runs, see [wrapper](wrapper.md#ci).
+The check reads nothing outside the checkout, so the job needs no credentials. To cache the release download between
+runs, see [wrapper](wrapper.md#ci).
 
 ## Schema migration
 
@@ -281,13 +279,12 @@ harness: .harness/config.yaml uses schema 2; this binary (v0.8.2) supports schem
 ## Reference
 
 ```text
-harness render [--check] [--refresh] [--dry-run]
+harness render [--check] [--dry-run]
 ```
 
 | Flag | Default | Meaning |
 | --- | --- | --- |
 | `--check` | off | Compare only; exit 2 on drift |
-| `--refresh` | off | Re-resolve every preset declared without `@<ref>` to its current upstream commit and record it |
 | `--dry-run` | off | Print what would be written or deleted; write nothing |
 
 Global flags `-C <dir>`, `--yes` and `--verbose` also apply; see [CLI reference](cli.md).
@@ -295,14 +292,14 @@ Global flags `-C <dir>`, `--yes` and `--verbose` also apply; see [CLI reference]
 | Exit code | Meaning |
 | --- | --- |
 | 0 | Rendered, or `--check` found no drift |
-| 1 | Error: invalid repository file, a preset commit that can be neither found nor fetched |
+| 1 | Error: invalid repository file |
 | 2 | `--check` found drift |
 | 3 | Repository schema is newer than the running release, or a migration needs confirmation without a terminal |
 
 Files read: `.harness/config.yaml`, `.harness/policy.yaml`, `.harness/hooks.yaml`, `.harness/wrapper.yaml`,
-`.harness/manifest.json`, presets at their recorded commits (from `$HARNESS_HOME` or their source), the native files
-listed above, `harnessw`, `AGENTS.md`, `README.md`, `CLAUDE.md`, `.gitignore`, `.mise/tasks/`, `.agents/memory/`, the
-files and skills named by `static` context entries with `skills-lock.json`, the git index (tracked paths).
+`.harness/manifest.json`, the native files listed above, `harnessw`, `AGENTS.md`, `README.md`, `CLAUDE.md`,
+`.gitignore`, `.mise/tasks/`, `.agents/memory/`, the files and skills named by `static` context entries with
+`skills-lock.json`, the git index (tracked paths).
 Files written: the outputs listed in [What render writes](#what-render-writes).
 
 ## Examples
@@ -338,13 +335,12 @@ modules: { hooks: true, verify: true, tasks: true, ralph: false, memory: true, s
 | Symptom | Cause | Fix |
 | --- | --- | --- |
 | `--check` fails in CI but passes locally | Uncommitted rendered files or manifest | Commit the rendered files and the manifest |
-| A preset change upstream does not show up | `render` uses the recorded commit | `./harnessw render --refresh`, or move the preset's `@<ref>` |
 | `--check` lists `AGENTS.md` block `commands` | Someone edited inside the markers | Move the text outside the markers, run `./harnessw render` |
 | `--check` lists `harnessw` | The script was edited by hand | `./harnessw render` restores it |
 | A key you added to `settings.json` disappeared | It was inside an owned key (`permissions.*`) | Put the rule in `policy.yaml` |
 | The harness skill link is missing | `.claude/skills` is a whole-directory link to `.agents/skills`, so no per-entry link is needed | Nothing to fix |
 | A task shim exits 1 naming `curl`, `wget` or a checksum | `./harnessw` could not download the pinned release | See [wrapper](wrapper.md#troubleshooting) |
-| `doctor` notes that `AGENTS.md` exceeds its budget | A long lane list, a long preset block or many modules | Shorten the preset block, or raise `blocks.agents_md_budget` in the profile if every line earns its place |
+| `doctor` notes that `AGENTS.md` exceeds its budget | A long lane list or many modules | Remove the lanes and modules the repository does not use, or raise `blocks.agents_md_budget` in the profile if every line earns its place |
 
 ## Coexistence
 

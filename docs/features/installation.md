@@ -216,7 +216,7 @@ rm -rf "${HARNESS_HOME:-${XDG_CACHE_HOME:-$HOME/.cache}/harness}" ~/.config/harn
 
 | Path | Holds |
 | --- | --- |
-| `$HARNESS_HOME` (default `$XDG_CACHE_HOME/harness`, else `~/.cache/harness`) | `versions/<version>/harness` for each downloaded release, the update-check result, fetched [presets](presets.md) |
+| `$HARNESS_HOME` (default `$XDG_CACHE_HOME/harness`, else `~/.cache/harness`) | `versions/<version>/harness` for each downloaded release, the update-check result, the signature-check result of `doctor` |
 | `~/.config/harness/fleet.yaml` | your default [fleet](fleet.md) file |
 
 ## Troubleshooting

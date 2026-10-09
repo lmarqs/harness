@@ -38,8 +38,8 @@ or PRD files are clone-local helpers; linking a task to an issue (for example wi
 agent's or a person's job.
 
 Everything that leaves the clone (a push, a pull request, a CI trigger, a notification) is a
-[lifecycle action](lifecycle.md) the repository or its [preset](presets.md#lifecycle-actions-in-a-preset) declares,
-such as `gh pr create` under `deliver`. Those actions run with the credentials of whoever fires them, through the
+[lifecycle action](lifecycle.md) the repository declares in its own `.harness/hooks.yaml`, such as `gh pr create`
+under `deliver`. Those actions run with the credentials of whoever fires them, through the
 platform's own CLI. A repository that declares none never has anything leave the clone through `harness`.
 
 ## Beads
@@ -50,7 +50,7 @@ platform's own CLI. A repository that declares none never has anything leave the
 | An existing `.beads/` | used exactly as found: remotes, sync settings and hooks untouched |
 | A database synchronised across machines | works; what `harness` writes into it (claims, notes, verification comments) travels where the repository's synchronisation sends it, and `harness` never configures that synchronisation ([ADR 0012](../adrs/0012-write-boundary.md)) |
 | `.beads/` tracked in git | works; no `beads` block is written to `.gitignore` |
-| A tracker remote you want agents never to push to | add a `deny` entry to the policy or a preset; the built-in base has none |
+| A tracker remote you want agents never to push to | add a `deny` entry to the repository's policy; the built-in base has none |
 
 ## ralph-tui
 
@@ -152,7 +152,8 @@ An adopted repository's CI/CD is unchanged:
 - `./harnessw render --check` and `./harnessw doctor` are optional steps you may add ([render](render.md#drift-check));
   the wrapper downloads the pinned release over HTTPS and verifies its checksum, so CI runs exactly the release the
   pull request pins ([wrapper](wrapper.md#ci));
-- presets are checked at their recorded commits, so an upstream preset change never fails CI by itself.
+- the drift check reads only the repository's files and the pinned release, so its result changes only with a
+  commit to the repository ([ADR 0013](../adrs/0013-organization-content.md)).
 
 ## Versions
 
