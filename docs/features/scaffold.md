@@ -1,0 +1,335 @@
+# scaffold
+
+`harness scaffold` sets a repository up for `harness`. On a repository with no agent setup it writes everything from a
+stack preset (greenfield). With `--adopt` it takes over an existing hand-written setup, imports every permission rule
+and hook it finds into the repository files without losing one, and lists what needs judgement as a to-do for an
+agent.
+
+## When to use it
+
+| Situation | Command |
+| --- | --- |
+| No `.claude/settings.json` permissions or hooks, no workflow tasks of its own | `harness scaffold` |
+| Hand-written permissions or hooks in `.claude/settings.json`, `CLAUDE.md` with content, existing skills | `harness scaffold --adopt` |
+| An existing workflow engine: mise tasks named `verify`/`ralph:*`/`worktree:*`, a root `.ralph-tui/`, a `.beads/` | `harness scaffold --adopt` |
+| The repository already has `.agents/harness.yaml` | Not `scaffold`: edit the files and run [`harness render`](render.md) |
+| Many repositories at once | [`harness fleet scaffold`](fleet.md) |
+
+Not sure which class a repository is in? Run `harness scaffold --adopt --dry-run`: on a greenfield repository it
+finds nothing to import and behaves like a plain scaffold.
+
+## How it works
+
+### Greenfield
+
+1. **Detect.** The stack from marker files, the default branch from `origin/HEAD`, whether mise is configured.
+2. **Plan.** Build the list of files, blocks and links to write. With `--dry-run`, print it and stop.
+3. **Confirm.** Show the plan and ask. `--yes` skips the question. Without a terminal and without `--yes`, nothing is
+   written and the command exits 3.
+4. **Seed** the repository files, once:
+   - `.agents/harness.yaml` from the stack preset (commands, lanes, post-edit hooks, modules);
+   - `.agents/policy.yaml` with one seeded entry, `[harness, lifecycle, run, deliver]` under `shared.ask`, so the agent's
+     own permission prompt asks a person before an agent runs the repository's delivery actions; the repository may move or remove it
+     ([policy](policy.md#the-seeded-entry));
+   - `.agents/hooks.yaml` from the stack preset, with no `lifecycle` actions: the binary ships none;
+   - `.agents/memory/` skeleton, when the `memory` module is on.
+5. **Render** everything else, exactly as [`harness render`](render.md) does: native agent files, the harness skill
+   and its links, mise wrappers, managed blocks, the manifest.
+
+After this, the seeded files belong to the repository. `scaffold` never rewrites them; `render` reads them.
+
+### Stack detection and presets
+
+| Preset | Detected from | Seeds |
+| --- | --- | --- |
+| `node` | `package.json` | lint and build commands, test lanes, a lint-on-edit hook for source files |
+| `go` | `go.mod` | lint and build commands, a `go test` lane, a format-on-edit hook for `*.go` |
+| `terraform` | `*.tf` files | format command, `validate` and `plan` lanes, a format-on-edit hook, `modules.ralph: false` |
+| `python` | `pyproject.toml` or `requirements.txt` | lint command, a test lane, a lint-on-edit hook |
+| `generic` | nothing recognised | no lanes and no post-edit hook; every module off except the core |
+
+A polyglot repository gets the presets of every detected stack merged: their lanes, commands and hooks side by side.
+`--preset` replaces detection with one preset. Stack presets only seed the first version of the profile and hooks
+file; they are not related to the [`extends` presets](presets.md) that keep adding entries at every render.
+
+### Front door
+
+| `--front-door` | Default when | Effect |
+| --- | --- | --- |
+| `mise` | the repository has mise configuration | `harness` writes one-line mise task wrappers (`mise run verify`, `mise run task`, …) and the `commands` block shows mise commands |
+| `binary` | no mise configuration | no wrappers; the `commands` block shows `harness` commands |
+
+The choice is stored as `front_door` in the profile and can be changed there later.
+
+### Files created when absent
+
+| File | Created with |
+| --- | --- |
+| `AGENTS.md` | only the managed blocks; the prose is for people and agents to write |
+| `CLAUDE.md` | only the `import` block, a single `@AGENTS.md` line |
+| `.gitignore` | only the `ignore` block |
+
+When these files exist, `scaffold` appends its blocks at the end and touches nothing else. `README.md` is never
+created; when it exists, it receives the `commands` and `files` blocks.
+
+## Adopt
+
+`harness scaffold --adopt` runs the greenfield steps, and first imports what the repository, and optionally its
+contributors' personal settings, already configure. The import is lossless: every permission rule in the project scope
+is still in effect after adoption, or adoption stops.
+
+### Import scopes
+
+`--import <scope>[,<scope>...]` chooses where adoption reads from. It takes a comma-separated set from the closed
+enumeration `project`, `local`, `user`, `none`. With `--adopt` the default is `project`; without `--adopt` it is
+`none`.
+
+| Scope | Reads | Imported entries |
+| --- | --- | --- |
+| `project` | `.claude/settings.json` `permissions.allow`, `ask`, `deny`; every `.codex/rules/*.rules` file; hooks in `.claude/settings.json` and `.codex/hooks.json`; any other permission source it recognises | committed as the repository's own |
+| `local` | `.claude/settings.local.json`, `.codex/*.local.toml` | marked for review in the to-do: they are one person's settings and become committed and shared |
+| `user` | `~/.claude/settings.json`, `~/.codex/rules/` | marked for review in the to-do, for the same reason |
+| `none` | nothing | nothing |
+
+Source files of every scope are read, never written. Personal settings keep applying to the person who has them,
+alongside the policy.
+
+### How each source becomes an entry
+
+| Found | Becomes |
+| --- | --- |
+| `Bash(<prefix> *)` rule with a plain word prefix | a prefix list under the same decision, for example `[npm, run, test]`, rendered for both agents |
+| Any other Claude Code rule: `Bash(...)` with a mid-pattern `*`, `WebFetch(domain:...)`, `Read(...)`, `Edit(...)`, a bare tool name, `mcp__server__tool` with globs | a native rule string under the same decision, rendered verbatim for Claude Code |
+| Codex `prefix_rule` with decision `allow`, `prompt` or `forbidden` | a prefix list under `allow`, `ask` or `deny` |
+| A hook in `.claude/settings.json` or `.codex/hooks.json` | a modelled declaration in `hooks.yaml` when it has a shape `hooks.yaml` models, otherwise a `raw` entry under its event, with its matcher, rendered as written so it keeps running without `harness` |
+| A permission file in another tool's dialect | a to-do item for an agent to translate |
+
+See [policy](policy.md#entry-forms) for the three entry forms.
+
+Every imported entry carries a provenance comment naming its file and scope:
+
+```yaml
+shared:
+  allow:
+    # imported from .claude/settings.json (project)
+    - [npm, run, [build, lint, test]]
+    # imported from .claude/settings.json (project)
+    - "WebFetch(domain:pkg.go.dev)"
+    # imported from ~/.claude/settings.json (user); review: personal setting, now shared
+    - [kubectl, get]
+```
+
+### Conflicts and invariants
+
+| Situation | Result |
+| --- | --- |
+| The same entry under the same decision in several sources | one entry; its provenance comment names every source |
+| The same pattern under `allow` and under `deny` | the entry is kept under `deny` only, and a to-do item asks a person to confirm |
+| An entry that would weaken a [built-in invariant](concepts.md#built-in-invariants), such as allowing a permission-bypass flag or a force push to the default branch | dropped, and reported by name in the output |
+
+### Not policy: notes
+
+These settings are not permission rules. Adoption leaves them where they are and reports each one as a note:
+
+- Claude Code `defaultMode` and `additionalDirectories`;
+- Codex `approval_policy` and `sandbox_mode`;
+- MCP server definitions;
+- enterprise and managed settings.
+
+Other `.codex/rules/*.rules` files stay in place and keep applying; a note names them, so the repository can delete
+them once it has reviewed the imported entries.
+
+### The equivalence check
+
+Before writing anything, adoption renders the new repository files and compares, per agent, the effective rule set
+they produce with the rule set in effect before adoption. Every project-scope rule must still be in effect, with the
+same decision. Entries dropped for weakening an invariant are reported separately and are not part of the comparison.
+
+When a rule would be lost, adoption writes nothing and exits 2, naming the rule, its source file and the agent:
+
+```text
+equivalence: Bash(gh api *) from .claude/settings.json (project) is not in effect for claude after adoption
+```
+
+### What is kept as it is
+
+| Found | Treatment |
+| --- | --- |
+| Keys of `.claude/settings.json` other than `permissions` and harness hook entries (`env`, `model`, `statusLine`, `$schema`, …) | preserved byte for byte |
+| `.claude/settings.local.json`, `*.local.toml`, user-level settings | never written; local override files are read only by `scaffold --import local`, user-level settings only by `scaffold --import user` |
+| Real `.claude/skills/`, `.claude/commands/`, `.claude/agents/` directories | stay where they are; the harness skill is added as one link inside |
+| Whole-directory links (`.claude/skills -> ../.agents/skills`) | stay; the harness skill is reached through them |
+| `CLAUDE.md` content | untouched; the one-line `import` block is added (root `CLAUDE.md`, or `.claude/CLAUDE.md` when only that exists) |
+| An existing `.beads/` | used as found, never reconfigured |
+| A root `.ralph-tui/` | never read or written, unless the profile sets `ralph.config: inherit` |
+| Existing mise tasks | never overwritten |
+| `core.hooksPath`, git hooks, Husky | untouched |
+| `.gitignore` entries | untouched; the `ignore` block omits paths the repository tracks (for example a versioned `.beads/`) |
+| `.claude/worktrees/` | Claude Code's; never scanned |
+
+### The to-do
+
+What adoption cannot resolve deterministically, it prints as a to-do. The same list appears in
+[`harness doctor`](doctor.md) (and `harness doctor --json`) until each item is resolved.
+
+| Item | Raised when | Resolved when |
+| --- | --- | --- |
+| Personal entry to review | an entry was imported from the `local` or `user` scope | its `review:` marker is gone from the provenance comment: the entry was kept on purpose, or removed |
+| Allow/deny conflict | a pattern was both allowed and denied | its `review:` marker is gone: the deny stays, or a person removes it |
+| Foreign permission dialect | a permission file in another tool's format was found | an agent has expressed its rules in `policy.yaml` and the file is retired |
+| Task name collision | a mise task already uses a wrapper name; `harness` wrote `harness:<name>` instead | the repository's own task is removed or renamed; the next render writes the plain name |
+| `.agents/AGENTS.md` instead of a root `AGENTS.md` | the repository keeps instructions under `.agents/` | the content is moved to the root `AGENTS.md`, which Codex reads |
+| Pending skills | a declared skill source is not installed | [`harness skills sync`](skills.md) has run |
+
+`doctor` derives every item from the repository's current state, so an item closes as soon as its condition is gone.
+
+Adoption also prints notes that need a decision but are not to-do items, because keeping things as they are is valid:
+
+- `CLAUDE.md` has content: consider moving instructions shared by every agent to `AGENTS.md`.
+- A root `.ralph-tui/config.toml` exists: direct ralph-tui use keeps working; set `ralph.config: inherit` to reuse
+  its agents and templates in harness-launched runs (see [ralph](ralph.md#managed-and-inherited-configuration)).
+- The settings listed under [Not policy](#not-policy-notes).
+
+An agent finishes the adoption with the harness skill: ask it to "finish the harness adoption"; it reads
+`harness explain adoption`, edits the repository files, and runs `harness render --check` and `harness doctor` until
+both pass.
+
+Importing the `local` or `user` scope publishes one person's permissions to everyone who uses the repository. Review
+those entries as you would any policy change; see [safety](safety.md).
+
+## Reference
+
+```text
+harness scaffold [--adopt] [--import <scope>[,<scope>]...] [--preset <go|node|terraform|python|generic>]
+                 [--front-door mise|binary] [--yes] [--dry-run]
+```
+
+| Flag | Default | Meaning |
+| --- | --- | --- |
+| `--adopt` | off | Import an existing setup and emit a to-do |
+| `--import <scope>[,<scope>]...` | `project` with `--adopt`, else `none` | Scopes to import, as a comma-separated set from the closed enumeration `project`, `local`, `user`, `none` |
+| `--preset <name>` | detected | Use this stack preset instead of detection: `go`, `node`, `terraform`, `python`, `generic` |
+| `--front-door mise\|binary` | `mise` when mise is configured, else `binary` | Whether to write mise task wrappers |
+| `--yes` | off | Do not ask for confirmation |
+| `--dry-run` | off | Print the plan, the generated `policy.yaml` and `hooks.yaml`, and the equivalence report; write nothing |
+
+Global flags `-C <dir>`, `--json`, `--verbose` also apply; see [CLI reference](cli.md).
+
+| Exit code | Meaning |
+| --- | --- |
+| 0 | Scaffolded or adopted. With `--adopt`, open to-do items do not change the exit code |
+| 1 | Error, including a repository that already has `.agents/harness.yaml` |
+| 2 | The equivalence check found a project-scope rule that would not be in effect; nothing was written |
+| 3 | Confirmation needed and no terminal: rerun with `--yes`, or from a terminal |
+
+Files read: marker files for detection, `.git` (default branch, tracked paths), mise configuration and tasks,
+`.claude/settings.json`, `.codex/rules/`, `.codex/hooks.json`, `CLAUDE.md`, `.claude/CLAUDE.md`, `.gitignore`,
+`.claude/skills`; with `--import local`, `.claude/settings.local.json` and `.codex/*.local.toml`; with
+`--import user`, `~/.claude/settings.json` and `~/.codex/rules/`.
+Files written: see [render](render.md#what-render-writes), plus the seeded `.agents/harness.yaml`,
+`.agents/policy.yaml`, `.agents/hooks.yaml` and `.agents/memory/`.
+
+## Examples
+
+### A Node API, greenfield
+
+```sh
+$ cd ~/src/acme-api
+$ harness scaffold --dry-run
+detected: node (package.json); default branch: main; mise: yes
+would write:
+  .agents/harness.yaml  .agents/policy.yaml  .agents/hooks.yaml  .agents/memory/
+  .agents/skills/harness/SKILL.md  .claude/skills/harness  .codex/skills/harness
+  .claude/settings.json  .codex/config.toml  .codex/hooks.json  .codex/rules/harness.rules
+  .mise/tasks/verify  .mise/tasks/task  .mise/tasks/worktree/create  .mise/tasks/worktree/remove
+  AGENTS.md (new)  CLAUDE.md (new)  README.md (blocks)  .gitignore (block)
+  .agents/.harness/manifest.json
+$ harness scaffold --yes
+$ git add -A && git commit -m "chore: adopt harness"
+```
+
+Then review the seeded lanes in `.agents/harness.yaml` against the repository's real test commands.
+
+### A Terraform repository, greenfield, without mise
+
+```sh
+$ cd ~/src/acme-infra
+$ harness scaffold --preset terraform --front-door binary --yes
+```
+
+The profile gets `validate` and `plan` lanes and `modules.ralph: false`; no wrappers are written, and the `commands`
+block in `AGENTS.md` shows `harness verify …`.
+
+### A Go repository with hand-written Claude and Codex settings
+
+```sh
+$ cd ~/src/acme-cli
+$ harness scaffold --adopt --dry-run
+--- .agents/policy.yaml (generated)
+schema: 1
+shared:
+  allow:
+    # imported from .claude/settings.json (project)
+    - [go, [build, test, vet]]
+    # imported from .claude/settings.json (project)
+    - "WebFetch(domain:pkg.go.dev)"
+    # imported from .codex/rules/default.rules (project)
+    - [golangci-lint, run]
+  ask:
+    - [harness, lifecycle, run, deliver]
+  deny:
+    # imported from .claude/settings.json (project)
+    - [goreleaser, release]
+worker: { deny: [] }
+--- .agents/hooks.yaml (generated)
+schema: 1
+raw:
+  PostToolUse: [{ matcher: Edit|Write, run: ./scripts/format-edited.sh }]
+  Stop: [{ run: ./scripts/notify.sh }]
+--- equivalence
+claude: 14 of 14 project rules in effect
+codex: 3 of 3 project rules in effect
+dropped: Bash(git push --force origin main) weakens an invariant
+note: .codex/rules/default.rules still applies; delete it once the import is reviewed
+note: defaultMode in .claude/settings.json is not policy; left in place
+$ harness scaffold --adopt --yes
+to-do:
+  1. mise task "verify" exists; wrapper written as harness:verify
+note: CLAUDE.md has content; consider moving shared instructions to AGENTS.md
+$ claude "finish the harness adoption"
+$ harness doctor
+```
+
+### Importing a person's settings too
+
+```sh
+$ harness scaffold --adopt --import project,local --yes
+to-do:
+  1. review [docker, compose, up] imported from .claude/settings.local.json (local): now shared with everyone
+```
+
+## Guidelines
+
+- Do run `--dry-run` first on any repository you did not create, and read the equivalence report.
+- Do commit the scaffold as its own commit, so later changes to the repository files are reviewable on their own.
+- Do review the seeded lanes and commands: presets guess from the stack, the repository knows its real commands.
+- Do give the to-do to an agent with the harness skill; it is written for that.
+- Do import `local` or `user` only when those settings are meant for everyone, and review each entry they bring.
+- Don't run `scaffold` again to "refresh" a repository: edit the repository files and run `harness render`.
+- Don't hand-edit rendered files to finish an adoption; the next render overwrites them and `render --check` fails.
+
+## Troubleshooting
+
+| Symptom | Cause | Fix |
+| --- | --- | --- |
+| `.agents/harness.yaml already exists` | The repository is already scaffolded | Use `harness render`; to start over, `harness remove` first |
+| Exit 3 in a script | No terminal to confirm | Pass `--yes` |
+| Exit 2 naming a rule | The equivalence check found a project rule the new files would not keep in effect | Report the rule to the `harness` project; meanwhile adopt with the rule moved to `settings.local.json` |
+| Wrong stack detected | Marker files of another stack are present (for example a `package.json` for tooling in a Go repository) | Rerun with `--preset`, or edit the profile afterwards |
+| Wrappers named `harness:verify` | The repository already had a `verify` task | Reconcile the two tasks, remove the old one, run `harness render` |
+| A rule allowing a force push is missing after adopt | It weakens a built-in invariant and was dropped | Nothing to restore; the invariant holds in every repository |
+
+## Coexistence
+
+`scaffold` never moves or rewrites what it did not create. See [compatibility](compatibility.md) for the full list,
+including GitHub, existing Beads databases, direct ralph-tui use, mise tasks and other agents' files.
