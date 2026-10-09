@@ -62,9 +62,9 @@ follow every model change; a tool that competed with them would carry credential
   under the worker contract. Why: the agent owns those connections, their credentials and their permissions.
 - The binary never writes knowledge: no free prose, no memory entries, no domain skills, no policy entries invented on
   the user's behalf, because knowledge needs judgement. It writes rendered files, managed blocks whose text is derived
-  from the repository files (fixed sentences stating a convention with its configured values, tables, lists), and the
-  repository files (`config.yaml`, `policy.yaml`, `hooks.yaml`, `wrapper.yaml`) only when seeding, migrating or
-  re-pinning them.
+  from the repository files (fixed sentences stating a convention with its configured values, tables, lists), the
+  repository files (`config.yaml`, `policy.yaml`, `hooks.yaml`) only when seeding or migrating them, and the owned pin
+  `wrapper.yaml` only when scaffolding or re-pinning.
 - The binary contains no logic for any hosting platform and never writes the team's record of work: no issues,
   projects, boards, comments, reviews or labels. Why: the team's record already has writers under the team's own
   conventions, and platform logic in the binary binds every release to one platform. Everything that leaves the

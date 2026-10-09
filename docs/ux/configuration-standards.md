@@ -111,12 +111,13 @@ ralph:
 
 ## Ownership
 
-- The repository files `config.yaml`, `policy.yaml` and `hooks.yaml` are seeded: harness writes them once at
-  `scaffold` or `scaffold --adopt`, and from then on they belong to the repository. harness writes them again only to
-  migrate a schema. `wrapper.yaml` and `manifest.json` are owned: harness writes them on scaffold, render and re-pin
-  (`harness wrapper`); `wrapper.yaml` carries a header naming the operation that changes it, and `manifest.json`,
-  being JSON, carries none. Each such write is shown before it happens, through `--dry-run` and the confirmation rules
-  in [cli-standards.md](cli-standards.md#confirmations---yes-and---force). Why: the seeded files hold the repository's
+- The repository files `config.yaml`, `policy.yaml` and `hooks.yaml` are seeded: harness writes them once at `scaffold`
+  or `scaffold --adopt`, and from then on they belong to the repository. harness writes them again only to migrate a
+  schema. `wrapper.yaml` and `manifest.json` are owned: harness writes `wrapper.yaml` on scaffold and re-pin
+  (`harness wrapper`) and `manifest.json` on scaffold, render and re-pin; `wrapper.yaml` carries a header naming the
+  operation that changes it, and `manifest.json`, being JSON, carries none. Each such write is shown before it happens,
+  through `--dry-run` and the confirmation rules in
+  [cli-standards.md](cli-standards.md#confirmations---yes-and---force). Why: the seeded files hold the repository's
   choices, so harness must not overwrite them; the owned files hold facts harness computes.
 - When harness writes one of these files, it preserves comments, key order and blank lines that it does not need to
   change, because people annotate them.
