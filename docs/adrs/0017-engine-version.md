@@ -1,0 +1,170 @@
+# 0017. Each repository pins its engine release through a committed wrapper
+
+## Context
+
+- One person may work across about thirty repositories, with teammates and CI runners working in the same ones. Unless
+  something pins the release, a teammate's machine, a CI runner and the release a repository was last rendered with
+  can all differ.
+- Generated artefacts are committed and drift-checked ([0007](0007-ownership.md)). Rendering rules change between
+  releases, so with different releases on different machines, the drift check passes on one machine and fails on
+  another for the same commit.
+- Build tools pin themselves per repository with a committed wrapper. Gradle's wrapper, as its user guide documents, is
+  checked into version control, pins the distribution in a committed properties file, downloads the distribution on
+  first use into a per-user directory, and fails the build when an optional configured SHA-256 checksum does not match.
+  A clone runs the pinned version without a prior installation of the build tool.
+- A newcomer to a repository has installed nothing; the first command they run is the one the repository's
+  instructions name.
+- Across 51 surveyed repositories, 12 do not use the task runner the others share
+  ([0004](0004-runtime-dependencies.md)). A pin kept in that task runner's tool list does not reach them.
+- A version pinned in two places drifts: after the first upgrade that touches only one of them, the two disagree.
+- Agent hooks must not fail or stall a session because the binary is missing
+  ([0010](0010-dependence-on-the-binary.md)), and a hook invocation adds at most 50 ms at p95
+  ([0003](0003-implementation-language.md)). A download inside a hook breaks both.
+- A fresh clone whose hooks find no binary runs agent sessions without the tool's hooks, and the agent has no way to
+  know why.
+- The tool is one executable with its templates embedded ([0003](0003-implementation-language.md)); it needs only the
+  operating system and git at runtime ([0004](0004-runtime-dependencies.md)); a repository holds no engine code
+  ([0006](0006-repository-contract.md)).
+- Starting a container from an image already present measured 565 to 875 ms in ten runs on a developer workstation.
+- Releases appear while repositories stay on what they pinned; a person learns of a newer release only when something
+  tells them.
+
+## Decision
+
+1. The default entry point to the tool in a repository is a wrapper script committed at the repository root. The binary
+   renders it from a template embedded in itself ([0003](0003-implementation-language.md)) and records it as owned
+   ([0007](0007-ownership.md)).
+2. The repository pins one exact release in a committed file in the tool configuration directory
+   ([0014](0014-directory-layout.md)), together with the SHA-256 checksum of that release's binary for each supported
+   platform. The pin is repository data ([0006](0006-repository-contract.md)) and exists in exactly one place.
+3. A pin is written only by adoption and by an explicit upgrade operation, for a release admitted under
+   [0021](0021-release-trust.md); the result is reviewed as a diff.
+4. The wrapper resolves the pinned release in a per-user cache. When the release is absent and the call is explicit,
+   the wrapper downloads it over HTTPS, verifies it against the committed checksum, refuses on a mismatch without
+   caching anything, and then executes it with the caller's arguments. Once cached, it runs offline.
+5. Implicit entry points never download. An agent hook calls the wrapper in a mode that runs only a cached binary; when
+   none is cached, the hook writes one line on stderr naming the wrapper and exits successfully, and the session-start
+   hook tells the agent once per session that the pinned release is not cached on this machine and how to fetch it. An
+   explicit entry point that cannot obtain or verify the pinned binary exits non-zero, so an absent check is never
+   reported as a passing one ([0010](0010-dependence-on-the-binary.md)).
+6. An environment override makes the wrapper execute a binary at a given path instead, for machines without network
+   access and for development of the tool itself.
+7. A global installation is optional. Inside a repository whose pin names a different release, a globally installed
+   binary executes the pinned release from the cache, and downloads it through the same verified path only when invoked
+   explicitly, never from a hook. Outside such repositories it runs itself.
+8. The wrapper contains no engine logic: it resolves, downloads, verifies and executes. Every command runs in the
+   binary.
+9. A pin of the tool found in a task runner's tool list is reported by the health check. Adoption copies it into the
+   pin and lists its removal as unresolved, without editing the task runner's file ([0012](0012-write-boundary.md)).
+10. The binary looks for a release newer than the pin at most once a day, caches the answer, never blocks or fails
+    because of the lookup, works offline, and skips the lookup when an environment variable disables it.
+11. CI needs no wrapper ([0010](0010-dependence-on-the-binary.md)). A pipeline that opts in to the tool's checks runs
+    them through the wrapper and gets the pinned release, verified.
+
+## Reasons
+
+- **1, 4.** A committed wrapper is the one entry point every clone has without an installation step, which is why build
+  tools use the same pattern: a newcomer runs the command the repository's instructions name and gets the right
+  release. Rendering it from a template in the binary keeps it consistent with the release that wrote it, and recording
+  it as owned makes a hand edit visible as drift ([0007](0007-ownership.md)). Downloading on first explicit use into a
+  per-user cache costs the network once per release per machine; every later run is offline.
+- **2.** One exact release per repository makes every machine, every pipeline and the committed artefacts agree, so the
+  drift check gives the same answer everywhere. Per-platform checksums let the wrapper verify what it downloads without
+  trusting the download host alone. One place, because two pins drift apart after the first upgrade that touches only
+  one.
+- **3.** A new release can change rendering and migrate schemas ([0005](0005-schema-compatibility.md)). An explicit,
+  reviewed upgrade lands that change in one diff, instead of whenever a teammate's machine updates. Requiring an
+  admitted release ([0021](0021-release-trust.md)) means the committed checksums are ones an already trusted binary
+  verified, not whatever the person upgrading happened to download.
+- **5.** A download inside a hook breaks both the no-failure rule of [0010](0010-dependence-on-the-binary.md) and the
+  50 ms budget of [0003](0003-implementation-language.md). Without a hint, a fresh clone's agent works without the
+  tool's hooks and cannot tell why; one line in its context per session tells it the fix, and limiting it to one line
+  keeps the cost in tokens and noise fixed.
+- **6.** A machine without network access, or a person developing the tool, needs to run a binary that no pin names.
+  An environment override is explicit for one environment and leaves the committed pin unchanged.
+- **7.** People who install globally keep using the short command. Deferring to the pin keeps the one-release guarantee
+  of point 2 for them as well; never downloading from a hook follows point 5.
+- **8.** A repository holds no engine code ([0006](0006-repository-contract.md)). Resolving, downloading, verifying
+  and executing is the minimum a clone needs to reach the binary; any further logic in the wrapper would be engine code
+  copied into every repository, beyond the reach of a release.
+- **9.** Two pins drift apart (point 2), so the task runner's pin is reported. The task runner's file belongs to the
+  repository, not to the tool ([0012](0012-write-boundary.md)), so adoption lists its removal for a person instead of
+  editing it.
+- **10.** Without a notice, a repository stays on its pinned release indefinitely. The lookup must never cost a session
+  or a pipeline anything, so it is cached, non-blocking and offline-safe, and it can be disabled for CI and machines
+  without network access.
+- **11.** CI stays free of any requirement ([0010](0010-dependence-on-the-binary.md)); a pipeline that chooses to run
+  the checks gets the same verified release as every developer.
+
+## Rejected alternatives
+
+### Global installation only
+
+One installation per machine serves every repository. At its best, no repository carries a script or a pin, a release
+costs no change in any repository, and no first run needs the network. It loses because releases skew between
+machines, pipelines and the rendered repository, so the drift check passes on one machine and fails on another; a
+teammate with an older binary is refused by a newer schema ([0005](0005-schema-compatibility.md)) until they update;
+every CI job chooses its own release; and a newcomer installs the tool before the first command works.
+
+### Pin through a task runner's tool list
+
+The repository lists the tool and its version in the tool list of the task runner it already uses, and the task runner
+installs and selects that version. At its best, there is no new script and no new file, and the pin sits beside the
+repository's other tool versions. It loses because the pin reaches only machines where that task runner is installed,
+which excludes the 12 of 51 surveyed repositories that do not use it ([0004](0004-runtime-dependencies.md)); agent
+hooks get the pinned version only when the task runner's activation is present in the agent's environment; and pinning
+depends on a third-party tool.
+
+### Vendored binary in the repository
+
+The repository commits the binary for each platform. At its best, a clone runs the pinned version offline from its
+first command, with no download, cache or checksum step. It loses because every release adds four platform binaries
+([0003](0003-implementation-language.md)) to the permanent history of every repository; a change to a binary cannot be
+reviewed as a diff; and the repository carries engine content ([0006](0006-repository-contract.md)).
+
+### Container image
+
+The repository names an image that contains the pinned binary, and entry points run the tool inside it. At its best,
+the image pins the binary and its environment together, and CI systems that run jobs in images use it directly. It
+loses because every machine needs a container runtime ([0004](0004-runtime-dependencies.md)); a container start
+measured 565 to 875 ms against the 50 ms hook budget ([0003](0003-implementation-language.md)); and the tool must reach
+the working tree and the git state from inside the container.
+
+## Consequences
+
+Costs:
+
+- The first explicit run on a machine needs network access, a POSIX shell, a downloader and a checksum tool. These are
+  requirements of the wrapper, not runtime dependencies of the binary ([0004](0004-runtime-dependencies.md)).
+- Each release reaches a repository only through a change to its pin. The change is generated and can be produced for
+  many repositories in one operation, but each repository reviews its own.
+- A teammate who never runs an explicit entry point gets nothing from the tool's hooks beyond the stderr line and the
+  session hint ([0010](0010-dependence-on-the-binary.md)).
+- The environment override skips the checksum; what runs is whatever the person placed at that path. The override,
+  and a global binary too old to defer to pins, are the two ways to run another release inside a pinned repository.
+- The repository carries one tool-owned script longer than one line; a hand edit to it is drift
+  ([0007](0007-ownership.md)).
+- Windows is not served ([0003](0003-implementation-language.md)).
+
+Must be maintained:
+
+- The wrapper's portability across POSIX shells, downloaders and checksum tools on Linux and macOS, and its scope:
+  resolve, download, verify, execute.
+- A published checksum for every platform binary of every release ([0021](0021-release-trust.md)).
+- The hook budget of [0003](0003-implementation-language.md), measured through the wrapper.
+
+## Confirmation
+
+- A test runs the wrapper with an empty cache against a release fixture and asserts that it verifies the checksum,
+  caches the binary and executes it with the given arguments; with a wrong checksum it exits non-zero and caches
+  nothing.
+- A test runs every rendered implicit entry point with an empty cache and no network, and asserts exit status 0, one
+  stderr line naming the wrapper, no network access, and exactly one line of session context from the session-start
+  hook.
+- A test runs a global binary inside a fixture pinned to another release and asserts that the pinned release runs, and
+  that a hook invocation never downloads.
+- A fixture that also pins the tool in its task runner's tool list is reported by the health check; adoption of it
+  copies the pin, lists the removal as unresolved, and leaves the task runner's file byte-identical.
+- A test asserts that the release lookup returns promptly offline and makes no network call when disabled.
+- CI runs the wrapper tests on Linux and macOS with each supported downloader and checksum tool.
+- The hook benchmark of [0003](0003-implementation-language.md) runs through the wrapper and fails above 50 ms at p95.

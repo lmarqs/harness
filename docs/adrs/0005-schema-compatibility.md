@@ -1,0 +1,75 @@
+# 0005. Every repository file carries a schema version the binary enforces
+
+## Context
+
+- The repository's data files are a public contract that many repositories depend on
+  ([0006](0006-repository-contract.md)). A change to their shape is a migration in each of them.
+- Each repository pins the release that serves it ([0017](0017-engine-version.md)). Releases still meet files that were
+  not written for them: a global binary too old to defer to the pin, an environment override that runs a locally built
+  binary, a branch whose pin differs from the checkout a person is in, and every upgrade that moves the pin forward.
+- A binary that reads a file written for a newer shape can misread or drop fields it does not know, then rewrite that
+  file and the files rendered from it with outdated rules. A dropped field can be a deny rule or a guard.
+- Generated artefacts are committed and drift-checked ([0007](0007-ownership.md)). Any value in them that changes with
+  the binary's release shows as drift after every upgrade.
+- Most releases change behaviour without changing the shape of any file.
+
+## Decision
+
+1. Each repository file the tool reads carries an integer schema version, and the binary validates the file against that
+   schema before acting on it.
+2. The binary refuses a file whose schema is newer than it supports, with a message naming the release needed.
+3. The binary migrates a file with an older schema and shows the diff.
+4. Generated artefacts record the schema version and never the binary version.
+5. Schema changes are rare. Migrations exist from every schema inside a documented support window.
+
+## Reasons
+
+- **1.** An integer that versions the file's shape separates the contract from the release; because most releases keep
+  the shape, most upgrades touch no repository file. Validation before action stops a malformed file before anything is
+  written.
+- **2.** Refusal is the only safe response to fields the binary does not know: proceeding would misread or drop them and
+  carry the loss into rendered permissions. Naming the release turns the refusal into one step a person can take. The
+  trade: a person with an older binary is blocked on that repository until they update.
+- **3.** Migration keeps older repositories usable after an upgrade, and showing the diff keeps the change reviewable
+  like every other generated change ([0007](0007-ownership.md)).
+- **4.** With only the schema recorded, an upgrade that keeps the shape leaves every committed artefact byte-identical,
+  so drift always means a real difference. The pin ([0017](0017-engine-version.md)) is the one committed record of a
+  release.
+- **5.** Each schema change costs one migration in every adopting repository and one more code path in the binary.
+  Keeping changes rare bounds the first cost; a support window bounds the second.
+
+## Rejected alternatives
+
+### The binary version as the contract
+
+Files record the release that wrote them, and a binary refuses files from newer releases. At its best, there is no
+second number to manage. It loses because every upgrade shows as drift, and a release that changes no file shape still
+blocks every teammate who has not upgraded.
+
+### Tolerant reading: unknown fields are ignored
+
+At its best, older binaries keep working with newer files. It loses because an ignored field can be a deny rule or a
+guard; ignoring it silently widens what agents may do, and the next render writes the weaker result back.
+
+### No version contract
+
+The latest binary is assumed everywhere. At its best, there is nothing to maintain. It loses because an older binary
+silently rewrites a newer repository's files with outdated rules.
+
+## Consequences
+
+Costs:
+
+- A person with an older binary cannot act on a repository with a newer schema until they update.
+- A schema change is a migration in every adopting repository.
+
+Must be maintained:
+
+- The published schemas, migrations from every schema in the support window, and the window itself.
+
+## Confirmation
+
+- Validation fixtures cover each file, including invalid content and an unknown schema.
+- Fixtures at the previous schema migrate and print a diff; fixtures at a newer schema are refused with a message that
+  names the release.
+- A test asserts that no generated artefact contains the binary version.

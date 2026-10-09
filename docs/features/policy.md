@@ -1,9 +1,13 @@
-# Policy: `.agents/policy.yaml`
+# Policy: `.harness/policy.yaml`
 
 The policy says what agents may do without asking (`allow`), only after a person confirms (`ask`), or never (`deny`),
 plus what Ralph workers alone may not do. It is written once, agent-neutrally where the agents allow it, and rendered
 into each agent's native permission format. A built-in base that holds the tool's invariants is always added and
 cannot be removed.
+
+Commands are named `harness <command>` on this page. Run them through the repository's wrapper,
+`./harnessw <command>`, from the root of a checkout; with a global install, `harness <command>` is equivalent
+([wrapper](wrapper.md)).
 
 ## When to edit it
 
@@ -24,9 +28,10 @@ Then run `harness render` and review the diff of the rendered files.
 The effective policy is the union of:
 
 1. the built-in base ([below](#the-built-in-base));
-2. allow entries for the commands of each enabled module (for example `harness verify` and its wrapper);
+2. allow entries for the commands of each enabled module, rendered for every spelling of those commands
+   ([below](#entries-for-harness-commands));
 3. entries from the preset named by `extends` ([presets](presets.md));
-4. the entries in `.agents/policy.yaml`, applied after the preset's.
+4. the entries in `.harness/policy.yaml`, applied after the preset's.
 
 Lists are unions: no source removes an entry from another, and nothing removes a built-in invariant. When a command
 matches entries with different decisions, the decision is taken in this order, in every agent:
@@ -69,19 +74,40 @@ A string is a native rule string (form 2) when it has the form `Tool(specifier)`
 | bare string | `Bash(<string>)` in the same list | not rendered: Claude-only |
 | `worker.deny` | passed to Claude workers at launch as disallowed tools; also in `permissions.deny` when Claude's role is `worker` | `decision="forbidden"` when Codex's role is `worker` |
 
-Every Claude-only entry is listed as such in the `policy-summary` block of `AGENTS.md`, so a reader sees which rules
-Codex does not enforce. See [agents](agents.md#roles) for what roles change.
+Every Claude-only entry is listed as such in the [`policy` block](#the-convention-in-agentsmd) of `AGENTS.md`, so a
+reader sees which rules Codex does not enforce. See [agents](agents.md#roles) for what roles change.
+
+### Entries for `harness` commands
+
+An agent can invoke a `harness` command in several spellings: `./harnessw <command>`, the form `AGENTS.md` teaches;
+`harness <command>` with a global install; `harnessw <command>` when the repository root is on `PATH`; and a task
+shim, such as `mise run verify`, where the profile writes one. An entry for a `harness` command names the program
+once, as `harness`:
+
+```yaml
+- [harness, lifecycle, run, deliver]
+```
+
+`render` writes such an entry for every spelling: `harness …`, `./harnessw …`, `harnessw …`, and the task shim's
+`mise run <task> …` when a shim exists for that command. The built-in base, the module entries and the seeded entry
+are written the same way.
+
+A prefix rule still matches only leading words, so an absolute path to the wrapper, or `sh harnessw …`, matches none of
+the rendered spellings ([pitfalls](pitfalls.md#the-wrapper-is-a-second-spelling-of-every-harness-command)). The guards
+that matter therefore never rest on these entries: the binary itself refuses `harness lifecycle run` inside a Ralph
+worker, and it enforces the [`deliver` guards](lifecycle.md#built-in-guards) whoever runs the command. The entries are
+defence in depth: they make an agent stop or ask before it runs the command at all.
 
 ### The built-in base
 
-The base holds only tool-generic invariants. It is not written in `.agents/policy.yaml`; it is added at render time
-and shown in the `policy-summary` block of `AGENTS.md`.
+The base holds only tool-generic invariants. It is not written in `.harness/policy.yaml`; it is added at render time
+and shown in the `policy` block of `AGENTS.md`.
 
 | Invariant | Entries |
 | --- | --- |
 | No force push to the default branch | `shared.deny` entries equivalent to the list below, with `main` replaced by the branch `origin/HEAD` names |
 | No mise `:::` chaining, which runs a second task in the same command and could carry an unlisted task past every rule | `shared.deny`: `"mise * ::: *"` (Claude-only: Codex cannot match mid-command) |
-| Lifecycle actions never run inside a Ralph worker | `worker.deny`: `[harness, lifecycle]`; lifecycle actions run in the launcher process ([lifecycle](lifecycle.md)) |
+| Lifecycle actions never run inside a Ralph worker | `worker.deny`: `[harness, lifecycle]`, rendered for every spelling. The binary refuses `harness lifecycle run` inside a worker on its own; lifecycle actions run in the launcher process ([lifecycle](lifecycle.md)) |
 | Workers never bypass permissions | not a policy entry: the Ralph worker refuses bypass flags; see [ralph](ralph.md#the-worker-contract) |
 
 ```yaml
@@ -110,7 +136,7 @@ ask:
   - [harness, lifecycle, run, deliver]
 ```
 
-Permitting an agent to run `harness lifecycle run deliver` permits everything the `deliver` actions do: they run as
+`render` writes it for every spelling of the command. Permitting an agent to run `harness lifecycle run deliver` permits everything the `deliver` actions do: they run as
 child processes of `harness`, where the agent's per-command permissions do not reach. The seeded `ask` keeps a person
 in the loop before delivery. It is the repository's entry, not an invariant: a repository whose `deliver` actions only
 open draft pull requests may move it to `allow`. Lifecycle actions are committed configuration; review them like
@@ -122,6 +148,54 @@ code ([lifecycle](lifecycle.md), [safety](safety.md)).
 with `--import local` or `--import user`, personal settings. Each imported entry keeps its decision and carries a
 provenance comment, and an equivalence check proves no project rule was lost. See
 [scaffold](scaffold.md#adopt).
+
+### The convention in `AGENTS.md`
+
+`harness render` writes the effective permissions, in plain language, into the `policy` block of `AGENTS.md`: the
+decision order, then every entry grouped by decision, with its source when it is not the repository's file (the
+built-in base, or a preset by its source) and each Claude-only entry marked.
+
+`policy` is a convention block ([concepts](concepts.md#conventions-outlive-the-tool)): it describes the permissions the
+agents' native settings enforce, and stays true when `harness` is gone. Entries for `harness`'s own commands are
+therefore left out of it, since those commands no longer exist after an eject; `./harnessw explain policy` prints the
+complete effective policy, those entries included. For the [Node API](#a-node-api) below, with every module on, task
+shims and no preset:
+
+```markdown
+<!-- harness:policy -->
+Agents in this repository work under these permissions. A denied command never runs, an asked one waits for a person,
+an allowed one runs without a prompt; deny wins over ask, and ask over allow. A command no entry matches is left to
+the agent's own default. Entries marked *Claude Code only* are not enforced in Codex.
+
+Denied:
+- force pushes to `main`: `git push --force origin main` and its other spellings (*built-in*)
+- `mise * ::: *` (*built-in*; *Claude Code only*)
+- `npm publish`
+- `Read(./.env*)` (*Claude Code only*)
+
+Ask a person first:
+- `gh pr merge *--admin*` (*Claude Code only*)
+
+Allowed:
+- `git`
+- `gh pr checkout|checks|comment|create|diff|edit|list|ready|view`
+- `gh run list|view|watch`
+- `npm run build|lint|test|test:e2e|typecheck`
+- `mise run db:reset|docker:up|docker:down`
+- `mcp__acme_observability__search_*` (*Claude Code only*)
+
+Denied to Ralph workers, in addition:
+- `git am|cherry-pick|commit|merge|push|rebase|reset|stash|tag|update-ref|worktree`
+- `git -C`, `git -c`
+- `gh`
+- `mise run db:reset|docker:down`
+<!-- /harness:policy -->
+```
+
+The block states the permissions as facts. After [`harness remove --eject`](remove.md#eject) the markers go and the
+text stays, and the rendered permissions stay in each agent's settings as the repository's own: agents keep working
+under the same rules, and the block keeps describing them. From then on nothing renders them, so a change to one
+settings file has to be made by hand in the other agent's file and in this text.
 
 ## Reference
 
@@ -152,7 +226,7 @@ worker:
 ### A Node API
 
 ```yaml
-# .agents/policy.yaml
+# .harness/policy.yaml
 schema: 1
 shared:
   allow:
@@ -185,7 +259,7 @@ worker:
     - [mise, run, ["db:reset", "docker:down"]]
 ```
 
-`Read(./.env*)` and the two bare strings are Claude-only; the `policy-summary` block lists them so.
+`Read(./.env*)`, the MCP rule and the bare string are Claude-only; the `policy` block lists them so.
 
 ### A Terraform repository
 
@@ -245,6 +319,7 @@ More:
 - Do comment each group of entries with the reason; the reason is what a reviewer evaluates.
 - Do put organization-wide entries in a [preset](presets.md) rather than copying them into every repository.
 - Do express a rule as a prefix list whenever Codex must also enforce it.
+- Do write an entry for a `harness` command once, as `[harness, …]`; `render` writes it for every spelling.
 - Don't use `allow` entries broader than the reason you wrote for them.
 
 [Safety guidelines](safety.md) explains the threat model behind these rules.
@@ -259,7 +334,8 @@ hook-based allow or deny.
 
 | Symptom | Cause | Fix |
 | --- | --- | --- |
-| An allowed command still prompts in Claude Code | An `ask` or a `deny` also matches; or the folder is not trusted | Check `policy-summary` in `AGENTS.md`; trust the folder |
+| An allowed command still prompts in Claude Code | An `ask` or a `deny` also matches; or the folder is not trusted | Check the `policy` block in `AGENTS.md`; trust the folder |
+| `/abs/path/harnessw lifecycle run deliver` or `sh harnessw lifecycle run deliver` runs without the prompt | Prefix rules match leading words; those spellings match none of the rendered ones | Expected: the `deliver` guards are enforced by the binary whatever the spelling. Keep agents on `./harnessw`, the form `AGENTS.md` teaches |
 | A deny works in Claude Code but not in Codex | The entry is Claude-only: a bare string or a native rule string other than a plain `Bash` prefix | Express it as a prefix list too |
 | `render` rejects an entry | A nested list is deeper than one level, or an entry is neither a list nor a string | Use one level of alternatives per word |
 | The force-push deny names the wrong branch | `origin/HEAD` points elsewhere or is unset | `git remote set-head origin --auto`, then `harness render` |

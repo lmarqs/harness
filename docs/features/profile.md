@@ -1,9 +1,12 @@
-# Profile: `.agents/harness.yaml`
+# Profile: `.harness/config.yaml`
 
 The profile tells `harness` what a repository is: which modules it uses, how to bootstrap a checkout, how to lint and
-build, which verification lanes exist, which task tracker and agents it uses, Ralph defaults and skill sources. It is
-repository-owned: `scaffold` seeds it once from a [stack preset](presets.md#stack-presets), and from then on people and
+build, which verification lanes exist, which task tracker and agents it uses, Ralph defaults, skill sources, and the
+standing context agents receive. It is seeded and then repository-owned: `scaffold` seeds it once from a [stack preset](presets.md#stack-presets), and from then on people and
 agents edit it and `harness render` reads it.
+
+Examples on this page run commands as `./harnessw <command>`, through the repository's [wrapper](wrapper.md); with a
+global install, `harness <command>` is equivalent.
 
 ## When to edit it
 
@@ -18,8 +21,11 @@ agents edit it and `harness render` reads it.
 | Add Codex, or make an agent a Ralph-only worker | `agents` |
 | Change the Ralph model, effort or iteration budget | `ralph` |
 | Install shared skills | `skills.sources` |
+| Move where state, managed worktrees, PRD files or Ralph worktrees live | `state.dir`, `worktrees.dir`, `tasks.prd_dir`, `ralph.worktrees_dir` |
+| Give agents a directive or a skill without anyone invoking it: always, on certain files, or on certain words | `context` |
+| Let the managed blocks in `AGENTS.md` take more or fewer lines | `blocks.agents_md_budget` |
 
-Run `harness render` after every edit, and `harness doctor` to check globs and commands.
+Run `./harnessw render` after every edit, and `./harnessw doctor` to check globs and commands.
 
 ## Conventions
 
@@ -42,24 +48,29 @@ Run `harness render` after every edit, and `harness doctor` to check globs and c
 | `name` | string | the repository directory name | Repository name, used in messages and as the default Beads prefix |
 | `extends` | string | none | A preset source, optionally pinned with `@<ref>`; see [presets](presets.md#extends) |
 | `modules` | map | every module off | Which modules are on |
-| `front_door` | `mise` \| `binary` | set by `scaffold` | Whether mise wrappers are rendered |
+| `front_door` | `mise` \| `binary` | set by `scaffold` | Whether task shims are rendered |
 | `bootstrap` | list of commands | `[]` | Run in order in a new worktree, and once in each Ralph task worktree |
 | `commands` | map | | Lint and build commands |
 | `verify` | map | | Verification paths, lanes and validators |
 | `tracker` | map | `default: none` | Task tracker defaults |
+| `tasks` | map | | Where PRD files live; see [State paths](#state-paths) |
 | `agents` | map | | Agents rendered for this repository and their roles |
 | `ralph` | map | | Ralph defaults |
 | `skills` | map | | Skill sources |
+| `context` | map | | [Standing context](#context): directives and skills injected by declared triggers |
+| `blocks` | map | | Limits for the managed blocks `harness` writes |
+| `state` | map | | Where clone-local state lives; see [State paths](#state-paths) |
+| `worktrees` | map | | Where managed worktrees live; see [State paths](#state-paths) |
 
 ### `modules`
 
 | Field | Type | Effect when `true` |
 | --- | --- | --- |
 | `hooks` | boolean | [hooks](hooks.md) are rendered into agent files |
-| `verify` | boolean | [`harness verify`](verify.md) and its wrapper |
-| `tasks` | boolean | [`harness task`](tasks.md) and its wrapper |
-| `ralph` | boolean | [`harness ralph`](ralph.md) and its wrappers |
-| `memory` | boolean | [memory](memory.md) skeleton and `memory-index` block |
+| `verify` | boolean | [`harness verify`](verify.md) and its task shim |
+| `tasks` | boolean | [`harness task`](tasks.md) and its task shim |
+| `ralph` | boolean | [`harness ralph`](ralph.md) and its task shims |
+| `memory` | boolean | [memory](memory.md) skeleton and `memory` block |
 | `skills` | boolean | [`harness skills sync`](skills.md) and the pending check |
 
 An omitted module is off.
@@ -68,8 +79,8 @@ An omitted module is off.
 
 | Value | Effect |
 | --- | --- |
-| `mise` | mise task wrappers are rendered; the `commands` block shows `mise run …` |
-| `binary` | no wrappers; the `commands` block shows `harness …` |
+| `mise` | [task shims](render.md#task-shims), one-line mise tasks that exec `./harnessw <command>`, are rendered; the `commands` block shows `mise run …` |
+| `binary` | no task shims; the `commands` block shows `./harnessw …` |
 
 ### `commands`
 
@@ -129,6 +140,7 @@ A map from agent name to its settings. Only declared agents are rendered. Agents
 | `default_agent` | agent name | required with `modules.ralph` | Agent used when `--agent` is omitted |
 | `max_iterations` | integer | required with `modules.ralph` | Iteration budget when `--iterations` is omitted. `0` is unlimited |
 | `agents` | map of agent name to `{model, effort}` | | Per-agent defaults for workers |
+| `worktrees_dir` | path | `.work/ralph-worktrees` | Where ralph-tui keeps the worker checkouts of a harness-launched run's parallel tasks; see [State paths](#state-paths) |
 
 `ralph.agents.<name>`:
 
@@ -143,12 +155,100 @@ A map from agent name to its settings. Only declared agents are rendered. Agents
 | --- | --- | --- |
 | `sources` | list of strings | Sources for the `skills` CLI, as it accepts them (`owner/repo`, a git URL). See [skills](skills.md) |
 
+### `context`
+
+Standing context is guidance `harness` puts into agent sessions when a declared trigger fires, so nobody has to invoke
+a directive or a skill by name. Behaviour per agent, the hook events used, and more examples: [context](context.md).
+
+```yaml
+context:
+  always:                                   # every session start, and again after compaction
+    - skill: karpathy-guidelines
+    - file: .agents/directives/worker-rules.md
+      for: [worker]
+    - file: .agents/directives/house-rules.md
+      static: true                          # written into AGENTS.md; holds without the binary
+  when:
+    - paths: ["**/*.sql", "src/migration/**"]   # after the agent first reads or edits a matching file
+      skill: sql-quality-check
+    - prompt: [timezone, DST, "time zone"]       # when the person's message contains one
+      skill: timezone-handling
+      inject: pointer
+  budget: 120
+```
+
+| Field | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `always` | list of entries | `[]` | Injected at every session start, and again each time the agent fires its session-start event, as Claude Code does after compacting its context |
+| `when` | list of triggered entries | `[]` | Each injected at most once per session, when its trigger first fires |
+| `budget` | integer | `120` | Most lines of always-on content per session and role, `static` entries included. `doctor` notes an overrun and lists each entry with its line count |
+
+An entry:
+
+| Field | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `skill` | skill name | | An installed skill, `.agents/skills/<name>/SKILL.md`, without its front matter. Exactly one of `skill` and `file` |
+| `file` | path | | A file in the repository, relative to its root, outside the state directories |
+| `for` | list of `interactive`, `worker` | both | The agent [roles](#agents) that receive the entry |
+| `inject` | `content` \| `pointer` | `content` in `always`, `pointer` in `when` | `content`: the text itself. `pointer`: one line naming what to read, such as `Apply the timezone-handling skill now: read .agents/skills/timezone-handling/SKILL.md` |
+| `static` | boolean | `false` | Only in `always`, and only with `for` covering both roles. The entry is written into the `context` block of `AGENTS.md` instead of injected by hook, so it applies without the binary and survives an eject |
+| `paths` | list of globs | | Only in `when`: the trigger is the agent's first read or edit of a matching file in the session. Exactly one of `paths` and `prompt` |
+| `prompt` | list of words and phrases | | Only in `when`: the trigger is a person's message that contains one, case-insensitive, as a whole word or phrase |
+
+Sources are repository files and skills installed under `.agents/skills/`; nothing is fetched when a hook runs. A skill
+listed in `skills-lock.json` is injected only while it matches its locked hash, and `doctor` reports a mismatch as a
+finding. A Ralph worker receives the entries as they are at its session's base commit. Hook delivery needs
+`modules.hooks`; `static` entries do not. A preset can declare entries too; a repository entry naming the same skill
+or file replaces the preset's. Preview what a session would receive with
+[`harness context show`](context.md#harness-context-show); `HARNESS_NO_CONTEXT=1` turns injection off for one process
+tree.
+
+### `blocks`
+
+| Field | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `agents_md_budget` | integer | `40` | Most lines the managed blocks in `AGENTS.md` may take together, the `context` block excepted. Each of those blocks also stays within 8 lines. `render` still writes blocks that exceed it; `doctor` notes the overrun. See [the `AGENTS.md` budget](render.md#the-agentsmd-budget) |
+
+### State paths
+
+State is clone-local, gitignored and disposable, and lives outside `.harness/`. Four keys say where; each path is
+relative to the repository root, and each is written down as a convention in a managed block of `AGENTS.md` and a
+managed block of `.gitignore` ([block ids](render.md#block-ids)), so people, agents, ralph-tui and `bd` find it, with
+or without `harness`.
+
+```yaml
+state:
+  dir: .work                      # receipts, sessions, locks, lifecycle log, hook cache
+worktrees:
+  dir: .work/worktrees            # each managed worktree at <dir>/<name>
+tasks:
+  prd_dir: .work/prds
+ralph:
+  worktrees_dir: .work/ralph-worktrees
+```
+
+| Field | Type | Default | Holds | Blocks it produces |
+| --- | --- | --- | --- | --- |
+| `state.dir` | path | `.work` | in the primary checkout: `lifecycle.jsonl` and the locks shared by every worktree; in each checkout: `session.json`, `verified.json` (the receipt), `hook-checks.json` | `.gitignore` `state` (`/.work/`); named in the `AGENTS.md` `layout` block |
+| `worktrees.dir` | path | `.work/worktrees` | each managed worktree, at `<dir>/<name>` | `AGENTS.md` `worktrees` (where worktrees are created, their `work/<name>` branch, that they start from committed code); `.gitignore` `worktrees` (`/.work/worktrees/`) |
+| `tasks.prd_dir` | path | `.work/prds` | PRD files | `AGENTS.md` `tasks`; `.gitignore` `tasks` (`/.work/prds/`); with `modules.tasks` |
+| `ralph.worktrees_dir` | path | `.work/ralph-worktrees` | ralph-tui's worker checkouts for the parallel tasks of harness-launched runs. The coordinator and sequential task worktrees live under `worktrees.dir`, as `ralph-<session-id>` and `ralph-<session-id>-<task>`; ralph-tui state stays in the coordinator's `.ralph-tui/` | `AGENTS.md` `ralph`; `.gitignore` `ralph` (`/.ralph-tui/`, `/.work/ralph-worktrees/`); with `modules.ralph` |
+
+Two paths are not configurable, because other tools find them on their own: the Beads database stays at `.beads/`,
+where `bd` looks, and ralph-tui state stays in the coordinator worktree's `.ralph-tui/`.
+
+Rules for the paths:
+
+- No state path may point inside `.harness/` or `.agents/`, or be either directory: those hold committed files only.
+  Such a path is a validation error.
+- Changing a path re-renders its blocks; state already under the old path is not moved.
+
 ## Examples
 
 ### A Node API
 
 ```yaml
-# .agents/harness.yaml
+# .harness/config.yaml
 schema: 1
 name: acme-api
 extends: github:acme/agent-presets//harness
@@ -179,6 +279,12 @@ ralph:
     claude: { model: claude-sonnet-4-5, effort: medium }
     codex: { model: gpt-5-codex, effort: high }
 skills: { sources: [lmarqs/skills] }
+context:
+  always:
+    - skill: karpathy-guidelines
+  when:
+    - paths: ["src/migrations/**", "**/*.sql"]
+      skill: sql-quality-check
 ```
 
 ### A Terraform repository
@@ -229,7 +335,7 @@ ralph: { config: managed, default_agent: claude, max_iterations: 8, agents: { cl
 skills: { sources: [lmarqs/skills] }
 ```
 
-Patterns for the Go lanes are package paths: `harness verify --lane test=./internal/billing/... --lane vet=./internal/billing/...`.
+Patterns for the Go lanes are package paths: `./harnessw verify --lane test=./internal/billing/... --lane vet=./internal/billing/...`.
 
 ## Guidelines
 
@@ -237,6 +343,10 @@ Patterns for the Go lanes are package paths: `harness verify --lane test=./inter
   no tests proves nothing.
 - Do keep `required_when` narrow and meaningful: the files whose change the lane is the only real evidence for.
 - Do use mise tasks in commands when the repository has them, so people and agents run the same thing.
+- Do keep the state paths out of what your linters, test runners and compilers scan (exclude `.work/**`, or the
+  `state.dir` you chose): worktrees nested there hold full copies of the source.
+- Do choose the state paths before work starts: moving one later leaves existing worktrees, sessions and PRD files
+  under the old path.
 - Don't put secrets or machine-specific paths in commands; the profile is committed and runs on every machine.
 - Don't use `bootstrap` for slow, optional setup; every new worktree and every Ralph task worktree runs it.
 
@@ -248,3 +358,6 @@ Patterns for the Go lanes are package paths: `harness verify --lane test=./inter
 | `doctor` says a glob matches nothing | Wrong path or quoting | YAML needs quotes around globs that start with `*` |
 | A lane runs with the literal text `{pattern}` | The command is in `full`, which takes no placeholder | Use `{pattern}` only in `select` |
 | Ralph refuses `--model` | `ralph.config: inherit` and the inherited agent has no model to replace | Set a model on that agent in the inherited config, or use `managed` |
+| `state path must not be inside .harness/ or .agents/` | A state path points into a directory that holds committed files only | Choose a path outside both, such as the default `.work/…` |
+| A context skill is never injected, and `doctor` reports a hash mismatch | The installed skill differs from its entry in `skills-lock.json` | Reinstall it with `./harnessw skills sync`, or update the lock through the `skills` CLI |
+| `doctor` notes that always-on context exceeds `context.budget` | Too many or too long `always` entries for one role | Move entries to `when` triggers, use `inject: pointer`, or narrow them with `for` |

@@ -3,7 +3,11 @@
 `harness scaffold` sets a repository up for `harness`. On a repository with no agent setup it writes everything from a
 stack preset (greenfield). With `--adopt` it takes over an existing hand-written setup, imports every permission rule
 and hook it finds into the repository files without losing one, and lists what needs judgement as a to-do for an
-agent.
+agent. Either way it writes the repository's [wrapper](wrapper.md), `harnessw`, pinned to the release that runs it.
+
+`scaffold` runs from a `harness` binary, because a repository has no `harnessw` until `scaffold` writes it
+([installation](installation.md#scaffolding-a-new-repository)). Every later command runs as `./harnessw <command>`;
+with a global install, `harness <command>` is equivalent.
 
 ## When to use it
 
@@ -12,7 +16,8 @@ agent.
 | No `.claude/settings.json` permissions or hooks, no workflow tasks of its own | `harness scaffold` |
 | Hand-written permissions or hooks in `.claude/settings.json`, `CLAUDE.md` with content, existing skills | `harness scaffold --adopt` |
 | An existing workflow engine: mise tasks named `verify`/`ralph:*`/`worktree:*`, a root `.ralph-tui/`, a `.beads/` | `harness scaffold --adopt` |
-| The repository already has `.agents/harness.yaml` | Not `scaffold`: edit the files and run [`harness render`](render.md) |
+| The repository already has `.harness/config.yaml` | Not `scaffold`: edit the files and run [`./harnessw render`](render.md) |
+| A `.harness/` directory that another tool owns, such as Harness.io pipelines | `scaffold` refuses; see [compatibility](compatibility.md#harnessio) |
 | Many repositories at once | [`harness fleet scaffold`](fleet.md) |
 
 Not sure which class a repository is in? Run `harness scaffold --adopt --dry-run`: on a greenfield repository it
@@ -22,21 +27,29 @@ finds nothing to import and behaves like a plain scaffold.
 
 ### Greenfield
 
-1. **Detect.** The stack from marker files, the default branch from `origin/HEAD`, whether mise is configured.
+1. **Detect.** The stack from marker files, the default branch from `origin/HEAD`, whether mise is configured. A
+   `.harness/` directory that holds neither a `harness` profile nor a manifest belongs to another tool: `scaffold`
+   stops with exit 3 and names it, before planning anything.
 2. **Plan.** Build the list of files, blocks and links to write. With `--dry-run`, print it and stop.
 3. **Confirm.** Show the plan and ask. `--yes` skips the question. Without a terminal and without `--yes`, nothing is
    written and the command exits 3.
 4. **Seed** the repository files, once:
-   - `.agents/harness.yaml` from the stack preset (commands, lanes, post-edit hooks, modules);
-   - `.agents/policy.yaml` with one seeded entry, `[harness, lifecycle, run, deliver]` under `shared.ask`, so the agent's
-     own permission prompt asks a person before an agent runs the repository's delivery actions; the repository may move or remove it
-     ([policy](policy.md#the-seeded-entry));
-   - `.agents/hooks.yaml` from the stack preset, with no `lifecycle` actions: the binary ships none;
+   - `.harness/config.yaml` from the stack preset (commands, lanes, post-edit hooks, modules);
+   - `.harness/policy.yaml` with one seeded entry, `[harness, lifecycle, run, deliver]` under `shared.ask`, rendered
+     for every spelling of the command, so the agent's own permission prompt asks a person before an agent runs the
+     repository's delivery actions; the repository may move or remove it ([policy](policy.md#the-seeded-entry));
+   - `.harness/hooks.yaml` from the stack preset, with no `lifecycle` actions: the binary ships none;
+   - `.harness/wrapper.yaml`, pinning the release that runs `scaffold`: its exact version, and the checksums of its
+     four platform binaries. They come from that release's checksum file, fetched over HTTPS and accepted only after
+     its signature verifies against the release keys embedded in the running binary
+     ([wrapper](wrapper.md#harnesswrapperyaml), [safety](safety.md#the-pinned-binary));
    - `.agents/memory/` skeleton, when the `memory` module is on.
-5. **Render** everything else, exactly as [`harness render`](render.md) does: native agent files, the harness skill
-   and its links, mise wrappers, managed blocks, the manifest.
+5. **Render** everything else, exactly as [`harness render`](render.md) does: `harnessw`, native agent files, the
+   harness skill and its links, task shims, managed blocks, the manifest.
 
-After this, the seeded files belong to the repository. `scaffold` never rewrites them; `render` reads them.
+After this, the seeded files belong to the repository. `scaffold` never rewrites them; `render` reads them. People and
+agents edit the profile, the policy and the hooks file; the pin changes only through
+[`harness wrapper`](wrapper.md#harness-wrapper).
 
 ### Stack detection and presets
 
@@ -56,8 +69,8 @@ file; they are not related to the [`extends` presets](presets.md) that keep addi
 
 | `--front-door` | Default when | Effect |
 | --- | --- | --- |
-| `mise` | the repository has mise configuration | `harness` writes one-line mise task wrappers (`mise run verify`, `mise run task`, …) and the `commands` block shows mise commands |
-| `binary` | no mise configuration | no wrappers; the `commands` block shows `harness` commands |
+| `mise` | the repository has mise configuration | `harness` writes one-line mise task shims (`mise run verify`, `mise run task`, …) that exec `./harnessw <command>`, and the `commands` block shows mise commands |
+| `binary` | no mise configuration | no task shims; the `commands` block shows `./harnessw` commands |
 
 The choice is stored as `front_door` in the profile and can be changed there later.
 
@@ -67,10 +80,11 @@ The choice is stored as `front_door` in the profile and can be changed there lat
 | --- | --- |
 | `AGENTS.md` | only the managed blocks; the prose is for people and agents to write |
 | `CLAUDE.md` | only the `import` block, a single `@AGENTS.md` line |
-| `.gitignore` | only the `ignore` block |
+| `.gitignore` | only its blocks: `state` and `worktrees`, plus `tasks`, `ralph` and `beads` when their modules produce them |
 
 When these files exist, `scaffold` appends its blocks at the end and touches nothing else. `README.md` is never
-created; when it exists, it receives the `commands` and `files` blocks.
+created; when it exists, it receives the `commands` block. The [block ids](render.md#block-ids) table lists every
+block and the module that owns it.
 
 ## Adopt
 
@@ -93,6 +107,16 @@ enumeration `project`, `local`, `user`, `none`. With `--adopt` the default is `p
 
 Source files of every scope are read, never written. Personal settings keep applying to the person who has them,
 alongside the policy.
+
+### An existing pin of `harness`
+
+`.harness/wrapper.yaml` is the repository's only pin of `harness`. When `mise.toml`, `.mise.toml` or `.tool-versions`
+already pins it (as `github:lmarqs/harness` or `harness`), adoption pins that same release in `wrapper.yaml`, verified
+like every pin, and lists removing the task-runner pin as a to-do: `harness` never edits a task runner's files, and two
+pins drift apart. Like a global binary inside a pinned repository, a `scaffold` started from another release hands the
+run to the pinned one, so the files it writes are the pinned release's
+([wrapper](wrapper.md#a-global-install-defers-to-the-pin)). Until the to-do is resolved, `doctor` reports the second
+pin as a finding.
 
 ### How each source becomes an entry
 
@@ -164,7 +188,9 @@ equivalence: Bash(gh api *) from .claude/settings.json (project) is not in effec
 | A root `.ralph-tui/` | never read or written, unless the profile sets `ralph.config: inherit` |
 | Existing mise tasks | never overwritten |
 | `core.hooksPath`, git hooks, Husky | untouched |
-| `.gitignore` entries | untouched; the `ignore` block omits paths the repository tracks (for example a versioned `.beads/`) |
+| A pin of `harness` in `mise.toml`, `.mise.toml` or `.tool-versions` | never edited; copied into `.harness/wrapper.yaml`, and its removal is a to-do ([above](#an-existing-pin-of-harness)) |
+| A `.harness/` directory without a `harness` profile or manifest, such as Harness.io pipelines | not adopted: `scaffold` refuses with exit 3 and names the directory; nothing is written |
+| `.gitignore` entries | untouched; the blocks omit paths the repository tracks (for example a versioned `.beads/`) |
 | `.claude/worktrees/` | Claude Code's; never scanned |
 
 ### The to-do
@@ -177,7 +203,8 @@ What adoption cannot resolve deterministically, it prints as a to-do. The same l
 | Personal entry to review | an entry was imported from the `local` or `user` scope | its `review:` marker is gone from the provenance comment: the entry was kept on purpose, or removed |
 | Allow/deny conflict | a pattern was both allowed and denied | its `review:` marker is gone: the deny stays, or a person removes it |
 | Foreign permission dialect | a permission file in another tool's format was found | an agent has expressed its rules in `policy.yaml` and the file is retired |
-| Task name collision | a mise task already uses a wrapper name; `harness` wrote `harness:<name>` instead | the repository's own task is removed or renamed; the next render writes the plain name |
+| Task name collision | a mise task already uses a task shim's name; `harness` wrote `harness:<name>` instead | the repository's own task is removed or renamed; the next render writes the plain name |
+| Second pin | `mise.toml`, `.mise.toml` or `.tool-versions` also pins `harness` | the pin is gone from the task runner's file; `.harness/wrapper.yaml` is the only pin |
 | `.agents/AGENTS.md` instead of a root `AGENTS.md` | the repository keeps instructions under `.agents/` | the content is moved to the root `AGENTS.md`, which Codex reads |
 | Pending skills | a declared skill source is not installed | [`harness skills sync`](skills.md) has run |
 
@@ -191,8 +218,8 @@ Adoption also prints notes that need a decision but are not to-do items, because
 - The settings listed under [Not policy](#not-policy-notes).
 
 An agent finishes the adoption with the harness skill: ask it to "finish the harness adoption"; it reads
-`harness explain adoption`, edits the repository files, and runs `harness render --check` and `harness doctor` until
-both pass.
+`./harnessw explain adoption`, edits the repository files, and runs `./harnessw render --check` and
+`./harnessw doctor` until both pass.
 
 Importing the `local` or `user` scope publishes one person's permissions to everyone who uses the repository. Review
 those entries as you would any policy change; see [safety](safety.md).
@@ -209,7 +236,7 @@ harness scaffold [--adopt] [--import <scope>[,<scope>]...] [--preset <go|node|te
 | `--adopt` | off | Import an existing setup and emit a to-do |
 | `--import <scope>[,<scope>]...` | `project` with `--adopt`, else `none` | Scopes to import, as a comma-separated set from the closed enumeration `project`, `local`, `user`, `none` |
 | `--preset <name>` | detected | Use this stack preset instead of detection: `go`, `node`, `terraform`, `python`, `generic` |
-| `--front-door mise\|binary` | `mise` when mise is configured, else `binary` | Whether to write mise task wrappers |
+| `--front-door mise\|binary` | `mise` when mise is configured, else `binary` | Whether to write task shims |
 | `--yes` | off | Do not ask for confirmation |
 | `--dry-run` | off | Print the plan, the generated `policy.yaml` and `hooks.yaml`, and the equivalence report; write nothing |
 
@@ -218,16 +245,16 @@ Global flags `-C <dir>`, `--json`, `--verbose` also apply; see [CLI reference](c
 | Exit code | Meaning |
 | --- | --- |
 | 0 | Scaffolded or adopted. With `--adopt`, open to-do items do not change the exit code |
-| 1 | Error, including a repository that already has `.agents/harness.yaml` |
+| 1 | Error, including a repository that already has `.harness/config.yaml`, a checksum file of the pinned release that cannot be fetched, and one whose signature does not verify |
 | 2 | The equivalence check found a project-scope rule that would not be in effect; nothing was written |
-| 3 | Confirmation needed and no terminal: rerun with `--yes`, or from a terminal |
+| 3 | A person must act: confirmation needed and no terminal (rerun with `--yes`, or from a terminal), or a `.harness/` directory that belongs to another tool |
 
 Files read: marker files for detection, `.git` (default branch, tracked paths), mise configuration and tasks,
 `.claude/settings.json`, `.codex/rules/`, `.codex/hooks.json`, `CLAUDE.md`, `.claude/CLAUDE.md`, `.gitignore`,
 `.claude/skills`; with `--import local`, `.claude/settings.local.json` and `.codex/*.local.toml`; with
 `--import user`, `~/.claude/settings.json` and `~/.codex/rules/`.
-Files written: see [render](render.md#what-render-writes), plus the seeded `.agents/harness.yaml`,
-`.agents/policy.yaml`, `.agents/hooks.yaml` and `.agents/memory/`.
+Files written: see [render](render.md#what-render-writes) (`harnessw` included), plus the seeded
+`.harness/config.yaml`, `.harness/policy.yaml`, `.harness/hooks.yaml`, `.harness/wrapper.yaml` and `.agents/memory/`.
 
 ## Examples
 
@@ -238,17 +265,19 @@ $ cd ~/src/acme-api
 $ harness scaffold --dry-run
 detected: node (package.json); default branch: main; mise: yes
 would write:
-  .agents/harness.yaml  .agents/policy.yaml  .agents/hooks.yaml  .agents/memory/
+  harnessw  .harness/wrapper.yaml (v0.9.0)
+  .harness/config.yaml  .harness/policy.yaml  .harness/hooks.yaml  .agents/memory/
   .agents/skills/harness/SKILL.md  .claude/skills/harness  .codex/skills/harness
   .claude/settings.json  .codex/config.toml  .codex/hooks.json  .codex/rules/harness.rules
   .mise/tasks/verify  .mise/tasks/task  .mise/tasks/worktree/create  .mise/tasks/worktree/remove
-  AGENTS.md (new)  CLAUDE.md (new)  README.md (blocks)  .gitignore (block)
-  .agents/.harness/manifest.json
+  AGENTS.md (new)  CLAUDE.md (new)  README.md (block)  .gitignore (blocks)
+  .harness/manifest.json
 $ harness scaffold --yes
 $ git add -A && git commit -m "chore: adopt harness"
+$ ./harnessw doctor
 ```
 
-Then review the seeded lanes in `.agents/harness.yaml` against the repository's real test commands.
+Then review the seeded lanes in `.harness/config.yaml` against the repository's real test commands.
 
 ### A Terraform repository, greenfield, without mise
 
@@ -257,15 +286,15 @@ $ cd ~/src/acme-infra
 $ harness scaffold --preset terraform --front-door binary --yes
 ```
 
-The profile gets `validate` and `plan` lanes and `modules.ralph: false`; no wrappers are written, and the `commands`
-block in `AGENTS.md` shows `harness verify …`.
+The profile gets `validate` and `plan` lanes and `modules.ralph: false`; no task shims are written, and the `commands`
+block in `AGENTS.md` shows `./harnessw verify …`.
 
 ### A Go repository with hand-written Claude and Codex settings
 
 ```sh
 $ cd ~/src/acme-cli
 $ harness scaffold --adopt --dry-run
---- .agents/policy.yaml (generated)
+--- .harness/policy.yaml (generated)
 schema: 1
 shared:
   allow:
@@ -281,7 +310,7 @@ shared:
     # imported from .claude/settings.json (project)
     - [goreleaser, release]
 worker: { deny: [] }
---- .agents/hooks.yaml (generated)
+--- .harness/hooks.yaml (generated)
 schema: 1
 raw:
   PostToolUse: [{ matcher: Edit|Write, run: ./scripts/format-edited.sh }]
@@ -294,10 +323,10 @@ note: .codex/rules/default.rules still applies; delete it once the import is rev
 note: defaultMode in .claude/settings.json is not policy; left in place
 $ harness scaffold --adopt --yes
 to-do:
-  1. mise task "verify" exists; wrapper written as harness:verify
+  1. mise task "verify" exists; task shim written as harness:verify
 note: CLAUDE.md has content; consider moving shared instructions to AGENTS.md
 $ claude "finish the harness adoption"
-$ harness doctor
+$ ./harnessw doctor
 ```
 
 ### Importing a person's settings too
@@ -315,18 +344,22 @@ to-do:
 - Do review the seeded lanes and commands: presets guess from the stack, the repository knows its real commands.
 - Do give the to-do to an agent with the harness skill; it is written for that.
 - Do import `local` or `user` only when those settings are meant for everyone, and review each entry they bring.
-- Don't run `scaffold` again to "refresh" a repository: edit the repository files and run `harness render`.
+- Don't run `scaffold` again to "refresh" a repository: edit the repository files and run `./harnessw render`; to
+  move to another release, run `./harnessw wrapper`.
 - Don't hand-edit rendered files to finish an adoption; the next render overwrites them and `render --check` fails.
 
 ## Troubleshooting
 
 | Symptom | Cause | Fix |
 | --- | --- | --- |
-| `.agents/harness.yaml already exists` | The repository is already scaffolded | Use `harness render`; to start over, `harness remove` first |
+| `.harness/config.yaml already exists` | The repository is already scaffolded | Use `./harnessw render`; to start over, `./harnessw remove` first |
+| Exit 1: the checksum file of the pinned release cannot be fetched | No network access to the release source, which `wrapper.yaml` needs | Rerun with network access |
+| Exit 1: the checksum file's signature does not verify | The file is not signed by a release key the running binary trusts | Do not work around it; obtain `harness` again from the project's releases and report it ([safety](safety.md#the-pinned-binary)) |
 | Exit 3 in a script | No terminal to confirm | Pass `--yes` |
+| Exit 3 naming `.harness/` | The directory belongs to another tool, such as Harness.io pipelines | `harness` cannot share it; see [compatibility](compatibility.md#harnessio) |
 | Exit 2 naming a rule | The equivalence check found a project rule the new files would not keep in effect | Report the rule to the `harness` project; meanwhile adopt with the rule moved to `settings.local.json` |
 | Wrong stack detected | Marker files of another stack are present (for example a `package.json` for tooling in a Go repository) | Rerun with `--preset`, or edit the profile afterwards |
-| Wrappers named `harness:verify` | The repository already had a `verify` task | Reconcile the two tasks, remove the old one, run `harness render` |
+| Task shims named `harness:verify` | The repository already had a `verify` task | Reconcile the two tasks, remove the old one, run `./harnessw render` |
 | A rule allowing a force push is missing after adopt | It weakens a built-in invariant and was dropped | Nothing to restore; the invariant holds in every repository |
 
 ## Coexistence

@@ -1,7 +1,8 @@
 # Messages and documentation
 
-Voice, tone and structure for every text harness produces or ships: CLI messages, hook output, `doctor` findings, the
-harness skill, `harness explain`, managed-block content and the documentation in this repository.
+Voice, tone and structure for every text harness produces or ships: CLI messages, hook output, `doctor` findings,
+injected standing context, the harness skill, `harness explain`, managed-block content and the documentation in this
+repository. Why: people and agents act on this text, so every ambiguity in it becomes a wrong action somewhere.
 
 ## Voice
 
@@ -9,8 +10,8 @@ harness skill, `harness explain`, managed-block content and the documentation in
 | --- | --- | --- |
 | Present tense, describe what is | `render writes .claude/settings.json` | `render will write…`, `render now writes…` |
 | Concise: one fact per sentence, no filler | `2 files drifted` | `It looks like there may be a couple of files that have drifted` |
-| Name the thing exactly | `.agents/policy.yaml:14` | `your policy file` |
-| Imperative for instructions | `run: harness render` | `you may want to consider running render` |
+| Name the thing exactly | `.harness/policy.yaml:14` | `your policy file` |
+| Imperative for instructions | `run: ./harnessw render` | `you may want to consider running render` |
 | Neutral, no blame, no apology | `.claude/settings.json was edited by hand` | `you broke settings.json`, `sorry, …` |
 | Plain words | `refused`, `skipped`, `drift` | `oops`, `whoops`, exclamation marks, emoji |
 | No marketing | `renders permissions for each agent` | `seamlessly`, `powerful`, `blazing fast` |
@@ -23,56 +24,92 @@ context becomes a wrong action.
 
 - Every message on stderr starts with `harness: `, so it can be told apart from the output of commands harness runs.
   A message that needs detail continues on indented lines below it.
-- Warnings start with `warning: `; they never change the exit code.
-- A message about a file names it relative to the repository root, with `:line:column` when known.
-- Messages contain no ANSI escapes when the stream is not a TTY ([cli-standards.md](cli-standards.md#color-and-terminal-control)).
+- Warnings start with `warning: `; they never change the exit code, because a warning informs and must not fail a
+  script.
+- A message about a file names it relative to the repository root, with `:line:column` when known, so an editor or
+  agent can open it directly.
+- Messages contain no ANSI escapes when the stream is not a TTY ([cli-standards.md](cli-standards.md#color-and-terminal-control)),
+  so logs and transcripts stay readable.
 
 ## Error messages
 
-Every error has three parts, in order:
+Every error has three parts, in order, because a reader needs to know what broke, why, and what to do, and in that
+order:
 
 1. **What failed**: the command and the object, with its path or name.
 2. **Why**: the cause in one sentence, with the found and the expected value when they exist.
 3. **Next**: the exact command or edit that moves forward, copyable as is.
 
 ```text
-harness: render --check: 2 files drifted from .agents/policy.yaml
+harness: render --check: 2 files drifted from .harness/policy.yaml
   .claude/settings.json: permissions.allow differs (edited by hand)
   .codex/rules/harness.rules: content differs
-  run: harness render
+  run: ./harnessw render
 ```
 
 ```text
 harness: remove: .mise/tasks/verify was edited by hand and was not removed
   its content no longer matches the manifest
-  review the file, then run: harness remove --force
+  review the file, then run: ./harnessw remove --force
 ```
 
 ```text
-harness: not installed, hook skipped
+harness: wrapper: v1.4.0 refused: the signature of its checksum file does not verify
+  the release was not signed by a key this binary trusts
+  keep the current pin, or confirm the release with its publisher
 ```
 
-The last example is the complete message a rendered hook prints when the binary is missing. It has no next step
-because the hook exits 0 and the session continues.
+```text
+harness: v0.9.0 not downloaded, hook skipped; run: ./harnessw version
+```
 
-- The next step names a command when one exists. It never says only "check your configuration".
-- When the next step is a person's decision (exit 3), the message says so and names the choices.
-- Errors never print stack traces, internal type names or file paths inside the binary unless `--verbose` is given.
+The last example is the complete message a rendered hook prints when the pinned version is not in the machine cache.
+The hook exits 0 and the session continues; the next step names `./harnessw`, the explicit entry point that downloads
+the pinned version, because the hook itself never downloads.
+
+- The next step names a command when one exists, in the documented invocation `./harnessw <command>`
+  ([cli-standards.md](cli-standards.md#entry-points)). It never says only "check your configuration", because that
+  leaves the reader where they started.
+- When the next step is a person's decision (exit 3), the message says so and names the choices, so an agent stops
+  and asks instead of guessing.
+- Errors never print stack traces, internal type names or file paths inside the binary unless `--verbose` is given,
+  because they mean nothing to the person who must act.
 
 ## Agent-readable output
 
 - `--json` is the interface for agents and scripts; human text may change wording between releases, JSON fields may
-  not ([cli-standards.md](cli-standards.md#json)).
+  not ([cli-standards.md](cli-standards.md#json)). Why: a program that parses prose breaks on the next rewording.
 - Each to-do item and `doctor` finding names the file, the problem and the next action, and is stable across runs for
   the same state, so an agent can track it.
-- Hook output that reaches an agent's context is short: what ran, what failed, the command to reproduce it.
-- Session-start context lists commands and rules, not explanations an agent can load from the skill on demand.
+- Hook output that reaches an agent's context is short: what ran, what failed, the command to reproduce it, because
+  every line of it is paid in the agent's context.
+- Session-start context lists commands and rules, not explanations an agent can load from the skill on demand, for
+  the same reason.
+- When the pinned binary is not cached, the session-start hook adds exactly one line:
+  `harness <version> is not cached on this machine; run ./harnessw version once to fetch it.` One line per session
+  explains every missing hook, notification and injection without repeating on each tool call.
+- An injected standing-context pointer is exactly one line: `Apply the <name> skill now: read <path>`, so the agent
+  learns what applies and where to read it, at the cost of one line.
 
 ## Generated text in human files
 
-Managed blocks hold derived facts: command tables, file tables, an index of memory files, a policy summary, an
-import line. They contain no prose that reads as a person's opinion, and nothing that duplicates prose outside the
-block. Explanations of a repository's choices are written by people or agents outside the markers.
+Managed blocks hold derived facts: the conventions a module establishes, stated in plain language with their
+configured values, command tables, an index of memory files, a summary of the effective permissions, static
+directives, an import line. Blocks contain no prose that reads as a person's opinion, and nothing that duplicates prose
+outside the block, because the binary writes only what it can derive. Explanations of a repository's choices are
+written by people or agents outside the markers.
+
+The two block classes ([generated-content-standards.md](generated-content-standards.md#block-classes)) are written
+differently:
+
+- **Convention blocks** state facts that hold without harness, in the voice of the repository: "Worktrees in this
+  project are created in `.work/worktrees/<name>`, on branch `work/<name>`, from committed code." They never name a
+  harness command, the wrapper, `.harness/` or a task shim, and never say they are managed beyond their marker. Why:
+  `harness remove --eject` keeps their text, which must still be true and usable afterwards.
+- **Tool blocks** explain how to use harness and name its commands in the documented form, `./harnessw <command>`.
+  Why: eject removes them, so they may depend on the tool.
+- Every block stays within the `AGENTS.md` budget: one fact per line, detail left to `harness explain` and the skill,
+  because agents read `AGENTS.md` in every session.
 
 ## Documentation structure
 
@@ -81,12 +118,16 @@ The documentation in this repository has three parts, each with one job:
 | Directory | Holds | Changes through |
 | --- | --- | --- |
 | `docs/features/` | what each feature is and how to use it | ordinary pull requests |
-| `docs/adrs/` | architecture decisions and their reasons | a new ADR |
-| `docs/ux/` | user-facing standards (this directory) | a UX record |
+| `docs/adrs/` | architecture decisions and their reasons; the authority over the other two | an edit to the ADR |
+| `docs/ux/` | user-facing standards (this directory) | an edit to the standard, with its reason ([README.md](README.md#changing-a-standard)) |
+
+Why: a reader who knows which question a directory answers finds the answer without reading the others. ADRs follow
+their own naming and title rules, stated in the [ADR index](../adrs/README.md).
 
 ### Features pages
 
-Each page in `docs/features/` describes one command, file or concept, with these sections in this order:
+Each page in `docs/features/` describes one command, file or concept, with these sections in this order, so a reader
+moving between pages always finds the reference and the troubleshooting in the same place:
 
 | Section | Content |
 | --- | --- |
@@ -101,12 +142,18 @@ A section with no content is omitted rather than left empty.
 
 ### Writing rules for all documentation
 
-- Present tense; describe what things are and how they behave. No history, release notes, roadmap or removed features
-  outside ADRs and UX records, which keep their history by design.
-- Each page stands alone: define a term on first use or link it to the [glossary](../features/glossary.md).
+- Present tense; describe what things are and how they behave. No page in `docs/` records history, ADRs included: no
+  statuses, dates, release notes, roadmap or removed features. Why: a reader needs what is true now, and version
+  control keeps the past.
+- Each page stands alone: define a term on first use or link it to the [glossary](../features/glossary.md), because
+  readers arrive from search and links, not from page one.
 - Relative links between pages. Tables for reference material. Fenced code blocks with a language tag for commands,
   YAML and output.
-- No organization or company names. Examples use `acme` for an organization and `acme/api` for a repository.
+- No organization or company names. Examples use `acme` for an organization and `acme/api` for a repository, because
+  harness is open source and its docs must fit any organization.
 - Example commands are complete and run as written; example output is copied from a real run of the documented
-  release.
+  release, so a reader can trust what they copy.
+- Commands that run inside a repository are written as `./harnessw <command>`, with `harness <command>` shown as the
+  equivalent when harness is installed globally ([cli-standards.md](cli-standards.md#entry-points)). The standards in
+  `docs/ux/` name commands `harness <command>`, the program's name.
 - `harness explain <topic>` and the harness skill follow the same rules; they are documentation shipped in the binary.

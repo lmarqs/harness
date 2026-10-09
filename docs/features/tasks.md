@@ -4,6 +4,10 @@
 file. Each managed worktree has its own actor, so two sessions cannot complete each other's tasks, and completion
 requires a valid [verification receipt](verify.md).
 
+Commands are named `harness <command>` on this page. The examples run them through the repository's wrapper,
+`./harnessw <command>`, from the root of a checkout; with a global install, `harness <command>` is equivalent
+([wrapper](wrapper.md)).
+
 ## Issues and tasks
 
 | | Issue | Task |
@@ -30,7 +34,7 @@ Tasks need `modules.tasks: true` in the [profile](profile.md).
 | Tracker | Backend | Initialisation |
 | --- | --- | --- |
 | `beads` | the `bd` CLI and the clone's `.beads/` database | If `.beads/` does not exist, `harness` creates a local database with prefix `tracker.beads_prefix`, without git hooks, without agent files and without remotes, and turns off automatic export. An existing `.beads/` is used exactly as found and never reconfigured |
-| `prd` | a PRD JSON file you choose (`--prd`), in ralph-tui's `userStories` format | The file must exist. `.work/prds/<name>.json` keeps it out of git, since `.work/` is gitignored |
+| `prd` | a PRD JSON file you choose (`--prd`), in ralph-tui's `userStories` format | The file must exist. A file in the configured PRD directory (`tasks.prd_dir`, default `.work/prds`) stays out of git: the `tasks` block of `.gitignore` ignores that directory |
 | `none` | nothing | Nothing is initialised; the session is handed off through the conversation |
 
 `harness` never switches backends on its own: when `bd` is not installed, `--tracker beads` fails rather than fall
@@ -65,13 +69,54 @@ Rules:
 | --- | --- |
 | `claim` | `start` |
 | `complete` | `completed`, then, when its actions succeed and the work is concluded (committed, clean tree, not on the default branch, and a valid receipt when the verify module is enabled), `deliver` |
+| any action, run without a terminal, that exits 3 | `blocked`, with `HARNESS_REASON` set to the one-line refusal, such as a task another actor owns |
 
 Only actions declared with `auto: true` run at these points; `HARNESS_TASK` carries the task id. The task is claimed
-or completed whatever the actions do: a failing automatic event is reported on stderr and recorded in
-`.work/lifecycle.jsonl` in the primary checkout, and never changes the task action's exit code. See [lifecycle](lifecycle.md).
+or completed whatever the actions do: a failing automatic event is reported on stderr and recorded in the
+[lifecycle log](lifecycle.md#the-lifecycle-log), and never changes the task action's exit code. See
+[lifecycle](lifecycle.md).
 
 PRD writes take a lock (`<prd>.lock` next to the file) and replace the file atomically. While a Ralph run owns a PRD
 (`<prd>.owner.lock`), `harness task` refuses to change it.
+
+### The convention in `AGENTS.md` and `.gitignore`
+
+With the tasks module on, `harness render` writes the task convention into the `tasks` block of `AGENTS.md`: the
+tracker in use (`tracker.default`), where PRD files are kept, and the rules every session follows. The PRD directory
+goes into the `tasks` block of `.gitignore`. With `tracker.default: beads` and the default paths:
+
+```markdown
+<!-- harness:tasks -->
+Local tasks are tracked in this clone, never in the team's record: the issue and the pull request are the record.
+Tasks live in the Beads database in `.beads/` and are handled with `bd`. PRD files live in `.work/prds/`, in
+ralph-tui's `userStories` format. A task is claimed before work on it starts, has one owner at a time, and is
+completed only after its checks pass. A task that will not be finished is released, not completed.
+<!-- /harness:tasks -->
+```
+
+With `tracker.default: prd` the second sentence names the PRD files as the tracker; with `none`, it says tasks are
+handed off through the conversation.
+
+```gitignore
+# harness:tasks
+/.work/prds/
+# /harness:tasks
+```
+
+When `harness` created the Beads database and the repository does not track `.beads/`, it also writes:
+
+```gitignore
+# harness:beads
+/.beads/
+# /harness:beads
+```
+
+An existing `.beads/` keeps whatever ignore rules the repository already has.
+
+These are convention blocks: they state the convention as a fact and name no `harness` command. After
+[`harness remove --eject`](remove.md#eject) the markers go and the text and ignore entries stay: `bd` and ralph-tui keep working with the same database and PRD files, and agents keep
+claiming before they work, but nothing checks for a receipt at completion any more. `harness remove --module tasks`
+removes the blocks and leaves the database and the PRD files in place.
 
 ## Reference
 
@@ -92,20 +137,20 @@ harness task <claim|note|complete|release> <id> [--note <text>]
 | 2 | `complete` refused: no valid receipt. Run `harness verify` |
 | 3 | Refused: the task belongs to another actor, or a Ralph run owns the PRD. A person decides whether to take it over |
 
-Files read and written: `.work/session.json`; the Beads database through `bd`; the PRD file and its lock files;
-`.work/lifecycle.jsonl`.
+Files read and written: `session.json` in the worktree's state directory; the Beads database through `bd`; the PRD
+file and its lock files; the lifecycle log.
 
 ## Examples
 
 ### A Node API with Beads
 
 ```sh
-harness worktree create invoice-rounding --tracker beads --task acme-api-7f2
+./harnessw worktree create invoice-rounding --tracker beads --task acme-api-7f2
 cd .work/worktrees/invoice-rounding
-harness task claim acme-api-7f2
-harness task note acme-api-7f2 --note "Rounding moved to the domain service; verifying"
-harness verify --lane unit=invoice --skip e2e="no route, controller or guard changed"
-harness task complete acme-api-7f2
+./harnessw task claim acme-api-7f2
+./harnessw task note acme-api-7f2 --note "Rounding moved to the domain service; verifying"
+./harnessw verify --lane unit=invoice --skip e2e="no route, controller or guard changed"
+./harnessw task complete acme-api-7f2
 ```
 
 `bd ready`, `bd show`, `bd search` and the rest of `bd` keep working as usual.
@@ -115,11 +160,11 @@ harness task complete acme-api-7f2
 ```sh
 mkdir -p .work/prds
 $EDITOR .work/prds/export-csv.json        # or: ralph-tui convert --to json export.md -o .work/prds/export-csv.json
-harness worktree create export-csv-1 --tracker prd --prd .work/prds/export-csv.json --task US-001
+./harnessw worktree create export-csv-1 --tracker prd --prd .work/prds/export-csv.json --task US-001
 cd .work/worktrees/export-csv-1
-harness task claim US-001
-harness verify --lane test=./internal/export/...
-harness task complete US-001
+./harnessw task claim US-001
+./harnessw verify --lane test=./internal/export/...
+./harnessw task complete US-001
 ```
 
 A minimal PRD file:

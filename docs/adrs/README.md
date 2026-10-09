@@ -1,86 +1,136 @@
 # Architecture decision records
 
-An architecture decision record (ADR) records one decision that shapes the structure of this project: the forces
-that led to it, the decision, the alternatives that were weighed, and what the project must maintain because of it.
-Each ADR stands alone and is numbered in the order it was accepted.
+An architecture decision record (ADR) states one decision that shapes the structure of this project and, above all,
+why it holds: the facts it answers, the reasons that connect those facts to the decision, the alternatives that lose
+and why, and what the project maintains because of it.
+
+## Authority
+
+ADRs are the source of truth for the architecture. The binary, the shipped skill, the [features](../features/) pages
+and the [user-experience standards](../ux/) follow them. When any of these disagrees with an ADR, that artifact is
+wrong and is corrected.
+
+No two ADRs contradict each other. A point decided in one ADR is referenced from the others, never restated in
+different words.
+
+## An ADR states what is true now
+
+An ADR has no status, no date and no history. It describes the decision in force, in the present tense. When a
+decision changes, its ADR is edited in the same pull request that changes the behaviour, and every ADR that references
+it is checked in that pull request. Git keeps the past; the ADR keeps the present.
+
+A decision that stops applying is deleted, together with every reference to it. Its number is not reused.
+
+Reasons: a corpus that accumulates superseded records forces every reader to reconstruct the current state from a
+chain of partial replacements, and a reader who stops early acts on a decision that no longer holds. An agent that
+reads the corpus before making a change is that reader on every run.
+
+## Reasons come first
+
+A decision without its reasons cannot be applied to a case it did not foresee, and cannot be changed safely, because
+nobody can tell which facts it depends on. So every ADR justifies every point it decides:
+
+- Each numbered point of the Decision has at least one reason in Reasons.
+- A reason ties a fact from Context, or another ADR, to the point, and states what the decision trades away.
+- Context holds facts with their sources: a tool's documented behaviour with the version it was checked against, a
+  measurement, a survey count. It holds no conclusions.
+- Each rejected alternative is stated at its best before the reason it loses.
+
+An ADR whose Reasons section does not cover every point is incomplete, whatever its Decision says.
 
 ## When to write one
 
-Write an ADR for a decision that is hard to reverse or that constrains how other parts are built. Examples: the
-implementation language, the contract between the tool and the repositories that adopt it, what the tool may and
-may not write, how ownership of generated files is recorded.
+Write an ADR for a decision that is hard to reverse or that constrains how other parts are built: the implementation
+language, the contract between the tool and the repositories that adopt it, what the tool may and may not write, how
+ownership of generated files is recorded, how releases are trusted.
 
-Do not write an ADR for a feature, a command, a flag, a file field, a task or a plan. Those belong in the feature
-and user documentation. If a proposed ADR reads as a description of something the tool does, it is not an ADR.
+Do not write an ADR for a feature, a command, a flag, a file field, a task or a plan. Those belong in the
+[features](../features/) pages and the [user-experience standards](../ux/). If a proposed ADR reads as a description of
+something the tool does, it is not an ADR.
 
-## Status and changes
+One ADR holds one decision. If its points serve two decisions, it is two ADRs.
 
-| Status | Meaning |
-| --- | --- |
-| Proposed | Under discussion; not yet binding. |
-| Accepted | Binding. Code and documentation follow it. |
-| Superseded by NNNN | Replaced by a later ADR, which links back to it. |
-| Deprecated | No longer applies, and nothing replaces it. |
+## Naming
 
-An accepted ADR is never rewritten. A changed decision gets a new ADR that supersedes the old one; the old one keeps
-its text and changes only its status line.
+- **File:** `NNNN-<topic>.md`. The number is a permanent identifier, never reused or reassigned. The topic names the
+  question the ADR answers, in kebab-case nouns (`implementation-language`, `release-trust`), so the file name stays
+  valid when the answer changes and links never break.
+- **Title:** `# NNNN. <decision>`: one present-tense declarative sentence that states the answer, at most 12 words,
+  with no semicolon, no rationale and no "and" joining two decisions. When the decision changes, the title changes
+  with it; the file name does not.
+- **Links:** other ADRs are linked by file name, `[0011](0011-safety-invariants.md)`.
 
-The initial corpus, ADRs 0001 to 0016, was settled together on 2026-10-09; from now on, a change is a new ADR that
-supersedes.
+## Writing rules
+
+- Present tense, no hedges.
+- No names of the tool's commands, flags, settings, environment variables, exit codes or files. Mechanisms are named
+  generically: the wrapper, the manifest, the drift check, the health check, the repository's data. The directory
+  layout ADR names directories because the layout is its decision.
+- Third-party products are named with the version their behaviour was checked against.
+- No organization names.
 
 ## Template
 
 ```markdown
-# NNNN. <The decision, stated as a sentence>
-
-- Status: Proposed | Accepted | Superseded by NNNN | Deprecated
-- Date: YYYY-MM-DD
+# NNNN. <The decision, one present-tense sentence>
 
 ## Context
 
-The forces at play and the constraints, each with its source outside this project (a tool's documented
-behaviour, a measured observation, a prior decision). Measured facts carry their numbers; targets are stated as requirements.
+The problem and the forces, as facts with their sources. No conclusions.
 
 ## Decision
 
-What is decided, in the present tense. Name a mechanism only where the mechanism is the decision.
+1. <A point of the decision, present tense.>
+2. ...
 
-## Alternatives considered
+## Reasons
+
+- **1.** <Why point 1 holds: the fact it answers, what it gains, what it trades.>
+- **2, 3.** <One reason may justify several points.>
+
+## Rejected alternatives
 
 ### <Alternative>
 
-The alternative stated at its best, then why it was not chosen.
+The alternative at its best, then the reason it loses.
 
 ## Consequences
 
-Positive:
+Costs:
 
-Negative:
+- <What becomes harder, or a risk the decision accepts.>
 
 Must be maintained:
 
+- <What the project keeps up because of this decision.>
+
 ## Confirmation
 
-How compliance is checked: a test, a CI job, a review rule or a measurement.
+- <A test, a CI job, a review rule or a measurement that shows compliance.>
 ```
 
 ## Index
 
-| ADR | Decision | Status |
+| ADR | Question | Decision |
 | --- | --- | --- |
-| [0001](0001-meta-harness-never-calls-a-model.md) | The tool is a meta-harness: it configures agent harnesses and never acts as one | Accepted |
-| [0002](0002-deterministic-work-in-the-binary.md) | Deterministic work lives in the binary; judgement is delegated to agents guided by shipped documentation | Accepted |
-| [0003](0003-single-static-binary-in-go.md) | The tool is a single binary written in Go | Accepted |
-| [0004](0004-zero-runtime-dependencies.md) | The binary has zero runtime dependencies | Accepted |
-| [0005](0005-global-installation-and-schema-versioning.md) | Global installation by default; version skew is handled by schema versioning and an update notice | Accepted |
-| [0006](0006-repository-state-is-declarative-data.md) | Repository state is versioned declarative data, never engine code | Accepted |
-| [0007](0007-recorded-ownership-and-committed-artefacts.md) | Ownership is recorded in a manifest; generated artefacts are committed and drift-checked; removal follows the manifest | Accepted |
-| [0008](0008-merge-rendered-native-configuration.md) | Native agent configuration is merge-rendered: the tool owns specific keys and preserves everything else | Accepted |
-| [0009](0009-agent-neutral-sources-and-adapters.md) | Agent-specific configuration is produced by adapters from agent-neutral sources | Accepted |
-| [0010](0010-optional-and-transparent-adoption.md) | Adoption is optional and transparent: nothing in a repository depends on the binary being present | Accepted |
-| [0011](0011-built-in-safety-invariants.md) | Safety invariants are built into the binary and cannot be expressed or removed as configuration | Accepted |
-| [0012](0012-coexistence-with-team-record-and-third-party-state.md) | The binary contains no hosting-platform logic, never writes the team's record, and never reconfigures third-party state or files it did not create | Accepted |
-| [0013](0013-organization-neutrality-and-presets.md) | The binary carries no organization-specific content; organizations layer presets through an extension mechanism | Accepted |
-| [0014](0014-directory-layout-follows-third-party-discovery.md) | The directory layout is dictated by where third-party tools look | Accepted |
-| [0015](0015-lifecycle-events-with-declared-actions.md) | The development lifecycle is a fixed set of events; the binary fires them and enforces guards, and repositories and presets declare the actions | Accepted |
-| [0016](0016-lossless-adoption-of-native-permissions.md) | Adoption is lossless: the permission source expresses every native rule, and adoption proves equivalence before writing | Accepted |
+| [0001](0001-role-of-the-tool.md) | What is the tool's role? | The tool configures agent harnesses and never acts as one |
+| [0002](0002-division-of-work.md) | Which work does the binary do? | The binary does only deterministic work |
+| [0003](0003-implementation-language.md) | In what language, and as what artefact? | The tool is one executable written in Go |
+| [0004](0004-runtime-dependencies.md) | What does the binary need at runtime? | The binary needs only the operating system and git at runtime |
+| [0005](0005-schema-compatibility.md) | How do repository files and binaries stay compatible? | Every repository file carries a schema version the binary enforces |
+| [0006](0006-repository-contract.md) | What does a repository hold? | A repository holds declarative data, never engine code |
+| [0007](0007-ownership.md) | How is ownership of generated content known? | A committed manifest records everything the tool owns |
+| [0008](0008-native-configuration.md) | How does the tool write files that agents and people share? | The tool owns only named keys inside shared native files |
+| [0009](0009-agent-support.md) | How are several agents supported? | Adapters render agent-neutral sources into each agent's native files |
+| [0010](0010-dependence-on-the-binary.md) | What depends on the binary being installed? | Nothing in an adopted repository depends on the binary |
+| [0011](0011-safety-invariants.md) | Where do safety rules live? | Safety invariants are built into the binary, never configured |
+| [0012](0012-write-boundary.md) | What may the binary write? | The binary writes only content it owns |
+| [0013](0013-organization-content.md) | Where does organization-specific content live? | Organization-specific content lives in presets, never in the binary |
+| [0014](0014-directory-layout.md) | Where does each kind of file live? | Tool configuration, agent content and state have separate homes |
+| [0015](0015-development-lifecycle.md) | How are the steps of a change automated? | The development lifecycle is a fixed set of events the binary fires |
+| [0016](0016-permission-adoption.md) | What happens to existing permission rules at adoption? | Adoption keeps every native permission rule in effect |
+| [0017](0017-engine-version.md) | Which release runs in a repository? | Each repository pins its engine release through a committed wrapper |
+| [0018](0018-conventions.md) | What remains when the tool is gone? | Conventions the tool establishes are written to outlive it |
+| [0019](0019-action-kinds.md) | What can a declared action do? | Declared actions are commands, HTTP requests or headless agent runs |
+| [0020](0020-standing-context.md) | How does known guidance reach an agent? | Guidance enters agent context through declared deterministic triggers |
+| [0021](0021-release-trust.md) | How is a new release trusted? | Only an already trusted binary admits a new release |

@@ -6,12 +6,20 @@ what **`harness` does** about it, and what **you do**.
 
 For the principles behind these entries, read [safety](safety.md). For the terms, see the [glossary](glossary.md).
 
+Commands are named `harness <command>` on this page. Run them through the repository's wrapper,
+`./harnessw <command>`, from the root of a checkout; with a global install, `harness <command>` is equivalent
+([wrapper](wrapper.md)).
+
 - [Permissions](#permissions)
 - [Agents and trust](#agents-and-trust)
 - [Worktrees and environment](#worktrees-and-environment)
 - [Ralph, trackers and verification](#ralph-trackers-and-verification)
 - [Delivery](#delivery)
+- [Notifications and agent actions](#notifications-and-agent-actions)
+- [Standing context](#standing-context)
 - [Configuration and versions](#configuration-and-versions)
+- [The wrapper](#the-wrapper)
+- [Removal](#removal)
 - [Scope limits](#scope-limits)
 
 ## Permissions
@@ -50,13 +58,27 @@ For the principles behind these entries, read [safety](safety.md). For the terms
   as the command it wraps. Treat "edit files" plus "run the test runner" as "run any code", and keep production
   credentials out of the agent's environment.
 
+### The wrapper is a second spelling of every `harness` command
+
+- **Symptom.** `[harness, lifecycle, run, deliver]` is under `ask`, yet an agent runs
+  `/home/dev/acme-api/harnessw lifecycle run deliver` or `sh harnessw lifecycle run deliver` without a prompt.
+- **Why.** A prefix matches leading words. `harness …`, `./harnessw …`, `harnessw …`, a task shim, an absolute path to
+  the wrapper and `sh harnessw …` all start with different words.
+- **What `harness` does.** Renders every entry that names `harness` for each spelling it can know: `harness …`,
+  `./harnessw …`, `harnessw …`, and the task shim where one exists ([policy](policy.md#entries-for-harness-commands)).
+  It cannot enumerate absolute paths or interpreters, so the guards that matter live in the binary: `harness
+  lifecycle run` refuses inside a Ralph worker whatever the spelling, because the worker launcher sets
+  `HARNESS_WORKER=1`, and the `deliver` guards hold whoever runs the command ([safety](safety.md#guards-live-in-the-binary)).
+- **What you do.** Write each entry for a `harness` command once, as `[harness, …]`. Treat the policy entries as
+  defence in depth and the binary's refusals as the guarantee; deny in `worker.deny` what workers must never run.
+
 ### Codex cannot match mid-command patterns
 
-- **Symptom.** A deny works in Claude Code and not in Codex; the `policy-summary` block lists it as Claude-only.
+- **Symptom.** A deny works in Claude Code and not in Codex; the `policy` block lists it as Claude-only.
 - **Why.** Codex rules match command prefixes. Raw strings, native rule strings other than a pure `Bash(<prefix> *)`,
   and flag-last spellings such as `git push origin main --force` have no Codex form.
 - **What `harness` does.** Renders every prefix list for both agents, renders the other forms for Claude Code only,
-  and lists them in the `policy-summary` block. The built-in `:::` deny and the flag-last force-push denies are
+  and lists them in the `policy` block. The built-in `:::` deny and the flag-last force-push denies are
   Claude-only for this reason.
 - **What you do.** Express every deny that both agents must enforce as a prefix list. Where only a mid-command form
   exists, deny the whole tool to Codex workers.
@@ -131,8 +153,8 @@ For the principles behind these entries, read [safety](safety.md). For the terms
 - **Symptom.** Every command prompts in a worktree, or project hooks do not run.
 - **Why.** Claude Code applies project settings only in folders the person trusted. Worktrees nested in the primary
   checkout inherit its trust; a worktree created as a sibling directory does not.
-- **What `harness` does.** Creates its worktrees under `.work/worktrees/`, inside the primary checkout. Never changes
-  trust ([agents](agents.md#trust)).
+- **What `harness` does.** Creates its worktrees in the configured worktrees directory, inside the primary checkout
+  (`.work/worktrees/` by default). Never changes trust ([agents](agents.md#trust)).
 - **What you do.** Trust the primary checkout once. Create worktrees with `harness worktree create`, not as siblings.
 
 ### Permitting `harness lifecycle run` permits its actions
@@ -141,9 +163,9 @@ For the principles behind these entries, read [safety](safety.md). For the terms
   the policy denies to it.
 - **Why.** Actions run as child processes of `harness`, outside the agent's per-command checks. The permission to
   start the event is the permission for every action declared on it.
-- **What `harness` does.** Seeds `[harness, lifecycle, run, deliver]` under `ask` in a scaffolded policy; denies
-  `harness lifecycle` to workers in the built-in base; refuses unsafe delivery with its guards
-  ([lifecycle](lifecycle.md#built-in-guards)).
+- **What `harness` does.** Seeds `[harness, lifecycle, run, deliver]` under `ask` in a scaffolded policy, rendered for
+  every spelling; denies `[harness, lifecycle]` to workers in the built-in base and refuses `lifecycle run` inside a
+  worker in the binary; refuses unsafe delivery with its guards ([lifecycle](lifecycle.md#built-in-guards)).
 - **What you do.** Read `harness lifecycle list` before allowing the command, and review every change to the actions
   like code ([safety](safety.md#lifecycle-actions-are-code)).
 
@@ -163,26 +185,34 @@ For the principles behind these entries, read [safety](safety.md). For the terms
   actions inside workers.
 - **What you do.** Run workers on tasks a person wrote or read. Scope runs with `--epic`.
 
-### Hooks are skipped without the binary
+### Hooks skip until the pinned binary is cached
 
-- **Symptom.** A teammate's agent edits files without lint-on-edit; the session shows
-  `harness: not installed, hook skipped`.
-- **Why.** Rendered hook entries are guarded so a clone works without `harness`: they exit 0 when the binary is
-  missing ([hooks](hooks.md#the-missing-binary-guard)).
-- **What `harness` does.** Prints the one line and continues. Raw hooks run without the binary. Mise wrappers, which a
-  person or an agent runs on purpose, exit non-zero instead, so a skipped verification never reads as a pass.
-- **What you do.** Treat hooks as feedback. `harness verify` and CI are the proof.
+- **Symptom.** A teammate's agent edits files without lint-on-edit, standing context or notifications; the session
+  starts with `harness v0.9.0 is not cached on this machine; run ./harnessw version once to fetch it.` and later hooks
+  print `harness: v0.9.0 not downloaded, hook skipped; run: ./harnessw version`. It happens after cloning, on a new
+  machine, and after the pin moves to a new release.
+- **Why.** Rendered hooks are implicit entry points and never download: they run `harnessw --no-download`, which exits
+  0 when the pinned version is not in the cache ([hooks](hooks.md#the-missing-binary-guard)).
+- **What `harness` does.** Adds the one session-context line at session start, prints one stderr line on every other
+  hook, and continues. Raw hooks and static context entries work regardless. Explicit entry points,
+  `./harnessw <command>` and the task shims, download and verify the pinned version, and exit non-zero when they
+  cannot, so a skipped verification never reads as a pass.
+- **What you do.** Run `./harnessw doctor` once on each machine after cloning and after each upgrade. Treat hooks as
+  feedback; `harness verify` and CI are the proof. Declare directives every session must have as
+  [static context](context.md#static-entries).
 
 ## Worktrees and environment
 
 ### The repository's own globs pick up nested worktrees
 
 - **Symptom.** Lint, tests or the type checker in the primary checkout report duplicate modules, run twice or fail on
-  files under `.work/worktrees/`.
+  files under the worktrees directory (`.work/worktrees/` by default).
 - **Why.** Managed worktrees are nested in the primary checkout. A glob such as `**/*.ts`, a test root or a
   `tsconfig.json` `include` walks into them; `.gitignore` does not stop tools that do not read it.
-- **What `harness` does.** Adds `/.work/` to the `ignore` block of `.gitignore`. It never edits tool configuration.
-- **What you do.** Exclude `.work/**` in the linter, the test runner, the type checker and the editor's file watcher.
+- **What `harness` does.** Writes the state and worktree directories into the `state` and `worktrees` blocks of
+  `.gitignore`. It never edits tool configuration.
+- **What you do.** Exclude the state and worktree directories (`.work/**` with the defaults) in the linter, the test
+  runner, the type checker and the editor's file watcher.
 
 ### Worktrees inherit the parent's tool configuration and dependencies
 
@@ -210,7 +240,7 @@ For the principles behind these entries, read [safety](safety.md). For the terms
 
 ### Ralph starts from committed code only
 
-- **Symptom.** A run ignores a change you just made, including a change to `.agents/`; workers check against the old
+- **Symptom.** A run ignores a change you just made, including a change to `.harness/`; workers check against the old
   rules.
 - **Why.** The coordinator and every task checkout are created from a commit, and the worker reads the profile, the
   policy and the hooks file from the session's base commit. A new worktree also contains only committed code.
@@ -268,10 +298,11 @@ For the principles behind these entries, read [safety](safety.md). For the terms
 ### The receipt lives in the worker's writable tree
 
 - **Symptom.** A worker's receipt lists lanes that passed, and the task still fails.
-- **Why.** The worker can write `.work/verified.json`, so the receipt cannot be proof.
+- **Why.** The worker can write its receipt (`.work/verified.json` by default), so the receipt cannot be proof.
 - **What `harness` does.** Uses the receipt only to select lanes and skip reasons, then replays them from the base
   commit's rules. The replay is the proof ([verify](verify.md#who-relies-on-it)).
-- **What you do.** Read `.work/last-worker-output` in the task checkout, and run the lanes there yourself.
+- **What you do.** Read `last-worker-output` in the task checkout's state directory, and run the lanes there
+  yourself.
 
 ### A lane passes with zero tests, or with unrelated tests
 
@@ -294,8 +325,8 @@ For the principles behind these entries, read [safety](safety.md). For the terms
 
 - **Symptom.** A worker looks hung: nothing streams for many minutes.
 - **Why.** The worker wrapper buffers the agent's output so it can withhold completion until the replay passes.
-- **What `harness` does.** Prints the output after a passing replay; keeps it in `.work/last-worker-output` after a
-  failure.
+- **What `harness` does.** Prints the output after a passing replay; keeps it in `last-worker-output`, in the task
+  checkout's state directory, after a failure.
 - **What you do.** Watch ralph-tui's progress, not the agent's tokens. Stopping Ralph stops the agent and its
   processes.
 
@@ -325,7 +356,8 @@ For the principles behind these entries, read [safety](safety.md). For the terms
 - **Symptom.** `harness task complete` succeeds, and nothing is pushed.
 - **Why.** The automatic `deliver` fires only for concluded work: committed, clean, off the default branch and, when
   the verify module is enabled, with a valid receipt.
-- **What `harness` does.** Skips the event, names the unmet condition, and records it in `.work/lifecycle.jsonl`.
+- **What `harness` does.** Skips the event, names the unmet condition, and records it in the
+  [lifecycle log](lifecycle.md#the-lifecycle-log).
 - **What you do.** Commit before `harness task complete`, or run `harness lifecycle run deliver` afterwards.
 
 ### A rebase invalidates the receipt
@@ -350,6 +382,106 @@ For the principles behind these entries, read [safety](safety.md). For the terms
 - **What `harness` does.** Runs the declared actions as written.
 - **What you do.** Make each action safe to repeat: `gh pr view "$HARNESS_BRANCH" || gh pr create …`.
 
+## Notifications and agent actions
+
+### Notifications are silent on a machine without the pinned binary
+
+- **Symptom.** A developer gets chat messages when their agent waits for them on one machine and not on another, or
+  an `attention` action never fires after a fresh clone.
+- **Why.** `attention` and `turn_end` are agent hooks, and agent hooks are implicit entry points: they never download,
+  so they do nothing until the pinned release is in the machine's cache. The variable an `http` action reads must also
+  be set in that machine's environment.
+- **What `harness` does.** Adds one line to the first session's context naming `./harnessw doctor`, prints one line on
+  stderr on every other hook, and exits 0.
+- **What you do.** Run `./harnessw doctor` once on every machine, and set the notification's variables in each
+  developer's own shell profile. Do not rely on notifications for unattended runs; declare `blocked` and `completed`
+  lifecycle actions, which the launcher fires.
+
+### Codex sessions never send `attention`
+
+- **Symptom.** `attention` notifications arrive from Claude Code sessions and never from Codex.
+- **Why.** Codex has no hook event for an agent waiting for a person. It reports a finished turn through its `notify`
+  setting only.
+- **What `harness` does.** Renders `turn_end` for Codex through `notify`, renders nothing for `attention`, and reports
+  the gap as a `doctor` note ([hooks](hooks.md#agent-notifications)).
+- **What you do.** Use `turn_end` when Codex sessions must notify.
+
+### Every action sees every secret in the environment
+
+- **Symptom.** A webhook token exported for one notification appears in the environment of a `run` action from a
+  preset, or of an `agent` action.
+- **Why.** Actions inherit the environment of the process that fires them. `url_env` and `headers_env` keep secrets
+  out of the committed file, not out of the other actions.
+- **What `harness` does.** Never writes those values to output, `--dry-run` or the lifecycle log.
+- **What you do.** Export only the variables the declared actions need, in the shell or CI job that fires them. Review
+  every action, preset actions included, as code that can read them ([safety](safety.md#secrets)).
+
+### An `agent` action leaves edits uncommitted in the primary checkout
+
+- **Symptom.** After `landed`, `git status` in the primary checkout shows changes nobody made by hand, mixed with your
+  own work in progress.
+- **Why.** An `agent` action cannot commit. On `landed` it runs in the primary checkout, because the landed work's
+  worktree is about to be removed, so its edits land where you work.
+- **What `harness` does.** Lists the changed paths in the action's output and in the lifecycle log.
+- **What you do.** Run `landed` agent actions from a clean primary checkout, review their edits, then commit or discard
+  them. Keep such actions manual.
+
+### Values in an `agent` prompt address the agent
+
+- **Symptom.** An `agent` action does something its prompt never asked for, following text in a task title or a
+  refusal reason.
+- **Why.** `$NAME` in `agent.prompt` is replaced by the variable's value as plain text, and the agent reads that text
+  as part of its instructions.
+- **What `harness` does.** Runs the agent under the worker contract, which bounds what it can do
+  ([safety](safety.md#agent-actions-and-prompt-injection)).
+- **What you do.** Write prompts that point the agent at files and branches instead of pasting values written by
+  people and agents.
+
+## Standing context
+
+### Always-on context costs every session
+
+- **Symptom.** Sessions start slower and cost more, and the agent follows a long injected directive while missing a
+  detail of the task.
+- **Why.** Every line of `always` content is read at the start of every session, and again after each compaction in
+  Claude Code. It competes with the task for the agent's attention.
+- **What `harness` does.** Reports a `doctor` note when a role's always-on content exceeds `context.budget`, listing
+  each entry's line count ([context](context.md#budget)).
+- **What you do.** Keep `always` entries short, switch long ones to `inject: pointer`, and move guidance that applies
+  to some files only behind a `paths` trigger.
+
+### Prompt words match unrelated messages
+
+- **Symptom.** A skill is injected when the person writes "update the date on the release notes".
+- **Why.** A `prompt` trigger matches whole words, case-insensitively, wherever they appear. It cannot tell what the
+  person means.
+- **What `harness` does.** Injects each `when` entry at most once per session.
+- **What you do.** Choose specific words and phrases ("DST", "time zone"), and prefer `paths` triggers.
+
+### A skill is loaded twice
+
+- **Symptom.** The transcript shows the injected pointer and then the agent loading the same skill on its own.
+- **Why.** The agent also matches installed skills by their descriptions and loads one it judges relevant, whether or
+  not `harness` injected it.
+- **What `harness` does.** Injects pointers, not content, for `when` entries by default, so the duplicate is one line.
+- **What you do.** Keep injected skills as pointers, or narrow the skill's description so the agent matches it less
+  often.
+
+### Context is missing on a machine without the pinned binary
+
+- **Symptom.** The same repository's sessions follow the coding guidelines on one machine and not on another.
+- **Why.** Hook-delivered context comes from `harness hook`, which does not run until the pinned release is cached.
+- **What `harness` does.** Adds the not-cached line to the session's context, so the agent can tell the person.
+- **What you do.** Run `./harnessw doctor` once per machine. Declare what every session must have as
+  [static context](context.md#static-entries), which is part of `AGENTS.md`.
+
+### Codex reads files without firing `paths` entries
+
+- **Symptom.** A `paths` entry fires when a Codex session patches a migration, and not when it only reads one.
+- **Why.** Codex reads files through shell commands, which name no file `harness` can match.
+- **What `harness` does.** Matches the files Codex's patches touch.
+- **What you do.** Accept edit-only triggering for Codex, or make the entry `always` for a role that needs it.
+
 ## Configuration and versions
 
 ### Hand-edited rendered files are drift
@@ -359,14 +491,7 @@ For the principles behind these entries, read [safety](safety.md). For the terms
 - **Why.** Rendered files and blocks are outputs of the three repository files and presets.
 - **What `harness` does.** Rewrites what it owns, preserves everything else byte for byte, and reports differences
   ([render](render.md#drift-check)).
-- **What you do.** Edit the source (`policy.yaml`, `hooks.yaml`, `harness.yaml`) and render.
-
-### A global binary older than the repository's schema refuses
-
-- **Symptom.** Every command exits 3, naming a schema newer than the binary supports.
-- **Why.** The repository was rendered by a newer release with a newer schema.
-- **What `harness` does.** Refuses rather than render a format it does not know ([installation](installation.md#version-skew)).
-- **What you do.** Update `harness`. Hooks keep working meanwhile; they never block a session.
+- **What you do.** Edit the source (`policy.yaml`, `hooks.yaml`, `config.yaml`) and render.
 
 ### A preset change does not reach the repository by itself
 
@@ -381,10 +506,112 @@ For the principles behind these entries, read [safety](safety.md). For the terms
 ### A mise task with the same name keeps its name
 
 - **Symptom.** `mise run verify` runs the repository's old task, not `harness verify`.
-- **Why.** `harness` never overwrites an existing task; the wrapper is written as `harness:verify`.
-- **What `harness` does.** Writes the namespaced wrapper and lists the collision as a to-do until it is resolved
-  ([render](render.md#mise-wrappers)).
+- **Why.** `harness` never overwrites an existing task; the task shim is written as `harness:verify`.
+- **What `harness` does.** Writes the namespaced task shim and lists the collision as a to-do until it is resolved
+  ([render](render.md#task-shims)).
 - **What you do.** Remove or rename the old task, or keep both and say which one agents use.
+
+### Another tool's `.harness/` directory blocks scaffolding
+
+- **Symptom.** `harness scaffold` exits 3 naming a foreign `.harness/` directory.
+- **Why.** Another product, a CI/CD platform, keeps its pipelines in a `.harness/` directory and ships a CLI also named
+  `harness`. A `.harness/` without this tool's `config.yaml` or `manifest.json` belongs to someone else.
+- **What `harness` does.** Refuses to write into it, and never changes it ([compatibility](compatibility.md)).
+- **What you do.** Decide whether the repository uses the other product. Repositories that do are outside this tool's
+  audience.
+
+## The wrapper
+
+### The first run needs the network
+
+- **Symptom.** On a fresh clone, a new machine, or after the pin moves to a new release, `./harnessw <command>` or a
+  task shim fails to download, and agent sessions show a skipped hook.
+- **Why.** The wrapper runs only the pinned version. The first time a machine needs it, the wrapper downloads the
+  release asset with `curl` or `wget` and checks it with `sha256sum` or `shasum`. Without network access, or without
+  those tools, there is nothing to run. Afterwards the wrapper runs offline, from the cache.
+- **What `harness` does.** Explicit entry points exit non-zero and say why; hooks skip with one line and exit 0.
+  Nothing partly downloaded is cached.
+- **What you do.** Run `./harnessw version` once while online, after cloning and after each upgrade. On an air-gapped
+  machine, bring the pinned release in, check it against the checksum in `.harness/wrapper.yaml`, and pre-fill the
+  cache with it or point `HARNESS_BINARY` at it ([air-gapped machines](wrapper.md#air-gapped-machines)).
+
+### A checksum mismatch refuses the download
+
+- **Symptom.** `./harnessw` exits 1 naming a checksum mismatch. Nothing is cached, so the next run downloads again.
+- **Why.** The sha256 of the downloaded asset differs from the one `.harness/wrapper.yaml` pins for this platform: a
+  corrupted download, a proxy that rewrites responses, a pin edited by hand, or a release asset replaced after the pin
+  was written.
+- **What `harness` does.** Refuses to cache or run the asset. It never falls back to another version and never skips
+  the check.
+- **What you do.** Retry once. If the mismatch persists, read `git log -p .harness/wrapper.yaml` and compare the pinned
+  checksum with the release's published checksum file. When the pin matches the release and the download does not,
+  investigate the network path or the release; do not work around it by editing the checksum or setting
+  `HARNESS_BINARY` ([wrapper](wrapper.md#troubleshooting)).
+
+### Bypassing the pin runs another version
+
+- **Symptom.** A command exits 3 naming a schema newer than the binary supports, or one person's renders differ from
+  everyone else's.
+- **Why.** The pin holds only while the pinned binary runs. `HARNESS_BINARY` makes the wrapper run whatever binary it
+  names, and a global `harness` from a release without wrapper deferral runs itself instead of the pinned version.
+- **What `harness` does.** A global binary with wrapper deferral execs the pinned version inside any repository that
+  has `.harness/wrapper.yaml`. A binary older than the repository's schema refuses rather than render a format it does
+  not know.
+- **What you do.** Run `./harnessw`, or update the global binary. Set `HARNESS_BINARY` only on an air-gapped machine
+  or while developing `harness`, and unset it afterwards.
+
+### Editing `wrapper.yaml` by hand breaks the checksums
+
+- **Symptom.** After `version` was changed by hand in `.harness/wrapper.yaml`, every download fails with a checksum
+  mismatch, or fails on one platform.
+- **Why.** Checksums belong to one version. A hand-edited `version` keeps the previous version's checksums, and a
+  platform without a checksum has nothing to verify against.
+- **What `harness` does.** Refuses every download that does not match
+  ([A checksum mismatch refuses the download](#a-checksum-mismatch-refuses-the-download)).
+- **What you do.** Upgrade with `./harnessw wrapper --version <tag>` (or `--latest`), which verifies the release's
+  signed checksum file and writes the version and the checksum of every platform from it, and review the diff. Across
+  repositories, run `harness fleet wrapper --version <tag> --deliver` ([fleet](fleet.md)).
+
+### A second pin in the task runner drifts from the wrapper
+
+- **Symptom.** `harness doctor` reports a finding for `mise.toml` (or `.mise.toml`, `.tool-versions`), or `mise exec`
+  and `./harnessw` run different releases.
+- **Why.** The task runner's tool list also pins `harness`, so two files answer the same question, and an upgrade
+  moves only one of them.
+- **What `harness` does.** Treats `.harness/wrapper.yaml` as the only pin, reports the second one, and never edits the
+  task runner's file. Adoption copies such a pin into `wrapper.yaml` and lists its removal in the to-do
+  ([wrapper](wrapper.md#one-pin)).
+- **What you do.** Remove `harness` from the task runner's tool list.
+
+### Another program named `harness` comes first on `PATH`
+
+- **Symptom.** `harness doctor` or `harness version` prints something unrelated, or `doctor` reports that the
+  `harness` on `PATH` is not this tool.
+- **Why.** Another product ships a CLI named `harness`. The global command resolves through `PATH`, so whichever comes
+  first runs.
+- **What `harness` does.** Nothing it can do changes `PATH`. `./harnessw` always runs the pinned binary from its own
+  cache, so wrapper invocations, task shims and hooks are never affected.
+- **What you do.** Use `./harnessw` inside repositories, and put this tool's global binary earlier on `PATH` only if
+  you want the global command.
+
+## Removal
+
+### After eject, nothing enforces the conventions
+
+- **Symptom.** After `harness remove --eject`, `AGENTS.md` still describes where worktrees go, how tasks are tracked,
+  how Ralph runs and what agents may run, yet a worker commits its own work, delivery has no guard, and lint-on-edit,
+  notifications and hook-delivered standing context have stopped.
+- **Why.** Eject stops managing and keeps the result. Convention blocks (`worktrees`, `tasks`, `ralph`, `policy`,
+  `memory`, `context`) keep their text without markers, and the `.gitignore` entries, the rendered permissions and the
+  raw hooks stay as the repository's own. Tool blocks (`commands`, `layout`, `verify`, `lifecycle`) are removed, because
+  they describe `harness` commands that do not exist after the eject, and so are the hooks that called `harness`. Receipts, the
+  worker contract, the tamper check, the lifecycle guards and the drift check need the binary, so they stop.
+- **What `harness` does.** Lists every block, hook and task shim it removed ([remove](remove.md#eject)), and nothing
+  after that.
+- **What you do.** Decide which guarantees the repository still needs and move each one where something enforces it:
+  CI for the checks, branch protection for what lands, the agents' own permissions for what they may run. Edit the
+  convention text by hand when a convention changes, since nothing re-renders it. Run `harness remove` without
+  `--eject` when the conventions should go too.
 
 ## Scope limits
 

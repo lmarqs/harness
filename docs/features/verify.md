@@ -4,6 +4,10 @@
 change's base commit and to the exact content of every changed file. Any later edit invalidates it. Task completion
 and Ralph workers require a valid receipt; `harness verify --check` tells you whether you have one.
 
+Commands are named `harness <command>` on this page. The examples run them through the repository's wrapper,
+`./harnessw <command>`, from the root of a checkout; with a global install, `harness <command>` is equivalent
+([wrapper](wrapper.md)).
+
 ## When to use it
 
 - Before calling a change done: lint, build and the relevant test lanes in one command.
@@ -42,10 +46,11 @@ Changed files are the files that differ from the base (committed or not) plus un
 6. Build with `commands.build` when the change is an application change, or with `--full`.
 7. Run the lanes: `select` once per pattern, or `full` with `--full`.
 8. Fingerprint again. If any file changed while the checks ran, fail: the checks did not see the final content.
-9. Write the receipt to `.work/verified.json` in the checkout.
+9. Write the receipt to `verified.json` in the checkout's state directory (`state.dir`, default `.work`).
 10. Fire the `verified` [lifecycle event](lifecycle.md): scope `task` in a worktree bound to a task, `change`
     otherwise. Actions declared with `auto: true` run; `HARNESS_RECEIPT` and `HARNESS_SUMMARY` carry the receipt's
-    path and its one-line summary. A failing automatic event is reported on stderr and recorded in `.work/lifecycle.jsonl`;
+    path and its one-line summary. A failing automatic event is reported on stderr and recorded in the
+    [lifecycle log](lifecycle.md#the-lifecycle-log);
     the receipt stays written and the exit code is the verification's.
 
 `harness verify --check` never fires `verified`.
@@ -89,7 +94,8 @@ A lane named twice, both selected and skipped, or not declared in the profile is
 | `skipped` | for each skipped lane, the reason given |
 | `full` | whether `--full` ran |
 
-The receipt lives in the checkout's `.work/`, so it is gitignored and local to that checkout.
+The receipt lives in the checkout's state directory, which the `state` block of `.gitignore` ignores, so it is local
+to that checkout.
 
 ### Freshness
 
@@ -115,6 +121,36 @@ The receipt lives in the checkout's `.work/`, so it is gitignored and local to t
 | The [Ralph worker](ralph.md#the-worker-contract) | read which lanes and skip reasons the agent chose, then **replay** them itself from a tree the agent cannot write. The receipt only selects; the replay is the proof |
 | The [`deliver` guard](lifecycle.md#built-in-guards) | refuse delivery of work without a valid receipt for its base, when the verify module is enabled |
 
+### The `verify` block in `AGENTS.md`
+
+With the verify module on, `harness render` writes the repository's checks into the `verify` block of `AGENTS.md`,
+in plain language, from the profile's `commands` and `verify` sections, and says how to record them with
+`./harnessw verify`. For the Node API of the [profile](profile.md) examples:
+
+```markdown
+<!-- harness:verify -->
+A change is done when its checks pass. Run them from the root of the checkout; `{file}` stands for one changed file
+and `{pattern}` for a test pattern.
+
+- Lint each changed file that matches `src/**/*.{ts,js}` or `test/**/*.ts`: `npx eslint --fix {file}`.
+- A change to a file that matches `src/**`, `test/**`, `package.json`, `package-lock.json`, `tsconfig*.json` or
+  `Dockerfile` is an application change. Build it with `npm run build`, and give every test lane either patterns that
+  select the tests exercising the change or a skip reason a reviewer can judge. At least one lane runs.
+  - `unit`: `npx vitest run {pattern}`
+  - `e2e`: `npx vitest run --config vitest.e2e.config.ts {pattern}`. It cannot be skipped when a changed file matches
+    `src/**/*.controller.ts`, `src/**/routes/**` or `src/**/guards/**`.
+- When a changed file matches `openapi/**` or `src/**/*.dto.ts`, run `npm run openapi:check`.
+
+A missing service or dependency is blocked work, never a reason to skip a lane. Record the result with
+`./harnessw verify --lane <lane>=<pattern>` or `--skip <lane>=<reason>`; `./harnessw explain verify` has the rules.
+<!-- /harness:verify -->
+```
+
+`verify` is a tool block: the lane rules, the receipt and its replay exist only while `harness` manages the
+repository, so the block describes how to use `harness` here and names `./harnessw verify`. An eject
+([`harness remove --eject`](remove.md#eject)) removes it, as does `harness remove --module verify`. A repository that
+wants its checks written down after an eject keeps them in `AGENTS.md` prose outside the markers.
+
 ## Reference
 
 ```text
@@ -135,9 +171,9 @@ harness verify [--lane <name>=<pattern>]... [--skip <name>=<reason>]... [--full]
 | 1 | Error: a lane rule is not met, unknown lane, invalid `--base`, files changed during verification |
 | 2 | A check failed (lint, validator, build or lane), so no receipt was written; or, with `--check`, no valid receipt |
 
-Files read: the profile, the hooks file, the git history and index, the changed files, `.work/session.json`.
-Files written: `.work/verified.json`, `.work/lifecycle.jsonl`; whatever the repository's commands and `verified`
-actions write.
+Files read: the profile, the hooks file, the git history and index, the changed files, `session.json` in the
+checkout's state directory. Files written: `verified.json` in the checkout's state directory, `lifecycle.jsonl` in the
+primary checkout's state directory; whatever the repository's commands and `verified` actions write.
 
 ## Examples
 
@@ -145,31 +181,31 @@ actions write.
 
 ```sh
 # a service change, covered by unit tests; no HTTP surface touched
-harness verify --lane unit=invoice --skip e2e="no route, controller or guard changed"
+./harnessw verify --lane unit=invoice --skip e2e="no route, controller or guard changed"
 
 # a controller change: e2e cannot be skipped
-harness verify --lane unit=invoice --lane e2e=invoices
+./harnessw verify --lane unit=invoice --lane e2e=invoices
 
 # a documentation-only change
-harness verify
+./harnessw verify
 
 # before merging something broad
-harness verify --full
+./harnessw verify --full
 ```
 
 ### A Terraform repository
 
 ```sh
-harness verify --lane validate=envs/staging --lane plan=envs/staging
+./harnessw verify --lane validate=envs/staging --lane plan=envs/staging
 # a change under modules/** requires the plan lane:
-harness verify --lane validate=envs/staging --skip plan="no backend access"   # refused
+./harnessw verify --lane validate=envs/staging --skip plan="no backend access"   # refused
 ```
 
 ### A Go repository
 
 ```sh
-harness verify --lane test=./internal/billing/... --lane vet=./internal/billing/...
-harness verify --check && echo "receipt valid"
+./harnessw verify --lane test=./internal/billing/... --lane vet=./internal/billing/...
+./harnessw verify --check && echo "receipt valid"
 ```
 
 ## Guidelines
@@ -179,7 +215,7 @@ harness verify --check && echo "receipt valid"
 - Do treat a missing service or dependency as blocked work and say so; never skip a lane to get around it.
 - Do run `verify` last: any edit after it invalidates the receipt.
 - Don't edit files while `verify` runs; it fails rather than certify content it did not see.
-- Don't commit `.work/verified.json`; it is gitignored on purpose.
+- Don't commit the receipt (`.work/verified.json` by default); it is ignored on purpose.
 
 ## Troubleshooting
 
@@ -195,5 +231,5 @@ harness verify --check && echo "receipt valid"
 ## Coexistence
 
 `verify` runs the repository's own commands; it adds no dependency to them and CI does not need it. A repository that
-already has a `verify` mise task keeps it; the wrapper is named `harness:verify` until the two are reconciled
-([render](render.md#mise-wrappers)).
+already has a `verify` mise task keeps it; the task shim, which execs `./harnessw verify`, is named
+`harness:verify` until the two are reconciled ([render](render.md#task-shims)).

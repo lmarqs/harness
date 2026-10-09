@@ -8,6 +8,10 @@ replays the agent's verification from a tree the agent cannot write, and withhol
 passes. Lifecycle events fire from the launcher, and their actions run in the launcher process, never inside a
 worker.
 
+Commands are named `harness <command>` on this page. The examples run them through the repository's wrapper,
+`./harnessw <command>`, from the root of a checkout; with a global install, `harness <command>` is equivalent
+([wrapper](wrapper.md)).
+
 ## When to use it
 
 - An epic or a PRD is broken into stories that an agent can implement one at a time.
@@ -20,7 +24,7 @@ Prerequisites:
 
 | Need | Why |
 | --- | --- |
-| `modules.ralph: true` and a `ralph` section in the [profile](profile.md#ralph) | defaults and the wrappers |
+| `modules.ralph: true` and a `ralph` section in the [profile](profile.md#ralph) | defaults and the task shims |
 | `ralph-tui` installed | it schedules and runs the tasks |
 | `bd` installed, for `--tracker beads` | the task source |
 | the agent CLI (`claude` or `codex`) installed and declared in `agents` | the worker |
@@ -36,16 +40,18 @@ Prerequisites:
 `harness ralph run`:
 
 1. Refuses when the working tree has uncommitted changes, when another Ralph run holds the clone's lock
-   (`.work/ralph.lock`), or, with a PRD, when stories are claimed by a standalone session.
+   (`ralph.lock` in the configured state directory: `state.dir`, default `.work`), or, with a PRD, when stories are
+   claimed by a standalone session.
 2. Takes the PRD's owner lock for the whole run, so standalone `harness task` commands cannot change it meanwhile.
-3. Creates the **coordinator**: a managed worktree `.work/worktrees/ralph-<session-id>` on branch
-   `work/ralph-<session-id>`, from `HEAD`. The session id is 12 hexadecimal characters.
+3. Creates the **coordinator**: a managed worktree `ralph-<session-id>` in the configured worktrees directory
+   (`worktrees.dir`, default `.work/worktrees`), on branch `work/ralph-<session-id>`, from `HEAD`. The session id is
+   12 hexadecimal characters.
 4. Writes `<coordinator>/.ralph-tui/config.toml` ([configuration](#managed-and-inherited-configuration)).
 5. With Beads, puts a `bd` shim first on ralph-tui's PATH. The shim presents task dependencies in the field names
    ralph-tui reads and lists only the tasks of this run that can run: ready, in progress, or waiting only on other
    tasks of the run.
 6. Runs ralph-tui in the coordinator with the agent, tracker, epics, iteration budget and `--headless` you chose.
-7. Records the launch settings and whether the run finished in the coordinator's `.work/session.json`.
+7. Records the launch settings and whether the run finished in `session.json` in the coordinator's state directory.
 
 The primary checkout is never switched, reset or merged into.
 
@@ -55,8 +61,8 @@ ralph-tui decides whether to run tasks one after another or in parallel workers.
 
 | Mode | Where each task runs | How the result lands |
 | --- | --- | --- |
-| Sequential | the worker wrapper creates a task worktree `.work/worktrees/ralph-<session-id>-<task>` | after a passing replay, the wrapper commits the task there and fast-forwards the coordinator branch to it |
-| Parallel (`--workers` > 1) | ralph-tui's worker checkouts under `.work/ralph-worktrees/<session-id>/` | after a passing replay, ralph-tui commits each task onto `ralph/session-<session-id>` |
+| Sequential | the worker wrapper creates a task worktree `ralph-<session-id>-<task>` in the worktrees directory | after a passing replay, the wrapper commits the task there and fast-forwards the coordinator branch to it |
+| Parallel (`--workers` > 1) | ralph-tui's worker checkouts under `<session-id>/` in the configured Ralph worktrees directory (`ralph.worktrees_dir`, default `.work/ralph-worktrees`) | after a passing replay, ralph-tui commits each task onto `ralph/session-<session-id>` |
 
 Each task commit carries a verification summary in its body: the lanes and patterns run, and the reason for each
 skipped lane. With Beads, the same summary is added as a comment on the task after integration; a comment that fails
@@ -64,25 +70,33 @@ costs only the comment, never the verified task.
 
 ### The worker contract
 
-ralph-tui starts every agent through `harness ralph-worker <agent>`, the command `harness` writes into the
-coordinator's configuration. For each task, the worker wrapper:
+ralph-tui starts every agent through the worker wrapper, `ralph-worker <agent>`, which the launcher writes into the
+coordinator's configuration as a command on its own binary, by absolute path. A worker therefore never resolves
+`harness` from `PATH` and never starts through a `harnessw` the agent could have edited. For each task, the worker
+wrapper:
 
 1. Refuses to run unless started by `harness ralph`.
 2. Refuses permission-bypass flags: `--dangerously-skip-permissions`, `--dangerously-bypass-approvals-and-sandbox`,
    `--yolo` and the `danger-full-access` sandbox. When such a flag comes from an inherited or global ralph-tui
    configuration, the message names the key that injected it.
 3. Reads the profile, policy and hooks file **from the session's base commit**, not from the worker's checkout, so an
-   agent cannot weaken the rules its own result is checked against.
+   agent cannot weaken the rules its own result is checked against. The [standing context](context.md) injected into
+   the worker's session is read from the base commit too, so an agent cannot rewrite its own instructions between
+   attempts.
 4. Runs the **tamper check**, first half: restores every tool-owned file in the task checkout (the rendered rules,
-   the owned keys of the native settings files, the harness hook entries) from the session's base commit.
+   the owned keys of the native settings files, the harness hook entries, the wrapper `harnessw` and its pin
+   `.harness/wrapper.yaml`) from the session's base commit.
 5. Pins the permission mode:
    - Claude Code: `--permission-mode auto`, plus `worker.deny` as disallowed tools.
    - Codex: the `workspace-write` sandbox with network access; besides the task checkout, the only writable roots are
-     the clone's shared `.work/`, mise's cache directory and, with Beads, the clone's `.beads/`; `worker.deny`
+     the clone's shared state directory, mise's cache directory and, with Beads, the clone's `.beads/`; `worker.deny`
      applies through the rendered rules, which the tamper check keeps intact, which is why Codex must have `role: worker` to run as a worker ([agents](agents.md#roles)).
 6. Claims the task as the run's actor (`ralph:<session-id>`), when using Beads.
 7. Runs the profile's `bootstrap` once per task checkout.
-8. Runs the agent with the task prompt, buffering its output instead of streaming it.
+8. Runs the agent with the task prompt and `HARNESS_WORKER=1` in its environment, buffering its output instead of
+   streaming it. Every `harness` process the agent starts sees that variable and refuses to fire lifecycle events,
+   and the agent's `attention` and `turn_end` hooks do nothing: an unattended run reports through `blocked`
+   instead.
 9. Runs the tamper check, second half: compares the tool-owned files with the base commit. Any difference fails the
    attempt and is reported by path: an agent that rewrote its own rules cannot complete.
 10. When the agent exits successfully, reads the receipt the agent wrote with `harness verify`. A missing or malformed
@@ -90,14 +104,16 @@ coordinator's configuration. For each task, the worker wrapper:
     final content, with the profile from the base commit. The receipt only selects; the replay is the proof.
 11. If the replay passes: commits and integrates (sequential mode), then prints the buffered output, including the
     agent's `<promise>COMPLETE</promise>`.
-12. If anything fails: withholds the output, keeps it in `.work/last-worker-output` in the task checkout, and exits
-    non-zero. ralph-tui retries the task twice, then skips it and moves on.
+12. If anything fails: withholds the output, keeps it in `last-worker-output` in the task checkout's state directory,
+    and exits non-zero. ralph-tui retries the task twice, then skips it and moves on.
 
 Stopping Ralph stops the agent and any replayed checks, with every process they started.
 
 Workers never commit, push, merge, close tasks, edit PRD status or fire lifecycle events themselves. The embedded
-prompt says so; the built-in base denies `harness lifecycle` to every worker; the repository's `worker.deny` denies
-the rest ([policy](policy.md#a-node-api)). A worker that lacks a permission reports the task as blocked.
+prompt says so; the binary refuses `harness lifecycle run` under `HARNESS_WORKER=1`, whatever spelling started it; the
+built-in base also denies `harness lifecycle` to every worker, rendered for every spelling, as defence in depth; and
+the repository's `worker.deny` denies the rest ([policy](policy.md#a-node-api)). A worker that lacks a permission
+reports the task as blocked.
 
 ### Lifecycle events
 
@@ -110,11 +126,16 @@ The launcher, the `harness ralph run` or `harness ralph resume` process, stays a
 | right after those `completed` actions succeed, when the work is concluded | `deliver` | `task` |
 | the run finishes | `completed` | `run` |
 | right after those `completed` actions succeed, when the work is concluded | `deliver` | `run` |
+| ralph-tui skips a task after its retries | `blocked` | `task` |
+| the run stops unfinished | `blocked` | `run` |
+
+`blocked` carries the reason in `HARNESS_REASON`, such as the task that was skipped or the tasks left waiting, so a
+declared action can tell a person, for example with an `http` notification ([lifecycle](lifecycle.md)).
 
 Only actions declared with `auto: true` run at these points, read from the run's base commit, so a worker cannot add
 or change an action its own task triggers. No lifecycle action ever runs inside a worker: `harness lifecycle run`
 refuses there, and trigger points inside a worker fire nothing. A failing action is reported on stderr and recorded in
-`.work/lifecycle.jsonl` in the primary checkout; it never changes the run's exit code.
+the [lifecycle log](lifecycle.md#the-lifecycle-log); it never changes the run's exit code.
 
 ### Managed and inherited configuration
 
@@ -127,11 +148,11 @@ In both modes these keys are forced, whatever the base says:
 
 | Forced | Value |
 | --- | --- |
-| each agent's command | `harness ralph-worker <agent>` |
+| each agent's command | `<binary> ralph-worker <agent>`, where `<binary>` is the absolute path of the launcher's own `harness` binary |
 | Claude agent `skipPermissions` | `false` |
 | Codex agent `fullAuto` | `false` |
 | error handling | retry, 2 retries, `continueOnNonZeroExit = false` |
-| parallel worker directory | `.work/ralph-worktrees/<session-id>` |
+| parallel worker directory | `<ralph.worktrees_dir>/<session-id>`, by default `.work/ralph-worktrees/<session-id>` |
 | parallel target branch | `ralph/session-<session-id>`, never a direct merge |
 | Beads working directory | the primary checkout, so every worktree shares the clone's database |
 
@@ -140,10 +161,10 @@ The root `.ralph-tui/config.toml` is only read, never written, and only with `in
 
 ### The prompt
 
-Workers receive the embedded prompt unless the repository provides `.agents/ralph/prompt.hbs`, a ralph-tui Handlebars
+Workers receive the embedded prompt unless the repository provides `.harness/ralph/prompt.hbs`, a ralph-tui Handlebars
 template (`{{taskId}}`, `{{taskTitle}}`, `{{taskDescription}}`, `{{acceptanceCriteria}}`, `{{prdContent}}`,
 `{{recentProgress}}`). The embedded prompt tells the agent to read `AGENTS.md`, implement only its task in the
-worktree it is in, run `harness verify` with explicit lanes or skip reasons, leave completion, commits and integration
+worktree it is in, run `./harnessw verify` with explicit lanes or skip reasons, leave completion, commits and integration
 to Ralph, report missing permissions as blocked, and signal completion only after verifying. `harness explain ralph`
 prints it. Start an override from that text and keep its first line: it carries the task identity the worker reads.
 
@@ -172,7 +193,7 @@ and Beads actor; each task returns to its own task worktree. `--agent`, `--model
 run get a new directory, so the previous run's worker checkouts stay intact for repair. Resume refuses while ralph-tui
 still runs in that coordinator.
 
-`harness ralph clean` acts only on sessions `harness` recorded in `.work/`:
+`harness ralph clean` acts only on sessions `harness` recorded in the state directory:
 
 | Removes | Keeps, and says why |
 | --- | --- |
@@ -202,6 +223,37 @@ delivery logic of its own: what delivery means is the repository's `deliver` act
 Most runs need judgement: the task commits are small and numerous, and a reviewer reads a pull request, not a run.
 Once the delivered work is merged, `harness ralph clean` fires `landed` and removes what the run left behind.
 
+### The convention in `AGENTS.md` and `.gitignore`
+
+With the Ralph module on, `harness render` writes the run convention, with the configured directories, into the
+`ralph` block of `AGENTS.md`, and the directories into the `ralph` block of `.gitignore`. With the defaults:
+
+```markdown
+<!-- harness:ralph -->
+Ralph runs start from committed code. Each run has a coordinator worktree, `.work/worktrees/ralph-<session-id>`, on
+branch `work/ralph-<session-id>`; ralph-tui keeps the run's state in the coordinator's `.ralph-tui/`. Tasks run one at
+a time in `.work/worktrees/ralph-<session-id>-<task>`, or in parallel in `.work/ralph-worktrees/<session-id>/` with
+their commits landing on `ralph/session-<session-id>`. A Ralph worker implements only its own task, in the worktree it
+is in, and runs the repository's checks; it never commits, pushes, merges, closes tasks or edits PRD status, and it
+reports a missing permission as blocked work. The result of a run is a local branch with one commit per task.
+<!-- /harness:ralph -->
+```
+
+```gitignore
+# harness:ralph
+/.ralph-tui/
+/.work/ralph-worktrees/
+# /harness:ralph
+```
+
+`/.ralph-tui/` is left out when the repository tracks files under it, such as a root configuration used with
+`ralph.config: inherit`.
+
+These are convention blocks: they state the convention as a fact and name no `harness` command. After
+[`harness remove --eject`](remove.md#eject) the markers go and the text and ignore entries stay: ralph-tui keeps running from its own configuration, and people and agents know where
+runs live and what a worker may do. Nothing enforces the worker contract any more: no bypass refusal, no tamper check,
+no replay. `harness remove --module ralph` removes the blocks and leaves coordinators and run branches in place.
+
 ## Reference
 
 ```text
@@ -229,14 +281,17 @@ harness ralph-worker <agent> [agent args...]
 `harness ralph resume <session-id>` takes the flags listed in its synopsis; tracker, PRD, epics and workers are those
 of the original run.
 
-`harness ralph-worker` is internal: it is the agent command `harness` writes into the coordinator's ralph-tui
-configuration. Do not call it yourself; it refuses to run outside a `harness ralph` run.
+`harness ralph-worker` is internal: it is the agent command the launcher writes into the coordinator's ralph-tui
+configuration, on the launcher's own binary. Do not call it yourself; it refuses to run outside a `harness ralph` run.
 
 | Exit code | `run` / `resume` | `clean` |
 | --- | --- | --- |
 | 0 | the run finished | cleaned (items kept are listed with reasons) |
 | 1 | error: invalid flags, ralph-tui or the agent missing, unknown session | error |
-| 3 | refused (uncommitted changes, another run holds the lock, PRD claimed by a standalone session, ralph-tui still running in the coordinator), or the run is unfinished: fix what blocks it, then resume | a Ralph run holds the lock |
+| 3 | refused (uncommitted changes, another run holds the lock, PRD claimed by a standalone session, ralph-tui still running in the coordinator), or the run is unfinished, which fires `blocked`: fix what blocks it, then resume | a Ralph run holds the lock |
+
+Paths below show the defaults, `state.dir: .work`, `worktrees.dir: .work/worktrees` and
+`ralph.worktrees_dir: .work/ralph-worktrees` ([profile](profile.md)).
 
 | Path | Written by |
 | --- | --- |
@@ -260,19 +315,19 @@ bd create --parent acme-api-a10 --title "US-001: Round at the domain boundary" -
 bd create --parent acme-api-a10 --title "US-002: Show rounded totals in the API" --no-inherit-labels --body-file us-002.md --silent
 bd dep add acme-api-a12 acme-api-a11
 git status --short        # must be empty: the run starts from committed code
-harness ralph run --agent claude --tracker beads --epic acme-api-a10 --headless
+./harnessw ralph run --agent claude --tracker beads --epic acme-api-a10 --headless
 ```
 
 If the run stops unfinished:
 
 ```sh
-harness ralph resume 3f9c1a7b2e44 --iterations 10
+./harnessw ralph resume 3f9c1a7b2e44 --iterations 10
 ```
 
 ### A Go repository: a PRD with parallel workers on Codex
 
 ```sh
-harness ralph run --agent codex --tracker prd --prd .work/prds/export-csv.json --workers 3 --effort high
+./harnessw ralph run --agent codex --tracker prd --prd .work/prds/export-csv.json --workers 3 --effort high
 ```
 
 ### A Terraform repository
@@ -283,9 +338,9 @@ worker must not hold.
 ### Running it from an agent session
 
 A coordinating Claude Code session started with `claude --permission-mode auto` can launch, monitor and deliver a
-run: the module's allow entries cover `harness ralph`. For delivery it arranges the task commits on branches, guided
-by the harness skill, then runs `harness lifecycle run deliver` on each; the seeded `ask` entry for that command asks a
-person first ([policy](policy.md#the-seeded-entry)).
+run: the module's allow entries cover every spelling of `harness ralph`. For delivery it arranges the task commits on
+branches, guided by the harness skill, then runs `harness lifecycle run deliver` on each; the seeded `ask` entry for
+that command asks a person first ([policy](policy.md#the-seeded-entry)).
 
 ## Guidelines
 
@@ -301,20 +356,20 @@ Preparing a Beads epic:
 
 Running:
 
-- Do commit before launching, including any change to `.agents/`: the coordinator sees only committed code, and the
-  worker reads the rules from the base commit.
+- Do commit before launching, including any change to `.harness/` or `.agents/`: the coordinator sees only committed
+  code, and the worker reads the rules from the base commit.
 - Do set a model and effort per agent in the profile, so per-run overrides have something to replace.
 - Don't edit a PRD file by hand during a run.
 - Don't run ralph-tui yourself inside a coordinator; use `resume`.
-- Don't delete `.work/ralph.lock` by hand unless no Ralph process is alive.
+- Don't delete the clone's Ralph lock (`.work/ralph.lock` by default) by hand unless no Ralph process is alive.
 
 ## Troubleshooting
 
 | Symptom | Cause | Fix |
 | --- | --- | --- |
 | Refused: uncommitted changes | Runs start from committed code | Commit or stash, then run |
-| Every task fails with completion withheld | Workers do not run `harness verify`, or the replay fails | Read `.work/last-worker-output` in a task checkout; run the lanes yourself there |
-| An attempt fails naming a tool-owned file | The tamper check found the agent changed a rendered rule, an owned settings key or a hook entry | Change rules in `.agents/` and commit before the run; the worker reads them from the base commit |
+| Every task fails with completion withheld | Workers do not run `harness verify`, or the replay fails | Read `last-worker-output` in a task checkout's state directory; run the lanes yourself there |
+| An attempt fails naming a tool-owned file | The tamper check found the agent changed a rendered rule, an owned settings key, a hook entry, `harnessw` or `.harness/wrapper.yaml` | Change rules in `.harness/` and commit before the run; the worker reads them from the base commit |
 | Refused: permission bypass | An inherited or global ralph-tui config sets `skipPermissions`, `fullAuto` or a bypass flag | Remove the key from that config; harness-launched runs never bypass |
 | Codex worker refused | Codex is declared with `role: interactive` | Set `agents.codex.role: worker` and render, or use Claude workers |
 | Run unfinished with tasks "waiting" | They depend on beads outside the run | Finish or unblock those, then `harness ralph resume <id>` |

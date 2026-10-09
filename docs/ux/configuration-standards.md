@@ -1,71 +1,173 @@
 # Configuration standards
 
 Rules for files that people and agents edit and harness reads. Field-by-field reference lives in
-[../features/](../features/) and in `harness explain profile|policy|hooks`.
+[../features/](../features/) and in `harness explain profile|policy|hooks|lifecycle|context`.
+
+## Where files live
+
+Two directories have two owners, and state lives outside both. Why: tool configuration that sits among agent content
+makes removal pick files out of a tree others write, and state inside a committed tree needs ignore rules inside it
+([ADR 0014](../adrs/0014-directory-layout.md)).
+
+| Location | Owner | Holds |
+| --- | --- | --- |
+| `.harness/` | harness's own versioned configuration | `config.yaml` (the profile), `policy.yaml`, `hooks.yaml`, `wrapper.yaml`, the manifest `manifest.json`, and an optional Ralph prompt override `ralph/prompt.hbs`. Everything in it is committed; nothing in it is state and nothing in it is ignored |
+| `.agents/` | agent content, the cross-tool convention other tools (the `skills` CLI, the `AGENTS.md` ecosystem) share | `skills/` (including the tool-owned `skills/harness/`), `memory/`, `commands/`, `REVIEW.md`, and repository files that standing context points to. It stays meaningful without harness |
+| repository root | the repository, with managed blocks | `harnessw` (the wrapper, tool-owned), `AGENTS.md`, `CLAUDE.md`, `README.md`, `.gitignore` |
+| state paths ([below](#state-paths)) | harness, clone-local | receipts, sessions, locks, the lifecycle log, the hook cache, standing-context session records, managed worktrees, task files, Ralph worktrees |
+
+- harness configuration never goes in `.agents/`, and agent content never goes in `.harness/`, so each directory can
+  be read, reviewed and removed on its own terms.
+- State never goes in `.harness/` or `.agents/`, because both are committed trees.
+- Each convention a location carries (what it holds, where state lives) is also written in `AGENTS.md`, so it holds
+  without harness ([generated-content-standards.md](generated-content-standards.md#conventions-in-blocks)).
 
 ## The user-editable files
 
 | File | Scope | Holds |
 | --- | --- | --- |
-| `.agents/harness.yaml` | repository, committed | the profile: modules, front door, commands, lanes, tracker, agent roles, Ralph defaults, skill sources, `extends` |
-| `.agents/policy.yaml` | repository, committed | permission entries added to the built-in base |
-| `.agents/hooks.yaml` | repository, committed | agent-neutral hook declarations and lifecycle actions |
+| `.harness/config.yaml` | repository, committed | the profile: modules, front door, commands, lanes, tracker, agent roles, Ralph defaults, skill sources, standing context, block budget, state paths, `extends` |
+| `.harness/policy.yaml` | repository, committed | permission entries added to the built-in base |
+| `.harness/hooks.yaml` | repository, committed | agent-neutral hook declarations, notification actions (`attention`, `turn_end`) and lifecycle actions |
+| `.harness/wrapper.yaml` | repository, committed | the pinned release: `schema`, `version`, `source`, `checksums`; written by `harness scaffold` and `harness wrapper` |
 | `~/.config/harness/fleet.yaml` (or `--repos <file>`) | machine | `repos` (the repository list), `branch_prefix` (default `harness/`) and `commit_message` (default `chore(harness): <command>`) for `harness fleet` |
 
 Each fact has one file ([principles.md](principles.md#6-one-way-to-do-each-thing)). A new setting goes in the file
-whose audience it serves: permissions in the policy, hooks in the hooks file, everything else harness needs about the
-repository in the profile. A fourth repository file requires a UX record.
+whose audience it serves: permissions in the policy, hooks and actions in the hooks file, the pinned version in the
+wrapper file, everything else harness needs about the repository in the profile. Why: a reviewer of a permission
+change reads one file that holds only permissions. Another repository file requires a change to this standard, with
+its reason.
+
+### `wrapper.yaml`
+
+```yaml
+schema: 1
+version: <tag>
+source: github:lmarqs/harness
+checksums:
+  linux-amd64: <sha256>
+  linux-arm64: <sha256>
+  darwin-amd64: <sha256>
+  darwin-arm64: <sha256>
+```
+
+| Key | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `schema` | integer | required | the file's schema |
+| `version` | release tag | required | the exact release the wrapper runs; never a range or `latest` |
+| `source` | source | `github:lmarqs/harness` | where the wrapper downloads the release from |
+| `checksums` | map of platform to sha256 | required | the checksum of the release asset for each supported platform: `linux-amd64`, `linux-arm64`, `darwin-amd64`, `darwin-arm64`; the wrapper refuses a download that does not match |
+
+- `version` is exact, never a range, because a range would let two machines run different releases against one
+  commit.
+- `wrapper.yaml` is the only place the harness version is pinned. A second pin in `mise.toml`, `.mise.toml` or
+  `.tool-versions` is a `harness doctor` finding, because two pins disagree as soon as one moves.
+- `harness wrapper --version <tag>` (or `--latest`) and `harness scaffold` write `version` and `checksums` only from
+  the release's checksum file after the running binary has verified its signature
+  ([compatibility-standards.md](compatibility-standards.md#release-trust)), so a person never copies a checksum by
+  hand and a forged release is refused before anything is written. The change reaches review as a diff.
+- `wrapper.yaml` is part of the public contract ([compatibility-standards.md](compatibility-standards.md#versioning)).
+
+### State paths
+
+State lives at paths the profile sets, outside `.harness/`, because repositories already have conventions for where
+local state goes, and a tool that fixes one location fights them:
+
+```yaml
+state:
+  dir: .work
+worktrees:
+  dir: .work/worktrees
+tasks:
+  prd_dir: .work/prds
+ralph:
+  worktrees_dir: .work/ralph-worktrees
+```
+
+| Key | Default | Holds |
+| --- | --- | --- |
+| `state.dir` | `.work` | receipts, sessions, locks, the lifecycle log, the hook cache, standing-context session records |
+| `worktrees.dir` | `.work/worktrees` | each managed worktree, at `<dir>/<name>`; a Ralph coordinator at `<dir>/ralph-<id>`; sequential Ralph task worktrees at `<dir>/ralph-<id>-<task>` |
+| `tasks.prd_dir` | `.work/prds` | PRD JSON task files |
+| `ralph.worktrees_dir` | `.work/ralph-worktrees` | ralph-tui's parallel worker checkouts |
+
+- Paths are repository-relative. A path inside `.harness/` or `.agents/` is a validation error (exit 1), because both
+  trees are committed.
+- Defaults are literal paths. Changing one re-renders the blocks that state it and does not move existing state,
+  because moving a worktree with uncommitted work is a person's decision.
+- Each path is a convention: the module that uses it states it in a managed block of `AGENTS.md` and ignores it in a
+  managed block of `.gitignore`, naming the configured value
+  ([generated-content-standards.md](generated-content-standards.md#conventions-in-blocks)).
+- Beads stays at `.beads/` (where `bd` discovers it) and ralph-tui state stays in the coordinator worktree's
+  `.ralph-tui/`. Neither is a setting, because those tools find their files only there.
 
 ## Ownership
 
-- The three repository files belong to the repository. harness writes them only when seeding (`scaffold`,
-  `scaffold --adopt`) and when migrating a schema. Each such write is shown before it happens, through `--dry-run`
-  and the confirmation rules in [cli-standards.md](cli-standards.md#confirmations---yes-and---force).
+- The repository files `config.yaml`, `policy.yaml` and `hooks.yaml` are seeded: harness writes them once at
+  `scaffold` or `scaffold --adopt`, and from then on they belong to the repository. harness writes them again only to
+  migrate a schema. `wrapper.yaml` and `manifest.json` are owned: harness writes them on scaffold, render and re-pin
+  (`harness wrapper`). Each such write is shown before it happens, through `--dry-run` and the confirmation rules in
+  [cli-standards.md](cli-standards.md#confirmations---yes-and---force). Why: the seeded files hold the repository's
+  choices, so harness must not overwrite them; the owned files hold facts harness computes.
 - When harness writes one of these files, it preserves comments, key order and blank lines that it does not need to
-  change.
+  change, because people annotate them.
 - Every entry adoption imports carries a provenance comment naming its source file and scope
   (`# imported from .claude/settings.json (project)`). The comment belongs to the repository from then on: harness
-  never rewrites or removes it, and a person MAY delete it once the entry is reviewed.
-- Machine-level files (fleet file, cache under `~/.cache/harness/`) never affect what is rendered into a repository.
+  never rewrites or removes it, and a person MAY delete it once the entry is reviewed. Undo uses project-scope
+  provenance comments to write those entries back as native settings.
+- Machine-level files (fleet file, the cache under `$HARNESS_HOME`) never affect what is rendered into a repository,
+  so two machines render the same bytes.
 
 ## Schema versioning
 
 Every repository file starts with `schema: <integer>`. The schema is per file and changes only for a breaking change
-to that file's format ([compatibility-standards.md](compatibility-standards.md#what-counts-as-breaking)).
+to that file's format ([compatibility-standards.md](compatibility-standards.md#what-counts-as-breaking)). Why: a binary
+must recognise a file it does not understand before it rewrites that file with outdated rules
+([ADR 0005](../adrs/0005-schema-compatibility.md)).
 
 | The file's schema is… | harness… |
 | --- | --- |
 | the current one | reads it |
 | older and supported | reads it as written; rendering is unchanged; the migration is offered, never applied silently |
-| newer than the binary knows | refuses, exit 3 (a person must update the binary), naming the file, the schema found, the highest schema supported and the command to update harness |
+| newer than the binary knows | refuses, exit 3 (a person must decide which version to run), naming the file, the schema found, the highest schema supported, and the commands that run the pinned version (`./harnessw <command>`) or raise the pin (`./harnessw wrapper --version <tag>`) |
 | missing or not an integer | refuses, exit 1, with the expected first line |
+
+Every machine running through the wrapper runs the pinned version, so a newer-schema refusal occurs only when the pin is
+bypassed (`HARNESS_BINARY`, or a global binary too old to defer to the pin)
+([compatibility-standards.md](compatibility-standards.md#installation-and-version-pinning)).
 
 Migration UX:
 
-- A migration is written only by a command that mutates the file, after printing the diff it will apply.
+- A migration is written only by a command that mutates the file, after printing the diff it will apply, because a
+  migration rewrites a file the repository owns.
 - The migrated file keeps every comment and every value whose meaning did not change.
-- A migration is idempotent and never changes the rendered output by itself.
+- A migration is idempotent and never changes the rendered output by itself, so it can be reviewed apart from any
+  behaviour change.
 
 ## Defaults
 
 - An absent key takes its documented default. Defaults are listed in the features reference and in
-  `harness explain`.
-- A module absent from `modules` is off. Adoption is opt-in per module.
+  `harness explain`, so a short file is still fully specified.
+- A module absent from `modules` is off. Adoption is opt-in per module, because a repository adopts the practices it
+  chooses ([principles.md](principles.md#1-optional-and-transparent)).
 - Seeded files contain the values harness detected and the switches a user is expected to change, not a copy of every
-  default.
-- A default never weakens safety and never changes within a schema version.
+  default, so the file shows the repository's choices rather than harness's.
+- A default never weakens safety and never changes within a schema version, because a default is applied to every
+  repository that did not choose otherwise.
 
 ## Additive evolution
 
-New behaviour enters the files in this order of preference:
+New behaviour enters the files in this order of preference, because each step costs repositories more than the one
+before:
 
 1. A new optional key whose absence keeps the existing behaviour. This is not a breaking change and does not bump the
    schema.
 2. A new value in an existing enumerated key, under the same condition.
 3. A renamed, removed or redefined key, or a changed default: a breaking change, a schema bump and a migration.
 
-A file that uses a key newer than the installed binary fails validation on that binary rather than being rendered
-with the key ignored: an older binary refuses, it does not render something different.
+A file that uses a key newer than the running binary fails validation on that binary rather than being rendered with
+the key ignored: an older binary refuses, it does not render something different. Why: an ignored key would silently
+drop a permission, an action or a guard the repository declared.
 
 ## Validation messages
 
@@ -76,29 +178,39 @@ Validation runs on every command that reads the file, and `harness doctor` repor
 - for an unknown key, names the closest known key and adds that a newer harness may define it;
 - ends with the command that confirms the fix.
 
-All problems in a file are reported in one run.
+All problems in a file are reported in one run. Why: the person or agent fixing the file needs the exact place and the
+exact fix, and one round trip per mistake wastes both.
 
 ```text
-harness: .agents/harness.yaml:14:5: unknown key "verify.lanes.e2e.requried_when"
-  did you mean "required_when"? if the key comes from a newer harness, update: mise use -g github:lmarqs/harness@<tag>
-  then run: harness doctor
+harness: .harness/config.yaml:14:5: unknown key "verify.lanes.e2e.requried_when"
+  did you mean "required_when"?
+  if the key comes from a newer harness, raise the pin: ./harnessw wrapper --version <tag>
+  then run: ./harnessw doctor
 ```
 
 ## Values and placeholders
 
-- Paths and globs are relative to the repository root, use forward slashes, and support `**`.
+- Paths and globs are relative to the repository root, use forward slashes, and support `**`, so one file works on
+  every machine.
 - Commands are strings run with `sh -c` from the root of the checkout they apply to (the primary clone or a worktree).
 - The placeholders `{file}` (one repository-relative path) and `{pattern}` (one lane pattern) in profile and hook
-  commands are the only substitutions; harness shell-quotes each value. Lifecycle actions get values only through
-  environment variables ([cli-standards.md](cli-standards.md#values-passed-to-user-declared-commands)). Each field
-  documents which placeholder it accepts; any other placeholder is a validation error, and a new value is added as an
-  environment variable, never as a new placeholder.
-- Lists are YAML lists, never comma-separated strings.
+  commands are the only substitutions in command text; harness shell-quotes each value. Each field documents which
+  placeholder it accepts; any other placeholder is a validation error, and a new value is added as an environment
+  variable, never as a new placeholder. Why: substitution into command text is an injection path, so it stays limited
+  to two quoted values.
+- Actions receive values per kind ([cli-standards.md](cli-standards.md#values-passed-to-user-declared-commands-and-actions)):
+  - `run`: only through environment variables, which the shell expands; harness substitutes nothing.
+  - `http`: in `json`, every `$NAME` inside a string becomes the JSON-encoded value of environment variable `NAME`,
+    so a value can never break the document's structure; an unset variable becomes an empty string and a note.
+  - `agent`: in `prompt`, every `$NAME` becomes the variable's value as plain text.
+- Lists are YAML lists, never comma-separated strings, because values may contain commas.
 
 ## Policy entries
 
-`.agents/policy.yaml` adds entries to the built-in base under `shared.allow`, `shared.ask`, `shared.deny` and
-`worker.deny`. Every native rule an agent understands is expressible, in one of three forms:
+`.harness/policy.yaml` adds entries to the built-in base under `shared.allow`, `shared.ask`, `shared.deny` and
+`worker.deny`. Every native rule an agent understands is expressible, in one of three forms, because a rule the policy
+cannot express is lost when harness takes ownership of the native key
+([ADR 0016](../adrs/0016-permission-adoption.md)):
 
 | Form | Example | Renders as |
 | --- | --- | --- |
@@ -106,82 +218,215 @@ harness: .agents/harness.yaml:14:5: unknown key "verify.lanes.e2e.requried_when"
 | Native rule string: `Tool(specifier)`, `Tool`, or `mcp__server__tool`, with globs | `WebFetch(domain:example.com)`, `Read(./secrets/**)`, `mcp__acme-observability__get_*` | verbatim for Claude. For Codex only `Bash(<prefix> *)` with a pure prefix converts; any other string is Claude-only |
 | Bare string, without `Tool(` | `"gh pr merge *--admin*"` | shorthand for `Bash(<string>)`, Claude-only |
 
+- An entry that names a harness command is written once with the program name, `[harness, lifecycle, run, deliver]`,
+  and rendered for every spelling an agent may use: `harness …`, `./harnessw …`, `harnessw …`, and `mise run <shim>`
+  where a task shim exists for that command. Why: an entry written for one spelling leaves the others open, and
+  writing all of them by hand drifts.
 - MCP tools are native rule strings under `allow`, `ask` or `deny`, like any other tool.
-- Precedence is the same for every agent: deny, then ask, then allow.
-- A Claude-only entry is listed as such in the `policy-summary` block, so a reader sees which rules Codex does not
-  enforce.
-- The same pattern under `allow` and `deny` resolves to deny and is reported by `harness doctor`.
+- Precedence is the same for every agent: deny, then ask, then allow, so one policy means the same thing in each.
+- A Claude-only entry is listed as such in the `policy` block of `AGENTS.md`, so a reader sees which rules Codex does
+  not enforce.
+- The same pattern under `allow` and `deny` resolves to deny and is reported by `harness doctor`, because the safer
+  reading holds until a person decides.
 - An entry that would weaken a built-in invariant (allowing a permission-bypass flag, or a force push to the default
-  branch) is a validation error.
+  branch) is a validation error, because the invariants hold in every repository
+  ([ADR 0011](../adrs/0011-safety-invariants.md)).
 
-## Lifecycle actions
+## Declared actions
 
-Lifecycle actions are declared under the top-level `lifecycle:` key of `.agents/hooks.yaml`, beside the agent-hook keys
-(`post_edit`, `validators`, `session_start`, `raw`), or in a preset. Behaviour, trigger points and guards:
-[lifecycle guide](../features/lifecycle.md).
+Actions are declared in `.harness/hooks.yaml` or in a preset: lifecycle actions under the top-level `lifecycle:` key,
+notification actions under `attention:` and `turn_end:`, beside the agent-hook keys (`post_edit`, `validators`,
+`session_start`, `raw`). Behaviour, trigger points and guards: [lifecycle guide](../features/lifecycle.md) and
+[hooks](../features/hooks.md). Why: everything that leaves the clone is written down and reviewed before it can happen
+([principles.md](principles.md#7-nothing-leaves-the-clone-undeclared)).
 
 ```yaml
 lifecycle:
+  completed:
+    - name: notify-chat
+      http:
+        url_env: CHAT_WEBHOOK_URL
+        json: { text: "$HARNESS_TASK finished on $HARNESS_BRANCH: $HARNESS_SUMMARY" }
+      auto: true
+      on_failure: continue
   deliver:
     - name: push
       run: git push -u origin "$HARNESS_BRANCH"
     - name: open-pr
       run: gh pr create --draft --fill --base "$HARNESS_DEFAULT_BRANCH" --head "$HARNESS_BRANCH"
-      auto: false
       scope: [task, change]
-      on_failure: stop
   landed:
-    - name: delete-remote-branch
-      run: git push origin --delete "$HARNESS_BRANCH"
+    - name: lessons
+      agent:
+        prompt: "Read the merged change on $HARNESS_BRANCH and add durable lessons to .agents/memory/."
+  blocked:
+    - name: page-me
+      http:
+        url_env: CHAT_WEBHOOK_URL
+        json: { text: "harness stopped in $HARNESS_REPO: $HARNESS_REASON" }
       auto: true
+attention:
+  - name: ping-me
+    http:
+      url_env: CHAT_WEBHOOK_URL
+      json: { text: "$HARNESS_AGENT needs you in $HARNESS_REPO: $HARNESS_MESSAGE" }
+turn_end:
+  - name: done
+    run: notify-send "agent finished"
 ```
+
+Every action has `name` and exactly one kind key, `run`, `http` or `agent`, because an action with two kinds has no
+single meaning.
 
 | Key | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `lifecycle.<event>` | list | none | actions for one event: `start`, `verified`, `completed`, `deliver` or `landed`; any other key is a validation error |
-| `name` | string | required | the action's name, unique within its event; `harness lifecycle run --action <name>` selects it |
-| `run` | command | required | run with `sh -c` in the worktree; receives values only as `HARNESS_*` environment variables |
-| `auto` | boolean | `false` | when true, harness fires the action at the event's trigger point; when false, it runs only through `harness lifecycle run` |
-| `scope` | list of `task`, `run`, `change` | every scope the event supports | the scopes in which the action runs; a scope the event does not support is a validation error |
-| `on_failure` | `stop` or `continue` | `stop` | `stop`: the first failure stops the event with exit 2; `continue`: the remaining actions run, and the event still exits 2 if any action failed |
+| `lifecycle.<event>` | list | none | actions for one event: `start`, `verified`, `completed`, `deliver`, `landed` or `blocked`; any other key is a validation error |
+| `attention`, `turn_end` | list | none | notification actions: the agent is waiting for a person; the agent finished a turn. Kinds `run` and `http` only |
+| `name` | string | required | the action's name, unique within its event; `harness lifecycle run --action <name>` selects a lifecycle action |
+| `run` | command | one kind required | run with `sh -c` in the worktree; receives values only as environment variables |
+| `http` | map | one kind required | a request harness performs itself, keys below |
+| `agent` | map | one kind required | a headless agent run under the worker contract, keys below; lifecycle actions only |
+| `auto` | boolean | `false` | lifecycle actions: when true, harness fires the action at the event's trigger point; when false, it runs only through `harness lifecycle run` |
+| `scope` | list of `task`, `run`, `change` | every scope the event supports | lifecycle actions: the scopes in which the action runs; a scope the event does not support is a validation error |
+| `on_failure` | `stop` or `continue` | `stop` | lifecycle actions: `stop`: the first failure stops the event with exit 2; `continue`: the remaining actions run, and the event still exits 2 if any action failed |
 
+`http` keys:
+
+| Key | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `url_env` | environment variable name | required | the variable that holds the URL |
+| `method` | HTTP method | `POST` | the request method |
+| `headers_env` | map of header name to environment variable name | none | each header's value is read from its variable |
+| `json` | any YAML value | none | the request body, sent as JSON, with `$NAME` expanded inside strings |
+| `timeout` | duration | `10s` | the request timeout |
+
+- Success is any 2xx status. Redirects are not followed across hosts, so a redirect cannot carry headers to another
+  service.
+- The URL and header values come only from environment variables, never from literals in the file, and are never
+  logged, because they are usually secrets and the file is committed.
+
+`agent` keys:
+
+| Key | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `prompt` | string | required | the prompt, with `$NAME` expanded as plain text |
+| `agent` | agent name | `ralph.default_agent` | the agent CLI to start headless |
+| `model` | model id | the agent's default | the model to run |
+| `effort` | effort level | the agent's default | the reasoning effort |
+
+- An `agent` action runs in the event's checkout under the worker contract: auto permission mode, the built-in and
+  repository worker denies, bypass flags refused, the tamper check. It cannot commit, push or fire lifecycle events;
+  its file changes stay uncommitted in that checkout and are listed in the lifecycle log and the output. Why: an agent
+  started by an event is as unattended as a Ralph worker, so it gets the same bounds.
+- Prompts that include untrusted values (task titles, agent messages) are a prompt-injection surface; the worker
+  contract bounds what an injected instruction can do.
+- `auto: true` on an `agent` action is allowed and is reported by `harness doctor` as a note, because each automatic
+  run costs tokens and gives a different result each time.
 - Actions run in declaration order: the preset's actions first, then the repository's. A repository action with the
-  same name as a preset action replaces it in place.
+  same name as a preset action replaces it in place, so a repository can adjust an organization's action without
+  copying the rest.
 - Actions are code. They are committed, reviewed like code, and run as child processes of harness with the
   permissions of the person or process that fired the event, outside any agent's per-command permission checks.
 - `auto` defaults to false, so adding an action never makes anything leave the clone unattended; `auto: true` is a
   reviewed, committed decision.
+- harness is never an MCP client. Work that needs an MCP tool is an `agent` action or the coordinating agent's job;
+  a deterministic integration uses the service's API (`http`) or CLI (`run`). Why: the agent owns its MCP connections,
+  their credentials and their permissions ([ADR 0001](../adrs/0001-role-of-the-tool.md)).
+
+## Standing context
+
+Standing context puts known guidance in front of an agent at the moment it applies, without anyone invoking it.
+Declared under `context:` in `.harness/config.yaml`. Reference: [context](../features/context.md). Why: guidance a
+person must remember to invoke is skipped exactly when it matters, while a deterministic trigger applies it every time
+([ADR 0020](../adrs/0020-standing-context.md)).
+
+```yaml
+context:
+  always:
+    - skill: coding-guidelines
+    - file: .agents/directives/worker-rules.md
+      for: [worker]
+    - file: .agents/directives/house-rules.md
+      static: true
+  when:
+    - paths: ["**/*.sql", "src/migration/**"]
+      skill: sql-quality-check
+    - prompt: [timezone, DST, "time zone"]
+      skill: timezone-handling
+      inject: pointer
+  budget: 120
+```
+
+| Key | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `context.always` | list of entries | none | injected at every session start, and again where the agent re-fires session start after compaction |
+| `context.when` | list of entries, each with `paths` or `prompt` | none | `paths`: injected after the agent first reads or edits a matching file in the session; `prompt`: injected when the person's message contains one of the words or phrases (case-insensitive, whole words) |
+| `skill` | installed skill name | one of `skill`, `file` | the body of `.agents/skills/<name>/SKILL.md`, front matter stripped |
+| `file` | repository path | one of `skill`, `file` | a repository file |
+| `for` | list of `interactive`, `worker` | both | the roles that receive the entry |
+| `inject` | `content` or `pointer` | `content` for `always`, `pointer` for `when` | the text itself, or one line: "Apply the <name> skill now: read <path>" |
+| `static` | boolean | `false` | `always` entries only: the entry is written into the `context` convention block of `AGENTS.md` instead of injected by a hook |
+| `context.budget` | integer | `120` | the maximum lines of always-on content per session per role |
+
+- Each `when` entry is injected at most once per session, so a matching file read twenty times costs one injection.
+- Sources are repository files and skills installed under `.agents/skills/` only. A skill listed in `skills-lock.json`
+  is injected only when its content matches the locked hash; a mismatch is a `harness doctor` finding. Nothing is
+  fetched when a hook runs. Why: injected text steers an agent, so it must come from reviewed, versioned content.
+- For Ralph workers, injected content is read from the session's base commit, so a worker cannot change its own
+  instructions between retries.
+- A `static` entry works without the binary and survives eject, because it is a convention block; it is not also
+  injected by a hook, so it is never loaded twice. Static entries count against `context.budget`, not against the
+  `AGENTS.md` block budget.
+- `harness doctor` reports a note when always-on content for a role exceeds `context.budget` and lists every entry
+  with its line count, because every always-on line is paid in every session.
+- `harness context show` previews what would be injected and why, so the effect of an entry can be checked without
+  starting an agent.
 
 ## Presets
 
 - `extends` names one source: a path, a git URL or `github:owner/repo//path`, optionally pinned with `@<ref>`
   (`github:acme/harness-presets//presets/api@v2`).
-- A preset adds policy entries, hook declarations, lifecycle actions, block text and lane defaults.
-- Precedence: repository entries are applied after preset entries. Lists (policy entries, hook entries, actions) are
-  unions; a repository lane with the same name as a preset lane replaces it; a repository action with the same name
-  as a preset action replaces it; nothing removes a built-in invariant.
+- A preset adds policy entries, hook declarations, declared actions, standing-context entries, block text and lane
+  defaults, so an organization states its choices once for all its repositories
+  ([ADR 0013](../adrs/0013-organization-content.md)).
+- A preset directory mirrors `.harness/`: `config.yaml`, `policy.yaml`, `hooks.yaml`, and `blocks/<id>.md` for block
+  text, one file per block id.
+- Precedence: repository entries are applied after preset entries. Lists (policy entries, hook entries, actions,
+  context entries) are unions; a repository lane with the same name as a preset lane replaces it; a repository action
+  with the same name as a preset action replaces it; nothing removes a built-in invariant. Why: the repository knows
+  its own case best, and the invariants hold everywhere.
 - The manifest records the commit every preset resolved to. `harness render` and `harness render --check` reuse the
   recorded commit, so a change upstream never alters rendering or fails a check by itself. `harness render --refresh`
   re-resolves presets without `@<ref>`; `harness doctor` reports a newer upstream commit as a note.
 - A preset that cannot be fetched and is not cached is an error naming the source; a cached copy is used offline.
+- Choosing a preset is a security decision: its actions run with the credentials of whoever fires them, and its
+  context entries steer agents.
 
 ## No secrets
 
-- The three repository files and every preset are committed and readable by everyone with access to them. They MUST
-  NOT contain tokens, passwords, keys or internal credentials, in values, comments or action commands.
-- A setting or action that needs a credential refers to an environment variable by name, or relies on the
-  authentication of the tool it calls (`git`, the hosting platform's CLI). Lifecycle actions inherit the environment of
-  the process that fires them; that environment, never a file, carries the credential.
+Why: the repository files and presets are committed and readable by everyone with access to them, and a secret in a
+committed file is published.
+
+- The repository files in `.harness/` and every preset MUST NOT contain tokens, passwords, keys or internal
+  credentials, in values, comments, action commands, URLs or headers.
+- A setting or action that needs a credential refers to an environment variable by name (`url_env`, `headers_env`, or
+  a variable a `run` command reads), or relies on the authentication of the tool it calls (`git`, the hosting
+  platform's CLI). Actions inherit the environment of the process that fires them; that environment, never a file,
+  carries the credential. Every action of a repository can read every variable in that environment, so a webhook
+  secret is visible to all of them.
 - harness never prints the value of an environment variable it reads. A lifecycle dry run prints only the `HARNESS_*`
-  variables harness sets for the action.
+  variables harness sets for the action. The lifecycle log never records URLs, headers, bodies or prompts.
 - Personal preferences belong in the agents' own local files (`settings.local.json`, `*.local.toml`) or in `HARNESS_*`
   environment variables. harness never writes those files; they are read only by `harness scaffold --import local`,
   and what that import copies into `policy.yaml` becomes committed and shared, and is marked for review in the to-do.
 
 ## What never becomes a setting
 
-The following are not keys in any file, preset or flag. They are architecture decisions: changing one requires an ADR,
-not a UX record.
+The following are not keys in any file, preset or flag. They are architecture decisions: changing one is a change to
+the ADR that decides it, because a setting that weakens them would copy along with the file that sets it
+([ADR 0011](../adrs/0011-safety-invariants.md), [ADR 0012](../adrs/0012-write-boundary.md),
+[ADR 0014](../adrs/0014-directory-layout.md), [ADR 0017](../adrs/0017-engine-version.md),
+[ADR 0021](../adrs/0021-release-trust.md)).
 
 - Workers never bypass permissions.
 - Force pushes to the detected default branch are denied.
@@ -190,14 +435,22 @@ not a UX record.
 - Hooks never decide permissions.
 - Tool-owned files are restored from the session's base commit before each worker launch and compared after it; any
   difference fails the attempt.
-- Lifecycle actions never run inside a Ralph worker; `harness lifecycle` is in the built-in worker deny.
+- Lifecycle actions never run inside a Ralph worker or an `agent` action: the binary refuses `lifecycle run` there,
+  and `[harness, lifecycle]` is in the built-in worker deny for every spelling.
+- An `agent` action runs under the worker contract and cannot commit, push or fire lifecycle events.
 - `deliver` always refuses on the default branch and with uncommitted changes and, when the verify module is enabled,
   without a valid receipt for the work's base.
-- The binary ships no lifecycle actions and contains no hosting-platform logic.
+- Standing context for workers is read from the session's base commit, and a locked skill is injected only when its
+  hash matches.
+- The binary ships no actions, contains no hosting-platform logic and is never an MCP client.
 - The binary never writes knowledge and never writes the team's record of work (issues, projects, boards, comments,
   reviews, labels).
 - The binary never reconfigures state it did not create.
-- The managed-block marker syntax, the generated-file header and the manifest location.
+- The managed-block marker syntax, the block classes, the generated-file header and the manifest location.
+- The locations of harness configuration (`.harness/`) and agent content (`.agents/`); only state paths are settings.
+- The harness version is pinned only in `.harness/wrapper.yaml`.
+- Implicit entry points (rendered agent hooks) never download a binary.
+- The wrapper never caches or executes a downloaded binary whose checksum does not match `wrapper.yaml`, and downloads
+  only over HTTPS.
+- A pin is written only after the running binary verifies the release's signed checksum file.
 - Whether local override files (`settings.local.json`, `*.local.toml`) are written: they never are.
-
-Background: the ADR on invariants in [../adrs/](../adrs/).
