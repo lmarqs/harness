@@ -1,5 +1,14 @@
 # 0011. Safety invariants are built into the binary, never configured
 
+## Objective
+
+**Problem.** Safety settings that live in configuration get lost when the configuration is copied or edited: two of
+three hand-ported copies of one workflow run unattended agents with permission checks turned off. An unattended agent
+that can edit its own rules or its own verification can also give itself more permissions and claim work it did not do.
+
+**Goal.** In every repository, unattended agents run with permission checks on, cannot widen their own permissions, and
+cannot be recorded as done without a verification that passed.
+
 ## Context
 
 - Safety settings that live in configuration do not survive copying. Of three hand-ported copies of one agent

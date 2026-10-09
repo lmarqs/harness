@@ -1,5 +1,15 @@
 # 0020. Guidance enters agent context through declared deterministic triggers
 
+## Objective
+
+**Problem.** Repositories keep guidance that agents should follow, but an agent loads it only when the model judges it
+relevant. People retype the same invocations at the start of sessions, and guidance someone forgets to invoke is not
+applied. Putting all of it in the instruction file instead costs context in every session, including the many where it
+does not apply.
+
+**Goal.** Known guidance reaches every session that needs it without anyone invoking it by hand, and costs nothing in
+the sessions that do not need it.
+
 ## Context
 
 - Repositories keep guidance as skills and directive files: coding guidelines, a SQL review checklist, rules for dates

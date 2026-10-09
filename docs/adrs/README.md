@@ -1,8 +1,8 @@
 # Architecture decision records
 
 An architecture decision record (ADR) states one decision that shapes the structure of this project and, above all,
-why it holds: the facts it answers, the reasons that connect those facts to the decision, the alternatives that lose
-and why, and what the project maintains because of it.
+why it holds: its objective, the facts it answers, the reasons that connect those facts to the decision, the
+alternatives that lose and why, and what the project maintains because of it.
 
 ## Authority
 
@@ -25,15 +25,35 @@ Reasons: a corpus that accumulates superseded records forces every reader to rec
 chain of partial replacements, and a reader who stops early acts on a decision that no longer holds. An agent that
 reads the corpus before making a change is that reader on every run.
 
+## The objective comes first
+
+Every ADR opens with its objective, before any fact or decision, so a reader knows why the subject is on the table and
+what it must achieve before reading how it is settled ([philosophy](../philosophy.md#start-from-the-objective)). The
+Objective section has two parts:
+
+- **Problem.** Who has the problem, and what goes wrong for them or what they need and lack, in at most four
+  sentences.
+- **Goal.** The outcome that holds once the problem is solved, stated so that anyone can tell whether it holds, in at
+  most two sentences.
+
+Neither part names a solution: no mechanism the decision introduces, none of the tool's commands, files or settings.
+One ADR has one objective; a decision that serves two objectives is two ADRs. When the problem no longer exists, the
+decision no longer applies, and the ADR is deleted.
+
+Reasons: a decision read without its problem is judged against whatever problem the reader assumes; a decision without
+its goal cannot be confirmed, because nothing says what success looks like; and a decision whose problem is gone stays
+in force only because nobody asked why it was there.
+
 ## Reasons come first
 
 A decision without its reasons cannot be applied to a case it did not foresee, and cannot be changed safely, because
 nobody can tell which facts it depends on. So every ADR justifies every point it decides:
 
-- Each numbered point of the Decision has at least one reason in Reasons.
+- Each numbered point of the Decision serves the Objective and has at least one reason in Reasons.
 - A reason ties a fact from Context, or another ADR, to the point, and states what the decision trades away.
-- Context holds facts with their sources: a tool's documented behaviour with the version it was checked against, a
-  measurement, a survey count. It holds no conclusions.
+- Context holds the data and examples that make the objective concrete, each with its source: a tool's documented
+  behaviour with the version it was checked against, a measurement, a survey count, a case from a real repository. It
+  holds no conclusions. The objective is understood without it; Context is where a reader checks it.
 - Each rejected alternative is stated at its best before the reason it loses.
 
 An ADR whose Reasons section does not cover every point is incomplete, whatever its Decision says.
@@ -75,9 +95,15 @@ One ADR holds one decision. If its points serve two decisions, it is two ADRs.
 ```markdown
 # NNNN. <The decision, one present-tense sentence>
 
+## Objective
+
+**Problem.** Who has the problem, and what goes wrong for them or what they need and lack. No solution.
+
+**Goal.** The outcome that holds once the problem is solved, stated so anyone can tell whether it holds.
+
 ## Context
 
-The problem and the forces, as facts with their sources. No conclusions.
+The data and examples that make the objective concrete, each with its source. No conclusions.
 
 ## Decision
 
@@ -107,7 +133,7 @@ Must be maintained:
 
 ## Confirmation
 
-- <A test, a CI job, a review rule or a measurement that shows compliance.>
+- <A test, a CI job, a review rule or a measurement that shows compliance, and that the goal holds.>
 ```
 
 ## Index

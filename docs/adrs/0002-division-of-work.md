@@ -1,5 +1,14 @@
 # 0002. The binary does only deterministic work
 
+## Objective
+
+**Problem.** Setting up agents in a repository mixes work that has one right answer with work that needs judgement. Done
+by hand or by an agent, the mechanical part comes out different every time, so repositories diverge and nothing can
+check them. Done by a program, the judgement part breaks on the first input nobody foresaw.
+
+**Goal.** Mechanical setup work gives the same result in every repository, a result that can be checked, and judgement
+stays with the people and agents who can exercise it.
+
 ## Context
 
 Giving a repository a consistent agent setup involves two kinds of work:

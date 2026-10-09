@@ -1,5 +1,14 @@
 # 0017. Each repository pins its engine release through a committed wrapper
 
+## Objective
+
+**Problem.** Many people, machines and pipelines work in the same repositories, and the tool's output depends on its
+release. When each machine runs whatever release it has, the drift check passes on one machine and fails on another for
+the same commit, and a newcomer has to install the right release before anything works.
+
+**Goal.** Every machine and pipeline working in a repository gives the same answer for the same commit, and a newcomer's
+first command works with nothing installed beforehand.
+
 ## Context
 
 - One person may work across about thirty repositories, with teammates and CI runners working in the same ones. Unless

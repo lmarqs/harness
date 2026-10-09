@@ -1,5 +1,14 @@
 # 0005. Every repository file carries a schema version the binary enforces
 
+## Objective
+
+**Problem.** Many repositories depend on the shape of the tool's files, and binaries of one release meet files written
+for another. A binary that misreads a newer file can drop a deny rule or a guard without noticing, then rewrite the
+repository with outdated rules. Output that changes with every release makes every upgrade look like drift.
+
+**Goal.** A binary either reads a repository file correctly or refuses it, naming the release to run, and an upgrade by
+itself never shows as drift.
+
 ## Context
 
 - The repository's data files are a public contract that many repositories depend on

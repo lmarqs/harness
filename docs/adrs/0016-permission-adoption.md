@@ -1,5 +1,14 @@
 # 0016. Adoption keeps every native permission rule in effect
 
+## Objective
+
+**Problem.** Repositories adopt the tool with permission rules people already wrote by hand. If adoption loses one,
+agents gain a permission someone denied, or unattended runs stall on a prompt someone had allowed, and nobody notices
+until it matters.
+
+**Goal.** Every permission rule in effect before adoption is in effect after it, and any exception is stated before
+anything is written.
+
 ## Context
 
 - Repositories that adopt the tool already have native permission rules. Of 51 surveyed repositories, 8 have a project

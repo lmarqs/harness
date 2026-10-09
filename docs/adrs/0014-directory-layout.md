@@ -1,5 +1,15 @@
 # 0014. Tool configuration, agent content and state have separate homes
 
+## Objective
+
+**Problem.** The tool adds configuration, agent content and clone-local state to repositories that already hold agent
+files, third-party tools that read fixed paths, and directories other products use. Put in the wrong place, its files
+are not read by agents, collide with other tools, get committed when they should stay local, or cannot be removed
+cleanly.
+
+**Goal.** Agents find what they read where they look for it, committed configuration and local state never mix, and
+nothing the tool adds collides with another tool.
+
 ## Context
 
 Where third-party tools look, checked against their documented behaviour or the installed binary:

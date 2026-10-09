@@ -1,5 +1,14 @@
 # 0010. Nothing in an adopted repository depends on the binary
 
+## Objective
+
+**Problem.** Not everyone who clones a repository installs the tool, and CI pipelines should not have to. If anything in
+an adopted repository needs the binary, adoption forces it on every teammate and pipeline, and a missing binary breaks
+agent sessions or builds for people who never chose the tool.
+
+**Goal.** A teammate or pipeline without the tool works exactly as before adoption, and a repository can adopt or
+withdraw one practice at a time.
+
 ## Context
 
 - Not every teammate, machine or pipeline installs the tool, yet everyone who clones a repository shares its committed

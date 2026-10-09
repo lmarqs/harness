@@ -1,5 +1,14 @@
 # 0019. Declared actions are commands, HTTP requests or headless agent runs
 
+## Objective
+
+**Problem.** Lifecycle events and agent notifications have to do things: post to a chat, call a service, start follow-up
+work that needs judgement. Plain shell commands do these badly: every machine needs a client program, secrets end up on
+command lines and inside shell text, and untrusted values such as task titles can inject commands or instructions.
+
+**Goal.** An event or notification can notify, call a service or start agent work without secrets in shell text, and no
+value written by people or agents runs as a command or instruction it was not meant to be.
+
 ## Context
 
 - Repositories declare actions on lifecycle events ([0015](0015-development-lifecycle.md)).

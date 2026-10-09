@@ -1,5 +1,14 @@
 # 0007. A committed manifest records everything the tool owns
 
+## Objective
+
+**Problem.** Withdrawing a practice from a repository should cost as little as adding it, and a hand edit to generated
+output must be neither lost nor accepted without anyone noticing. When nobody knows exactly what the tool wrote, removal
+is a manual pass through every repository, and generated content cannot be told from content a person wrote.
+
+**Goal.** Withdrawing a practice is one step that removes exactly what the tool wrote, and every hand edit to generated
+output is detected.
+
 ## Context
 
 - Withdrawing a practice from a repository must cost as little as adding it. Without a record, withdrawal is a manual

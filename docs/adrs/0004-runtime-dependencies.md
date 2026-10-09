@@ -1,5 +1,14 @@
 # 0004. The binary needs only the operating system and git at runtime
 
+## Objective
+
+**Problem.** Every runtime the binary needs is one more thing each teammate and pipeline must install and keep at the
+right version, including people who never chose the tool. A missing or mismatched runtime shows up as failing hooks
+inside agent sessions.
+
+**Goal.** Adopting the tool asks nothing of a machine beyond what it already has for working with git repositories, and
+no hook fails for lack of a runtime.
+
 ## Context
 
 - Adoption must cost nothing to teammates and pipelines that do not use the tool

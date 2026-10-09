@@ -115,16 +115,30 @@ differently:
 
 ## Documentation structure
 
-The documentation in this repository has three parts, each with one job:
+The documentation in this repository has four parts, each with one job:
 
-| Directory | Holds | Changes through |
+| Part | Holds | Changes through |
 | --- | --- | --- |
+| `docs/philosophy.md` | the problems the project solves, its goals and its tenets; it decides nothing | an edit, in the same pull request as every ADR and standard the change affects |
 | `docs/features/` | what each feature is and how to use it | ordinary pull requests |
-| `docs/adrs/` | architecture decisions and their reasons; the authority over the other two | an edit to the ADR |
+| `docs/adrs/` | architecture decisions and their reasons; the authority over every other part | an edit to the ADR |
 | `docs/ux/` | user-facing standards (this directory) | an edit to the standard, with its reason ([README.md](README.md#changing-a-standard)) |
 
-Why: a reader who knows which question a directory answers finds the answer without reading the others. ADRs follow
-their own naming and title rules, stated in the [ADR index](../adrs/README.md).
+Why: a reader who knows which question a part answers finds the answer without reading the others. ADRs follow their
+own naming and title rules, stated in the [ADR index](../adrs/README.md).
+
+### Every document opens with its objective
+
+Every ADR, user-experience standard, feature page and top-level page opens, right after its title, with an
+`## Objective` section in two parts:
+
+- **Problem.** Who has the problem, and what goes wrong for them or what they need and lack.
+- **Goal.** The outcome that holds once the problem is solved, stated so that a reader can tell whether it holds.
+
+The section is a few plain sentences that a reader understands without any data. It names no solution: data,
+examples, design and reference come after it. Why: a reader has to know why a subject is on the table before reading
+how it is handled, or they judge it against a purpose they assumed; and something whose objective nobody can state
+should not exist ([philosophy](../philosophy.md#start-from-the-objective)).
 
 ### Features pages
 
@@ -133,6 +147,7 @@ moving between pages always finds the reference and the troubleshooting in the s
 
 | Section | Content |
 | --- | --- |
+| Objective | the problem the feature solves and the goal it reaches ([above](#every-document-opens-with-its-objective)) |
 | Overview | what it is and what it does, in two to five sentences |
 | When to use | the situations it is for, and the closest situations it is not for, with the alternative |
 | Reference | commands, flags, fields, defaults, allowed values, exit codes, files read and written, as tables |

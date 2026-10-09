@@ -1,5 +1,14 @@
 # 0008. The tool owns only named keys inside shared native files
 
+## Objective
+
+**Problem.** The files agents read their permissions and hooks from are shared with people, who keep their own settings
+there. Rewriting such a file as a whole destroys those settings; editing it without clear ownership leaves nobody able
+to tell the tool's content from a person's.
+
+**Goal.** People keep every setting they put in a shared native file, and the tool's content in that file can always be
+told apart.
+
 ## Context
 
 - Agents read permissions and hooks from native files at fixed locations. Claude Code (2.1.x) reads

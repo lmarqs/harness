@@ -1,5 +1,14 @@
 # 0018. Conventions the tool establishes are written to outlive it
 
+## Objective
+
+**Problem.** Teams can stop using the tool at any time, and many teammates never use it. The working agreements it sets
+up, such as where working copies live, which branch work starts from and how tasks are tracked, must stay readable and
+true without the tool, without filling every agent session's context with text about the tool.
+
+**Goal.** A repository's conventions read correctly and hold whether or not anyone runs the tool, at a small, fixed cost
+to every agent session.
+
 ## Context
 
 - Agents read instruction files, not the tool's configuration. Claude Code 2.1.x reads `CLAUDE.md` and the files it

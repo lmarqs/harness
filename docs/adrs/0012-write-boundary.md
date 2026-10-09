@@ -1,5 +1,14 @@
 # 0012. The binary writes only content it owns
 
+## Objective
+
+**Problem.** Repositories already hold state and records that people and other tools depend on: synchronised task
+databases, a loop runner's configuration, task names, an issue tracker, a code-review platform. A tool that writes or
+normalises what it did not create breaks their work, often in ways that are hard to undo.
+
+**Goal.** Everything people and other tools kept before adoption works the same after it, and the team's record of work
+stays the team's.
+
 ## Context
 
 - Teams record their work in an issue tracker and a code-review platform. People and agents already write there, under

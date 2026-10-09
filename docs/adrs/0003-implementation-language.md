@@ -1,5 +1,14 @@
 # 0003. The tool is one executable written in Go
 
+## Objective
+
+**Problem.** The tool runs on every developer machine and CI runner that adopts it, and inside agent hooks that fire on
+every file edit. A language whose programs start slowly, or need a runtime a machine lacks, makes every agent action
+slower or makes hooks fail. The language is also the hardest part of the tool to change later.
+
+**Goal.** A hook call stays within 50 ms at p95, and the tool runs on every supported machine with nothing else
+installed, for the life of the project.
+
 ## Context
 
 - The tool runs on developer machines, on CI runners, and inside hook calls that harnesses fire on agent events such as

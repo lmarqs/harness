@@ -1,5 +1,13 @@
 # 0021. Only an already trusted binary admits a new release
 
+## Objective
+
+**Problem.** The wrapper downloads the pinned release and runs it with the person's credentials, on every machine and in
+every repository that pins it. A release compromised before anyone recorded its checksum, or replaced on the download
+host, would run everywhere, and checksums alone cannot tell.
+
+**Goal.** Only releases their publisher signed run, on every machine, whoever recorded the pin.
+
 ## Context
 
 - The wrapper downloads and executes the pinned release on every machine that runs an explicit entry point

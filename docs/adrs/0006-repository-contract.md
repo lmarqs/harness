@@ -1,5 +1,14 @@
 # 0006. A repository holds declarative data, never engine code
 
+## Objective
+
+**Problem.** When a practice spreads by copying its engine code into each repository, every copy becomes a fork: a fix
+made in one never reaches the others. Each repository also has facts only it knows, which must live with it. Where that
+line falls decides whether a fix reaches every repository.
+
+**Goal.** A fix to the workflow reaches every repository through one release, while each repository keeps and controls
+the facts only it knows.
+
 ## Context
 
 - Engine code copied into repositories diverges. Of three hand-ported copies of one agent workflow, one carries a fork

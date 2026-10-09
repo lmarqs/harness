@@ -1,5 +1,14 @@
 # 0009. Adapters render agent-neutral sources into each agent's native files
 
+## Objective
+
+**Problem.** Each agent has its own permission syntax, hook schema and events, and new agents keep appearing.
+Configuration kept by hand once per agent drifts, so one repository grants different permissions to different agents,
+and supporting another agent means writing everything again.
+
+**Goal.** One declaration grants the same permissions and runs the same hooks in every supported agent, and supporting
+another agent changes no repository's declarations.
+
 ## Context
 
 - The supported agents differ in permission syntax (pattern strings in Claude Code's settings, rule files that match

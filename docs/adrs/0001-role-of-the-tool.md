@@ -1,14 +1,23 @@
 # 0001. The tool configures agent harnesses and never acts as one
 
+## Objective
+
+**Problem.** Agent harness configuration is copied by hand from repository to repository, and the copies drift into
+dialects that lose safety settings. A tool that fixes this has to know where its job ends. Without a boundary it grows
+into a second agent harness, chasing every model and API change the harness vendors already follow and holding
+credentials and costs that belong to each organization.
+
+**Goal.** Harness configuration stays consistent across every repository, while agents keep the capabilities, model
+access and credentials their vendors and organizations give them.
+
 ## Context
 
 An agent harness is the program that runs a model in a loop with tools: an interactive coding agent, or an unattended
 runner that drives an agent through a list of tasks. Each harness reads its permissions, hooks, instructions and skills
 from files in the repository.
 
-- The problem this tool addresses is the consistency of harness configuration across many repositories, not the
-  capability of agents. Three hand-ported copies of one agent workflow exist; each is a different dialect, and two of
-  them start unattended agents with permission-bypass flags that the original refuses. The copies differ in what they
+- Three hand-ported copies of one agent workflow exist; each is a different dialect, and two of them start unattended
+  agents with permission-bypass flags that the original refuses. The copies differ in what they
   write and how they start agents, not in what the agents can do.
 - Harnesses are products their vendors develop and change often. A program that reimplements an agent loop has to follow
   every model and API change the harness vendors already follow.

@@ -1,5 +1,15 @@
 # 0015. The development lifecycle is a fixed set of events the binary fires
 
+## Objective
+
+**Problem.** The same steps recur at the same points of every change: when work starts, when it is verified, when it is
+complete, when it is delivered and when it lands. Each repository and each actor runs them differently, by hand or
+through prose an agent follows. Delivery mistakes leave the clone and are hard to undo, and when unattended work stops,
+nobody is told.
+
+**Goal.** Each step runs the same way whoever starts it, delivery never publishes work that is not ready, and a stopped
+run reaches a person.
+
 ## Context
 
 - The same steps recur at the same points of every change: something to do once work starts, once it is verified,
