@@ -12,8 +12,9 @@
   the release.
 - The wrapper is a POSIX shell script. Verifying a signature from such a script needs a tool such as gpg or a recent
   OpenSSL, whose presence and version differ between machines.
-- The Go standard library verifies Ed25519 signatures, so the binary can verify signatures with no runtime dependency
-  ([0003](0003-implementation-language.md), [0004](0004-runtime-dependencies.md)).
+- The Go standard library verifies Ed25519 signatures (the `crypto/ed25519` package, since Go 1.13), so the binary can
+  verify signatures with no runtime dependency ([0003](0003-implementation-language.md),
+  [0004](0004-runtime-dependencies.md)).
 - Every change to a pin is a committed diff that the repository reviews ([0017](0017-engine-version.md)).
 - Signing keys are rotated, and can be lost or compromised.
 

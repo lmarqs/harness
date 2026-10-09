@@ -32,9 +32,10 @@
 4. An HTTP request takes its URL and header values only from environment variables, never from committed files, and
    the binary never logs them. Values placed into its body are JSON-encoded. Success is a 2xx status. Redirects never
    cross hosts.
-5. An agent run starts a harness headless in the event's working copy, under the unattended-agent contract
-   ([0011](0011-safety-invariants.md)). It cannot commit, push or trigger events; its edits stay uncommitted and are
-   reported.
+5. An agent run starts a harness headless under the unattended-agent contract ([0011](0011-safety-invariants.md)), in
+   the working copy the event concerns. For work that has landed, it runs in a fresh working copy of the default branch
+   that the binary creates and records. It cannot commit, push or trigger events; its edits stay uncommitted in that
+   working copy and are reported.
 6. Notification events accept commands and HTTP requests only.
 7. No action is automatic unless it says so. The health check reports every automatic agent run.
 8. Integrations that need an agent tool server are agent runs; the binary is never such a client
@@ -62,7 +63,9 @@
   calling a model ([0001](0001-role-of-the-tool.md)). The prompt can carry untrusted text, so the agent may be misled;
   the unattended-agent contract bounds what a misled agent can do, and denying commits, pushes and events keeps an
   action's agent from publishing work or starting further actions. Uncommitted, reported edits leave the result to a
-  person.
+  person. Once work has landed, its task working copy is about to be removed and the primary checkout holds whatever a
+  person is doing; a fresh, recorded working copy gives the agent the merged code without touching either, and its
+  record lets cleanup remove it later ([0012](0012-write-boundary.md)).
 - **6.** An agent run on a notification event would start a harness from inside a harness at every turn end, an
   unbounded cost and a loop nobody watches. Commands and HTTP requests are enough to notify a person.
 - **7.** An automatic action runs with nobody choosing each run; for an agent run that also means unattended model cost
@@ -110,7 +113,8 @@ Costs:
 - An agent run's prompt can include untrusted text. The unattended-agent contract bounds a misled agent but does not
   stop it from making wrong edits; those edits stay uncommitted for review.
 - Agent runs cost model usage and give a different result on each run.
-- An agent run on the landed event leaves uncommitted edits in the working copy where the event fired.
+- An agent run on the landed event leaves a working copy with uncommitted edits that a person reviews, commits or
+  removes.
 - Notification actions do nothing on a machine where the pinned release is not cached
   ([0017](0017-engine-version.md)), and nothing for an agent that lacks the event ([0009](0009-agent-support.md)).
 
@@ -128,6 +132,8 @@ Must be maintained:
 - Validation refuses a committed HTTP action with a literal URL or header value.
 - An agent-run fixture with a fake harness asserts that the harness starts under the unattended-agent contract, that
   its attempts to commit, push and trigger events are denied, and that its edits remain uncommitted and are listed.
+- An agent run on the landed event works in a new, recorded working copy of the default branch; the primary checkout
+  and the task working copy are byte-identical afterwards.
 - Validation refuses an agent run declared on a notification event.
 - The health check reports an automatic agent run.
 - Review rejects any agent tool-server client library in the binary.

@@ -66,8 +66,9 @@ One ADR holds one decision. If its points serve two decisions, it is two ADRs.
 - No names of the tool's commands, flags, settings, environment variables, exit codes or files. Mechanisms are named
   generically: the wrapper, the manifest, the drift check, the health check, the repository's data. The directory
   layout ADR names directories because the layout is its decision.
-- Third-party products are named with the version their behaviour was checked against.
-- No organization names.
+- A third-party product whose behaviour a decision depends on is named with the version that behaviour was checked
+  against. Prior art and rejected tools are named without a version, because nothing depends on their behaviour.
+- Organizations appear only as the makers of third-party products whose behaviour matters; examples use `acme`.
 
 ## Template
 

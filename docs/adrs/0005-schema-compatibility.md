@@ -32,9 +32,10 @@
   trade: a person with an older binary is blocked on that repository until they update.
 - **3.** Migration keeps older repositories usable after an upgrade, and showing the diff keeps the change reviewable
   like every other generated change ([0007](0007-ownership.md)).
-- **4.** With only the schema recorded, an upgrade that keeps the shape leaves every committed artefact byte-identical,
-  so drift always means a real difference. The pin ([0017](0017-engine-version.md)) is the one committed record of a
-  release.
+- **4.** A version stamp would change every committed artefact on every upgrade, burying the changes that matter in
+  ones that do not. With only the schema recorded, an artefact changes only where the new release renders it
+  differently, and that change lands in the upgrade's own diff ([0017](0017-engine-version.md)). The pin is the one
+  committed record of a release.
 - **5.** Each schema change costs one migration in every adopting repository and one more code path in the binary.
   Keeping changes rare bounds the first cost; a support window bounds the second.
 

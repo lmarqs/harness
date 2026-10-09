@@ -17,8 +17,9 @@
 ## Decision
 
 1. The binary contains no organization-specific content: no organization names, hosts, services, policy entries or
-   conventions. Built-in content is limited to the invariants ([0011](0011-safety-invariants.md)) and to defaults keyed
-   by technology stack.
+   conventions. Built-in content is limited to the invariants ([0011](0011-safety-invariants.md)), to defaults keyed
+   by technology stack, and to the starting entries seeded into a newly adopted repository, which the repository then
+   owns ([0015](0015-development-lifecycle.md)).
 2. A repository's data may extend presets: extensions that an organization or a person publishes. A preset is
    referenced by a local path, a git URL or a subpath of a hosted repository, optionally pinned to a git reference. It
    supplies policy entries, hook declarations, actions ([0019](0019-action-kinds.md)), standing-context entries
@@ -34,14 +35,19 @@
 
 - **1.** Organization content inside the binary couples releases to organizations, publishes their content in the
   tool, and makes every other user carry entries they never use. Stack defaults are different in kind: they follow
-  the technology a repository uses, which is a fact about the repository, not a choice of an organization.
+  the technology a repository uses, which is a fact about the repository, not a choice of an organization. Seeded
+  starting entries are generic and belong to the repository from the moment they are written, so any organization
+  changes them like its own.
 - **2.** An organization's choices must reach its repositories without being copied into each one. A preset is data
   the organization keeps in a repository it controls and reviews, so its delivery conventions, policy and guidance
-  live in one place. Referencing presets by path or git needs no registry and no hosting-platform logic
-  ([0012](0012-write-boundary.md)).
+  live in one place. Caching per user fetches each preset commit once per machine, so rendering works offline after the
+  first fetch and many repositories that extend one preset share one copy. Referencing presets by path or git needs no
+  registry and no hosting-platform logic ([0012](0012-write-boundary.md)).
 - **3.** Recording the resolved commit makes rendering reproducible: the same repository commit renders the same bytes
   on every machine and every day, so an upstream publish never fails a check by itself. Moving forward is explicit, so
-  each repository reviews the organization's change as a diff, like any other change it accepts.
+  each repository reviews the organization's change as a diff, like any other change it accepts. A newer upstream
+  commit is a note, not a failure, because the repository's own state is consistent; the note only tells it there is
+  something to review.
 - **4.** A repository knows its own case best, so its entries apply last. Unions let it add to what the preset grants
   or denies; a named item lets it override one action, block or default without restating the rest. The trade is that
   a repository cannot drop a single list entry its preset declares; it extends another preset or none.

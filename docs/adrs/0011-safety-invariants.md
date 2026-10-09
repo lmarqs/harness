@@ -141,8 +141,8 @@ Must be maintained:
 - A fixture whose inherited configuration carries a bypass flag is refused, and the message names the file.
 - A fixture in which the agent edits its verification configuration still has its proof replayed with the base
   configuration.
-- A fixture in which the agent edits a rendered rule, a hook entry or a guidance file fails the attempt and withholds
-  completion, and the next attempt receives the base commit's guidance.
+- A fixture in which the agent edits a rendered rule or a hook entry fails the attempt and withholds completion.
+- A fixture in which the agent edits a guidance file receives the base commit's guidance on its next attempt.
 - A fixture in which an unattended agent tries to trigger a lifecycle event, by any spelling including an absolute
   path to the binary, is refused by the binary, and the event's actions run only after the agent exits.
 - Delivery fixtures on the default branch, with uncommitted changes and, with verification enabled, with an invalid

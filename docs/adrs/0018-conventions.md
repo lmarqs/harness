@@ -24,7 +24,8 @@
 ## Decision
 
 1. Every convention the tool establishes is stated in plain language in a managed block of `AGENTS.md`, and every path
-   it establishes is listed in a managed block of `.gitignore`.
+   it establishes that the repository does not track is listed in a managed block of `.gitignore`
+   ([0014](0014-directory-layout.md)).
 2. Managed blocks are of two classes. Convention blocks state facts that stay true without the tool and never name its
    commands. Tool blocks describe how to use the tool and may name its commands.
 3. Eject keeps convention blocks as plain text without markers and removes tool blocks ([0007](0007-ownership.md)).
@@ -39,8 +40,9 @@
 
 - **1.** Agents act on what instruction files say, not on what the tool's configuration holds, so a convention that is
   only in the configuration is invisible to them. `AGENTS.md` is the file both supported agents reach: Codex directly,
-  Claude Code through an import line the tool keeps in `CLAUDE.md`, itself a convention block. Writing every path into
-  `.gitignore` keeps clone-local state untracked in every clone, including clones without the tool. People and
+  Claude Code through an import line the tool keeps in `CLAUDE.md`, itself a convention block. Writing every untracked
+  path into `.gitignore` keeps clone-local state untracked in every clone, including clones without the tool; a path
+  the repository chose to track stays tracked. People and
   third-party tools working without the tool read the same text, and after a removal the remaining state is still
   explained.
 - **2, 3.** A sentence that names one of the tool's commands becomes false the moment the tool is gone, and an agent

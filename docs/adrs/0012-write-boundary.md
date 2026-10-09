@@ -10,31 +10,38 @@
 - Repositories already contain third-party state that its owners depend on. Across 51 surveyed repositories: local
   task databases synchronised to remotes, one of them committed to git with its own git hooks path; loop-runner
   configurations at the repository root in two repositories; task-runner tasks whose names collide with the tool's
-  (`verify` in 4 repositories, 5 to 7 collisions in each of three hand-ported copies of one agent workflow); instruction
-  files with 2 to 24 KB of hand-written content in 17 repositories; and an agent's own worktree directory in 28.
+  (one of its names in 4 repositories, 5 to 7 collisions in each of three hand-ported copies of one agent workflow);
+  instruction files with 2 to 24 KB of hand-written content in 17 repositories; and an agent's own worktree directory
+  in 28.
 - Normalising state a person created breaks them: disconnecting the remotes of a task database ends a synchronisation
   they rely on.
 - People run the loop runner directly, and it names branches by a fixed pattern. A tool that cleans branches by pattern
   can delete a branch a person created.
 - 39 of 51 surveyed repositories use one task runner whose own file also lists tool versions; a version pin for this
   tool can appear there ([0017](0017-engine-version.md)).
-- Another product, a CI/CD platform, uses a `.harness/` directory at the repository root for its pipeline definitions
+- Another product, a CI/CD platform, keeps its pipeline definitions in a directory at the repository root whose name is
+  the name of the tool's configuration directory ([0014](0014-directory-layout.md)).
+- The loop runner merges its per-user configuration into every run it starts, including runs the binary launches
   ([0014](0014-directory-layout.md)).
+- The tool's own releases must be fetched from somewhere; some networks reach only an internal mirror.
 
 ## Decision
 
-1. The binary contains no logic for any hosting platform: no platform API client, no platform credentials, no
-   platform-specific conventions.
+1. The binary contains no logic for the platform that hosts a team's work: no client for its API, no credentials for
+   it, no conventions of its review or delivery. The tool's own releases come from the release source the pin names,
+   over plain HTTPS with no platform API ([0017](0017-engine-version.md)).
 2. The binary never writes the team's record: issues, projects, boards, comments, reviews and labels. Task state the
-   tool keeps stays in the clone.
+   tool creates stays in the clone; a task database the repository already synchronises is used as found (point 4),
+   so what the tool writes into it travels where that synchronisation sends it.
 3. Delivery is everything that leaves the clone: a push, a pull request, a CI trigger, a notification. It happens only
    through actions that the repository, or a preset it extends ([0013](0013-organization-content.md)), declares on
    lifecycle events ([0015](0015-development-lifecycle.md), [0019](0019-action-kinds.md)). The binary ships no
    actions.
 4. The binary never reconfigures state it did not create:
    - an existing third-party database is used as found;
-   - third-party configuration at its default location is neither read nor written unless the repository opts in to
-     inheriting it;
+   - third-party configuration at its default location is never written, and is read only when the repository opts in
+     to inheriting it, or to find and name a setting that would weaken an invariant in a run the binary launches
+     ([0011](0011-safety-invariants.md));
    - git configuration such as the hooks path is not changed; the binary sets overrides only on its own git
      invocations;
    - an existing task-runner task is never overwritten; a collision gets a namespaced name and an unresolved item
@@ -53,16 +60,22 @@
   users, bind every release to that platform's API and credentials, and still leave everyone else to build their own
   path. Declared actions put the convention in committed configuration that the organization reviews and controls
   ([0013](0013-organization-content.md)), and the binary works the same with every platform and with none. The trade
-  is that a repository with no declared actions gets no delivery from the binary.
+  is that a repository with no declared actions gets no delivery from the binary. Fetching the tool's own releases is
+  a different concern: it is distribution of the tool, not the team's work, and a source fetched as static files over
+  HTTPS needs no platform API, so the pin can name a mirror as easily as the project's own release host.
 - **2.** The team's record has one set of writers, under the team's permissions. A second writer competes with its
   conventions and adds noise, and clone-local task state that leaked there would become a second record of the same
-  work.
+  work. A task database that a person already synchronises is theirs: breaking the synchronisation would violate point
+  4, so whatever the tool writes into it follows the person's own choice of where it goes.
 - **4.** Each item protects something a person relies on. A database used as found keeps its synchronisation; root
   loop-runner configuration left alone keeps direct use working; an unchanged hooks path keeps the task database's own
   git hooks; an untouched task keeps the commands people type; content outside blocks is the repository's prose; agent
   directories hold the agent's working state. The task runner's file belongs to the repository and may hold other
   pins and comments; whether the task runner keeps installing this tool is the team's call, so the binary reports the
-  duplicate and hands the choice to a person or agent ([0002](0002-division-of-work.md)).
+  duplicate and hands the choice to a person or agent ([0002](0002-division-of-work.md)). The loop runner applies its
+  per-user configuration to every run it starts, so the binary reads that configuration, and writes nothing to it, for
+  one purpose: to refuse and name a bypass setting before it reaches an unattended agent
+  ([0011](0011-safety-invariants.md)).
 - **5.** A directory of the same name that another product reads holds files the binary does not own. Writing into it
   would mix two products' files, and removal, which deletes what the manifest lists ([0007](0007-ownership.md)),
   would then operate inside a directory another product depends on. Refusing is the only outcome that cannot damage
@@ -114,7 +127,7 @@ Costs:
 - Two names for one task can coexist, and a duplicate pin can stay in the task runner's file, until someone
   reconciles them.
 - Inherited third-party configuration may use features the tool does not support.
-- A repository that already uses the other product's `.harness/` directory cannot adopt the tool.
+- A repository that already uses the other product's directory of the same name cannot adopt the tool.
 
 Must be maintained:
 
@@ -128,6 +141,8 @@ Must be maintained:
   operation of the tool.
 - A fixture whose task runner's file pins the tool is byte-identical after adoption, and the pin is reported and listed
   as unresolved.
-- A fixture with a foreign `.harness/` directory refuses adoption, names the conflict and writes nothing.
+- A fixture with a foreign tool configuration directory refuses adoption, names the conflict and writes nothing.
+- A fixture whose per-user loop-runner configuration sets a bypass is refused with a message naming that file and key,
+  and the file is byte-identical afterwards.
 - Review rejects any hosting-platform client library, platform API endpoint or platform credential in the binary.
 - A fixture with no declared lifecycle actions, taken through every lifecycle event, leaves its remote unchanged.

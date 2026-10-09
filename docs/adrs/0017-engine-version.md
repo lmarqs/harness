@@ -28,6 +28,8 @@
 - Starting a container from an image already present measured 565 to 875 ms in ten runs on a developer workstation.
 - Releases appear while repositories stay on what they pinned; a person learns of a newer release only when something
   tells them.
+- Some networks reach only an internal mirror, not the project's release host. The binary contains no client for any
+  hosting platform's API ([0012](0012-write-boundary.md)).
 
 ## Decision
 
@@ -36,15 +38,18 @@
    ([0007](0007-ownership.md)).
 2. The repository pins one exact release in a committed file in the tool configuration directory
    ([0014](0014-directory-layout.md)), together with the SHA-256 checksum of that release's binary for each supported
-   platform. The pin is repository data ([0006](0006-repository-contract.md)) and exists in exactly one place.
+   platform. The pin is owned content recorded in the manifest ([0007](0007-ownership.md)), and it exists in exactly
+   one place.
 3. A pin is written only by adoption and by an explicit upgrade operation, for a release admitted under
-   [0021](0021-release-trust.md); the result is reviewed as a diff.
+   [0021](0021-release-trust.md). The upgrade renders the repository with the new release in the same change, so the
+   pin and every artefact the new release renders differently land in one reviewed diff.
 4. The wrapper resolves the pinned release in a per-user cache. When the release is absent and the call is explicit,
    the wrapper downloads it over HTTPS, verifies it against the committed checksum, refuses on a mismatch without
    caching anything, and then executes it with the caller's arguments. Once cached, it runs offline.
 5. Implicit entry points never download. An agent hook calls the wrapper in a mode that runs only a cached binary; when
    none is cached, the hook writes one line on stderr naming the wrapper and exits successfully, and the session-start
-   hook tells the agent once per session that the pinned release is not cached on this machine and how to fetch it. An
+   hook also tells the agent once per session that the pinned release is not cached on this machine and how to fetch
+   it. The wrapper writes both lines itself, because no binary is present to write them. An
    explicit entry point that cannot obtain or verify the pinned binary exits non-zero, so an absent check is never
    reported as a passing one ([0010](0010-dependence-on-the-binary.md)).
 6. An environment override makes the wrapper execute a binary at a given path instead, for machines without network
@@ -52,14 +57,20 @@
 7. A global installation is optional. Inside a repository whose pin names a different release, a globally installed
    binary executes the pinned release from the cache, and downloads it through the same verified path only when invoked
    explicitly, never from a hook. Outside such repositories it runs itself.
-8. The wrapper contains no engine logic: it resolves, downloads, verifies and executes. Every command runs in the
-   binary.
+8. The wrapper contains no engine logic: it resolves, downloads, verifies and executes, and when an implicit call finds
+   no cached binary it prints the fixed lines of point 5. Every command runs in the binary.
 9. A pin of the tool found in a task runner's tool list is reported by the health check. Adoption copies it into the
    pin and lists its removal as unresolved, without editing the task runner's file ([0012](0012-write-boundary.md)).
-10. The binary looks for a release newer than the pin at most once a day, caches the answer, never blocks or fails
-    because of the lookup, works offline, and skips the lookup when an environment variable disables it.
+10. The binary looks for a release newer than the pin at most once a day, through the release source (point 12),
+    caches the answer, never blocks or fails because of the lookup, works offline, and skips the lookup when an
+    environment variable disables it. It names a newer release only after verifying that release's signed checksum
+    file ([0021](0021-release-trust.md)).
 11. CI needs no wrapper ([0010](0010-dependence-on-the-binary.md)). A pipeline that opts in to the tool's checks runs
     them through the wrapper and gets the pinned release, verified.
+12. Releases come from the release source the pin names. The source serves each release's assets and signed checksum
+    file, and the newest release's signed checksum file, at fixed paths over plain HTTPS. The project's own release
+    host and any mirror laid out the same way serve equally, and no platform API is involved
+    ([0012](0012-write-boundary.md)).
 
 ## Reasons
 
@@ -71,22 +82,27 @@
 - **2.** One exact release per repository makes every machine, every pipeline and the committed artefacts agree, so the
   drift check gives the same answer everywhere. Per-platform checksums let the wrapper verify what it downloads without
   trusting the download host alone. One place, because two pins drift apart after the first upgrade that touches only
-  one.
+  one. The pin is owned, not seeded: its checksums are worth something only if an admitted release verified them
+  ([0021](0021-release-trust.md)), so a hand edit has to show as drift instead of becoming the repository's choice.
 - **3.** A new release can change rendering and migrate schemas ([0005](0005-schema-compatibility.md)). An explicit,
   reviewed upgrade lands that change in one diff, instead of whenever a teammate's machine updates. Requiring an
   admitted release ([0021](0021-release-trust.md)) means the committed checksums are ones an already trusted binary
-  verified, not whatever the person upgrading happened to download.
+  verified, not whatever the person upgrading happened to download. Rendering with the new release inside the upgrade
+  keeps the drift check exact: the pinned release's output and the committed artefacts always agree, so a difference
+  is always a real one.
 - **5.** A download inside a hook breaks both the no-failure rule of [0010](0010-dependence-on-the-binary.md) and the
   50 ms budget of [0003](0003-implementation-language.md). Without a hint, a fresh clone's agent works without the
   tool's hooks and cannot tell why; one line in its context per session tells it the fix, and limiting it to one line
-  keeps the cost in tokens and noise fixed.
+  keeps the cost in tokens and noise fixed. Only the wrapper is present at that moment, so only the wrapper can say
+  it.
 - **6.** A machine without network access, or a person developing the tool, needs to run a binary that no pin names.
   An environment override is explicit for one environment and leaves the committed pin unchanged.
 - **7.** People who install globally keep using the short command. Deferring to the pin keeps the one-release guarantee
   of point 2 for them as well; never downloading from a hook follows point 5.
 - **8.** A repository holds no engine code ([0006](0006-repository-contract.md)). Resolving, downloading, verifying
   and executing is the minimum a clone needs to reach the binary; any further logic in the wrapper would be engine code
-  copied into every repository, beyond the reach of a release.
+  copied into every repository, beyond the reach of a release. The lines of point 5 are fixed text in the wrapper's
+  template, selected by the event the hook names; printing them reports a failed resolution and decides nothing.
 - **9.** Two pins drift apart (point 2), so the task runner's pin is reported. The task runner's file belongs to the
   repository, not to the tool ([0012](0012-write-boundary.md)), so adoption lists its removal for a person instead of
   editing it.
@@ -95,6 +111,11 @@
   without network access.
 - **11.** CI stays free of any requirement ([0010](0010-dependence-on-the-binary.md)); a pipeline that chooses to run
   the checks gets the same verified release as every developer.
+- **12.** Some networks reach only an internal mirror. Fixed paths over HTTPS make a mirror a plain copy of files, keep
+  the wrapper a downloader rather than an API client, and keep platform logic out of the binary
+  ([0012](0012-write-boundary.md)). Serving the newest release's signed checksum file at a fixed path lets the update
+  notice learn about a release and verify it in one request, so a compromised host cannot advertise an unsigned
+  release.
 
 ## Rejected alternatives
 
@@ -165,6 +186,11 @@ Must be maintained:
   that a hook invocation never downloads.
 - A fixture that also pins the tool in its task runner's tool list is reported by the health check; adoption of it
   copies the pin, lists the removal as unresolved, and leaves the task runner's file byte-identical.
-- A test asserts that the release lookup returns promptly offline and makes no network call when disabled.
+- A test asserts that the release lookup returns promptly offline and makes no network call when disabled, and that a
+  newest-release checksum file with a bad signature produces no notice.
+- A fixture pinned to a mirror laid out like the release host downloads, verifies and runs the release with no other
+  network access.
+- An upgrade fixture produces one diff holding the pin and every artefact the new release renders differently, and the
+  drift check run by the new release passes on it.
 - CI runs the wrapper tests on Linux and macOS with each supported downloader and checksum tool.
 - The hook benchmark of [0003](0003-implementation-language.md) runs through the wrapper and fails above 50 ms at p95.

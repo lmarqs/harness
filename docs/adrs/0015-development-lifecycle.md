@@ -53,6 +53,8 @@
 10. Delivery that needs judgement, such as choosing which commits of an unattended run go together or rewording their
     messages, stays with an agent guided by shipped documentation ([0002](0002-division-of-work.md)); the agent then
     triggers the ready-for-delivery event.
+11. The policy a newly adopted repository starts with asks a person before an agent triggers the ready-for-delivery
+    event. It is a seeded entry: the repository owns it and may change it ([0007](0007-ownership.md)).
 
 ## Reasons
 
@@ -88,6 +90,10 @@
   a person or an agent see what an event would do before permitting or triggering it.
 - **10.** Grouping and rewording commits is judgement ([0002](0002-division-of-work.md)); the event that follows still
   applies the guards to the agent's result, so judgement never bypasses them.
+- **11.** Permitting an agent to trigger delivery permits every action declared for it, and those actions run outside
+  the agent's per-command checks. Until a team has seen what its delivery actions do, a person confirms each one. The
+  choice is the repository's, not an invariant, because a team that trusts its actions may let its coordinating agent
+  deliver unattended; so the entry is seeded, not built in ([0011](0011-safety-invariants.md)).
 
 ## Rejected alternatives
 
@@ -122,8 +128,7 @@ Costs:
 
 - Permitting an agent to trigger an event permits every action declared for that event. Actions run outside the
   agent's per-command permission checks, so a command the policy denies to the agent still runs when an action
-  contains it. The policy a newly adopted repository starts with asks a person before an agent triggers delivery; the
-  repository may move that entry.
+  contains it. The seeded ask entry of point 11 covers delivery; other events need their own entries.
 - Actions inherit the environment, including credentials. An action from a preset runs with the person's credentials.
 - A step that fits no event stays outside the tool.
 - Automatic delivery at the scope of an unattended run delivers the whole run as one unit.
