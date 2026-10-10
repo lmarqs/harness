@@ -90,7 +90,7 @@ only through a commit, so a cached release never needs a network check.
 | `./harnessw <command>`, typed by a person or an agent | downloads, verifies, runs |
 | another tool's command, such as a loop runner's `./harnessw worker claude` or a team's own task | the same: it is `./harnessw <command>` |
 | A global `harness` typed in a pinned repository | the same verified download, then runs the pinned release |
-| Agent hooks | never download: they run `"$(git rev-parse --show-toplevel)/harnessw" --no-download hook <event>`, print one line on stderr and exit 0 |
+| Agent hooks | never download: they run the [hook command](render.md#the-hook-command), with the git plugin `"$(git rev-parse --show-toplevel)/harnessw" --no-download hook <event>`, print one line on stderr and exit 0 |
 
 The line an agent hook prints on stderr when the pinned release is not cached:
 
@@ -287,6 +287,10 @@ Every other argument is passed to `harness` unchanged.
 | `sha256sum` or `shasum` | first run of a pinned release on a machine |
 | HTTPS access to `source` | first run of a pinned release on a machine |
 
+These are the wrapper's own requirements. The binary it runs needs only the operating system; the programs the
+repository's [plugins](plugins.md) name, such as `git` for the git plugin, are the repository's requirements, and
+`harness doctor` reports each one that is missing ([ADR 0004](../adrs/0004-runtime-dependencies.md)).
+
 Files read: `.harness/wrapper.yaml`, `$HARNESS_HOME/versions/<version>/harness`. Files written:
 `$HARNESS_HOME/versions/<version>/harness`, on a verified download only.
 
@@ -294,7 +298,7 @@ Files read: `.harness/wrapper.yaml`, `$HARNESS_HOME/versions/<version>/harness`.
 
 | Variable | Read by | Effect |
 | --- | --- | --- |
-| `HARNESS_HOME` | `harnessw`, `harness` | The per-user cache directory, default `$XDG_CACHE_HOME/harness`, or `~/.cache/harness` when `XDG_CACHE_HOME` is unset. It holds pinned releases at `<HARNESS_HOME>/versions/<version>/harness`, the update-check result and the signed-checksum check of `doctor`, nothing else |
+| `HARNESS_HOME` | `harnessw`, `harness` | The per-user cache directory, default `$XDG_CACHE_HOME/harness`, or `~/.cache/harness` when `XDG_CACHE_HOME` is unset. It holds pinned releases at `<HARNESS_HOME>/versions/<version>/harness`, [fetched plugins](plugins.md#fetched-plugins) under their hash, the update-check result and the signed-checksum check of `doctor`, nothing else |
 | `HARNESS_BINARY` | `harnessw` | A path to a `harness` binary to exec instead of the pinned release. No download and no checksum check: it bypasses the pin, and `harness doctor` notes that the running release is not the pinned one |
 | `HARNESS_NO_UPDATE_CHECK=1` | `harness` | Turns off the daily newer-release check on explicit commands and in `doctor` |
 
@@ -352,7 +356,7 @@ differently (`harnessw` included), and the repository files when they are migrat
 
 ```sh
 ./harnessw wrapper --version v0.9.0        # pins, and renders the repository with v0.9.0
-git diff                                   # the pin, harnessw, the harness skill, any migrated file
+git diff                                   # the pin, harnessw, the harness skill, builtin plugins' renders, migrations
 ./harnessw render --check                  # run by v0.9.0: passes
 git add -A && git commit -m "chore: run harness v0.9.0"
 ```
@@ -405,7 +409,8 @@ jobs:
 ```
 
 The cache step is optional; it saves the download on later runs. CI runs the release the pull request pins, so an
-upgrade and the files it re-rendered are checked together.
+upgrade and the files it re-rendered are checked together. A repository that declares a
+[fetched plugin](plugins.md#fetched-plugins) adds a `./harnessw plugin fetch` step before the check.
 
 ## Air-gapped machines
 

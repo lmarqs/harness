@@ -42,15 +42,23 @@ skills, and the loops that run agents unattended. Across many repositories, that
 
 ## What harness is
 
-`harness` is a meta-harness. It writes, checks and removes the configuration that the agent harnesses Claude Code and
-Codex CLI read, and it constrains how an agent runs when `harness` starts it, as `harness worker` does for each task a
-loop runner hands it. It never calls a model and never runs an agent loop: it sets the rules and never plays
-([the game master](features/README.md#the-game-master), [ADR 0001](adrs/0001-role-of-the-tool.md)).
+`harness` is a meta-harness. It bridges a repository's declared intent, its permissions, hooks, instructions and
+lifecycle, to the programs that carry it out. It writes, checks and removes the configuration that agent harnesses
+such as Claude Code and Codex CLI read, and it constrains how an agent runs when `harness` starts it, as
+`harness worker` does for each task a loop runner hands it. It never calls a model and never runs an agent loop: it
+sets the rules and never plays ([the game master](features/README.md#the-game-master),
+[ADR 0001](adrs/0001-role-of-the-tool.md)).
+
+The binary contains code for no program. It learns each one, git and the agent harnesses included, from a
+[plugin](features/plugins.md): a versioned bundle of data that says which files the program reads, which of its
+commands answer the binary's questions and which of its arguments and commands are never safe
+([ADR 0022](adrs/0022-tool-integration.md), [ADR 0023](adrs/0023-core-and-contracts.md)). semantic-release reaches its
+release steps through plugins in the same way, and Chef, Ansible and Terraform describe what they manage as data.
 
 It is not an agent, not a client of hosting platforms or agent tool servers, not a source of configuration that lives
 outside your repository, not a launcher for any loop runner, and not a replacement for your task runner, skills
-installer or task tracker. It contains no code for those tools and works with whichever a team uses, through commands,
-actions and presets in the repository's own files ([ADR 0022](adrs/0022-tool-integration.md)).
+installer or task tracker. It works with whichever programs a team uses, through the plugins, commands and actions
+named in the repository's own files.
 
 ## Tenets
 
@@ -77,9 +85,9 @@ measures.
 
 **Tenet.** Like Terraform, where infrastructure is what its configuration declares and every change is shown as a plan
 before it is applied, a repository's agent setup is what its files declare. What agents may do there, which hooks run
-and which actions fire come from the repository's own files and the release it pins, and from nothing else: nothing
-is inherited, included, fetched or inferred while it runs. Generated files are committed, so what agents read is what a
-reviewer reads. Every write is shown before it happens.
+and which actions fire come from the repository's own files, the release it pins and the plugins it pins by hash, and
+from nothing else: nothing is inherited, included, fetched or inferred while it runs. Generated files are committed, so
+what agents read is what a reviewer reads. Every write is shown before it happens.
 
 **Bound by.** [ADR 0013](adrs/0013-organization-content.md), [ADR 0007](adrs/0007-ownership.md),
 [ADR 0017](adrs/0017-engine-version.md),
@@ -129,27 +137,33 @@ credentials and makes no decision that needs one.
 **Bound by.** [ADR 0001](adrs/0001-role-of-the-tool.md),
 [principle 3](ux/principles.md#3-sets-the-rules-never-plays).
 
-### Integrates only what it configures
+### Knows no program
 
 **Problem.** Problem 4: built-in support for one loop runner, task tracker or task runner makes every repository depend
-on a choice its team did not make, and breaks with each of that tool's releases.
+on a choice its team did not make. A tool with code for a program also has to follow every one of that program's
+releases.
 
-**Tenet.** The binary integrates git and the agent harnesses it configures, and nothing else. Every other tool reaches
-a repository as data in that repository's own files: a command it declares, an action a lifecycle event runs, or the
-entries and templates of a preset. Other tools call `harness` through a stable command interface, so switching one
-changes only the repository's files.
+**Tenet.** Every program the binary starts, calls or writes files for, the version control system and the agent
+harnesses included, is described by a plugin. The binary keeps the process: ownership, rendering, events, attempts,
+proof and removal. The plugins keep the program facts: the files a program reads, the commands that answer the
+binary's questions, the arguments that start it unattended and the ones that are never safe. A team switches a program
+by switching its plugin, which changes only the repository's files, and other programs call `harness` through a stable
+command interface.
 
-**Bound by.** [ADR 0022](adrs/0022-tool-integration.md), [ADR 0019](adrs/0019-action-kinds.md),
-[ADR 0013](adrs/0013-organization-content.md).
+**Bound by.** [ADR 0022](adrs/0022-tool-integration.md), [ADR 0023](adrs/0023-core-and-contracts.md).
 
 ### A safety floor nobody can lower
 
 **Problem.** Problem 3.
 
 **Tenet.** The rules that are never a legitimate choice, such as running unattended agents without permission checks,
-are built into the binary. No repository, copy or edit can remove them.
+hold in every repository, and no repository, copy or edit can remove them. The process invariants, such as refusing
+bypass arguments before a launch, replaying proof from the base and withholding completion, are built into the binary.
+The program facts they apply, such as which arguments bypass a harness's checks or that a force push to the default
+branch is denied, are floor rules of the shipped plugins: rendered on every render and out of reach of the
+repository's policy.
 
-**Bound by.** [ADR 0011](adrs/0011-safety-invariants.md).
+**Bound by.** [ADR 0011](adrs/0011-safety-invariants.md), [ADR 0022](adrs/0022-tool-integration.md).
 
 ### Never touch what it did not create
 

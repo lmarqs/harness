@@ -34,22 +34,25 @@ repository.
 
 ## Decision
 
-1. The tool writes, checks and removes the configuration that agent harnesses read, and constrains how a harness starts
-   when the tool starts it.
+1. The tool renders, checks and removes a repository's declared setup in the files that agent harnesses and the programs
+   around them read, and constrains how a harness starts when the tool starts it. Every program it writes for or starts
+   is one a plugin describes ([0022](0022-tool-integration.md)).
 2. The tool never calls a model API, holds no model credentials, contains no agent loop and makes no decision that
    needs a model.
 3. The tool never acts as a client of agent tool servers. Work that needs such a tool is done by a harness that owns the
    connection and its credentials ([0019](0019-action-kinds.md)).
-4. When unattended work or a declared action needs a harness, the tool starts it as a child process with arguments and
-   environment the tool controls, and judges the outcome only by deterministic checks
-   ([0011](0011-safety-invariants.md)).
+4. When unattended work or a declared action needs a harness, the tool starts it as a child process, as the harness's
+   plugin describes ([0009](0009-agent-support.md)), with arguments and environment the tool controls, and judges the
+   outcome only by deterministic checks ([0011](0011-safety-invariants.md)).
 
 ## Reasons
 
 - **1.** Hand-copied setups diverge in their configuration and their start-up arguments, as the acme copies in Context
   do, so owning those surfaces is what solves it. The output is committed files, which reviewers read as diffs and which
-  keep working when the tool is absent ([0010](0010-dependence-on-the-binary.md)). The trade: the tool can enforce only
-  what a harness's configuration surface exposes.
+  keep working when the tool is absent ([0010](0010-dependence-on-the-binary.md)). Learning each program from a plugin,
+  not from the tool's own code, keeps that job the same for every harness and every program around it, including those
+  the project does not ship ([0022](0022-tool-integration.md)). The trade: the tool can enforce only what a harness's
+  configuration surface exposes.
 - **2.** A harness already follows model and API changes. A second loop duplicates that work and competes with the
   harness a team chose. Credentials, provider choice and cost belong to organizations. A tool that holds none of them
   has no token cost, sends no data to a model provider and needs no data-handling review. The trade: every capability
@@ -97,13 +100,14 @@ Costs:
 
 - Enforcement is as strong as each harness's permission and hook model; the tool cannot stop an action the harness does
   not expose.
-- A change to a harness's configuration format breaks the tool's output for that harness until the tool is updated
-  ([0009](0009-agent-support.md)).
+- A change to a harness's configuration format breaks the tool's output for that harness until its harness plugin is
+  updated ([0009](0009-agent-support.md)).
 - Integrations that exist only as tool-server tools need an agent run.
 
 Must be maintained:
 
-- Knowledge of each supported harness's configuration surface across its versions ([0009](0009-agent-support.md)).
+- A harness plugin for each supported harness that describes its configuration surface across its versions
+  ([0009](0009-agent-support.md)).
 
 ## Confirmation
 

@@ -39,7 +39,8 @@ Commands are named `harness <command>` on this page. Run them through the reposi
 | An `agent` action | an unattended agent | it runs headless on a prompt, often with values written by people and agents in it; it runs under the [worker contract](ralph.md#the-worker-contract) |
 | Standing context: the skills and files `context` entries name | instructions | every matching session reads them as guidance; whoever can change them steers the agents |
 | `HARNESS_MESSAGE`, `HARNESS_REASON`, task titles and summaries | untrusted input | agents and task text shape them; they reach notifications and `agent` prompts |
-| A built-in preset, applied with `harness preset apply` or by `scaffold` | code from the pinned release | it writes commands, lanes, validators and post-edit hooks into the repository's files, which run them with the credentials of whoever triggers them; `apply` shows the additions as a diff before writing, and the commit is reviewed like any other |
+| A builtin plugin, applied with `harness plugin apply` or by `scaffold` | data from the pinned release, tested there against the program it describes | its entries write commands, lanes, validators and post-edit hooks into the repository's files, which run them with the credentials of whoever triggers them; `apply` shows the additions as a diff before writing, and the commit is reviewed like any other. Its renders and floor rules come from the release on every render |
+| A [fetched plugin](plugins.md#fetched-plugins) | data from an outside source, pinned in the profile by version and sha256 | fetched only by `harness plugin fetch` or `harness plugin apply`, verified by hash on every load, never fetched by a hook or a worker attempt; its operations and its floor are what its author wrote, and `doctor` reports it as not verified by the release |
 | The pinned release: `harnessw` and `.harness/wrapper.yaml` | code fetched from the network | the wrapper downloads the release the pin names and runs it with your credentials; the checksums committed next to the pin are what make the download trustworthy |
 
 What must stay safe:
@@ -66,9 +67,10 @@ run the test runner runs code it wrote ([pitfalls](pitfalls.md#a-task-runner-run
 | Layer | Stops | Does not stop |
 | --- | --- | --- |
 | Native permissions rendered from the [policy](policy.md) | commands the policy denies or asks about, in every agent that renders them | commands no entry matches (the agent's default decides), spellings a prefix does not match, settings outside the policy |
-| [Built-in invariants](concepts.md#built-in-invariants) | permission bypass in workers, force push to the default branch, task-runner chaining such as mise's `:::`, completion without a replayed proof, delivery of unsafe work, lifecycle actions inside workers, `agent` actions outside the worker contract | anything a repository allows on purpose |
+| Invariants in the binary ([concepts](concepts.md#built-in-invariants)) | completion without a replayed proof, delivery of unsafe work, lifecycle actions inside workers, `agent` actions outside the worker contract, a worker started on plugins resolved from its own checkout | anything a repository allows on purpose |
+| Floor rules of the plugins in use ([policy](policy.md#the-floor)) | permission bypass in workers (each harness plugin's bypass arguments), force push to the default branch (the git plugin), task-runner chaining such as mise's `:::` (the mise plugin), whatever a policy entry tries to weaken them with | a program whose plugin is not in the profile's `plugins:`; `doctor` reports one it detects |
 | Guards in the binary ([spellings](#guards-live-in-the-binary)) | `harness lifecycle run` inside a worker, unsafe `deliver`, whatever spelling of the command an agent uses | a command `harness` does not run |
-| The worker contract ([Ralph](ralph.md#the-worker-contract)) | bypass flags among the arguments `harness worker` receives, whoever calls it; `worker.deny` commands; a worker committing or integrating its own work; a loop runner reading a failed attempt as done | commands `worker.deny` does not list; an agent started without `harness worker` |
+| The worker contract ([Ralph](ralph.md#the-worker-contract)) | the floor bypass arguments of the agent's harness plugin among the arguments `harness worker` receives, whoever calls it; `worker.deny` commands; a worker committing or integrating its own work; a loop runner reading a failed attempt as done | commands `worker.deny` does not list; an agent started without `harness worker` |
 | The tamper check ([below](#the-worker-contract-and-the-tamper-check)) | a worker editing rendered rules, owned settings keys, hook entries, `harnessw`, `.harness/wrapper.yaml`, any file under `.harness/` or a file or skill `context` names, to widen its next attempt or rewrite its rules | edits to other files, which the replay and review judge |
 | Receipt replay ([verify](verify.md#who-relies-on-it)) | a worker claiming checks it did not run, or weakening the checks it is measured by | tests that pass without exercising the change |
 | Lifecycle guards ([lifecycle](lifecycle.md#built-in-guards)) | delivery from the default branch or of uncommitted work and, when the verify module is enabled, of work without a valid receipt; completion of a task without a valid receipt; actions run by a worker's agent | what a declared action does once it runs |
@@ -131,7 +133,7 @@ entries are defence in depth: they make an agent stop or ask before it runs the 
 | Interactive | the mode the person chooses | the shared policy |
 | Coordinating agent left alone | Claude Code with `--permission-mode auto`, or Codex in its sandbox | `allow` entries for everything the agreed delivery needs; the boundary of delivery stated by the person at the start (branch, pull request, CI trigger, auto-merge) |
 | Worker | pinned by `harness worker` ([agents](agents.md#worker-launch)) | the shared policy plus `worker.deny` |
-| Loop runner | its own process, started by a person, a coordinating agent or a script | a configuration whose agent command is `./harnessw worker` for every agent, as the [ralph-tui preset](ralph.md#the-ralph-tui-preset) writes |
+| Loop runner | its own process, started by a person, a coordinating agent or a script | a configuration whose agent command is `./harnessw worker` for every agent, as the [ralph-tui plugin](ralph.md#the-ralph-tui-plugin) writes |
 
 Two rules decide how an unattended session behaves:
 
@@ -153,24 +155,30 @@ entry moves to `allow` once you accept every `deliver` action running unasked
 A worker is the least trusted actor, so `harness` does not rely on its permissions alone. The contract is enforced
 inside `harness worker`, so it holds whoever calls it: a loop runner, a script or a person.
 
-1. `harness worker` refuses to start with uncommitted changes, and records the base: the `HEAD` of the checkout.
-2. It refuses permission-bypass flags among the arguments it receives, with exit 1, naming the flag. It reads no loop
-   runner's configuration: a bypass setting there surfaces as a refused flag at the first task.
-3. It pins the permission mode: Claude Code in `auto` with `worker.deny` as disallowed tools; Codex in the
-   `workspace-write` sandbox with `worker.deny` in the rendered rules.
-4. Before the agent starts it restores the tool-owned files (rendered rules, owned settings keys, hook entries, the
+1. Before anything else runs, `harness worker` resolves the version-control plugin and the agent's harness plugin
+   from the release or the verified cache, never from the checkout, and uses them for every read, comparison, reset
+   and launch of the attempt. It never fetches: a fetched plugin that is not cached exits 3.
+2. It refuses to start with uncommitted changes, and records the base: the head commit of the checkout, as the
+   version-control plugin reports it. A base that cannot be read fails the attempt before the agent starts.
+3. It refuses the bypass arguments the agent's harness plugin marks as floor among the arguments it receives, with
+   exit 1, naming the argument. It reads no loop runner's configuration: a bypass setting there surfaces as a refused
+   argument at the first task.
+4. It pins the permission mode with the harness plugin's launch arguments: the claude plugin starts Claude Code in
+   `auto` with `worker.deny` as disallowed tools; the codex plugin starts Codex in the `workspace-write` sandbox with
+   `worker.deny` in the rendered rules.
+5. Before the agent starts it restores the tool-owned files (rendered rules, owned settings keys, hook entries, the
    wrapper `harnessw` and its pin `.harness/wrapper.yaml`) from the base commit. After the agent exits it compares
    with the base those files, every file under `.harness/` and every file and skill a `context` entry names; any
    difference fails the attempt, withholds completion and is reported by path.
-5. It reads the profile, the policy, the hooks file and the [standing context](#standing-context) from the base
+6. It reads the profile, the policy, the hooks file and the [standing context](#standing-context) from the base
    commit, so the checks it replays and the instructions the agent receives are the ones committed there.
-6. It replays the lanes and skip reasons the agent's receipt selected. The receipt lives in the worker's writable
+7. It replays the lanes and skip reasons the agent's receipt selected. The receipt lives in the worker's writable
    tree, so it only selects; the replay is the proof.
-7. The agent never commits or integrates its own work: `harness worker --commit` commits a verified attempt in its
+8. The agent never commits or integrates its own work: `harness worker --commit` commits a verified attempt in its
    checkout, and a loop runner that runs tasks in parallel merges those commits itself. In a worktree bound to a task,
    `harness worker` fires `completed` and `deliver` in its own process after the agent exited, with the actions read
    from the base commit.
-8. On a failed attempt it saves the attempt's changes as `last-attempt.patch` and its output as `last-worker-output`
+9. On a failed attempt it saves the attempt's changes as `last-attempt.patch` and its output as `last-worker-output`
    in the checkout's state directory, returns the checkout to the base commit, and removes the completion signal it
    was given with `--withhold` from the output. A loop runner never reads a failed attempt as done, and the next
    attempt starts from files the worker checked, `./harnessw` included.
@@ -191,9 +199,9 @@ that fired them, outside the agent's per-command permission checks.
   bound to a task fires every `completed` and `deliver` action with `auto: true`; the same holds for `harness verify`,
   `harness worktree create`, `harness worktree remove` and `harness fleet --deliver`. `harness doctor` never fires
   events ([lifecycle](lifecycle.md#trigger-points)).
-- **The hooks file is the complete list.** Every action is declared in the repository's own `.harness/hooks.yaml`,
-  and nothing outside the repository adds one ([ADR 0013](../adrs/0013-organization-content.md)). A tool preset such
-  as `beads` writes its actions there only when a person applies it, and the diff shows them. Reviewing that file
+- **The hooks file is the complete list.** Every action is declared in the repository's own `.harness/hooks.yaml`, and
+  nothing outside the repository adds one ([ADR 0013](../adrs/0013-organization-content.md)). A plugin such as `beads`
+  writes its actions there as entries only when a person applies it, and the diff shows them. Reviewing that file
   reviews everything an event can run.
 - **Every action sees the whole environment.** A webhook URL exported for one `http` action is visible to every `run`
   and `agent` action of every event fired from that shell.
@@ -217,8 +225,10 @@ In practice:
 An `agent` action ([lifecycle](lifecycle.md#agent)) starts an agent headless on a prompt. It is an unattended agent,
 so it runs under the same contract as `harness worker`:
 
-- auto permission mode, the built-in and repository `worker.deny`, and bypass flags refused;
-- the tamper check, with the checkout's `HEAD` as base: a changed tool-owned file fails the action and is restored;
+- the unattended launch arguments of the agent's harness plugin, the binary's `[harness, lifecycle]` deny and the
+  repository's `worker.deny`, and the plugin's floor bypass arguments refused;
+- the tamper check, with the checkout's head commit as base, as the version-control plugin reports it: a changed
+  tool-owned file fails the action and is restored;
 - no commit, no push, no lifecycle event: its edits stay uncommitted, and the output and the lifecycle log list them
   for a person to review;
 - the `worker` role's standing context.
@@ -256,10 +266,11 @@ Every clone runs the `harness` release that `.harness/wrapper.yaml` pins, throug
 
 - **Downloads are verified.** The wrapper fetches the release over HTTPS and checks its sha256 against the checksum
   for the platform in `wrapper.yaml`. A mismatch exits 1 and caches nothing.
-- **Implicit entry points never download.** Rendered hooks run
-  `"$(git rev-parse --show-toplevel)/harnessw" --no-download hook <event>`: an agent starting a session or editing a
-  file runs a binary already in the cache, or skips the hook, and never fetches code. A download happens only when a
-  person or an agent runs an explicit command, such as `./harnessw verify`.
+- **Implicit entry points never download.** Rendered hooks run the wrapper from the checkout's root with
+  `--no-download`; with the git plugin, `"$(git rev-parse --show-toplevel)/harnessw" --no-download hook <event>`. An
+  agent starting a session or editing a file runs a binary already in the cache, or skips the hook, and never fetches
+  code. Hooks never fetch a plugin either. A download happens only when a person or an agent runs an explicit command,
+  such as `./harnessw verify`.
 - **Pins are signed.** `./harnessw wrapper --version <tag>` and `harness scaffold` write a pin's checksums only after
   the running binary verifies the release's signed checksum file with the release keys it embeds. A
   [pending pin](wrapper.md#a-pending-pin), written by `scaffold --offline`, has no checksums and admits no download.
@@ -271,6 +282,10 @@ Every clone runs the `harness` release that `.harness/wrapper.yaml` pins, throug
   so two files never answer the same question.
 - **`HARNESS_BINARY` bypasses the pin.** It makes the wrapper run any binary, unverified. Keep it for air-gapped
   machines and for development of `harness` itself; never set it in a shared shell profile or in CI.
+- **Fetched plugins are pinned by hash.** A [fetched plugin](plugins.md#fetched-plugins) is downloaded only by an
+  explicit `./harnessw plugin fetch` or `plugin apply`, cached outside the repository and verified against the `sha256`
+  in the profile on every load; a mismatch exits 1. Review a change to its `source`, `version` or `sha256` like a
+  dependency bump. A fetched plugin cannot take a builtin plugin's name.
 - **Workers cannot swap the binary.** The tamper check restores `harnessw` and `wrapper.yaml` before the agent starts
   and fails an attempt that changed them, and a failed attempt returns the checkout to the base commit, so the next
   worker a loop runner starts through `./harnessw` runs the pinned release.
@@ -309,7 +324,7 @@ files are only read; the person's own settings keep applying to them.
 
 ## Reviewing rendered diffs
 
-Rendered files are committed so every permission change is a diff. After `harness render`, `harness preset apply`
+Rendered files are committed so every permission change is a diff. After `harness render`, `harness plugin apply`
 or an upgrade, read:
 
 | File | Look for |
@@ -317,12 +332,13 @@ or an upgrade, read:
 | `.claude/settings.json` (`permissions`, hook entries) | new `allow` entries and their breadth; entries that left `deny` or `ask`; new hook commands |
 | `.codex/rules/harness.rules` | the same decisions as Claude Code; a deny present for Claude Code but missing here is Claude-only |
 | `.codex/hooks.json`, `.codex/config.toml` | hook entries and the keys that enable them |
-| The `policy` block in `AGENTS.md` | Claude-only entries; the built-in base |
+| The `policy` block in `AGENTS.md` | Claude-only entries; the floor rules, each with the plugin it comes from |
+| `plugins` and `vcs` in `.harness/config.yaml` | a plugin added or removed: removing one removes its renders and its floor rules; a fetched plugin's `source`, `version` or `sha256` changing |
 | `.harness/hooks.yaml` | new or changed `post_edit` hooks and `lifecycle`, `attention` and `turn_end` actions, especially `auto: true`, `agent` actions and their prompts, and the variables `http` actions read |
-| `commands`, `verify.lanes` and `verify.validators` in `.harness/config.yaml` | new or changed lint and build commands, lanes and validators, such as those `harness preset apply` adds: `harness verify` and the agent hooks run them with the credentials of the person or agent at work |
+| `commands`, `verify.lanes` and `verify.validators` in `.harness/config.yaml` | new or changed lint and build commands, lanes and validators, such as those `harness plugin apply` adds: `harness verify` and the agent hooks run them with the credentials of the person or agent at work |
 | `context` in `.harness/config.yaml`, the `context` block in `AGENTS.md` | new or changed entries, the files and skills they inject, and which roles they reach |
 | `.agents/skills/` | a skill's content changing, from the source you expect |
-| A file a tool preset seeded, such as `.ralph-tui/config.toml` | every agent's command still runs `./harnessw worker`, and no setting turns permission checks off. `harness` reads none of it, so this review is the check before the first task |
+| A file a plugin's template seeded, such as `.ralph-tui/config.toml` | every agent's command still runs `./harnessw worker`, and no setting turns permission checks off. `harness` reads none of it, so this review is the check before the first task |
 | `.harness/wrapper.yaml` | a version change you intended, with checksums that match the release's published checksum file; a `source` that moved |
 | `harnessw` | changes only together with an upgrade whose release brings a new wrapper |
 
@@ -334,8 +350,10 @@ instead of shipping.
 - [ ] Everything is committed, `.harness/` and `.agents/` changes included; `./harnessw render --check` exits 0.
 - [ ] `./harnessw version` succeeds on the machine that runs, so hooks find the pinned binary in the cache;
       `HARNESS_BINARY` is unset.
-- [ ] `harness doctor` reports no finding: the versions of git and the agents, programs the declared commands and
-      actions name, drift.
+- [ ] `harness doctor` reports no finding: the versions of the programs the plugins in use describe, git and the
+      agents included; programs the declared commands and actions name; a program detected while its plugin, and so
+      its floor, is not in use; drift.
+- [ ] Every fetched plugin the run uses is in the cache (`./harnessw plugin fetch`); a worker never fetches.
 - [ ] The loop runner's configuration names `./harnessw worker` as every agent's command and adds no bypass flag.
       What runs outside `harness worker` is yours to check; `harness` does not.
 - [ ] The folder is trusted by the agent; the run's worktrees are nested in the primary checkout.

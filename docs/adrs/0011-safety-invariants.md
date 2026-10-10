@@ -53,7 +53,8 @@ own permissions, and cannot be recorded as done without a verification that pass
 The following hold in every repository, for what the binary renders and for every agent the binary starts
 ([0022](0022-tool-integration.md)). They are built into the binary, are not expressible in repository data, and cannot
 be removed or weakened by it. Repository policy adds to them. Facts about a program that they apply, such as which
-arguments bypass a harness's checks, come from that program's plugin, marked as floor ([0022](0022-tool-integration.md)).
+arguments bypass a harness's checks, come from that program's plugin, marked as floor
+([0022](0022-tool-integration.md)).
 
 1. Unattended agents never run with permission bypass. Every argument the agent's harness plugin marks as bypass is
    refused when the worker command receives it, with a message that names the argument.

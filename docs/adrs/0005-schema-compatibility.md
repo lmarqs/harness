@@ -1,13 +1,14 @@
-# 0005. Every repository file carries a schema version the binary enforces
+# 0005. Every repository file and plugin carries a schema version the binary enforces
 
 ## Objective
 
-**Problem.** Many repositories depend on the shape of the tool's files, and binaries of one release meet files written
-for another. A binary that misreads a newer file can drop a deny rule or a guard without noticing, then rewrite the
-repository with outdated rules. Output that changes with every release makes every upgrade look like drift.
+**Problem.** Many repositories depend on the shape of the tool's files and of the plugins they use, and binaries of one
+release meet files written for another. A binary that misreads a newer file can drop a deny rule or a guard without
+noticing, then rewrite the repository with outdated rules. Output that changes with every release makes every upgrade
+look like drift.
 
-**Goal.** A binary either reads a repository file correctly or refuses it, naming the release to run, and an upgrade by
-itself never shows as drift.
+**Goal.** A binary either reads a repository file or a plugin correctly or refuses it, naming the release to run, and an
+upgrade by itself never shows as drift.
 
 ## Context
 
@@ -20,6 +21,9 @@ itself never shows as drift.
   file and the files rendered from it with outdated rules. A dropped field can be a deny rule or a guard.
 - Generated artefacts are committed and drift-checked ([0007](0007-ownership.md)). Any value in them that changes with
   the binary's release shows as drift after every upgrade.
+- A plugin is data the binary interprets, written by the project or by others, and it can mark deny rules as floor
+  ([0022](0022-tool-integration.md)). A plugin from an outside source is pinned by its content hash, so its bytes cannot
+  change without a new pin ([0021](0021-release-trust.md)).
 - Most releases change behaviour without changing the shape of any file. For example, a release that fixes a bug in a
   check reads and writes the same files, with the same fields, as the release before it.
 
@@ -31,6 +35,9 @@ itself never shows as drift.
 3. The binary migrates a file with an older schema and shows the diff.
 4. Generated artefacts record the schema version and never the binary version.
 5. Schema changes are rare. Migrations exist from every schema inside a documented support window.
+6. Every plugin carries the schema version of the plugin format it is written in. The binary refuses a plugin whose
+   schema is newer than it supports, naming the release needed, and reads a plugin of an older schema inside the support
+   window without rewriting it.
 
 ## Reasons
 
@@ -48,6 +55,11 @@ itself never shows as drift.
   committed record of a release.
 - **5.** Each schema change costs one migration in every adopting repository and one more code path in the binary.
   Keeping changes rare bounds the first cost, and a support window bounds the second.
+- **6.** A binary that misread a newer plugin could drop a floor rule the way it could drop a deny rule from a
+  repository file, so the same refusal applies (point 2). A plugin from an outside source cannot be migrated in place,
+  because the hash its repository pins fixes its bytes (Context); reading older schemas keeps it usable across releases
+  until its author publishes a newer version. The trade: the binary keeps a reader for every plugin schema in the
+  support window.
 
 ## Rejected alternatives
 
@@ -84,3 +96,5 @@ Must be maintained:
 - Fixtures at the previous schema migrate and print a diff; fixtures at a newer schema are refused with a message that
   names the release.
 - A test asserts that no generated artefact contains the binary version.
+- A fixture plugin at a newer plugin schema is refused with a message that names the release; a fixture plugin at the
+  oldest schema in the support window loads and stays byte-identical.

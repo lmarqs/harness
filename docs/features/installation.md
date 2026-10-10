@@ -14,10 +14,12 @@ shell tools, and every person, machine and pipeline runs the same verified relea
 
 An adopted repository carries its own entry point: [`harnessw`](wrapper.md), a committed script that downloads the
 `harness` release the repository pins, verifies its checksum and runs it. Working in such a repository needs nothing
-installed beyond a POSIX `sh`, `curl` or `wget`, and `sha256sum` or `shasum`, and the last two only for the first run
-of a pinned release. `harness` itself is a single binary that needs only the operating system and git at runtime
-([ADR 0004](../adrs/0004-runtime-dependencies.md)). A global install is optional: it puts `harness` on your PATH and,
-inside a pinned repository, defers to the pinned release.
+installed beyond a POSIX `sh`, `curl` or `wget`, and `sha256sum` or `shasum`, and the last two only for the first run of
+a pinned release. `harness` itself is a single binary that needs only the operating system at runtime
+([ADR 0004](../adrs/0004-runtime-dependencies.md)). Every program it starts is named by one of the repository's
+[plugins](plugins.md), a declared command or an action, and is that repository's requirement: `git`, which the git
+plugin runs and every clone already has, and the agents the profile declares. A global install is optional: it puts
+`harness` on your PATH and, inside a pinned repository, defers to the pinned release.
 
 Examples on this page run commands as `./harnessw <command>`; with a global install, `harness <command>` is
 equivalent.
@@ -53,6 +55,9 @@ release.
 | `curl` or `wget` | the first run of a pinned release on a machine |
 | `sha256sum` or `shasum` | the first run of a pinned release on a machine |
 | HTTPS access to the release source | the first run of a pinned release on a machine |
+
+The wrapper needs nothing else. The programs the repository's plugins name, such as `git` for the git plugin, are
+needed when a command uses them, and `./harnessw doctor` reports each one that is missing.
 
 Run `./harnessw version` once after cloning: agent hooks never download, so they skip with one line until the pinned
 release is cached. An agent session on such a machine also gets one line in its session context, so the agent can
@@ -127,7 +132,8 @@ git add -A && git commit -m "chore: upgrade harness"
 `wrapper` writes nothing until the running release has verified the target release's signed checksum file with its
 embedded release keys, downloaded the binary for this platform and matched it against that file. The new release then
 renders the repository: `harnessw`, `wrapper.yaml`, every file it renders differently, and a migration of the
-repository files when it reads a newer `schema`. A step that fails leaves everything untouched. The pin and its effect
+repository files when it reads a newer `schema`. The release carries its builtin [plugins](plugins.md#builtin-plugins),
+so their changed renders are part of that diff. A step that fails leaves everything untouched. The pin and its effect
 are one diff ([upgrading](wrapper.md#upgrading)).
 
 Many repositories at once: `harness fleet wrapper --version <tag> --deliver`
@@ -203,6 +209,10 @@ A clone of an adopted repository works before its pinned release is cached on a 
 
 An explicit entry point never succeeds without running, so no verification command claims work that did not happen.
 
+A [fetched plugin](plugins.md#fetched-plugins) the profile declares is a second download, and only
+`./harnessw plugin fetch` or `./harnessw plugin apply` makes it. Until it is cached on the machine, hooks and worker
+attempts that need it exit 3 naming `./harnessw plugin fetch`; nothing fetches it implicitly.
+
 ## Uninstall
 
 To take `harness` out of a repository, see [remove](remove.md): `./harnessw remove` undoes the adoption, and
@@ -226,7 +236,7 @@ rm -rf "${HARNESS_HOME:-${XDG_CACHE_HOME:-$HOME/.cache}/harness}" ~/.config/harn
 
 | Path | Holds |
 | --- | --- |
-| `$HARNESS_HOME` (default `$XDG_CACHE_HOME/harness`, else `~/.cache/harness`) | `versions/<version>/harness` for each downloaded release, the update-check result, the signature-check result of `doctor` |
+| `$HARNESS_HOME` (default `$XDG_CACHE_HOME/harness`, else `~/.cache/harness`) | `versions/<version>/harness` for each downloaded release, each fetched plugin under its hash, the update-check result, the signature-check result of `doctor` |
 | `~/.config/harness/fleet.yaml` | your default [fleet](fleet.md) file |
 
 ## Troubleshooting

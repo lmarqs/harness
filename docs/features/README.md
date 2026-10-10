@@ -13,16 +13,17 @@ and can find the page for any part of it.
 ## Overview
 
 `harness` is a command-line tool that sets up, constrains and checks the environment coding agents work in. It writes
-the permission rules, hooks and instructions that Claude Code and Codex read. It gives people and agents the same
-commands for task [worktrees](worktrees.md), verification receipts (records that a change's checks passed on its exact
-content, [verify](verify.md)) and [task binding](tasks.md), which ties a worktree to a task id from any tracker. Its
-[`harness worker`](ralph.md) command runs one agent for one task, for any loop runner that names it as its agent
-command, and that agent cannot bypass permissions or be reported done without a verification that passed. It fires
+the permission rules, hooks and instructions that agents such as Claude Code and Codex read. It gives people and agents
+the same commands for task [worktrees](worktrees.md), verification receipts (records that a change's checks passed on
+its exact content, [verify](verify.md)) and [task binding](tasks.md), which ties a worktree to a task id from any
+tracker. Its [`harness worker`](ralph.md) command runs one agent for one task, for any loop runner that names it as its
+agent command, and that agent cannot bypass permissions or be reported done without a verification that passed. It fires
 [development lifecycle](lifecycle.md) events at fixed points, so what a repository declares (a push, a pull request, a
 tracker update, a cleanup) happens at the same moment for people and agents. It never calls a model, never writes
-knowledge such as prose, memory or domain skills, and contains no code for any tool other than git and the agent
-harnesses: loop runners, task trackers, skills installers, task runners and hosting platforms reach a repository as data
-in its own files, which a [tool preset](presets.md) can write ([ADR 0022](../adrs/0022-tool-integration.md)).
+knowledge such as prose, memory or domain skills, and contains code for no external program. Every program it works
+with, git and the agent harnesses included, is described by a [plugin](plugins.md): a versioned bundle of data the
+binary interprets, which the release ships for git, Claude Code, Codex, ralph-tui, Beads, mise, the `skills` CLI and
+common stacks, and which a repository can also fetch, pinned by hash ([ADR 0022](../adrs/0022-tool-integration.md)).
 
 ## The game master
 
@@ -50,7 +51,7 @@ same documentation blocks in every repository that adopts it.
 
 A loop runner such as [ralph-tui](https://github.com/subsy/ralph-tui) connects by naming `./harnessw worker <agent>`
 as its agent command, and a tracker such as Beads by lifecycle actions on `start`, `completed` and `blocked`; the
-`ralph-tui` and `beads` [tool presets](presets.md) write both. Every module is opt-in and removable on its own, and the
+`ralph-tui` and `beads` [plugins](plugins.md) write both. Every module is opt-in and removable on its own, and the
 whole tool can be undone or ejected, keeping its conventions ([remove](remove.md)).
 
 ## Five-minute quickstart
@@ -145,11 +146,12 @@ Setting up a repository
 Configuration
 
 - [Profile](profile.md): `.harness/config.yaml`, state paths
-- [Policy](policy.md): `.harness/policy.yaml`, the built-in base, rendering per agent
+- [Policy](policy.md): `.harness/policy.yaml`, the floor rules of plugins, rendering per agent
 - [Hooks](hooks.md): `.harness/hooks.yaml`, the hook runtime, notification hooks and lifecycle actions
 - [Context](context.md): standing context, directives and skills injected by declared triggers
-- [Presets](presets.md): the built-in stack and tool presets, their entries and templates, `harness preset list`,
-  `show` and `apply`, and where an organization's choices live
+- [Plugins](plugins.md): how every program is described, the version-control and harness contracts, floor rules, the
+  builtin and fetched plugins, `harness plugin list`, `show`, `apply` and `fetch`, and where an organization's choices
+  live
 
 Daily work
 
@@ -166,7 +168,7 @@ Knowledge
 Many repositories and many agents
 
 - [Fleet](fleet.md): run a command across a list of repositories, and deliver the changes
-- [Agents](agents.md): the Claude Code and Codex adapters, roles, and the adapter contract
+- [Agents](agents.md): the Claude Code and Codex harness plugins, roles, and the harness contract
 - [Compatibility](compatibility.md): how GitHub, Beads, ralph-tui, mise, CI and existing files fit with `harness`; what
   removal keeps
 

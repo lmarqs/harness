@@ -18,9 +18,10 @@ reasonable person expects, with what `harness` does about it. Every entry has fo
 **why** it happens, what **`harness` does** about it, and what **you do**.
 
 For the principles behind these entries, read [safety](safety.md). For the terms, see the [glossary](glossary.md). Three
-third-party tools recur below, none of which `harness` has code for: ralph-tui, a loop runner that works through a list
-of tasks unattended and, set up by its [tool preset](ralph.md#the-ralph-tui-preset), starts `harness worker` for each
-one; Beads, a task tracker kept in the clone, and its `bd` CLI ([tasks](tasks.md#trackers)); and mise, a task runner.
+third-party tools recur below, none of which the binary has code for, each described by a builtin [plugin](plugins.md):
+ralph-tui, a loop runner that works through a list of tasks unattended and, set up by its
+[plugin](ralph.md#the-ralph-tui-plugin), starts `harness worker` for each one; Beads, a task tracker kept in the clone,
+and its `bd` CLI ([tasks](tasks.md#trackers)); and mise, a task runner.
 
 Commands are named `harness <command>` on this page. Run them through the repository's wrapper,
 `./harnessw <command>`, from the root of a checkout; with a global install, `harness <command>` is equivalent
@@ -69,8 +70,10 @@ Commands are named `harness <command>` on this page. Run them through the reposi
   `ask`.
 - **Why.** A rule matches the command the agent starts, not what that command runs. A task runner, a script, a
   `Makefile` target or a wrapper runs code the agent can read and often edit.
-- **What `harness` does.** Denies mise `:::` chaining, such as `mise run test ::: deploy`, in the built-in base, so one
-  allowed task cannot carry an unlisted one ([policy](policy.md#the-built-in-base)). Replays a worker's checks from the
+- **What `harness` does.** Renders the `mise` plugin's floor rule, which denies `:::` chaining, such as
+  `mise run test ::: deploy`, so one allowed task cannot carry an unlisted one ([policy](policy.md#the-floor)). The
+  rule holds where the plugin is in use, and `doctor` reports a repository where mise is detected and the plugin is
+  not. Replays a worker's checks from the
   base commit, so a worker cannot change the checks it is measured by.
 - **What you do.** Allow tasks whose effects stay in the clone. Give a wrapper of a guarded command the same decision
   as the command it wraps. Treat "edit files" plus "run the test runner" as "run any code", and keep production
@@ -97,8 +100,8 @@ Commands are named `harness <command>` on this page. Run them through the reposi
 - **Why.** Codex rules match command prefixes. Raw strings, native rule strings other than a pure `Bash(<prefix> *)`,
   and flag-last spellings such as `git push origin main --force` have no Codex form.
 - **What `harness` does.** Renders every prefix list for both agents, renders the other forms for Claude Code only,
-  and lists them in the `policy` block. The built-in `:::` deny and the flag-last force-push denies are
-  Claude-only for this reason.
+  and lists them in the `policy` block. The `mise` plugin's `:::` floor rule and the git plugin's flag-last
+  force-push floor rules are Claude-only for this reason.
 - **What you do.** Express every deny that both agents must enforce as a prefix list. Where only a mid-command form
   exists, deny the whole tool to Codex workers.
 
@@ -106,7 +109,7 @@ Commands are named `harness <command>` on this page. Run them through the reposi
 
 - **Symptom.** An unattended coordinating agent, or a Claude Code session in auto mode, stops and waits.
 - **Why.** A matching `ask` prompts even in auto mode, and no `allow` from any settings scope overrides it.
-- **What `harness` does.** Renders `ask` as written. The built-in base contains no `ask`; `scaffold` seeds one, on
+- **What `harness` does.** Renders `ask` as written. No plugin's floor rule is an `ask`; `scaffold` seeds one, on
   `harness lifecycle run deliver`.
 - **What you do.** Keep `ask` for what must have a person every time: a merge past branch protection, delivery when
   you want to see it. Before an unattended run, list the `ask` entries it reaches and accept each stop or move the
@@ -118,7 +121,8 @@ Commands are named `harness <command>` on this page. Run them through the reposi
   default branch under `allow: [[git]]`.
 - **Why.** An `allow` decides before the classifier is consulted. The classifier judges only commands no entry
   matches.
-- **What `harness` does.** Denies force push to the default branch in the built-in base; nothing else.
+- **What `harness` does.** Renders the git plugin's floor rule against a force push to the default branch; nothing
+  else.
 - **What you do.** Write each `allow` as narrow as its reason. Rely on branch protection, not on the agent, for what
   reaches the default branch.
 
@@ -183,8 +187,8 @@ Commands are named `harness <command>` on this page. Run them through the reposi
 - **Why.** Actions run as child processes of `harness`, outside the agent's per-command checks. The permission to
   start the event is the permission for every action declared on it.
 - **What `harness` does.** Seeds `[harness, lifecycle, run, deliver]` under `ask` in a scaffolded policy, in every
-  rendered spelling; denies `[harness, lifecycle]` to workers in the built-in base and refuses `lifecycle run` inside a
-  worker in the binary; refuses unsafe delivery with its guards ([lifecycle](lifecycle.md#built-in-guards)).
+  rendered spelling; renders `[harness, lifecycle]` into every worker's denies itself and refuses `lifecycle run`
+  inside a worker in the binary; refuses unsafe delivery with its guards ([lifecycle](lifecycle.md#built-in-guards)).
 - **What you do.** Read `harness lifecycle list` before allowing the command, and review every change to the actions
   like code ([safety](safety.md#lifecycle-actions-are-code)).
 
@@ -307,7 +311,7 @@ Commands are named `harness <command>` on this page. Run them through the reposi
 
 - **Symptom.** Tasks show as assigned on a teammate's machine to an actor such as `ana:invoice-rounding:5c1e`.
 - **Why.** A `.beads/` database synchronised across machines carries assignments and comments with it, including those
-  the `beads` preset's actions write.
+  the `beads` plugin's actions write.
 - **What `harness` does.** Nothing: it neither creates nor configures a Beads database, and its actions use whatever
   database `bd` finds ([tasks](tasks.md#trackers)).
 - **What you do.** Run agents against a local database, or accept that claims are shared. Deny the tracker's remote
@@ -401,8 +405,8 @@ Commands are named `harness <command>` on this page. Run them through the reposi
 ### A squash merge hides landed work
 
 - **Symptom.** A merged branch is never reported as landed; `harness worktree remove` fires no `landed` for it.
-- **Why.** Landed work is detected by patch (`git cherry`). A squash of several commits produces one patch that
-  matches none of them.
+- **Why.** Landed work is detected by patch equivalence, through the version-control plugin's landed operation
+  (`git cherry` with the git plugin). A squash of several commits produces one patch that matches none of them.
 - **What `harness` does.** Treats only matching patches as landed, so it never deletes unmerged work.
 - **What you do.** Delete such branches and their worktrees by hand once you have checked the merge.
 
@@ -531,18 +535,18 @@ Commands are named `harness <command>` on this page. Run them through the reposi
   ([render](render.md#drift-check)).
 - **What you do.** Edit the source (`policy.yaml`, `hooks.yaml`, `config.yaml`) and render.
 
-### A newer release's preset entries reach a repository only when the preset is applied again
+### A newer release's plugin entries reach a repository only when the plugin is applied again
 
-- **Symptom.** After an upgrade, the new release's `node` preset holds an entry the repository lacks, such as a lane
+- **Symptom.** After an upgrade, the new release's `node` plugin holds an entry the repository lacks, such as a lane
   or a post-edit hook, and `harness render` does not add it.
-- **Why.** A preset's entries are written into the repository's files when someone applies it, and from then on they
-  are the repository's own; nothing records which presets were applied. What `harness` renders comes only from the
-  repository's files and the pinned release, so a preset never changes a repository's entries by itself
+- **Why.** A plugin's entries are written into the repository's files when someone applies it, and from then on they
+  are the repository's own; `plugins:` records that the plugin is in use, not which entries it wrote. Its renders
+  follow the pinned release on every render, but its entries never change by themselves
   ([ADR 0013](../adrs/0013-organization-content.md)).
-- **What `harness` does.** `harness preset apply <name>` adds only the entries the repository lacks: every entry it
-  holds stays as it is, an item it names that differs from the preset's is kept and reported, and a second apply adds
-  nothing ([presets](presets.md#how-apply-works)).
-- **What you do.** After an upgrade, run `./harnessw preset apply node --dry-run` to see what the preset would add,
+- **What `harness` does.** `harness plugin apply <name>` adds only the entries the repository lacks: every entry it
+  holds stays as it is, an item it names that differs from the plugin's is kept and reported, and a second apply adds
+  nothing ([plugins](plugins.md#how-apply-works)).
+- **What you do.** After an upgrade, run `./harnessw plugin apply node --dry-run` to see what the plugin would add,
   then apply it, review the diff and commit. Applying again also adds back an entry the repository deleted on
   purpose, so read the diff before confirming. Across many repositories, use [fleet](fleet.md).
 
@@ -666,7 +670,7 @@ Commands are named `harness <command>` on this page. Run them through the reposi
 
 - **Symptom.** An agent started in `services/billing/` does not apply the repository's rules, or applies a nested
   `.claude/` directory's instead.
-- **Why.** `harness` operates at the git root: one profile, one policy, one hooks file per repository. Whether an
+- **Why.** `harness` operates at the repository root: one profile, one policy, one hooks file per repository. Whether an
   agent started in a subdirectory reads the root's settings is the agent's behaviour.
 - **What `harness` does.** Renders at the root and leaves nested `.claude/` directories alone
   ([compatibility](compatibility.md#monorepos)).

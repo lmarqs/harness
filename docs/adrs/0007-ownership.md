@@ -31,8 +31,9 @@ output is detected.
 ## Decision
 
 1. Ownership is recorded, not inferred. A manifest committed in the repository lists every owned path, managed block and
-   owned key set, each with a content hash; every seeded file, created once by adoption and owned by the repository from
-   then on, with the hash it was created with; and the schema version ([0005](0005-schema-compatibility.md)).
+   owned key set, each with a content hash and, for a plugin's renders, the plugin's name
+   ([0022](0022-tool-integration.md)); every seeded file, created once by adoption and owned by the repository from then
+   on, with the hash it was created with; and the schema version ([0005](0005-schema-compatibility.md)).
 2. Generated artefacts are committed.
 3. Inside files people write, owned text sits between begin and end markers that carry a block id, written in the file
    format's comment syntax. Text outside the markers is never written. Owned whole files that allow comments carry a
@@ -59,7 +60,9 @@ output is detected.
 - **1.** Removal and the drift check both need the exact set of things the tool wrote. Markers cannot mark keys inside
   JSON, and without a recorded hash a hand-edited output cannot be told from a generated one. Recording seeded files
   separately lets undo remove them while the drift check leaves them alone, since the repository edits them. Their
-  creation hash tells an untouched skeleton from content someone wrote.
+  creation hash tells an untouched skeleton from content someone wrote. Recording the plugin that renders each owned
+  item lets a repository stop using one plugin and lose exactly that plugin's renders, while the entries the plugin
+  applied stay the repository's own ([0013](0013-organization-content.md)).
 - **2.** Harnesses read configuration from the clone when a session starts, so it has to exist in every clone, including
   clones without the binary ([0010](0010-dependence-on-the-binary.md)). Committed artefacts also show every permission
   change to reviewers as a diff.

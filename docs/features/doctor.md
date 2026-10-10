@@ -45,11 +45,13 @@ global install, `harness <command>` is equivalent.
 | Rendered files | the same drift `harness render --check` reports |
 | Manifest | owned paths missing, modified by hand, or present but no longer produced |
 | Links | skill links that do not resolve |
-| Programs | a program that a declared command names and that is not on `PATH`: `commands`, lane `select`/`full`, `bootstrap`, validator and post-edit commands, and lifecycle `run` actions. The check needs no knowledge of the program ([ADR 0022](../adrs/0022-tool-integration.md)) |
+| Plugins | `plugins:` declares a fetched [plugin](plugins.md#fetched-plugins) that is not in the user's cache on this machine, so hooks and worker attempts that need it exit 3 until `./harnessw plugin fetch` runs; or a cached fetched plugin whose content does not match its `sha256` |
+| Programs | a program that a plugin in use, a declared command or an action names and that is not on `PATH`: the version-control plugin's program (`git` for the git plugin), each agent's harness, `commands`, lane `select`/`full`, `bootstrap`, validator and post-edit commands, and lifecycle `run` actions. The check needs no knowledge of the program ([ADR 0022](../adrs/0022-tool-integration.md)) |
+| Detected programs | a program a plugin's detect rule finds in the repository while the plugin is not in `plugins:`, so the program runs without the plugin's entries and [floor rules](plugins.md#the-floor). Example: `mise.toml` is present and the mise plugin is not in use |
 | Globs | `verify.app_paths`, `verify.lint_paths`, lane `required_when`, validator `when` and post-edit `paths` that match no tracked file |
-| Default branch | `origin/HEAD` cannot be resolved, so the built-in force-push deny cannot name the branch |
-| Tool versions | `git`, and `claude` (Claude Code) and `codex` for the agents the profile declares, at a version outside the supported range. No other program's version is checked |
-| Policy | an entry that would weaken a built-in invariant, such as an `allow` for a force push to the default branch; `render` leaves it out and renders the invariant, and the entry stays a finding until it is removed ([ADR 0011](../adrs/0011-safety-invariants.md)) |
+| Default branch | the version-control plugin reports no default branch (with the git plugin: `origin/HEAD` cannot be resolved), so the git plugin's floor rule against a force push to the default branch cannot name the branch |
+| Program versions | a program whose version, read with its plugin's version command, is outside the range the plugin's checks declare. Every plugin in use is checked the same way: `git` by the git plugin, Claude Code by the claude plugin, Codex by the codex plugin, mise by the mise plugin. A program no plugin in use describes has no version check |
+| Policy | an entry that would weaken a [floor rule](plugins.md#the-floor) of a plugin in use, such as an `allow` for a force push to the default branch, a floor rule of the git plugin; `render` leaves it out and renders the floor rule, and the entry stays a finding until it is removed ([ADR 0011](../adrs/0011-safety-invariants.md)) |
 | Context | invalid `context` declarations, a skill an entry names that does not exist under `.agents/skills/`, and a file an entry names that does not exist ([context](context.md#sources-and-trust)) |
 | Adoption to-do | the open items described in [scaffold](scaffold.md#the-to-do) |
 
@@ -65,19 +67,22 @@ Notes never change the exit code:
 | Context over budget | the always-on context one role receives, `static` entries included, exceeds `context.budget`; the note lists every entry with its line count |
 | Event an agent lacks | a declared hook or context trigger has no event in one of the repository's agents, such as `attention` in Codex, or Codex's `notify` key already runs a program of the repository's own, so nothing was rendered for that agent |
 | Automatic agent actions | an `agent` action is declared with `auto: true`; each automatic run starts an agent, which costs tokens and does not give the same result twice |
+| Plugin not verified by the release | `plugins:` declares a fetched plugin: the project's tests do not stand behind it, and its author owns its floor rules and supported versions: `plugin acme-deploy 1.2.0 is not verified by the release` |
 | Another `harness` on `PATH` | the `harness` command on `PATH` is a different program with the same name; `./harnessw` is unaffected, only the global command is shadowed ([compatibility](compatibility.md#harnessio)) |
 
 ### Landed branches
 
 `doctor` looks at every branch `harness` recorded in `.work/`: managed worktrees and fleet deliveries. A branch whose
-patches are all on the default branch (compared with `git cherry`, so a cherry-pick, a rebase or a squash of the same
-patches counts) has **landed**. `doctor` lists each landed branch with the command that fires the `landed` event for it,
-such as `harness worktree remove <name>`. It fires nothing itself: `landed` fires from `harness worktree remove` and
+patches are all on the default branch (compared by patch equivalence through the version-control plugin's landed
+operation, `git cherry` with the git plugin, so a cherry-pick, a rebase or a squash of the same patches counts) has
+**landed**. `doctor` lists each landed branch with the command that fires the `landed` event for it, such as
+`harness worktree remove <name>`. It fires nothing itself: `landed` fires from `harness worktree remove` and
 `harness lifecycle run landed` ([lifecycle](lifecycle.md#events)). A landed branch is not a finding and does not change
 the exit code. A CI clone has no recorded branches, so `doctor` in CI lists none.
 
-Supported versions of git and the agents come from a compatibility table built into each release. When an agent
-release changes a file format, `doctor` is where it shows first.
+Supported versions come from each plugin's checks. A builtin plugin's range is the one the release tested
+([compatibility](compatibility.md#supported-program-versions)); a fetched plugin's range is what its author declares.
+When an agent release changes a file format, `doctor` is where it shows first.
 
 ### JSON output
 
@@ -98,15 +103,16 @@ harness doctor [--json]
 | Exit code | Meaning |
 | --- | --- |
 | 0 | No findings (notes may be present) |
-| 1 | `doctor` itself could not run, for example outside a git repository |
+| 1 | `doctor` itself could not run, for example outside a repository the version-control plugin recognises |
 | 2 | At least one finding or open to-do item |
 
 Files read: the three repository files, `.harness/wrapper.yaml`, the manifest and every owned path (`harnessw`
-included), native agent files, `PATH` and the versions of `git`, `claude` and `codex`, the git index and branches,
-`.agents/skills/`, the files `context` entries name, the session records and `lifecycle.jsonl`
-under the state directory (default `.work/`), `$HARNESS_HOME` (default `$XDG_CACHE_HOME/harness`, or
-`~/.cache/harness`), and online the pinned release's signed checksum file.
-Files written: nothing in the clone; only the update-check and signature-check results under `$HARNESS_HOME`.
+included), native agent files, `PATH`, the version command of every plugin in use, the files each plugin's detect rule
+names, the plugin cache, the index and branches as the version-control plugin reports them, `.agents/skills/`, the files
+`context` entries name, the session records and `lifecycle.jsonl` under the state directory (default `.work/`),
+`$HARNESS_HOME` (default `$XDG_CACHE_HOME/harness`, or `~/.cache/harness`), and online the pinned release's signed
+checksum file. Files written: nothing in the clone; only the update-check and signature-check results under
+`$HARNESS_HOME`.
 
 ## Examples
 
@@ -114,6 +120,8 @@ Files written: nothing in the clone; only the update-check and signature-check r
 $ ./harnessw doctor
 programs
   .harness/hooks.yaml lifecycle.deliver open-pr names gh, which is not on PATH: install it, or remove the action
+plugins
+  mise detected; its plugin and its floor are not in use; run ./harnessw plugin apply mise
 globs
   verify.lanes.e2e.required_when: src/**/routes/** matches no tracked file
 context
@@ -161,13 +169,16 @@ CI step, after `render --check`:
 | --- | --- | --- |
 | a glob matches no tracked file | a typo, or the directory moved | correct the glob in `.harness/config.yaml` |
 | a program is not on `PATH` | a command, lane, validator or action names a program this machine lacks, or a typo in its name | install the program, or fix the command in `.harness/config.yaml` or `.harness/hooks.yaml` |
-| `origin/HEAD` is not set | the clone was created without it | `git remote set-head origin --auto` |
-| tool version unsupported | the installed `git`, `claude` or `codex` is older or newer than the pinned release supports | install a supported version, or move the pin with `./harnessw wrapper` |
+| no default branch | with the git plugin, `origin/HEAD` is not set because the clone was created without it | `git remote set-head origin --auto` |
+| program version unsupported | the installed program, such as `git`, `claude` or `codex`, is older or newer than its plugin supports | install a supported version, or, for a builtin plugin, move the pin with `./harnessw wrapper` to a release whose plugin supports it |
+| a program is detected without its plugin | a detect rule matches, such as `mise.toml` for mise, and the plugin is not in `plugins:` | `./harnessw plugin apply mise` and review the diff |
+| a fetched plugin is not cached | nothing on this machine has fetched it since `plugins:` declared it, or the cache was cleared | `./harnessw plugin fetch` |
+| a fetched plugin's hash does not match | the content at its `source` differs from the `sha256` the profile pins | do not use it; check the source and the pinned hash with the plugin's author |
 | `wrapper.yaml` invalid | hand-edited, or a `version` without matching `checksums` | re-pin with `./harnessw wrapper --version <tag>` and review the diff |
 | `harnessw` differs from the template | the script was edited by hand | `./harnessw render` |
 | `harnessw` is not executable | the executable bit was lost | `chmod +x harnessw`, then `git add --chmod=+x harnessw` |
 | pinned release not cached | nothing has run `./harnessw` on this machine since the pin changed | `./harnessw version` |
 | pin pending | the repository was scaffolded with `--offline` | with network access, `harness wrapper --version <the pinned tag>`, then commit `.harness/wrapper.yaml` and the manifest |
 | release signature does not verify, or checksums differ | `wrapper.yaml` was edited by hand, or the release was replaced after it was pinned | do not run the release; re-pin with `./harnessw wrapper --version <tag>` and review the diff, and report a replaced release to the project |
-| a policy entry weakens an invariant | `.harness/policy.yaml` allows or asks for something a built-in invariant denies; `render` already leaves it out | delete the entry from the policy |
+| a policy entry weakens a floor rule | `.harness/policy.yaml` allows or asks for something a floor rule of a plugin in use denies; `render` already leaves it out | delete the entry from the policy |
 | a context skill does not exist | the entry names a skill that was never installed under `.agents/skills/`, or was renamed | install it with the team's skills tool, such as `npx skills add acme/agent-skills`, and commit `.agents/skills/`; or fix the name in `context` |

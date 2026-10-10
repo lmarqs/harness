@@ -36,7 +36,7 @@ Commands are named `harness <command>` on this page. Run them through the reposi
 | You want | Declare |
 | --- | --- |
 | The edited file formatted or linted right after every agent edit | a `post_edit` entry |
-| The stack's usual format-on-edit or lint-on-edit hook | `./harnessw preset apply <name>`, which adds it as a `post_edit` entry ([presets](presets.md)) |
+| The stack's usual format-on-edit or lint-on-edit hook | `./harnessw plugin apply <name>` with the stack's plugin, which adds it as a `post_edit` entry ([plugins](plugins.md#stack-plugins)) |
 | A repository check run when certain files are edited | `validators` |
 | A session in a [managed worktree](worktrees.md) to know its task | `session_start.context: true` |
 | A message when an agent waits for you: a permission prompt, a question, idle input | an `attention` action |
@@ -52,16 +52,17 @@ Agent hooks, notification hooks and hook-delivered standing context need `module
 
 ### Rendering
 
-For each declared agent, `render` writes two kinds of hook entries:
+For each declared agent, `render` writes two kinds of hook entries through the agent's
+[harness plugin](plugins.md#the-harness-contract), whose renders own the agent's native hook configuration:
 
 | Entry | Events | Command |
 | --- | --- | --- |
 | harness entries | the events in the table below that the declarations need | the wrapper command below |
 | raw entries | the event named in `raw`, with its matcher | the `run` command as written |
 
-The events `harness` renders, per agent:
+Each harness plugin maps the neutral events onto its agent's native events. The shipped plugins map them so:
 
-| Purpose | Claude Code 2.1.x | Codex CLI 0.16x | Rendered when |
+| Purpose | claude plugin (Claude Code 2.1.x) | codex plugin (Codex CLI 0.16x) | Rendered when |
 | --- | --- | --- | --- |
 | Session context, `always` context | `SessionStart` | `SessionStart` | always, with `modules.hooks` |
 | `post_edit`, validators, `when.paths` context | `PostToolUse` (matcher `Edit\|Write\|MultiEdit`, and `Read` when `when.paths` entries exist) | `PostToolUse` (every tool, filtered by `harness hook`) | `post_edit`, validators or `when.paths` entries exist |
@@ -69,10 +70,12 @@ The events `harness` renders, per agent:
 | `attention` | `Notification` | none | `attention` actions exist |
 | `turn_end` | `Stop` | the `notify` key in `.codex/config.toml` | `turn_end` actions exist |
 
-An agent without an event gets nothing rendered for it, and [`harness doctor`](doctor.md) reports the gap as a note:
-Codex has no event for an agent waiting for a person, so `attention` never reaches a Codex session.
+A neutral event the harness plugin maps to no native event gets nothing rendered for that agent, and
+[`harness doctor`](doctor.md) reports the gap as a note: Codex has no event for an agent waiting for a person, so the
+codex plugin maps none to `attention`, and `attention` never reaches a Codex session.
 
-The harness entry's command is:
+The harness entry's command starts the wrapper from the root of the checkout, which the version-control plugin's root
+operation finds. With the git plugin it is:
 
 ```sh
 "$(git rev-parse --show-toplevel)/harnessw" --no-download hook <event>
@@ -119,14 +122,17 @@ edit.
 
 ### Payload normalisation
 
-Claude Code and Codex send different JSON payloads on stdin. `harness hook` reads either and reduces it to one event:
+Each agent sends its own JSON payload on stdin. The binary knows no agent's payload: the agent's harness plugin maps
+it, by JSON paths, onto one neutral event, and `harness hook` acts on that event. The plugin also says which tools are
+edits and which are reads, and which native events are `attention`, `turn_end` and each standing-context trigger
+([the harness contract](plugins.md#the-harness-contract)).
 
-| Normalised field | Taken from |
+| Normalised field | Mapped by the harness plugin from |
 | --- | --- |
 | event | the payload's hook event name: session start, post tool use, prompt submission, waiting for a person (`attention`) or turn end (`turn_end`) |
 | session | the payload's session id, for the once-per-session [context](context.md) entries |
-| tool | the tool name. Edit tools: Claude Code's `Edit`, `Write`, `MultiEdit`; Codex's `apply_patch`. Read tool: Claude Code's `Read` |
-| read and edited files | the tool input's file path, made relative to the checkout; for a patch tool that names no single file, the checkout's uncommitted changes against `HEAD` |
+| tool | the tool name. Edit tools: `Edit`, `Write`, `MultiEdit` in the claude plugin; `apply_patch` in the codex plugin. Read tool: `Read` in the claude plugin |
+| read and edited files | the tool input's file path, made relative to the checkout; for a patch tool that names no single file, the checkout's uncommitted changes against its head commit, as the version-control plugin lists them |
 | prompt | the person's message, on prompt submission |
 | message | the agent's own notification text, on `attention` and `turn_end` |
 | checkout | the payload's working directory, resolved to the primary checkout or the managed worktree it is in |
@@ -184,7 +190,7 @@ turn_end:         # the agent finished a turn
     run: notify-send "agent finished in $HARNESS_WORKTREE"
 ```
 
-| Event | Claude Code | Codex |
+| Event | claude plugin (Claude Code) | codex plugin (Codex) |
 | --- | --- | --- |
 | `attention` | `Notification`: a permission prompt, or input idle | not rendered: Codex has no such event |
 | `turn_end` | `Stop` | `notify`, called after each turn |
@@ -194,7 +200,7 @@ Values reach the actions as environment variables, with the same rules as [lifec
 | Variable | Value |
 | --- | --- |
 | `HARNESS_EVENT` | `attention` or `turn_end` |
-| `HARNESS_AGENT` | the agent's name, `claude` or `codex` |
+| `HARNESS_AGENT` | the agent's name, such as `claude` or `codex` |
 | `HARNESS_MESSAGE` | the agent's own notification text, when it sends one. Untrusted: the agent writes it, and its input reaches it |
 | `HARNESS_REPO` | absolute path of the primary checkout |
 | `HARNESS_WORKTREE` | absolute path of the checkout the agent works in |
@@ -210,9 +216,9 @@ Values reach the actions as environment variables, with the same rules as [lifec
   `blocked` and the events of scope `run`.
 - Like every agent hook, they do nothing on a machine where the pinned release is not cached
   ([the missing-binary guard](#the-missing-binary-guard)).
-- The `notify` key of `.codex/config.toml` holds one program. `harness` owns it only when it rendered it. When the file
-  already sets `notify` to a program of its own, `render` keeps that program, renders no `turn_end` for Codex, and
-  `harness doctor` notes it.
+- The `notify` key of `.codex/config.toml` holds one program. The codex plugin's renders own it only when they wrote it.
+  When the file already sets `notify` to a program of its own, `render` keeps that program, renders no `turn_end` for
+  Codex, and `harness doctor` notes it.
 
 ### Lifecycle actions
 
@@ -252,8 +258,8 @@ In short:
 - `auto: true` runs the action at the event's automatic trigger point; every action also runs when a person or a
   coordinating agent fires the event with `harness lifecycle run <event>`;
 - lifecycle actions never run inside the agent `harness worker` or an `agent` action starts;
-- every action is one the repository declares in this file: the seeded files hold none, and a [tool preset](presets.md)
-  such as `beads` writes its actions here only when a person applies it.
+- every action is one the repository declares in this file: the seeded files hold none, and a
+  [plugin](plugins.md#entries) such as `beads` writes its actions here, as entries, only when a person applies it.
 
 An action runs with the permissions of the process that fired it, outside any agent's permission checks. Review
 lifecycle actions like code; see [safety](safety.md).
@@ -296,7 +302,9 @@ An event an agent does not support is not rendered for that agent.
 | 0 | Nothing to do, every command passed, or the event is `attention` or `turn_end`, whatever their actions returned |
 | 2 | A post-edit command or validator failed; its output is on stderr for the agent |
 
-When the pinned binary is not cached, the wrapper exits 0 and `harness hook` does not run. `HARNESS_NO_CONTEXT=1`
+When the pinned binary is not cached, the wrapper exits 0 and `harness hook` does not run. When a
+[fetched plugin](plugins.md#fetched-plugins) the hook needs is not cached, `harness hook` prints one line on stderr
+naming `./harnessw plugin fetch` and exits 0; hooks never fetch. `HARNESS_NO_CONTEXT=1`
 turns off standing-context injection only ([context](context.md#environment)).
 
 Files read: stdin (the payload), `.harness/wrapper.yaml` (by the wrapper), `.harness/hooks.yaml`,
@@ -402,8 +410,9 @@ raw: {}
 
 ## Coexistence
 
-Hook entries `harness` did not render (for example one a plugin or a person added to `.claude/settings.json`) are
-preserved. `settings.local.json` hooks are never touched. See [compatibility](compatibility.md).
+Hook entries `harness` did not render (for example one a Claude Code plugin or a person added to
+`.claude/settings.json`) are preserved. `settings.local.json` hooks are never touched. See
+[compatibility](compatibility.md).
 
 After [`harness remove --eject`](remove.md#eject), raw entries stay in the native files as the repository's own hooks
 and keep working. The harness entries, including notifications and standing-context injection, are removed, and listed

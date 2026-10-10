@@ -15,10 +15,12 @@ reached through an interface the rules declare.
 - The binary's rules are about ownership, rendering, events, guards, attempts, proof and removal
   ([0007](0007-ownership.md), [0011](0011-safety-invariants.md), [0015](0015-development-lifecycle.md)). None of
   them is about any program in particular.
-- What the rules need from outside is small and regular. From version control: the base revision, a file at a
-  revision, whether the tree is clean, what changed since a revision, a reset, a commit, a worktree. From a harness:
-  the files it owns and their content, the arguments that start it unattended, the arguments that would bypass its
-  checks, and the fields of its hook payload. From any other program: run this and tell me the exit status.
+- What the rules need from outside is small and regular. From version control: the base revision, a file at a revision,
+  whether the tree is clean, whether a path is tracked, what changed since a revision, the common ancestor of two
+  revisions, whether a branch's changes already reached another, a reset, a commit, a branch, an update from the remote,
+  a worktree. From a harness: the files it owns and their content, the arguments that start it unattended, the arguments
+  that would bypass its checks, and the fields of its hook payload. From any other program: run this and tell me the
+  exit status.
 - A program's answers arrive as a string, lines, bytes or an exit status (Context of
   [0022](0022-tool-integration.md)). Writing in a program's format and reading structured output can be described as
   data; parsing a program's free text in general cannot.

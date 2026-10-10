@@ -36,8 +36,8 @@ no hook fails for lack of a runtime.
 3. Work owned by a third-party tool with its own runtime stays with that tool: the binary neither reimplements it nor
    runs the tool of its own accord, and never installs a runtime. The tool runs when a person runs it or when a plugin,
    a command or an action the repository uses names it (point 4, [0022](0022-tool-integration.md)).
-4. Commands the repository declares, programs its plugins name and harnesses the tool starts belong to the repository and
-   the user; they are not dependencies of the binary. The health check reports each one that is missing.
+4. Commands the repository declares, programs its plugins name and harnesses the tool starts belong to the repository
+   and the user; they are not dependencies of the binary. The health check reports each one that is missing.
 5. The wrapper's first-run requirements, a POSIX shell, a downloader and a checksum tool, are requirements of the
    wrapper ([0017](0017-engine-version.md)), not of the binary.
 

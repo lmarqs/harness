@@ -22,14 +22,15 @@ page use `harness`.
 ## Synopsis
 
 ```text
-harness scaffold [--adopt] [--import <scope>[,<scope>]...] [--preset <go|node|terraform|python|none>] [--offline]
-                 [--yes] [--dry-run]
+harness scaffold [--adopt] [--import <scope>[,<scope>]...] [--plugin <name>]... [--no-detect] [--vcs <name>]
+                 [--offline] [--yes] [--dry-run]
 harness remove [--module <name>]... [--force] [--dry-run]
 harness remove --eject [--force] [--dry-run]
 harness render [--check] [--dry-run]
-harness preset list
-harness preset show <name>
-harness preset apply <name>... [--yes] [--dry-run]
+harness plugin list
+harness plugin show <name>
+harness plugin apply <name>... [--yes] [--dry-run]
+harness plugin fetch
 harness wrapper [--version <tag> | --latest] [--yes] [--dry-run]
 harness doctor [--json]
 harness explain <topic>
@@ -72,9 +73,9 @@ release, downloading it through the same verified path only when the command was
 | Flag | Applies to | Meaning |
 | --- | --- | --- |
 | `-C <dir>` | every command | Run as if started in `<dir>` |
-| `--json` | commands whose output is data: `doctor`, `context show`, `lifecycle list`, `preset apply` (entries added and items kept), `fleet`, `scaffold` (the to-do), `version` | Print one JSON document instead of text |
-| `--dry-run` | commands that change files or run actions: `scaffold`, `remove`, `render`, `wrapper`, `preset apply`, `worktree`, `lifecycle run`, `fleet` (passed to each repository's command; no branch, commit or delivery) | Print what would change or run; change nothing |
-| `--yes` | commands that ask for confirmation: `scaffold`, `remove` (with or without `--eject`), `render` and `wrapper` (schema migration), `preset apply`, `fleet` (passed through) | Answer yes; required without a terminal |
+| `--json` | commands whose output is data: `doctor`, `context show`, `lifecycle list`, `plugin apply` (entries added and items kept), `fleet`, `scaffold` (the to-do), `version` | Print one JSON document instead of text |
+| `--dry-run` | commands that change files or run actions: `scaffold`, `remove`, `render`, `wrapper`, `plugin apply`, `worktree`, `lifecycle run`, `fleet` (passed to each repository's command; no branch, commit or delivery) | Print what would change or run; change nothing |
+| `--yes` | commands that ask for confirmation: `scaffold`, `remove` (with or without `--eject`), `render` and `wrapper` (schema migration), `plugin apply`, `fleet` (passed through) | Answer yes; required without a terminal |
 | `--verbose` | every command | Print each command `harness` runs and why |
 
 Commands never prompt without a terminal: where confirmation is needed and `--yes` is absent, they stop with exit 3.
@@ -87,9 +88,9 @@ by `harness worker` or by an `agent` action, the binary refuses it whatever the 
 | Code | Meaning | Typical causes |
 | --- | --- | --- |
 | 0 | Success | |
-| 1 | Error | invalid flags or files, a failed external command, a failed download or checksum check, a release whose signed checksum file does not verify |
+| 1 | Error | invalid flags or files, a failed external command, a failed download or checksum check, a release whose signed checksum file does not verify; a fetched [plugin](plugins.md#fetched-plugins) whose content does not match its `sha256`, or that uses a builtin plugin's name; `vcs:` or `agents.<name>.plugin` naming a plugin that `plugins:` does not list |
 | 2 | A check or an action failed | `render --check` drift; a `doctor` finding; `verify` lint, validator, build or lane failure; `verify --check` without a valid [receipt](verify.md); a failing post-edit hook; the adoption equivalence check; a failing action in `lifecycle run` or `fleet --deliver` |
-| 3 | Blocked: a person must act | a confirmation without a terminal; a prerequisite a person must install, such as a program a declared command or action names, `curl` or `wget` for the wrapper, or the agent binary `harness worker` starts; uncommitted changes where committed state is required; a locked worktree; a repository schema newer than the running release; a lifecycle guard refusing an event, such as `completed` with scope `task` without a valid [receipt](verify.md); an owned path edited by hand before `remove`; a `.harness/` directory another tool owns, at `scaffold` |
+| 3 | Blocked: a person must act | a confirmation without a terminal; a prerequisite a person must install, such as a program a plugin, a declared command or an action names, the version-control plugin's program, `curl` or `wget` for the wrapper, or the agent binary `harness worker` starts; a fetched plugin missing from the cache at `render` or a worker attempt (`./harnessw plugin fetch` caches it); uncommitted changes where committed state is required; a locked worktree; a repository schema newer than the running release; a lifecycle guard refusing an event, such as `completed` with scope `task` without a valid [receipt](verify.md); an owned path edited by hand before `remove`; a `.harness/` directory another tool owns, at `scaffold` |
 
 A command run without a terminal that exits 3 fires the [`blocked`](lifecycle.md#events) lifecycle event for the
 scope of its work, with the refusal in `HARNESS_REASON`, so a declared notification reaches the person who must act.
@@ -123,23 +124,24 @@ No command fires an event of scope `run`. When a loop runner skips a task or sto
 
 | Command | Does | Exit codes | Page |
 | --- | --- | --- | --- |
-| `scaffold` | Set up a repository, `harnessw` and `wrapper.yaml` included, applying the presets of the detected stacks (`--preset` names one, or `none`), pinning the running release after verifying its signed checksum file, or, with `--offline`, writing a [pending pin](wrapper.md#a-pending-pin) and making no network request; `--adopt` imports an existing setup, `--import` chooses the scopes | 0 set up; 1 error, already scaffolded, the release's checksum file unreachable without `--offline`, or not verified; 2 the equivalence check lost a rule; 3 confirmation needed, or a `.harness/` directory another tool owns | [scaffold](scaffold.md) |
+| `scaffold` | Set up a repository, `harnessw` and `wrapper.yaml` included, applying the [plugins](plugins.md) whose detect rule matches (`--plugin` adds one, `--no-detect` applies only those named, `--vcs` names the version-control plugin, `git` by default), pinning the running release after verifying its signed checksum file, or, with `--offline`, writing a [pending pin](wrapper.md#a-pending-pin) and making no network request; `--adopt` imports an existing setup, `--import` chooses the scopes | 0 set up; 1 error, already scaffolded, the release's checksum file unreachable without `--offline`, or not verified; 2 the equivalence check lost a rule; 3 confirmation needed, or a `.harness/` directory another tool owns | [scaffold](scaffold.md) |
 | `remove` | Undo the adoption, or one module, using the manifest; `--eject` stops managing and keeps the result | 0 removed or ejected; 1 error; 3 an owned path changed by hand, or confirmation needed | [remove](remove.md) |
 | `render` | Render native files, `harnessw`, the skill, blocks; `--check` for drift | 0 rendered or no drift; 1 invalid file; 2 drift; 3 newer schema, or migration needs confirmation | [render](render.md) |
-| `preset list` | List the running release's built-in presets: the stack presets (`go`, `node`, `terraform`, `python`), with the stack each fits and whether its marker files, such as `go.mod` for `go`, are present, and the tool presets (`ralph-tui`, `beads`) | 0 listed | [presets](presets.md#harness-preset-list) |
-| `preset show <name>` | Print every entry a preset holds, as YAML grouped by file, and every template it holds, with the path it is written to | 0 printed; 1 unknown preset | [presets](presets.md#harness-preset-show) |
-| `preset apply <name>...` | Add the presets' entries the repository's `.harness/config.yaml`, `.harness/policy.yaml` and `.harness/hooks.yaml` lack, and write each template whose file is absent, after showing the diff and confirming; keep and report every item the repository already names and every template file that exists; then render | 0 applied, or nothing to add; 1 unknown preset, not scaffolded, invalid repository file; 3 confirmation needed without a terminal, or newer schema | [presets](presets.md#harness-preset-apply) |
+| `plugin list` | List the running release's builtin plugins (`git`, `claude`, `codex`, `ralph-tui`, `beads`, `mise`, `skills`, and the stack plugins `go`, `node`, `terraform`, `python`), each with the contract it fills, if any, whether its detect rule matches this repository and whether `plugins:` lists it, and the fetched plugins the profile declares | 0 listed | [plugins](plugins.md#harness-plugin-list) |
+| `plugin show <name>` | Print every part a plugin holds: entries as YAML grouped by file, templates with the path each is written to, renders, operations, floor rules and checks | 0 printed; 1 unknown plugin | [plugins](plugins.md#harness-plugin-show) |
+| `plugin apply <name>...` | Add each plugin to `plugins:`, add the entries the repository's `.harness/config.yaml`, `.harness/policy.yaml` and `.harness/hooks.yaml` lack, and write each template whose file is absent, after showing the diff and confirming; keep and report every item the repository already names and every template file that exists; then render | 0 applied, or nothing to add; 1 unknown plugin, not scaffolded, invalid repository file, a fetched plugin's hash mismatch or builtin name; 3 confirmation needed without a terminal, or newer schema | [plugins](plugins.md#harness-plugin-apply) |
+| `plugin fetch` | Download every fetched plugin `plugins:` declares that is not cached, verify it against its `sha256` and cache it in the user's cache directory; the only command besides `plugin apply` that fetches a plugin | 0 cached; 1 a hash mismatch, a builtin name, no network | [plugins](plugins.md#harness-plugin-fetch) |
 | `wrapper` | Pin a release in `.harness/wrapper.yaml` (`--version`, `--latest`): verify the release's signed checksum file with the running release's embedded keys, then download and verify this platform's binary, then have the new release render the repository: `harnessw`, `wrapper.yaml`, every file it renders differently, and a migration of older-schema files after confirmation. Without a flag, print the pin, whether it is cached and the newest release, and write nothing | 0 pinned, a pending pin completed, already pinned, or status printed; 1 unknown tag, no network, a signature that does not verify, missing checksums, checksum mismatch, invalid `wrapper.yaml`; 3 a migration needs confirmation without a terminal; nothing is written unless every step passes | [wrapper](wrapper.md#harness-wrapper) |
-| `doctor` | Read-only health checks, the wrapper, the release signature and the cached release, the adoption to-do, notes, landed branches with the command that fires `landed` | 0 no findings; 1 cannot run; 2 a finding or an open to-do item | [doctor](doctor.md) |
-| `explain <topic>` | Built-in documentation. Topics: `layout`, `profile`, `policy`, `hooks`, `lifecycle`, `context`, `adoption`, `verify`, `worker`, `invariants`, `blocks`, `presets`, `wrapper`, `safety`, `pitfalls` | 0 printed; 1 unknown topic | [explain](explain.md) |
+| `doctor` | Read-only health checks: the version check of every plugin in use, a program a plugin's detect rule finds while the plugin is not in use, fetched plugins (not verified by the release, or missing from the cache), the wrapper, the release signature and the cached release, the adoption to-do, notes, landed branches with the command that fires `landed` | 0 no findings; 1 cannot run; 2 a finding or an open to-do item | [doctor](doctor.md) |
+| `explain <topic>` | Built-in documentation. Topics: `layout`, `profile`, `policy`, `hooks`, `lifecycle`, `context`, `adoption`, `verify`, `worker`, `invariants`, `blocks`, `plugins`, `wrapper`, `safety`, `pitfalls` | 0 printed; 1 unknown topic | [explain](explain.md) |
 | `context show` | Preview the standing context a session would receive for a role, paths and a prompt, and why | 0 printed; 1 invalid `context` declarations, a missing skill or file, an unknown role | [context](context.md#harness-context-show) |
-| `hook <event>` | Handle an agent event read from stdin (Claude Code or Codex payload): run post-edit commands and validators, add session context, inject standing context, run `attention` and `turn_end` hooks. Called by rendered hook entries through `harnessw --no-download`, with the entry's event as argument | 0 nothing to do or passed; 2 a post-edit command or validator failed | [hooks](hooks.md) |
+| `hook <event>` | Handle an agent event read from stdin, a payload the agent's [harness plugin](plugins.md#the-harness-contract) maps to a neutral event: run post-edit commands and validators, add session context, inject standing context, run `attention` and `turn_end` hooks. Called by rendered hook entries through `harnessw --no-download`, with the entry's event as argument | 0 nothing to do, passed, or skipped because a fetched plugin it needs is not cached (one stderr line names `./harnessw plugin fetch`); 2 a post-edit command or validator failed | [hooks](hooks.md) |
 | `lifecycle list` | List events, their actions, `auto` flags and scopes | 0 listed; 1 invalid hooks file | [lifecycle](lifecycle.md) |
 | `lifecycle run` | Run an event's actions by hand, or as a coordinating agent, `blocked` included; never asks for confirmation | 0 every action passed, or none declared; 1 error; 2 an action failed; 3 a guard refused (`completed` with scope `task` without a valid receipt while the verify module is on, `deliver` refused, any event inside a worker) | [lifecycle](lifecycle.md) |
 | `worktree create` | Create a managed task worktree; `--task` records a free-form task id that every event fired in it carries; fires `start` | 0 created; 1 error | [worktrees](worktrees.md) |
 | `worktree remove` | Remove a clean managed worktree, keeping its branch; fires `landed` | 0 removed; 1 error; 3 uncommitted changes or a locked worktree | [worktrees](worktrees.md) |
 | `verify` | Run checks and write the receipt; `--check` validates it; fires `verified` | 0 passed, or valid receipt; 1 lane rule not met, files changed during verification; 2 a check failed, or no valid receipt | [verify](verify.md) |
-| `worker <agent>` | Run one agent, `claude` or `codex`, headless for one task in the current checkout under the worker contract: refuse permission-bypass flags, restore and then compare the tool-owned files, replay the lanes of the receipt the agent wrote; with `--commit`, commit a verified attempt; remove every occurrence of the `--withhold` text from a failed attempt's output. The first argument it does not recognise and every argument after it, or everything after `--`, goes to the agent; `HARNESS_TASK` reaches the agent when the checkout is a managed worktree created with `--task`. The command a loop runner's configuration names as its agent command; fires `completed` and `deliver` after a verified attempt in a worktree bound to a task | 0 verified; 1 refused (uncommitted changes, a bypass flag) or a failed attempt; 3 the agent binary is missing | [ralph](ralph.md#the-worker-contract) |
+| `worker <agent>` | Run one agent the profile declares, such as `claude` or `codex`, headless for one task in the current checkout under the worker contract: resolve the version-control plugin and the agent's harness plugin from the release or the cache, refuse the bypass arguments the harness plugin marks as floor, restore and then compare the tool-owned files, replay the lanes of the receipt the agent wrote; with `--commit`, commit a verified attempt; remove every occurrence of the `--withhold` text from a failed attempt's output. The first argument it does not recognise and every argument after it, or everything after `--`, goes to the agent; `HARNESS_TASK` reaches the agent when the checkout is a managed worktree created with `--task`. The command a loop runner's configuration names as its agent command; fires `completed` and `deliver` after a verified attempt in a worktree bound to a task | 0 verified; 1 refused (uncommitted changes, a bypass argument) or a failed attempt; 3 the agent binary or the version-control plugin's program is missing, or a plugin the attempt needs is not cached | [ralph](ralph.md#the-worker-contract) |
 | `fleet` | Run a command across a list of repositories; `--deliver` commits and delivers. `fleet wrapper --version <tag> --deliver` moves every repository's pin | the highest per-repository code; a refused dirty repository counts as 3, a failing `deliver` action as 2, a `deliver` guard refusal as 3 | [fleet](fleet.md) |
 | `version` | Print the version and the supported schema; `--check-update` checks for a newer release now | 0 printed; 1 error | [installation](installation.md#update-notice) |
 
@@ -151,23 +153,24 @@ Paths under `.work/` are shown at their defaults; the profile moves them with `s
 | Command | Reads | Writes |
 | --- | --- | --- |
 | `harnessw` | `.harness/wrapper.yaml`, `$HARNESS_HOME/versions/<version>/harness` | `$HARNESS_HOME/versions/<version>/harness`, on a verified download only |
-| `scaffold` | marker files, git metadata, native agent files, `CLAUDE.md`, `.gitignore`; with `--import`, the permission and hook files of each chosen scope; the running release's checksum file and its signature | the three repository files, `.harness/wrapper.yaml`, `.agents/memory/` skeleton, each template of the presets it applies, everything `render` writes (`harnessw` included) |
+| `scaffold` | the files each builtin plugin's detect rule names, what the version-control plugin reports, native agent files, `CLAUDE.md`, `.gitignore`; with `--import`, the permission and hook files of each chosen scope; the running release's checksum file and its signature | the three repository files, `.harness/wrapper.yaml`, `.agents/memory/` skeleton, `plugins:` and `vcs:` in the profile, each template of the plugins it applies, everything `render` writes (`harnessw` included) |
 | `remove` | the manifest and the paths it lists; `.harness/policy.yaml` and `.harness/hooks.yaml` for the provenance of imported entries | deletes owned paths, `harnessw`, every file the manifest records in `.harness/`, and `.harness/` once nothing else is in it (an unrecorded file is listed and left); on undo, the memory skeleton files still matching their seeded hash; rewrites native files and block hosts (undo restores imported settings; `--eject` keeps rendered content and strips markers); `.harness/config.yaml` with `--module` |
-| `render` | the three repository files, `.harness/wrapper.yaml`, the manifest, native files, block hosts, `.agents/memory/`, the files and skills of `static` context entries, the git index | native files (owned keys and entries), `harnessw`, `.codex/rules/harness.rules`, `.agents/skills/harness/`, skill links, blocks in `AGENTS.md`, `README.md`, `CLAUDE.md`, `.gitignore`, the manifest; the `.agents/memory/` skeleton, once, the first time it renders with the memory module on |
-| `preset list` | the marker files of each stack | nothing |
-| `preset show` | nothing | nothing |
-| `preset apply` | the three repository files, the path of each template, everything `render` reads | the three repository files (additions only), each template whose file is absent, then everything `render` writes |
+| `render` | the three repository files, `.harness/wrapper.yaml`, the manifest, native files, block hosts, `.agents/memory/`, the files and skills of `static` context entries, the plugins `plugins:` lists, from the release or the cache, what the version-control plugin reports | `harnessw`, `.agents/skills/harness/`, the renders of every plugin in use (owned keys and entries in native files, `.codex/rules/harness.rules`, skill links, the `CLAUDE.md` import, `.gitignore` blocks), blocks in `AGENTS.md` and `README.md`, the manifest; the `.agents/memory/` skeleton, once, the first time it renders with the memory module on |
+| `plugin list` | the files each plugin's detect rule names, the profile's `plugins:` | nothing |
+| `plugin show` | the plugin, from the release or the cache | nothing |
+| `plugin apply` | the three repository files, the path of each template, everything `render` reads | the three repository files (additions only, `plugins:` included), each template whose file is absent, the user's plugin cache for a fetched plugin, then everything `render` writes |
+| `plugin fetch` | the profile's `plugins:`, the user's plugin cache, each fetched plugin's `source` | the user's plugin cache |
 | `wrapper` | `.harness/wrapper.yaml`, the manifest, the target release's checksum file and its signature, everything `render` reads | `$HARNESS_HOME/versions/<version>/harness`, then `.harness/wrapper.yaml`, the manifest and every file `render` writes that the new release renders differently (`harnessw` included), and migrated repository files, only after every verification passed |
-| `doctor` | everything `render` reads, `harnessw`, `$HARNESS_HOME`, `PATH`, the versions of `git`, `claude` and `codex`, `.agents/skills/`, `.work/` session records, `.work/lifecycle.jsonl`, online the pinned release's signed checksum file | `$HARNESS_HOME` (update and signature checks) only |
+| `doctor` | everything `render` reads, `harnessw`, `$HARNESS_HOME`, `PATH`, the version command of every plugin in use, the files each plugin's detect rule names, the user's plugin cache, `.agents/skills/`, `.work/` session records, `.work/lifecycle.jsonl`, online the pinned release's signed checksum file | `$HARNESS_HOME` (update and signature checks) only |
 | `explain` | nothing | nothing |
 | `context show` | the profile, the skills and files `context` entries name; with `--role worker`, those files at `HEAD` | nothing |
 | `hook` | stdin, the profile, the hooks file, the skills and files `context` entries name, `.work/session.json`, `.work/hook-checks.json`, `.work/context/<session-id>.json` | `.work/hook-checks.json`, `.work/context/<session-id>.json`; whatever declared commands and `attention` or `turn_end` actions write |
 | `lifecycle list` | the hooks file | nothing |
-| `lifecycle run` | the hooks file, `.work/session.json`, `.work/verified.json`, git | `.work/lifecycle.jsonl`; whatever the actions write |
-| `worktree create` | the profile, git | `.work/worktrees/<name>/`, branch `work/<name>`, its `.work/session.json` (base, task, actor); `.work/lifecycle.jsonl` |
-| `worktree remove` | git, the hooks file | removes `.work/worktrees/<name>/`; `.work/lifecycle.jsonl`; whatever `landed` actions write; for a `landed` `agent` action, a recorded worktree `.work/worktrees/landed-<name>-<n>` on branch `work/landed-<name>-<n>` |
-| `verify` | the profile, git, changed files, `.work/session.json` | `.work/verified.json`; `.work/lifecycle.jsonl` |
-| `worker` | git; the profile, policy, hooks file and the files and skills `context` entries name, from the base commit; `.work/session.json`; the receipt `.work/verified.json` the agent wrote | the tool-owned files it restores from the base commit; in the checkout's `.work/`, the record that `bootstrap` ran and, after a failed attempt, `last-worker-output` and `last-attempt.patch`, and the checkout returned to its base; with `--commit`, a commit on the checkout's branch; `.work/lifecycle.jsonl`; whatever the agent and the `completed` and `deliver` actions write |
+| `lifecycle run` | the hooks file, `.work/session.json`, `.work/verified.json`, the version-control plugin | `.work/lifecycle.jsonl`; whatever the actions write |
+| `worktree create` | the profile, the version-control plugin | `.work/worktrees/<name>/`, branch `work/<name>`, its `.work/session.json` (base, task, actor); `.work/lifecycle.jsonl` |
+| `worktree remove` | the version-control plugin, the hooks file | removes `.work/worktrees/<name>/`; `.work/lifecycle.jsonl`; whatever `landed` actions write; for a `landed` `agent` action, a recorded worktree `.work/worktrees/landed-<name>-<n>` on branch `work/landed-<name>-<n>` |
+| `verify` | the profile, the version-control plugin, changed files, `.work/session.json` | `.work/verified.json`; `.work/lifecycle.jsonl` |
+| `worker` | the version-control plugin and the agent's harness plugin, from the release or the cache; the profile, policy, hooks file and the files and skills `context` entries name, from the base commit; `.work/session.json`; the receipt `.work/verified.json` the agent wrote | the tool-owned files it restores from the base commit; in the checkout's `.work/`, the record that `bootstrap` ran and, after a failed attempt, `last-worker-output` and `last-attempt.patch`, and the checkout returned to its base; with `--commit`, a commit on the checkout's branch; `.work/lifecycle.jsonl`; whatever the agent and the `completed` and `deliver` actions write |
 | `fleet` | the fleet file | whatever the command writes; with `--deliver`, a local branch, a commit and a receipt per changed repository, `.work/lifecycle.jsonl`, and whatever its `deliver` actions write |
 | `version` | `$HARNESS_HOME` | `$HARNESS_HOME` with `--check-update` |
 
@@ -177,7 +180,7 @@ Variables that configure `harnessw` and `harness`:
 
 | Variable | Read by | Effect |
 | --- | --- | --- |
-| `HARNESS_HOME` | `harnessw`, `harness` | The per-user cache directory, default `$XDG_CACHE_HOME/harness`, or `~/.cache/harness` when `XDG_CACHE_HOME` is unset: downloaded releases at `versions/<version>/harness`, the update-check result and the signature-check result of `doctor` |
+| `HARNESS_HOME` | `harnessw`, `harness` | The per-user cache directory, default `$XDG_CACHE_HOME/harness`, or `~/.cache/harness` when `XDG_CACHE_HOME` is unset: downloaded releases at `versions/<version>/harness`, fetched plugins under their hash, the update-check result and the signature-check result of `doctor` |
 | `HARNESS_BINARY` | `harnessw` | A path to a `harness` binary to exec instead of the pinned release; no download and no checksum check, so it bypasses the pin, and `harness doctor` notes it ([wrapper](wrapper.md#air-gapped-machines)) |
 | `HARNESS_NO_UPDATE_CHECK=1` | `harness` | Disable the daily release check on explicit commands and in `doctor` |
 | `HARNESS_NO_CONTEXT=1` | `harness hook` | Inject no [standing context](context.md) in this environment and every process started from it; `static` entries in `AGENTS.md` stay |
@@ -197,7 +200,7 @@ command string. A variable that does not apply is unset; see [lifecycle](lifecyc
 | `HARNESS_WORKTREE_NAME` | the managed worktree's name |
 | `HARNESS_BRANCH` | the work's branch |
 | `HARNESS_BASE` | the work's base commit |
-| `HARNESS_DEFAULT_BRANCH` | the branch `origin/HEAD` points to |
+| `HARNESS_DEFAULT_BRANCH` | the default branch the version-control plugin reports |
 | `HARNESS_TASK` | the task id the managed worktree was created with (`worktree create --task`) |
 | `HARNESS_ACTOR` | the managed worktree's actor, `<user>:<worktree>:<random>` |
 | `HARNESS_RECEIPT` | the path of the receipt JSON |
@@ -213,7 +216,7 @@ variables:
 | Variable | Value |
 | --- | --- |
 | `HARNESS_EVENT` | `attention` (the agent waits for a person) or `turn_end` (the agent finished a turn) |
-| `HARNESS_AGENT` | the agent: `claude` or `codex` |
+| `HARNESS_AGENT` | the agent's name as the profile declares it, such as `claude` or `codex` |
 | `HARNESS_MESSAGE` | the agent's own notification text; untrusted |
 | `HARNESS_REPO` | the primary checkout's root |
 | `HARNESS_WORKTREE` | the path of the checkout the agent works in |
@@ -223,5 +226,5 @@ variables:
 
 | Path | Holds |
 | --- | --- |
-| `$HARNESS_HOME` (default `$XDG_CACHE_HOME/harness`, or `~/.cache/harness`) | `versions/<version>/harness` for each downloaded release, the update-check and signature-check results |
+| `$HARNESS_HOME` (default `$XDG_CACHE_HOME/harness`, or `~/.cache/harness`) | `versions/<version>/harness` for each downloaded release, each fetched plugin under its hash, the update-check and signature-check results |
 | `~/.config/harness/fleet.yaml` | the default fleet file |

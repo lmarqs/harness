@@ -115,4 +115,4 @@ Add the pagination rule we just agreed on to .agents/memory/backend-patterns.md,
 | Symptom | Cause | Fix |
 | --- | --- | --- |
 | `render --check` fails on the `memory` block | A memory file was added or renamed without rendering | `harness render` |
-| Agents never read memory | `AGENTS.md` is not loaded by the agent | Check the `import` block in `CLAUDE.md`; Codex reads the root `AGENTS.md` |
+| Agents never read memory | `AGENTS.md` is not loaded by the agent | Check how the agent's harness plugin points it at `AGENTS.md`: the claude plugin renders an `import` block in `CLAUDE.md`; Codex reads the root `AGENTS.md` directly |

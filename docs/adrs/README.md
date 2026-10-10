@@ -150,7 +150,7 @@ Must be maintained:
 | [0002](0002-division-of-work.md) | Which work does the binary do? | The binary does only deterministic work |
 | [0003](0003-implementation-language.md) | In what language, and as what artefact? | The tool is one executable written in Go |
 | [0004](0004-runtime-dependencies.md) | What does the binary need at runtime? | The binary needs only the operating system at runtime |
-| [0005](0005-schema-compatibility.md) | How do repository files and binaries stay compatible? | Every repository file carries a schema version the binary enforces |
+| [0005](0005-schema-compatibility.md) | How do repository files, plugins and binaries stay compatible? | Every repository file and plugin carries a schema version the binary enforces |
 | [0006](0006-repository-contract.md) | What does a repository hold? | A repository holds declarative data, never engine code |
 | [0007](0007-ownership.md) | How is ownership of generated content known? | A committed manifest records everything the tool owns |
 | [0008](0008-native-configuration.md) | How does the tool write files that agents and people share? | The tool owns only named keys inside shared native files |
@@ -166,6 +166,6 @@ Must be maintained:
 | [0018](0018-conventions.md) | What remains when the tool is gone? | Conventions the tool establishes are written to outlive it |
 | [0019](0019-action-kinds.md) | What can a declared action do? | Declared actions are commands, HTTP requests or headless agent runs |
 | [0020](0020-standing-context.md) | How does known guidance reach an agent? | Guidance enters agent context through declared deterministic triggers |
-| [0021](0021-release-trust.md) | How is a new release trusted? | Only an already trusted binary admits a new release |
+| [0021](0021-release-trust.md) | How is downloaded content trusted? | Only an already trusted binary admits downloaded content |
 | [0022](0022-tool-integration.md) | How does the binary reach external programs? | Every program the binary uses is described by a plugin |
 | [0023](0023-core-and-contracts.md) | How is the binary's code divided? | The binary is a core behind contracts it declares |

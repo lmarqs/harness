@@ -31,7 +31,7 @@ stays the team's.
 - The loop runner merges its per-user configuration into every run it starts, and anyone can start it without the tool
   ([0022](0022-tool-integration.md)).
 - Some starting files are another tool's configuration, such as a loop runner's agent entries that name the tool's
-  worker command; a preset can supply one as a template ([0013](0013-organization-content.md)).
+  worker command; a plugin can supply one as a template ([0013](0013-organization-content.md)).
 - The tool's own releases must be fetched from somewhere; some networks reach only an internal mirror.
 
 ## Decision
@@ -43,15 +43,17 @@ stays the team's.
    binary records, such as the task a working copy is bound to, stays in the clone.
 3. Delivery is everything that leaves the clone: a push, a pull request, a CI trigger, a notification. It happens only
    through actions that the repository declares on lifecycle events ([0015](0015-development-lifecycle.md),
-   [0019](0019-action-kinds.md)). No action runs that the repository's files do not declare: a preset that holds
-   actions writes them into those files only when a person applies it.
+   [0019](0019-action-kinds.md)). No action runs that the repository's files do not declare: a plugin that holds actions
+   writes them into those files only when a person applies it.
 4. The binary never reconfigures state it did not create:
    - an existing third-party database is left as found;
-   - the configuration and files of a tool the binary does not integrate are never read, and are written only as a
-     template a person applies, where the file is absent ([0013](0013-organization-content.md),
-     [0022](0022-tool-integration.md));
-   - git configuration such as the hooks path is not changed; the binary sets overrides only on its own git
-     invocations;
+   - another program's configuration and files are written only as a template a person applies, where the file is
+     absent, or as content a plugin renders and the manifest records ([0007](0007-ownership.md),
+     [0013](0013-organization-content.md), [0022](0022-tool-integration.md)), and are never read beyond the files a
+     plugin renders into and the rules adoption imports ([0008](0008-native-configuration.md),
+     [0016](0016-permission-adoption.md));
+   - the version control system's configuration, such as git's hooks path, is not changed; a setting an operation needs
+     is passed on that operation's own command, never written into the configuration ([0022](0022-tool-integration.md));
    - content outside managed blocks is never written ([0007](0007-ownership.md));
    - directories that belong to an agent are never scanned or cleaned.
 5. A tool configuration directory the binary did not create is foreign. Adoption refuses to write into it and names
@@ -72,11 +74,12 @@ stays the team's.
   work. A tracker is updated by actions the repository declares, under the declarer's choice (point 3,
   [0022](0022-tool-integration.md)).
 - **4.** Each item protects something a person relies on. A database left as found keeps its synchronisation; an
-  unchanged hooks path keeps the task database's own git hooks; content outside blocks is the repository's prose; agent
-  directories hold the agent's working state. Another tool's files belong to that tool and to the people who run it, and
-  the binary has no code that reads them ([0022](0022-tool-integration.md)): a root loop-runner configuration left alone
-  keeps direct use working, and a task runner's file keeps its pins and comments. A template is written only where its
-  file is absent, so it never replaces a file someone already keeps, and from then on the file is the repository's own
+  unchanged hooks path keeps the task database's own git hooks, and a setting passed on one command changes nothing any
+  other program sees; content outside blocks is the repository's prose; agent directories hold the agent's working
+  state. Another tool's files belong to that tool and to the people who run it, and the binary has no code that reads
+  them ([0022](0022-tool-integration.md)): a root loop-runner configuration left alone keeps direct use working, and a
+  task runner's file keeps its pins and comments. A template is written only where its file is absent, so it never
+  replaces a file someone already keeps, and from then on the file is the repository's own
   ([0013](0013-organization-content.md)). The trade: a setting in another tool's configuration that works against the
   tool, such as a bypass, surfaces only when the binary meets it in its own input ([0011](0011-safety-invariants.md)).
 - **5.** A directory of the same name that another product reads holds files the binary does not own. Writing into it
@@ -136,7 +139,7 @@ Must be maintained:
 - A fixture with a foreign tool configuration directory refuses adoption, names the conflict and writes nothing.
 - A fixture whose root and per-user loop-runner configurations set a bypass runs every command of the tool without
   opening either file, and both are byte-identical afterwards.
-- Applying a preset whose template names a loop-runner configuration that already exists leaves that file byte-identical
+- Applying a plugin whose template names a loop-runner configuration that already exists leaves that file byte-identical
   and reports it as kept.
 - Review rejects any hosting-platform client library, platform API endpoint or platform credential in the binary.
 - A fixture with no declared lifecycle actions, taken through every lifecycle event, leaves its remote unchanged.

@@ -12,10 +12,12 @@ teammate and agent expects, and no copy is removed while it holds uncommitted wo
 
 ## Overview
 
-`harness worktree` creates and removes managed task worktrees: separate git checkouts, nested inside the clone in the
-configured worktrees directory (`worktrees.dir`, default `.work/worktrees`), each on its own branch, with a recorded
-starting commit, an actor identity and an optional task id. The task id binds the worktree to one task of the team's
-tracker: every event fired there carries the id in `HARNESS_TASK` and the actor in `HARNESS_ACTOR` ([tasks](tasks.md)).
+`harness worktree` creates and removes managed task worktrees: separate checkouts of the clone, added and removed
+through the [version-control plugin](plugins.md#the-version-control-contract) (with the git plugin, git worktrees),
+nested inside the clone in the configured worktrees directory (`worktrees.dir`, default `.work/worktrees`), each on its
+own branch, with a recorded starting commit, an actor identity and an optional task id. The task id binds the worktree
+to one task of the team's tracker: every event fired there carries the id in `HARNESS_TASK` and the actor in
+`HARNESS_ACTOR` ([tasks](tasks.md)).
 
 Commands are named `harness <command>` on this page. The examples run them through the repository's wrapper,
 `./harnessw <command>`, from the root of a checkout; with a global install, `harness <command>` is equivalent
@@ -37,9 +39,10 @@ You do not need them for ordinary work: `harness verify` also works in the prima
 `harness worktree create <name>`:
 
 1. Validates the name: letters, digits, `.`, `-` and `_`, starting with a letter or digit.
-2. Resolves `--base` (default `HEAD`) to a commit.
-3. Runs `git worktree add -b work/<name> <worktrees.dir>/<name> <base>`, with `core.hooksPath=/dev/null` for that
-   command only, so no git hook from the primary checkout runs during creation.
+2. Resolves `--base` (default: the checkout's head commit) to a commit through the version-control plugin.
+3. Adds the worktree through the version-control plugin, at `<worktrees.dir>/<name>` on a new branch `work/<name>`
+   from the base. The git plugin runs `git worktree add -b work/<name> <worktrees.dir>/<name> <base>`, with
+   `core.hooksPath=/dev/null` for that command only, so no git hook from the primary checkout runs during creation.
 4. Writes the session to `session.json` in the new worktree's state directory (`<worktree>/<state.dir>/session.json`,
    by default `.work/worktrees/<name>/.work/session.json`): the base commit, the task id given with `--task`, and a
    unique actor (`<user>:<name>:<random>`).
@@ -49,7 +52,7 @@ You do not need them for ordinary work: `harness verify` also works in the prima
    runner prepares is ready to build too.
 7. Fires the `start` [lifecycle event](lifecycle.md) in the new worktree: with scope `task` and `HARNESS_TASK` set to
    the id when `--task` is given, with scope `change` otherwise. Actions declared with `auto: true` run, such as the
-   tracker actions of the [Beads preset](tasks.md#the-beads-preset).
+   tracker actions of the [Beads plugin](tasks.md#the-beads-plugin).
 
 The worktree starts from committed code only. Uncommitted changes, credentials, dependency directories and personal
 configuration are not copied.
@@ -71,13 +74,14 @@ trust, configuration and Beads database.
 
 - refuses a name that is not a managed worktree in the configured worktrees directory;
 - refuses a worktree with uncommitted changes;
-- never forces removal, so git also refuses a locked worktree;
+- removes the worktree through the version-control plugin and never forces it, so a locked worktree is refused (with
+  the git plugin, by git);
 - keeps the branch `work/<name>`;
-- fires the `landed` [lifecycle event](lifecycle.md) when every patch of `work/<name>` is on the default branch
-  (compared with `git cherry`), after its own checks pass and before it removes the worktree, so automatic `landed`
-  actions run in it. Each recorded branch fires `landed` at most once successfully; a failed `landed` is re-fired
-  manually with `harness lifecycle run landed`. A failing action is reported on stderr and recorded in the
-  [lifecycle log](lifecycle.md#the-lifecycle-log). The exit code is the removal's.
+- fires the `landed` [lifecycle event](lifecycle.md) when the version-control plugin finds every patch of `work/<name>`
+  on the default branch (the git plugin compares with `git cherry`), after its own checks pass and before it removes the
+  worktree, so automatic `landed` actions run in it. Each recorded branch fires `landed` at most once successfully; a
+  failed `landed` is re-fired manually with `harness lifecycle run landed`. A failing action is reported on stderr and
+  recorded in the [lifecycle log](lifecycle.md#the-lifecycle-log). The exit code is the removal's.
 
 `harness doctor` lists managed worktrees whose branch has landed and prints the `harness worktree remove` command for
 each; it never fires `landed` itself.
@@ -88,8 +92,9 @@ in the worktree are disposable.
 
 ### The convention in `AGENTS.md` and `.gitignore`
 
-`harness render` writes the worktree convention, with the configured directory, into a managed block of `AGENTS.md`,
-and the directory into a managed block of `.gitignore`. With the defaults:
+`harness render` writes the worktree convention, with the configured directory, into a managed block of `AGENTS.md`.
+The version control system's ignore file is the version-control plugin's: the git plugin renders the directory into a
+managed block of `.gitignore`. With the defaults:
 
 ```markdown
 <!-- harness:worktrees -->
@@ -121,7 +126,7 @@ harness worktree remove <name>
 
 | Flag | Default | Meaning |
 | --- | --- | --- |
-| `--base <ref>` | `HEAD` | Commit the worktree starts from; recorded as the session base |
+| `--base <ref>` | the checkout's head commit | Commit the worktree starts from, resolved by the version-control plugin; recorded as the session base |
 | `--task <id>` | none | Bind the worktree to one task. The id is free-form and recorded in the session; events fired in the worktree default to scope `task` and carry it in `HARNESS_TASK` ([tasks](tasks.md#task-binding)) |
 | `--no-bootstrap` | off | Skip the profile's `bootstrap` commands |
 
@@ -129,7 +134,7 @@ harness worktree remove <name>
 | --- | --- |
 | 0 | Created or removed |
 | 1 | Error: invalid name, unknown ref, existing branch, bootstrap failed |
-| 3 | `remove` refused: uncommitted changes, or a locked worktree |
+| 3 | `remove` refused: uncommitted changes, or a locked worktree; or the version-control plugin's program is not installed |
 
 When bootstrap fails, the worktree already exists: fix the cause and run the bootstrap commands in it, or remove it.
 
@@ -147,7 +152,7 @@ Paths below show the defaults, `state.dir: .work` and `worktrees.dir: .work/work
 
 ### A Node API, with Beads
 
-With the [Beads preset](tasks.md#the-beads-preset) applied:
+With the [Beads plugin](tasks.md#the-beads-plugin) applied:
 
 ```sh
 ./harnessw worktree create fix-invoice-rounding --task acme-api-7f2   # start: the bead is marked in progress
@@ -186,7 +191,7 @@ git branch -d work/fix-invoice-rounding           # when the branch is merged
 - Do remove worktrees you are done with; the worktrees directory grows with dependencies.
 - Do keep `worktrees.dir` inside the repository, so worktrees stay nested.
 - Don't remove someone else's worktree in a shared clone.
-- Don't move worktrees by hand; git records their paths.
+- Don't move worktrees by hand; the version control system records their paths, as git does.
 
 ## Troubleshooting
 

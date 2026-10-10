@@ -14,9 +14,10 @@ it follows a fixed rule or needs judgement.
 
 ## Overview
 
-`harness` divides a repository into layers and directories and records which files it owns. It writes down the
-conventions it sets up and adapts to repositories in different starting states, and an adopted repository keeps working
-without it.
+`harness` divides a repository into layers and directories and records which files it owns. The binary keeps the
+process, and [plugins](plugins.md) describe the programs it works with, git and the agent harnesses included. It writes
+down the conventions it sets up and adapts to repositories in different starting states, and an adopted repository
+keeps working without it.
 
 Examples on this page run commands as `./harnessw <command>`, through the repository's [wrapper](wrapper.md); with a
 global install, `harness <command>` is equivalent.
@@ -27,7 +28,7 @@ global install, `harness <command>` is equivalent.
 one agent for one task under the worker contract ([`harness worker`](ralph.md)), firing lifecycle events, removing what
 it wrote. Agents and people do the work that needs judgement: writing `AGENTS.md` prose, deciding which commands belong
 in the [policy](policy.md)'s `allow` list, reviewing the [to-do](scaffold.md#the-to-do) an adoption leaves, choosing the
-loop runner and tracker the team uses and wiring them into the repository's files (a [tool preset](presets.md) writes a
+loop runner and tracker the team uses and wiring them into the repository's files (a [plugin](plugins.md) writes a
 starting point), arranging an unattended run's commits for review, writing memory and skills. For example, rendering the
 policy into `.claude/settings.json` has one right answer; deciding whether agents may run `terraform plan` without
 asking does not. The embedded [harness skill](skills.md#the-harness-skill) and [`harness explain`](explain.md) teach
@@ -48,12 +49,13 @@ carry [managed blocks](render.md#managed-blocks): `AGENTS.md`, `CLAUDE.md`, `REA
 
 | Layer | Who writes it | Committed | In an adopted repository |
 | --- | --- | --- | --- |
-| Engine | nobody in the repository; the release the pin names, downloaded per machine by `harnessw` | no | the `harness` binary in `$HARNESS_HOME` (default `$XDG_CACHE_HOME/harness`, or `~/.cache/harness` when `XDG_CACHE_HOME` is unset) |
+| Engine | nobody in the repository; the release the pin names, downloaded per machine by `harnessw` | no | the `harness` binary in `$HARNESS_HOME` (default `$XDG_CACHE_HOME/harness`, or `~/.cache/harness` when `XDG_CACHE_HOME` is unset), with its [builtin plugins](plugins.md#builtin-plugins) embedded |
+| Fetched plugins | nobody in the repository; each plugin's author. `harness plugin fetch` downloads, per machine, the version and sha256 the profile pins | no | `$HARNESS_HOME/plugins/<sha256>.tar.gz` ([fetched plugins](plugins.md#fetched-plugins)) |
 | Pin | `scaffold` and [`harness wrapper`](wrapper.md#harness-wrapper), after the running binary verifies the release's signed checksum file (`scaffold --offline` writes a [pending pin](wrapper.md#a-pending-pin)); owned, never edited by hand | yes | `.harness/wrapper.yaml` |
-| Profile, policy, hooks | people and agents; seeded once by `scaffold`, which applies the [presets](presets.md#the-presets) of the detected stacks; `harness preset apply` adds a preset's entries on request | yes | `.harness/config.yaml`, `.harness/policy.yaml`, `.harness/hooks.yaml` |
-| Templates | written once by `harness preset apply` or `scaffold` when the file is absent, then people and agents; never re-rendered or removed by `harness` | yes | a preset's whole files, such as `.ralph-tui/config.toml` from the `ralph-tui` [tool preset](presets.md) |
-| Rendered | `harness render`; never edited by hand | yes | `harnessw`, owned keys of `.claude/settings.json` and `.codex/config.toml`, owned entries of `.codex/hooks.json`, `.codex/rules/harness.rules`, `.agents/skills/harness/SKILL.md`, skill links, `.harness/manifest.json` |
-| Managed blocks | `harness render`, only between markers | yes | blocks inside `AGENTS.md`, `README.md`, `CLAUDE.md`, `.gitignore` |
+| Profile, policy, hooks | people and agents; seeded once by `scaffold`, which lists the detected [plugins](plugins.md#builtin-plugins) under `plugins:` and applies their [entries](plugins.md#entries); `harness plugin apply` adds a plugin and its entries on request | yes | `.harness/config.yaml`, `.harness/policy.yaml`, `.harness/hooks.yaml` |
+| Templates | written once by `harness plugin apply` or `scaffold` when the file is absent, then people and agents; never re-rendered or removed by `harness` | yes | a plugin's whole [templates](plugins.md#templates), such as `.ralph-tui/config.toml` from the `ralph-tui` plugin |
+| Rendered | `harness render`, from the repository files, the binary's own templates and the [renders](plugins.md#renders) of the plugins in use; never edited by hand | yes | `harnessw`, `.agents/skills/harness/SKILL.md` and `.harness/manifest.json`, which the binary renders itself; owned keys of `.claude/settings.json` and `.codex/config.toml`, owned entries of `.codex/hooks.json`, `.codex/rules/harness.rules` and skill links, which the claude and codex plugins render |
+| Managed blocks | `harness render`, only between markers | yes | blocks inside `AGENTS.md` and `README.md`, which the binary renders; inside `CLAUDE.md` and `.gitignore`, which the claude, git and ralph-tui plugins render |
 | Knowledge | people and agents; never generated | yes | `AGENTS.md` prose, `.agents/memory/*`, domain skills, `.agents/commands/`, `.agents/REVIEW.md` |
 | State | `harness` | never (gitignored) | the [state paths](#state) (default under `.work/`) |
 
@@ -65,19 +67,21 @@ The three repository files are the contract between a repository and the tool. E
 | `.harness/policy.yaml` (the policy) | What may agents run without asking, only after asking, or never? | [policy](policy.md) |
 | `.harness/hooks.yaml` (the hooks file) | What runs when an agent starts a session, edits a file, waits for a person or ends a turn, and what runs at each lifecycle event? | [hooks](hooks.md), [lifecycle](lifecycle.md) |
 
-What `harness` renders and runs in a repository comes from the repository's own files and the release
-`.harness/wrapper.yaml` pins, and from nothing else: no inheritance, no includes, no sources outside the repository
-([ADR 0013](../adrs/0013-organization-content.md)). Rendering reads nothing else and needs no network, so the same
-commit renders the same bytes on every machine, and people and agents learn what a repository does by reading its files.
-A [preset](presets.md) reaches a repository only as entries `harness preset apply` or `scaffold` writes into the profile
-and the hooks file; once written, they are the repository's own. Other tools reach a repository the same way: a loop
-runner or a tracker is wired by a command the profile declares, a lifecycle action, or a file a
-[tool preset](presets.md) writes, because the binary integrates only git and the agent harnesses it has adapters for
-([ADR 0022](../adrs/0022-tool-integration.md)). An organization's choices reach a repository the same way, as a reviewed
-change to its files, usually written by an agent following a skill the organization publishes. For example, when acme
-decides that no agent runs `terraform apply`, it publishes a skill saying so; in each of its Terraform repositories an
-agent following that skill adds `[terraform, apply]` to `shared.deny` in `.harness/policy.yaml`, and the team reviews
-that change like any other.
+What `harness` renders and runs in a repository comes from the repository's own files, the release
+`.harness/wrapper.yaml` pins and the plugins `plugins:` names, a fetched one pinned by its sha256, and from nothing
+else: no inheritance, no includes, no sources outside the repository ([ADR 0013](../adrs/0013-organization-content.md)).
+Rendering reads nothing else and needs no network, so the same commit renders the same bytes on every machine, and
+people and agents learn what a repository does by reading its files. The binary contains code for no program: every
+program it starts, calls or writes files for, git and the agent harnesses included, is described by a
+[plugin](plugins.md) ([ADR 0022](../adrs/0022-tool-integration.md), [ADR 0023](../adrs/0023-core-and-contracts.md)). A
+plugin's entries and templates reach a repository once, written by `harness plugin apply` or `scaffold`, and are the
+repository's own from then on; its renders and [floor](plugins.md#the-floor) come from the plugin on every render, as
+long as `plugins:` names it. A loop runner or a tracker is wired the same way, by a command the profile declares, a
+lifecycle action, or the entries and templates of its plugin. An organization's choices reach a repository the same way,
+as a reviewed change to its files, usually written by an agent following a skill the organization publishes. For
+example, when acme decides that no agent runs `terraform apply`, it publishes a skill saying so; in each of its
+Terraform repositories an agent following that skill adds `[terraform, apply]` to `shared.deny` in
+`.harness/policy.yaml`, and the team reviews that change like any other.
 
 Rendered files are committed on purpose: a clone works before its pinned release is downloaded, and reviewers see
 every permission change as a diff.
@@ -88,7 +92,7 @@ every permission change as a diff.
 harnessw                    the wrapper: runs the pinned release (owned)
 .harness/                   harness configuration: versioned, never state, never ignored
   config.yaml               profile
-  policy.yaml               policy (repository entries only; the built-in base is not here)
+  policy.yaml               policy (repository entries only; floor rules are not here)
   hooks.yaml                agent hooks, notification hooks and lifecycle actions
   wrapper.yaml              the pinned release, its source and checksums
   manifest.json             ownership record
@@ -112,8 +116,8 @@ AGENTS.md  README.md  CLAUDE.md  .gitignore   managed blocks, one or more per mo
   worktrees/                worktrees.dir: managed worktrees
 ```
 
-A repository that applies a [tool preset](presets.md) also holds that preset's templates, such as
-`.ralph-tui/config.toml` from the `ralph-tui` preset, as its own files.
+A repository that applies a [plugin](plugins.md) with templates also holds them as its own files, such as
+`.ralph-tui/config.toml` from the `ralph-tui` plugin.
 
 ## Ownership and the manifest
 
@@ -122,7 +126,7 @@ kinds of content:
 
 | Kind | What it is | Entries |
 | --- | --- | --- |
-| Owned | content `harness` renders and rewrites; never edited by hand | every owned file with its content hash (`harnessw`, `.harness/wrapper.yaml`, `.codex/rules/harness.rules`, the harness skill and its links); every managed block, with the file it lives in and its content hash; every owned key or entry inside a native file that `harness` merge-renders, including rendered `raw` hooks |
+| Owned | content `harness` renders and rewrites; never edited by hand | every owned file with its content hash (`harnessw`, `.harness/wrapper.yaml`, `.codex/rules/harness.rules`, the harness skill and its links); every managed block, with the file it lives in and its content hash; every owned key or entry inside a native file that `harness` merge-renders, including rendered `raw` hooks. Each entry names its owner: the binary, or the plugin whose render produced it |
 | Seeded | files `harness` writes once; from then on the repository owns them and `render` never rewrites them | `.harness/config.yaml`, `.harness/policy.yaml` and `.harness/hooks.yaml`, written by `scaffold`, and the `.agents/memory/` skeleton, written when the memory module is enabled, by `scaffold` or by the first `render` after the module is turned on; each with the hash of the content it was created with |
 
 It also records the `schema` the files were rendered with.
@@ -135,7 +139,7 @@ How the commands use it:
 
 | Command | Uses the manifest to |
 | --- | --- |
-| [`render`](render.md) | write exactly the owned set, and drop files and blocks that are no longer produced |
+| [`render`](render.md) | write exactly the owned set, and drop files and blocks that are no longer produced, such as the renders of a plugin deleted from `plugins:` |
 | [`render --check`](render.md#drift-check) | compare the owned set against what the sources produce now |
 | [`remove`](remove.md) | undo: delete the owned content, the seeded files in `.harness/`, and seeded files elsewhere only while they still match the hash they were created with; `--eject`: keep convention blocks and rendered native content as hand-owned, delete the rest of what it lists; both: refuse an owned path whose hash changed unless `--force`, and list and leave any file the manifest does not record |
 | [`doctor`](doctor.md) | report missing, modified or dangling owned paths |
@@ -160,7 +164,7 @@ Every convention a module establishes is written down where people and other too
 
 - in a managed block of `AGENTS.md`: where managed worktrees live and how their branches are named, the permissions
   agents work under, the memory index, and the [standing context](context.md) entries declared `static`;
-- for every path it creates, in a managed block of `.gitignore`.
+- for every path it creates, in a managed block of `.gitignore`, rendered by the version-control plugin, `git`.
 
 The worktrees module, for example, renders:
 
@@ -190,11 +194,11 @@ Managed blocks come in two classes:
 So after an eject, what is left in `AGENTS.md` and `.gitignore` is true and usable without the tool, and nothing in
 them points at a command that no longer exists.
 
-Block ids are per module, so a module owns its blocks and removing the module removes them
+Block ids are per module and per plugin, so a module or a plugin owns its blocks and removing it removes them
 ([block ids](render.md#block-ids)). A block's text states its content as fact; nothing but its marker says `harness`
-wrote it. Each module writes its own `.gitignore` entries even when another module's entry already covers the path:
-the `state` block ignores `/.work/` and the `worktrees` block `/.work/worktrees/`. Removing one module therefore
-never un-ignores a path another module still uses.
+wrote it. Each block lists its own `.gitignore` entries even when another block's entry already covers the path: the
+git plugin's `state` block ignores `/.work/` and its `worktrees` block `/.work/worktrees/`. Removing one block therefore
+never un-ignores a path another still uses.
 
 `AGENTS.md` is read at the start of every agent session, so the blocks `harness` writes there stay short: by default
 at most 40 lines together and 8 lines each, the `context` block excepted ([profile](profile.md#blocks)). Detail lives
@@ -213,7 +217,8 @@ The profile's `modules:` map turns features on and off. Each module is opt-in an
 Always present, whatever the modules: the `.harness/` files, `harnessw`, the rendered policy, the harness skill and its
 links, the manifest, the [`harness worktree`](worktrees.md) commands with task binding, the [`harness worker`](ralph.md)
 command, and these blocks: `commands`, `layout`, `worktrees`, `lifecycle` and `policy` in `AGENTS.md`; `commands` in
-`README.md`; `import` in `CLAUDE.md`; `state` and `worktrees` in `.gitignore`.
+`README.md`; `import` in `CLAUDE.md` with the claude plugin; `state` and `worktrees` in `.gitignore` with the git
+plugin.
 
 [Standing context](context.md) is declared in the profile's `context` section. Entries delivered by hook need the
 `hooks` module; `static` entries go into the `context` block of `AGENTS.md` whatever the modules.
@@ -229,10 +234,11 @@ lives at paths the [profile](profile.md#state-paths) sets, outside `.harness/`; 
 | `.work/` (`state.dir`), in each checkout | `harness` | `session.json` (managed worktree session: base, task, actor), `verified.json` (the [receipt](verify.md) of a passing `harness verify`), `hook-checks.json` (post-edit cache), `context/<session-id>.json` (which triggered context entries a session has received), `last-worker-output` and `last-attempt.patch` (the full output and the changes of the last failed `harness worker` attempt), the record that `bootstrap` ran for a worker |
 | `.work/worktrees/` (`worktrees.dir`) | `harness` | each managed worktree, at `<dir>/<name>` |
 
-Other tools keep their own state where they choose, such as Beads in `.beads/`; `harness` neither reads, writes nor
-ignores it. The `layout` block of `AGENTS.md` names every state path, and the `.gitignore` blocks ignore each one the
-repository does not track. No state path may point inside `.harness/` or `.agents/`: those directories hold committed
-files only, so the profile refuses such a path.
+Other tools keep their own state where they choose, such as Beads in `.beads/`; `harness` neither reads nor writes it,
+and ignores it only through a plugin's `.gitignore` block, as the `ralph-tui` plugin does for `.ralph-tui/`. The
+`layout` block of `AGENTS.md` names every state path, and the `.gitignore` blocks ignore each one the repository does
+not track. No state path may point inside `.harness/` or `.agents/`: those directories hold committed files only, so the
+profile refuses such a path.
 
 ## Adoption classes
 
@@ -243,7 +249,7 @@ agent.
 | --- | --- | --- | --- |
 | Greenfield | no `.claude/settings.json` permissions or hooks, no workflow engine of its own | `harness scaffold` | review the seeded profile; write `AGENTS.md` prose |
 | Brownfield, simple | permissions and hooks hand-written in `.claude/settings.json` or `.codex/` | `harness scaffold --adopt` | imported personal entries and allow/deny conflicts to review; `raw` hooks worth modelling |
-| Brownfield, complex | its own workflow around agents: verification scripts, a loop runner's configuration such as a root `.ralph-tui/`, a tracker such as `.beads/` | `harness scaffold --adopt` | lane definitions from the verification scripts; pointing the loop runner's agent command at `./harnessw worker` and the tracker's updates at lifecycle actions, which a [tool preset](presets.md) can write |
+| Brownfield, complex | its own workflow around agents: verification scripts, a loop runner's configuration such as a root `.ralph-tui/`, a tracker such as `.beads/` | `harness scaffold --adopt` | lane definitions from the verification scripts; pointing the loop runner's agent command at `./harnessw worker` and the tracker's updates at lifecycle actions, which a [plugin](plugins.md#builtin-plugins) can write |
 
 `scaffold --adopt` imports every permission rule and hook losslessly, proves it with an equivalence check, and prints
 a to-do of the leftovers; [`harness doctor`](doctor.md) keeps reporting open items until they are resolved. See
@@ -292,37 +298,48 @@ A repository adopts `harness` without forcing anyone else to.
 ## Built-in invariants
 
 These hold in every repository, for what the binary renders and for every agent the binary starts, and cannot be turned
-off by any repository file ([ADR 0011](../adrs/0011-safety-invariants.md)). An agent a person starts some other way,
-such as from their own loop-runner configuration, is outside them: `harness` neither detects nor prevents it
-([ADR 0022](../adrs/0022-tool-integration.md)).
+off by any repository file ([ADR 0011](../adrs/0011-safety-invariants.md)). They are the process, built into the
+binary. The facts about a program they apply, such as which arguments bypass an agent's permission checks or which
+command rewrites the default branch, are [floor](plugins.md#the-floor) rules of that program's plugin: rendered on every
+render, never written into the policy and out of its reach. An agent a person starts some other way, such as from their
+own loop-runner configuration, is outside them: `harness` neither detects nor prevents it
+([ADR 0022](../adrs/0022-tool-integration.md)). The numbers match ADR 0011.
 
-1. Agents `harness worker` starts never run with permission bypass; bypass flags among its arguments, such as Claude
-   Code's `--dangerously-skip-permissions` or Codex's `--yolo`, are refused with exit 1, naming the flag.
-2. Force pushes to the detected default branch (`origin/HEAD`) are denied.
-3. mise `:::` task chaining is denied, so an allowed `mise run lint` cannot carry a second task, as
-   `mise run lint ::: deploy` would.
-4. Verification proofs are replayed outside the tree the agent can write: `harness worker` reruns the lanes the agent's
+1. Agents `harness worker` starts never run with permission bypass: every argument the agent's harness plugin marks as a
+   floor bypass argument, such as Claude Code's `--dangerously-skip-permissions` or Codex's `--yolo`, is refused with
+   exit 1, naming the argument.
+2. The deny rules every plugin in use marks as floor are rendered into every agent's output on every render, and the
+   policy cannot remove or weaken them. The builtin plugins mark a force push to the default branch the
+   version-control plugin reports (the git plugin) and mise `:::` task chaining (the mise plugin), so an allowed
+   `mise run lint` cannot carry a second task, as `mise run lint ::: deploy` would.
+3. Verification proofs are replayed outside the tree the agent can write: `harness worker` reruns the lanes the agent's
    [receipt](verify.md) selected, with the profile read from the base commit.
-5. Completion is withheld until the replayed proof passes: only then does `harness worker` exit 0, release a loop
+4. Completion is withheld until the replayed proof passes: only then does `harness worker` exit 0, release a loop
    runner's completion signal and, in a worktree bound to a task, fire `completed`. Whoever fires `completed` with scope
    `task`, it is refused without a valid receipt when the verify module is enabled.
-6. `harness worker`'s tamper check restores the tool-owned files from the base commit before it starts the agent and
-   fails the attempt if the agent changed them, a file under `.harness/` or a file standing context names. The standing
-   context a worker receives is read from the same base commit. A failed attempt returns the checkout to its base.
-7. Hooks never decide permissions.
-8. Lifecycle and notification actions never run inside an unattended agent: `harness worker` fires events in its own
+5. Hooks never decide permissions.
+6. The binary never writes knowledge (prose, memory, domain skills), contains no logic for the platform that hosts the
+   team's work, such as GitHub, and never writes issues, projects, boards, comments, reviews or labels.
+7. The binary never reconfigures state it did not create, such as `core.hooksPath`, `CLAUDE.md` content or a
+   `.harness/` directory another tool owns, and reads no program's own configuration, such as `.beads/` or
+   `.ralph-tui/config.toml`. A plugin's template is written only when its file is absent.
+8. An unattended agent cannot change the rules it runs under. Before it starts the agent, `harness worker` resolves the
+   version-control plugin and the agent's harness plugin from the release or the verified cache, and restores the
+   tool-owned files, the renders of every plugin in use, `harnessw` and its pin, from the base commit. After the agent
+   exits it fails the attempt if the agent changed them, a file under `.harness/` or a file standing context names. The
+   standing context a worker receives is read from the same base commit; a base that cannot be read fails the attempt.
+   A failed attempt returns the checkout to its base.
+9. Lifecycle and notification actions never run inside an unattended agent: `harness worker` fires events in its own
    process after the agent exits, the binary refuses `harness lifecycle` under the unattended mark (`HARNESS_WORKER=1`),
-   and the built-in worker deny covers it in every rendered spelling (`harness`, `./harnessw`, `harnessw`).
-9. `deliver` always refuses on the default branch and with uncommitted changes and, when the verify module is enabled,
-   without a valid receipt for the work's base.
-10. The binary never writes knowledge (prose, memory, domain skills), contains no logic for the platform that hosts the
-    team's work, such as GitHub, and never writes issues, projects, boards, comments, reviews or labels.
-11. The binary never reconfigures state it did not create, such as `core.hooksPath`, `CLAUDE.md` content or a
-    `.harness/` directory another tool owns, and reads no configuration of a tool it has no code for, such as `.beads/`
-    or `.ralph-tui/`. A preset's template is written only when its file is absent.
-12. An `agent` action runs its agent under the worker contract: auto permission mode, the worker denies, bypass flags
-    refused, the tamper check. It cannot commit, push or fire lifecycle events.
-13. Guards are enforced by the binary itself. Policy entries for `harness` commands are defence in depth: a command
+   and the binary renders its own `worker.deny` entry for it in every spelling (`harness`, `./harnessw`, `harnessw`).
+10. `deliver` always refuses on the default branch and with uncommitted changes and, when the verify module is enabled,
+    without a valid receipt for the work's base.
+11. An `agent` action runs its agent under the worker contract: auto permission mode, the worker denies, the floor
+    bypass arguments refused, the tamper check of invariant 8. It cannot commit, push or fire lifecycle events.
+12. Guards are enforced by the binary itself. Policy entries for `harness` commands are defence in depth: a command
     has more spellings (an absolute path, `sh harnessw`) than prefix rules can list.
+
+A floor rule holds while its plugin is in use; [`harness doctor`](doctor.md) reports a program whose plugin's detect
+rule matches while the plugin is not in `plugins:`, such as a `mise.toml` without the mise plugin.
 
 `./harnessw explain invariants` prints this list with the reasoning for each item.

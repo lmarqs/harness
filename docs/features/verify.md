@@ -39,18 +39,20 @@ ready.
 
 ### Base and changed files
 
-The base is the commit the change is measured against:
+The base is the commit the change is measured against. `harness verify` reads it, and the changed files, through the
+[version-control plugin](plugins.md#the-version-control-contract):
 
 | Where you run it | Base |
 | --- | --- |
 | A [managed worktree](worktrees.md) | the commit the worktree started from, recorded in its session |
-| Any other checkout | the merge-base of `HEAD` with the default branch (`origin/HEAD`), or the local default branch in a clone without a remote |
+| Any other checkout | the merge-base of the head commit with the default branch the version-control plugin reports; with the git plugin, the merge-base of `HEAD` with the branch `origin/HEAD` names, or with the local default branch in a clone without a remote |
 | With `--base <ref>` | that commit; in a managed worktree, only the recorded base or one of its ancestors |
 
 A base may only move earlier, never later: an earlier base adds files to the check, a later one would leave changes
 out.
 
-Changed files are the files that differ from the base (committed or not) plus untracked files that are not ignored.
+Changed files are the files that differ from the base (committed or not) plus untracked files that are not ignored, as
+the version-control plugin lists them.
 
 ### The run
 
@@ -116,8 +118,8 @@ A lane named twice, both selected and skipped, or not declared in the profile is
 | `skipped` | for each skipped lane, the reason given |
 | `full` | whether `--full` ran |
 
-The receipt lives in the checkout's state directory, which the `state` block of `.gitignore` ignores, so it is local
-to that checkout.
+The receipt lives in the checkout's state directory, which the git plugin's renders ignore in `.gitignore`, so it is
+local to that checkout.
 
 ### Freshness
 
@@ -133,7 +135,7 @@ to that checkout.
 | edit, add, delete, `chmod` a changed file, or retarget a symlink | invalid |
 | add an untracked, non-ignored file | invalid |
 | rebase or merge in other commits | invalid: the content against the base changed |
-| edit only gitignored files | still valid |
+| edit only ignored files, such as those `.gitignore` lists | still valid |
 
 ### Who relies on it
 
@@ -194,9 +196,10 @@ harness verify [--lane <name>=<pattern>]... [--skip <name>=<reason>]... [--full]
 | 1 | Error: a lane rule is not met, unknown lane, invalid `--base`, files changed during verification |
 | 2 | A check failed (lint, validator, build or lane), so no receipt was written; or, with `--check`, no valid receipt |
 
-Files read: the profile, the hooks file, the git history and index, the changed files, `session.json` in the
-checkout's state directory. Files written: `verified.json` in the checkout's state directory, `lifecycle.jsonl` in the
-primary checkout's state directory; whatever the repository's commands and `verified` actions write.
+Files read: the profile, the hooks file, the history and the changed files through the version-control plugin,
+`session.json` in the checkout's state directory. Files written: `verified.json` in the checkout's state directory,
+`lifecycle.jsonl` in the primary checkout's state directory; whatever the repository's commands and `verified` actions
+write.
 
 ## Examples
 

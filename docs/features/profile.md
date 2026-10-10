@@ -12,11 +12,12 @@ and every agent and tool working there uses the same answer.
 
 ## Overview
 
-The profile tells `harness` what a repository is: which modules it uses, how to bootstrap a checkout, how to lint and
-build, which verification lanes (named families of test commands) exist, which agents it uses and what an unattended
-[worker](ralph.md) may write, and the standing context agents receive. It is seeded and then repository-owned.
-`scaffold` seeds it once, with the entries of the [presets](presets.md) of the stacks it detects. From then on people
-and agents edit it, `harness preset apply` adds a preset's entries to it, and `harness render` reads it.
+The profile tells `harness` what a repository is: which [plugins](plugins.md) describe the programs it uses, which
+modules it uses, how to bootstrap a checkout, how to lint and build, which verification lanes (named families of test
+commands) exist, which agents it uses and what an unattended [worker](ralph.md) may write, and the standing context
+agents receive. It is seeded and then repository-owned. `scaffold` seeds it once, with the plugins whose detect rule
+matches and their entries. From then on people and agents edit it, `harness plugin apply` adds a plugin and its entries
+to it, and `harness render` reads it.
 
 Examples on this page run commands as `./harnessw <command>`, through the repository's [wrapper](wrapper.md); with a
 global install, `harness <command>` is equivalent.
@@ -25,16 +26,18 @@ global install, `harness <command>` is equivalent.
 
 | You want to | Edit |
 | --- | --- |
+| Use a program's plugin, or stop using it | `plugins` ([plugins](plugins.md)); `./harnessw plugin apply <name>` adds one with its entries |
+| Use another version control system's plugin | `vcs` |
 | Turn a feature on or off | `modules` |
 | Change what a new worktree runs before use | `bootstrap` |
 | Change how a file is linted or the project is built | `commands` |
 | Add, rename or require a test lane | `verify.lanes` |
 | Run a repository check when certain files change | `verify.validators` |
-| Add Codex, make an agent a worker-only agent, or let a Codex worker write one more directory | `agents` |
+| Add Codex or another agent, make an agent a worker-only agent, give an agent a fetched harness plugin, or let a Codex worker write one more directory | `agents` |
 | Move where state or managed worktrees live | `state.dir`, `worktrees.dir` |
 | Give agents a directive or a skill without anyone invoking it: always, on certain files, or on certain words | `context` |
 | Let the managed blocks in `AGENTS.md` take more or fewer lines | `blocks.agents_md_budget` |
-| Add the starting commands, lanes and module switches of a stack | nothing by hand: run `./harnessw preset apply <name>` ([presets](presets.md)) |
+| Add the starting commands, lanes and post-edit hooks of a stack | nothing by hand: run `./harnessw plugin apply <name>` ([plugins](plugins.md)) |
 
 Run `./harnessw render` after every edit, and `./harnessw doctor` to check globs and commands.
 
@@ -57,15 +60,48 @@ Run `./harnessw render` after every edit, and `./harnessw doctor` to check globs
 | --- | --- | --- | --- |
 | `schema` | integer | required | File format version. `1` for this release line |
 | `name` | string | the repository directory name | Repository name, used in messages |
+| `plugins` | list | required | The [plugins](#plugins) the repository uses |
+| `vcs` | plugin name | required | The plugin that fills the version-control contract; see [`plugins`](#plugins) |
 | `modules` | map | every module off | Which modules are on |
 | `bootstrap` | list of commands | `[]` | Run in order in a new worktree, and once in each checkout a [worker](ralph.md#the-worker-contract) runs in |
 | `commands` | map | | Lint and build commands |
 | `verify` | map | | Verification paths, lanes and validators |
-| `agents` | map | | Agents rendered for this repository, their roles, and what a Codex worker may write |
+| `agents` | map | | Agents rendered for this repository, their roles, their harness plugins, and what a Codex worker may write |
 | `context` | map | | [Standing context](#context): directives and skills injected by declared triggers |
 | `blocks` | map | | Limits for the managed blocks `harness` writes |
 | `state` | map | | Where clone-local state lives; see [State paths](#state-paths) |
 | `worktrees` | map | | Where managed worktrees live; see [State paths](#state-paths) |
+
+### `plugins`
+
+The [plugins](plugins.md) the repository uses: their renders and floor rules are rendered on every `harness render`,
+and their operations answer the binary's questions. An entry is a builtin plugin's name, or a
+[fetched plugin](plugins.md#fetched-plugins) as a map:
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `name` | string | The plugin's name; never the name of a builtin plugin |
+| `source` | string | `github:<owner>/<repo>`, or an HTTPS base URL laid out like the [release source](wrapper.md#release-source) |
+| `version` | string | The version to download, `<source>/download/<version>/<name>.tar.gz` |
+| `sha256` | string | The archive's sha256, 64 hexadecimal characters, checked on download and on every load |
+
+```yaml
+plugins:
+  - git
+  - claude
+  - codex
+  - node
+  - name: just
+    source: github:acme/harness-plugins
+    version: v1.2.0
+    sha256: d2f0d562418c7d176d0393d8694cc6f6f569f2dff3f7ede3788a2075d3ff5c3f
+vcs: git
+```
+
+`vcs` names the plugin that fills the [version-control contract](plugins.md#the-version-control-contract): `git`, which
+`scaffold` writes, or a fetched plugin. It must be in `plugins`, and so must every agent's [harness plugin](#agents);
+otherwise the profile fails validation with exit 1. Deleting a name from `plugins` and rendering removes that plugin's
+renders and its floor; its applied entries and templates stay ([plugins](plugins.md#after-applying)).
 
 ### `modules`
 
@@ -113,13 +149,15 @@ and in the `commands` block. The rules that use them are on the [verify](verify.
 
 ### `agents`
 
-A map from agent name to its settings. Only declared agents are rendered. Agents: `claude` (Claude Code) and `codex`
-(Codex CLI).
+A map from agent name to its settings. Only declared agents are rendered. Each agent is served by a
+[harness plugin](plugins.md#the-harness-contract): the release ships `claude` (Claude Code) and `codex` (Codex CLI),
+and a fetched plugin can serve another agent.
 
 | Field | Type | Default | Meaning |
 | --- | --- | --- | --- |
 | `role` | `interactive` \| `worker` | | `interactive`: people use the agent in this repository; its native files carry the shared policy. `worker`: the agent runs here only as a worker, started by [`harness worker`](ralph.md#the-worker-contract); its native files also carry `worker.deny`. See [agents](agents.md#roles) |
-| `writable_roots` | list of paths | `[]` | `codex` only. Directories a Codex worker may write besides its task checkout and the clone's state directory, relative to the root of the primary checkout. Example: `[.beads]`, so a worker can update the clone's Beads database; the [`beads` preset](presets.md#the-presets) adds it. No other directory is writable for a Codex worker |
+| `plugin` | plugin name | the agent's name | The harness plugin that serves the agent; it must be in `plugins` and fill the harness contract. Example: `reviewer: { role: worker, plugin: acme-review }` |
+| `writable_roots` | list of paths | `[]` | Only for an agent whose harness plugin opens sandbox roots, such as `codex`. Directories a Codex worker may write besides its task checkout and the clone's state directory, relative to the root of the primary checkout. Example: `[.beads]`, so a worker can update the clone's Beads database; the [`beads` plugin](plugins.md#beads) adds it. No other directory is writable for a Codex worker |
 
 ### `context`
 
@@ -206,6 +244,8 @@ Rules for the paths:
 # .harness/config.yaml
 schema: 1
 name: acme-api
+plugins: [git, claude, codex, node, beads, ralph-tui]
+vcs: git
 modules: { hooks: true, verify: true, memory: true }
 bootstrap: [npm ci]
 commands:
@@ -233,13 +273,15 @@ context:
       skill: sql-quality-check
 ```
 
-The team tracks tasks with Beads, so a Codex worker may write the clone's `.beads/` database.
+The team tracks tasks with Beads and runs ralph-tui, so a Codex worker may write the clone's `.beads/` database.
 
 ### A Terraform repository
 
 ```yaml
 schema: 1
 name: acme-infra
+plugins: [git, claude, terraform]
+vcs: git
 modules: { hooks: true, verify: true, memory: true }
 bootstrap: [terraform -chdir=envs/staging init -backend=false]
 commands:
@@ -264,6 +306,8 @@ agents: { claude: { role: interactive } }
 ```yaml
 schema: 1
 name: acme-cli
+plugins: [git, claude, codex, go]
+vcs: git
 modules: { hooks: true, verify: true, memory: true }
 bootstrap: [go mod download]
 commands:
@@ -301,6 +345,8 @@ Patterns for the Go lanes are package paths:
 | Symptom | Cause | Fix |
 | --- | --- | --- |
 | `unknown key` error | A typo or a field from a newer schema | Fix the key; check `schema` |
+| `vcs` or an agent's `plugin` names a plugin not in `plugins` | The plugin was deleted from `plugins`, or never added | Add it back with `./harnessw plugin apply <name>`, or name a plugin in use |
+| `render` exits 3 naming `./harnessw plugin fetch` | A fetched plugin in `plugins` is not in this machine's cache | Run `./harnessw plugin fetch` |
 | `doctor` says a program is not on PATH | A command, lane, validator or action names a program this machine lacks | Install the program, or fix the command in `.harness/config.yaml` or `.harness/hooks.yaml` |
 | `doctor` says a glob matches nothing | Wrong path or quoting | YAML needs quotes around globs that start with `*` |
 | A lane runs with the literal text `{pattern}` | The command is in `full`, which takes no placeholder | Use `{pattern}` only in `select` |

@@ -198,6 +198,11 @@ A section with no content is omitted rather than left empty.
   products (Claude Code, Codex, GitHub, ralph-tui, Beads, the `skills` CLI, Harness.io, a CI/CD platform whose CLI is
   also called `harness`) are named where their behaviour matters, because a reader needs to know which tool a rule is
   about.
+- What harness does with a program is attributed to the plugin that describes it: "the version-control plugin reports
+  the default branch", "a floor rule of the git plugin". A program's own commands appear only as examples of what its
+  plugin runs ("with the git plugin, `git worktree add`"). Why: the binary contains code for no program, so a page that
+  says harness runs git describes a binary that does not exist ([plugins](../features/plugins.md),
+  [ADR 0022](../adrs/0022-tool-integration.md)).
 - Example commands are complete and run as written; example output is copied from a real run of the documented
   release, so a reader can trust what they copy.
 - Commands that run inside a repository are written as `./harnessw <command>`, with `harness <command>` shown as the

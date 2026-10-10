@@ -22,8 +22,8 @@ posting a chat notification; their reference follows the stages.
 trigger, a notification) is an **action** that the repository declares on a **lifecycle event** in its own
 `.harness/hooks.yaml`. An action is a shell command, an HTTP request `harness` makes itself, or a headless agent run.
 The binary decides when an event fires and enforces its guards. No action runs that the repository's files do not
-declare; a preset's actions reach them only when a person applies it ([ADR 0015](../adrs/0015-development-lifecycle.md),
-[ADR 0019](../adrs/0019-action-kinds.md)).
+declare; a plugin's actions reach them, as entries, only when a person applies it
+([ADR 0015](../adrs/0015-development-lifecycle.md), [ADR 0019](../adrs/0019-action-kinds.md)).
 
 Every lifecycle action and every [notification hook](hooks.md#agent-notifications) a repository runs is written in that
 file, so the people who review a change and the agents that work on it read there everything an event or a notification
@@ -158,7 +158,7 @@ flowchart TB
 | | |
 | --- | --- |
 | Who acts | a person or an agent runs `harness worktree remove`, which fires `landed` for each recorded branch that has landed; `harness doctor` lists landed branches and prints the command to fire `landed`; a person or a coordinating agent can also run `harness lifecycle run landed` |
-| `harness` guarantees | only branches `harness` recorded are considered; a branch counts as landed when every patch on it is on the default branch (`git cherry`), whether it was merged, rebased or cherry-picked |
+| `harness` guarantees | only branches `harness` recorded are considered; a branch counts as landed when the version-control plugin finds every patch on it on the default branch (the git plugin compares with `git cherry`), whether it was merged, rebased or cherry-picked |
 | Left to judgement | branches whose patches do not match, such as a squash merge of several commits |
 | Event | `landed` |
 
@@ -271,14 +271,14 @@ These are [built-in invariants](concepts.md#built-in-invariants). No repository 
 
 | Guard | Effect |
 | --- | --- |
-| No actions inside an unattended agent | The binary refuses `harness lifecycle run`, `blocked` included, inside the agent that `harness worker` or an `agent` action starts, whatever the spelling: both set `HARNESS_WORKER=1` in the agent's environment, and the binary checks it. `[harness, lifecycle]` is also in the built-in `worker.deny`, rendered for each spelling `harness` renders, as defence in depth. Automatic trigger points inside the agent fire nothing. `harness worker` fires `completed` and `deliver`, when its worktree is bound to a task, in its own process, after the agent exited |
-| A worker's actions come from its base | `harness worker` reads the hooks file from its base commit, the `HEAD` of the checkout when it started, so an agent cannot add or change an action its own task triggers |
+| No actions inside an unattended agent | The binary refuses `harness lifecycle run`, `blocked` included, inside the agent that `harness worker` or an `agent` action starts, whatever the spelling: both set `HARNESS_WORKER=1` in the agent's environment, and the binary checks it. `[harness, lifecycle]` is also in the `worker.deny` the binary renders as part of the [floor](policy.md#the-floor), for each spelling `harness` renders, as defence in depth. Automatic trigger points inside the agent fire nothing. `harness worker` fires `completed` and `deliver`, when its worktree is bound to a task, in its own process, after the agent exited |
+| A worker's actions come from its base | `harness worker` reads the hooks file from its base commit, the head commit of the checkout when it started as the version-control plugin reports it, so an agent cannot add or change an action its own task triggers |
 | `completed` for a task needs a receipt | When the verify module is enabled, `completed` with scope `task` is refused without a valid receipt for the work's base, whoever fires it: `harness worker`, a person or a script. A refusal exits 3 and runs no action |
 | `deliver` refuses unsafe work | Always on the default branch or with no branch checked out, and with uncommitted changes (tracked or untracked, not ignored). When the verify module is enabled (`modules.verify: true`), also without a valid receipt for the work's base (`harness verify --check`). A refusal exits 3 and runs no action |
 | Values only as environment variables | `harness` never substitutes a value into a `run` command's text, so a task title or a branch name cannot inject shell syntax. `http` and `agent` actions expand `$NAME` only as described in [Action kinds](#action-kinds) |
-| `agent` actions run under the worker contract | The agent starts in auto permission mode with the built-in and repository `worker.deny`, bypass flags are refused, and the tamper check restores and compares the tool-owned files. It cannot commit, push or fire lifecycle events ([ralph](ralph.md#the-worker-contract)) |
+| `agent` actions run under the worker contract | The agent starts with the unattended launch arguments of its harness plugin, the floor and the repository's `worker.deny`, the plugin's floor bypass arguments are refused, and the tamper check restores and compares the tool-owned files. It cannot commit, push or fire lifecycle events ([ralph](ralph.md#the-worker-contract)) |
 | Every run is recorded | Each run, refused and skipped ones included, is appended to the [lifecycle log](#the-lifecycle-log). Dry runs are not recorded |
-| No undeclared action runs | No action runs that the repository's `.harness/hooks.yaml` does not declare. The seeded files hold none; a [tool preset](presets.md#the-presets)'s actions, such as those of `beads`, reach the file only when a person applies it, and from then on they are the repository's own. `harness lifecycle list` prints them all |
+| No undeclared action runs | No action runs that the repository's `.harness/hooks.yaml` does not declare. The seeded files hold none; a [plugin](plugins.md#entries)'s actions, such as those of `beads`, reach the file as entries only when a person applies it, and from then on they are the repository's own. `harness lifecycle list` prints them all |
 
 The scaffolded repository policy seeds `[harness, lifecycle, run, deliver]` under `ask`, because permitting an agent to
 run an event permits everything its actions do ([safety](safety.md#lifecycle-actions-are-code)). `render` writes it for
@@ -434,9 +434,10 @@ The shell expands the [environment](#environment); `harness` substitutes nothing
 | `agent.model` | model id | the agent's configured model | Override for this action |
 | `agent.effort` | level | the agent's configured effort | Override for this action |
 
-- The agent runs headless under the [worker contract](ralph.md#the-worker-contract): auto permission mode, the built-in
-  and repository `worker.deny`, bypass flags refused, and the tamper check, with the checkout's `HEAD` as base. It
-  receives the `worker` role's [standing context](context.md).
+- The agent runs headless under the [worker contract](ralph.md#the-worker-contract): the unattended launch arguments
+  of its harness plugin, the floor and the repository's `worker.deny`, the plugin's floor bypass arguments refused, and
+  the tamper check, with the checkout's head commit as base, as the version-control plugin reports it. It receives the
+  `worker` role's [standing context](context.md).
 - It cannot commit, push or fire lifecycle events. Its file changes stay uncommitted in the checkout it ran in, and
   the output and the lifecycle log list the changed paths for a person to review and commit.
 - It runs in the work's worktree, except on `landed`. There, `harness` creates a fresh worktree of the default branch,
@@ -467,7 +468,7 @@ actions expand them as `$NAME` ([Action kinds](#action-kinds)). A variable that 
 | `HARNESS_WORKTREE_NAME` | the managed worktree's name, such as `invoice-rounding` or `run-invoice` | in a managed worktree |
 | `HARNESS_BRANCH` | the work's branch | always |
 | `HARNESS_BASE` | the base the work started from | always |
-| `HARNESS_DEFAULT_BRANCH` | the default branch `origin/HEAD` names | always |
+| `HARNESS_DEFAULT_BRANCH` | the default branch the version-control plugin reports; with the git plugin, the branch `origin/HEAD` names | always |
 | `HARNESS_TASK` | the task id given to `harness worktree create --task` | in a managed worktree created with `--task` |
 | `HARNESS_ACTOR` | the managed worktree's actor, `<user>:<worktree>:<random>`, unique to it | in a managed worktree |
 | `HARNESS_RECEIPT` | path of the receipt JSON ([verify](verify.md#the-receipt)) | when the work has a valid receipt |
@@ -519,8 +520,8 @@ when it has a reason to give.
 | 3 | Blocked: a guard refused (`deliver` on the default branch, with uncommitted changes, or without a valid receipt when the verify module is enabled; `completed` with scope `task` without a valid receipt when the verify module is enabled; any event inside the agent of `harness worker` or of an `agent` action). No action ran |
 
 Files read: `.harness/hooks.yaml` (from the base commit when `harness worker` fires the event), `session.json` and
-`verified.json` in the checkout's state directory, git. Files written: the lifecycle log; whatever
-the actions write.
+`verified.json` in the checkout's state directory, and the history, through the version-control plugin. Files written:
+the lifecycle log; whatever the actions write.
 
 ### The lifecycle log
 
@@ -745,7 +746,7 @@ not belong in `deliver`.
 ### Ralph: delivery per run, or delivery after judgement
 
 A Ralph run is an unattended run of a loop runner whose agent command is `harness worker`, here ralph-tui set up by its
-[tool preset](presets.md#the-presets). With `harness worker --commit`, each verified task is one commit on the branch of
+[plugin](plugins.md#ralph-tui). With `harness worker --commit`, each verified task is one commit on the branch of
 the worktree the run works in.
 
 **Per run.** Each finished run becomes one draft pull request from that branch. The actions are limited to scope
@@ -838,5 +839,5 @@ moved that entry out of `ask`.
 | An `http` action fails with a 3xx status | The endpoint redirected to another host | Use the final URL in the variable |
 | A notification shows an empty value | A `$NAME` in `json` is unset for this scope; the output noted it | Limit the action with `scope`, or name a variable that applies |
 | A `landed-<name>-<n>` worktree is left behind | An `agent` action on `landed` ran in it; it never commits | Review its edits with `git -C <path> status`, then commit and deliver them, or `harness worktree remove landed-<name>-<n>` |
-| An `agent` action fails the tamper check | The agent edited a tool-owned file | Read the action's output; the tool-owned files are restored from `HEAD` |
+| An `agent` action fails the tamper check | The agent edited a tool-owned file | Read the action's output; the tool-owned files are restored from the checkout's head commit |
 | No notification from an unattended run that stopped | Nothing fired `blocked`: a loop runner that stops fires no event, and a `harness` command that exits 3 runs only `blocked` actions with `auto: true` | Fire `harness lifecycle run blocked --scope run` from whatever drives the run; give the action `auto: true` for commands that exit 3; test it with `harness lifecycle run blocked` |

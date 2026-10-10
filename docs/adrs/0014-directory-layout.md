@@ -42,6 +42,12 @@ Other forces:
 - Removal deletes what the manifest lists ([0007](0007-ownership.md)).
 - Another product, the CI/CD platform Harness.io, uses a `.harness/` directory at the repository root for pipeline
   definitions and ships a command-line program named `harness`.
+- The plugins a release ships are part of its binary ([0003](0003-implementation-language.md)). A plugin from an outside
+  source is fetched, verified by its content hash on every load, and is the same bytes for every repository that pins
+  that hash ([0021](0021-release-trust.md), [0022](0022-tool-integration.md)).
+- The XDG Base Directory Specification (0.8) defines a per-user cache directory, `$XDG_CACHE_HOME`, by default
+  `~/.cache`, for data a program can fetch again.
+- An agent can edit anything in the working tree it works in ([0011](0011-safety-invariants.md)).
 
 ## Decision
 
@@ -60,6 +66,9 @@ Other forces:
    walk from nested working copies; the loop runner's configuration in the fixed directory it reads.
 6. Ignore rules are managed blocks, one set per capability ([0018](0018-conventions.md)), and omit any path the
    repository tracks.
+7. A repository holds none of the plugins it uses ([0006](0006-repository-contract.md)). The plugins a release ships
+   live inside the binary. A plugin from an outside source lives in the user's cache directory, outside every
+   repository, under its content hash, and one copy serves every repository on the machine that pins that hash.
 
 ## Reasons
 
@@ -81,12 +90,20 @@ Other forces:
   `.agents/` would show clone-local files to every tool that reads agent content. Committed state would publish one
   clone's uncommitted work.
 - **5.** The loop runner's configuration location cannot be moved, so its configuration, whether a person wrote it or a
-  preset seeded it ([0013](0013-organization-content.md)), lives where the loop runner looks, and a committed file
-  reaches every working copy through git. Relocating the task tracker through an override would make every invocation
-  depend on that override, and people who run the tracker directly would see different state.
+  plugin's template wrote it ([0013](0013-organization-content.md)), lives where the loop runner looks, and a committed
+  file reaches every working copy through version control. Relocating the task tracker through an override would make
+  every invocation depend on that override, and people who run the tracker directly would see different state.
 - **6.** One set of ignore blocks per capability lets one capability be removed without un-ignoring another's paths
   ([0018](0018-conventions.md)). A tracked path in an ignore rule would stop new files in a committed directory, such as
   the task tracker's directory in a repository that commits it, from being added.
+- **7.** A plugin in the working tree would be a description the agent working there can edit before the next attempt
+  reads it ([0022](0022-tool-integration.md)), and a copy in every repository that uses it would be one more copy to
+  keep equal (Context). The plugins a release ships need no path, because they are part of the release that was verified
+  ([0021](0021-release-trust.md)). The user's cache directory is where data a program can fetch again belongs (Context),
+  outside every working tree, and a copy there that anyone changes, an agent included, fails the hash check on its next
+  load instead of being used. Keying by content hash lets every repository that pins the same plugin share one copy, and
+  two versions never overwrite each other. The trade: a plugin is on a machine only after someone fetched it there, and
+  clearing the cache removes it until the next fetch.
 
 ## Rejected alternatives
 
@@ -113,6 +130,13 @@ their own conventions put them, and people and other tools work inside those cop
 At its best, the repository root stays tidy. It loses because every invocation needs the override, and people who run
 those tools directly see different state.
 
+### Plugins from outside sources kept in the repository
+
+The repository commits each plugin it uses beside its data. At its best, a clone carries everything it needs, renders
+with no fetch, and a reviewer reads the plugin's description in the diff that adds it. It loses for the reason
+[0022](0022-tool-integration.md) gives against descriptions read from the working tree, and because every repository
+that uses a plugin would carry its own copy, which local edits make diverge ([0006](0006-repository-contract.md)).
+
 ### Whole-directory links from native directories
 
 At its best, each directory needs one link. It loses because where `.claude/skills` is already a real directory,
@@ -125,6 +149,7 @@ Costs:
 - The repository root holds several dot-directories, `.harness/` among them.
 - The layout is set from outside; a change in a third-party tool's discovery rule forces a change here.
 - Per-entry links need a filesystem with symbolic links.
+- A plugin from an outside source is absent on a machine until someone fetches it there.
 - Configurable state paths multiply the layouts the tool renders and tests.
 - `.harness/` and the program name are shared with another product. A foreign `.harness/` is refused
   ([0012](0012-write-boundary.md)), so a repository that uses the other product cannot adopt this tool. The committed
@@ -147,3 +172,5 @@ Must be maintained:
 - A fixture with non-default state paths writes state only at those paths.
 - Validation refuses a fixture whose state path points inside `.harness/` or `.agents/`.
 - A fixture that commits a directory the tool would ignore gets no ignore entry for it.
+- A test asserts that fetching a plugin writes only under the user's cache directory, and that an adopted fixture holds
+  none of the plugins it uses.

@@ -47,11 +47,11 @@ description of that program, and the tool's code names no program at all.
    by a plugin: a named, versioned bundle of data the binary interprets. That includes the version control system and
    the agent harnesses.
 2. A plugin holds up to five parts. Entries: additions to the repository's declared data, applied once and the
-   repository's own afterwards ([0013](0013-organization-content.md)). Templates: whole files written once where
-   absent, never recorded or removed ([0012](0012-write-boundary.md)). Renders: files, keys and blocks the binary
-   renders on every render from the repository's declared data and the plugin's floor rules, owned and recorded under
-   the plugin's name ([0007](0007-ownership.md), [0008](0008-native-configuration.md)). Operations: the commands and mappings that fill
-   one of the binary's contracts ([0023](0023-core-and-contracts.md)). Checks: a version command with a supported
+   repository's own afterwards ([0013](0013-organization-content.md)). Templates: whole files written once where absent,
+   never recorded or removed ([0012](0012-write-boundary.md)). Renders: files, keys and blocks the binary renders on
+   every render from the repository's declared data and the plugin's floor rules, owned and recorded under the plugin's
+   name ([0007](0007-ownership.md), [0008](0008-native-configuration.md)). Operations: the commands and mappings that
+   fill one of the binary's contracts ([0023](0023-core-and-contracts.md)). Checks: a version command with a supported
    range, and a detect rule that tells adoption the program is in use.
 3. The release embeds and tests plugins for the common programs: the version control system, the two adapted
    harnesses, a loop runner, a task tracker, a task runner, a skills installer, and one per supported stack. A

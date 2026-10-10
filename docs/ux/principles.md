@@ -79,18 +79,17 @@ every model change. A tool that competed with them would carry credentials, cost
   the user's behalf, because knowledge needs judgement. It writes rendered files, managed blocks whose text is derived
   from the repository files (fixed sentences stating a convention with its configured values, tables, lists), the
   repository files (`config.yaml`, `policy.yaml`, `hooks.yaml`) only when seeding them, migrating them or applying a
-  preset a person asked for, and the owned pin `wrapper.yaml` only when scaffolding or re-pinning.
+  plugin a person asked for, and the owned pin `wrapper.yaml` only when scaffolding or re-pinning.
 - The binary contains no logic for any hosting platform and never writes the team's record of work: no issues,
   projects, boards, comments, reviews or labels. Why: the team's record already has writers under the team's own
   conventions, and platform logic in the binary binds every release to one platform. Everything that leaves the
   clone, a pull request included, is a declared action ([principle 7](#7-nothing-leaves-the-clone-undeclared);
   [ADR 0012](../adrs/0012-write-boundary.md)).
-- The binary integrates two kinds of external program: git and the agent harnesses it has adapters for. It contains no
-  code for any other tool, such as a loop runner, a task tracker, a skills installer or a task runner, and reads none
-  of their configuration. Such a tool reaches a repository as data: a command the profile declares, an action a
-  lifecycle event fires, or an entry or file a preset writes on request. Why: each team picks different tools, and
-  code for one would follow every release of a tool the project does not own while serving no team that chose
-  another ([ADR 0022](../adrs/0022-tool-integration.md)).
+- The binary contains code for no external program, git and the agent harnesses included, and reads no program's own
+  configuration. Each program reaches a repository through the [plugin](../features/plugins.md) that describes it,
+  beside the commands the profile declares and the actions lifecycle events fire. Why: each team picks different
+  programs, and code for one would follow every release of a program the project does not own while serving no team
+  that chose another ([ADR 0022](../adrs/0022-tool-integration.md), [ADR 0023](../adrs/0023-core-and-contracts.md)).
 - The binary never reconfigures state it did not create (an existing `.beads/`, the database of the Beads task tracker;
   `core.hooksPath`; a task runner's tasks and tool list; `CLAUDE.md` content; a `.harness/` directory that another
   product created), because its owners depend on it as it is.
@@ -98,7 +97,7 @@ every model change. A tool that competed with them would carry credentials, cost
 ## 4. Least surprise
 
 - A command does what its name says and nothing else. Read commands (`doctor`, `explain`, `version`, `context show`,
-  `lifecycle list`, `preset list`, `preset show`, `render --check`, `verify --check`) MUST NOT modify the repository,
+  `lifecycle list`, `plugin list`, `plugin show`, `render --check`, `verify --check`) MUST NOT modify the repository,
   fire lifecycle events or run actions. Why: agents and CI call read commands freely, so a side effect there happens
   without anyone deciding it.
 - The same invocation in the same state gives the same result. Running a mutation twice changes nothing the second
@@ -111,10 +110,12 @@ every model change. A tool that competed with them would carry credentials, cost
   on its own are: the wrapper's download of the version pinned in `.harness/wrapper.yaml` (on an explicit invocation
   only, over HTTPS, verified against the pinned checksum); the release's signed checksum file, fetched by
   `harness scaffold` (not with `--offline`) and `harness wrapper` before they write a pin and re-verified by
-  `harness doctor` at most daily; and the daily release check
+  `harness doctor` at most daily; the download of a fetched plugin by `harness plugin fetch` or `harness plugin apply`
+  (over HTTPS, verified against the `sha256` the profile pins); and the daily release check
   ([update notices](compatibility-standards.md#update-notices)). Each is documented and the release check can be
-  disabled. Rendering and applying a preset need none of them, because their only inputs are the repository's files and
-  the pinned release ([principle 9](#9-everything-a-repository-does-is-in-its-own-files)). Any other network access is a
+  disabled. Rendering needs none of them, and neither does applying a builtin plugin, because their only inputs are the
+  repository's files, the pinned release and the plugins it pins by hash
+  ([principle 9](#9-everything-a-repository-does-is-in-its-own-files)). Any other network access is a
   declared action (an `http` action, or a `run` or `agent` action whose command reaches the network), visible in
   `harness lifecycle list` and in `.harness/hooks.yaml`.
 - Names, flags and output look the same across commands ([cli-standards.md](cli-standards.md)), so what a user learns
@@ -128,7 +129,7 @@ Why: a repository is the team's work, and a tool that loses part of it is remove
 - Every mutating command accepts `--dry-run` and prints exactly the change set it would apply, so the change can be
   judged before it happens.
 - harness writes only inside content it owns: files and blocks recorded in the manifest, and the native keys it owns.
-  The one other write is a preset's template, and only where its file is absent. Everything else is preserved byte for
+  The one other write is a plugin's template, and only where its file is absent. Everything else is preserved byte for
   byte, because content outside the manifest is somebody else's.
 - When owned content has been edited by hand, `harness remove` refuses to delete it unless `--force` is given, and
   names each path it refused, because the hand edit may be the only copy of someone's work.
@@ -168,8 +169,8 @@ hard to undo, so it must be written down, reviewed and guarded before it can hap
 [lifecycle guide](../features/lifecycle.md) has the stages, trigger points and full reference.
 
 - **Declared.** Actions live in `.harness/hooks.yaml`, and no action runs that the repository does not declare there.
-  Stack presets hold none; a tool preset's actions (the `beads` preset's, for example) reach the file only when a
-  person applies the preset and reads its diff. So what "deliver" means is decided in the repository, where an
+  Stack plugins hold none; a plugin's actions (the `beads` plugin's, for example) reach the file only when a person
+  applies the plugin and reads its diff. So what "deliver" means is decided in the repository, where an
   organization's delivery convention is written like any other entry.
 - **Three kinds.** An action is a shell command (`run`), an HTTP request harness performs itself (`http`), or a
   headless agent run (`agent`). Notification events accept `run` and `http` only, so an agent hook never starts
@@ -220,7 +221,8 @@ would leave state that follows rules nobody wrote down ([ADR 0018](../adrs/0018-
     directives declared `static`, and the `CLAUDE.md` import. They never name a harness command.
   - **Tool blocks** describe how to use harness: its commands, what `.harness/` holds, how to verify through it, how
     work is delivered through its lifecycle. They MAY name `./harnessw` commands.
-- Each path a module establishes is also listed in a managed block of `.gitignore`, which is a convention block.
+- Each path a module establishes is also listed in a managed block of `.gitignore`, which the git plugin renders and
+  which is a convention block.
 - State lives at paths the profile sets (`state.dir`, `worktrees.dir`), never inside `.harness/` or `.agents/`. The
   block text names the configured path, so people, agents and other tools find it by reading the repository, not by
   asking harness.
@@ -232,21 +234,23 @@ would leave state that follows rules nobody wrote down ([ADR 0018](../adrs/0018-
 
 ## 9. Everything a repository does is in its own files
 
-What harness renders and runs in a repository comes from that repository's files and the release it pins, and from
-nothing else: no inheritance, no includes, no source outside the repository. Why: people and agents learn what a
-repository does by reading it. A rule that acts in a repository from somewhere else cannot be read by an agent working
-there, and a reviewer sees its effect without its reason ([ADR 0013](../adrs/0013-organization-content.md)).
+What harness renders and runs in a repository comes from that repository's files, the release it pins and the plugins it
+pins by hash, and from nothing else: no inheritance, no includes, no source the repository does not pin. Why: people and
+agents learn what a repository does by reading it. A rule that acts in a repository from somewhere else cannot be read
+by an agent working there, and a reviewer sees its effect without its reason
+([ADR 0013](../adrs/0013-organization-content.md)).
 
-- The same commit renders the same bytes on every machine and every day, with no network and an empty per-user cache,
-  because no input can change without a commit in the repository.
-- No repository file has a key that names a source outside the repository for what harness renders or runs
-  ([configuration-standards.md](configuration-standards.md#inputs)), so reading the repository is enough to predict
-  what it does.
+- The same commit renders the same bytes on every machine and every day, with no network, because no input can change
+  without a commit in the repository: the release and every fetched plugin are pinned by hash in its files.
+- No repository file has a key that names a source outside the repository for what harness renders or runs, except a
+  release or a plugin pinned by hash ([configuration-standards.md](configuration-standards.md#inputs)), so reading the
+  repository is enough to predict what it does.
 - Every write to the repository files is one a person or agent asked for: seeding them, migrating them, applying a
-  preset with `harness preset apply`, or an edit. Why: a file that changes by itself holds decisions nobody made.
-- A built-in preset reaches a repository only as entries written into its files and files its templates write, and
-  nothing records where an entry or a file came from, so each entry has one source of truth: the file it is in
-  ([configuration-standards.md](configuration-standards.md#presets)).
+  plugin with `harness plugin apply`, or an edit. Why: a file that changes by itself holds decisions nobody made.
+- A plugin reaches a repository only through a name the repository lists in `plugins:`: as entries written into its
+  files, files its templates write, and renders the manifest records under the plugin's name. Nothing records where an
+  entry or a template file came from, so each has one source of truth: the file it is in
+  ([configuration-standards.md](configuration-standards.md#plugins)).
 - An organization's choices reach its repositories as changes to each repository's files, written by a person or by an
   agent following the organization's skill, and reviewed there as a diff. The cost is that a choice shared by many
   repositories is written, and changed, in each of them. For example, when acme lets its agents use the read-only tools
@@ -257,8 +261,8 @@ there, and a reviewer sees its effect without its reason ([ADR 0013](../adrs/001
 
 Apply them in this order, because each earlier principle protects something harder to recover than the next:
 
-1. The built-in invariants ([ADR 0011](../adrs/0011-safety-invariants.md)). No principle, setting or flag weakens
-   them.
+1. The built-in invariants and the floor rules of the plugins in use ([ADR 0011](../adrs/0011-safety-invariants.md),
+   [ADR 0022](../adrs/0022-tool-integration.md)). No principle, setting or flag weakens them.
 2. Never destroy.
 3. Nothing leaves the clone undeclared.
 4. Optional and transparent.

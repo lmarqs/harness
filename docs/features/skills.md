@@ -18,7 +18,8 @@ agent-content directory, one folder per skill. `harness` does two things with th
 skill, the **harness skill**, in every adopted repository. It injects skills into agent sessions when the repository
 names them as [standing context](context.md). It never writes a domain skill, and it contains no code for any skills
 installer: shared skills are installed by the team with the tool of its choice and committed like any other file
-([ADR 0022](../adrs/0022-tool-integration.md)).
+([ADR 0022](../adrs/0022-tool-integration.md)). The `skills` [plugin](plugins.md#skills) describes one such tool, the
+`skills` CLI.
 
 Commands are named `harness <command>` on this page. The examples run them through the repository's wrapper,
 `./harnessw <command>`, from the root of a checkout; with a global install, `harness <command>` is equivalent
@@ -51,12 +52,13 @@ It teaches an agent to:
 - declare standing context: which skill or directive applies always, on which paths, or on which words, and preview
   it with `./harnessw context show`.
 
-Agents find it where they look for skills:
+Agents find it where they look for skills. Each agent's [harness plugin](plugins.md#the-harness-contract) names that
+location, and `render` writes a link there:
 
-| Agent | Path | Shape |
+| Harness plugin | Path | Shape |
 | --- | --- | --- |
-| Claude Code | `.claude/skills/harness` | a link to `../../.agents/skills/harness` |
-| Codex | `.codex/skills/harness` | a link to `../../.agents/skills/harness` |
+| claude (Claude Code) | `.claude/skills/harness` | a link to `../../.agents/skills/harness` |
+| codex (Codex) | `.codex/skills/harness` | a link to `../../.agents/skills/harness` |
 
 When `.claude/skills` (or `.codex/skills`) is already a link to the whole `.agents/skills` directory, the skill is
 reached through it and no extra link is written. When it is a real directory, the link is added inside it and nothing
@@ -78,8 +80,11 @@ wrapper is gone ([remove](remove.md#eject)).
 
 The team installs shared skills into `.agents/skills/` with the tool it uses for that, and commits the result. Every
 clone and every agent then has them without running anything, and a reviewer sees each skill's text in the diff that
-adds it. `harness` has nothing to wire: no preset, command or profile field installs, updates or removes a shared
-skill.
+adds it. The binary has no code for it: no command or profile field installs, updates or removes a shared skill.
+
+The `skills` [plugin](plugins.md#skills) describes the `skills` CLI: with the plugin in the profile's `plugins:`,
+[`harness doctor`](doctor.md) checks the CLI's version against the range the plugin supports. Installing, updating and
+removing a skill stay the CLI's own commands, run by a person or an agent.
 
 With the [`skills` CLI](https://github.com/vercel-labs/skills), which needs Node, a team installs a source and commits
 both the skills and the CLI's lock file, `skills-lock.json`:

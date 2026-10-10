@@ -32,9 +32,9 @@ first command works with nothing installed beforehand.
   ([0003](0003-implementation-language.md)). A download inside a hook breaks both.
 - A fresh clone whose hooks find no binary runs agent sessions without the tool's hooks, and the agent has no way to
   know why.
-- The tool is one executable with its templates embedded ([0003](0003-implementation-language.md)); it needs only the
-  operating system and git at runtime ([0004](0004-runtime-dependencies.md)); a repository holds no engine code
-  ([0006](0006-repository-contract.md)).
+- The tool is one executable with its builtin plugins and templates embedded ([0003](0003-implementation-language.md));
+  it needs only the operating system at runtime ([0004](0004-runtime-dependencies.md)); a repository holds no engine
+  code ([0006](0006-repository-contract.md)).
 - Starting a container, even from an image already present, takes a container runtime hundreds of milliseconds; anyone
   with a runtime can time it on their own machine.
 - Releases appear while repositories stay on what they pinned; a person learns of a newer release only when something
@@ -103,9 +103,10 @@ first command works with nothing installed beforehand.
 - **2.** One exact release per repository makes every machine, every pipeline and the committed artefacts agree, so the
   drift check gives the same answer everywhere. Per-platform checksums let the wrapper verify what it downloads without
   trusting the download host alone. The pin exists in one place because two pins drift apart after the first upgrade
-  that touches only one. The pin is owned, not seeded: its checksums are worth something only if an admitted release
-  verified them ([0021](0021-release-trust.md)), so a hand edit has to show as drift instead of becoming the
-  repository's choice.
+  that touches only one. The release also fixes the builtin plugins, so every machine describes the programs a
+  repository uses the same way ([0022](0022-tool-integration.md)). The pin is owned, not seeded: its checksums are worth
+  something only if an admitted release verified them ([0021](0021-release-trust.md)), so a hand edit has to show as
+  drift instead of becoming the repository's choice.
 - **3.** A new release can change rendering and migrate schemas ([0005](0005-schema-compatibility.md)). An explicit,
   reviewed upgrade lands that change in one diff, instead of whenever a teammate's machine updates. Requiring an
   admitted release ([0021](0021-release-trust.md)) means the committed checksums are ones an already trusted binary
@@ -125,11 +126,11 @@ first command works with nothing installed beforehand.
   and executing is the minimum a clone needs to reach the binary; any further logic in the wrapper would be engine code
   copied into every repository, beyond the reach of a release. The lines of point 5 are fixed text in the wrapper's
   template, selected by the event the hook names; printing them reports a failed resolution and decides nothing.
-- **9.** Reading a task runner's file would integrate that task runner, and the binary integrates no task runner
-  ([0022](0022-tool-integration.md)). Nothing is lost by not reading it: a binary the task runner installs defers to the
-  committed pin inside the repository (point 7), so a second version in the task runner's list changes nothing the
-  repository renders or checks. The trade: that version can drift from the pin unreported, and keeping it is the team's
-  choice.
+- **9.** Reading a task runner's file would tie the binary to that task runner's format, and the binary reads no
+  program's own configuration ([0022](0022-tool-integration.md)). Nothing is lost by not reading it: a binary the task
+  runner installs defers to the committed pin inside the repository (point 7), so a second version in the task runner's
+  list changes nothing the repository renders or checks. The trade: that version can drift from the pin unreported, and
+  keeping it is the team's choice.
 - **10.** Without a notice, a repository stays on its pinned release indefinitely. The lookup must never cost a session
   or a pipeline anything, so it is cached, non-blocking and offline-safe, and it can be disabled for CI and machines
   without network access.
@@ -186,7 +187,7 @@ The repository names an image that contains the pinned binary, and entry points 
 image pins the binary and its environment together, and CI systems that run jobs in images use it directly. It loses
 because every machine needs a container runtime ([0004](0004-runtime-dependencies.md)). A container start takes hundreds
 of milliseconds against the 50 ms hook budget ([0003](0003-implementation-language.md)), and the tool must reach the
-working tree and the git state from inside the container.
+working tree and the version control state from inside the container.
 
 ### Refuse adoption without access to the release source
 

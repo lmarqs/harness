@@ -15,7 +15,7 @@ written. Whatever needs a person's judgement is listed as work to do, not guesse
 ## Overview
 
 `harness scaffold` sets a repository up for `harness`. On a repository with no agent setup it seeds the repository files
-from its own templates and applies the [presets](presets.md) of the stacks it detects (greenfield). With `--adopt` it
+from its own templates and applies the [plugins](plugins.md) whose detect rule matches (greenfield). With `--adopt` it
 takes over an existing hand-written setup, imports every permission rule and hook it finds into the repository files
 without losing one, and lists what needs judgement as a to-do for an agent. Either way it writes the repository's
 [wrapper](wrapper.md), `harnessw`, pinned to the release that runs it.
@@ -30,7 +30,7 @@ with a global install, `harness <command>` is equivalent.
 | --- | --- |
 | No `.claude/settings.json` permissions or hooks | `harness scaffold` |
 | Hand-written permissions or hooks in `.claude/settings.json`, `CLAUDE.md` with content, existing skills | `harness scaffold --adopt` |
-| ralph-tui or Beads to wire in, after scaffolding | the [tool presets](presets.md#tool-presets): `./harnessw preset apply ralph-tui`, `./harnessw preset apply beads` |
+| ralph-tui or Beads to wire in, after scaffolding | their [plugins](plugins.md#builtin-plugins): `./harnessw plugin apply ralph-tui`, `./harnessw plugin apply beads` |
 | The repository already has `.harness/config.yaml` | Not `scaffold`: edit the files and run [`./harnessw render`](render.md) |
 | A `.harness/` directory that another tool owns, such as Harness.io pipelines | `scaffold` refuses; see [compatibility](compatibility.md#harnessio) |
 | Many repositories at once | [`harness fleet scaffold`](fleet.md) |
@@ -42,58 +42,77 @@ finds nothing to import and behaves like a plain scaffold.
 
 ### Greenfield
 
-1. **Detect.** Find the stacks from marker files and the default branch from `origin/HEAD`. A `.harness/` directory that
-   holds neither a `harness` profile nor a manifest belongs to another tool: `scaffold` stops with exit 3 and names it,
-   before planning anything.
+1. **Detect.** Choose the plugins: every builtin plugin whose detect rule matches, plus each `--plugin`
+   ([plugin detection](#plugin-detection)). Ask the version-control plugin for the default branch; with the git
+   plugin, the branch `origin/HEAD` names. A `.harness/` directory that holds neither a `harness` profile nor a
+   manifest belongs to another tool: `scaffold` stops with exit 3 and names it, before planning anything.
 2. **Plan.** Build the list of files, blocks and links to write. With `--dry-run`, print it and stop.
 3. **Confirm.** Show the plan and ask. `--yes` skips the question. Without a terminal and without `--yes`, nothing is
    written and the command exits 3.
-4. **Seed** the repository files from the templates `scaffold` holds, once, then apply the detected stacks' presets to
-   them:
-   - `.harness/config.yaml`: its skeleton, plus the presets' entries (commands, lanes, validators);
+4. **Seed** the repository files from the templates `scaffold` holds, once, then apply the chosen plugins to them, as
+   [`harness plugin apply`](plugins.md#how-apply-works) does:
+   - `.harness/config.yaml`: its skeleton, with `plugins:` listing the chosen plugins and `vcs: git` (or the plugin
+     `--vcs` names), plus the plugins' entries (agent declarations, commands, lanes, validators);
    - `.harness/policy.yaml` with one seeded entry, `[harness, lifecycle, run, deliver]` under `shared.ask`, rendered for
      each spelling `harness` renders, so the agent's own permission prompt asks a person before an agent runs the
      repository's delivery actions. The repository owns this seeded entry and may change it
      ([policy](policy.md#the-seeded-entry), [ADR 0015](../adrs/0015-development-lifecycle.md));
-   - `.harness/hooks.yaml`: its skeleton, plus the presets' post-edit hooks, with no `lifecycle` actions: no stack
-     preset holds one;
-   - `.agents/memory/` skeleton, when the `memory` module is on.
+   - `.harness/hooks.yaml`: its skeleton, plus the plugins' post-edit hooks, with no `lifecycle` actions: no plugin
+     `scaffold` detects holds one;
+   - `.agents/memory/` skeleton, when the `memory` module is on;
+   - each template of the chosen plugins whose file is absent.
 5. **Pin** the release that runs `scaffold` in `.harness/wrapper.yaml`, an owned file: its exact version, and the
    checksums of its four platform binaries. They come from that release's checksum file, fetched over HTTPS and
    accepted only after its signature verifies against the release keys embedded in the running binary
    ([wrapper](wrapper.md#harnesswrapperyaml), [safety](safety.md#the-pinned-binary)). With `--offline`, `scaffold`
    makes no network request and writes a [pending pin](wrapper.md#a-pending-pin) instead: the version and the source,
    with `checksums: pending`.
-6. **Render** everything else, exactly as [`harness render`](render.md) does: `harnessw`, native agent files, the
-   harness skill and its links, managed blocks, the manifest.
+6. **Render** everything else, exactly as [`harness render`](render.md) does: `harnessw`, the renders and floor rules of
+   every chosen plugin (native agent files, skill links, `.gitignore` blocks), the harness skill, the other managed
+   blocks, the manifest.
 
 After this, the seeded files belong to the repository. `scaffold` never rewrites them; `render` reads them. People and
 agents edit the profile, the policy and the hooks file; the pin changes only through
 [`harness wrapper`](wrapper.md#harness-wrapper).
 
-### Stack detection and presets
+### Plugin detection
 
-`scaffold` detects each stack from its marker files and applies its [preset](presets.md#the-presets) to the files it
-seeds, with the same rules as [`harness preset apply`](presets.md#how-apply-works):
+`scaffold` applies every builtin [plugin](plugins.md#builtin-plugins) whose detect rule matches, in the order of this
+table, with the same rules as [`harness plugin apply`](plugins.md#how-apply-works):
 
-| Preset | Detected from | Adds |
+| Plugin | Detected from | Adds |
 | --- | --- | --- |
+| `git` | `.git` | the version-control operations, the `state` and `worktrees` blocks of `.gitignore`, the force-push floor |
+| `claude` | `.claude/`, `CLAUDE.md` | `agents.claude` with `role: interactive`, Claude Code's native files, its bypass floor |
+| `codex` | `.codex/` | `agents.codex` with `role: interactive`, Codex's native files, its bypass floor |
+| `mise` | `mise.toml`, `.mise.toml` | the `:::` floor |
+| `skills` | `skills-lock.json` | the `skills` CLI's version check |
 | `go` | `go.mod` | lint and build commands, a `go test` lane, a format-on-edit hook for `*.go` |
 | `node` | `package.json` | lint and build commands, test lanes, a lint-on-edit hook for source files |
 | `terraform` | `*.tf` files | format command, `validate` and `plan` lanes, a format-on-edit hook |
 | `python` | `pyproject.toml` or `requirements.txt` | lint command, a test lane, a lint-on-edit hook |
 
-A polyglot repository gets the presets of every detected stack, applied in the order of this table. Their lanes and
-hooks sit side by side. For an item both name, such as `commands.lint`, the repository gets the first preset's entry,
-and the other preset's differing entry is reported, as [`preset apply`](presets.md#how-apply-works) reports every
-difference it does not write. `--preset <name>` replaces detection with one preset, and `--preset none` applies none. A
-repository whose stack is not recognised gets no preset: the seeded files hold their skeleton and the seeded delivery
-`ask` entry only.
+When neither `claude` nor `codex` is detected, as in a repository with no agent files yet, `scaffold` applies both, so
+the repository gets an agent setup. A polyglot repository gets the plugins of every detected stack. Their lanes and
+hooks sit side by side. For an item two plugins name, such as `commands.lint`, the repository gets the first plugin's
+entry, and the other plugin's differing entry is reported, as [`plugin apply`](plugins.md#how-apply-works) reports
+every difference it does not write. A repository whose stack is not recognised gets no stack plugin: the seeded files
+hold their skeleton, the agent declarations and the seeded delivery `ask` entry only.
 
-The applied entries are the repository's from the moment they are written, and nothing records which presets were
-applied. A stack the repository gains later gets its entries with `./harnessw preset apply <name>`. `scaffold` detects
-no [tool presets](presets.md#tool-presets) and applies none: a repository wires ralph-tui or Beads with
-`./harnessw preset apply ralph-tui` or `./harnessw preset apply beads`.
+Three flags change the choice:
+
+| Flag | Effect |
+| --- | --- |
+| `--plugin <name>` | adds a plugin to the detected set; repeatable. Example: `--plugin ralph-tui --plugin beads` |
+| `--no-detect` | applies only the plugins named with `--plugin`, and the version-control plugin |
+| `--vcs <name>` | names the plugin that fills the [version-control contract](plugins.md#the-version-control-contract) and is written as `vcs:`; default `git` |
+
+`plugins:` in the profile records the plugins `scaffold` applied; their entries and templates are the repository's from
+the moment they are written. A program the repository takes up later gets its plugin with
+`./harnessw plugin apply <name>`. `ralph-tui` and `beads` have no detect rule, so `scaffold` applies them only when
+`--plugin` names them; a repository wires ralph-tui or Beads with `./harnessw plugin apply ralph-tui` or
+`./harnessw plugin apply beads`. A [fetched plugin](plugins.md#fetched-plugins) is declared in the profile after
+scaffolding, never by `scaffold`.
 
 ### Files created when absent
 
@@ -101,7 +120,7 @@ no [tool presets](presets.md#tool-presets) and applies none: a repository wires 
 | --- | --- |
 | `AGENTS.md` | only the managed blocks; the prose is for people and agents to write |
 | `CLAUDE.md` | only the `import` block, a single `@AGENTS.md` line |
-| `.gitignore` | only its blocks: `state` and `worktrees` |
+| `.gitignore` | only the blocks of the chosen plugins: `state` and `worktrees` from the git plugin |
 
 When these files exist, `scaffold` appends its blocks at the end and touches nothing else. `README.md` is never
 created; when it exists, it receives the `commands` block. The [block ids](render.md#block-ids) table lists every
@@ -121,7 +140,7 @@ enumeration `project`, `local`, `user`, `none`. With `--adopt` the default is `p
 
 | Scope | Reads | Imported entries |
 | --- | --- | --- |
-| `project` | `.claude/settings.json` `permissions.allow`, `ask`, `deny`; every `.codex/rules/*.rules` file; hooks in `.claude/settings.json` and `.codex/hooks.json`; any other permission source it recognises | committed as the repository's own |
+| `project` | the native rules of each chosen harness plugin: `.claude/settings.json` `permissions.allow`, `ask`, `deny` for `claude`, every `.codex/rules/*.rules` file for `codex`; hooks in `.claude/settings.json` and `.codex/hooks.json`; any other permission source it recognises | committed as the repository's own |
 | `local` | `.claude/settings.local.json`, `.codex/*.local.toml` | marked for review in the to-do: they are one person's settings and become committed and shared |
 | `user` | `~/.claude/settings.json`, `~/.codex/rules/` | marked for review in the to-do, for the same reason |
 | `none` | nothing | nothing |
@@ -160,7 +179,7 @@ shared:
 | --- | --- |
 | The same entry under the same decision in several sources | one entry; its provenance comment names every source |
 | The same pattern under `allow` and under `deny` | the entry is kept under `deny` only, and a to-do item asks a person to confirm |
-| An entry that would weaken a [built-in invariant](concepts.md#built-in-invariants), such as allowing a permission-bypass flag or a force push to the default branch | dropped, and reported by name in the output |
+| An entry that would weaken a [floor rule](plugins.md#the-floor) of a chosen plugin, such as allowing a force push to the default branch, or a [built-in invariant](concepts.md#built-in-invariants), such as allowing a permission-bypass argument | dropped, and reported by name in the output |
 
 ### Not policy: notes
 
@@ -196,7 +215,7 @@ equivalence: Bash(gh api *) from .claude/settings.json (project) is not in effec
 | Whole-directory links (`.claude/skills -> ../.agents/skills`) | stay; the harness skill is reached through them |
 | `CLAUDE.md` content | untouched; the one-line `import` block is added (root `CLAUDE.md`, or `.claude/CLAUDE.md` when only that exists) |
 | A `.beads/` or a root `.ralph-tui/` | never read, written or moved |
-| Task-runner files: `mise.toml`, `.mise/tasks/`, a `Makefile`, a package manager's scripts | never written, and their content never read; a `package.json` only marks the Node stack |
+| Task-runner files: `mise.toml`, `.mise/tasks/`, a `Makefile`, a package manager's scripts | never written, and their content never read; a `package.json` or a `mise.toml` only matches a plugin's detect rule |
 | `core.hooksPath`, git hooks, Husky | untouched |
 | A `.harness/` directory without a `harness` profile or manifest, such as Harness.io pipelines | not adopted: `scaffold` refuses with exit 3 and names the directory; nothing is written |
 | `.gitignore` entries | untouched; the blocks omit paths the repository tracks |
@@ -232,7 +251,7 @@ those entries as you would any policy change; see [safety](safety.md).
 ## Reference
 
 ```text
-harness scaffold [--adopt] [--import <scope>[,<scope>]...] [--preset <go|node|terraform|python|none>]
+harness scaffold [--adopt] [--import <scope>[,<scope>]...] [--plugin <name>]... [--no-detect] [--vcs <name>]
                  [--offline] [--yes] [--dry-run]
 ```
 
@@ -240,7 +259,9 @@ harness scaffold [--adopt] [--import <scope>[,<scope>]...] [--preset <go|node|te
 | --- | --- | --- |
 | `--adopt` | off | Import an existing setup and emit a to-do |
 | `--import <scope>[,<scope>]...` | `project` with `--adopt`, else `none` | Scopes to import, as a comma-separated set from the closed enumeration `project`, `local`, `user`, `none` |
-| `--preset <name>` | detected | Apply this one [stack preset](presets.md#stack-presets) instead of the detected ones: `go`, `node`, `terraform`, `python`; `none` applies none |
+| `--plugin <name>` | none | Apply this builtin [plugin](plugins.md#builtin-plugins) besides the detected ones; repeatable |
+| `--no-detect` | off | Apply only the plugins named with `--plugin`, and the version-control plugin |
+| `--vcs <name>` | `git` | The plugin that fills the [version-control contract](plugins.md#the-version-control-contract), written as `vcs:` and always applied |
 | `--offline` | off | Make no network request. The pin is written [pending](wrapper.md#a-pending-pin), without checksums, and is completed later with `harness wrapper --version <tag>` |
 | `--yes` | off | Do not ask for confirmation |
 | `--dry-run` | off | Print the plan, the generated `policy.yaml` and `hooks.yaml`, and the equivalence report; write nothing |
@@ -250,16 +271,17 @@ Global flags `-C <dir>`, `--json`, `--verbose` also apply; see [CLI reference](c
 | Exit code | Meaning |
 | --- | --- |
 | 0 | Scaffolded or adopted. With `--adopt`, open to-do items do not change the exit code |
-| 1 | Error, including a repository that already has `.harness/config.yaml`, a checksum file of the pinned release that cannot be fetched without `--offline`, and one whose signature does not verify. Nothing is written |
+| 1 | Error, including a repository that already has `.harness/config.yaml`, an unknown plugin name, a checksum file of the pinned release that cannot be fetched without `--offline`, and one whose signature does not verify. Nothing is written |
 | 2 | The equivalence check found a project-scope rule that would not be in effect; nothing was written |
-| 3 | A person must act: confirmation needed and no terminal (rerun with `--yes`, or from a terminal), or a `.harness/` directory that belongs to another tool |
+| 3 | A person must act: confirmation needed and no terminal (rerun with `--yes`, or from a terminal), a `.harness/` directory that belongs to another tool, or the version-control plugin's program, such as git, not installed |
 
-Files read: marker files for detection, `.git` (default branch, tracked paths), `.claude/settings.json`,
-`.codex/rules/`, `.codex/hooks.json`, `CLAUDE.md`, `.claude/CLAUDE.md`, `.gitignore`, `.claude/skills`; with
-`--import local`, `.claude/settings.local.json` and `.codex/*.local.toml`; with `--import user`,
+Files read: the files each builtin plugin's detect rule names, the default branch the version-control plugin reports,
+`.claude/settings.json`, `.codex/rules/`, `.codex/hooks.json`, `CLAUDE.md`, `.claude/CLAUDE.md`, `.gitignore`,
+`.claude/skills`; with `--import local`, `.claude/settings.local.json` and `.codex/*.local.toml`; with `--import user`,
 `~/.claude/settings.json` and `~/.codex/rules/`. Files written: see [render](render.md#what-render-writes) (`harnessw`
-included), the owned `.harness/wrapper.yaml`, plus the seeded `.harness/config.yaml`, `.harness/policy.yaml`,
-`.harness/hooks.yaml` and `.agents/memory/`.
+included), the owned `.harness/wrapper.yaml`, plus the seeded `.harness/config.yaml` (with `plugins:` and `vcs:`),
+`.harness/policy.yaml`, `.harness/hooks.yaml` and `.agents/memory/`, and each template of the plugins it applies whose
+file is absent.
 
 ## Examples
 
@@ -268,7 +290,7 @@ included), the owned `.harness/wrapper.yaml`, plus the seeded `.harness/config.y
 ```sh
 $ cd ~/src/acme-api
 $ harness scaffold --dry-run
-detected: node (package.json); default branch: main
+detected: git (.git), node (package.json); no agent files: applying claude, codex; default branch: main
 would write:
   harnessw  .harness/wrapper.yaml (v0.9.0)
   .harness/config.yaml  .harness/policy.yaml  .harness/hooks.yaml  .agents/memory/
@@ -287,10 +309,11 @@ Then review the seeded lanes in `.harness/config.yaml` against the repository's 
 
 ```sh
 $ cd ~/src/acme-infra
-$ harness scaffold --preset terraform --yes
+$ harness scaffold --no-detect --plugin claude --plugin terraform --yes
 ```
 
-The profile gets `validate` and `plan` lanes, and the `commands` block in `AGENTS.md` shows `./harnessw verify …`.
+The profile lists `git`, `claude` and `terraform` under `plugins:` and gets `validate` and `plan` lanes, and the
+`commands` block in `AGENTS.md` shows `./harnessw verify …`.
 
 ### Offline, completed later
 
@@ -338,7 +361,7 @@ raw:
 --- equivalence
 claude: 14 of 14 project rules in effect
 codex: 3 of 3 project rules in effect
-dropped: Bash(git push --force origin main) weakens an invariant
+dropped: Bash(git push --force origin main) weakens a floor rule of the git plugin
 note: .codex/rules/default.rules still applies; delete it once the import is reviewed
 note: defaultMode in .claude/settings.json is not policy; left in place
 $ harness scaffold --adopt --yes
@@ -361,11 +384,11 @@ to-do:
 - Do commit the scaffold as its own commit, so later changes to the repository files are reviewable on their own.
 - Do complete a pending pin before you push: until then, no machine without the release in its cache can run
   `./harnessw`.
-- Do review the seeded lanes and commands: presets guess from the stack, while the repository knows its real commands.
+- Do review the seeded lanes and commands: plugins guess from the stack, while the repository knows its real commands.
 - Do give the to-do to an agent with the harness skill; it is written for that.
 - Do import `local` or `user` only when those settings are meant for everyone, and review each entry they bring.
 - Don't run `scaffold` again to "refresh" a repository. Edit the repository files and run `./harnessw render`. To add a
-  stack's entries, run `./harnessw preset apply <name>`. To move to another release, run `./harnessw wrapper`.
+  stack's entries, run `./harnessw plugin apply <name>`. To move to another release, run `./harnessw wrapper`.
 - Don't hand-edit rendered files to finish an adoption; the next render overwrites them and `render --check` fails.
 
 ## Troubleshooting
@@ -378,8 +401,9 @@ to-do:
 | Exit 3 in a script | No terminal to confirm | Pass `--yes` |
 | Exit 3 naming `.harness/` | The directory belongs to another tool, such as Harness.io pipelines | `harness` cannot share it; see [compatibility](compatibility.md#harnessio) |
 | Exit 2 naming a rule | The equivalence check found a project rule the new files would not keep in effect; nothing was written | Keep the repository unadopted and report the rule to the `harness` project, with the rule and the agent version ([ADR 0016](../adrs/0016-permission-adoption.md)) |
-| Wrong stack detected | Marker files of another stack are present (for example a `package.json` for tooling in a Go repository) | Before scaffolding, pass `--preset <name>`, after checking with `harness preset list`; afterwards, delete the entries that do not apply from `.harness/config.yaml` and `.harness/hooks.yaml` and run `./harnessw render`; `./harnessw preset apply <name>` adds the right stack's entries if they are missing |
-| A rule allowing a force push is missing after adopt | It weakens a built-in invariant and was dropped | Nothing to restore; the invariant holds in every repository |
+| Wrong stack detected | Marker files of another stack are present (for example a `package.json` for tooling in a Go repository) | Before scaffolding, pass `--no-detect` with a `--plugin` for each plugin you want, after checking with `harness plugin list`; afterwards, delete the entries that do not apply from `.harness/config.yaml` and `.harness/hooks.yaml`, delete the plugin from `plugins:` and run `./harnessw render`; `./harnessw plugin apply <name>` adds the right stack's entries if they are missing |
+| A rule allowing a force push is missing after adopt | It weakens a floor rule of the git plugin and was dropped | Nothing to restore; the floor rule holds while the git plugin is in use |
+| Exit 3 naming git | The version-control plugin's program is not installed | Install git, or pass `--vcs <name>` for the plugin of the version control system the repository uses |
 
 ## Coexistence
 

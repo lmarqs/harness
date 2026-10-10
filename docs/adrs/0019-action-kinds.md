@@ -44,10 +44,10 @@ value written by people or agents runs as a command or instruction it was not me
 4. An HTTP request takes its URL and header values only from environment variables, never from committed files, and
    the binary never logs them. Values placed into its body are JSON-encoded. Success is a 2xx status. Redirects never
    cross hosts.
-5. An agent run starts a harness headless under the unattended-agent contract ([0011](0011-safety-invariants.md)), in
-   the working copy the event concerns. For work that has landed, it runs in a fresh working copy of the default branch
-   that the binary creates and records. It cannot commit, push or trigger events; its edits stay uncommitted in that
-   working copy and are reported.
+5. An agent run starts a harness headless through that agent's harness plugin ([0009](0009-agent-support.md)), under the
+   unattended-agent contract ([0011](0011-safety-invariants.md)), in the working copy the event concerns. For work that
+   has landed, it runs in a fresh working copy of the default branch that the binary creates and records. It cannot
+   commit, push or trigger events; its edits stay uncommitted in that working copy and are reported.
 6. Notification events accept commands and HTTP requests only.
 7. No action is automatic unless it says so. The health check reports every automatic agent run.
 8. Integrations that need an agent tool server are agent runs; the binary is never such a client
@@ -72,12 +72,13 @@ value written by people or agents runs as a command or instruction it was not me
   status is the protocol's own success signal. A redirect to another host would send the request, and possibly its
   headers, to a host the declaration never named.
 - **5.** Judgement belongs to an agent ([0002](0002-division-of-work.md)), and the tool starts a harness rather than
-  calling a model ([0001](0001-role-of-the-tool.md)). The prompt can carry untrusted text, so the agent may be misled.
-  The unattended-agent contract bounds what a misled agent can do, and denying commits, pushes and events keeps an
-  action's agent from publishing work or starting further actions. Uncommitted, reported edits leave the result to a
-  person. Once work has landed, its task working copy is about to be removed and the primary checkout holds whatever a
-  person is doing. A fresh, recorded working copy gives the agent the merged code without touching either, and its
-  record lets cleanup remove it later ([0012](0012-write-boundary.md)).
+  calling a model ([0001](0001-role-of-the-tool.md)). Launching through the harness plugin starts every agent the way
+  the worker command starts it, with the same refused bypass arguments ([0011](0011-safety-invariants.md)). The prompt
+  can carry untrusted text, so the agent may be misled. The unattended-agent contract bounds what a misled agent can do,
+  and denying commits, pushes and events keeps an action's agent from publishing work or starting further actions.
+  Uncommitted, reported edits leave the result to a person. Once work has landed, its task working copy is about to be
+  removed and the primary checkout holds whatever a person is doing. A fresh, recorded working copy gives the agent the
+  merged code without touching either, and its record lets cleanup remove it later ([0012](0012-write-boundary.md)).
 - **6.** An agent run on a notification event would start a harness from inside a harness at every turn end, an
   unbounded cost and a loop nobody watches. Commands and HTTP requests are enough to notify a person.
 - **7.** An automatic action runs with nobody choosing each run; for an agent run that also means unattended model cost
@@ -105,11 +106,12 @@ At its best, actions call the same tools agents use, deterministically and witho
 because the binary would hold service credentials and a protocol client that follows a moving specification, and the
 tool would act as a harness ([0001](0001-role-of-the-tool.md)). An agent already owns those connections.
 
-### A plugin system for integrations
+### Executable extensions for integrations
 
-At its best, any integration runs in process with full control. It loses because plugin code is engine code in
+At its best, any integration runs in process with full control. It loses because extension code is engine code in
 repositories ([0006](0006-repository-contract.md)) that may need a runtime ([0004](0004-runtime-dependencies.md)), and
-an open extension surface has no rule set that covers it.
+an open extension surface has no rule set that covers it. A plugin is data that fills fixed contracts
+([0022](0022-tool-integration.md)), not code that runs in process.
 
 ### Agent runs on notification events
 

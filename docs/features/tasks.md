@@ -25,9 +25,9 @@ Three pieces make this work:
   worktree has.
 - **The `completed` guard.** `completed` with scope `task` is refused (exit 3) without a valid
   [verification receipt](verify.md) when the verify module is on, whoever fires it.
-- **Trackers wired by actions.** The `beads` [preset](presets.md) writes the actions for Beads, a task tracker that
-  keeps its database in `.beads/` and is used through its `bd` command. Any other tracker is wired the same way with
-  its own command line, such as GitHub issues through `gh`.
+- **Trackers wired by actions.** The `beads` [plugin](plugins.md#beads) writes the actions for Beads, a task tracker
+  that keeps its database in `.beads/` and is used through its `bd` command. Any other tracker is wired the same way
+  with its own command line, such as GitHub issues through `gh`.
 
 Commands are named `harness <command>` on this page. The examples run them through the repository's wrapper,
 `./harnessw <command>`, from the root of a checkout; with a global install, `harness <command>` is equivalent
@@ -96,10 +96,10 @@ The actions are the repository's own entries in `.harness/hooks.yaml`, reviewed 
 trackers changes those entries and nothing else. A program an action names that is not on `PATH` is a
 [`harness doctor`](doctor.md) finding.
 
-#### The Beads preset
+#### The Beads plugin
 
-`harness preset apply beads` writes these entries for Beads 1.3.1, after showing them as a diff
-([presets](presets.md#how-apply-works)):
+`harness plugin apply beads` writes these entries for Beads 1.3.1, after showing them as a diff
+([plugins](plugins.md#how-apply-works)):
 
 ```yaml
 # .harness/hooks.yaml
@@ -140,12 +140,12 @@ worker:
 - Codex workers get `.beads/` as a writable root, so `bd` commands the agent runs can update the database.
 - `bd` refuses a missing id, so an action that runs with `HARNESS_TASK` unset fails instead of touching another bead.
 - Nothing initialises, configures or localises a Beads database. Creating one is `bd`'s own job (`bd init`).
-- When ralph-tui runs with its Beads tracker, ralph-tui updates bead status itself ([ralph](ralph.md)). The preset's
+- When ralph-tui runs with its Beads tracker, ralph-tui updates bead status itself ([ralph](ralph.md)). The plugin's
   actions matter for interactive work in managed worktrees.
 
 #### GitHub issues with `gh`
 
-No preset holds these; a repository declares them itself. The task id is the issue number:
+No builtin plugin holds these; a repository declares them itself. The task id is the issue number:
 
 ```yaml
 # .harness/hooks.yaml
@@ -198,7 +198,7 @@ Files written: the lifecycle log; whatever the actions write.
 ### A Node API with Beads
 
 ```sh
-./harnessw preset apply beads
+./harnessw plugin apply beads
 ./harnessw worktree create invoice-rounding --task acme-api-7f2   # bead-start marks acme-api-7f2 in progress
 cd .work/worktrees/invoice-rounding
 # edit, test
@@ -229,7 +229,7 @@ Create worktrees without `--task` and declare no tracker actions; worktrees and 
 - Do bind a worktree to one task with `--task`, so every event fired there names it.
 - Do run `harness verify` before firing `completed`; the guard refuses it otherwise.
 - Do keep tracker actions scoped to `task`, so a worktree without a task never runs them.
-- Don't let a worker's agent close tasks itself; deny the tracker's close command in `worker.deny`, as the Beads preset
+- Don't let a worker's agent close tasks itself; deny the tracker's close command in `worker.deny`, as the Beads plugin
   does.
 - Don't share task ids across clones of a clone-local tracker such as Beads: they mean something only where the
   tracker's data is.

@@ -23,7 +23,7 @@ These rules apply to anything harness writes into a repository.
 | Owned whole file that allows comments | the wrapper `harnessw` (after its `#!` line), `.harness/wrapper.yaml`, `.codex/rules/harness.rules`, the harness skill `.agents/skills/harness/SKILL.md` (as a YAML comment right after the opening `---` of its front matter) | header line, plus the manifest |
 | Owned whole file that allows no comments | `.harness/manifest.json` and other JSON files | the manifest |
 | Seeded file | `.harness/config.yaml`, `.harness/policy.yaml`, `.harness/hooks.yaml`, the `.agents/memory/` skeleton | the manifest records it as seeded, with the hash it was created with: written once, then the repository's |
-| Template file | a file a preset's template wrote, such as `.ralph-tui/config.toml` from the `ralph-tui` preset | nothing: seeded content the manifest does not record, written once and only where the file was absent, then the repository's |
+| Template file | a file a plugin's template wrote, such as `.ralph-tui/config.toml` from the `ralph-tui` plugin | nothing: seeded content the manifest does not record, written once and only where the file was absent, then the repository's |
 | Managed block inside a human file | the [block ids](#block-ids) in `AGENTS.md`, `README.md`, `CLAUDE.md` and `.gitignore` | opening and closing markers, plus the manifest |
 | Owned keys inside a native file | `permissions.{allow,ask,deny}`, harness hook entries (agent hooks, notification and context hooks) and rendered raw hook entries in `.claude/settings.json`; the equivalent keys and entries in `.codex/config.toml` (its `notify` key when harness renders it) and `.codex/hooks.json` | the manifest |
 | Link | `.claude/skills/harness -> ../../.agents/skills/harness` | the manifest |
@@ -33,23 +33,32 @@ The manifest (`.harness/manifest.json`) is the record of ownership. Content not 
 it looks like. Why: a header or a marker can be copied into a file harness never wrote, and only the record says what
 harness created.
 
+The manifest also records the owner of each piece of owned content: the binary, for what it renders from the neutral
+model alone (`harnessw`, `wrapper.yaml`, the harness skill, the manifest, the `AGENTS.md` and `README.md` blocks), or
+the [plugin](../features/plugins.md#renders) whose renders produce it (the claude plugin's keys in
+`.claude/settings.json` and its `CLAUDE.md` import, the codex plugin's rules file, the git plugin's `.gitignore`
+blocks). Deleting a plugin from `plugins:` and rendering removes exactly the content the manifest records under that
+plugin. Why: the binary contains no program's format, so what a program's files hold is the plugin's, and only an
+owner in the record tells a render which content leaves with the plugin
+([ADR 0007](../adrs/0007-ownership.md), [ADR 0022](../adrs/0022-tool-integration.md)).
+
 Owned content is rendered and replaced on every render, and a hand edit to it is drift. Seeded content is written once
 and then edited by people and agents. harness never re-renders it, and adds to the repository files only when a person
-applies a preset (`harness preset apply`), and then only what they lack. Why: the seeded files hold the repository's
+applies a plugin (`harness plugin apply`), and then only what they lack. Why: the seeded files hold the repository's
 choices and knowledge, which harness cannot recompute.
 
-A template is seeded content of its own kind: a whole file in a preset or in `scaffold`, rendered once with values from
+A template is seeded content of its own kind: a whole file in a plugin or in `scaffold`, rendered once with values from
 the profile, written only when the file is absent, and from then on the repository's own file. harness never renders it
-again and never removes it, and the manifest does not record it. Why: a template is usually a file another tool reads,
-such as a loop runner's configuration, which the team then edits for that tool, and a record of where it came from
-would be a record of which presets the repository applied
-([configuration-standards.md](configuration-standards.md#presets)).
+again and never removes it, and the manifest does not record it. Why: a template is usually a file another program
+reads, such as a loop runner's configuration, which the team then edits for that program. A record would make it look
+owned, and deleting its plugin from `plugins:` would then remove a file the team edited
+([configuration-standards.md](configuration-standards.md#what-each-part-writes)).
 
-`harness scaffold` seeds the repository files and applies the presets of the detected stacks as it seeds them
-([configuration-standards.md](configuration-standards.md#presets)). The `.agents/memory/` skeleton is seeded when the
-memory module is enabled, by `harness scaffold` or by the first `harness render` after the module is enabled, and is
-never re-rendered. The recorded creation hash is what lets undo (`harness remove`) tell an untouched skeleton from
-content someone wrote ([ADR 0007](../adrs/0007-ownership.md)).
+`harness scaffold` seeds the repository files and applies the plugins whose detect rule matches the repository as it
+seeds them ([configuration-standards.md](configuration-standards.md#applying-a-plugin)). The `.agents/memory/` skeleton
+is seeded when the memory module is enabled, by `harness scaffold` or by the first `harness render` after the module is
+enabled, and is never re-rendered. The recorded creation hash is what lets undo (`harness remove`) tell an untouched
+skeleton from content someone wrote ([ADR 0007](../adrs/0007-ownership.md)).
 
 ## Header
 
@@ -142,27 +151,29 @@ length is the repository's own choice of directives.
 
 ### Block ids
 
-Block ids are per module or convention. A module owns its blocks: turning the module off, or removing it with
-`harness remove --module <name>`, removes them, because a block that states a convention nobody follows any more is
-wrong. These blocks belong to every adopted repository, whatever the modules: `commands`, `layout`, `worktrees`,
-`lifecycle` and `policy` in `AGENTS.md`; `commands` in `README.md` when it exists; `import` in `CLAUDE.md` unless it
-already imports `@AGENTS.md`; `state` and `worktrees` in `.gitignore`. Why: worktrees and lifecycle events exist in
-every adopted repository, so their conventions and conditions are stated in every one.
+Block ids are per module, per plugin or per convention. A module or a plugin owns its blocks: turning the module off,
+deleting the plugin from `plugins:` and rendering, or removing the module with `harness remove --module <name>`, removes
+them, because a block that states a convention nobody follows any more is wrong. These blocks belong to every adopted
+repository, whatever the modules: `commands`, `layout`, `worktrees`, `lifecycle` and `policy` in `AGENTS.md`;
+`commands` in `README.md` when it exists; `state` and `worktrees` in `.gitignore`, which the git plugin renders. Why:
+worktrees and lifecycle events exist in every adopted repository, so their conventions and conditions are stated in
+every one.
 
-| File | Block id | Class | States |
-| --- | --- | --- | --- |
-| `AGENTS.md` | `commands` | tool | how to run things: `./harnessw <command>` |
-| `AGENTS.md` | `layout` | tool | what `.harness/`, `.agents/` and the state directories hold |
-| `AGENTS.md` | `verify` | tool | the repository's checks: lint, build, the test lanes and when each is required |
-| `AGENTS.md` | `lifecycle` | tool | the conditions work meets before it leaves the clone, and each event's actions in order |
-| `AGENTS.md` | `worktrees` | convention | where managed worktrees are created, on which branch, from which base |
-| `AGENTS.md` | `policy` | convention | the effective permissions by decision, with the entries only Claude enforces |
-| `AGENTS.md` | `memory` | convention | the index of `.agents/memory/` |
-| `AGENTS.md` | `context` | convention | the standing directives declared `static`, inline or as pointer lines |
-| `README.md` | `commands` | tool | how to run things, as in `AGENTS.md` |
-| `CLAUDE.md` | `import` | convention | one line: `@AGENTS.md` |
-| `.gitignore` | `state` | convention | `/<state.dir>/` |
-| `.gitignore` | `worktrees` | convention | `/<worktrees.dir>/` |
+| File | Block id | Class | Owner | States |
+| --- | --- | --- | --- | --- |
+| `AGENTS.md` | `commands` | tool | the binary | how to run things: `./harnessw <command>` |
+| `AGENTS.md` | `layout` | tool | the binary | what `.harness/`, `.agents/` and the state directories hold |
+| `AGENTS.md` | `verify` | tool | the binary | the repository's checks: lint, build, the test lanes and when each is required |
+| `AGENTS.md` | `lifecycle` | tool | the binary | the conditions work meets before it leaves the clone, and each event's actions in order |
+| `AGENTS.md` | `worktrees` | convention | the binary | where managed worktrees are created, on which branch, from which base |
+| `AGENTS.md` | `policy` | convention | the binary | the effective permissions by decision, with each floor rule marked with the plugin it comes from (`(*floor rule of the git plugin*)`) and the entries only Claude enforces |
+| `AGENTS.md` | `memory` | convention | the binary | the index of `.agents/memory/` |
+| `AGENTS.md` | `context` | convention | the binary | the standing directives declared `static`, inline or as pointer lines |
+| `README.md` | `commands` | tool | the binary | how to run things, as in `AGENTS.md` |
+| `CLAUDE.md` | `import` | convention | the claude plugin, unless the file already imports `@AGENTS.md` | one line: `@AGENTS.md` |
+| `.gitignore` | `state` | convention | the git plugin | `/<state.dir>/` |
+| `.gitignore` | `worktrees` | convention | the git plugin | `/<worktrees.dir>/` |
+| `.gitignore` | `ralph-tui` | convention | the ralph-tui plugin | `/.ralph-tui/*` and `!/.ralph-tui/config.toml`: ralph-tui's session files, not its configuration |
 
 ### Conventions in blocks
 
@@ -171,7 +182,7 @@ harness ([principles.md](principles.md#8-conventions-outlive-the-tool)):
 
 - In `AGENTS.md`, as a convention block of plain-language statements: where worktrees are created, what is permitted,
   which directives always apply.
-- For each path, in a managed block of `.gitignore`.
+- For each path, in a managed block of `.gitignore`, which the git plugin renders.
 - The text names the configured value of each path, never a default the profile overrode, because a reader acts on
   what the text says.
 - A block's text describes the convention as fact. It never says it is managed by harness beyond the marker, and it
@@ -180,8 +191,9 @@ harness ([principles.md](principles.md#8-conventions-outlive-the-tool)):
 
 ## Owned keys in native files
 
-Why: native files are shared with people and other tools, so harness owns the keys it renders and nothing else
-([ADR 0008](../adrs/0008-native-configuration.md)).
+Why: native files are shared with people and other tools, so harness owns only the keys and entries the renders of
+the agent's harness plugin name, and nothing else ([ADR 0008](../adrs/0008-native-configuration.md),
+[ADR 0022](../adrs/0022-tool-integration.md)).
 
 - harness changes only the keys it owns. Every other key, its value, its order and its formatting are preserved byte
   for byte.
@@ -208,12 +220,13 @@ Why: native files are shared with people and other tools, so harness owns the ke
 
 Why: two teammates rendering the same commit must produce the same diff, or every render is noise in review.
 
-- The same repository files and pinned release produce the same bytes on every supported operating system, with no
-  network access and an empty per-user cache, because nothing else is an input
-  ([ADR 0013](../adrs/0013-organization-content.md)). A new release may render differently, the harness skill and
-  `harnessw` included. `harness wrapper --version <tag>` renders the repository with the new release in the same change
-  as the pin, so every such difference reaches review in the upgrade's diff
-  ([compatibility-standards.md](compatibility-standards.md#rendered-output-across-releases),
+- The same repository files, pinned release and plugins pinned by hash produce the same bytes on every supported
+  operating system, with no network access, because nothing else is an input
+  ([ADR 0013](../adrs/0013-organization-content.md), [ADR 0022](../adrs/0022-tool-integration.md)). The per-user cache
+  supplies only fetched plugins whose content matches their `sha256`. A new release may render differently, the harness
+  skill, `harnessw` and the renders and floor rules of its builtin plugins included. `harness wrapper --version <tag>`
+  renders the repository with the new release in the same change as the pin, so every such difference reaches review in
+  the upgrade's diff ([compatibility-standards.md](compatibility-standards.md#rendered-output-across-releases),
   [ADR 0017](../adrs/0017-engine-version.md)). Rendered content never records the release that rendered it
   ([ADR 0005](../adrs/0005-schema-compatibility.md)).
 - Generated content contains no timestamps, binary versions, usernames, hostnames, absolute paths or random values.
@@ -247,7 +260,7 @@ Why: two teammates rendering the same commit must produce the same diff, or ever
   binary itself verified or rendered, in a checkout its caller chose for that work or on a branch it created.
 - Reviewers judge the source change (`policy.yaml`, `hooks.yaml`, `config.yaml`); the rendered diff shows its effect
   on each agent.
-- `harness preset apply` writes its additions and renders them in the same change, so the entries, the files its
+- `harness plugin apply` writes its additions and renders them in the same change, so the entries, the files its
   templates wrote and their rendered effect reach review as one diff, and the drift check passes on it.
 - A version upgrade reaches review as one diff: `wrapper.yaml` (the version and its checksums) and every artefact the
   new release renders differently, `harnessw` and the harness skill included. The checksums were written only after
@@ -279,7 +292,7 @@ without harness:
 - It deletes the owned files and links, removes every managed block including its markers and text, and removes owned
   keys and entries from native files. Without `--module`, it also deletes `harnessw`, `wrapper.yaml`, the manifest and
   the seeded repository files in `.harness/`, listing the seeded files first, and then `.harness/` once nothing else
-  is in it. Their history stays in version control. Entries a preset added are part of those files and go with them.
+  is in it. Their history stays in version control. Entries a plugin added are part of those files and go with them.
   Why: the seeded files have no meaning without harness.
 - A seeded file outside `.harness/` (the `.agents/memory/` skeleton) is deleted only while it still matches the hash
   the manifest recorded when it was seeded; an edited one is kept and listed. Why: an untouched skeleton is harness
@@ -298,7 +311,8 @@ without harness:
 - It strips the markers of every convention block and keeps its text, and keeps the `.gitignore` entries, so the
   conventions stay written ([principles.md](principles.md#8-conventions-outlive-the-tool)).
 - It removes every tool block, so no instruction names a command that no longer exists.
-- It keeps rendered native files and owned keys as hand-owned content, removing their generated-file headers.
+- It keeps rendered native files and owned keys, floor rules included, as hand-owned content, removing their
+  generated-file headers.
 - It removes hook entries that call harness, and permission entries that name a harness command in any rendered
   spelling, and lists them; raw hooks keep working. Why: they name a program that no longer exists in the repository.
 - It removes the harness skill and its links, because the skill teaches commands that no longer exist.
@@ -307,5 +321,5 @@ without harness:
 - It keeps the `.agents/memory/` skeleton and whatever people wrote into it, because it is the repository's knowledge.
 
 After eject, the repository keeps its conventions, permissions, hooks and static standing directives, and every file a
-template wrote. A tool a preset wired keeps its own configuration; an entry in it that runs `./harnessw` is the
+template wrote. A program a plugin wired keeps its own configuration; an entry in it that runs `./harnessw` is the
 repository's to change.

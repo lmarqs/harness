@@ -77,33 +77,37 @@ harness context: sql-quality-check (path src/migration/1700000000000-add-invoice
 one started with `HARNESS_WORKER=1`, which `harness worker` and `agent` actions set for the agent they start; every
 other session is interactive.
 
-For a worker, the declarations and every file they name are read from its base commit, the `HEAD` of the checkout when
-`harness worker` started, not from the worker's writable tree, so a worker cannot change its own instructions between
-attempts ([safety](safety.md#standing-context)).
+For a worker, the declarations and every file they name are read from its base commit, the head commit of the checkout
+when `harness worker` started, through the version-control plugin, not from the worker's writable tree, so a worker
+cannot change its own instructions between attempts ([safety](safety.md#standing-context)).
 
 ### Delivery per agent
 
-`harness render` writes one hook entry per event the declarations need; `harness hook` decides what to inject.
+`harness render` writes one hook entry per event the declarations need; `harness hook` decides what to inject. Which
+native event carries each trigger, and where in the payload the file paths and the message are, comes from the agent's
+[harness plugin](plugins.md#the-harness-contract), which maps the payload onto a neutral event
+([payload normalisation](hooks.md#payload-normalisation)). The shipped plugins map the triggers so:
 
-| Trigger | Claude Code 2.1.x | Codex CLI 0.16x |
+| Trigger | claude plugin (Claude Code 2.1.x) | codex plugin (Codex CLI 0.16x) |
 | --- | --- | --- |
 | `always` | `SessionStart`, which fires on startup, resume, `/clear` and after compaction, so always-on content survives a compaction | `SessionStart` |
 | `when.paths` | `PostToolUse` after `Read`, `Edit`, `Write` and `MultiEdit`, on the file path the tool names | `PostToolUse` after `apply_patch`, on the files the patch touches |
 | `when.prompt` | `UserPromptSubmit`, on the person's message | `UserPromptSubmit`, on the person's message |
 
-The text reaches the agent as additional context of that event. An agent that has no event for a trigger gets nothing
-rendered for it, and [`harness doctor`](doctor.md) reports the gap as a note. Codex reads files through shell commands,
-which name no file to match, so a Codex session fires a `paths` entry only when it patches a matching file.
+The text reaches the agent as additional context of that event. A trigger the harness plugin maps to no native event
+gets nothing rendered for that agent, and [`harness doctor`](doctor.md) reports the gap as a note. Codex reads files
+through shell commands, which name no file to match, so a Codex session fires a `paths` entry only when it patches a
+matching file.
 
 In a worker session, the "person's message" is the task prompt the agent receives: what the loop runner passed to
 `harness worker`, or an `agent` action's prompt.
 
 ### Static entries
 
-An `always` entry with `static: true` is not injected by a hook. `harness render` writes it into the `context` block
-of `AGENTS.md`, as its content or as its pointer line. Claude Code reads it through the `import` block of `CLAUDE.md`,
-Codex reads `AGENTS.md` directly, and a machine where the pinned binary is not cached gets it like every other line of
-`AGENTS.md`.
+An `always` entry with `static: true` is not injected by a hook. `harness render` writes it into the `context` block of
+`AGENTS.md`, as its content or as its pointer line. Each agent reads `AGENTS.md` as its harness plugin's instructions
+operation says: Claude Code through the `import` block the claude plugin renders in `CLAUDE.md`, Codex directly, and a
+machine where the pinned binary is not cached gets it like every other line of `AGENTS.md`.
 
 ```markdown
 <!-- harness:context -->
@@ -200,7 +204,7 @@ It reads the same files the hooks read and writes nothing.
 
 | Flag | Default | Meaning |
 | --- | --- | --- |
-| `--role interactive\|worker` | `interactive` | The role to evaluate. `worker` reads the declarations and files from `HEAD`, as a worker reads them from its base commit |
+| `--role interactive\|worker` | `interactive` | The role to evaluate. `worker` reads the declarations and files from the checkout's head commit, as a worker reads them from its base commit |
 | `--path <file>` | none | A file the session reads or edits. Repeatable |
 | `--prompt <text>` | none | A message from the person |
 | `--json` | off | Print the result as JSON |
@@ -218,8 +222,8 @@ It reads the same files the hooks read and writes nothing.
 | `HARNESS_WORKER=1` | Set by `harness worker` and by `agent` actions for the agent they start; selects the `worker` role |
 
 Files read: `.harness/config.yaml`, the skills and files the entries name, the hook payload, and for workers the same
-files at the base commit. Files written: `<state.dir>/context/<session-id>.json`; by `render`, the hook entries in the
-native agent files and the `context` block of `AGENTS.md`.
+files at the base commit. Files written: `<state.dir>/context/<session-id>.json`; by `render`, the hook entries the
+harness plugins render in the native agent files, and the `context` block of `AGENTS.md`.
 
 ## Examples
 

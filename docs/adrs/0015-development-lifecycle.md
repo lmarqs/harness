@@ -36,9 +36,9 @@ run reaches a person.
 - Work also stops before it concludes: an unattended run ends with tasks unfinished, a task is skipped after its
   retries, a command run without a terminal refuses because a person must act. Nobody watches an unattended run; the
   person learns of the stop only by looking.
-- An unattended run as a whole, with its start, its end and its retries, belongs to the loop runner that drives it,
-  which the tool does not integrate ([0022](0022-tool-integration.md)). The tool sees one task at a time, through the
-  worker command a loop runner calls.
+- An unattended run as a whole, with its start, its end and its retries, belongs to the loop runner that drives it, not
+  to the binary ([0022](0022-tool-integration.md)). The tool sees one task at a time, through the worker command a loop
+  runner calls.
 - A task tracker marks a task done when it is told the task is complete, whoever tells it.
 - The clone's state is readable by every process in it, agents included.
 
@@ -58,7 +58,8 @@ run reaches a person.
    verification, whoever triggers it.
 5. The repository declares the actions for each event ([0019](0019-action-kinds.md)): run in order, optionally limited
    to some of the event's scopes, each with a rule for whether its failure stops the remaining actions. No action runs
-   that the repository's files do not declare; a preset's actions reach them only when a person applies it.
+   that the repository's files do not declare; a plugin's actions reach them only as entries a person applies
+   ([0013](0013-organization-content.md)).
 6. Every event can be triggered by a person, by a coordinating agent or by a script, or automatically at a trigger point
    of the binary's own work, and every trigger runs the same declared actions under the same guards. Automatic
    triggering applies only to actions that opt in to it. The trigger points are: creating a working copy fires work
@@ -95,8 +96,8 @@ run reaches a person.
   unattended-agent rule because it publishes no work; the guards of point 4 exist because delivery does.
 - **4.** A guard is sound only when the component that checks it is the one that fires the event; if the trigger were
   trusted to check, a person, an agent and the automatic trigger could each skip it differently. The delivery guards
-  apply invariant 11 of [0011](0011-safety-invariants.md): the three conditions are never a legitimate choice, so no
-  trigger can bypass them. The completion guard applies invariant 5 of [0011](0011-safety-invariants.md) to every
+  apply invariant 10 of [0011](0011-safety-invariants.md): the three conditions are never a legitimate choice, so no
+  trigger can bypass them. The completion guard applies invariant 4 of [0011](0011-safety-invariants.md) to every
   trigger: a tracker's action on work completed marks the task done (Context), so a person or a script that fires the
   event by hand would otherwise record as done work that no verification passed.
 - **5.** What happens at each event differs per repository and organization, and the binary carries neither platform
@@ -142,12 +143,13 @@ Shipped documentation describes how to deliver and an agent does it. At its best
 case gets judgement. It loses because the result differs per run, nothing enforces the guards, a person without an
 agent has no repeatable path, and nothing runs at a trigger point when no agent is present.
 
-### A general plugin system
+### Extension code at any point of the binary's operation
 
-Plugins hook any point of the binary's operation with their own code. At its best, every extension need is met. It loses
-because plugin code is engine code in repositories ([0006](0006-repository-contract.md)) that may need a runtime
-([0004](0004-runtime-dependencies.md)). An open set of hook points has no guard that covers all of them, and the tool
-grows into a harness ([0001](0001-role-of-the-tool.md)).
+Extensions hook any point of the binary's operation with their own code. At its best, every extension need is met. It
+loses because extension code is engine code in repositories ([0006](0006-repository-contract.md)) that may need a
+runtime ([0004](0004-runtime-dependencies.md)). An open set of hook points has no guard that covers all of them, and the
+tool grows into a harness ([0001](0001-role-of-the-tool.md)). A plugin is data that fills fixed contracts
+([0022](0022-tool-integration.md), [0023](0023-core-and-contracts.md)), so it adds no hook point.
 
 ### Stops reported only in the command's output
 

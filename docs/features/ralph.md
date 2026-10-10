@@ -13,12 +13,12 @@ repository grants it.
 
 ## Overview
 
-`harness worker <agent>` starts one agent, Claude Code or Codex CLI, headless, for one task, in the checkout it is
-started in, under the [worker contract](#the-worker-contract). It pins the agent's permission mode, refuses permission
-bypass, restores and checks the tool-owned files around the agent, replays the agent's verification with rules read from
-the base commit, and reports the outcome through its exit status and, in a worktree bound to a task,
-[lifecycle events](lifecycle.md). A completion signal the caller expects is text the caller hands to `harness worker`,
-which prints it only for a verified attempt.
+`harness worker <agent>` starts one declared agent, such as Claude Code or Codex CLI, headless, for one task, in the
+checkout it is started in, under the [worker contract](#the-worker-contract). It resolves the plugins the attempt uses,
+pins the agent's permission mode, refuses permission bypass, restores and checks the tool-owned files around the agent,
+replays the agent's verification with rules read from the base commit, and reports the outcome through its exit status
+and, in a worktree bound to a task, [lifecycle events](lifecycle.md). A completion signal the caller expects is text the
+caller hands to `harness worker`, which prints it only for a verified attempt.
 
 `harness worker` is the command a **loop runner** names as its agent command. A loop runner is a third-party program
 that works through a list of tasks and starts an agent for each. `harness` has no code for any loop runner: it does
@@ -27,7 +27,7 @@ not start one, read its configuration or know when a run starts or ends
 `harness worker` is called a Ralph run.
 
 The worked example on this page is [ralph-tui](https://github.com/subsy/ralph-tui), a loop runner that takes tasks from
-a Beads database or a JSON list of user stories. The `ralph-tui` [tool preset](presets.md#the-presets) seeds a
+a Beads database or a JSON list of user stories. The `ralph-tui` [plugin](plugins.md#ralph-tui) seeds a
 `.ralph-tui/config.toml` whose agent command is `./harnessw worker`. A team's own script calls `harness worker` the
 same way ([example](#a-teams-own-loop-script)).
 
@@ -48,13 +48,16 @@ Prerequisites:
 
 | Need | Why |
 | --- | --- |
-| the agent CLI (`claude` or `codex`) installed and declared in [`agents`](profile.md#agents) | the agent the worker starts |
+| the agent CLI (`claude` or `codex`) installed and declared in [`agents`](profile.md#agents), its harness plugin in the profile's `plugins:` | the agent the worker starts, and the [harness plugin](plugins.md#the-harness-contract) that says how to start it |
+| the version-control plugin the profile names in `vcs:` (`scaffold` writes `vcs: git`) and its program | the worker reads the base, compares and resets through it ([the version-control contract](plugins.md#the-version-control-contract)) |
+| every [fetched plugin](plugins.md#fetched-plugins) the attempt uses in the cache | an attempt never fetches; run `./harnessw plugin fetch` first |
 | for Codex, `role: worker` | its worker denies come only from rendered rules ([agents](agents.md#roles)) |
 | a clean, committed checkout | the worker refuses uncommitted changes |
 | `harness verify` working in this repository | every attempt must leave a [receipt](verify.md#the-receipt), the record of a passing `harness verify`, which the worker replays |
 | a loop runner, such as `ralph-tui` 0.12, or a script of your own | it picks the tasks and starts the worker for each |
 
-`harness doctor` checks the versions of git and the agents. A loop runner is the team's to install and update.
+`harness doctor` checks the version of each program a plugin in use describes, git and the agents included, against
+that plugin's supported range. A loop runner is the team's to install and update.
 
 ## How it works
 
@@ -62,55 +65,63 @@ Prerequisites:
 
 For each attempt, `harness worker <agent>`:
 
-1. Records the base: `HEAD` of the checkout when it starts. It refuses to run, exit 1, when the checkout has
-   uncommitted changes.
-2. Refuses permission-bypass flags among the arguments it receives: `--dangerously-skip-permissions`,
-   `--dangerously-bypass-approvals-and-sandbox`, `--yolo` and the `danger-full-access` sandbox. It exits 1 and names
-   the flag. It reads no loop runner's configuration: a bypass a loop runner adds reaches the worker as an argument and
-   is refused there, at the first task.
-3. Reads the profile, the policy, the hooks file and the [standing context](context.md) from the base commit, not from
-   the files in the checkout, so an agent cannot weaken the rules its own result is checked against or rewrite its own
-   instructions between attempts.
-4. Runs the **tamper check**, first half: restores every tool-owned file in the checkout (the rendered rules, the owned
+1. Resolves, before anything else runs, the version-control plugin the profile names in `vcs:` and the agent's
+   harness plugin (`agents.<agent>.plugin`, by default the agent's name), each from the release or from the verified
+   cache in the user's cache directory. It never fetches: a fetched plugin that is not in the cache exits 3 and names
+   `./harnessw plugin fetch`. Every read, comparison, reset and launch of the attempt uses this resolution, so nothing
+   in the checkout changes how the base is read or how the agent starts.
+2. Records the base: the head commit of the checkout when it starts, as the version-control plugin reports it (the git
+   plugin runs `git rev-parse HEAD`). A base that cannot be read fails the attempt, exit 1, before the agent starts.
+   It refuses to run, exit 1, when the version-control plugin reports uncommitted changes.
+3. Refuses the bypass arguments the agent's harness plugin marks as floor, wherever they appear among the arguments it
+   receives: the claude plugin marks `--dangerously-skip-permissions`, `--allow-dangerously-skip-permissions` and the
+   `bypassPermissions` permission mode; the codex plugin marks `--dangerously-bypass-approvals-and-sandbox`, `--yolo`
+   and the `danger-full-access` sandbox. It exits 1 and names the argument. It reads no loop runner's configuration: a
+   bypass a loop runner adds reaches the worker as an argument and is refused there, at the first task.
+4. Reads the profile, the policy, the hooks file and the [standing context](context.md) from the base commit through the
+   version-control plugin (the git plugin runs `git show <base>:<path>`), not from the files in the checkout, so an
+   agent cannot weaken the rules its own result is checked against or rewrite its own instructions between attempts.
+5. Runs the **tamper check**, first half: restores every tool-owned file in the checkout (the rendered rules, the owned
    keys of the native settings files, the harness hook entries, the wrapper `harnessw` and its pin
    `.harness/wrapper.yaml`) from the base commit.
-5. Pins the permission mode:
-   - Claude Code: `--permission-mode auto`, plus `worker.deny` as disallowed tools.
-   - Codex: the `workspace-write` sandbox with network access. The writable roots are the checkout, the clone's state
-     directory (`state.dir`, default `.work`) and the directories listed in `agents.codex.writable_roots`, such as
-     `.beads` for a Beads database ([profile](profile.md#agents)). `worker.deny` applies through the rendered rules,
-     which the tamper check keeps intact.
-6. Runs the profile's `bootstrap` once per checkout, and records that in the checkout's state directory, so later
+6. Pins the permission mode with the launch operation of the agent's harness plugin: its unattended arguments, its
+   sandbox-root arguments and the way it passes `worker.deny`:
+   - the claude plugin (Claude Code): `--permission-mode auto`, plus `worker.deny` as disallowed tools.
+   - the codex plugin (Codex): the `workspace-write` sandbox with network access. The writable roots are the checkout,
+     the clone's state directory (`state.dir`, default `.work`) and the directories listed in
+     `agents.codex.writable_roots`, such as `.beads` for a Beads database ([profile](profile.md#agents)).
+     `worker.deny` applies through the rendered rules, which the tamper check keeps intact.
+7. Runs the profile's `bootstrap` once per checkout, and records that in the checkout's state directory, so later
    attempts in the same checkout skip it.
-7. Runs the agent with its prompt, read from stdin or from the agent arguments, whichever the caller uses, and
+8. Runs the agent with its prompt, read from stdin or from the agent arguments, whichever the caller uses, and
    `HARNESS_WORKER=1` in its environment. It buffers the agent's output instead of streaming it. Every `harness`
    process the agent starts sees that variable and refuses `harness lifecycle run`, and the agent's `attention` and
    `turn_end` [hooks](hooks.md) do nothing.
-8. Runs the tamper check, second half: compares with the base commit the tool-owned files, the files under
+9. Runs the tamper check, second half: compares with the base commit the tool-owned files, the files under
    `.harness/` and every file and skill a `context` entry names. Any difference fails the attempt and is reported by
    path: an agent that rewrote its own rules cannot complete, and a change to the rules reaches a run only through a
    commit a person made.
-9. Reads the receipt the agent wrote with `harness verify`. A missing or malformed receipt is a failed attempt.
-   Otherwise the worker replays the lanes and skip reasons the receipt selected against the final content, with the
-   profile from the base commit. The receipt only selects; the replay is the proof.
-10. If the replay passes: with `--commit`, commits the work in the checkout with the verification summary in the
-    commit body (the [lanes](verify.md) and test patterns run, such as `unit=invoice`, and the reason for each
-    skipped lane); prints the buffered output; when the checkout is bound to a task, fires `completed` with scope
-    `task`, then `deliver` with scope `task` when the work is concluded ([lifecycle events](#lifecycle-events));
-    exits 0.
-11. If the attempt fails after the agent ran: saves the attempt's changes as `last-attempt.patch` and the full output
-    as `last-worker-output` in the checkout's state directory, returns the checkout to the base commit (it was clean
-    when the worker started, so every change is the attempt's), removes every occurrence of the `--withhold` text from
-    the output, prints the rest, and exits 1. The next attempt therefore starts from files the worker checked,
-    including the `./harnessw` it is started through.
+10. Reads the receipt the agent wrote with `harness verify`. A missing or malformed receipt is a failed attempt.
+    Otherwise the worker replays the lanes and skip reasons the receipt selected against the final content, with the
+    profile from the base commit. The receipt only selects; the replay is the proof.
+11. If the replay passes: with `--commit`, commits the work in the checkout through the version-control plugin, with the
+    verification summary in the commit body (the [lanes](verify.md) and test patterns run, such as `unit=invoice`, and
+    the reason for each skipped lane); prints the buffered output; when the checkout is bound to a task, fires
+    `completed` with scope `task`, then `deliver` with scope `task` when the work is concluded
+    ([lifecycle events](#lifecycle-events)); exits 0.
+12. If the attempt fails after the agent ran: saves the attempt's changes as `last-attempt.patch` and the full output as
+    `last-worker-output` in the checkout's state directory, returns the checkout to the base commit through the
+    version-control plugin (it was clean when the worker started, so every change is the attempt's), removes every
+    occurrence of the `--withhold` text from the output, prints the rest, and exits 1. The next attempt therefore starts
+    from files the worker checked, including the `./harnessw` it is started through.
 
 Stopping the worker stops the agent and any replayed checks, with every process they started.
 
 The agent never commits, pushes or fires lifecycle events. The binary refuses `harness lifecycle run` under
-`HARNESS_WORKER=1`, whatever spelling started it. As defence in depth, the built-in `worker.deny` holds
-`[harness, lifecycle]` in each spelling `harness` renders ([policy](policy.md#the-built-in-base)). The repository's
-`worker.deny` denies the other commands an agent must not run, such as `git commit`, `git push` and `gh`, which the
-`ralph-tui` preset adds. An agent that lacks a permission reports the task as blocked in its output.
+`HARNESS_WORKER=1`, whatever spelling started it. As defence in depth, the binary renders `[harness, lifecycle]` into
+`worker.deny` in each spelling `harness` renders ([policy](policy.md#the-floor)). The repository's `worker.deny`
+denies the other commands an agent must not run, such as `git commit`, `git push` and `gh`, which the `ralph-tui`
+plugin adds as entries. An agent that lacks a permission reports the task as blocked in its output.
 
 An [`agent` lifecycle action](lifecycle.md#agent) runs under the same contract and sets the same `HARNESS_WORKER=1`
 mark.
@@ -123,7 +134,7 @@ A loop runner decides that a task is done by reading something from the agent's 
 attempt it removes every occurrence of that text before printing, so the loop runner sees a failure even when the
 agent claimed success.
 
-For example, an agent that prints `<promise>COMPLETE</promise>` but leaves no receipt fails at step 9. The worker
+For example, an agent that prints `<promise>COMPLETE</promise>` but leaves no receipt fails at step 10. The worker
 prints its output without the signal, exits 1, and ralph-tui counts the attempt as failed.
 
 ### Lifecycle events
@@ -181,18 +192,20 @@ Most runs need judgement: the task commits are small and numerous, and a reviewe
 Once the delivered work is merged, `./harnessw worktree remove <name>` fires `landed` and removes the run's worktree
 ([worktrees](worktrees.md#remove)).
 
-### The ralph-tui preset
+### The ralph-tui plugin
 
-`./harnessw preset apply ralph-tui` shows what it would write and, once confirmed, writes:
+The [`ralph-tui` plugin](plugins.md#ralph-tui) describes ralph-tui. `./harnessw plugin apply ralph-tui` adds it to the
+profile's `plugins:`, shows what it would write and, once confirmed, writes:
 
 | Item | Kind | Content |
 | --- | --- | --- |
-| `.ralph-tui/config.toml` | [template](presets.md) | one `[[agents]]` entry per agent declared in the profile, whose command is `./harnessw worker`, plus the ralph-tui options a run under the worker needs |
-| `worker.deny` in `.harness/policy.yaml` | entries | `[git, commit]`, `[git, push]`, `[gh]` |
+| `.ralph-tui/config.toml` | [template](plugins.md#templates) | one `[[agents]]` entry per agent declared in the profile, whose command is `./harnessw worker`, plus the ralph-tui options a run under the worker needs |
+| `worker.deny` in `.harness/policy.yaml` | [entries](plugins.md#entries) | `[git, commit]`, `[git, push]`, `[gh]` |
+| the plugin's block in `.gitignore` | [render](plugins.md#renders) | `/.ralph-tui/*` and `!/.ralph-tui/config.toml` |
 
 The template is rendered once and written only when `.ralph-tui/config.toml` is absent. From then on it is the
-repository's own file: `harness` never re-renders, reads or removes it. When the file exists, `preset apply` reports
-`kept .ralph-tui/config.toml: exists` and writes nothing to it. The preset adds no lifecycle actions, because nothing
+repository's own file: `harness` never re-renders, reads or removes it. When the file exists, `plugin apply` reports
+`kept .ralph-tui/config.toml: exists` and writes nothing to it. The plugin adds no lifecycle actions, because nothing
 fires a run's events automatically.
 
 For a profile that declares `claude` and `codex`, the template is:
@@ -224,11 +237,11 @@ fullAuto = false
 
 | Key | Why |
 | --- | --- |
-| `command`, `defaultFlags` | ralph-tui 0.12 starts an agent as `command` with `defaultFlags` first, then its plugin's flags, so the worker reads its own flags and passes the rest to the agent ([argument passing](#argument-passing)) |
+| `command`, `defaultFlags` | ralph-tui 0.12 starts an agent as `command` with `defaultFlags` first, then the flags of its own agent plugin, so the worker reads its own flags and passes the rest to the agent ([argument passing](#argument-passing)) |
 | `--commit` | the worker commits each verified task, so the next task starts from a clean checkout |
 | `--withhold`, `<promise>COMPLETE</promise>` | ralph-tui's completion signal reaches it only from a verified attempt |
-| `options.skipPermissions = false` | ralph-tui's Claude plugin otherwise adds `--dangerously-skip-permissions`, which the worker refuses |
-| `options.fullAuto = false` | ralph-tui's Codex plugin otherwise adds `--full-auto` |
+| `options.skipPermissions = false` | ralph-tui's own Claude agent plugin otherwise adds `--dangerously-skip-permissions`, which the worker refuses |
+| `options.fullAuto = false` | ralph-tui's own Codex agent plugin otherwise adds `--full-auto` |
 | `autoCommit = false` | the worker commits a verified task; ralph-tui does not commit in sequential mode |
 | `errorHandling.continueOnNonZeroExit = false` | a worker that exits 1 failed its attempt, and ralph-tui handles it as a failure |
 
@@ -236,9 +249,10 @@ ralph-tui merges `~/.config/ralph-tui/config.toml` into the project's configurat
 either of them adds is refused by the worker at the first task. `ralph-tui config show --sources` prints the merged
 configuration and the files it came from.
 
-ralph-tui keeps its session, progress and iteration logs under `.ralph-tui/` in the checkout it runs in. The
-repository ignores them in its own `.gitignore`, keeping only the configuration tracked; otherwise the worker refuses
-the checkout as having uncommitted changes, and `--commit` would commit them:
+ralph-tui keeps its session, progress and iteration logs under `.ralph-tui/` in the checkout it runs in. The plugin's
+block in `.gitignore` ignores them and keeps only the configuration tracked; otherwise the worker refuses the checkout
+as having uncommitted changes, and `--commit` would commit them. Every `harness render` writes the block, and
+`harness render --check` reports it when it is edited:
 
 ```gitignore
 /.ralph-tui/*
@@ -248,7 +262,7 @@ the checkout as having uncommitted changes, and `--commit` would commit them:
 The prompt each agent receives is ralph-tui's: its built-in prompt for the tracker, or a template the repository
 configures in ralph-tui. The agent learns how to verify from the `verify` block of `AGENTS.md`
 ([verify](verify.md#the-verify-block-in-agentsmd)) and from the worker's standing context. ralph-tui 0.12's built-in
-Beads prompt also tells the agent to run `bd close`; with the `beads` preset, `worker.deny` refuses that command, and
+Beads prompt also tells the agent to run `bd close`; with the `beads` plugin, `worker.deny` refuses that command, and
 ralph-tui's Beads tracker closes the bead itself (`bd close --force`) once it receives the completion signal, so the
 bead closes only after a verified attempt.
 
@@ -262,7 +276,7 @@ harness worker <agent> [--commit] [--withhold <text>] [-- <agent args>...]
 
 | Argument or flag | Default | Meaning |
 | --- | --- | --- |
-| `<agent>` | required | `claude` or `codex`, declared in the profile's `agents` |
+| `<agent>` | required | an agent declared in the profile's `agents`, such as `claude` or `codex` |
 | `--commit` | off | After a passing replay, commit the work in the checkout, with the verification summary in the body |
 | `--withhold <text>` | none | On a failed attempt, remove every occurrence of this text from the printed output |
 | `-- <agent args>...` | none | Everything after `--` goes to the agent unchanged |
@@ -271,28 +285,28 @@ harness worker <agent> [--commit] [--withhold <text>] [-- <agent args>...]
 
 #### Argument passing
 
-The worker reads its own flags first. The first argument it does not recognise, and everything after it, go to the
-agent unchanged, after the permission flags the worker pins. A loop runner that places its own arguments after the
-configured ones therefore needs no `--`; `--` makes the split explicit in a script. The prompt comes from stdin or
-from the agent arguments, as the caller passes it.
+The worker reads its own flags first. The first argument it does not recognise, and everything after it, go to the agent
+unchanged, after the arguments the launch operation of the agent's harness plugin pins. A loop runner that places its
+own arguments after the configured ones therefore needs no `--`; `--` makes the split explicit in a script. The prompt
+comes from stdin or from the agent arguments, as the caller passes it.
 
-For example, `ralph-tui run --agent claude --model opus` with the preset's template starts, with the prompt on stdin:
+For example, `ralph-tui run --agent claude --model opus` with the plugin's template starts, with the prompt on stdin:
 
 ```text
 ./harnessw worker claude --commit --withhold '<promise>COMPLETE</promise>' --print --model opus
 ```
 
 The worker takes `claude`, `--commit` and `--withhold <promise>COMPLETE</promise>`, and passes `--print --model opus`
-to Claude Code. A bypass flag anywhere in the agent arguments is refused (step 2 of the
-[worker contract](#the-worker-contract)).
+to Claude Code. A bypass argument the claude plugin marks as floor is refused anywhere in the agent arguments (step 3
+of the [worker contract](#the-worker-contract)).
 
 #### Exit codes
 
 | Exit code | Meaning |
 | --- | --- |
 | 0 | The attempt was verified: the replay passed, the work was committed with `--commit`, and the output was printed |
-| 1 | Refused (uncommitted changes, a permission-bypass flag, Codex declared with `role: interactive`), or a failed attempt (a tamper-check difference, a missing or malformed receipt, a failing replay). The output was printed without the `--withhold` text |
-| 3 | A prerequisite is missing: the agent binary. Without a terminal this fires `blocked` |
+| 1 | Refused (uncommitted changes, a floor bypass argument, Codex declared with `role: interactive`, a cached plugin whose hash does not match the profile), or a failed attempt (a base that cannot be read, a tamper-check difference, a missing or malformed receipt, a failing replay). The output was printed without the `--withhold` text |
+| 3 | A prerequisite is missing: the agent binary, the version-control plugin's program, or a fetched plugin that is not in the cache (the message names `./harnessw plugin fetch`). Without a terminal this fires `blocked` |
 
 #### Environment
 
@@ -311,6 +325,7 @@ Paths below show the default `state.dir: .work` ([profile](profile.md#state-path
 
 | Path | Read or written |
 | --- | --- |
+| the version-control plugin and the agent's harness plugin | resolved from the release or the user's plugin cache before anything else runs |
 | `.harness/config.yaml`, `.harness/policy.yaml`, `.harness/hooks.yaml` | read from the base commit |
 | the tool-owned files of the checkout | restored from the base commit before the agent starts, compared after it exits |
 | `<checkout>/.work/verified.json` | the receipt the agent wrote, read |
@@ -324,11 +339,10 @@ Paths below show the default `state.dir: .work` ([profile](profile.md#state-path
 
 ### A Node API: a Beads epic with ralph-tui
 
-`acme/api` declares Claude Code and Codex. Apply the preset, ignore ralph-tui's state and commit:
+`acme/api` declares Claude Code and Codex. Apply the plugin and commit what it wrote:
 
 ```sh
-./harnessw preset apply ralph-tui
-printf '%s\n' '/.ralph-tui/*' '!/.ralph-tui/config.toml' >> .gitignore
+./harnessw plugin apply ralph-tui
 git add -A
 git commit -m "chore: run ralph-tui through harness worker"
 ```
@@ -399,8 +413,8 @@ exits 3 without a terminal has already fired `blocked` itself.
 
 ### A Terraform repository
 
-`acme/infra` applies no `ralph-tui` preset: `terraform plan` needs credentials and judgement an unattended agent must
-not hold.
+`acme/infra` does not apply the `ralph-tui` plugin: `terraform plan` needs credentials and judgement an unattended agent
+must not hold.
 
 ### Running it from an agent session
 
@@ -444,14 +458,15 @@ Running:
 
 | Symptom | Cause | Fix |
 | --- | --- | --- |
-| Refused: uncommitted changes | The checkout has changes: ralph-tui's state is not ignored, or the previous task's work was not committed | Add the `.ralph-tui/` lines to `.gitignore`; keep `--commit` in `defaultFlags` |
+| Refused: uncommitted changes | The checkout has changes: ralph-tui's state is not ignored, or the previous task's work was not committed | Check that `ralph-tui` is in the profile's `plugins:` and run `./harnessw render`, which writes its `.gitignore` block; keep `--commit` in `defaultFlags` |
 | Refused: permission bypass, at the first task | ralph-tui's agent plugin adds a bypass flag: `skipPermissions` or `fullAuto` is not `false` in the project or global configuration | Set it to `false` in the agent's `[agents.options]`; `ralph-tui config show --sources` shows where it is set |
-| ralph-tui reports a configuration error in `.ralph-tui/config.toml` | A key is at the wrong level, such as `continueOnNonZeroExit` outside `[errorHandling]` | Compare with the [preset's template](#the-ralph-tui-preset) |
+| ralph-tui reports a configuration error in `.ralph-tui/config.toml` | A key is at the wrong level, such as `continueOnNonZeroExit` outside `[errorHandling]` | Compare with the [plugin's template](#the-ralph-tui-plugin) |
 | Every task fails with completion withheld | The agent does not run `harness verify`, or the replay fails | Read `last-worker-output` in the checkout's state directory; run the lanes yourself there |
 | An attempt fails naming a tool-owned file, a file under `.harness/` or a context file | The tamper check found the agent changed a rendered rule, an owned settings key, a hook entry, `harnessw`, a repository file under `.harness/` or a file standing context names | Make that change interactively and commit it before the run; the worker reads the rules from the base commit |
 | The checkout lost a failed attempt's edits | A failed attempt returns the checkout to its base | The edits are in `last-attempt.patch` in the checkout's state directory; `git apply` it to continue by hand |
 | Codex worker refused | Codex is declared with `role: interactive` | Set `agents.codex.role: worker` and render, or use Claude workers |
-| Exit 3 | The agent binary is not installed | Install it; `./harnessw doctor` checks its version |
+| Exit 3 | The agent binary or the version-control program is not installed, or a fetched plugin is not in the cache | Install the program, or run `./harnessw plugin fetch`; `./harnessw doctor` names what is missing |
+| An attempt fails before the agent starts: the base cannot be read | The version-control plugin could not read the checkout's head commit | Check the checkout with its version-control program, such as `git status` with the git plugin, then start the worker again |
 | No `completed` or `deliver` action runs after a verified task in a ralph-tui run | The run's worktree is bound to no task, so the worker fires no event | Expected: ralph-tui's tracker records the task's status; fire run-scope events after the run ([lifecycle events](#lifecycle-events)) |
 | `harness lifecycle run` refused during a run | It ran under `HARNESS_WORKER=1`, inside the agent | Fire it from the session that started the loop runner |
 | One pull request per task, too many to review | A task-scope `deliver` action with `auto: true`, fired by workers in worktrees bound to a task | Remove `auto` from that action and deliver after judgement |
@@ -462,7 +477,7 @@ Running:
   directly, runs outside `harness`: no bypass refusal, tamper check or replay applies to it. `harness` neither detects
   nor prevents such a run.
 - `harness` reads no ralph-tui configuration, neither the project's `.ralph-tui/config.toml` nor
-  `~/.config/ralph-tui/config.toml`, and never writes them after the preset seeded the project's file.
+  `~/.config/ralph-tui/config.toml`, and never writes them after the plugin seeded the project's file.
 - ralph-tui's worker checkouts, session branches and state under `.ralph-tui/` are ralph-tui's; `harness` never cleans
   them up.
 

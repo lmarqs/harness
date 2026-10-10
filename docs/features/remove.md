@@ -31,6 +31,7 @@ global install, `harness <command>` is equivalent.
 | The adoption was a trial; the repository should go back to how it was before `harness` | `./harnessw remove` |
 | The repository should stop using `harness` and keep its worktree and memory conventions, its permissions and its hooks | `./harnessw remove --eject` |
 | The repository no longer wants one module, for example [memory](memory.md), its agent memory under `.agents/memory/` | `./harnessw remove --module memory` |
+| The repository no longer uses one program, such as Codex | delete its plugin from `plugins:` in the profile and run `./harnessw render` ([Removing one plugin](#removing-one-plugin)) |
 | You want to see what a mode would do | add `--dry-run` |
 
 Turning a module off in the profile and running `./harnessw render` has the same effect as `remove --module`, except
@@ -45,6 +46,10 @@ files are the ones `harness` wrote once and the repository has owned since: `.ha
 or the first `render` after the memory module was turned on. The manifest records each with the hash it was created
 with. Managed blocks are owned, and each is either a convention block or a tool block
 ([block ids](render.md#block-ids)).
+
+Every owned output belongs to the binary or to one [plugin](plugins.md#renders), and the manifest records which. The
+rows below apply to every plugin's renders alike, such as the claude plugin's keys in `.claude/settings.json`, the
+codex plugin's rules file and the ralph-tui plugin's `.gitignore` block.
 
 | What | `remove` (undo) | `remove --eject` |
 | --- | --- | --- |
@@ -61,11 +66,11 @@ with. Managed blocks are owned, and each is either a convention block or a tool 
 | The harness skill and its links | deleted | deleted |
 | The `.agents/memory/` skeleton | a file whose content still matches the hash it was seeded with is deleted; an edited file is knowledge and stays, listed | kept |
 | Knowledge: `AGENTS.md` prose, edited memory, domain skills, `.agents/commands/`, `.agents/REVIEW.md` | kept | kept |
-| Templates a [preset](presets.md#templates) wrote, such as `.ralph-tui/config.toml`: the repository's own files | kept | kept |
+| Templates a [plugin](plugins.md#templates) wrote, such as `.ralph-tui/config.toml`: the repository's own files | kept | kept |
 | State: the [state paths](profile.md#state-paths) (default under `.work/`) | left in place and listed; no longer ignored | left in place, still ignored |
 
 Neither mode touches `settings.local.json`, user-level settings, other tools' files such as `.beads/`, or anything
-`harness` did not create. The manifest records no template a preset wrote, so removal never deletes one.
+`harness` did not create. The manifest records no template a plugin wrote, so removal never deletes one.
 
 ## How it works
 
@@ -81,11 +86,11 @@ terminal and without `--yes` they stop with exit 3. Both start the same way:
 
 3. List the seeded files that will be deleted: the profile, the policy, the hooks file, and the memory skeleton files
    nobody edited. Without `harness` they have no reader.
-4. Delete owned files and links: `harnessw`, `.harness/wrapper.yaml`, the harness skill and its links,
-   `.codex/rules/harness.rules`.
+4. Delete owned files and links: `harnessw`, `.harness/wrapper.yaml`, the harness skill and its links, and every file a
+   plugin renders, such as `.codex/rules/harness.rules`.
 5. Remove every managed block, convention and tool blocks alike, from `AGENTS.md`, `README.md`, `CLAUDE.md` and
    `.gitignore`, markers and text. A file left empty once its blocks are gone is deleted.
-6. Remove owned keys and entries from native files. Every key `harness` does not own keeps its bytes.
+6. Remove owned keys and entries from native files. Every key no render owns keeps its bytes.
 7. Write back what adoption imported from the project's native files, as plain native settings: the permission rules
    and hooks whose provenance comment in `.harness/policy.yaml` or `.harness/hooks.yaml` names a project-scope file,
    such as `# imported from .claude/settings.json (project)`. Entries imported from the `local` or `user` scope are
@@ -115,7 +120,7 @@ After an eject the repository keeps working without `harness`:
 | `raw` hooks | modelled hooks (post-edit commands, validators, session context), notification hooks and hook-delivered context, which ran through `harness hook` |
 | Convention blocks in `AGENTS.md`: where worktrees live, the permissions agents work under, the memory index, `static` context | the tool blocks: the commands, the layout, the verification checks and the delivery steps |
 | `.gitignore` entries for every state path | lifecycle events and their actions; the receipt, its replay and the drift check |
-| `bd`, the Beads task tracker's CLI, with its `.beads/`; the files a preset wrote, such as `.ralph-tui/config.toml` | `harness worker`, its worker contract and tamper check; an agent command that names `./harnessw worker`, such as one in `.ralph-tui/config.toml`, fails until the team changes it |
+| `bd`, the Beads task tracker's CLI, with its `.beads/`; the templates a plugin wrote, such as `.ralph-tui/config.toml` | `harness worker`, its worker contract and tamper check; an agent command that names `./harnessw worker`, such as one in `.ralph-tui/config.toml`, fails until the team changes it |
 
 ### Removing one module
 
@@ -128,7 +133,22 @@ After an eject the repository keeps working without `harness`:
 | `verify` | the module's allow entries, the `verify` block |
 | `memory` | the `memory` block, and the skeleton files that still match the hash they were seeded with; edited files stay, listed: they are knowledge |
 
-Repeat `--module` to remove several.
+Repeat `--module` to remove several. `--module` changes only `modules.<name>` in the profile: `vcs:`, `plugins:` and
+every other key are repository data and stay.
+
+### Removing one plugin
+
+No flag of `remove` takes out one plugin. Delete its name from `plugins:` in the profile and run `./harnessw render`:
+the manifest records each render under the plugin that owns it, so `render` removes exactly that plugin's files, keys
+and blocks, and its [floor rules](plugins.md#the-floor) leave every agent's output. What the plugin applied once, its
+entries in the repository files and its templates, stays as the repository's own; edit or delete them like anything
+else. `vcs:` and `agents.<name>.plugin` must not name a plugin `plugins:` no longer lists, or `render` exits 1.
+
+```sh
+$EDITOR .harness/config.yaml        # delete "- codex" from plugins: and the codex agent from agents:
+./harnessw render
+git status --short                  # .codex/rules/harness.rules deleted, .codex/hooks.json entries removed
+```
 
 ## Reference
 
@@ -213,7 +233,7 @@ git commit -am "chore: drop harness memory module"
 - Do read the `--dry-run` output for a repository you did not set up.
 - Do eject, rather than undo, when people or agents rely on the conventions; undo when the adoption was a trial.
 - Do change every agent command that names `./harnessw worker`, such as those in `.ralph-tui/config.toml`, when the
-  repository stops using `harness`: removal keeps the files a preset wrote as they are.
+  repository stops using `harness`: removal keeps the templates a plugin wrote as they are.
 - Do write the checks and the delivery steps into `AGENTS.md` prose after an eject, if agents should keep following
   them: the `verify` and `lifecycle` blocks are tool blocks and leave with the tool.
 - Do delete, or ignore yourself, the state paths an undo lists.
@@ -231,4 +251,4 @@ git commit -am "chore: drop harness memory module"
 | The lanes and delivery steps are gone from `AGENTS.md` after an eject | `verify` and `lifecycle` are tool blocks, and an eject removes tool blocks | Write the checks you still want into `AGENTS.md` prose |
 | An undo kept a memory file | The file changed since it was seeded, so it is knowledge | Expected; delete it yourself if the repository no longer wants it |
 | `.harness/` is still there after a removal | It holds a file `harness` neither owns nor seeded, such as a script the team keeps there; the output listed it | Delete the file, or keep it, as you choose |
-| ralph-tui cannot start an agent after a removal | `.ralph-tui/config.toml`, a file the `ralph-tui` preset wrote, names `./harnessw worker`, which removal deleted | Point each agent's `command` and `defaultFlags` at the agent, or at a wrapper of your own |
+| ralph-tui cannot start an agent after a removal | `.ralph-tui/config.toml`, a template the `ralph-tui` plugin wrote, names `./harnessw worker`, which removal deleted | Point each agent's `command` and `defaultFlags` at the agent, or at a wrapper of your own |

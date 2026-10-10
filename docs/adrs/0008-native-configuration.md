@@ -17,9 +17,9 @@ told apart.
 - Where an agent reads a whole directory of rule files, a file can be added to it without touching the others.
   Claude Code's project settings file has no include mechanism: everything it holds lives in one file.
 - These files are shared with people. Claude Code's project settings file holds permissions, hooks and keys for the
-  environment, the model, plugins, the status line and a schema reference, and people write any of them by hand.
-  Example: the `.claude/settings.json` of `acme/api` holds 40 hand-written allow and deny rules, a hook that formats
-  each edited file and an environment variable for the test database.
+  environment, the model, Claude Code's own plugins, the status line and a schema reference, and people write any of
+  them by hand. Example: the `.claude/settings.json` of `acme/api` holds 40 hand-written allow and deny rules, a hook
+  that formats each edited file and an environment variable for the test database.
 - Personal override files (`.claude/settings.local.json`, `*.local.toml`) hold one person's choices and are usually
   untracked. Example: a teammate's `.claude/settings.local.json` in `acme/api` allows a deploy command that the team
   never agreed to give agents.
@@ -34,7 +34,8 @@ told apart.
 2. Where an agent reads one shared file, the tool owns only named keys and entries: the permission lists, and the hook
    and notification entries whose command is the tool's own entry point. Every other key and entry is preserved byte
    for byte.
-3. The owned set of every native file is recorded in the manifest ([0007](0007-ownership.md)).
+3. The owned set of every native file is recorded in the manifest, under the name of the plugin that renders it
+   ([0007](0007-ownership.md), [0022](0022-tool-integration.md)).
 4. Personal override files are never written and never recorded. They are read only during adoption, and only when a
    person chooses to import them ([0016](0016-permission-adoption.md)).
 5. Before the tool takes ownership of a key that already holds hand-written entries, those entries are imported into
@@ -46,13 +47,14 @@ told apart.
 - **1.** A whole file is the clearest ownership there is: one path, one hash, and removal deletes one file. Where the
   agent reads a directory, this costs nothing, because people's files in the same directory are never opened.
 - **2.** Claude Code's project settings cannot include another file, and people keep permissions, hooks, environment,
-  model, plugin and status-line keys in it. Owning the whole file would destroy those keys in every repository that
-  has one, and owning nothing would leave the policy without effect. The permission lists and the entries that call the
-  tool are the narrowest set that still makes the rendered policy and the declared hooks and notifications
-  ([0019](0019-action-kinds.md)) take effect. Byte-for-byte preservation keeps the tool's diff to its own keys, so a
-  reviewer sees only what the tool changed.
+  model, Claude Code plugin and status-line keys in it. Owning the whole file would destroy those keys in every
+  repository that has one, and owning nothing would leave the policy without effect. The permission lists and the
+  entries that call the tool are the narrowest set that still makes the rendered policy and the declared hooks and
+  notifications ([0019](0019-action-kinds.md)) take effect. Byte-for-byte preservation keeps the tool's diff to its own
+  keys, so a reviewer sees only what the tool changed.
 - **3.** Ownership inside a JSON file cannot be marked in the file. The manifest is where the drift check and removal
-  learn which keys to compare and which to take out ([0007](0007-ownership.md)).
+  learn which keys to compare and which to take out ([0007](0007-ownership.md)). Recording the plugin lets a repository
+  stop using a harness plugin and lose exactly the keys it rendered.
 - **4.** Writing an override file changes one person's setup through a change meant for the team, and recording it
   puts a personal, usually untracked file into a committed manifest. Importing it is a choice because it publishes one
   person's rules to the team ([0016](0016-permission-adoption.md)).
@@ -90,7 +92,7 @@ Costs:
 
 Must be maintained:
 
-- Round-trip tests for every native format, and the owned key set of every adapter
+- Round-trip tests for every native format, and the owned key set of every harness plugin
   ([0009](0009-agent-support.md)).
 
 ## Confirmation

@@ -16,8 +16,9 @@ carries over, and the limits that must always hold stay in force whatever anyone
 The policy says what agents may do without asking (`allow`), only after a person confirms (`ask`), or never (`deny`),
 plus what is denied only to workers, the agents [`harness worker`](ralph.md#the-worker-contract) runs headless, one per
 task, and that `agent` actions start. It is written once, agent-neutrally where the agents allow it, and rendered into
-each agent's native permission format. A built-in base that holds the tool's invariants is always added and cannot be
-removed.
+each agent's native permission format. The [floor](#the-floor) is always added and cannot be removed or weakened: the
+floor rules of the plugins in use, such as the git plugin's deny of a force push to the default branch, and the binary's
+own entries for its commands.
 
 Commands are named `harness <command>` on this page. Run them through the repository's wrapper,
 `./harnessw <command>`, from the root of a checkout; with a global install, `harness <command>` is equivalent
@@ -41,16 +42,18 @@ Then run `harness render` and review the diff of the rendered files.
 
 The effective policy is the union of:
 
-1. the built-in base ([below](#the-built-in-base));
+1. the floor ([below](#the-floor)): the floor rules of every plugin in the profile's `plugins:` and the binary's own
+   entries for its commands;
 2. allow entries for the commands of each enabled [module](profile.md#modules), rendered for each spelling `harness`
    renders ([below](#entries-for-harness-commands));
-3. the entries in `.harness/policy.yaml`.
+3. the entries in `.harness/policy.yaml`, including those a plugin's entries added when it was applied, which are the
+   repository's own from then on ([plugins](plugins.md#entries)).
 
 Nothing else contributes an entry: no file outside the repository is read
 ([ADR 0013](../adrs/0013-organization-content.md)). Lists are unions: no source removes an entry from another, and
-nothing removes a built-in invariant. An entry in the policy file that would weaken an invariant, such as an `allow` for
-a force push to the default branch, is not a validation error. `render` leaves it out of the output, renders the
-invariant and reports the entry. [`doctor`](doctor.md) reports it as a finding until it is removed
+nothing removes a floor rule. An entry in the policy file that would weaken a floor rule, such as an `allow` for a force
+push to the default branch, is not a validation error. `render` drops it from the output, renders the floor rule and
+reports the entry. [`doctor`](doctor.md) reports it as a finding until it is removed
 ([ADR 0011](../adrs/0011-safety-invariants.md)). When a command matches entries with different decisions, the decision
 is taken in this order, in every agent:
 
@@ -105,8 +108,8 @@ a `harness` command names the program once, as `harness`:
 - [harness, lifecycle, run, deliver]
 ```
 
-`render` writes such an entry for each rendered spelling: `harness …`, `./harnessw …` and `harnessw …`. The built-in
-base, the module entries and the [seeded entry](#the-seeded-entry) are written the same way.
+`render` writes such an entry for each rendered spelling: `harness …`, `./harnessw …` and `harnessw …`. The binary's
+floor entry for its own commands, the module entries and the [seeded entry](#the-seeded-entry) are written the same way.
 
 A prefix rule still matches only leading words, so an absolute path to the wrapper, or `sh harnessw …`, matches none of
 the rendered spellings ([pitfalls](pitfalls.md#the-wrapper-is-a-second-spelling-of-every-harness-command)). The guards
@@ -114,17 +117,20 @@ that matter therefore never rest on these entries: the binary itself refuses `ha
 agent, and it enforces the [`deliver` guards](lifecycle.md#built-in-guards) whoever runs the command. The entries are
 defence in depth: they make an agent stop or ask before it runs the command at all.
 
-### The built-in base
+### The floor
 
-The base holds only tool-generic invariants. It is not written in `.harness/policy.yaml`; it is added at render time
-and shown in the `policy` block of `AGENTS.md`.
+The floor holds the rules no repository may lose. A plugin marks the facts about its program that the
+[safety invariants](../adrs/0011-safety-invariants.md) depend on as floor ([plugins](plugins.md#the-floor)); the binary
+adds entries for its own commands. The floor is never written in `.harness/policy.yaml`: `render` adds it to every
+agent's output on every render, as long as the plugin is in the profile's `plugins:`, and shows it in the `policy` block
+of `AGENTS.md` with the plugin each rule comes from.
 
-| Invariant | Entries |
-| --- | --- |
-| No force push to the default branch | `shared.deny` entries equivalent to the list below, with `main` replaced by the branch `origin/HEAD` names |
-| No task chaining with mise's `:::`, which runs a second task in the same command and could carry an unlisted task past every rule | `shared.deny`: `"mise * ::: *"` (Claude-only: Codex cannot match mid-command). A recognised command shape: the deny needs no knowledge of mise and costs nothing in a repository without it |
-| Lifecycle actions never run inside a worker's agent | `worker.deny`: `[harness, lifecycle]`, rendered for each spelling `harness` renders. The binary refuses `harness lifecycle run` inside the agent on its own; `harness worker` fires `completed` and `deliver` in its own process ([lifecycle](lifecycle.md#built-in-guards)) |
-| Workers never bypass permissions | not a policy entry: `harness worker` refuses bypass flags among the arguments it receives; see [ralph](ralph.md#the-worker-contract) |
+| Rule | From | Entries |
+| --- | --- | --- |
+| No force push to the default branch | a floor rule of the `git` plugin | `shared.deny` entries equivalent to the list below, with `main` replaced by the default branch the version-control plugin reports (the git plugin reads it from `origin/HEAD`) |
+| No task chaining with mise's `:::`, which runs a second task in the same command and could carry an unlisted task past every rule | a floor rule of the `mise` plugin | `shared.deny`: `"mise * ::: *"` (Claude-only: Codex cannot match mid-command) |
+| Lifecycle actions never run inside a worker's agent | the binary | `worker.deny`: `[harness, lifecycle]`, rendered for each spelling `harness` renders. The binary refuses `harness lifecycle run` inside the agent on its own; `harness worker` fires `completed` and `deliver` in its own process ([lifecycle](lifecycle.md#built-in-guards)) |
+| Workers never bypass permissions | the floor bypass arguments of each harness plugin | not a policy entry: `harness worker` and `agent` actions refuse them among the arguments they receive; see [ralph](ralph.md#the-worker-contract) |
 
 ```yaml
 # Equivalent force-push entries for a repository whose default branch is main
@@ -139,9 +145,13 @@ and shown in the `policy` block of `AGENTS.md`.
 The prefix forms catch the flag-first spellings for both agents; the bare strings catch the flag-last spellings for
 Claude Code.
 
-Organization choices are not in the base: denying the remote sync of a [task tracker](tasks.md), allowing deploy status
+A floor rule exists only while its plugin is in use. A repository that runs mise without the mise plugin has no `:::`
+deny, and [`doctor`](doctor.md) reports it:
+`mise detected; its plugin and its floor are not in use; run ./harnessw plugin apply mise`.
+
+Organization choices are not in the floor: denying the remote sync of a [task tracker](tasks.md), allowing deploy status
 tasks, MCP read rules. They belong in each repository's policy file, written there by a person or an agent and reviewed
-like any other change ([organization choices](presets.md#organization-choices)).
+like any other change ([organization choices](plugins.md#organization-choices)).
 
 ### The seeded entry
 
@@ -170,8 +180,8 @@ check proves no project rule was lost. See [scaffold](scaffold.md#adopt).
 ### The convention in `AGENTS.md`
 
 `harness render` writes the effective permissions, in plain language, into the `policy` block of `AGENTS.md`: the
-decision order, then every entry grouped by decision, with each entry of the built-in base and each Claude-only
-entry marked.
+decision order, then every entry grouped by decision, with each floor rule marked with the plugin it comes from and each
+Claude-only entry marked.
 
 `policy` is a convention block ([concepts](concepts.md#conventions-outlive-the-tool)): it describes the permissions the
 agents' native settings enforce, and stays true when `harness` is gone. Entries for `harness`'s own commands are
@@ -186,8 +196,8 @@ an allowed one runs without a prompt; deny wins over ask, and ask over allow. A 
 the agent's own default. Entries marked *Claude Code only* are not enforced in Codex.
 
 Denied:
-- force pushes to `main`: `git push --force origin main` and its other spellings (*built-in*)
-- `mise * ::: *` (*built-in*; *Claude Code only*)
+- force pushes to `main`: `git push --force origin main` and its other spellings (*floor rule of the git plugin*)
+- `mise * ::: *` (*floor rule of the mise plugin*; *Claude Code only*)
 - `npm publish`
 - `Read(./.env*)` (*Claude Code only*)
 
@@ -274,7 +284,7 @@ worker:
     - [git, ["-C", "-c"]]
     - [gh]
     - [harness, worktree]
-    # The completed action of the beads preset closes the task after the replay; the agent does not.
+    # The completed action of the beads plugin closes the task after the replay; the agent does not.
     - [bd, close]
     - [mise, run, ["db:reset", "docker:down"]]
 ```
@@ -340,7 +350,7 @@ More:
 - Do write an organization's entries into each repository's policy through a reviewed change, for example by an agent
   following a skill the organization publishes, such as one installed with `npx skills add acme/agent-skills`: each
   repository reviews them, and they are readable where they apply
-  ([organization choices](presets.md#organization-choices)).
+  ([organization choices](plugins.md#organization-choices)).
 - Do express a rule as a prefix list whenever Codex must also enforce it.
 - Do write an entry for a `harness` command once, as `[harness, …]`; `render` writes it for each spelling it renders,
   and the binary's own guards catch the others.
@@ -362,5 +372,7 @@ hook-based allow or deny.
 | `/abs/path/harnessw lifecycle run deliver` or `sh harnessw lifecycle run deliver` runs without the prompt | Prefix rules match leading words; those spellings match none of the rendered ones | Expected: the `deliver` guards are enforced by the binary whatever the spelling. Keep agents on `./harnessw`, the form `AGENTS.md` teaches |
 | A deny works in Claude Code but not in Codex | The entry is Claude-only: a bare string or a native rule string other than a plain `Bash` prefix | Express it as a prefix list too |
 | `render` rejects an entry | A nested list is deeper than one level, or an entry is neither a list nor a string | Use one level of alternatives per word |
-| The force-push deny names the wrong branch | `origin/HEAD` points elsewhere or is unset | `git remote set-head origin --auto`, then `harness render` |
+| The force-push deny names the wrong branch | The version-control plugin reports another default branch: with the git plugin, `origin/HEAD` points elsewhere or is unset | `git remote set-head origin --auto`, then `harness render` |
+| `render` reports a dropped entry | A policy entry tries to remove or weaken a floor rule, such as an `allow` for a force push to the default branch | Remove the entry; the floor rule stays in force whatever the policy says |
+| No `mise * ::: *` deny in the rendered output | The mise plugin is not in the profile's `plugins:` | `harness plugin apply mise`, then review the diff |
 | An agent's `harness lifecycle run deliver` prompts every time | The seeded `ask` entry | Intended; move it to `allow` only if the `deliver` actions are safe to run unconfirmed |

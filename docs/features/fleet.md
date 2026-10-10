@@ -38,10 +38,10 @@ Commands are named `harness <command>` on this page. The examples run `fleet` th
 | You want to | Command |
 | --- | --- |
 | Check every adopted repository | `harness fleet doctor` |
-| Apply a stack's preset to every repository on that stack, delivered for review | `harness fleet preset apply node --yes --deliver --repos <file>` |
+| Apply a stack's plugin to every repository on that stack, delivered for review | `harness fleet plugin apply node --yes --deliver --repos <file>` |
 | Pick up a schema change everywhere | `harness fleet render --yes --deliver` |
 | Move every repository to a new `harness` release | `harness fleet wrapper --version <tag> --deliver` |
-| Wire a tool, such as Beads, into every repository that uses it | `harness fleet preset apply beads --yes --deliver --repos <file>` |
+| Wire a program, such as Beads, into every repository that uses it | `harness fleet plugin apply beads --yes --deliver --repos <file>` |
 | Adopt `harness` in a set of repositories | `harness fleet scaffold --adopt --yes --deliver` |
 | Withdraw a module everywhere | `harness fleet remove --module memory --yes --deliver` |
 
@@ -77,8 +77,9 @@ fleet runs ([lifecycle](lifecycle.md#an-organization-convention-a-ci-trigger-com
 ### For each repository
 
 1. If the working tree has uncommitted changes, refuse it: the result is **blocked**, nothing runs there.
-2. With `--deliver`: fetch `origin` and create a local branch `<branch_prefix><command>` from the fetched default
-   branch. An existing branch with that name blocks the repository.
+2. With `--deliver`: through the repository's version-control plugin, update from the remote and create a local
+   branch `<branch_prefix><command>` from the default branch the plugin reports (with the git plugin, after
+   `git fetch origin`). An existing branch with that name blocks the repository.
 3. Run `harness <command> [command args...]` with the repository as its working directory and no terminal, so commands
    that confirm need `--yes`. In a repository with `.harness/wrapper.yaml`, the command runs the version that repository
    pins, downloaded and verified when this machine has not cached it yet. In a repository without one, such as one
@@ -125,7 +126,7 @@ harness fleet <command> [command args...] [--repos <file>] [--deliver] [--contin
 
 | Flag | Default | Meaning |
 | --- | --- | --- |
-| `<command> [command args...]` | required | Any repository-level `harness` command and its arguments: `scaffold`, `render`, `preset`, `remove`, `doctor`, `wrapper`, `explain`, `version` |
+| `<command> [command args...]` | required | Any repository-level `harness` command and its arguments: `scaffold`, `render`, `plugin`, `remove`, `doctor`, `wrapper`, `explain`, `version` |
 | `--repos <file>` | `~/.config/harness/fleet.yaml` | Fleet file |
 | `--deliver` | off | Commit each changed repository on a new local branch and fire its `deliver` event (scope `change`) |
 | `--continue-on-error` | off | Keep going after a repository fails or is blocked |
@@ -157,7 +158,8 @@ branch exists only for a release the project signed. Reviewers check the version
 version. Once these branches land, `fleet render --deliver` picks up what the new release renders differently
 ([wrapper](wrapper.md#many-repositories)).
 
-A newer release's preset entries reach a repository only when someone applies the preset again. With a fleet file
+A newer release's plugin entries reach a repository only when someone applies the plugin again; its renders change
+with the pin alone. With a fleet file
 that lists the Node repositories, read what each would receive, then deliver it for review:
 
 ```yaml
@@ -166,13 +168,13 @@ repos: [~/src/acme-api, ~/src/acme-web]
 ```
 
 ```sh
-./harnessw fleet preset apply node --dry-run --repos ~/fleets/node.yaml
-./harnessw fleet preset apply node --yes --deliver --continue-on-error --repos ~/fleets/node.yaml
+./harnessw fleet plugin apply node --dry-run --repos ~/fleets/node.yaml
+./harnessw fleet plugin apply node --yes --deliver --continue-on-error --repos ~/fleets/node.yaml
 ```
 
-Each repository runs the release it pins, so it receives the entries of that release's `node` preset that it lacks.
+Each repository runs the release it pins, so it receives the entries of that release's `node` plugin that it lacks.
 Every entry and item it already holds stays as it is, and a repository with nothing to add ends **unchanged**
-([presets](presets.md#how-apply-works)).
+([plugins](plugins.md#how-apply-works)).
 
 Adopt three new repositories, Node, Go and Terraform, with a separate fleet file:
 
@@ -187,10 +189,11 @@ commit_message: "chore: adopt harness"
 ./harnessw fleet scaffold --adopt --yes --deliver --repos ~/fleets/new-adopters.yaml
 ```
 
-Each repository gets the presets of the stacks `scaffold` detects in it. No action runs that a repository does not
-declare, and no stack preset holds one, so a freshly scaffolded repository declares no `deliver` actions and ends as
-**committed, not delivered**. Deliver those branches by hand, or declare `deliver` actions in each branch's
-`.harness/hooks.yaml`, commit them, and run `harness lifecycle run deliver` there.
+Each repository gets the plugins whose detect rule matches in it, such as `git`, `claude` and its stack's plugin. No
+action runs that a repository does not declare, and no plugin `scaffold` applies holds a `deliver` action, so a freshly
+scaffolded repository declares no `deliver` actions and ends as **committed, not delivered**. Deliver those branches by
+hand, or declare `deliver` actions in each branch's `.harness/hooks.yaml`, commit them, and run
+`harness lifecycle run deliver` there.
 
 Health check before a release:
 
@@ -202,8 +205,8 @@ Health check before a release:
 
 - Do keep the fleet file to repositories you are responsible for.
 - Do run a command once by hand in one repository before running it across the fleet.
-- Do keep one fleet file per stack for a stack preset: it holds one stack's commands, lanes and hooks, and in a
-  repository on another stack its entries do not fit. A tool preset fits any repository that uses its tool, so its
+- Do keep one fleet file per stack for a stack plugin: it holds one stack's commands, lanes and hooks, and in a
+  repository on another stack its entries do not fit. Any other plugin fits a repository that uses its program, so its
   fleet file lists those repositories.
 - Do give a change that takes judgement in each repository, such as an organization's convention, to a person or an
   agent working in that repository: `fleet` runs the same command everywhere and cannot adapt it.
@@ -221,7 +224,7 @@ Health check before a release:
 | Symptom | Cause | Fix |
 | --- | --- | --- |
 | A repository is blocked | Uncommitted changes, or the branch already exists | Commit or stash; delete or merge the old branch |
-| `scaffold` or `preset apply` exits 3 in every repository | It needs confirmation and the fleet runs without a terminal | Add `--yes`, after reading the `--dry-run` output |
+| `scaffold` or `plugin apply` exits 3 in every repository | It needs confirmation and the fleet runs without a terminal | Add `--yes`, after reading the `--dry-run` output |
 | A repository ends **committed, not delivered** | It declares no `deliver` actions | Declare them in its `.harness/hooks.yaml`, then `harness lifecycle run deliver` on that branch |
 | A `deliver` action fails | The action's own tool failed, for example an unauthenticated CLI | Read the action's output in the summary or the lifecycle log; fix it, then `harness lifecycle run deliver` on that branch |
 | A repository fails right after `fleet wrapper` | The new release cannot be downloaded or fails its checksum on this machine | See [pitfalls](pitfalls.md#the-first-run-needs-the-network) and [the checksum entry](pitfalls.md#a-checksum-mismatch-refuses-the-download) |
