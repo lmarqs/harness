@@ -16,8 +16,8 @@ nothing installed beforehand, and a release runs only if its publisher signed it
 `harnessw` is a POSIX `sh` script committed at the root of every adopted repository. It runs the `harness` release the
 repository pins in `.harness/wrapper.yaml`. The first time a machine needs that release, the wrapper downloads it over
 HTTPS, checks its sha256 against the pinned checksum, caches it and runs it. Afterwards it runs it from the cache,
-offline. People, agents, [task shims](render.md#task-shims) (one-line tasks of the mise task runner, such as
-`mise run verify`) and agent hooks all reach `harness` through it, so every machine runs the same release in a given
+offline. People, agents, agent hooks and other tools, such as a loop runner whose agent command is
+`./harnessw worker claude`, all reach `harness` through it, so every machine runs the same release in a given
 repository, and nobody installs anything to work in one.
 
 `.harness/wrapper.yaml` is the only place a repository pins `harness`. It is
@@ -88,7 +88,7 @@ only through a commit, so a cached release never needs a network check.
 | Entry point | When the pinned release is not cached |
 | --- | --- |
 | `./harnessw <command>`, typed by a person or an agent | downloads, verifies, runs |
-| task shims (`mise run verify`, …) | the same: each one execs `./harnessw <command>` |
+| another tool's command, such as a loop runner's `./harnessw worker claude` or a team's own task | the same: it is `./harnessw <command>` |
 | A global `harness` typed in a pinned repository | the same verified download, then runs the pinned release |
 | Agent hooks | never download: they run `"$(git rev-parse --show-toplevel)/harnessw" --no-download hook <event>`, print one line on stderr and exit 0 |
 
@@ -105,9 +105,10 @@ knows why it has no [standing context](context.md) or lint-on-edit hooks, and te
 harness v0.9.0 is not cached on this machine; run ./harnessw version once to fetch it.
 ```
 
-Explicit entry points never succeed without running: a task shim that cannot obtain the release exits 1, or 3 when a
-person must act first, so no verification or task command claims work that did not happen. For example,
-`mise run verify` on a fresh clone without network access exits 1 instead of reporting a passing verification.
+Explicit entry points never succeed without running: `./harnessw <command>` that cannot obtain the release exits 1,
+or 3 when a person must act first, so no command claims work that did not happen. For example, `./harnessw verify` on a
+fresh clone without network access exits 1 instead of reporting a passing verification, and a loop runner sees a failed
+attempt.
 
 ### A global install defers to the pin
 
@@ -129,14 +130,11 @@ cache, so a different `harness` earlier on `PATH` never affects it; only the opt
 
 ### One pin
 
-The version a repository runs is pinned in `.harness/wrapper.yaml` and nowhere else. A pin of `harness` in a task
-runner's tool list (`mise.toml`, `.mise.toml` or `.tool-versions`, naming `github:lmarqs/harness` or `harness`) would be
-a second answer to the same question, and the two drift apart.
-
-- `harness doctor` reports such a pin as a finding (exit 2), naming the file and the line.
-- `harness scaffold --adopt` copies a pin it finds there into `wrapper.yaml`, verified like any other pin, and lists
-  removing it from the task runner's file in the [adoption to-do](scaffold.md#the-to-do). `harness` never edits
-  `mise.toml` or `.tool-versions`.
+The version a repository runs is pinned in `.harness/wrapper.yaml`, the only pin `harness` reads
+([ADR 0017](../adrs/0017-engine-version.md)). `harness` reads no other tool's files
+([ADR 0022](../adrs/0022-tool-integration.md)), so it neither reads nor edits a task runner's tool list, such as
+`mise.toml` or `.tool-versions`. A `harness` that such a tool installs is a
+[global install](#a-global-install-defers-to-the-pin): in a pinned repository it runs the pinned release.
 
 ### The trust chain
 
@@ -216,7 +214,7 @@ A pending pin never admits a download, because there is nothing to verify one ag
 
 | Entry point | Pinned release in the cache | Pinned release not in the cache |
 | --- | --- | --- |
-| `./harnessw <command>`, task shims | runs it | exit 3: `harness: pin of v0.9.0 is pending, nothing downloaded; with network access, run: harness wrapper --version v0.9.0` |
+| `./harnessw <command>` | runs it | exit 3: `harness: pin of v0.9.0 is pending, nothing downloaded; with network access, run: harness wrapper --version v0.9.0` |
 | Agent hooks | run it | skip, as for [an uncached release](#which-entry-points-download) |
 | A global `harness` of the pinned version | runs itself | runs itself |
 | A global `harness` of another version | runs the cached release | runs `harness wrapper` itself, so it can complete the pin; any other command exits 3 with the message in the first row |
@@ -464,8 +462,8 @@ install -m 0755 ./harness "$dir/harness"
 - Don't set `HARNESS_BINARY` in shared configuration, such as CI or a team's shell profile: it removes the pin for
   everyone it reaches.
 - Don't add `harnessw` or `.harness/` to `.gitignore`.
-- Don't pin `harness` in `mise.toml`, `.mise.toml` or `.tool-versions` as well: `wrapper.yaml` is the one pin, and
-  `harness doctor` reports a second one.
+- Don't pin `harness` in `mise.toml`, `.mise.toml` or `.tool-versions` as well: `harness` ignores that pin, and a
+  reader of the repository sees two versions.
 
 ## Troubleshooting
 
@@ -484,5 +482,4 @@ install -m 0755 ./harness "$dir/harness"
 | `render --check` lists `harnessw` | The script was edited by hand, or an upgrade's `harnessw` was not committed | `./harnessw render`, then commit `harnessw` |
 | `harness wrapper` exits 1: signature does not verify | The checksum file is not signed with a key the running binary trusts: a tampered release, a `source` that is not this tool's publisher, or an old release signed only with a retired key | Do not pin it. Check `source`; pin a release signed with a current key |
 | `doctor` finding: checksums differ from the signed checksum file | `wrapper.yaml` was edited by hand, or the release was republished | Re-pin from a trusted network with `./harnessw wrapper --version <tag>` and review the diff |
-| `doctor` finding: `harness` is also pinned in `mise.toml` | Two pins for one tool | Remove the entry from the task runner's file; `wrapper.yaml` is the pin |
 | `doctor` reports that `harness` on `PATH` is not this tool | Another program named `harness`, such as Harness.io's CLI, comes first on `PATH` | Use `./harnessw`, which is never affected, or reorder `PATH` for the global command |

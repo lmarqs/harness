@@ -2,237 +2,255 @@
 
 ## Objective
 
-**Problem.** A developer who splits a piece of work into small steps, for several agent sessions or an unattended run in
-one clone, needs to know which session holds which step and which steps are really finished. Without that, two sessions
-work on the same step or close each other's, a step is marked finished before its checks pass, and the bookkeeping is
-either lost between sessions or spills into the issues and pull requests the team reads.
+**Problem.** A developer who works on one task of a tracker in its own checkout, by hand or through an agent, needs
+the tracker to show who holds the task and to mark it finished only once its checks pass. Updated by hand, the tracker
+falls behind the work, and a task is closed before its checks ran. Teams use different trackers, or none, so a tool
+built around one tracker serves only the teams that chose it.
 
-**Goal.** Each step is held by one session at a time and counts as finished only after its checks pass, and the team's
-record of work stays as the team writes it.
+**Goal.** Whatever tracker a team uses, a task in it shows who works on it and counts as finished only after its checks
+pass.
 
 ## Overview
 
-`harness task` claims, annotates, completes and releases tasks in a clone-local tracker: a Beads database (Beads is a
-task tracker that keeps its database in `.beads/` and is used through its `bd` command) or a PRD JSON file (a list of
-user stories in the format of [ralph-tui](https://github.com/subsy/ralph-tui), the runner behind [Ralph](ralph.md)).
-Each managed worktree has its own actor, the identity under which its session claims tasks, so two sessions cannot
-complete each other's tasks, and completion requires a valid [verification receipt](verify.md).
+`harness` binds a [managed worktree](worktrees.md) to a task and fires [lifecycle events](lifecycle.md) around the work
+on it. It contains no code for any task tracker: it never reads or writes a tracker's data and never checks that a
+task id exists. A tracker is wired by actions the repository declares on the events `start`, `completed` and
+`blocked`, which read the task id and the actor from the environment
+([ADR 0022](../adrs/0022-tool-integration.md)).
+
+Three pieces make this work:
+
+- **Task binding.** `harness worktree create <name> --task <id>` records a free-form task id. Every event fired in that
+  worktree carries it in `HARNESS_TASK`, as well as the worktree's actor in `HARNESS_ACTOR`, which every managed
+  worktree has.
+- **The `completed` guard.** `completed` with scope `task` is refused (exit 3) without a valid
+  [verification receipt](verify.md) when the verify module is on, whoever fires it.
+- **Trackers wired by actions.** The `beads` [preset](presets.md) writes the actions for Beads, a task tracker that
+  keeps its database in `.beads/` and is used through its `bd` command. Any other tracker is wired the same way with
+  its own command line, such as GitHub issues through `gh`.
 
 Commands are named `harness <command>` on this page. The examples run them through the repository's wrapper,
 `./harnessw <command>`, from the root of a checkout; with a global install, `harness <command>` is equivalent
 ([wrapper](wrapper.md)).
 
-## Issues and tasks
-
-| | Issue | Task |
-| --- | --- | --- |
-| Lives in | GitHub (issues, pull requests, projects) | this clone: `.beads/` or a PRD JSON file |
-| Seen by | the team | this clone only |
-| Purpose | the record of the project's work | organising long sessions and local work, including [Ralph](ralph.md) runs |
-| Written by `harness` | never | yes, through `harness task` and Ralph |
-
-What the team needs to know goes to the issue or the pull request. Tasks are optional and disposable.
-
 ## When to use it
 
-- You split a piece of work into stories and want agents to pick them up one at a time.
-- You run [Ralph](ralph.md), which takes its tasks from Beads or a PRD file.
-- You want a per-task worktree whose completion is tied to a receipt.
+- You work on tasks of a tracker in managed worktrees and want the tracker updated when work starts, finishes or stops.
+- You want a task to count as finished only after `harness verify` passed on its final content.
+- You run an unattended loop through [`harness worker`](ralph.md), which fires `completed` for each verified attempt.
 
-Tasks need `modules.tasks: true` in the [profile](profile.md).
+Without a tracker, leave out `--task`: worktrees and `harness verify` work without tasks.
 
 ## How it works
 
+### Task binding
+
+`harness worktree create <name> --task <id>` records the id in the worktree's session (`session.json` in the
+worktree's state directory) next to its base commit and its actor, `<user>:<name>:<random>`. The id is free-form: a
+bead id such as `acme-api-7f2`, an issue number such as `412`, or any string the team's tracker understands. `harness`
+does not interpret it.
+
+| In a worktree bound to a task | Value |
+| --- | --- |
+| Scope of the events fired there | `task`, unless `--scope` says otherwise ([scopes](lifecycle.md#scopes)) |
+| `HARNESS_TASK` | the id given with `--task` |
+| `HARNESS_ACTOR` | the worktree's actor, `<user>:<name>:<random>` |
+
+| Event | Fired, with scope `task` |
+| --- | --- |
+| `start` | by `harness worktree create --task`, in the new worktree |
+| `verified` | by every `harness verify` that passes there |
+| `completed` | by [`harness worker`](ralph.md) after a verified attempt in a worktree bound to a task, or by a person or agent with `harness lifecycle run completed` |
+| `deliver` | by `harness worker` after `completed` when the work is concluded, or by `harness lifecycle run deliver` |
+| `blocked` | by a `harness` command run without a terminal that exits 3, with `HARNESS_REASON` set to its one-line refusal |
+
+At an automatic trigger point only actions declared with `auto: true` run. A failing automatic event is reported on
+stderr and recorded in the [lifecycle log](lifecycle.md#the-lifecycle-log), and never changes the exit code of the
+command that fired it. `harness lifecycle run` runs exactly one event, every action of it for the scope, so after a
+manual `completed`, delivery is its own `harness lifecycle run deliver`.
+
+### The `completed` guard
+
+`completed` with scope `task` is refused with exit 3 when the verify module is on (`modules.verify: true`) and the
+checkout has no valid receipt (`harness verify --check` fails). No action runs, and the refusal is recorded in the
+lifecycle log. The guard is a [built-in guard](lifecycle.md#built-in-guards): it applies whoever fires the event, a
+person, an agent or `harness worker`, and no repository file removes it. A tracker action on `completed` therefore
+closes a task only after its checks passed on its final content.
+
+`harness worker` fires `completed` only after it replayed the agent's verification itself, so in a worker the guard and
+the replay agree. It fires `completed` and `deliver` only in a worktree bound to a task; in a worktree without one, such
+as a loop runner's, it fires no event, and whoever drives the run fires the run-scope events.
+
 ### Trackers
 
-| Tracker | Backend | Initialisation |
-| --- | --- | --- |
-| `beads` | the `bd` CLI and the clone's `.beads/` database | If `.beads/` does not exist, `harness` creates a local database with prefix `tracker.beads_prefix`, without git hooks, without agent files and without remotes, and turns off automatic export. An existing `.beads/` is used exactly as found and never reconfigured |
-| `prd` | a PRD JSON file you choose (`--prd`), in ralph-tui's `userStories` format | The file must exist. A file in the configured PRD directory (`tasks.prd_dir`, default `.work/prds`) stays out of git: the `tasks` block of `.gitignore` ignores that directory |
-| `none` | nothing | Nothing is initialised; the session is handed off through the agent conversation |
+A tracker is wired by actions on `start`, `completed` and `blocked`, scoped to `task`, that run the tracker's own
+command with the task id and the actor:
 
-`harness` never switches backends on its own: when `bd` is not installed, `--tracker beads` fails rather than fall
-back.
-
-The tracker is chosen when the worktree is created (`harness worktree create --tracker …`, default
-`tracker.default`), and recorded in the worktree's session.
-
-### Sessions and ownership
-
-`harness task` runs inside a [managed worktree](worktrees.md). Its session supplies the tracker and an actor unique to
-that worktree (`<user>:<worktree>:<random>`).
-
-| Action | Beads | PRD file |
-| --- | --- | --- |
-| `claim <id>` | `bd update <id> --claim` as the actor | sets the story's `owner` to the actor; refuses a story that passes or that another actor owns |
-| `note <id> --note <text>` | `bd comments add <id> <text>` | appends `{actor, text}` to the story's `progress` |
-| `complete <id>` | `bd close <id>` | sets the story's `passes` to `true` |
-| `release <id>` | `bd unclaim <id>` | removes the story's `owner` |
-
-Rules:
-
-- `note`, `complete` and `release` require the task to be claimed by this session's actor.
-- `complete` requires a valid receipt in this checkout (`harness verify --check` passes).
-- A worktree created with `--task <id>` refuses other ids. A `claim` in a worktree without a task binds it to that
-  id.
-- `--note` on any action also records the note.
-
-### Lifecycle events
-
-| Action | Fires, with scope `task` |
+| Event | What the action does with the tracker |
 | --- | --- |
-| `claim` | `start` |
-| `complete` | `completed`, then, when its actions succeed and the work is concluded (committed, clean tree, not on the default branch, and a valid receipt when the verify module is enabled), `deliver` |
-| any action, run without a terminal, that exits 3 | `blocked`, with `HARNESS_REASON` set to the one-line refusal, such as a task another actor owns |
+| `start` | marks the task in progress and assigned to `$HARNESS_ACTOR` |
+| `completed` | closes the task `$HARNESS_TASK`, or records that it passed its checks |
+| `blocked` | records `$HARNESS_REASON` on the task |
 
-Only actions declared with `auto: true` run at these points; `HARNESS_TASK` carries the task id. The task is claimed
-or completed whatever the actions do: a failing automatic event is reported on stderr and recorded in the
-[lifecycle log](lifecycle.md#the-lifecycle-log), and never changes the task action's exit code. See
-[lifecycle](lifecycle.md).
+The actions are the repository's own entries in `.harness/hooks.yaml`, reviewed like any other change. Switching
+trackers changes those entries and nothing else. A program an action names that is not on `PATH` is a
+[`harness doctor`](doctor.md) finding.
 
-PRD writes take a lock (`<prd>.lock` next to the file) and replace the file atomically. While a Ralph run owns a PRD
-(`<prd>.owner.lock`), `harness task` refuses to change it.
+#### The Beads preset
 
-### The convention in `AGENTS.md` and `.gitignore`
+`harness preset apply beads` writes these entries for Beads 1.3.1, after showing them as a diff
+([presets](presets.md#how-apply-works)):
 
-With the tasks module on, `harness render` writes the task convention into the `tasks` block of `AGENTS.md`: the
-tracker in use (`tracker.default`), where PRD files are kept, and the rules every session follows. The PRD directory
-goes into the `tasks` block of `.gitignore`. With `tracker.default: beads` and the default paths:
-
-```markdown
-<!-- harness:tasks -->
-Local tasks are tracked in this clone, never in the team's record: the issue and the pull request are the record.
-Tasks live in the Beads database in `.beads/` and are handled with `bd`. PRD files live in `.work/prds/`, in
-ralph-tui's `userStories` format. A task is claimed before work on it starts, has one owner at a time, and is
-completed only after its checks pass. A task that will not be finished is released, not completed.
-<!-- /harness:tasks -->
+```yaml
+# .harness/hooks.yaml
+lifecycle:
+  start:
+    - name: bead-start
+      run: bd update "$HARNESS_TASK" --status in_progress --assignee "$HARNESS_ACTOR"
+      auto: true
+      scope: [task]
+  completed:
+    - name: bead-close
+      run: bd close "$HARNESS_TASK" --reason "verified"
+      auto: true
+      scope: [task]
+  blocked:
+    - name: bead-comment
+      run: bd comments add "$HARNESS_TASK" "$HARNESS_REASON"
+      auto: true
+      scope: [task]
 ```
 
-With `tracker.default: prd` the second sentence names the PRD files as the tracker; with `none`, it says tasks are
-handed off through the agent conversation.
-
-```gitignore
-# harness:tasks
-/.work/prds/
-# /harness:tasks
+```yaml
+# .harness/config.yaml
+agents:
+  codex:
+    writable_roots: [.beads]
 ```
 
-When `harness` created the Beads database and the repository does not track `.beads/`, it also writes:
-
-```gitignore
-# harness:beads
-/.beads/
-# /harness:beads
+```yaml
+# .harness/policy.yaml
+worker:
+  deny:
+    - [bd, close]
 ```
 
-An existing `.beads/` keeps whatever ignore rules the repository already has.
+- The `completed` action closes the bead from the process that fired the event, and a worker's agent is denied
+  `bd close`, so a bead closes only through the guarded event.
+- Codex workers get `.beads/` as a writable root, so `bd` commands the agent runs can update the database.
+- `bd` refuses a missing id, so an action that runs with `HARNESS_TASK` unset fails instead of touching another bead.
+- Nothing initialises, configures or localises a Beads database. Creating one is `bd`'s own job (`bd init`).
+- When ralph-tui runs with its Beads tracker, ralph-tui updates bead status itself ([ralph](ralph.md)). The preset's
+  actions matter for interactive work in managed worktrees.
 
-These are [convention blocks](concepts.md#convention-blocks-and-tool-blocks): they state the convention as a fact and
-name no `harness` command. After [`harness remove --eject`](remove.md#eject) the markers go and the text and ignore
-entries stay. `bd` and ralph-tui keep working with the same database and PRD files, and agents keep claiming before they
-work, but nothing checks for a receipt at completion any more. `harness remove --module tasks` removes the blocks and
-leaves the database and the PRD files in place.
+#### GitHub issues with `gh`
+
+No preset holds these; a repository declares them itself. The task id is the issue number:
+
+```yaml
+# .harness/hooks.yaml
+lifecycle:
+  start:
+    - name: issue-assign
+      run: gh issue edit "$HARNESS_TASK" --add-assignee "@me"
+      auto: true
+      scope: [task]
+  completed:
+    - name: issue-verified
+      run: gh issue comment "$HARNESS_TASK" --body "Verified on $HARNESS_BRANCH: $HARNESS_SUMMARY"
+      auto: true
+      scope: [task]
+  blocked:
+    - name: issue-blocked
+      run: gh issue comment "$HARNESS_TASK" --body "Blocked: $HARNESS_REASON"
+      auto: true
+      scope: [task]
+```
+
+The issue stays open until the team closes it, for example through a pull request that says `Closes #412`. These
+actions write to the team's record, so declare them only where the team wants that record written from the work.
 
 ## Reference
 
 ```text
-harness task <claim|note|complete|release> <id> [--note <text>]
+harness worktree create <name> --task <id>
+harness lifecycle run completed [--scope task]
 ```
 
-| Argument or flag | Meaning |
-| --- | --- |
-| `claim` \| `note` \| `complete` \| `release` | The action |
-| `<id>` | Beads issue id or PRD story id |
-| `--note <text>` | Text to record; required for `note` |
+| Variable | Value | Set |
+| --- | --- | --- |
+| `HARNESS_TASK` | the id given with `--task` | every event fired in a worktree bound to a task |
+| `HARNESS_ACTOR` | the worktree's actor, `<user>:<name>:<random>` | every event fired in a managed worktree |
+| `HARNESS_REASON` | the one-line refusal of the command that exited 3 | `blocked`, when it fires at a trigger point |
 
-| Exit code | Meaning |
+| Exit code of `completed`, scope `task` | Meaning |
 | --- | --- |
-| 0 | Done |
-| 1 | Error: not in a managed worktree, the session has no tracker, `bd` missing, unknown id, task bound to another id |
-| 2 | `complete` refused: no valid receipt. Run `harness verify` |
-| 3 | Refused: the task belongs to another actor, or a Ralph run owns the PRD. A person decides whether to take it over |
+| 0 | Every action passed, or none is declared for the scope |
+| 2 | An action failed |
+| 3 | Refused: no valid receipt while the verify module is on; no action ran |
 
-Files read and written: `session.json` in the worktree's state directory; the Beads database through `bd`; the PRD
-file and its lock files; the lifecycle log.
+The full flags and exit codes are in [worktrees](worktrees.md#reference) and [lifecycle](lifecycle.md#reference).
+Files read: `session.json` in the worktree's state directory, `verified.json` for the guard, `.harness/hooks.yaml`.
+Files written: the lifecycle log; whatever the actions write.
 
 ## Examples
 
 ### A Node API with Beads
 
 ```sh
-./harnessw worktree create invoice-rounding --tracker beads --task acme-api-7f2
+./harnessw preset apply beads
+./harnessw worktree create invoice-rounding --task acme-api-7f2   # bead-start marks acme-api-7f2 in progress
 cd .work/worktrees/invoice-rounding
-./harnessw task claim acme-api-7f2
-./harnessw task note acme-api-7f2 --note "Rounding moved to the domain service; verifying"
+# edit, test
 ./harnessw verify --lane unit=invoice --skip e2e="no route, controller or guard changed"
-./harnessw task complete acme-api-7f2
+./harnessw lifecycle run completed                                # bead-close closes acme-api-7f2
+./harnessw lifecycle run deliver
 ```
 
 `bd ready`, `bd show`, `bd search` and the rest of `bd` keep working as usual.
 
-### A Go repository with a PRD file
+### A Go repository with GitHub issues
+
+With the actions of [GitHub issues with `gh`](#github-issues-with-gh) declared:
 
 ```sh
-mkdir -p .work/prds
-$EDITOR .work/prds/export-csv.json        # or: ralph-tui convert --to json export.md -o .work/prds/export-csv.json
-./harnessw worktree create export-csv-1 --tracker prd --prd .work/prds/export-csv.json --task US-001
-cd .work/worktrees/export-csv-1
-./harnessw task claim US-001
+./harnessw worktree create export-csv --task 412                  # issue-assign assigns issue 412
+cd .work/worktrees/export-csv
 ./harnessw verify --lane test=./internal/export/...
-./harnessw task complete US-001
-```
-
-A minimal PRD file:
-
-```json
-{
-  "name": "CSV export",
-  "userStories": [
-    {
-      "id": "US-001",
-      "title": "Export invoices as CSV",
-      "description": "Describe the intended behaviour.",
-      "acceptanceCriteria": ["Observable success", "harness verify passes with the relevant lanes"],
-      "priority": 1,
-      "passes": false
-    }
-  ]
-}
+./harnessw lifecycle run completed                                # issue-verified comments with the summary
 ```
 
 ### A Terraform repository without a tracker
 
-Leave `modules.tasks: false` and `tracker.default: none`; worktrees and `harness verify` work without tasks.
+Create worktrees without `--task` and declare no tracker actions; worktrees and `harness verify` work without tasks.
 
 ## Guidelines
 
-- Do link a Beads task to its GitHub issue in the task itself (for example with `bd`'s external reference); that link
-  is the agent's job, never the tool's.
-- Do release a task you will not finish, so another session can claim it.
-- Don't complete a task to "save progress"; use `note`.
-- Don't edit a PRD file by hand while Ralph runs on it.
-- Don't share task ids across clones: they mean something only in the clone that holds the tracker.
+- Do bind a worktree to one task with `--task`, so every event fired there names it.
+- Do run `harness verify` before firing `completed`; the guard refuses it otherwise.
+- Do keep tracker actions scoped to `task`, so a worktree without a task never runs them.
+- Don't let a worker's agent close tasks itself; deny the tracker's close command in `worker.deny`, as the Beads preset
+  does.
+- Don't share task ids across clones of a clone-local tracker such as Beads: they mean something only where the
+  tracker's data is.
 
 ## Troubleshooting
 
 | Symptom | Cause | Fix |
 | --- | --- | --- |
-| Exit 1: not in a managed worktree | `harness task` was run in the primary checkout | `harness worktree create … --tracker …` |
-| `complete` exits 2 | No valid receipt, or a file changed after `verify` | `harness verify …`, then complete |
-| `claim` exits 3 | Another session owns the task | Inspect the claim; release it from that session, or take over deliberately with `bd` |
-| `--tracker beads` fails at once | `bd` is not installed | Install `bd`, or choose `prd` or `none` |
-| `.beads` exists but `harness` refuses it | The directory has no Beads metadata (for example a partial checkout) | Restore its configuration before using it |
-| `bd` suggests pushing to a remote | The database `harness` created is local by design | Nothing to do; add a deny for the push in the policy if agents should never try |
+| `lifecycle run completed` exits 3 and runs no action | No valid receipt, or a file changed after `verify` | `harness verify …`, then fire `completed` again |
+| The tracker did not change when the worktree was created | The `start` action is not `auto: true`, is not scoped to `task`, or failed | `harness lifecycle list`; the lifecycle log shows the failure; `harness lifecycle run start` retries it |
+| A Beads action fails with a missing id | `completed` or `blocked` was fired by hand, with scope `task`, in a worktree created without `--task` | Bind the worktree with `--task`; under ralph-tui's Beads tracker, ralph-tui updates the bead itself |
+| `doctor` reports `bd` or `gh` not on `PATH` | A declared action names a program this machine lacks | Install it, or remove the action |
+| A bead is assigned to `<user>:<worktree>:<random>` | That is the worktree's actor, from `HARNESS_ACTOR` | Nothing to do; the actor names the worktree that holds the task |
 
 ## Coexistence
 
-- GitHub stays the record: the binary contains no logic for any hosting platform and never writes issues, projects,
-  comments, reviews or labels. Through `harness`, a pull request is opened only by a `deliver` action the
-  repository declares.
-- Task state `harness` creates stays in the clone. An existing `.beads/`, including one synchronised across machines or
-  tracked in git, is used as found. What `harness` writes into it (claims, notes, verification comments) therefore
-  travels where that synchronisation sends it, and `harness` never configures the synchronisation
-  ([ADR 0012](../adrs/0012-write-boundary.md)).
-- `harness` does not change `core.hooksPath` and initialises Beads without git hooks.
+- The binary contains no code for any task tracker or hosting platform. What reaches a tracker or GitHub is what the
+  repository's own actions write, and a pull request is opened only by a `deliver` action the repository declares.
+- An existing `.beads/`, including one synchronised across machines or tracked in git, is the tracker's own data:
+  `harness` neither reads nor configures it, and what the actions write into it travels where its synchronisation
+  sends it ([ADR 0012](../adrs/0012-write-boundary.md)).
+- `harness` does not change `core.hooksPath`.
 
 See [compatibility](compatibility.md#beads).

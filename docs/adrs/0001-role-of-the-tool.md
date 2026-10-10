@@ -12,9 +12,10 @@ access and credentials their vendors and organizations give them.
 
 ## Context
 
-An agent harness is the program that runs a model in a loop with tools: an interactive coding agent, or an unattended
-runner that drives an agent through a list of tasks. Each harness reads its permissions, hooks, instructions and skills
-from files in the repository.
+An agent harness is the program that runs a model in a loop with tools, such as a coding agent used interactively or
+started headless for one task. A loop runner is a separate program that starts a harness once per task from a list
+([0022](0022-tool-integration.md)). Each harness reads its permissions, hooks, instructions and skills from files in the
+repository.
 
 - Example: acme copies one agent workflow by hand from `acme/api` into `acme/web` and `acme/infra`. A year later each
   copy is its own dialect. `acme/web` added a lint step and skips permission prompts through its unattended runner's
@@ -61,9 +62,10 @@ from files in the repository.
 - **4.** Unattended runs are where a hand-copied setup loses its safety settings: a permission prompt stalls a run that
   nobody watches, so a copy turns the prompts off in the start-up arguments or the runner's configuration, as two of the
   three acme copies in Context do. The tool therefore controls the arguments, permission mode and environment of every
-  harness it starts. It judges the outcome by checks it can replay, because an agent can claim completion that did not
-  happen ([0011](0011-safety-invariants.md)). Starting the harness as an unmodified child process keeps it replaceable
-  and keeps its reasoning inside it.
+  harness it starts, including each one a loop runner asks it to start; the loop runner's own configuration stays the
+  team's ([0022](0022-tool-integration.md)). It judges the outcome by checks it can replay, because an agent can claim
+  completion that did not happen ([0011](0011-safety-invariants.md)). Starting the harness as an unmodified child
+  process keeps it replaceable and keeps its reasoning inside it.
 
 ## Rejected alternatives
 

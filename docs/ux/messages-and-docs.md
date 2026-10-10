@@ -61,7 +61,7 @@ harness: render --check: 2 files drifted from .harness/policy.yaml
 ```
 
 ```text
-harness: remove: .mise/tasks/verify was edited by hand and was not removed
+harness: remove: .codex/rules/harness.rules was edited by hand and was not removed
   its content no longer matches the manifest
   review the file, then run: ./harnessw remove --force
 ```
@@ -120,7 +120,7 @@ differently:
 
 - **Convention blocks** state facts that hold without harness, in the voice of the repository: "Worktrees in this
   project are created in `.work/worktrees/<name>`, on branch `work/<name>`, from committed code." They never name a
-  harness command, the wrapper, `.harness/` or a task shim, and never say they are managed beyond their marker. Why:
+  harness command, the wrapper or `.harness/`, and never say they are managed beyond their marker. Why:
   `harness remove --eject` keeps their text, which must still be true and usable afterwards.
 - **Tool blocks** explain how to use harness and name its commands in the documented form, `./harnessw <command>`.
   Why: eject removes them, so they may depend on the tool.
@@ -195,8 +195,9 @@ A section with no content is omitted rather than left empty.
   where a reader looks up a value, and a tagged block renders and copies exactly as written.
 - No organization names in examples or in content harness carries; examples use `acme` for an organization and
   `acme/api` for a repository, because harness is open source and its docs must fit any organization. Third-party
-  products (Claude Code, Codex, GitHub, the `skills` CLI, Harness.io, a CI/CD platform whose CLI is also called
-  `harness`) are named where their behaviour matters, because a reader needs to know which tool a rule is about.
+  products (Claude Code, Codex, GitHub, ralph-tui, Beads, the `skills` CLI, Harness.io, a CI/CD platform whose CLI is
+  also called `harness`) are named where their behaviour matters, because a reader needs to know which tool a rule is
+  about.
 - Example commands are complete and run as written; example output is copied from a real run of the documented
   release, so a reader can trust what they copy.
 - Commands that run inside a repository are written as `./harnessw <command>`, with `harness <command>` shown as the

@@ -2,11 +2,11 @@
 
 ## Objective
 
-**Problem.** An adopted repository can be broken in ways no single file shows: a hook names a task that no longer
-exists, a path pattern matches no file, a teammate's machine lacks the release the repository pins, or an adoption was
-left half finished. A developer sees only the symptom, such as a check that never runs or an unattended run that refuses
-to start, and an agent finishing an adoption has no list of what remains. Branches whose work already reached the
-default branch pile up unnoticed.
+**Problem.** An adopted repository can be broken in ways no single file shows: a hook names a program that is not
+installed, a path pattern matches no file, a teammate's machine lacks the release the repository pins, or an adoption
+was left half finished. A developer sees only the symptom, such as a check that never runs or an unattended worker that
+refuses every task, and an agent finishing an adoption has no list of what remains. Branches whose work already reached
+the default branch pile up unnoticed.
 
 **Goal.** A developer, an agent or a CI pipeline can tell, without changing anything, whether a repository's agent setup
 is complete and working on this machine, what fixes each problem, and which finished branches are ready to clean up.
@@ -26,7 +26,7 @@ global install, `harness <command>` is equivalent.
 - After `harness scaffold` or `harness scaffold --adopt`, to see what is left.
 - After editing the profile, policy or hooks file, as a broader check than `render --check`.
 - When something does not behave as expected: a hook does not fire, a [lane](verify.md) selects nothing, an unattended
-  [Ralph](ralph.md) run refuses to start.
+  [worker](ralph.md) refuses every task.
 - In CI, optionally, next to `harness render --check`.
 - Across many repositories with [`harness fleet doctor`](fleet.md).
 
@@ -40,19 +40,17 @@ global install, `harness <command>` is equivalent.
 | Wrapper file | `.harness/wrapper.yaml` missing or invalid: no `schema`, a `version` that is not an exact tag, a `source` that is neither `github:<owner>/<repo>` nor an HTTPS base URL ([release source](wrapper.md#release-source)), or a checksum missing or not 64 hexadecimal characters for one of `linux-amd64`, `linux-arm64`, `darwin-amd64`, `darwin-arm64`. `checksums: pending` is valid and reported as the next row |
 | Pending pin | `.harness/wrapper.yaml` has `checksums: pending`, written by `scaffold --offline`: no machine without the release in its cache can run `./harnessw` until `harness wrapper --version <the pinned tag>` completes it ([wrapper](wrapper.md#a-pending-pin)) |
 | Wrapper script | `harnessw` missing, not executable, or different from the pinned release's template |
-| One pin | `mise.toml`, `.mise.toml` or `.tool-versions`, the files the [mise](https://mise.jdx.dev) task runner reads tool versions from, also pins `harness` (`github:lmarqs/harness` or `harness`). `.harness/wrapper.yaml` is the only pin; `harness` never edits the task runner's file, so remove the line yourself |
 | Release signature | online only, at most once a day and cached: the pinned release's signed checksum file does not verify with the keys embedded in the running release, or its checksums differ from those in `.harness/wrapper.yaml` ([wrapper](wrapper.md#security)); a pending pin has none to compare and is reported as pending |
 | Cached release | the pinned release is not in `$HARNESS_HOME` on this machine and `HARNESS_BINARY` is unset, so agent hooks skip until `./harnessw version` runs |
 | Rendered files | the same drift `harness render --check` reports |
 | Manifest | owned paths missing, modified by hand, or present but no longer produced |
 | Links | skill links that do not resolve |
-| Commands | `commands`, lane `select`/`full`, `bootstrap`, validator and post-edit commands that call a mise task the repository does not define |
+| Programs | a program that a declared command names and that is not on `PATH`: `commands`, lane `select`/`full`, `bootstrap`, validator and post-edit commands, and lifecycle `run` actions. The check needs no knowledge of the program ([ADR 0022](../adrs/0022-tool-integration.md)) |
 | Globs | `verify.app_paths`, `verify.lint_paths`, lane `required_when`, validator `when` and post-edit `paths` that match no tracked file |
 | Default branch | `origin/HEAD` cannot be resolved, so the built-in force-push deny cannot name the branch |
-| Tools | `claude` (Claude Code), `codex`, `bd` (the command of the Beads task tracker, [tasks](tasks.md#trackers)) and `ralph-tui` (the runner behind [Ralph](ralph.md)) versions outside the supported range, for the tools the profile uses; `mise` when [task shims](render.md#task-shims) are rendered (`front_door: mise`); the `skills` CLI when `modules.skills` is on |
+| Tool versions | `git`, and `claude` (Claude Code) and `codex` for the agents the profile declares, at a version outside the supported range. No other program's version is checked |
 | Policy | an entry that would weaken a built-in invariant, such as an `allow` for a force push to the default branch; `render` leaves it out and renders the invariant, and the entry stays a finding until it is removed ([ADR 0011](../adrs/0011-safety-invariants.md)) |
-| Skills | declared skill sources that are not installed (`modules.skills`) |
-| Context | invalid `context` declarations, a skill or file an entry names that does not exist, and a skill whose content does not match its hash in `skills-lock.json`, which is therefore not injected ([context](context.md#sources-and-trust)) |
+| Context | invalid `context` declarations, a skill an entry names that does not exist under `.agents/skills/`, and a file an entry names that does not exist ([context](context.md#sources-and-trust)) |
 | Adoption to-do | the open items described in [scaffold](scaffold.md#the-to-do) |
 
 Notes never change the exit code:
@@ -71,16 +69,15 @@ Notes never change the exit code:
 
 ### Landed branches
 
-`doctor` looks at every branch `harness` recorded in `.work/`: managed worktrees, Ralph sessions, fleet deliveries. A
-branch whose patches are all on the default branch (compared with `git cherry`, so a cherry-pick, a rebase or a squash
-of the same patches counts) has **landed**. `doctor` lists each landed branch with the command that fires the
-`landed` event for it, such as `harness worktree remove <name>` or `harness ralph clean`. It fires nothing itself:
-`landed` fires from `harness worktree remove`, `harness ralph clean` and `harness lifecycle run landed`
-([lifecycle](lifecycle.md#events)). A landed branch is not a finding and does not change the exit code. A CI clone
-has no recorded branches, so `doctor` in CI lists none.
+`doctor` looks at every branch `harness` recorded in `.work/`: managed worktrees and fleet deliveries. A branch whose
+patches are all on the default branch (compared with `git cherry`, so a cherry-pick, a rebase or a squash of the same
+patches counts) has **landed**. `doctor` lists each landed branch with the command that fires the `landed` event for it,
+such as `harness worktree remove <name>`. It fires nothing itself: `landed` fires from `harness worktree remove` and
+`harness lifecycle run landed` ([lifecycle](lifecycle.md#events)). A landed branch is not a finding and does not change
+the exit code. A CI clone has no recorded branches, so `doctor` in CI lists none.
 
-Tool versions come from a compatibility table built into each release. When an agent or tool release changes a file
-format, `doctor` is where it shows first.
+Supported versions of git and the agents come from a compatibility table built into each release. When an agent
+release changes a file format, `doctor` is where it shows first.
 
 ### JSON output
 
@@ -105,25 +102,24 @@ harness doctor [--json]
 | 2 | At least one finding or open to-do item |
 
 Files read: the three repository files, `.harness/wrapper.yaml`, the manifest and every owned path (`harnessw`
-included), native agent files, `.mise/tasks/` and mise configuration (through `mise tasks`), `mise.toml`,
-`.mise.toml` and `.tool-versions`, the git index and branches, `.agents/skills/` and `skills-lock.json`, the files
-`context` entries name, the session records and `lifecycle.jsonl` under the state directory (default `.work/`),
-`$HARNESS_HOME` (default `$XDG_CACHE_HOME/harness`, or `~/.cache/harness`), and online the pinned release's signed
-checksum file.
+included), native agent files, `PATH` and the versions of `git`, `claude` and `codex`, the git index and branches,
+`.agents/skills/`, the files `context` entries name, the session records and `lifecycle.jsonl`
+under the state directory (default `.work/`), `$HARNESS_HOME` (default `$XDG_CACHE_HOME/harness`, or
+`~/.cache/harness`), and online the pinned release's signed checksum file.
 Files written: nothing in the clone; only the update-check and signature-check results under `$HARNESS_HOME`.
 
 ## Examples
 
 ```sh
 $ ./harnessw doctor
-pin
-  mise.toml also pins harness: remove that line; .harness/wrapper.yaml is the only pin
+programs
+  .harness/hooks.yaml lifecycle.deliver open-pr names gh, which is not on PATH: install it, or remove the action
 globs
   verify.lanes.e2e.required_when: src/**/routes/** matches no tracked file
-skills
-  acme/agent-skills is declared but not installed: run ./harnessw skills sync
+context
+  context.when skill timezone-handling does not exist under .agents/skills/: install it, or remove the entry
 to-do
-  mise task "verify" collides; wrapper written as harness:verify
+  instructions are in .agents/AGENTS.md: move them to the root AGENTS.md, which Codex reads
 landed
   work/fix-invoice-rounding has landed: run ./harnessw worktree remove fix-invoice-rounding to fire landed
 note
@@ -137,7 +133,7 @@ Agent loop to finish an adoption:
 
 ```sh
 ./harnessw doctor --json      # read the items
-# edit .harness/*.yaml, reconcile tasks, install skills
+# edit .harness/*.yaml, install missing programs and skills
 ./harnessw render
 ./harnessw doctor             # repeat until exit 0
 ```
@@ -152,8 +148,9 @@ CI step, after `render --check`:
 
 ## Guidelines
 
-- Do fix findings at their source: the repository files, the mise tasks, the globs. `doctor` only reports.
-- Do run `doctor` before launching Ralph in a repository you have not used it in.
+- Do fix findings at their source: the repository files, the globs, the programs installed on the machine. `doctor`
+  only reports.
+- Do run `doctor` before starting an unattended run ([ralph](ralph.md)) in a repository you have not used it in.
 - Do read the `landed` actions with `./harnessw lifecycle list` before running the command `doctor` prints for a landed
   branch, because that command runs their automatic actions.
 - Don't gate CI on `doctor` until the adoption to-do is empty, or every pull request fails for an unrelated reason.
@@ -163,15 +160,14 @@ CI step, after `render --check`:
 | Finding | Meaning | Fix |
 | --- | --- | --- |
 | a glob matches no tracked file | a typo, or the directory moved | correct the glob in `.harness/config.yaml` |
-| command calls an undefined mise task | the task was renamed or never existed | fix the command in the profile, or add the task |
+| a program is not on `PATH` | a command, lane, validator or action names a program this machine lacks, or a typo in its name | install the program, or fix the command in `.harness/config.yaml` or `.harness/hooks.yaml` |
 | `origin/HEAD` is not set | the clone was created without it | `git remote set-head origin --auto` |
-| tool version unsupported | the installed `bd`, `ralph-tui` or agent is older or newer than the pinned release supports | install a supported version, or move the pin with `./harnessw wrapper` |
+| tool version unsupported | the installed `git`, `claude` or `codex` is older or newer than the pinned release supports | install a supported version, or move the pin with `./harnessw wrapper` |
 | `wrapper.yaml` invalid | hand-edited, or a `version` without matching `checksums` | re-pin with `./harnessw wrapper --version <tag>` and review the diff |
 | `harnessw` differs from the template | the script was edited by hand | `./harnessw render` |
 | `harnessw` is not executable | the executable bit was lost | `chmod +x harnessw`, then `git add --chmod=+x harnessw` |
 | pinned release not cached | nothing has run `./harnessw` on this machine since the pin changed | `./harnessw version` |
 | pin pending | the repository was scaffolded with `--offline` | with network access, `harness wrapper --version <the pinned tag>`, then commit `.harness/wrapper.yaml` and the manifest |
-| `harness` pinned in `mise.toml` too | the repository pinned the tool through mise before it had a wrapper, or adoption copied that pin | delete the line from the task runner's file; `.harness/wrapper.yaml` keeps the pin |
 | release signature does not verify, or checksums differ | `wrapper.yaml` was edited by hand, or the release was replaced after it was pinned | do not run the release; re-pin with `./harnessw wrapper --version <tag>` and review the diff, and report a replaced release to the project |
 | a policy entry weakens an invariant | `.harness/policy.yaml` allows or asks for something a built-in invariant denies; `render` already leaves it out | delete the entry from the policy |
-| context skill does not match the lock | the skill was edited after the `skills` CLI installed it | reinstall it with `./harnessw skills sync`, or update the lock through the `skills` CLI |
+| a context skill does not exist | the entry names a skill that was never installed under `.agents/skills/`, or was renamed | install it with the team's skills tool, such as `npx skills add acme/agent-skills`, and commit `.agents/skills/`; or fix the name in `context` |

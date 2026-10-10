@@ -30,6 +30,7 @@ global install, `harness <command>` is equivalent.
 - Someone wants a stack's starting commands, [lanes](verify.md) and hooks, or reads a line such as
   `kept lanes.unit: differs from preset node` from `preset apply`: `explain presets`.
 - Someone wants a directive or a skill applied without invoking it each time: `explain context`.
+- Someone connects a loop runner or a task tracker: `explain worker`, `explain lifecycle`, `explain presets`.
 - Someone asks how the repository pins, downloads and verifies the release it runs: `explain wrapper`.
 - Something behaves unexpectedly: `explain pitfalls`.
 - You are offline and need the reference for the pinned release: the text is embedded in the binary.
@@ -48,14 +49,14 @@ Markdown on stdout.
 | `profile` | `.harness/config.yaml` fields and how to choose values |
 | `policy` | `.harness/policy.yaml`, the three entry forms, rendering per agent and per spelling of a `harness` command, precedence, the built-in base, how to place an entry |
 | `hooks` | `.harness/hooks.yaml`, the hook runtime, the `{file}` placeholder, notification hooks (`attention`, `turn_end`), the hook command and why it never downloads |
-| `lifecycle` | lifecycle events including `blocked`, trigger points, scopes, the action kinds `run`, `http` and `agent`, the built-in guards, the `HARNESS_*` environment, `lifecycle.jsonl` in the state directory |
+| `lifecycle` | lifecycle events including `blocked`, trigger points, scopes, task binding with `worktree create --task`, the action kinds `run`, `http` and `agent`, the built-in guards, the `HARNESS_*` environment, `lifecycle.jsonl` in the state directory |
 | `context` | standing context: `always` and `when` entries, triggers per agent, `content` and `pointer`, roles, `static` entries, trusted sources, the budget, `harness context show` |
 | `adoption` | adoption classes, import scopes, the equivalence check, the to-do, how an agent finishes an adoption |
 | `verify` | lanes, skip reasons, the receipt and its freshness rules |
-| `ralph` | the coordinator, the worker contract and its tamper check, managed and inherited configuration, the embedded prompt, delivery after a run |
+| `worker` | `harness worker`: the worker contract and its tamper check, rules read from the base commit, the replay, `--commit` and `--withhold`, its exit codes, how a loop runner names it as its agent command, who fires the events of a run |
 | `invariants` | the built-in invariants and why none can be turned off |
 | `blocks` | managed blocks, their markers, the per-module ids, convention blocks and tool blocks, the `AGENTS.md` budget, the editing rules |
-| `presets` | the built-in stack presets and what each holds, `harness preset list`, `show` and `apply`, the merge rules, why applying only adds and records nothing, applying again after an upgrade |
+| `presets` | the built-in stack and tool presets and what each holds, entries and templates, `harness preset list`, `show` and `apply`, the merge rules, why applying only adds and records nothing, applying again after an upgrade |
 | `wrapper` | `harnessw`, `.harness/wrapper.yaml` as the only pin, the cache, checksum and signature verification, `--no-download`, global-install deferral, upgrades, air-gapped machines |
 | `safety` | the threat model, the layers of defence, how to place a policy entry, unattended runs, actions as code, secrets, agent actions and prompt injection |
 | `pitfalls` | known pitfalls, gaps and traps, each with its symptom, cause and what to do |

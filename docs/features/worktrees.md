@@ -14,8 +14,8 @@ teammate and agent expects, and no copy is removed while it holds uncommitted wo
 
 `harness worktree` creates and removes managed task worktrees: separate git checkouts, nested inside the clone in the
 configured worktrees directory (`worktrees.dir`, default `.work/worktrees`), each on its own branch, with a recorded
-starting commit, an actor identity (the name under which the worktree's session claims [tasks](tasks.md)) and an
-optional task tracker.
+starting commit, an actor identity and an optional task id. The task id binds the worktree to one task of the team's
+tracker: every event fired there carries the id in `HARNESS_TASK` and the actor in `HARNESS_ACTOR` ([tasks](tasks.md)).
 
 Commands are named `harness <command>` on this page. The examples run them through the repository's wrapper,
 `./harnessw <command>`, from the root of a checkout; with a global install, `harness <command>` is equivalent
@@ -24,8 +24,8 @@ Commands are named `harness <command>` on this page. The examples run them throu
 ## When to use them
 
 - You want an agent to work on a task while you keep using the primary checkout.
-- You track tasks with Beads (a task tracker used through its `bd` command) or a PRD file (a JSON list of user stories)
-  and want each task in its own checkout ([tasks](tasks.md)).
+- You work on tasks of a tracker, such as Beads or GitHub issues, and want each task in its own checkout, with the
+  tracker updated by the repository's lifecycle actions ([tasks](tasks.md)).
 - You want a [verification receipt](verify.md) whose base is fixed at the moment the work started.
 
 You do not need them for ordinary work: `harness verify` also works in the primary checkout.
@@ -37,19 +37,19 @@ You do not need them for ordinary work: `harness verify` also works in the prima
 `harness worktree create <name>`:
 
 1. Validates the name: letters, digits, `.`, `-` and `_`, starting with a letter or digit.
-2. Initialises the tracker when one is selected (see [tasks](tasks.md#trackers)).
-3. Resolves `--base` (default `HEAD`) to a commit.
-4. Runs `git worktree add -b work/<name> <worktrees.dir>/<name> <base>`, with `core.hooksPath=/dev/null` for that
+2. Resolves `--base` (default `HEAD`) to a commit.
+3. Runs `git worktree add -b work/<name> <worktrees.dir>/<name> <base>`, with `core.hooksPath=/dev/null` for that
    command only, so no git hook from the primary checkout runs during creation.
-5. Writes the session to `session.json` in the new worktree's state directory (`<worktree>/<state.dir>/session.json`,
-   by default `.work/worktrees/<name>/.work/session.json`): the base commit, the tracker, the task, the PRD path, and a
+4. Writes the session to `session.json` in the new worktree's state directory (`<worktree>/<state.dir>/session.json`,
+   by default `.work/worktrees/<name>/.work/session.json`): the base commit, the task id given with `--task`, and a
    unique actor (`<user>:<name>:<random>`).
-6. Prints the worktree path.
-7. Runs the profile's `bootstrap` commands, such as `npm ci` in a Node repository, in the new worktree, unless
-   `--no-bootstrap`.
-8. Without `--task`, fires the `start` [lifecycle event](lifecycle.md) in the new worktree, with scope `change`;
-   actions declared with `auto: true` run. A worktree bound to a task starts when the task is claimed, so `start`
-   fires once, with scope `task`, from `harness task claim`.
+5. Prints the worktree path.
+6. Runs the profile's `bootstrap` commands, such as `npm ci` in a Node repository, in the new worktree, unless
+   `--no-bootstrap`. [`harness worker`](ralph.md) also runs them, once per checkout it runs in, so a checkout a loop
+   runner prepares is ready to build too.
+7. Fires the `start` [lifecycle event](lifecycle.md) in the new worktree: with scope `task` and `HARNESS_TASK` set to
+   the id when `--task` is given, with scope `change` otherwise. Actions declared with `auto: true` run, such as the
+   tracker actions of the [Beads preset](tasks.md#the-beads-preset).
 
 The worktree starts from committed code only. Uncommitted changes, credentials, dependency directories and personal
 configuration are not copied.
@@ -83,7 +83,7 @@ trust, configuration and Beads database.
 each; it never fires `landed` itself.
 
 Before removing a worktree, put what matters where the team can see it: deliver the branch
-(`harness lifecycle run deliver`), comment on the issue or the pull request. Logs, dependencies and local tracker state
+(`harness lifecycle run deliver`), comment on the issue or the pull request. Logs, dependencies and other local state
 in the worktree are disposable.
 
 ### The convention in `AGENTS.md` and `.gitignore`
@@ -115,22 +115,20 @@ module writes its own entries, so removing one module never un-ignores another m
 ## Reference
 
 ```text
-harness worktree create <name> [--base <ref>] [--tracker beads|prd|none] [--task <id>] [--prd <path>] [--no-bootstrap]
+harness worktree create <name> [--base <ref>] [--task <id>] [--no-bootstrap]
 harness worktree remove <name>
 ```
 
 | Flag | Default | Meaning |
 | --- | --- | --- |
 | `--base <ref>` | `HEAD` | Commit the worktree starts from; recorded as the session base |
-| `--tracker beads\|prd\|none` | profile `tracker.default` | Task tracker for this worktree |
-| `--task <id>` | none | Bind the worktree to one task; `harness task` refuses other ids here |
-| `--prd <path>` | none | PRD JSON file; required with `--tracker prd` |
+| `--task <id>` | none | Bind the worktree to one task. The id is free-form and recorded in the session; events fired in the worktree default to scope `task` and carry it in `HARNESS_TASK` ([tasks](tasks.md#task-binding)) |
 | `--no-bootstrap` | off | Skip the profile's `bootstrap` commands |
 
 | Exit code | Meaning |
 | --- | --- |
 | 0 | Created or removed |
-| 1 | Error: invalid name, unknown ref, existing branch, tracker unavailable, bootstrap failed |
+| 1 | Error: invalid name, unknown ref, existing branch, bootstrap failed |
 | 3 | `remove` refused: uncommitted changes, or a locked worktree |
 
 When bootstrap fails, the worktree already exists: fix the cause and run the bootstrap commands in it, or remove it.
@@ -143,26 +141,22 @@ Paths below show the defaults, `state.dir: .work` and `worktrees.dir: .work/work
 | branch `work/<name>` | the branch |
 | `.work/worktrees/<name>/.work/session.json` | the session |
 | `.work/worktrees.lock` | held while creating |
-| `.beads/` | only when `--tracker beads` and no database exists yet |
 | `.work/lifecycle.jsonl` | `create` and `remove`, for the events they fire |
 
 ## Examples
 
 ### A Node API, with Beads
 
+With the [Beads preset](tasks.md#the-beads-preset) applied:
+
 ```sh
-./harnessw worktree create fix-invoice-rounding --tracker beads --task acme-api-7f2
+./harnessw worktree create fix-invoice-rounding --task acme-api-7f2   # start: the bead is marked in progress
 cd .work/worktrees/fix-invoice-rounding
-./harnessw task claim acme-api-7f2
 # edit, test
 ./harnessw verify --lane unit=invoice --skip e2e="no route, controller or guard changed"
-./harnessw task complete acme-api-7f2     # fires completed, then deliver when concluded
-./harnessw lifecycle run deliver          # or deliver by hand, when no deliver action is automatic
+./harnessw lifecycle run completed    # refused without a valid receipt; closes the bead
+./harnessw lifecycle run deliver
 ```
-
-With `front_door: mise`, which renders [task shims](render.md#task-shims), the same steps read
-`mise run worktree:create …`, `mise run task claim …`, `mise run verify …`; each task shim execs `./harnessw` with the
-same arguments.
 
 ### A Terraform repository, no tracker
 
@@ -188,7 +182,7 @@ git branch -d work/fix-invoice-rounding           # when the branch is merged
 ## Guidelines
 
 - Do commit before creating a worktree for an agent: it only sees committed code.
-- Do keep one task per worktree when you use a tracker; `--task` enforces it.
+- Do bind one task per worktree with `--task`, so every event fired there names it.
 - Do remove worktrees you are done with; the worktrees directory grows with dependencies.
 - Do keep `worktrees.dir` inside the repository, so worktrees stay nested.
 - Don't remove someone else's worktree in a shared clone.
@@ -208,4 +202,4 @@ git branch -d work/fix-invoice-rounding           # when the branch is merged
 `harness` manages only the worktrees it recorded in the configured worktrees directory. Claude Code's own
 `.claude/worktrees/` and worktrees created by other tools or by hand are never listed, cleaned or modified. Branch names
 start with `work/`, so they do not collide with the `ralph/session-*` branches of
-[ralph-tui](https://github.com/subsy/ralph-tui), the runner behind [Ralph](ralph.md).
+[ralph-tui](https://github.com/subsy/ralph-tui), a loop runner that can run in a managed worktree ([ralph](ralph.md)).

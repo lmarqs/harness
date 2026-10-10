@@ -74,8 +74,8 @@ first command works with nothing installed beforehand.
    explicitly, never from a hook. Outside such repositories it runs itself.
 8. The wrapper contains no engine logic: it resolves, downloads, verifies and executes, and when an implicit call finds
    no cached binary it prints the fixed lines of point 5. Every command runs in the binary.
-9. A pin of the tool found in a task runner's tool list is reported by the health check. Adoption copies it into the
-   pin and lists its removal as unresolved, without editing the task runner's file ([0012](0012-write-boundary.md)).
+9. The committed pin is the only pin the binary reads. A task runner's tool list is neither read nor edited
+   ([0012](0012-write-boundary.md)), and a binary a task runner installs is a global installation (point 7).
 10. The binary looks for a release newer than the pin at most once a day, through the release source (point 12),
     caches the answer, never blocks or fails because of the lookup, works offline, and skips the lookup when an
     environment variable disables it. It names a newer release only after verifying that release's signed checksum
@@ -125,9 +125,11 @@ first command works with nothing installed beforehand.
   and executing is the minimum a clone needs to reach the binary; any further logic in the wrapper would be engine code
   copied into every repository, beyond the reach of a release. The lines of point 5 are fixed text in the wrapper's
   template, selected by the event the hook names; printing them reports a failed resolution and decides nothing.
-- **9.** Two pins drift apart (point 2), so the task runner's pin is reported. The task runner's file belongs to the
-  repository, not to the tool ([0012](0012-write-boundary.md)), so adoption lists its removal for a person instead of
-  editing it.
+- **9.** Reading a task runner's file would integrate that task runner, and the binary integrates no task runner
+  ([0022](0022-tool-integration.md)). Nothing is lost by not reading it: a binary the task runner installs defers to the
+  committed pin inside the repository (point 7), so a second version in the task runner's list changes nothing the
+  repository renders or checks. The trade: that version can drift from the pin unreported, and keeping it is the team's
+  choice.
 - **10.** Without a notice, a repository stays on its pinned release indefinitely. The lookup must never cost a session
   or a pipeline anything, so it is cached, non-blocking and offline-safe, and it can be disabled for CI and machines
   without network access.
@@ -217,8 +219,7 @@ Costs:
   session hint ([0010](0010-dependence-on-the-binary.md)).
 - The environment override skips the checksum; what runs is whatever the person placed at that path. The override,
   and a global binary too old to defer to pins, are the two ways to run another release inside a pinned repository.
-- The repository carries one tool-owned script longer than one line; a hand edit to it is drift
-  ([0007](0007-ownership.md)).
+- The repository carries one tool-owned script; a hand edit to it is drift ([0007](0007-ownership.md)).
 - A committed pending pin leaves every machine that lacks the pinned release in its cache unable to run explicit entry
   points until someone completes the pin.
 - Windows is not served ([0003](0003-implementation-language.md)).
@@ -235,13 +236,13 @@ Must be maintained:
 - A test runs the wrapper with an empty cache against a release fixture and asserts that it verifies the checksum,
   caches the binary and executes it with the given arguments; with a wrong checksum it exits non-zero and caches
   nothing.
-- A test runs every rendered implicit entry point with an empty cache and no network, and asserts exit status 0, one
+- A test runs every rendered implicit entry point with an empty cache and no network, and asserts a successful exit, one
   stderr line naming the wrapper, no network access, and exactly one line of session context from the session-start
   hook.
 - A test runs a global binary inside a fixture pinned to another release and asserts that the pinned release runs, and
   that a hook invocation never downloads.
-- A fixture that also pins the tool in its task runner's tool list is reported by the health check; adoption of it
-  copies the pin, lists the removal as unresolved, and leaves the task runner's file byte-identical.
+- A fixture that also lists the tool in its task runner's tool list renders, checks and adopts exactly as the same
+  fixture without it, and the task runner's file is byte-identical afterwards.
 - A test asserts that the release lookup returns promptly offline and makes no network call when disabled, and that a
   newest-release checksum file with a bad signature produces no notice.
 - A fixture pinned to a mirror laid out like the release host downloads, verifies and runs the release with no other

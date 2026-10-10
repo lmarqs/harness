@@ -28,10 +28,10 @@ makes removal pick files out of a tree others write, and state inside a committe
 
 | Location | Owner | Holds |
 | --- | --- | --- |
-| `.harness/` | harness's own versioned configuration | `config.yaml` (the profile), `policy.yaml`, `hooks.yaml`, `wrapper.yaml`, the manifest `manifest.json`, and `ralph/prompt.hbs`, an optional override of the prompt [Ralph](../features/ralph.md#the-prompt) workers receive. Everything in it is committed; nothing in it is state and nothing in it is ignored |
+| `.harness/` | harness's own versioned configuration | `config.yaml` (the profile), `policy.yaml`, `hooks.yaml`, `wrapper.yaml` and the manifest `manifest.json`. Everything in it is committed; nothing in it is state and nothing in it is ignored |
 | `.agents/` | agent content, the cross-tool convention other tools (the `skills` CLI, the `AGENTS.md` ecosystem) share | `skills/` (including the tool-owned `skills/harness/`), `memory/`, `commands/`, `REVIEW.md`, and repository files that standing context points to. It stays meaningful without harness |
 | repository root | the repository, with managed blocks | `harnessw` (the wrapper, tool-owned), `AGENTS.md`, `CLAUDE.md`, `README.md`, `.gitignore` |
-| state paths ([below](#state-paths)) | harness, clone-local | receipts, sessions, locks, the lifecycle log, the hook cache, standing-context session records, managed worktrees, task files, Ralph worktrees |
+| state paths ([below](#state-paths)) | harness, clone-local | receipts, sessions, locks, the lifecycle log, the hook cache, standing-context session records, the last failed worker output, managed worktrees |
 
 - harness configuration never goes in `.agents/`, and agent content never goes in `.harness/`, so each directory can
   be read, reviewed and removed on its own terms.
@@ -43,7 +43,7 @@ makes removal pick files out of a tree others write, and state inside a committe
 
 | File | Scope | Holds |
 | --- | --- | --- |
-| `.harness/config.yaml` | repository, committed | the profile: modules, front door, commands, lanes, tracker, agent roles, Ralph defaults, skill sources, standing context, block budget, state paths |
+| `.harness/config.yaml` | repository, committed | the profile: modules, bootstrap, commands, lanes, agents (roles, Codex writable roots), standing context, block budget, state paths |
 | `.harness/policy.yaml` | repository, committed | permission entries added to the built-in base |
 | `.harness/hooks.yaml` | repository, committed | agent-neutral hook declarations, notification actions (`attention`, `turn_end`) and lifecycle actions |
 | `.harness/wrapper.yaml` | repository, committed | the pinned release: `schema`, `version`, `source`, `checksums`; owned: written only by `harness scaffold` and `harness wrapper`, never by hand |
@@ -84,9 +84,9 @@ checksums:
 - `wrapper.yaml` is owned: it starts with the header above, the manifest records it, and a hand edit is drift. Why:
   its checksums are worth something only if a trusted binary verified them, so a hand edit must not pass as the
   repository's choice ([ADR 0017](../adrs/0017-engine-version.md)).
-- `wrapper.yaml` is the only place the harness version is pinned. A second pin in `mise.toml`, `.mise.toml` or
-  `.tool-versions` (files from which [mise](https://mise.jdx.dev) reads tool versions) is a `harness doctor` finding,
-  because two pins disagree as soon as one moves.
+- `wrapper.yaml` is the only place harness reads the version it runs, so the wrapper and a global `harness` resolve
+  the same release from one file. harness reads no other tool's version file
+  ([ADR 0022](../adrs/0022-tool-integration.md)).
 - `harness wrapper --version <tag>` (or `--latest`) and `harness scaffold` write `checksums` only from the release's
   checksum file after the running binary has verified its signature, or, with `scaffold --offline`, write the literal
   `pending`, which admits no download
@@ -104,18 +104,12 @@ state:
   dir: .work
 worktrees:
   dir: .work/worktrees
-tasks:
-  prd_dir: .work/prds
-ralph:
-  worktrees_dir: .work/ralph-worktrees
 ```
 
 | Key | Default | Holds |
 | --- | --- | --- |
-| `state.dir` | `.work` | receipts, sessions, locks, the lifecycle log, the hook cache, standing-context session records |
-| `worktrees.dir` | `.work/worktrees` | each managed worktree, at `<dir>/<name>`; a Ralph coordinator at `<dir>/ralph-<id>`; sequential Ralph task worktrees at `<dir>/ralph-<id>-<task>` |
-| `tasks.prd_dir` | `.work/prds` | PRD JSON task files |
-| `ralph.worktrees_dir` | `.work/ralph-worktrees` | the parallel worker checkouts of [ralph-tui](https://github.com/subsy/ralph-tui), the program that schedules a Ralph run's tasks |
+| `state.dir` | `.work` | receipts, sessions, locks, the lifecycle log, the hook cache, standing-context session records; in each checkout a worker runs in, the record of its bootstrap, `last-worker-output` and `last-attempt.patch` |
+| `worktrees.dir` | `.work/worktrees` | each managed worktree, at `<dir>/<name>` |
 
 - Paths are repository-relative. A path inside `.harness/` or `.agents/` is a validation error (exit 1), because both
   trees are committed.
@@ -124,8 +118,9 @@ ralph:
 - Each path is a convention: the module that uses it states it in a managed block of `AGENTS.md` and ignores it in a
   managed block of `.gitignore`, naming the configured value
   ([generated-content-standards.md](generated-content-standards.md#conventions-in-blocks)).
-- The Beads task database stays at `.beads/` (where `bd`, the Beads CLI, discovers it) and ralph-tui state stays in the
-  coordinator worktree's `.ralph-tui/`. Neither is a setting, because those tools find their files only there.
+- Other tools keep their files where they look for them, such as `.beads/` for Beads and `.ralph-tui/` for ralph-tui.
+  No harness setting names those paths, because the binary has no code for those tools
+  ([ADR 0022](../adrs/0022-tool-integration.md)).
 
 ## Ownership
 
@@ -156,18 +151,18 @@ and by nothing else ([ADR 0013](../adrs/0013-organization-content.md)).
   With the repository's files and the pinned release as the only inputs, the same commit renders the same bytes on every
   machine and every day. Rendering fetches nothing and caches nothing, and no check fails because someone else published
   a change.
-- Two keys name a source outside the repository, and neither is an input to rendering. `source` in `wrapper.yaml`
-  is where the wrapper downloads the pinned release, which it runs only when the download matches the committed
-  checksums. `skills.sources` in the profile is read by `harness skills sync`, which installs skills into
-  `.agents/skills/` and `skills-lock.json`, and by the pending-skills check of `harness doctor`. Why: what arrives from
-  either location takes effect only as the pinned release or as files the repository commits and reviews.
+- One key names a source outside the repository, and it is not an input to rendering: `source` in `wrapper.yaml` is
+  where the wrapper downloads the pinned release, which it runs only when the download matches the committed
+  checksums. Why: what arrives from there takes effect only as the release the repository pinned and reviewed. Shared
+  skills arrive the same way as any other file: the team installs them with the tool of its choice and commits
+  `.agents/skills/`.
 - Machine-level files (the fleet file, the cache under `$HARNESS_HOME`) never affect what is rendered into a
   repository, so two machines render the same bytes.
 - An organization's choices (which observability tools agents may read without asking, a deny on each repository's
   deploy command, a CI-trigger commit in delivery
-  ([example](../features/lifecycle.md#an-organization-convention-a-ci-trigger-commit-before-the-pull-request)), the task
-  tracker its repositories use) are entries in each repository's files, written by a person or by an agent following a
-  skill the organization publishes, and reviewed in each repository as a diff
+  ([example](../features/lifecycle.md#an-organization-convention-a-ci-trigger-commit-before-the-pull-request)), the
+  actions that keep the task tracker its repositories use up to date) are entries in each repository's files, written by
+  a person or by an agent following a skill the organization publishes, and reviewed in each repository as a diff
   ([when-cli-when-skill.md](when-cli-when-skill.md)). Why: those choices differ between an organization's repositories,
   so applying them takes judgement, and afterwards each choice is in the files of the repository it governs. The cost is
   that a choice shared by many repositories is written, and changed, in each of them.
@@ -214,10 +209,17 @@ Migration UX:
 New behaviour enters the files in this order of preference, because each step costs repositories more than the one
 before:
 
-1. A new optional key whose absence keeps the existing behaviour. This is not a breaking change and does not bump the
+1. Data in the existing formats: a preset (entries and templates) or a declared action. Support for a third-party
+   tool always takes this form. It changes no schema, and a repository that does not use the tool carries nothing.
+2. A new optional key whose absence keeps the existing behaviour. This is not a breaking change and does not bump the
    schema.
-2. A new value in an existing enumerated key, under the same condition.
-3. A renamed, removed or redefined key, or a changed default: a breaking change, a schema bump and a migration.
+3. A new value in an existing enumerated key, under the same condition.
+4. A renamed, removed or redefined key, or a changed default: a breaking change, a schema bump and a migration.
+
+Code in the binary for a tool other than git and the adapted agents is not on this list: a key, a value or a command
+that exists to serve one loop runner, tracker, skills installer, task runner or hosting platform is never added. Why:
+each such tool has its own formats and releases, so code for one follows every release of a tool the project does not
+own and serves no team that chose another ([ADR 0022](../adrs/0022-tool-integration.md)).
 
 A file that uses a key newer than the running binary fails validation: that binary refuses the file rather than
 rendering it with the key ignored. Why: an ignored key would silently drop a permission, an action or a guard the
@@ -272,11 +274,11 @@ cannot express is lost when harness takes ownership of the native key
 | Native rule string: `Tool(specifier)`, `Tool`, or `mcp__server__tool`, with globs | `WebFetch(domain:example.com)`, `Read(./secrets/**)`, `mcp__acme-observability__get_*` | verbatim for Claude. For Codex only `Bash(<prefix> *)` with a pure prefix converts; any other string is Claude-only |
 | Any other string: not `Tool(specifier)`, not a bare tool name, not `mcp__…` | `"gh pr merge *--admin*"` | shorthand for `Bash(<string>)`, Claude-only |
 
-- An entry that names a harness command is written once with the program name, `[harness, lifecycle, run, deliver]`,
-  and rendered for every rendered spelling: `harness …`, `./harnessw …`, `harnessw …`, and `mise run <shim>` where a
-  task shim exists for that command. Why: an entry written for one spelling leaves the others open, and writing all of
-  them by hand drifts. Other spellings (an absolute path to the binary, `sh harnessw …`) match no prefix rule; the
-  binary's own guards catch them ([ADR 0011](../adrs/0011-safety-invariants.md)).
+- An entry that names a harness command is written once with the program name, `[harness, lifecycle, run, deliver]`, and
+  rendered for every rendered spelling: `harness …`, `./harnessw …` and `harnessw …`. Why: an entry written for one
+  spelling leaves the others open, and writing all of them by hand drifts. Other spellings (an absolute path to the
+  binary, `sh harnessw …`) match no prefix rule; the binary's own guards catch them
+  ([ADR 0011](../adrs/0011-safety-invariants.md)).
 - MCP tools are native rule strings under `allow`, `ask` or `deny`, like any other tool.
 - Precedence is the same for every agent: deny, then ask, then allow, so one policy means the same thing in each.
 - A Claude-only entry is listed as such in the `policy` block of `AGENTS.md`, so a reader sees which rules Codex does
@@ -371,14 +373,14 @@ single meaning.
 | Key | Type | Default | Meaning |
 | --- | --- | --- | --- |
 | `prompt` | string | required | the prompt, with `$NAME` expanded as plain text |
-| `agent` | agent name | `ralph.default_agent` | the agent CLI to start headless |
+| `agent` | agent name | the only agent declared with role `worker`; required when there is not exactly one | the agent CLI to start headless |
 | `model` | model id | the agent's default | the model to run |
 | `effort` | effort level | the agent's default | the reasoning effort |
 
 - An `agent` action runs under the worker contract: auto permission mode, the built-in and repository worker denies,
   bypass flags refused, the tamper check. It cannot commit, push or fire lifecycle events; its file changes stay
   uncommitted and are listed in the lifecycle log and the output. Why: an agent started by an event is as unattended
-  as a Ralph worker, so it gets the same bounds.
+  as one `harness worker` starts, so it gets the same bounds.
 - Actions run in the worktree of the work the event concerns. On `landed`, `run` and `http` actions run in the primary
   checkout. An `agent` action runs in a fresh worktree of the default branch, which harness creates under
   `worktrees.dir` as `landed-<name>-<n>` and records. harness leaves that worktree with the agent's uncommitted edits
@@ -435,11 +437,13 @@ context:
 | `context.budget` | integer | `120` | the maximum lines of always-on content per session per role |
 
 - Each `when` entry is injected at most once per session, so a matching file read twenty times costs one injection.
-- Sources are repository files and skills installed under `.agents/skills/` only. A skill listed in `skills-lock.json`
-  is injected only when its content matches the locked hash; a mismatch is a `harness doctor` finding. Nothing is
-  fetched when a hook runs. Why: injected text steers an agent, so it must come from reviewed, versioned content.
-- For Ralph workers, injected content is read from the session's base commit, so a worker cannot change its own
-  instructions between retries.
+- Sources are repository files and skills committed under `.agents/skills/` only, delivered as the committed file. A
+  skill named in `context` that does not exist under `.agents/skills/` is a `harness doctor` finding. Nothing is
+  fetched when a hook runs, and no installer's lock file is read. Why: injected text steers an agent, so it must come
+  from reviewed, versioned content, and the commit is that review whichever tool installed the skill
+  ([ADR 0022](../adrs/0022-tool-integration.md)).
+- For an agent `harness worker` starts, injected content is read from the base commit the worker recorded, so a worker
+  cannot change its own instructions between attempts.
 - A `static` entry works without the binary and survives eject, because it is a convention block; it is not also
   injected by a hook, so it is never loaded twice. Static entries count against `context.budget`, not against the
   `AGENTS.md` block budget.
@@ -450,20 +454,31 @@ context:
 
 ## Presets
 
-A preset is a set of starting entries for one technology stack, built into the binary: `go`, `node`, `terraform` and
-`python` (contents: [presets](../features/presets.md#the-presets)). Applying a preset writes its entries into the
-repository's own files, where they belong to the repository like any entry it wrote itself. Why: stack facts (how to
-lint an edited file, run the tests, build) are the same in every repository on that stack, so the binary supplies them
-deterministically, while each repository keeps the final say over its own files
-([ADR 0013](../adrs/0013-organization-content.md), [ADR 0002](../adrs/0002-division-of-work.md)).
+A preset is a named bundle built into the binary. Stack presets, `go`, `node`, `terraform` and `python`, hold the
+starting entries for one technology stack. Tool presets, `ralph-tui` and `beads`, wire a third-party tool the binary has
+no code for (contents: [presets](../features/presets.md#the-presets)). Applying a preset writes its entries and
+templates into the repository's own files, where they belong to the repository like anything it wrote itself. Why:
+stack facts (how to lint an edited file, run the tests, build) are the same in every repository on that stack, and the
+data that connects a tool (an agent command, the actions that update a tracker) is the same wherever the tool is used,
+so the binary supplies them deterministically, while each repository keeps the final say over its own files
+([ADR 0013](../adrs/0013-organization-content.md), [ADR 0002](../adrs/0002-division-of-work.md),
+[ADR 0022](../adrs/0022-tool-integration.md)).
 
-- A preset holds entries for `.harness/config.yaml` (commands, lanes, validators, module switches) and
-  `.harness/hooks.yaml` (post-edit hooks) only. Why: these are facts about a stack, while permissions, actions and
-  standing context are a repository's own choices, and the binary ships no actions
-  ([ADR 0012](../adrs/0012-write-boundary.md)).
+- A preset holds entries for the three repository files and zero or more templates. Stack presets hold entries for
+  `.harness/config.yaml` (commands, lanes, validators, module switches) and `.harness/hooks.yaml` (post-edit hooks)
+  only, because permissions, actions and standing context are a repository's own choices. A tool preset also holds the
+  `worker.deny` entries and lifecycle actions its tool needs, such as the `beads` preset's `bead-start`, `bead-close`
+  and `bead-comment` actions on `start`, `completed` and `blocked`, because connecting the tool is exactly those
+  entries. Why: no action runs that the repository does not declare in its own `hooks.yaml`, and a preset's actions
+  reach that file only when a person applies the preset and reads its diff ([ADR 0012](../adrs/0012-write-boundary.md)).
+- A template is a whole file in a preset or in `scaffold`, such as the `ralph-tui` preset's `.ralph-tui/config.toml`.
+  It is rendered once with values from the profile and written only when the file is absent; from then on it is the
+  repository's own file, never rendered again and never removed by harness. When the file exists, applying reports
+  `kept <path>: exists` and writes nothing to it. Why: a file another tool reads is edited for that tool by the team,
+  and rewriting it would undo their edits.
 - A preset is applied only on request: by `harness scaffold`, to the files it seeds (the detected stacks, or the one
   `--preset` names), and by `harness preset apply <name>...` at any later time. No other command writes a preset's
-  entries. Why: every write to a repository's files is then one a person asked for.
+  entries or templates. Why: every write to a repository's files is then one a person asked for.
 - Applying adds only what the repository lacks, and never removes or reorders anything. Why: the repository's own
   entries stay authoritative, and a second application of the same preset by the same release adds nothing, which
   makes applying again harmless.
@@ -473,24 +488,25 @@ deterministically, while each repository keeps the final say over its own files
     item differs from the preset's, the repository's stays and the difference is reported
     (`kept lanes.unit: differs from preset node`). Why: an item the repository names is its decision, made and
     reviewed there; replacing it would undo that decision, and reporting the difference lets a person choose.
-  - A scalar key (such as `modules.ralph`) is written only when absent, because a value that is present is the
+  - A scalar key (such as `modules.verify`) is written only when absent, because a value that is present is the
     repository's choice, even when it equals the default. A present value that differs from the preset's is reported
     like a kept item, so nothing the preset would have changed goes unmentioned.
 - Comments, key order and blank lines are preserved. Why: people annotate these files, and the diff of an application
   must show only its additions.
-- The additions are shown as a diff and confirmed before anything is written. `--yes` answers the question. `--dry-run`
-  prints the diff and writes nothing. Without a terminal and without `--yes`, nothing is written and the command exits 3
-  ([cli-standards.md](cli-standards.md#confirmations---yes-and---force)). Why: once written, the entries are the
-  repository's own and nothing marks where they came from, so the diff before writing is the one moment a person sees
-  them as a preset's additions.
+- The additions, entries and templates alike, are shown as a diff and confirmed before anything is written. `--yes`
+  answers the question. `--dry-run` prints the diff and writes nothing. Without a terminal and without `--yes`, nothing
+  is written and the command exits 3 ([cli-standards.md](cli-standards.md#confirmations---yes-and---force)). Why: once
+  written, the entries are the repository's own and nothing marks where they came from, so the diff before writing is
+  the one moment a person sees them as a preset's additions.
 - After writing, the command renders the repository as `harness render` does, so the additions and their rendered
   effect reach review as one diff and the drift check passes on it.
-- Nothing records which presets a repository applied: not the manifest, not a comment. Why: each entry then has one
-  source of truth, the file it is in, and the tool has nothing it could later use to change those entries by itself. A
-  report built on such a record would also nag a repository that removed an entry on purpose.
+- Nothing records which presets a repository applied: not the manifest, not a comment, not a header in a template. Why:
+  each entry then has one source of truth, the file it is in, and the tool has nothing it could later use to change
+  those entries by itself. A report built on such a record would also nag a repository that removed an entry on purpose.
 - Applied entries are changed or removed by editing the file, like any other entry, and removing harness
-  (`harness remove`, `harness remove --eject`) deletes the seeded files in `.harness/` whatever they hold, so applying
-  a preset has no inverse ([cli-standards.md](cli-standards.md#command-grammar)).
+  (`harness remove`, `harness remove --eject`) deletes the seeded files in `.harness/` whatever they hold, and leaves
+  every file a template wrote, so applying a preset has no inverse
+  ([cli-standards.md](cli-standards.md#command-grammar)).
 - A newer release may hold more entries in a preset. They reach a repository only when someone applies the preset
   again: after an upgrade, `./harnessw preset apply node --dry-run` shows what it would add. Why: an upgrade changes
   the release a repository runs, never the entries it owns.
@@ -523,27 +539,31 @@ that decides it, because a setting that weakens them would copy along with the f
 
 - Workers never bypass permissions.
 - Force pushes to the detected default branch are denied.
-- mise `:::` task chaining, which runs a second task in the same command, is denied.
+- mise `:::` task chaining, which runs a second task in the same command, is denied. Recognising that command shape
+  needs no code for mise ([ADR 0022](../adrs/0022-tool-integration.md)).
 - Verification proofs are replayed outside the agent's writable tree, and completion is withheld until the replay
   passes.
 - Hooks never decide permissions.
-- Tool-owned files are restored from the session's base commit before each worker launch and compared after it; any
-  difference fails the attempt.
-- Lifecycle actions never run inside a Ralph worker or an `agent` action: the binary refuses `lifecycle run` there,
+- Tool-owned files are restored from the base commit before `harness worker` or an `agent` action starts its agent and
+  compared after it, together with the files under `.harness/` and the files standing context names; any difference
+  fails the attempt. A failed `harness worker` attempt returns the checkout to its base, keeping its changes in
+  `last-attempt.patch`, so the next attempt starts from checked files.
+- Lifecycle actions never run inside a worker or an `agent` action: the binary refuses `lifecycle run` there,
   and `[harness, lifecycle]` is in the built-in worker deny for every rendered spelling.
 - An `agent` action runs under the worker contract and cannot commit, push or fire lifecycle events.
 - `deliver` always refuses on the default branch and with uncommitted changes and, when the verify module is enabled,
   without a valid receipt for the work's base.
-- Standing context for workers is read from the session's base commit, and a locked skill is injected only when its
-  hash matches.
-- The binary ships no actions, contains no logic for the platform that hosts a team's work, and is never an MCP
-  client.
+- Standing context for workers is read from the base commit.
+- No action runs unless the repository declares it; the binary contains no logic for the platform that hosts a team's
+  work or for any third-party tool other than git and the adapted agents, reads no other tool's configuration, and is
+  never an MCP client.
 - The binary never writes knowledge and never writes the team's record of work (issues, projects, boards, comments,
   reviews, labels).
 - The binary never reconfigures state it did not create.
 - What harness renders and runs comes only from the repository's files and its pinned release; no repository file
   names a source outside the repository for it.
-- A preset is applied only on request and only adds; nothing records which presets a repository applied.
+- A preset is applied only on request and only adds; a template is written only where its file is absent; nothing
+  records which presets a repository applied.
 - The managed-block marker syntax, the block classes, the generated-file header and the manifest location.
 - The locations of harness configuration (`.harness/`) and agent content (`.agents/`); only state paths are settings.
 - The harness version is pinned only in `.harness/wrapper.yaml`.

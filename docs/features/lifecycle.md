@@ -21,8 +21,9 @@ posting a chat notification; their reference follows the stages.
 `harness` contains no logic for any hosting platform. Everything that leaves the clone (a push, a pull request, a CI
 trigger, a notification) is an **action** that the repository declares on a **lifecycle event** in its own
 `.harness/hooks.yaml`. An action is a shell command, an HTTP request `harness` makes itself, or a headless agent run.
-The binary decides when an event fires and enforces its guards; it ships no actions
-([ADR 0015](../adrs/0015-development-lifecycle.md), [ADR 0019](../adrs/0019-action-kinds.md)).
+The binary decides when an event fires and enforces its guards. No action runs that the repository's files do not
+declare; a preset's actions reach them only when a person applies it ([ADR 0015](../adrs/0015-development-lifecycle.md),
+[ADR 0019](../adrs/0019-action-kinds.md)).
 
 Every lifecycle action and every [notification hook](hooks.md#agent-notifications) a repository runs is written in that
 file, so the people who review a change and the agents that work on it read there everything an event or a notification
@@ -63,16 +64,17 @@ The actors:
 | --- | --- |
 | Person | a developer at the terminal |
 | Coordinating agent | an interactive agent session (Claude Code or Codex) working with a person, or one left to drive a run, guided by the [harness skill](skills.md#the-harness-skill) |
-| Worker | an agent process a [Ralph](ralph.md) run starts for one task: `harness ralph run` launches ralph-tui, a tool that works through a list of tasks unattended, one worker per task |
+| Loop runner | a third-party program, such as ralph-tui, that works through a list of tasks unattended and starts `harness worker` for each one; `harness` has no code for it ([ralph](ralph.md)) |
+| Worker | `harness worker <agent>`: runs one agent headless for one task under the [worker contract](ralph.md#the-worker-contract), in the checkout it is started in |
 | Binary | `harness` itself |
 | External | the hosting platform, CI and reviewers |
 
 ```mermaid
 flowchart TB
-  s1["Plan<br/>issue, PRD file, Beads epic"] --> s2["Start<br/>worktree create, task claim"]
+  s1["Plan<br/>issue, tracker tasks"] --> s2["Start<br/>worktree create"]
   s2 --> s3["Implement<br/>agent edits, hooks give feedback"]
   s3 --> s4["Verify<br/>harness verify writes the receipt"]
-  s4 --> s5["Complete<br/>task complete, Ralph integration"]
+  s4 --> s5["Complete<br/>worker after the replay, or lifecycle run"]
   s5 --> s6["Deliver<br/>declared actions"]
   s6 --> s7["Review and merge<br/>hosting platform, CI, reviewers"]
   s7 --> s8["Landed<br/>patches on the default branch"]
@@ -92,8 +94,8 @@ flowchart TB
 | | |
 | --- | --- |
 | Who acts | a person, usually with a coordinating agent and a planning skill |
-| Produces | the issue or the pull-request description (the team's record); optionally a PRD file (user stories in JSON) or an epic in Beads, a task tracker kept in the clone and driven by its `bd` CLI ([tasks](tasks.md)) |
-| `harness` guarantees | it never writes the record; a Beads database it creates is local, without git hooks, agent files or remotes |
+| Produces | the issue or the pull-request description (the team's record); optionally tasks in a tracker, such as an epic in Beads, a task tracker kept in the clone and driven by its `bd` CLI ([tasks](tasks.md)) |
+| `harness` guarantees | it never writes the record, and has no code for any tracker |
 | Left to judgement | scope, the split into tasks, acceptance criteria, the order of dependencies |
 | Event | none |
 
@@ -101,9 +103,9 @@ flowchart TB
 
 | | |
 | --- | --- |
-| Who acts | a person or a coordinating agent runs `harness worktree create` and `harness task claim`; for a run, the Ralph launcher creates the coordinator, the worktree the run executes in |
-| `harness` guarantees | the worktree starts from committed code; its base commit is recorded; its actor, the identity it claims tasks with, is unique; a task has one owner; the profile's `bootstrap` runs ([worktrees](worktrees.md)) |
-| Left to judgement | the name, the base, the tracker, whether a worktree is needed at all |
+| Who acts | a person or a coordinating agent runs `harness worktree create`, with `--task <id>` when the work is one task of a tracker; for an unattended run, the person creates the worktree the loop runner runs in |
+| `harness` guarantees | the worktree starts from committed code; its base commit is recorded; its actor (`HARNESS_ACTOR`) is unique; the task id reaches every event fired in it as `HARNESS_TASK`; the profile's `bootstrap` runs ([worktrees](worktrees.md)) |
+| Left to judgement | the name, the base, the task id, whether a worktree is needed at all |
 | Event | `start` |
 
 ### Implement
@@ -119,7 +121,7 @@ flowchart TB
 
 | | |
 | --- | --- |
-| Who acts | the agent or the person runs `harness verify`; for a worker, the worker wrapper (`harness ralph-worker`, the command ralph-tui runs to start each worker agent) replays the selected checks |
+| Who acts | the agent or the person runs `harness verify`; for a worker, `harness worker` replays the checks the agent's receipt selected, after the agent exits |
 | `harness` guarantees | the receipt, the record `harness verify` writes of a passing run, is bound to the base and to the content of every changed file; the rules of each lane (a named family of test commands) hold; a lane whose `required_when` matches cannot be skipped ([verify](verify.md)) |
 | Left to judgement | which lanes and patterns exercise the change; the skip reasons |
 | Event | `verified` |
@@ -128,8 +130,8 @@ flowchart TB
 
 | | |
 | --- | --- |
-| Who acts | a person or an agent runs `harness task complete`; in a run, the worker wrapper (sequential mode) or ralph-tui's own integration (parallel mode) lands the verified commit on the run branch, and the launcher fires `completed` |
-| `harness` guarantees | completion is refused without a valid receipt; a worker's completion is withheld until the replay passes; only the claiming actor completes a task |
+| Who acts | in a worktree bound to a task, `harness worker` fires `completed` (scope `task`) after the replay passes, and with `--commit` commits the work first; otherwise a person or a coordinating agent runs `harness lifecycle run completed`. For a whole run, whoever drives it fires `completed` with scope `run` |
+| `harness` guarantees | `completed` with scope `task` is refused without a valid receipt when the verify module is enabled, whoever fires it; a worker's completion, and a loop runner's completion signal, are withheld until the replay passes |
 | Left to judgement | whether the task meets its acceptance criteria |
 | Event | `completed` |
 
@@ -155,7 +157,7 @@ flowchart TB
 
 | | |
 | --- | --- |
-| Who acts | a person or an agent runs `harness worktree remove` or `harness ralph clean`, which fire `landed` for each recorded branch that has landed; `harness doctor` lists landed branches and prints the command to fire `landed`; a person or a coordinating agent can also run `harness lifecycle run landed` |
+| Who acts | a person or an agent runs `harness worktree remove`, which fires `landed` for each recorded branch that has landed; `harness doctor` lists landed branches and prints the command to fire `landed`; a person or a coordinating agent can also run `harness lifecycle run landed` |
 | `harness` guarantees | only branches `harness` recorded are considered; a branch counts as landed when every patch on it is on the default branch (`git cherry`), whether it was merged, rebased or cherry-picked |
 | Left to judgement | branches whose patches do not match, such as a squash merge of several commits |
 | Event | `landed` |
@@ -188,14 +190,14 @@ flowchart TD
 
 ## Events
 
-| Event | Automatic trigger point (fires actions with `auto: true`) | Scopes |
+| Event | Marks | Scopes |
 | --- | --- | --- |
-| `start` | after `harness worktree create` and after `harness task claim` | `task`, `change` |
-| `verified` | after a successful `harness verify` (never after `--check`) | `task`, `change` |
-| `completed` | after `harness task complete`; when a verified task commit lands on a Ralph run branch (scope `task`); when a Ralph run finishes (scope `run`) | `task`, `run` |
-| `deliver` | right after the `completed` actions of the same scope succeed, when the work is concluded | `task`, `run`, `change` |
-| `landed` | when `harness ralph clean` or `harness worktree remove` handles a recorded branch whose patches are on the default branch, before the worktree is removed | `task`, `run`, `change` |
-| `blocked` | out of band, at any stage: when a Ralph run stops unfinished (scope `run`); when the Ralph launcher skips a task after its retries (scope `task`); when a `harness` command run without a terminal exits 3 for a person to act (the scope of that command's work, otherwise `change`) | `task`, `run`, `change` |
+| `start` | work starts in a managed worktree | `task`, `change` |
+| `verified` | `harness verify` passed | `task`, `change` |
+| `completed` | a task, or a whole run, is complete | `task`, `run` |
+| `deliver` | work is ready to leave the clone | `task`, `run`, `change` |
+| `landed` | the work's patches are on the default branch | `task`, `run`, `change` |
+| `blocked` | work stopped unfinished, or needs a person; out of band, at any stage | `task`, `run`, `change` |
 
 The set and its order are fixed. Repositories declare actions on these events; they cannot add events.
 The first five follow the order of the work; `blocked` can fire between any two of them, and its actions receive the
@@ -205,34 +207,63 @@ reason in `HARNESS_REASON`.
 
 | Scope | The work is | Example |
 | --- | --- | --- |
-| `task` | one task of a tracker, in the managed worktree bound to it, or one task of a Ralph run | `harness task complete acme-api-7f2` |
-| `run` | a whole Ralph run, on its coordinator branch | a run finishing on `work/ralph-3f9c1a7b2e44` |
+| `task` | one task: the work of a managed worktree created with `--task`, which binds it to the task | `harness worktree create invoice-rounding --task acme-api-7f2` |
+| `run` | a whole unattended run of a loop runner, in the worktree it runs in; only a caller fires events with this scope | `./harnessw lifecycle run completed --scope run` after a ralph-tui run in `.work/worktrees/run-invoice` |
 | `change` | work not bound to a task: a managed worktree created without `--task`, a branch in the primary checkout, a branch [`harness fleet --deliver`](fleet.md) prepared | a hand-made fix on a branch |
 
-Trigger-point details:
+### Trigger points
 
-- `harness worktree create` fires `start` with scope `change` when the worktree has no task. A worktree created with
-  `--task` starts when the task is claimed, so `start` fires once, with scope `task`.
+A trigger point is the place in a `harness` command where it fires an event, running only the actions with
+`auto: true`:
+
+| Command | Fires |
+| --- | --- |
+| `harness worktree create` | `start`: scope `task` with `--task`, otherwise `change` |
+| `harness verify` (never with `--check`) | `verified` |
+| `harness worker` | after a verified attempt in a worktree bound to a task: `completed` (scope `task`), then `deliver` (scope `task`) when the work is concluded. Unbound, as in the worktree a loop runner runs in, nothing |
+| `harness worktree remove` | `landed` once per recorded branch whose patches are on the default branch, before removal |
+| `harness fleet --deliver` | `deliver` (scope `change`) per repository, after `harness verify` |
+| any `harness` command run without a terminal that exits 3 | `blocked`, for the scope of the command's work, otherwise `change` |
+
+Nothing in the binary knows when an unattended run starts or ends. Events with scope `run`, and `blocked` for a task a
+loop runner gives up on, are fired by the caller with `harness lifecycle run`: a person, a coordinating agent, or a
+script the team writes around its loop runner. For a ralph-tui run in a managed worktree:
+
+```sh
+./harnessw worktree create run-invoice           # fires start (change)
+cd .work/worktrees/run-invoice
+ralph-tui run --headless --epic acme-api-a10     # each task: harness worker; unbound, it fires no event
+./harnessw lifecycle run completed --scope run    # after the run finished
+./harnessw lifecycle run blocked --scope run      # instead, when it stopped unfinished
+```
+
+Details:
+
+- `harness worktree create` fires `start` once: with scope `task` when it is given `--task <id>`, otherwise with scope
+  `change`.
 - An event with no actions for the scope counts as succeeded, so `deliver` can follow a `completed` that declares
   nothing.
 - **Concluded** work, for the automatic `deliver`: the branch has commits that are not on the default branch, the tree
   is clean, the branch is not the default branch, and, when the verify module is enabled, the receipt is valid for the
   work's base. When the work is not concluded, the automatic `deliver` does not fire. The command says which condition
-  is unmet, and the record shows the event as skipped. A `change` has no `completed` event, so its `deliver` fires only
-  when triggered manually or by `harness fleet --deliver`.
-- `harness worktree remove` and `harness ralph clean` fire `landed` once per recorded branch whose patches are on the
-  default branch, before they remove its worktree. `run` and `http` actions on `landed` run in the primary checkout,
-  because the work is already on the default branch and its worktree is about to be removed; an `agent` action on
-  `landed` runs in a fresh worktree ([`agent`](#agent)). Each recorded branch fires `landed` at most once
-  successfully. A failed `landed` is fired again by hand with `harness lifecycle run landed`.
+  is unmet, and the record shows the event as skipped. The automatic `deliver` follows only the `completed` that
+  `harness worker` fires in a worktree bound to a task; `harness lifecycle run completed` runs that one event. A
+  `change` has no `completed` event, so its `deliver` fires only when triggered manually or by
+  `harness fleet --deliver`.
+- `harness worktree remove` fires `landed` once per recorded branch whose patches are on the default branch, before it
+  removes its worktree. `run` and `http` actions on `landed` run in the primary checkout, because the work is already on
+  the default branch and its worktree is about to be removed; an `agent` action on `landed` runs in a fresh worktree
+  ([`agent`](#agent)). Each recorded branch fires `landed` at most once successfully. A failed `landed` is fired again
+  by hand with `harness lifecycle run landed`.
 - `harness doctor` never fires events or runs actions. It reports recorded branches that have landed and prints the
   command that fires `landed` for each ([doctor](doctor.md#landed-branches)).
-- An automatic event never undoes the command that fired it and never changes its exit code: the receipt stays
-  written, the task stays completed, the worktree is still removed. A failed or refused automatic event is reported on
+- An automatic event never undoes the command that fired it and never changes its exit code: the receipt stays written,
+  the worker's verified commit stays, the worktree is still removed. A failed or refused automatic event is reported on
   stderr and recorded in the [lifecycle log](#the-lifecycle-log). Run `harness lifecycle run <event>` to retry.
 - `harness lifecycle run` runs exactly one event. It never fires the next event's actions.
-- `blocked` never fires from a run of `blocked` itself, and never inside a Ralph worker: a command that exits 3 inside
-  a worker fires nothing, and the launcher fires `blocked` for the task when it skips it.
+- `blocked` never fires from a run of `blocked` itself, and never inside the agent `harness worker` starts: a command
+  that exits 3 there fires nothing. A loop runner retries or skips a failed task on its own; whoever drives the run
+  fires `blocked` for it.
 
 ## Built-in guards
 
@@ -240,20 +271,21 @@ These are [built-in invariants](concepts.md#built-in-invariants). No repository 
 
 | Guard | Effect |
 | --- | --- |
-| No actions inside a Ralph worker | Lifecycle actions, `blocked` included, run in the launcher process, never inside the worker. The binary refuses `harness lifecycle run` inside a worker whatever the spelling: the worker launcher sets `HARNESS_WORKER=1`, and the binary checks it. `[harness, lifecycle]` is also in the built-in `worker.deny`, rendered for each spelling `harness` renders, as defence in depth. Automatic trigger points inside a worker fire nothing |
-| Actions of a run come from its base | For events the Ralph launcher fires, actions are read from the run's base commit, so a worker cannot add or change an action its own task triggers |
-| `deliver` refuses unsafe work | Always on the default branch or with no branch checked out, and with uncommitted changes (tracked or untracked, not ignored). When the verify module is enabled (`modules.verify: true`), also without a valid receipt for the work's base (`harness verify --check`). For scope `run`, the run must have finished: each integrated task already passed its replay, so the run branch holds only replayed work. A refusal exits 3 and runs no action |
+| No actions inside an unattended agent | The binary refuses `harness lifecycle run`, `blocked` included, inside the agent that `harness worker` or an `agent` action starts, whatever the spelling: both set `HARNESS_WORKER=1` in the agent's environment, and the binary checks it. `[harness, lifecycle]` is also in the built-in `worker.deny`, rendered for each spelling `harness` renders, as defence in depth. Automatic trigger points inside the agent fire nothing. `harness worker` fires `completed` and `deliver`, when its worktree is bound to a task, in its own process, after the agent exited |
+| A worker's actions come from its base | `harness worker` reads the hooks file from its base commit, the `HEAD` of the checkout when it started, so an agent cannot add or change an action its own task triggers |
+| `completed` for a task needs a receipt | When the verify module is enabled, `completed` with scope `task` is refused without a valid receipt for the work's base, whoever fires it: `harness worker`, a person or a script. A refusal exits 3 and runs no action |
+| `deliver` refuses unsafe work | Always on the default branch or with no branch checked out, and with uncommitted changes (tracked or untracked, not ignored). When the verify module is enabled (`modules.verify: true`), also without a valid receipt for the work's base (`harness verify --check`). A refusal exits 3 and runs no action |
 | Values only as environment variables | `harness` never substitutes a value into a `run` command's text, so a task title or a branch name cannot inject shell syntax. `http` and `agent` actions expand `$NAME` only as described in [Action kinds](#action-kinds) |
 | `agent` actions run under the worker contract | The agent starts in auto permission mode with the built-in and repository `worker.deny`, bypass flags are refused, and the tamper check restores and compares the tool-owned files. It cannot commit, push or fire lifecycle events ([ralph](ralph.md#the-worker-contract)) |
 | Every run is recorded | Each run, refused and skipped ones included, is appended to the [lifecycle log](#the-lifecycle-log). Dry runs are not recorded |
-| The binary ships no actions | Every action is one the repository declares in `.harness/hooks.yaml`; neither the seeded files nor any [preset](presets.md#the-presets) holds one. `harness lifecycle list` prints them all |
+| No undeclared action runs | No action runs that the repository's `.harness/hooks.yaml` does not declare. The seeded files hold none; a [tool preset](presets.md#the-presets)'s actions, such as those of `beads`, reach the file only when a person applies it, and from then on they are the repository's own. `harness lifecycle list` prints them all |
 
 The scaffolded repository policy seeds `[harness, lifecycle, run, deliver]` under `ask`, because permitting an agent to
 run an event permits everything its actions do ([safety](safety.md#lifecycle-actions-are-code)). `render` writes it for
-each spelling `harness` renders: `harness …`, `./harnessw …`, `harnessw …`, and the [task shim](render.md#task-shims)
-where one exists ([policy](policy.md#entries-for-harness-commands)). It is a seeded entry the repository owns and may
-change, not an invariant ([ADR 0015](../adrs/0015-development-lifecycle.md)). The guards above do not depend on it: the
-binary enforces them whoever runs the command.
+each spelling `harness` renders: `harness …`, `./harnessw …` and `harnessw …`
+([policy](policy.md#entries-for-harness-commands)). It is a seeded entry the repository owns and may change, not an
+invariant ([ADR 0015](../adrs/0015-development-lifecycle.md)). The guards above do not depend on it: the binary enforces
+them whoever runs the command.
 
 ## The `lifecycle` block in `AGENTS.md`
 
@@ -398,7 +430,7 @@ The shell expands the [environment](#environment); `harness` substitutes nothing
 | Field | Type | Default | Meaning |
 | --- | --- | --- | --- |
 | `agent.prompt` | string | required | What the agent is asked to do. `$NAME` is replaced by the variable's value as plain text |
-| `agent.agent` | agent name | `ralph.default_agent`; otherwise the only agent declared with role `worker` | The [declared agent](agents.md) to start; required when neither default applies |
+| `agent.agent` | agent name | the only agent declared with role `worker` | The [declared agent](agents.md) to start; required when no agent, or more than one, has role `worker` |
 | `agent.model` | model id | the agent's configured model | Override for this action |
 | `agent.effort` | level | the agent's configured effort | Override for this action |
 
@@ -409,13 +441,13 @@ The shell expands the [environment](#environment); `harness` substitutes nothing
   the output and the lifecycle log list the changed paths for a person to review and commit.
 - It runs in the work's worktree, except on `landed`. There, `harness` creates a fresh worktree of the default branch,
   `<worktrees.dir>/landed-<name>-<n>` on branch `work/landed-<name>-<n>`, where `<name>` is the landed work's worktree
-  name or session id and `<n>` counts from 1, records it, and runs the agent in it. The worktree of landed work is
-  about to be removed, and the primary checkout holds whatever a person is doing, so neither receives the agent's
-  edits ([ADR 0019](../adrs/0019-action-kinds.md)). The fresh worktree stays, with the edits uncommitted, until a
-  person commits them or runs `harness worktree remove landed-<name>-<n>`.
+  name and `<n>` counts from 1, records it, and runs the agent in it. The worktree of landed work is about to be
+  removed, and the primary checkout holds whatever a person is doing, so neither receives the agent's edits
+  ([ADR 0019](../adrs/0019-action-kinds.md)). The fresh worktree stays, with the edits uncommitted, until a person
+  commits them or runs `harness worktree remove landed-<name>-<n>`.
 - `auto: true` is allowed on an `agent` action, as on any other, and must be written explicitly. `harness doctor`
   lists every automatic `agent` action as a note: each one costs a model run and gives a different result each time.
-- `harness` never calls a model itself. It starts the agent's own CLI, as the Ralph worker launcher does.
+- `harness` never calls a model itself. It starts the agent's own CLI, as `harness worker` does.
 - A prompt that includes untrusted values, such as a task title, is a prompt-injection surface. The worker contract
   bounds what the agent can do with it ([safety](safety.md#agent-actions-and-prompt-injection)).
 
@@ -432,15 +464,15 @@ actions expand them as `$NAME` ([Action kinds](#action-kinds)). A variable that 
 | `HARNESS_SCOPE` | `task`, `run` or `change` | always |
 | `HARNESS_REPO` | absolute path of the primary checkout | always |
 | `HARNESS_WORKTREE` | absolute path of the checkout the action runs in | always |
-| `HARNESS_WORKTREE_NAME` | the managed worktree's name, such as `invoice-rounding` or `ralph-3f9c1a7b2e44` | in a managed worktree |
+| `HARNESS_WORKTREE_NAME` | the managed worktree's name, such as `invoice-rounding` or `run-invoice` | in a managed worktree |
 | `HARNESS_BRANCH` | the work's branch | always |
 | `HARNESS_BASE` | the base the work started from | always |
 | `HARNESS_DEFAULT_BRANCH` | the default branch `origin/HEAD` names | always |
-| `HARNESS_TASK` | the task id | scope `task` |
-| `HARNESS_SESSION` | the Ralph session id | scope `run` |
+| `HARNESS_TASK` | the task id given to `harness worktree create --task` | in a managed worktree created with `--task` |
+| `HARNESS_ACTOR` | the managed worktree's actor, `<user>:<worktree>:<random>`, unique to it | in a managed worktree |
 | `HARNESS_RECEIPT` | path of the receipt JSON ([verify](verify.md#the-receipt)) | when the work has a valid receipt |
 | `HARNESS_SUMMARY` | one line: the lanes and patterns run and the reason for each skipped lane | when the work has a valid receipt |
-| `HARNESS_REASON` | one line: why the work stopped, such as the refusal of a command that exited 3, or the last failure of a skipped task | `blocked`, when it fires at a trigger point |
+| `HARNESS_REASON` | one line: why the work stopped, such as the refusal of a command that exited 3 | `blocked`, when it fires at a trigger point |
 
 In `run` commands, quote every variable (`"$HARNESS_BRANCH"`). Shell expansion inside double quotes is safe; `eval`
 and unquoted expansion are not. Values such as `HARNESS_REASON`, `HARNESS_TASK` and `HARNESS_SUMMARY` are written by
@@ -463,31 +495,31 @@ Prints every event with its actions in the order they run: their kind, `auto` fl
 ### `harness lifecycle run`
 
 ```text
-harness lifecycle run <event> [--action <name>]... [--scope task|run|change] [--task <id>] [--session <id>] [--dry-run]
+harness lifecycle run <event> [--action <name>]... [--scope task|run|change] [--task <id>] [--dry-run]
 ```
 
 | Argument or flag | Default | Meaning |
 | --- | --- | --- |
 | `<event>` | required | `start`, `verified`, `completed`, `deliver`, `landed` or `blocked` |
 | `--action <name>` | every action for the scope | Run only this action. Repeatable; declaration order is kept |
-| `--scope task\|run\|change` | inferred: `task` in a worktree bound to a task, `run` in a Ralph coordinator, `change` otherwise | The scope; must be one of the event's scopes |
-| `--task <id>` | the checkout's task | Scope `task`: run in the managed worktree bound to this task |
-| `--session <id>` | none | Scope `run`: run in this Ralph session's coordinator. With `--task`, select that task of the run |
+| `--scope task\|run\|change` | inferred: `task` in a managed worktree created with `--task`, `change` otherwise; `run` only when given | The scope; must be one of the event's scopes |
+| `--task <id>` | the checkout's task | Scope `task`: run in the managed worktree created with `--task <id>` |
 | `--dry-run` | off | Evaluate the guards, print each action with its kind and the `HARNESS_*` variables it would receive, run nothing. For an `http` action it prints the method, the variable names and the body with `$NAME` expanded, never the URL or header values |
 
-A manual run executes every action of the event for the scope, whatever its `auto` flag. It never asks for
-confirmation, with or without a terminal. A manual run of `blocked` leaves `HARNESS_REASON` unset, which makes it a
-way to test a notification.
+A manual run executes every action of the event for the scope, whatever its `auto` flag. It never asks for confirmation,
+with or without a terminal. A manual run of `blocked` leaves `HARNESS_REASON` unset, which makes it a way to test a
+notification. A caller that fires `blocked` for a loop runner's run sets `HARNESS_REASON` in the environment itself,
+when it has a reason to give.
 
 | Exit code | Meaning |
 | --- | --- |
 | 0 | Every action passed, or the event declares none for the scope |
-| 1 | Error: unknown event or action, a scope the event does not have, invalid declarations, no session for `--task` or `--session` |
+| 1 | Error: unknown event or action, a scope the event does not have, invalid declarations, no managed worktree for `--task` |
 | 2 | An action exited non-zero, with `on_failure: stop` or `continue` |
-| 3 | Blocked: a guard refused (`deliver` on the default branch, with uncommitted changes, without a valid receipt when the verify module is enabled, or for an unfinished run; any event inside a Ralph worker). No action ran |
+| 3 | Blocked: a guard refused (`deliver` on the default branch, with uncommitted changes, or without a valid receipt when the verify module is enabled; `completed` with scope `task` without a valid receipt when the verify module is enabled; any event inside the agent of `harness worker` or of an `agent` action). No action ran |
 
-Files read: `.harness/hooks.yaml` (from the run's base commit for events the Ralph launcher fires), `session.json`
-and `verified.json` in the checkout's state directory, git. Files written: the lifecycle log; whatever
+Files read: `.harness/hooks.yaml` (from the base commit when `harness worker` fires the event), `session.json` and
+`verified.json` in the checkout's state directory, git. Files written: the lifecycle log; whatever
 the actions write.
 
 ### The lifecycle log
@@ -505,7 +537,7 @@ Dry runs are not recorded. It holds no environment values, and never a URL, a he
 | `time` | when the event started, UTC |
 | `event`, `scope` | the event and its scope |
 | `trigger` | `manual` or `auto` |
-| `worktree`, `branch`, `task`, `session` | the work, as far as it applies |
+| `worktree`, `branch`, `task` | the work, as far as it applies |
 | `actions` | each action run: `name`, `kind` (`run`, `http` or `agent`), `status` (`0` on success; otherwise the exit code of a `run` or `agent` action, the HTTP status of an `http` response, or `1` when the request could not be made), `duration_ms`; for an `agent` action, `changed`: the paths it left uncommitted |
 | `status` | the event's exit code: `0`, `2`, or `3` for a refusal; `skipped` with the unmet condition for an automatic `deliver` on work that is not concluded |
 | `duration_ms` | the whole event |
@@ -596,17 +628,18 @@ lifecycle:
       scope: [task]
 ```
 
+Each task gets its own worktree, and `harness worker` runs the agent on it, started here by hand as a loop runner
+would start it:
+
 ```sh
-./harnessw worktree create invoice-rounding --tracker beads --task acme-api-7f2
+./harnessw worktree create invoice-rounding --task acme-api-7f2    # fires start (task)
 cd .work/worktrees/invoice-rounding
-./harnessw task claim acme-api-7f2              # fires start (task)
-# ... edit ...
-./harnessw verify --lane unit=invoice --skip e2e="no route, controller or guard changed"   # fires verified
-git commit -am "fix(invoice): round at the domain boundary"
-./harnessw task complete acme-api-7f2           # fires completed, then deliver: push and a draft pull request
+echo "Fix the invoice rounding described in acme-api-7f2." | ./harnessw worker claude --commit
+# after a passing replay: the commit, then completed (task), then deliver: push and a draft pull request
 ```
 
-Commit before `harness task complete`: uncommitted work is not concluded, and the automatic `deliver` is skipped.
+Without `--commit`, the attempt leaves its work uncommitted, which is not concluded, so the automatic `deliver` is
+skipped. Commit the work and run `harness lifecycle run deliver` to deliver it by hand.
 
 ### Landed: tidy up after the merge
 
@@ -630,7 +663,7 @@ lifecycle:
 `harness doctor` only reports the merged `work/invoice-rounding`. `harness worktree remove` fires `landed` before it
 removes the worktree, and the action runs in the primary checkout. When the action fails, the removal still happens
 and keeps its own exit code. Fix the action and run `harness lifecycle run landed --task acme-api-7f2` to fire it
-again. Ralph sessions are cleaned by `harness ralph clean`, which fires `landed` with scope `run`.
+again.
 
 ### A chat notification when work completes or stops
 
@@ -652,7 +685,7 @@ lifecycle:
     - name: notify
       http:
         url_env: CHAT_WEBHOOK_URL
-        json: { text: "Blocked in $HARNESS_REPO ($HARNESS_SCOPE $HARNESS_TASK$HARNESS_SESSION): $HARNESS_REASON" }
+        json: { text: "Blocked in $HARNESS_REPO ($HARNESS_SCOPE $HARNESS_TASK): $HARNESS_REASON" }
       auto: true
 ```
 
@@ -711,40 +744,50 @@ not belong in `deliver`.
 
 ### Ralph: delivery per run, or delivery after judgement
 
-**Automatic, per run.** Each finished run becomes one draft pull request from its coordinator branch:
+A Ralph run is an unattended run of a loop runner whose agent command is `harness worker`, here ralph-tui set up by its
+[tool preset](presets.md#the-presets). With `harness worker --commit`, each verified task is one commit on the branch of
+the worktree the run works in.
+
+**Per run.** Each finished run becomes one draft pull request from that branch. The actions are limited to scope
+`run`, which only a caller fires:
 
 ```yaml
 lifecycle:
   deliver:
     - name: push-run
       run: git push -u origin "$HARNESS_BRANCH"
-      auto: true
       scope: [run]
     - name: open-run-pr
       run: >-
         gh pr create --draft --base "$HARNESS_DEFAULT_BRANCH" --head "$HARNESS_BRANCH"
-        --title "Ralph run $HARNESS_SESSION"
+        --title "Run $HARNESS_WORKTREE_NAME"
         --body "One commit per task; each commit body carries its verification summary."
-      auto: true
       scope: [run]
 ```
 
-The pull request holds every task of the run, on `work/ralph-<session-id>`, with the messages the tasks were
-committed with. Use it when one run is one reviewable unit.
+```sh
+./harnessw worktree create run-invoice
+cd .work/worktrees/run-invoice
+ralph-tui run --headless --epic acme-api-a10
+./harnessw lifecycle run completed --scope run
+./harnessw lifecycle run deliver --scope run    # push-run, then open-run-pr
+```
 
-**Coordinator-led.** The coordinating agent chooses which task commits go together and rewords them, as a delivery skill
-in the repository describes, then triggers `deliver` on the result:
+The pull request holds every task of the run, on `work/run-invoice`, with the messages the tasks were committed with.
+Use it when one run is one reviewable unit.
+
+**After judgement.** The coordinating agent chooses which task commits go together and rewords them, as a delivery
+skill in the repository describes, then triggers `deliver` on the result:
 
 ```sh
-./harnessw ralph run --agent claude --tracker beads --epic acme-api-a10 --headless
-# the run finishes on work/ralph-3f9c1a7b2e44
+# the run finished on work/run-invoice
 ./harnessw worktree create invoice-rounding-pr --base origin/main
 cd .work/worktrees/invoice-rounding-pr
 git cherry-pick 1a2b3c4 5d6e7f8                 # the tasks that belong in this pull request
 # reword each message to the repository's convention, keeping the verification summary in the body
 ./harnessw verify --lane unit=invoice --skip e2e="no route, controller or guard changed"
 ./harnessw lifecycle run deliver                # scope change: push and a draft pull request
-./harnessw ralph clean                          # after the merge: fires landed (run) and removes the run
+./harnessw worktree remove run-invoice          # after the merge: fires landed (change) and removes the run's worktree
 ```
 
 The seeded `ask` entry on `harness lifecycle run deliver` makes the last step wait for a person unless the repository
@@ -766,15 +809,15 @@ moved that entry out of `ask`.
 - Don't write the team's record in actions: no issue comments, reviews, labels or board moves.
 - Don't put secrets in actions. They inherit the environment; read credentials from it. An `http` action takes its URL
   and header values only from `url_env` and `headers_env`.
-- Do declare a notification on `blocked`: an unattended run that stops then reaches a person instead of waiting
-  unseen.
+- Do declare a notification on `blocked`, and have whatever drives an unattended run fire it when the run stops, so
+  the stop reaches a person instead of waiting unseen.
 - Do give notifications `on_failure: continue` when a later action of the same event must still run.
 - Do keep `agent` actions manual unless their cost and their varying results are acceptable on every trigger, and
   review their edits before committing them.
 - Don't put untrusted values into an `agent` prompt when a fixed prompt does the job; the agent reads the changed files
   itself.
-- Don't deliver a Ralph run automatically per run when its tasks belong in separate pull requests; deliver after
-  judgement instead ([pitfalls](pitfalls.md#delivery)).
+- Don't deliver a whole run as one pull request when its tasks belong in separate ones; deliver after judgement
+  instead ([pitfalls](pitfalls.md#delivery)).
 
 ## Troubleshooting
 
@@ -783,17 +826,17 @@ moved that entry out of `ask`.
 | `deliver` exits 3: default branch | The checkout is on the default branch, or detached | `harness worktree create <name>`, or `git switch -c <branch>`, then deliver |
 | `deliver` exits 3: uncommitted changes | Tracked edits or untracked, non-ignored files | Commit them, or remove them |
 | `deliver` exits 3: no valid receipt | The verify module is enabled, and there was no `harness verify` since the last change, or a rebase moved the content against the base | `harness verify …`, then deliver |
-| `deliver` exits 3 for a run | The run is unfinished | `harness ralph resume <session-id>`, or deliver after judgement with scope `change` |
-| The automatic `deliver` did not fire | The work was not concluded (often: not committed before `task complete`), no action has `auto: true` for the scope, or `completed` failed | Read the lifecycle log (`.work/lifecycle.jsonl` by default); commit and run `harness lifecycle run deliver` |
+| `completed` exits 3 for a task | The verify module is enabled and the work has no valid receipt | `harness verify …`, then fire `completed` again |
+| The automatic `deliver` did not fire | The work was not concluded (often: `harness worker` ran without `--commit`), no action has `auto: true` for the scope, or `completed` failed | Read the lifecycle log (`.work/lifecycle.jsonl` by default); commit and run `harness lifecycle run deliver` |
 | An action fails: `HARNESS_TASK` unset | The variable does not apply to the scope | Use `${HARNESS_TASK:-}`, or limit the action with `scope` |
 | `gh pr create` fails on the second run | The pull request exists | Make the action idempotent |
 | `landed` never fires for a merged branch | Squash merge of several commits: no patch on the default branch matches | Delete the branch and remove the worktree by hand |
-| `landed` failed during `worktree remove` or `ralph clean` | An action exited non-zero; the removal went ahead | Read the lifecycle log; fix the action, then `harness lifecycle run landed` with `--task` or `--session` |
-| `lifecycle run` exits 3 inside a Ralph worker | Workers never run lifecycle actions | Nothing to fix: the launcher fires the events and runs their actions in its own process |
+| `landed` failed during `worktree remove` | An action exited non-zero; the removal went ahead | Read the lifecycle log; fix the action, then `harness lifecycle run landed`, with `--task` for a task's work |
+| `lifecycle run` exits 3 inside a worker's agent | The agent runs with `HARNESS_WORKER=1`, and an unattended agent never fires lifecycle events | Nothing to fix: in a worktree bound to a task, `harness worker` fires `completed` and `deliver` after the replay; whoever drives the run fires the rest |
 | One repository delivers without the organization's convention | Each repository declares its own actions, and this one was never given them | Add them to its `.harness/hooks.yaml`, by hand or with an agent following the organization's skill, and review the diff |
 | An `http` action fails before sending: variable unset | The variable named in `url_env` or `headers_env` is not in the environment that fired the event | Export it in the shell, or the CI job, that runs the work |
 | An `http` action fails with a 3xx status | The endpoint redirected to another host | Use the final URL in the variable |
 | A notification shows an empty value | A `$NAME` in `json` is unset for this scope; the output noted it | Limit the action with `scope`, or name a variable that applies |
 | A `landed-<name>-<n>` worktree is left behind | An `agent` action on `landed` ran in it; it never commits | Review its edits with `git -C <path> status`, then commit and deliver them, or `harness worktree remove landed-<name>-<n>` |
 | An `agent` action fails the tamper check | The agent edited a tool-owned file | Read the action's output; the tool-owned files are restored from `HEAD` |
-| No notification from an unattended run that stopped | No `blocked` action, or it has no `auto: true` | Declare one with `auto: true`; test it with `harness lifecycle run blocked` |
+| No notification from an unattended run that stopped | Nothing fired `blocked`: a loop runner that stops fires no event, and a `harness` command that exits 3 runs only `blocked` actions with `auto: true` | Fire `harness lifecycle run blocked --scope run` from whatever drives the run; give the action `auto: true` for commands that exit 3; test it with `harness lifecycle run blocked` |

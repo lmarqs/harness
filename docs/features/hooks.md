@@ -38,7 +38,7 @@ Commands are named `harness <command>` on this page. Run them through the reposi
 | The edited file formatted or linted right after every agent edit | a `post_edit` entry |
 | The stack's usual format-on-edit or lint-on-edit hook | `./harnessw preset apply <name>`, which adds it as a `post_edit` entry ([presets](presets.md)) |
 | A repository check run when certain files are edited | `validators` |
-| A session in a [managed worktree](worktrees.md) to know its task and tracker | `session_start.context: true` |
+| A session in a [managed worktree](worktrees.md) to know its task | `session_start.context: true` |
 | A message when an agent waits for you: a permission prompt, a question, idle input | an `attention` action |
 | A message when an agent finishes a turn | a `turn_end` action |
 | A skill or directive in the agent's context without invoking it | a `context` entry in the profile ([context](context.md)) |
@@ -96,8 +96,8 @@ harness: v0.9.0 not downloaded, hook skipped; run: ./harnessw version
 ```
 
 The session continues normally, without lint-on-edit, standing context or notifications, until the pinned version is
-cached. Any explicit command, such as `./harnessw version` or a task shim, downloads and verifies it. A teammate who
-never runs one loses only that feedback.
+cached. Any explicit command, such as `./harnessw version`, downloads and verifies it. A teammate who never runs one
+loses only that feedback.
 
 The session-start entry also adds one line to the session context, so that the agent itself knows why it has no
 standing context:
@@ -137,7 +137,7 @@ Files outside the checkout are ignored.
 
 | Setting | Output, as additional context for the agent |
 | --- | --- |
-| `context: true` | In a [managed worktree](worktrees.md), one line: the tracker, the task, and the command to verify. Outside managed worktrees, nothing |
+| `context: true` | In a [managed worktree](worktrees.md), one line: the task id given with `--task`, when there is one, and the command to verify. Outside managed worktrees, nothing |
 | `context.always` in the profile | The `always` entries for the session's role, each headed by one line naming it ([context](context.md)) |
 
 Agent sessions never receive an update notice: moving the pin is a reviewed supply-chain decision, so the notice goes
@@ -204,8 +204,10 @@ Values reach the actions as environment variables, with the same rules as [lifec
   error, so an agent hook never starts another agent.
 - `harness hook` exits 0 on these events whatever the actions return, so a failed notification never keeps an agent
   working or interrupts it. A failure is printed on stderr.
-- They do not run in the sessions of [Ralph](ralph.md) workers, the agents of an unattended run: such a run reports
-  through the lifecycle event [`blocked`](lifecycle.md#events).
+- They do nothing in a worker's session: `harness worker` and `agent` actions set `HARNESS_WORKER=1` for the agent
+  they start. An unattended run reports through [lifecycle events](lifecycle.md#trigger-points) instead: in a worktree
+  bound to a task, `harness worker` fires `completed` after a verified attempt, and whatever drives the run fires
+  `blocked` and the events of scope `run`.
 - Like every agent hook, they do nothing on a machine where the pinned release is not cached
   ([the missing-binary guard](#the-missing-binary-guard)).
 - The `notify` key of `.codex/config.toml` holds one program. `harness` owns it only when it rendered it. When the file
@@ -249,9 +251,9 @@ In short:
 - secrets for `http` come only from the variables `url_env` and `headers_env` name;
 - `auto: true` runs the action at the event's automatic trigger point; every action also runs when a person or a
   coordinating agent fires the event with `harness lifecycle run <event>`;
-- lifecycle actions never run inside a Ralph worker;
-- the binary ships no actions and no [preset](presets.md) holds any: every action is one the repository declares in
-  this file.
+- lifecycle actions never run inside the agent `harness worker` or an `agent` action starts;
+- every action is one the repository declares in this file: the seeded files hold none, and a [tool preset](presets.md)
+  such as `beads` writes its actions here only when a person applies it.
 
 An action runs with the permissions of the process that fired it, outside any agent's permission checks. Review
 lifecycle actions like code; see [safety](safety.md).
@@ -299,7 +301,7 @@ turns off standing-context injection only ([context](context.md#environment)).
 
 Files read: stdin (the payload), `.harness/wrapper.yaml` (by the wrapper), `.harness/hooks.yaml`,
 `.harness/config.yaml`, `session.json` and `hook-checks.json` in the checkout's state directory, the read and edited
-files, the skills and files `context` entries name, `skills-lock.json`, the cache directory (`$HARNESS_HOME`, default
+files, the skills and files `context` entries name, the cache directory (`$HARNESS_HOME`, default
 `$XDG_CACHE_HOME/harness`, otherwise `~/.cache/harness`) for the binary.
 Files written: `hook-checks.json`, `context/<session-id>.json` in the state directory, whatever the declared commands
 write (for example a formatter fixing the file).
@@ -327,8 +329,9 @@ raw:
 ```
 
 `CHAT_WEBHOOK_URL` is set in each developer's own shell profile; a developer who does not set it gets an `attention`
-failure on stderr, and the session continues. The `raw` entry runs `bd prime`, from the [Beads](tasks.md) task tracker's
-`bd` command line, as a native hook at session start, so it runs whether or not the pinned release is cached.
+failure on stderr, and the session continues. The `raw` entry is the repository's own hook: it runs `bd prime`, from the
+[Beads](tasks.md) task tracker's `bd` command line, as a native hook at session start, so it runs whether or not the
+pinned release is cached.
 
 ### A desktop notification when the agent finishes
 
@@ -395,7 +398,7 @@ raw: {}
 | No `attention` notification from Codex | Codex has no event for an agent waiting for a person; `doctor` notes it | Use `turn_end`, which Codex reports through `notify` |
 | No `turn_end` from Codex; `doctor` notes a `notify` program of the repository's own | `.codex/config.toml` already sets `notify` to another program | Move that program into a `turn_end` `run` action, remove the key, then `harness render` |
 | No notification on one machine | The variable in `url_env` is not set there, or the pinned release is not cached there | Set the variable in that shell; run `./harnessw version` once |
-| A notification arrives for every turn of a worker run | It cannot: notification hooks do not run in worker sessions | Declare `blocked` and `completed` lifecycle actions for unattended runs |
+| A notification arrives for every turn of a worker run | It cannot: notification hooks do nothing in a worker's session (`HARNESS_WORKER=1`) | Declare `completed` and `blocked` lifecycle actions for unattended runs, and have whatever drives the run fire `blocked` and the events of scope `run` |
 
 ## Coexistence
 

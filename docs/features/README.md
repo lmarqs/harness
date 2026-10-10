@@ -15,11 +15,14 @@ and can find the page for any part of it.
 `harness` is a command-line tool that sets up, constrains and checks the environment coding agents work in. It writes
 the permission rules, hooks and instructions that Claude Code and Codex read. It gives people and agents the same
 commands for task [worktrees](worktrees.md), verification receipts (records that a change's checks passed on its exact
-content, [verify](verify.md)) and local [task tracking](tasks.md). It launches unattended [Ralph](ralph.md) runs whose
-workers (the agent processes a run starts, one per task) cannot bypass permissions or claim work they did not verify. It
-fires [development lifecycle](lifecycle.md) events at fixed points, so what a repository declares (a push, a pull
-request, a cleanup) happens at the same moment for people and agents. It never calls a model, never writes knowledge
-such as prose, memory or domain skills, and contains no logic for any hosting platform.
+content, [verify](verify.md)) and [task binding](tasks.md), which ties a worktree to a task id from any tracker. Its
+[`harness worker`](ralph.md) command runs one agent for one task, for any loop runner that names it as its agent
+command, and that agent cannot bypass permissions or be reported done without a verification that passed. It fires
+[development lifecycle](lifecycle.md) events at fixed points, so what a repository declares (a push, a pull request, a
+tracker update, a cleanup) happens at the same moment for people and agents. It never calls a model, never writes
+knowledge such as prose, memory or domain skills, and contains no code for any tool other than git and the agent
+harnesses: loop runners, task trackers, skills installers, task runners and hosting platforms reach a repository as data
+in its own files, which a [tool preset](presets.md) can write ([ADR 0022](../adrs/0022-tool-integration.md)).
 
 ## The game master
 
@@ -40,16 +43,15 @@ same documentation blocks in every repository that adopts it.
 
 | Module | What you get | Page |
 | --- | --- | --- |
-| Core (always on) | the `harnessw` wrapper pinned to one verified release, the `.harness/` configuration, profile, policy rendered for each agent, conventions written as managed blocks in `AGENTS.md`, `README.md` and `.gitignore`, manifest, the harness skill, lifecycle events and actions | [wrapper](wrapper.md), [concepts](concepts.md), [policy](policy.md), [render](render.md), [lifecycle](lifecycle.md) |
+| Core (always on) | the `harnessw` wrapper pinned to one verified release, the `.harness/` configuration, profile, policy rendered for each agent, conventions written as managed blocks in `AGENTS.md`, `README.md` and `.gitignore`, manifest, the harness skill, lifecycle events and actions, task worktrees with task binding, unattended runs through `harness worker` | [wrapper](wrapper.md), [concepts](concepts.md), [policy](policy.md), [render](render.md), [lifecycle](lifecycle.md), [worktrees](worktrees.md), [tasks](tasks.md), [ralph](ralph.md), [skills](skills.md) |
 | `hooks` | Agent-neutral hooks: lint-on-edit, validators, session context, notifications when an agent waits for a person or ends a turn, and [standing context](context.md): directives and skills injected when a declared trigger fires | [hooks](hooks.md), [context](context.md) |
 | `verify` | Named verification lanes (families of test commands, such as `unit` and `e2e`) and a receipt bound to file contents | [verify](verify.md) |
-| `tasks` | Clone-local task tracking with Beads (a task tracker used through its `bd` command) or a PRD JSON file (a list of user stories) | [tasks](tasks.md) |
-| `ralph` | Unattended multi-task runs through [ralph-tui](https://github.com/subsy/ralph-tui), one agent process per task, with a worker contract that refuses permission bypass and replays each task's checks | [ralph](ralph.md) |
 | `memory` | A memory skeleton under `.agents/memory/` and its index in the `memory` block of `AGENTS.md` | [memory](memory.md) |
-| `skills` | Declared skill sources installed through the `skills` CLI | [skills](skills.md) |
 
-Task worktrees ([worktrees](worktrees.md)) are available in every adopted repository. Every module is opt-in and
-removable on its own, and the whole tool can be undone or ejected, keeping its conventions ([remove](remove.md)).
+A loop runner such as [ralph-tui](https://github.com/subsy/ralph-tui) connects by naming `./harnessw worker <agent>`
+as its agent command, and a tracker such as Beads by lifecycle actions on `start`, `completed` and `blocked`; the
+`ralph-tui` and `beads` [tool presets](presets.md) write both. Every module is opt-in and removable on its own, and the
+whole tool can be undone or ejected, keeping its conventions ([remove](remove.md)).
 
 ## Five-minute quickstart
 
@@ -146,26 +148,26 @@ Configuration
 - [Policy](policy.md): `.harness/policy.yaml`, the built-in base, rendering per agent
 - [Hooks](hooks.md): `.harness/hooks.yaml`, the hook runtime, notification hooks and lifecycle actions
 - [Context](context.md): standing context, directives and skills injected by declared triggers
-- [Presets](presets.md): the built-in stack presets, `harness preset list`, `show` and `apply`, and where an
-  organization's choices live
+- [Presets](presets.md): the built-in stack and tool presets, their entries and templates, `harness preset list`,
+  `show` and `apply`, and where an organization's choices live
 
 Daily work
 
 - [Worktrees](worktrees.md): `harness worktree`
 - [Verify](verify.md): lanes and the receipt
-- [Tasks](tasks.md): Beads, PRD JSON or none
-- [Ralph](ralph.md): unattended runs
+- [Tasks](tasks.md): task binding with `worktree create --task`, the `completed` guard, trackers wired by actions
+- [Ralph](ralph.md): unattended runs with any loop runner through `harness worker`, with ralph-tui as the worked example
 
 Knowledge
 
-- [Skills](skills.md): the harness skill and `skills sync`
+- [Skills](skills.md): the harness skill, `.agents/skills/` and skills referenced from standing context
 - [Memory](memory.md): the memory skeleton and its index
 
 Many repositories and many agents
 
 - [Fleet](fleet.md): run a command across a list of repositories, and deliver the changes
 - [Agents](agents.md): the Claude Code and Codex adapters, roles, and the adapter contract
-- [Compatibility](compatibility.md): coexistence with GitHub, Beads, ralph-tui, mise, CI and existing files; what
+- [Compatibility](compatibility.md): how GitHub, Beads, ralph-tui, mise, CI and existing files fit with `harness`; what
   removal keeps
 
 Reference

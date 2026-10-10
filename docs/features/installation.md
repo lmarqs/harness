@@ -95,9 +95,8 @@ harness version
 ```
 
 `mise use -g` records the tool in your global mise configuration and puts `harness` on your PATH in every directory.
-Keep it out of a repository's own `mise.toml`, `.mise.toml` or `.tool-versions`: a repository pins `harness` only in
-`.harness/wrapper.yaml`, and `doctor` reports a second pin as a finding
-([compatibility](compatibility.md#mise)).
+Keep it out of a repository's own `mise.toml`, `.mise.toml` or `.tool-versions`: `.harness/wrapper.yaml` is the pin
+`harness` runs, and a second pin drifts from it ([compatibility](compatibility.md#mise)).
 
 Without mise, download the archive for your operating system and architecture from the project's GitHub releases
 page, extract it, and move the `harness` binary to a directory on your PATH:
@@ -197,14 +196,12 @@ A clone of an adopted repository works before its pinned release is cached on a 
 | Entry point | Before the pinned release is cached |
 | --- | --- |
 | `./harnessw <command>` (explicit: a person or an agent calls it) | downloads, verifies and runs; without network it exits 1, and without a downloader or a sha256 tool, or under a [pending pin](wrapper.md#a-pending-pin), it exits 3; either way it runs nothing |
-| [Task shims](render.md#task-shims) (explicit) | the same: they exec `./harnessw <command>` |
 | Agent hooks (implicit: the agent calls them) | print `harness: v0.9.0 not downloaded, hook skipped; run: ./harnessw version` on stderr and exit 0; the session-start hook also adds the `harness v0.9.0 is not cached on this machine` line ([the wrapper](#the-wrapper-default)) to the agent's session context |
 | `raw` hooks | keep running; they are rendered as their own commands |
 | Lifecycle events | do not fire: they fire from `harness` commands |
 | Rendered permissions and instructions | apply as committed |
 
-An explicit entry point never succeeds without running, so no verification or task command claims work that did not
-happen.
+An explicit entry point never succeeds without running, so no verification command claims work that did not happen.
 
 ## Uninstall
 

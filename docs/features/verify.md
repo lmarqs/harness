@@ -15,9 +15,9 @@ edit makes it unchecked again.
 `harness verify` runs the checks a change needs and, when they pass, writes a receipt: a small record bound to the
 change's base commit and to the exact content of every changed file. Any later edit invalidates it. The checks are the
 lint command, validators, build and test **lanes** the [profile](profile.md#verify) declares; a lane is a named family
-of test commands, such as `unit` or `e2e`, run with the test patterns you give it (`--lane unit=invoice`). Task
-completion ([tasks](tasks.md)) and the workers of an unattended [Ralph](ralph.md) run require a valid receipt;
-`harness verify --check` tells you whether you have one.
+of test commands, such as `unit` or `e2e`, run with the test patterns you give it (`--lane unit=invoice`). The
+[`completed` guard](tasks.md#the-completed-guard) on a task and [`harness worker`](ralph.md), which runs an agent
+unattended, require a valid receipt; `harness verify --check` tells you whether you have one.
 
 Commands are named `harness <command>` on this page. The examples run them through the repository's wrapper,
 `./harnessw <command>`, from the root of a checkout; with a global install, `harness <command>` is equivalent
@@ -26,8 +26,10 @@ Commands are named `harness <command>` on this page. The examples run them throu
 ## When to use it
 
 - Before calling a change done: lint, build and the relevant test lanes in one command.
-- Before `harness task complete`, which refuses without a valid receipt.
-- In a Ralph worker, as the last step before signalling completion.
+- Before firing `completed` for a task, which the [`completed` guard](tasks.md#the-completed-guard) refuses without a
+  valid receipt.
+- In an agent that [`harness worker`](ralph.md) runs, as the last step before the agent exits: the worker replays what
+  the receipt selects.
 - With `--full`, before merging a change that needs every suite.
 
 While you iterate, run single tests with the repository's own commands, and run `harness verify` once the change is
@@ -137,8 +139,8 @@ to that checkout.
 
 | Consumer | Uses the receipt to |
 | --- | --- |
-| [`harness task complete`](tasks.md) | refuse completion without a valid receipt |
-| The [Ralph worker](ralph.md#the-worker-contract) | read which lanes and skip reasons the agent chose, then **replay** them itself from a tree the agent cannot write. The receipt only selects the checks, and the replay is the proof |
+| The [`completed` guard](tasks.md#the-completed-guard) | refuse `completed` with scope `task` without a valid receipt, when the verify module is enabled |
+| [`harness worker`](ralph.md#the-worker-contract) | read which lanes and skip reasons the agent chose, then **replay** them itself from a tree the agent cannot write. The receipt only selects the checks, and the replay is the proof |
 | The [`deliver` guard](lifecycle.md#built-in-guards) | refuse delivery of work without a valid receipt for its base, when the verify module is enabled |
 
 ### The `verify` block in `AGENTS.md`
@@ -251,6 +253,6 @@ primary checkout's state directory; whatever the repository's commands and `veri
 
 ## Coexistence
 
-`verify` runs the repository's own commands; it adds no dependency to them and CI does not need it. A repository that
-already has a `verify` task in [mise](compatibility.md#mise) keeps it; the task shim, which execs `./harnessw verify`,
-is named `harness:verify` until the two are reconciled ([render](render.md#task-shims)).
+`verify` runs the repository's own commands; it adds no dependency to them and CI does not need it. A `verify` task the
+repository already has in its task runner, such as [mise](compatibility.md#mise), is the repository's own and stays as
+it is.

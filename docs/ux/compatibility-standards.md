@@ -25,7 +25,7 @@ each promise and how it changes.
 | The binary and its CLI | semantic versioning: `MAJOR.MINOR.PATCH` | `harness version`, release tags |
 | Each repository file (`config.yaml`, `policy.yaml`, `hooks.yaml`, `wrapper.yaml`) | an integer `schema`, per file | the file's first key |
 | The version a repository runs | an exact release tag, pinned per repository | `version` in `.harness/wrapper.yaml` |
-| Built-in presets | none of their own: each release holds its version of every preset | `harness preset list` and `harness preset show <name>` of the running release |
+| Built-in presets, stack and tool presets alike, with their entries and templates | none of their own: each release holds its version of every preset | `harness preset list` and `harness preset show <name>` of the running release |
 | Rendered files and [managed blocks](generated-content-standards.md#managed-blocks) | the schema of their sources | the [generated-file header](generated-content-standards.md#header) and the manifest (`.harness/manifest.json`) |
 
 - Rendered content carries the schema, never the binary version ([ADR 0005](../adrs/0005-schema-compatibility.md)). It
@@ -35,14 +35,17 @@ each promise and how it changes.
   ([ADR 0017](../adrs/0017-engine-version.md)). Why: a version stamp would change every file on every upgrade and bury
   the changes that matter.
 - The public contract covered by semantic versioning is: command names and grammar, flags, operands, enumerated values,
-  `HARNESS_*` environment variables (those harness and its wrapper read and those it passes to actions), exit-code
-  meanings, JSON output shapes, `harness explain` topic names, the names of the built-in presets, the repository file
-  schemas (`wrapper.yaml` included), the wrapper's name, location and flags (`harnessw` at the repository root,
+  `HARNESS_*` environment variables (those harness and its wrapper read and those it passes to actions and to the agents
+  it starts), exit-code meanings, JSON output shapes, the [worker command](cli-standards.md#the-worker-command)'s flags,
+  exit codes, output and environment, `harness explain` topic names, the names of the built-in presets, the repository
+  file schemas (`wrapper.yaml` included), the wrapper's name, location and flags (`harnessw` at the repository root,
   `--no-download`), lifecycle event names and trigger points, notification event names, action kinds and their keys,
   [standing-context](../features/context.md) triggers and roles, the profile's state path keys and their defaults,
   managed-block ids, their markers and their class (convention or tool), the generated-file header, the manifest
   location, and the format of the release's signed checksum file. Why: each of these is read by scripts, agents, policy
-  entries or other repositories, and changes there break them.
+  entries, other tools' configuration or other repositories, and changes there break them. The worker command is named
+  in files such as a loop runner's configuration, which a repository keeps unchanged across harness upgrades
+  ([ADR 0022](../adrs/0022-tool-integration.md)).
 - Human-readable output text is not part of the contract and may change in any release, because people read it and
   JSON exists for programs.
 
@@ -62,7 +65,7 @@ each promise and how it changes.
 | Invariants | weakening one (never allowed) | adding one; it changes rendered output and therefore follows the rendered-output rule |
 | Supported agents and tools | removing an agent adapter | adding an agent or a version; narrowing a version range in a minor release, listed in its notes |
 | Release trust | removing a key a released binary trusts without a rotation release ([below](#release-trust)) | introducing the next key in a release signed by the current one |
-| Built-in presets | removing or renaming a preset | adding a preset; changing what one holds, because a repository's entries change only when someone applies a preset, and applying only adds ([below](#presets-across-releases)) |
+| Built-in presets | removing or renaming a preset | adding a preset; changing the entries or templates one holds, because a repository's files change only when someone applies a preset, and applying only adds ([below](#presets-across-releases)) |
 
 Moving a block between the convention and tool [classes](generated-content-standards.md#block-classes) is breaking
 because it changes what `harness remove --eject` keeps in a repository.
@@ -84,14 +87,16 @@ repository always agree, and an exemption would hide exactly the hand edits the 
 
 ### Presets across releases
 
-A preset is not an input to rendering: its entries take effect only once they are written into the repository's files,
-and from then on they are the repository's own. Why: a check whose result changes when someone else publishes a change
-fails pipelines that changed nothing, and an entry that changes without a change in the repository cannot be explained
-from the repository ([ADR 0013](../adrs/0013-organization-content.md)).
+A preset is not an input to rendering: its entries and templates take effect only once they are written into the
+repository's files, and from then on they are the repository's own. Tool presets (`ralph-tui`, `beads`) are versioned
+content like stack presets: each release holds its version of them, under the same rules. Why: a check whose result
+changes when someone else publishes a change fails pipelines that changed nothing, and an entry that changes without a
+change in the repository cannot be explained from the repository ([ADR 0013](../adrs/0013-organization-content.md)).
 
 - Moving the pin never applies a preset. A newer release's additions to a preset reach a repository only when someone
   applies it again: `./harnessw preset apply node --dry-run` shows what it would add, and applying adds only what the
-  repository lacks.
+  repository lacks. A newer template is written only where its file is absent; where the file exists, applying reports
+  `kept <path>: exists` and leaves it, because the file is the repository's own.
 - Nothing records which presets a repository applied, so no command reports that a preset gained entries. Why: such a
   report would nag a repository that removed an entry on purpose. A repository that wants a newer preset's entries
   applies it again and reads the diff.
@@ -119,9 +124,6 @@ worse than none ([ADR 0016](../adrs/0016-permission-adoption.md)).
 - Settings that are not policy (`defaultMode`, `additionalDirectories`, Codex `approval_policy` and `sandbox_mode`, MCP
   server definitions, enterprise or managed settings) are reported as notes and left in place, because they are not
   permission rules and harness does not own them.
-- A harness pin in a task runner's tool list (`mise.toml`, `.mise.toml`, `.tool-versions`) is copied into
-  `wrapper.yaml`, and removing it from that file is listed as a to-do. harness never edits the task runner's file,
-  because it did not create it.
 - `--dry-run` prints the generated `policy.yaml` and `hooks.yaml` and the equivalence report, and writes nothing.
 
 ## Releases and deprecation
@@ -147,12 +149,19 @@ worse than none ([ADR 0016](../adrs/0016-permission-adoption.md)).
 - harness supports the agents it has adapters for: `claude` (Claude Code) and `codex` (Codex CLI). Each adapter has a
   public contract and a documented range of supported agent versions
   ([ADR 0009](../adrs/0009-agent-support.md)).
-- The tools harness drives also have documented supported ranges: `bd` (the command of the Beads task tracker),
-  `ralph-tui` (which works through a list of tasks with one unattended agent per task), `mise` (a task runner) and the
-  `skills` CLI (which installs shared skills).
-- `harness doctor` compares installed versions against these ranges and reports each one out of range as a finding
-  (exit 2), naming the version found and the range supported. harness never renders silently for an unsupported
-  version, because output rendered for a format the agent no longer reads fails without a message.
+- git, which worktrees, base commits and ownership rest on, has a documented supported range as well. No other
+  program has one, because the binary integrates only git and the adapted agents
+  ([ADR 0022](../adrs/0022-tool-integration.md)).
+- `harness doctor` compares the installed versions of git and the adapted agents against these ranges and reports each
+  one out of range as a finding (exit 2), naming the version found and the range supported. harness never renders
+  silently for an unsupported version, because output rendered for a format the agent no longer reads fails without a
+  message.
+- For any other program, `harness doctor` reports only that a program a declared command, lane, validator or action
+  names is not on `PATH` (a finding). Why: a declared command that names a missing program fails for everyone who runs
+  it, and reporting that needs no knowledge of the program.
+- Each tool preset is tested against the version of its tool the features reference names
+  ([compatibility](../features/compatibility.md#versions)), because the preset writes that tool's format and the binary
+  checks no version of it.
 - Each adapter documents which agent events it renders for hooks, notifications (`attention`, `turn_end`) and
   standing context. Where an agent lacks an event, nothing is rendered for it and `harness doctor` reports a note, so
   a missing notification or injection is explained.
@@ -173,8 +182,8 @@ An adopted repository behaves for non-users exactly as it did before adoption
 - On a machine without the cached binary, hook-delivered standing context and notification actions do nothing.
   Standing-context entries declared `static` are written into `AGENTS.md` and reach agents without the binary, so a
   directive that must always apply does not depend on it.
-- Explicit entry points fetch or fail: `./harnessw <command>` and the task shims (one-line mise tasks) that exec it
-  download and verify the pinned version on first use. When they cannot, they exit non-zero naming the cause, so a
+- Explicit entry points fetch or fail: `./harnessw <command>` and a global `harness` download and verify the pinned
+  version on first use. When they cannot, they exit non-zero naming the cause, so a
   skipped verification never reads as a pass.
 - Raw hooks declared in `hooks.yaml` render as native entries that run their own command, so they keep working
   without the binary.
@@ -199,19 +208,18 @@ owners depend on them as they are ([ADR 0012](../adrs/0012-write-boundary.md)).
 | A hosting platform's issues, projects, boards, comments, reviews and labels as the record of work | never written; the binary has no logic for the platform that hosts the team's work; task state harness creates stays clone-local; linking work to issues is an agent's job |
 | Pull requests, pushes, CI conventions and notification channels | produced only by actions the repository declares in `hooks.yaml`; the binary ships none |
 | MCP servers an agent is configured to use | never contacted by harness; work that needs them is an `agent` action or the job of the [coordinating agent](../features/lifecycle.md#the-lifecycle-stage-by-stage) |
-| An existing `.beads/` | used as found; never initialised again, localised or reconfigured; when the repository synchronises it, the claims and comments harness writes there travel where that synchronisation sends them ([ADR 0012](../adrs/0012-write-boundary.md)) |
-| A root `.ralph-tui/` and a global ralph-tui configuration (`~/.config/ralph-tui/config.toml`) | never written; read only when the profile sets `ralph.config: inherit`, or to find and name a bypass setting that ralph-tui would apply to a run harness launches, which harness then refuses. Why: ralph-tui merges that configuration into every run it starts, so harness must see it to refuse what it would inject ([ADR 0012](../adrs/0012-write-boundary.md)) |
-| Branches and worktrees from direct ralph-tui runs | `harness ralph clean` touches only sessions harness recorded |
+| An existing `.beads/` | never read, initialised or configured by the binary; actions the repository declares, such as those of the `beads` preset, run `bd` on it, and what they write travels wherever the repository synchronises it ([ADR 0022](../adrs/0022-tool-integration.md)) |
+| A `.ralph-tui/config.toml` and a global ralph-tui configuration (`~/.config/ralph-tui/config.toml`) | never read; the `ralph-tui` preset writes `.ralph-tui/config.toml` only when it is absent, and from then on it is the repository's file. Why: the binary reads no other tool's configuration; a bypass flag set there reaches `harness worker`, which refuses it at the first task ([ADR 0022](../adrs/0022-tool-integration.md)) |
+| A loop runner, a tracker or a script around them that a person runs outside the binary | neither detected nor prevented; the invariants hold for what the binary renders and for every agent the binary starts (`harness worker`, `agent` actions) ([ADR 0022](../adrs/0022-tool-integration.md)) |
 | `.claude/worktrees/` | Claude Code's; never scanned or cleaned |
-| An existing mise task with a name harness would use | never overwritten; harness generates `harness:<name>` and lists the collision as a to-do |
-| A harness pin in `mise.toml`, `.mise.toml` or `.tool-versions` | never edited; `harness doctor` reports it as a finding, because the pin lives only in `wrapper.yaml`; adoption copies it there and lists its removal as a to-do |
+| A task runner's tasks and tool list (`mise.toml`, `.mise/tasks/`, `.tool-versions`, a `Makefile`, `package.json` scripts) | never read or written; a task that runs `./harnessw` is the repository's own; a `harness` a tool installs globally defers to `wrapper.yaml` inside the repository ([ADR 0022](../adrs/0022-tool-integration.md)) |
 | A `.harness/` directory another product created (for example a CI/CD platform's pipeline folder of the same name) | never written; `harness scaffold` refuses with exit 3 and names the conflict |
 | Another program named `harness` earlier on `PATH` | `./harnessw` always runs its own pinned binary from its cache, so wrapper invocations are unaffected; only the optional global command can be shadowed, and `harness doctor` reports it as a note |
 | `core.hooksPath`, Husky and other git hooks | never changed |
 | `CLAUDE.md` with content | left as written; only the one-line `import` block is added |
 | Sections other tools write into `AGENTS.md`, and entries other tools or people write into `.gitignore` | untouched; harness writes only inside its own markers |
 | `.agents/` content from other tools and people (skills installed by the `skills` CLI, memory, commands, `REVIEW.md`) | untouched; harness owns only `.agents/skills/harness/` and never puts its configuration or state in `.agents/` |
-| `skills-lock.json` from the `skills` CLI | read, never written; standing context injects a locked skill only when its installed content matches the locked hash |
+| `skills-lock.json` from the `skills` CLI | never read or written; standing context delivers a skill as the file committed under `.agents/skills/` ([ADR 0022](../adrs/0022-tool-integration.md)) |
 | An agent's own description-based skill loading | left as it is; a skill injected by standing context may also load by its description, so injected skills are written to read correctly twice ([skills-standards.md](skills-standards.md#skills-used-as-standing-context)) |
 | A global `harness` install of another version | defers to the repository's pin inside the repository; runs itself elsewhere |
 | Hand-written `.claude/settings.json` or Codex configuration | merge-rendered: harness owns its keys, everything else is preserved |

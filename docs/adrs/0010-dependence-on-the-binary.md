@@ -20,8 +20,8 @@ withdraw one practice at a time.
 - The committed wrapper fetches the pinned release over the network on first use and keeps it in a per-user cache
   ([0017](0017-engine-version.md)). Until then, a machine has no binary to run.
 - Entry points are called in two ways. Agents call hooks implicitly, on events, without anyone asking for a result.
-  People and agents call task-runner shims (one-line tasks that call the wrapper) and the wrapper explicitly, to obtain
-  a result such as a check.
+  People and agents call the wrapper explicitly, to obtain a result such as a check, and so do other tools configured to
+  call it, such as a loop runner whose agent command is the tool's worker command ([0022](0022-tool-integration.md)).
 - A repository may want one practice without the others, and must be able to withdraw one without withdrawing all.
 
 ## Decision
@@ -100,7 +100,7 @@ Must be maintained:
 
 - A CI job adopts each fixture, then runs the fixture's own workflow commands with the binary absent from `PATH` and an
   empty cache, and compares the outputs with those of the unadopted fixture.
-- A test runs each rendered implicit entry point with an empty cache and no network, and asserts exit status 0, one
+- A test runs each rendered implicit entry point with an empty cache and no network, and asserts a successful exit, one
   stderr line and no network access; the session-start hook also emits exactly one line of agent context.
 - A test runs each rendered explicit entry point without the binary and asserts a non-zero status and a message naming
   what is missing.

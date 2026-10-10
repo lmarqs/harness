@@ -3,8 +3,8 @@
 ## Objective
 
 **Problem.** Teams can stop using the tool at any time, and many teammates never use it. The working agreements it sets
-up, such as where working copies live, which branch work starts from and how tasks are tracked, must stay readable and
-true without the tool, without filling every agent session's context with text about the tool.
+up, such as where working copies live and which branch work starts from, must stay readable and true without the tool,
+without filling every agent session's context with text about the tool.
 
 **Goal.** A repository's conventions read correctly and hold whether or not anyone runs the tool, at a small, fixed cost
 to every agent session.
@@ -14,16 +14,16 @@ to every agent session.
 - Agents read instruction files, not the tool's configuration. Claude Code 2.1.x reads `CLAUDE.md` and the files it
   imports; Codex CLI 0.16x reads `AGENTS.md`.
 - People, agents and third-party tools use the tool's clone-local state directly: they work inside the working copies
-  the tool creates, and a loop runner, a program that runs agents unattended one task after another, reads its
-  configuration inside them ([0014](0014-directory-layout.md)). Where these live, which branch work starts from and how
-  tasks are tracked are conventions all of them rely on.
+  the tool creates, and a loop runner, a program that runs agents unattended one task after another, runs inside them
+  ([0014](0014-directory-layout.md)). Where these live and which branch work starts from are conventions all of them
+  rely on.
 - Not every teammate installs the tool ([0010](0010-dependence-on-the-binary.md)); everyone shares the committed files.
 - Working copies can hold uncommitted work, and cleanup acts only on what the binary recorded creating
   ([0012](0012-write-boundary.md)), so removing the tool leaves clone-local state in place ([0007](0007-ownership.md)).
   State whose conventions and ignore entries are gone is unexplained, and git lists it as untracked.
-- Some instructions hold with or without the tool: where working copies are, which branch work starts from, how tasks
-  are tracked, which permissions are in effect. Others are true only while the tool is present: which of its commands
-  checks work, how to trigger delivery.
+- Some instructions hold with or without the tool: where working copies are, which branch work starts from, which
+  permissions are in effect. Others are true only while the tool is present: which of its commands checks work, how to
+  trigger delivery.
 - Instruction files are read at the start of every session; every line costs context in every session of every agent.
 - In `.gitignore`, a path stays ignored while any entry covers it; removing an entry un-ignores what only that entry
   covered.

@@ -23,10 +23,9 @@ install, `harness <command>` is equivalent.
 
 ### Does `harness` call a model or host agents?
 
-No. It configures and constrains the tools that do (Claude Code, Codex, and ralph-tui, which starts an agent for each
-task of a list) and never calls a model. When a [Ralph](ralph.md) run, an unattended run through ralph-tui, or an
-[`agent` action](lifecycle.md) needs an agent, `harness` starts the agent's own CLI, under the
-[worker contract](ralph.md#the-worker-contract).
+No. It configures and constrains the tools that do (Claude Code and Codex CLI) and never calls a model. When a loop
+runner, such as ralph-tui, needs an agent for a task, it calls `./harnessw worker <agent>`, which starts the agent's own
+CLI under the [worker contract](ralph.md#the-worker-contract); an [`agent` action](lifecycle.md) does the same.
 
 ### Is it related to Harness.io?
 
@@ -52,8 +51,8 @@ line naming `./harnessw` and continue ([installation](installation.md#before-the
 
 A POSIX `sh` script committed at the repository root, in the pattern of Gradle's `gradlew`. It reads the release the
 repository pins in `.harness/wrapper.yaml`, downloads it over HTTPS when it is not in the per-user cache, checks its
-sha256 against the committed checksum, and runs it. It is the default entry point for people, agents, task shims
-and hooks ([wrapper](wrapper.md)).
+sha256 against the committed checksum, and runs it. It is the default entry point for people, agents, hooks and loop
+runners ([wrapper](wrapper.md)).
 
 ### Do I have to invoke guideline skills by hand in every session?
 
@@ -86,11 +85,22 @@ access verifies the release and records its checksums. Complete it before you pu
 Claude Code and Codex CLI, each through an adapter. A new agent needs a complete adapter in `harness` itself
 ([agents](agents.md#the-adapter-contract)).
 
+### Does `harness` work with my loop runner or tracker?
+
+Yes, with any that runs a command. The binary integrates only git and the agent harnesses it has adapters for, and every
+other tool reaches a repository as data in the repository's own files ([ADR 0022](../adrs/0022-tool-integration.md)). A
+loop runner names `./harnessw worker <agent>` as its agent command. A tracker is updated by lifecycle actions on
+`start`, `completed` and `blocked` that read `HARNESS_TASK` and `HARNESS_ACTOR` in a worktree created with `--task`. Two
+tool presets write those entries for you, `./harnessw preset apply ralph-tui` and `./harnessw preset apply beads`
+([presets](presets.md)). For any other tool, declare the action yourself, for example a `completed` action that runs
+`gh issue close "$HARNESS_TASK"`.
+
 ### Does it work without mise?
 
-Yes. mise, a tool-version manager and task runner, is optional: with `front_door: mise` in the
-[profile](profile.md#front_door), `harness` renders task shims such as `mise run verify`. Set `front_door: binary` (the
-default when the repository has no mise configuration) and call `./harnessw` directly. The wrapper itself needs no mise.
+Yes. `harness` has no code for mise, a tool-version manager and task runner. mise is one way to install `harness`
+globally (`mise use -g github:lmarqs/harness@<tag>`), and the built-in policy denies its `:::` task chaining; nothing
+else depends on it. Commands run as `./harnessw <command>`, and the wrapper needs no mise
+([compatibility](compatibility.md#mise)).
 
 ### Does it support monorepos?
 
@@ -137,16 +147,17 @@ Two ways ([remove](remove.md)). `./harnessw remove` undoes the adoption: it dele
 the permission rules and hooks adoption imported. `./harnessw remove --eject` stops `harness` managing the repository
 and keeps the result: the conventions in `AGENTS.md` and `.gitignore`, the permissions and the `raw` hooks stay as
 hand-owned files. Both delete `harnessw` and the files in `.harness/` that `harness` owns or seeded, then `.harness/`
-once it is empty. A file the manifest does not record, such as `.harness/ralph/prompt.hbs`, an optional override of the
-Ralph prompt, is listed and left.
+once it is empty. A file the manifest does not record, such as a `README.md` a person added to `.harness/`, is listed
+and left.
 
 ### Does anything keep working after an eject?
 
 Yes. Agents keep their permissions and `raw` hooks from the native files, and the convention blocks stay in `AGENTS.md`
-and `.gitignore` as plain text, so people, agents, `bd` (the CLI of the Beads task tracker) and ralph-tui still find
-worktrees and state where they were. The tool blocks, which describe how to use `harness`, are removed, so nothing left
-names a command that is gone. What stops is everything `harness` runs: the wrapper, verification receipts, lifecycle
-events, Ralph's worker contract, injected standing context and the hooks that called `harness`.
+and `.gitignore` as plain text, so people and agents still find worktrees and state where they were. The tool blocks,
+which describe how to use `harness`, are removed, so nothing left names a command that is gone. What stops is everything
+`harness` runs: the wrapper, verification receipts, lifecycle events, `harness worker` and its contract, injected
+standing context and the hooks that called `harness`. Files a preset's templates wrote stay as they are, so a
+`.ralph-tui/config.toml` whose agent command is `./harnessw worker` needs a new agent command.
 
 ## Policy
 
@@ -218,21 +229,23 @@ onto new commits ([verify](verify.md#freshness)).
 
 ### Are tasks the same as GitHub issues?
 
-No. Tasks live in a clone-local tracker and are disposable; issues are the team's record. `harness` never writes to
-GitHub issues or projects.
+A task is whatever the team's tracker holds, named by the free-form id given to `harness worktree create --task`: a
+bead, a story in a JSON list, or an issue. The binary never writes GitHub issues or projects. A repository that wants an
+issue closed when its task completes declares an action that does it ([tasks](tasks.md)).
 
 ### I already sync Beads across machines. Will `harness` break that?
 
-No. Beads keeps its tasks in a `.beads/` database in the clone. An existing `.beads/` is used as found, its remotes and
-sync settings untouched; `harness` configures only a database it creates ([compatibility](compatibility.md#beads)).
+No. Beads keeps its tasks in a `.beads/` database in the clone, and `harness` has no code for it: it never initialises,
+configures or reads a Beads database. The `beads` preset adds only lifecycle actions that run `bd update`, `bd close`
+and `bd comments add` on the task a worktree is bound to ([compatibility](compatibility.md#beads)).
 
 ## Lifecycle and delivery
 
 ### Does `harness` push or open pull requests?
 
 Not by itself. Everything that leaves the clone is a lifecycle action the repository declares in its own
-`.harness/hooks.yaml`, such as `git push` and `gh pr create` under `deliver`. The binary ships no actions and contains
-no hosting-platform logic ([lifecycle](lifecycle.md)).
+`.harness/hooks.yaml`, such as `git push` and `gh pr create` under `deliver`. No action runs that the repository does
+not declare, and the binary contains no hosting-platform logic ([lifecycle](lifecycle.md)).
 
 ### Can it notify a chat channel when work finishes or an agent needs me?
 
@@ -249,36 +262,44 @@ like code before moving it to `allow` ([safety](safety.md)).
 
 ### Can a Ralph worker deliver its own work?
 
-No. The binary refuses `harness lifecycle run` inside a worker, whatever spelling the agent uses, and the built-in
-base also denies `harness lifecycle` to every worker, rendered for each spelling `harness` renders. The launcher fires
-events and runs their actions in its own process, never inside the worker, once the worker's verified commit has
-landed on the run branch.
+No. The binary refuses `harness lifecycle run` while `HARNESS_WORKER=1` is set, whatever spelling the agent uses, and
+the built-in base also denies `harness lifecycle` to every worker, rendered for each spelling `harness` renders. When
+the checkout is bound to a task, `harness worker` fires `completed` and then `deliver`, with scope `task`, in its own
+process, after the agent has exited and the replayed checks have passed. In a worktree not bound to a task, such as a
+loop runner's, it fires no event.
 
 ## Ralph
 
 ### Can Ralph workers run with `--dangerously-skip-permissions`?
 
-Not in runs launched by `harness ralph`. The worker refuses every bypass flag and configuration key. Direct ralph-tui
-runs outside `harness` are unaffected.
+Not under `harness worker`. It refuses every permission-bypass flag among the arguments it receives, such as
+`--dangerously-skip-permissions` or `--yolo`, with exit 1 naming the flag, so a loop runner configured to pass one fails
+at its first task. An agent a person starts some other way, for example from their own ralph-tui configuration, is
+outside `harness`, which neither detects nor prevents it ([ADR 0022](../adrs/0022-tool-integration.md)).
 
 ### Why does the worker replay verification instead of trusting the receipt?
 
 The receipt, the record `harness verify` writes when the checks pass, is in the tree the agent can write, so it only
-selects what to check. The worker reruns those checks against the final content, with rules read from the base commit,
-before it releases completion.
+selects what to check. `harness worker` reruns those checks against the final content, with rules read from the base
+commit, before it exits 0 and releases a loop runner's completion signal.
 
 ### Does `harness` open the pull request after a run?
 
-The binary has no logic for pull requests or any hosting platform. A run ends on a local branch. What happens next is
-the repository's `deliver` actions, for example `git push` and `gh pr create` declared in `.harness/hooks.yaml`. They
-run automatically when declared with `auto: true`, or when a person or a coordinating agent runs
-`./harnessw lifecycle run deliver`. Most runs need judgement first (which task commits go together, how to word them),
-so an agent arranges the commits with a skill and then fires `deliver` ([ralph](ralph.md#delivery)).
+The binary has no logic for pull requests or any hosting platform. In a loop runner's worktree, which is not bound to
+a task, `harness worker` fires no event, and the run ends with its verified commits on the worktree's branch. Whoever
+drives the run fires its events. Most runs need judgement first (which task commits go together, how to word them), so
+a person or a coordinating agent arranges the commits with a skill, then runs
+`./harnessw lifecycle run completed --scope run` and `./harnessw lifecycle run deliver --scope run`; the `deliver`
+actions do the rest, for example `git push` and `gh pr create` declared in `.harness/hooks.yaml`
+([ralph](ralph.md#delivery)). In a worktree created with `--task`, `harness worker` fires `completed` and, when the
+work is concluded, `deliver` itself, both with scope `task`.
 
 ### I run ralph-tui directly with my own config. Does `harness` interfere?
 
-No. It never reads or writes a root `.ralph-tui/` unless you set `ralph.config: inherit`, and `ralph clean` touches only
-sessions it recorded.
+No. `harness` has no code for ralph-tui and reads no ralph-tui configuration. The `ralph-tui` preset writes
+`.ralph-tui/config.toml` only when you apply it and the file is absent; an existing file is reported as
+`kept .ralph-tui/config.toml: exists` and left as it is. Agents your configuration starts without `harness worker` get
+no worker contract.
 
 ## Versions and updates
 
@@ -286,8 +307,8 @@ sessions it recorded.
 
 Every repository set up with `harness scaffold` is pinned: `.harness/wrapper.yaml` names one release and the checksums
 of its binaries, and both `./harnessw` and a global install run that release. Within one repository, every machine and
-CI job runs the same version ([wrapper](wrapper.md)). Do not pin `harness` again in `mise.toml` or `.tool-versions`:
-`wrapper.yaml` is the only pin, and `doctor` reports a second one as a finding.
+CI job runs the same version ([wrapper](wrapper.md)). `wrapper.yaml` is the only pin: a global install, through mise or
+a download, defers to it.
 
 ### How do I upgrade?
 

@@ -28,9 +28,9 @@ They apply to proposals for harness itself and to the advice harness gives repos
 | **Declared action** | an action on a lifecycle event (`lifecycle:`) or an agent notification event (`attention:`, `turn_end:`) in `.harness/hooks.yaml`, of kind `run` (a shell command), `http` (a request harness performs) or `agent` (a headless agent run) | the repository |
 | **Standing-context entry** | a declared trigger (`always`, `when.paths`, `when.prompt`) that puts an existing skill or repository file in front of an agent, under `context:` in `config.yaml` | the repository |
 | **Harness skill or explain topic** | guidance an agent follows to do judgement work around harness | harness (embedded, shipped with the binary) |
-| **Built-in preset** | the starting entries for one technology stack (`go`, `node`, `terraform`, `python`): commands, test lanes, validators, module switches and post-edit hooks, which `harness scaffold` and `harness preset apply` write into the repository's files on request ([presets](../features/presets.md)) | harness (embedded, shipped with the binary); once written, the entries are the repository's |
+| **Built-in preset** | a named bundle of entries and templates that `harness scaffold` and `harness preset apply` write into the repository's files on request ([presets](../features/presets.md)): a stack preset (`go`, `node`, `terraform`, `python`) holds the starting commands, test lanes, validators, module switches and post-edit hooks of one stack; a tool preset (`ralph-tui`, `beads`) holds the entries, actions and template files that wire one third-party tool | harness (embedded, shipped with the binary); once written, the entries and files are the repository's |
 | **Organization or personal skill** | guidance an agent follows for judgement work specific to an organization's conventions, including writing the organization's choices (policy entries, actions, standing-context entries) into a repository's files | the organization; the entries it leads to are the repository's |
-| **Left to the repository** | a mise task (mise is a task runner), a repository skill, prose in `AGENTS.md`, memory | the repository |
+| **Left to the repository** | a task in the repository's own task runner (a mise task, a `Makefile` target), a repository skill, prose in `AGENTS.md`, memory | the repository |
 
 ## Criteria
 
@@ -45,6 +45,7 @@ They apply to proposals for harness itself and to the advice harness gives repos
 | Lifecycle point | Does it belong at a point of the development lifecycle (`start`, `verified`, `completed`, `deliver`, `landed`), at the moment work stops for a person (`blocked`), or at an agent event (`attention`, `turn_end`)? |
 | Guidance timing | Is it known guidance that applies at a predictable moment: every session, when certain files are touched, or when certain words appear? |
 | Model or tool server | Does it need a model, or a tool that only an MCP server provides? |
+| Third-party tool | Does it exist to connect a program other than git and the adapted agents: a loop runner, a task tracker, a skills installer, a task runner or a hosting platform? |
 
 ## Decision table
 
@@ -55,7 +56,7 @@ They apply to proposals for harness itself and to the advice harness gives repos
 | yes | in every repository of one stack | no | no | no | built-in preset, applied with `harness preset apply` | stack facts are the same in every repository on that stack, so the binary supplies them; applying on request keeps every write something a person asked for |
 | yes | any | no | yes | in applying it | entries in each repository's files, written by an agent following an organization skill | organization content stays out of an open-source binary; it differs between an organization's repositories, so applying it takes judgement, and each repository reviews the result as a diff |
 | yes | any | no | yes, or one repository | no | declared action, when it reaches outside the clone at a lifecycle or agent event ([below](#declared-actions)) | side effects outside the clone must be declared, reviewed and guarded |
-| yes | no | no | no | no | left to the repository (a mise task or a profile value) | one repository's need does not justify a contract every user carries |
+| yes | no | no | no | no | left to the repository (a task in its own task runner, or a profile value) | one repository's need does not justify a contract every user carries |
 | no | yes | any | no | yes | harness skill, with a binary check that proves the outcome | judgement belongs to agents, and the check keeps it honest |
 | no | any | any | yes | yes | organization skill | the organization owns its own judgement calls |
 | no | no | any | no | yes | repository skill or prose | knowledge is reviewed where it applies |
@@ -63,6 +64,13 @@ They apply to proposals for harness itself and to the advice harness gives repos
 When guidance already exists as a skill or a file and the only question is when an agent should read it, the
 destination is a standing-context entry, whatever the other columns say ([below](#standing-context)). Why: the timing
 is deterministic even when the guidance is not.
+
+Support for a third-party tool is a tool preset or a declared action, whatever the other columns say, and never a
+command, a flag or a profile field. The tool calls harness through its commands, such as
+[`harness worker`](cli-standards.md#the-worker-command) as a loop runner's agent command, and harness reaches the tool
+through the commands the repository declares. Why: each team picks different tools and each tool follows its own
+release schedule, so code in the binary for one of them breaks with its releases and serves no team that chose
+another, while a preset or an action is data a repository can replace ([ADR 0022](../adrs/0022-tool-integration.md)).
 
 A safety-relevant rule that is organization specific (a deploy deny, a protected branch other than the default) is an
 entry in each repository's `policy.yaml`, written there by a person or by an agent following the organization's skill.
@@ -90,9 +98,9 @@ organization's chat) is written into each repository's `hooks.yaml` by a person 
 organization's skill, and reviewed there as a diff. Why: an action runs in its repository with the credentials of
 whoever fires it, so it must be readable and reviewed where it runs ([ADR 0013](../adrs/0013-organization-content.md)).
 
-A declared action never lives in the binary. The binary contains no logic for the platform that hosts the team's work
-and ships no actions ([ADR 0012](../adrs/0012-write-boundary.md)). A command or flag that pushes, opens a pull request
-or calls a hosting platform is a design error, whatever the convenience
+A declared action never lives in the binary. The binary contains no logic for the platform that hosts the team's work,
+and no action runs that the repository's files do not declare ([ADR 0012](../adrs/0012-write-boundary.md)). A command or
+flag that pushes, opens a pull request or calls a hosting platform is a design error, whatever the convenience
 ([principles.md](principles.md#7-nothing-leaves-the-clone-undeclared)).
 
 ### Choosing the kind
@@ -102,7 +110,7 @@ or calls a hosting platform is a design error, whatever the convenience
 | Run a CLI the repository already uses (`git`, the hosting platform's CLI) | `run` | the CLI carries its own authentication and conventions |
 | Notify a person or a service: a chat message, an incident, a status page | `http` | harness performs the request itself, reads the URL and headers from environment variables and JSON-encodes values, so no `curl`, no shell quoting and no secret on a command line |
 | Tell a person the agent is waiting for them, or has finished a turn | `http` (or `run` for a local notifier) on `attention` or `turn_end` | notification events accept `run` and `http` only, so an agent hook never starts another agent |
-| Tell a person an unattended run stopped or a task was skipped | `http` on `blocked` | `blocked` fires wherever work stops for a person, with the reason in `HARNESS_REASON` |
+| Tell a person an unattended run stopped or a task was skipped | `http` on `blocked` | `blocked` fires when a command without a terminal exits 3, and whoever drives an unattended run fires it when the run stops, with the reason in `HARNESS_REASON` |
 | Judgement after an event: summarise a merged change, write lessons into memory, triage a failure | `agent` | the agent does the judgement under the [worker contract](../features/ralph.md#the-worker-contract); its edits stay uncommitted for review |
 | Use a tool only an MCP server provides | `agent`, or leave it to the coordinating agent | harness is never an MCP client; the agent owns the connection, its credentials and its permissions |
 
@@ -133,14 +141,17 @@ entry.
 For deterministic, repeated, organization-neutral behaviour:
 
 1. **Profile field** when repositories need different values for the same behaviour (the command of a test lane, the
-   lint command, the task tracker). The default MUST preserve existing behaviour, so adding the field changes nothing
-   for repositories that do not set it.
+   lint command, the bootstrap commands). The default MUST preserve existing behaviour, so adding the field changes
+   nothing for repositories that do not set it.
 2. **Flag** when the same repository needs the behaviour sometimes, per invocation (`verify --full`,
    `verify --base <ref>`, `worktree create --no-bootstrap`). A flag that every invocation in a repository would pass is
    a profile field instead, because a flag repeated on every call is a setting written in the wrong place.
 3. **New command** when the operation has a different object or a different effect from every existing command. A
    behaviour that changes what an existing command writes is a flag or a field, not a new command, because two
    commands writing the same files compete.
+
+None of the three serves a single third-party tool: that is a tool preset or a declared action
+([above](#decision-table)).
 
 ## When behaviour splits
 
@@ -182,12 +193,12 @@ Repository content follows the same split ([ADR 0013](../adrs/0013-organization-
 | Apply an organization's conventions to many repositories | judgement per repository, organization specific | an agent following the organization's skill in each repository, reviewed as a diff in each; `harness fleet` runs harness commands, never agents |
 | Post to the team chat when a task completes | deterministic, leaves the clone, a notification channel | a `completed` action of kind `http` with `url_env`, `auto: true` |
 | Ping me when the agent is waiting for my answer | deterministic, a notification, per person or repository | an `attention` action of kind `http` (or `run` for a desktop notifier) in `hooks.yaml` |
-| Tell me when an unattended [Ralph](../features/ralph.md) run stops unfinished | deterministic, a notification at the moment work stops | a `blocked` action of kind `http`, `auto: true` |
+| Tell me when an unattended [run of a loop runner](../features/ralph.md) stops unfinished | deterministic, a notification at the moment work stops; nothing in the binary knows when a run ends | a `blocked` action of kind `http` with scope `run`, fired by whoever drives the run: `./harnessw lifecycle run blocked --scope run` |
 | Write lessons into memory after a change lands | judgement, after an event | a `landed` action of kind `agent`; it runs in a fresh worktree of the default branch, and its edits stay uncommitted there for review |
 | Look something up through an MCP-only service before delivery | needs an MCP tool | the coordinating agent before it runs `harness lifecycle run deliver`, or an `agent` action; never the binary |
-| Choose which Ralph task commits go into which pull request and reword them | judgement (grouping, wording), conventions vary by organization | an agent guided by an organization or personal skill; the agent then runs `harness lifecycle run deliver` |
+| Choose which commits of an unattended run go into which pull request and reword them | judgement (grouping, wording), conventions vary by organization | an agent guided by an organization or personal skill; the agent then runs `harness lifecycle run deliver` |
 | Remove the worktree after its branch is merged | deterministic, reacts to a merge, every repository | binary: `harness doctor` lists the landed branch and prints the command; `harness worktree remove` fires `landed`, then removes the worktree |
-| Delete the remote branch once the work has landed | deterministic, leaves the clone, repository habit, belongs at `landed` | a `landed` action in `hooks.yaml` (`git push origin --delete "$HARNESS_BRANCH"`), `auto: true` if it should run whenever `worktree remove` or `ralph clean` handles a landed branch |
+| Delete the remote branch once the work has landed | deterministic, leaves the clone, repository habit, belongs at `landed` | a `landed` action in `hooks.yaml` (`git push origin --delete "$HARNESS_BRANCH"`), `auto: true` if it should run whenever `worktree remove` handles a landed branch |
 | Apply the team's coding guidelines in every session without invoking them | known guidance, every session | `context.always` entry naming the skill |
 | Apply the SQL review skill whenever SQL or migrations are touched | known guidance, triggered by files | `context.when.paths` entry |
 | Point the agent at the time-zone skill when the request mentions time zones | known guidance, triggered by words | `context.when.prompt` entry with `inject: pointer` |
@@ -195,16 +206,19 @@ Repository content follows the same split ([ADR 0013](../adrs/0013-organization-
 | Pick which tests to run for a change | judgement (which code is affected) | agent; the repository declares lanes and `required_when` globs in the profile; `harness verify` records the choice and replays it |
 | Lint a file after every edit | deterministic, per-repository command | `hooks.yaml` `post_edit` entry |
 | Support a new agent CLI | deterministic translation of the same policy and hooks | adapter in the binary |
-| Finish an adoption: reconcile a colliding `verify` task, move a hook the importer could not model | judgement | harness skill, checked by `harness doctor` |
+| Finish an adoption: move a hook the importer could not model, review the rules imported from the `local` scope | judgement | harness skill, checked by `harness doctor` |
 | Summarise the effective permissions in `AGENTS.md` | deterministic, derived from the policy | binary: the `policy` [convention block](generated-content-standards.md#block-classes) |
 | Tell people and agents where worktrees are created and on which branch | deterministic, derived from the profile, must hold without harness | binary: the `worktrees` convention blocks in `AGENTS.md` and `.gitignore` ([principles.md](principles.md#8-conventions-outlive-the-tool)) |
-| Keep worktrees and state somewhere other than `.work/` | deterministic, different values per repository | profile fields `state.dir`, `worktrees.dir`, `tasks.prd_dir`, `ralph.worktrees_dir`; `harness render` rewrites the blocks that state them |
+| Keep worktrees and state somewhere other than `.work/` | deterministic, different values per repository | profile fields `state.dir`, `worktrees.dir`; `harness render` rewrites the blocks that state them |
 | Keep harness configuration beside the skills in `.agents/` | `.agents/` is the cross-tool agent-content directory | not allowed: harness configuration lives in `.harness/`, state at the profile's paths |
 | Explain in `AGENTS.md` why the team keeps e2e tests mandatory for routes | judgement, one repository | repository prose, outside [managed blocks](generated-content-standards.md#managed-blocks) |
 | Record a lesson learned during a session | judgement | agent, in the repository's memory; never the binary |
 | Open an issue for each to-do item | judgement, writes to the record of work | agent with its own tools; the binary never writes issues |
 | Report worktrees whose branch was merged | deterministic, every repository | a `doctor` check |
-| Install an organization's shared skills in every repository | deterministic, organization data | `skills.sources` in each profile plus `harness skills sync`, run across repositories with `harness fleet` |
+| Install an organization's shared skills in a repository | a third-party installer, organization data | the team's own step with the tool of its choice (`npx skills add acme/agent-skills`), then a commit of `.agents/skills/` and `skills-lock.json`; harness has nothing to wire, and standing context names the skills it injects |
+| Run ralph-tui over a task list with every result verified | a third-party loop runner, deterministic wiring | the `ralph-tui` tool preset: its template `.ralph-tui/config.toml` names `./harnessw worker <agent> --commit` as the agent command; the person runs `ralph-tui` in a managed worktree, never through a harness command |
+| Update Beads when work starts, completes or stops | a third-party tracker, deterministic, at lifecycle points | the `beads` tool preset: the actions `bead-start`, `bead-close` and `bead-comment` on `start`, `completed` and `blocked`, scope `task`, `auto: true`, which run `bd` with `$HARNESS_TASK` |
+| Support another loop runner or task tracker | a third-party tool | a tool preset, or declared actions and a configuration that names `harness worker`; never a command, flag or profile field |
 | Pin the harness version a repository runs | deterministic, every repository, affects what every machine runs | binary: `.harness/wrapper.yaml`, the only pin, and the committed wrapper `harnessw`; `harness wrapper --version <tag>` changes the pin after verifying the release's signed checksum file |
 | Deliver a harness upgrade to every repository | deterministic tool-owned changes, many repositories | `harness fleet wrapper --version <tag> --deliver`, then, once it lands, `harness fleet render --deliver`: fleet commits on a local branch and fires each repository's own `deliver` actions |
 | Stop using harness but keep its conventions, permissions and hooks | deterministic, per repository | binary: `harness remove --eject` |
@@ -236,6 +250,8 @@ Each of these breaks a principle, for the reason given after it.
 - A new command whose only difference from an existing one is a default value: one operation, one command.
 - A command or flag that pushes, opens a pull request, or calls a hosting platform's API instead of a declared action:
   side effects outside the clone are declared, reviewed and guarded.
+- A command, flag or profile field for one third-party tool, or binary code that reads another tool's configuration:
+  the binary would follow that tool's releases and formats, and serve no team that chose another tool.
 - harness acting as an MCP client, or calling a model: the agent owns those connections; harness configures agents and
   never acts as one.
 - A webhook URL, token or header value written literally in `hooks.yaml`: committed files are readable by everyone

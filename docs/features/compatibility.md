@@ -14,8 +14,12 @@ reader can check that for each tool before adopting.
 ## Overview
 
 `harness` shares a repository with the tools, settings and records below, and stays out of their way. It never
-reconfigures state it did not create, never writes knowledge, and contains no logic for any hosting platform. What it
-sets up does not depend on it either: every convention is written down in plain text, and an eject keeps it.
+reconfigures state it did not create and never writes knowledge. The binary contains code for git and for the agent
+harnesses it adapts, Claude Code and Codex CLI, and for no other tool: no loop runner, task tracker, skills installer,
+task runner or hosting platform ([ADR 0022](../adrs/0022-tool-integration.md)). Every other tool reaches a repository as
+data in its own files: a command the profile declares, a lifecycle action, or an entry or file a [preset](presets.md)
+writes. What `harness` sets up does not depend on it either: every convention is written down in plain text, and an
+eject keeps it.
 
 Commands on this page run as `./harnessw <command>`, through the repository's [wrapper](wrapper.md); with a global
 install, `harness <command>` is equivalent.
@@ -25,10 +29,10 @@ install, `harness <command>` is equivalent.
 | Already in the repository | What `harness` does |
 | --- | --- |
 | GitHub issues, pull requests, projects | The binary never writes them; delivery is the repository's declared `deliver` actions |
-| A `.beads/` database ([Beads](#beads), a task tracker) | Uses it as found |
-| A root `.ralph-tui/` and direct ralph-tui use | Never reads or writes it, unless `ralph.config: inherit` (read only) |
-| mise tasks | Never overwrites them; collisions get `harness:<name>` task shims |
-| A pin of `harness` in `mise.toml`, `.mise.toml` or `.tool-versions` | Never edits it; adoption copies it into `.harness/wrapper.yaml`, and `doctor` reports the second pin until it is removed |
+| A `.beads/` database ([Beads](#beads), a task tracker) | Never reads or writes it; the `beads` preset's actions run `bd` |
+| A `.ralph-tui/` and ralph-tui runs ([ralph-tui](#ralph-tui)) | Never reads ralph-tui's configuration; the `ralph-tui` preset writes `.ralph-tui/config.toml` only when it is absent |
+| mise and other task runners ([mise](#mise)) | Never reads or writes their files; a declared command may run one |
+| Shared skills from the [`skills` CLI](#the-skills-cli) | Never runs the installer; leaves `.agents/skills/` and `skills-lock.json` to it |
 | `.claude/settings.json`, `.codex/config.toml` | Owns only specific keys; preserves the rest byte for byte |
 | `settings.local.json`, `*.local.toml` | Never writes them; reads them only for `scaffold --import local` |
 | `CLAUDE.md` content | Adds one import line in a managed block; leaves the rest |
@@ -45,8 +49,8 @@ What stays after `harness` is removed is under [After removal](#after-removal).
 ## GitHub
 
 GitHub issues, pull requests and projects are the record of the team's work. The binary contains no logic for GitHub
-or any other hosting platform, and never writes issues, projects, boards, comments, reviews or labels. Tasks in Beads
-or PRD files are clone-local helpers; linking a task to an issue (for example with a Beads external reference) is an
+or any other hosting platform, and never writes issues, projects, boards, comments, reviews or labels. A task tracker
+such as Beads is the team's choice; linking a task to an issue (for example with a Beads external reference) is an
 agent's or a person's job.
 
 Everything that leaves the clone (a push, a pull request, a CI trigger, a notification) is a
@@ -57,49 +61,66 @@ platform's own CLI. A repository that declares none never has anything leave the
 ## Beads
 
 Beads is a task tracker that keeps tasks in a `.beads/` database in the clone and is used through its `bd` CLI.
-`harness task` and [Ralph](ralph.md) runs can work from it ([tasks](tasks.md)).
+`harness` has no code for Beads: the binary never runs `bd`, reads `.beads/` or creates a database. The
+[`beads` preset](presets.md#beads) wires it, with lifecycle actions that mark a bead in progress on `start`, close it on
+`completed` and comment on it on `blocked`, in a managed worktree bound to the bead ([tasks](tasks.md)). Creating and
+configuring the database, and every other use of `bd`, is the team's.
 
 | Situation | Behaviour |
 | --- | --- |
-| No `.beads/` and `--tracker beads` | `harness` creates a local database: prefix from the profile, no git hooks, no agent files, no remotes, automatic export off |
-| An existing `.beads/` | used exactly as found: remotes, sync settings and hooks untouched |
-| A database synchronised across machines | works; what `harness` writes into it (claims, notes, verification comments) travels where the repository's synchronisation sends it, and `harness` never configures that synchronisation ([ADR 0012](../adrs/0012-write-boundary.md)) |
-| `.beads/` tracked in git | works; no `beads` block is written to `.gitignore` |
+| No `.beads/` | nothing is created; `bd init` is Beads' own step |
+| An existing `.beads/` | never read, written or moved by the binary; remotes, sync settings and hooks are Beads' own |
+| The `beads` preset's actions | run `bd` with the credentials of whoever fires the event; what they write travels where the repository's synchronisation sends it, and `harness` never configures that synchronisation ([ADR 0012](../adrs/0012-write-boundary.md)) |
+| A Codex worker that writes the database | the `beads` preset adds `.beads` to `agents.codex.writable_roots` |
+| `.beads/` tracked in git, or ignored | the team's choice; `harness` writes no `.gitignore` entry for it |
 | A tracker remote you want agents never to push to | add a `deny` entry to the repository's policy; the built-in base has none |
 
 ## ralph-tui
 
 [ralph-tui](https://github.com/subsy/ralph-tui) works through a list of tasks unattended, starting an agent for each.
-`harness ralph` launches it with a generated configuration ([ralph](ralph.md)). A direct run is one a person starts with
-ralph-tui itself, outside `harness`.
+`harness` has no code for ralph-tui and reads none of its configuration. The
+[`ralph-tui` preset](presets.md#ralph-tui) writes `.ralph-tui/config.toml`, when it is absent, with
+`./harnessw worker <agent>` as each agent's command, so every attempt runs under the worker contract and is verified
+before ralph-tui sees it complete ([ralph](ralph.md)). From then on the file is the repository's. Starting ralph-tui,
+choosing its tracker and firing the events of a run as a whole are the team's.
 
 | Situation | Behaviour |
 | --- | --- |
-| A root `.ralph-tui/config.toml` for direct runs | untouched; direct runs keep working with their own settings |
-| Reusing that configuration in harness-launched runs | `ralph.config: inherit` reads it as the base, with the worker-contract keys forced |
-| A global `~/.config/ralph-tui/config.toml` | never written; read only to find a bypass setting it would inject into a harness-launched run, which the worker refuses, naming the file and key |
-| Direct-run branches (`ralph/session-*`) and sibling `../.ralph-worktrees/` | never cleaned: `harness ralph clean` acts only on sessions it recorded |
-| Trackers other than Beads and PRD JSON (for example `beads-bv`) | not supported by `harness ralph`; direct use is unaffected |
-
-Harness-launched runs keep their ralph-tui configuration and session state in the coordinator worktree's own
-`.ralph-tui/`. The coordinator is `<worktrees.dir>/ralph-<session-id>` (default `.work/worktrees/`), sequential task
-worktrees sit beside it as `ralph-<session-id>-<task>`, and only ralph-tui's parallel worker checkouts go under
-`ralph.worktrees_dir` (default `.work/ralph-worktrees/`) ([ralph](ralph.md#how-tasks-run)). The `ralph` blocks of
-`AGENTS.md` and `.gitignore` write that down, so the layout stays readable after an eject.
+| A `.ralph-tui/config.toml` the repository already has | never read or written; applying the preset reports `kept .ralph-tui/config.toml: exists` |
+| A global `~/.config/ralph-tui/config.toml` | never read or written. ralph-tui merges it into every run; a setting there that turns permission checks off reaches the worker as a bypass flag, which the worker refuses at the first task |
+| ralph-tui's branches, session state and worktrees | ralph-tui's own; `harness` never cleans them |
+| Any tracker ralph-tui supports | the team's choice; `harness` sees only the worker command |
+| A run as a whole | nothing fires run-scope events by itself; whoever drives the run fires `./harnessw lifecycle run completed --scope run` or `blocked --scope run` |
+| ralph-tui started with an agent command other than `harness worker` | outside `harness`: the worker contract holds only for agents the binary starts |
 
 ## mise
 
-[mise](https://mise.jdx.dev) is a tool-version manager and task runner. With `front_door: mise` in the profile, `render`
-writes task shims: one-line mise tasks, such as `mise run verify`, that run `./harnessw <command>`
-([render](render.md#task-shims)).
+[mise](https://mise.jdx.dev) is a tool-version manager and task runner. `harness` has no code for mise or any other task
+runner: it writes no tasks and reads no task runner's configuration. A repository uses its task runner through its own
+commands: a declared command, lane or action may run `mise run lint`, and `harness` runs it like any other command.
+People and agents run `harness` itself as `./harnessw <command>`.
 
 | Situation | Behaviour |
 | --- | --- |
-| No mise | use `front_door: binary`; no task shims are written, and people and agents run `./harnessw` |
-| Task shims | each one execs `./harnessw <command>`, so it runs the pinned release and downloads it when it is not cached |
-| A task named `verify`, `task`, `worktree:create`, `worktree:remove`, `ralph` or `ralph:clean` | kept; the task shim is written as `harness:<name>` and the collision is a to-do item until the repository removes or renames its task |
-| A pin of `harness` in `mise.toml`, `.mise.toml` or `.tool-versions` (`github:lmarqs/harness` or `harness`) | never edited. `.harness/wrapper.yaml` is the only pin: adoption copies the version into it and lists removing the task-runner pin as a to-do, and `doctor` reports a second pin as a finding, because two pins drift apart. A `harness` that mise puts on PATH defers to `wrapper.yaml` |
+| mise tasks, `mise.toml`, `.mise.toml`, `.tool-versions` | never read or written |
+| A declared command, lane or action that runs `mise run …` | runs as written; `doctor` reports it when `mise` is not on PATH |
 | mise `:::` task chaining | denied for agents by the built-in base, since it would let an allowed task carry an unlisted one |
+| `harness` installed with `mise use -g` | an install option ([installation](installation.md#global-install-optional)); a `harness` that mise puts on PATH defers to `.harness/wrapper.yaml` |
+| A pin of `harness` in the repository's own `mise.toml` or `.tool-versions` | never read: `.harness/wrapper.yaml` is the pin `harness` runs, and a second pin drifts from it, so keep `harness` out of the repository's task-runner files |
+
+## The `skills` CLI
+
+The `skills` CLI installs shared skills into `.agents/skills/` and records them in `skills-lock.json`. `harness` has no
+code for it and never runs it. Installing shared skills is the team's own step, with this tool or another:
+
+```sh
+npx skills add acme/agent-skills
+git add .agents/skills/ skills-lock.json && git commit -m "chore: add acme agent skills"
+```
+
+The profile's `context` names skills by name, and `doctor` reports a skill named there that does not exist under
+`.agents/skills/` ([skills](skills.md)). The harness skill, `.agents/skills/harness/SKILL.md`, is the one skill
+`harness` writes.
 
 ## Native agent files
 
@@ -130,11 +151,10 @@ Merge-rendering rewrites only the owned keys and entries; every other key keeps 
 
 ## `.gitignore`
 
-Each convention that creates a path adds its own marked block, owned by its module: `state`, `worktrees`, `tasks`,
-`ralph`, and `beads` when `harness` created the Beads database ([block ids](render.md#block-ids)). A module writes its
-own entries even when another module's entry already covers them, such as `/.work/worktrees/` under `/.work/`, so
-removing one module never un-ignores another module's paths. Paths the repository tracks are left out of the blocks.
-Every other line is untouched.
+Each convention that creates a path adds its own marked block: `state` and `worktrees`
+([block ids](render.md#block-ids)). A block writes its own entries even when another block's entry already covers them,
+such as `/.work/worktrees/` under `/.work/`, so removing one never un-ignores another's paths. Paths the repository
+tracks are left out of the blocks. Every other line is untouched.
 
 ```gitignore
 # harness:state
@@ -181,7 +201,7 @@ A repository's CI/CD is unchanged by adopting `harness`:
 ## Versions
 
 - Within one repository there is no version skew: `.harness/wrapper.yaml` pins one release, and both `./harnessw` and
-  a global install run it. It is the only pin; a second pin in a task runner's file is a `doctor` finding.
+  a global install run it.
 - A pin changes only through `harness wrapper` or `scaffold`, which write its checksums after the running binary
   verifies the release's signed checksum file with the release keys it embeds. `scaffold --offline` leaves them
   [pending](wrapper.md#a-pending-pin), and nothing downloads against a pending pin. The wrapper then checks each
@@ -194,11 +214,11 @@ A repository's CI/CD is unchanged by adopting `harness`:
   ([wrapper](wrapper.md#upgrading)). A binary older than the repository's schema refuses, naming the pinned release to
   run. That happens only when the pin is bypassed, through `HARNESS_BINARY` or a global binary too old to defer to the
   pin ([installation](installation.md#version-skew)).
-- The documentation describes Claude Code 2.1.x, Codex CLI 0.16x, Beads (`bd`) 1.3.1, ralph-tui 0.12, mise 2026.6
-  and the `skills` CLI 1.7. The ranges a release supports are in that release: `harness doctor --json` lists them.
-- `harness doctor` checks `claude`, `codex`, `bd` and `ralph-tui`, and `mise` when task shims are rendered and the
-  `skills` CLI when the skills module is enabled, against the release's supported versions, and reports a version
-  outside that range as a finding.
+- The documentation describes Claude Code 2.1.x and Codex CLI 0.16x. The tool presets and the examples that run other
+  tools describe Beads (`bd`) 1.3.1, ralph-tui 0.12, mise 2026.6 and the `skills` CLI 1.7.
+- `harness doctor` checks the versions of git, `claude` and `codex` against the ranges the release supports, which
+  `harness doctor --json` lists, and reports a version outside its range as a finding. It checks no other tool's
+  version; it reports a program that a declared command, lane, validator or action names and that is not on PATH.
 - The pinned release runs the drift check, which fails on any difference, the harness skill included
   ([ADR 0007](../adrs/0007-ownership.md)). A binary other than the pinned release, run through `HARNESS_BINARY`, gets a
   `doctor` note, because its drift results may differ.
@@ -210,24 +230,24 @@ removing it does not strand the repository ([remove](remove.md)):
 
 | After `remove --eject` | Still works |
 | --- | --- |
-| `AGENTS.md` keeps the text of its convention blocks without markers: where worktrees live, how tasks are tracked, where PRD files and Ralph state are, the effective permissions, where memory is, static standing context | agents and people follow it as ordinary instructions |
+| `AGENTS.md` keeps the text of its convention blocks without markers: where worktrees live, the effective permissions, where memory is, static standing context | agents and people follow it as ordinary instructions |
 | `CLAUDE.md` keeps its `@AGENTS.md` line | Claude Code still reads `AGENTS.md` |
 | `.gitignore` keeps every entry | state stays out of commits |
 | Native settings keep their permissions and `raw` hooks as hand-owned content | agents keep the same rules |
-| `.beads/` and the coordinator's `.ralph-tui/` stay where `bd` and ralph-tui look | `bd` and direct ralph-tui runs |
+| `.beads/`, which `harness` never touched, and the files a preset wrote, such as `.ralph-tui/config.toml`, stay: they are the repository's own | `bd`; ralph-tui once its agent command, `./harnessw worker`, is replaced |
 
 The eject removes the tool blocks, which describe how to use `harness` (`commands`, `layout`, `verify` and `lifecycle`
-in `AGENTS.md`, `commands` in `README.md`), together with the harness skill, its links and the task shims, so nothing
-left behind names a command that no longer exists.
+in `AGENTS.md`, `commands` in `README.md`), together with the harness skill and its links, so no file `harness` rendered
+names a `harness` command afterwards. A file a preset wrote is the repository's own and keeps what it says, such as the
+agent command in `.ralph-tui/config.toml`.
 
 An undo, `harness remove` without `--eject`, instead returns the repository to the setup it had before adoption: every
 block and its text is removed, and the settings adoption imported are written back. Both modes delete `harnessw`, the
 files `.harness/` holds that `harness` owns or seeded, and then `.harness/` once nothing else is in it. A file the
-manifest does not record, such as `.harness/ralph/prompt.hbs`, an optional override of the Ralph prompt, is listed and
-left. Both leave state where it is.
+manifest does not record, such as a script the team keeps in `.harness/`, is listed and left. Both leave state where it
+is.
 
 ## Not supported
 
 - Windows: the wrapper is a POSIX `sh` script, and releases are built for linux and macOS only.
 - Projects that are not at the git repository root, and agent sessions started in a subdirectory.
-- ralph-tui tracker plugins other than Beads and PRD JSON in harness-launched runs.

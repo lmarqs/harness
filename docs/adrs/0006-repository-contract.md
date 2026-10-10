@@ -23,7 +23,7 @@ controls the facts only it knows.
 - Permission changes carry a distinct review concern: reviewers look for what an agent may now do that it could not do
   before.
 - A clone must obtain the pinned release before any binary exists on the machine ([0017](0017-engine-version.md)).
-- Agents and task runners call commands by path.
+- Agents run hooks on events, and each hook entry is one command ([0009](0009-agent-support.md)).
 - The repository-facing contract and the implementation language ([0003](0003-implementation-language.md)) are the
   hardest decisions of this project to reverse: once many repositories depend on the contract, every change to it is a
   migration in each one.
@@ -37,9 +37,9 @@ controls the facts only it knows.
    together with the lifecycle and notification actions ([0015](0015-development-lifecycle.md),
    [0019](0019-action-kinds.md)).
 3. Each file carries a schema version and is validated before use ([0005](0005-schema-compatibility.md)).
-4. No engine code is copied into a repository. The tool-owned executable content in a repository is limited to one-line
-   entry points that call the tool and to the wrapper ([0017](0017-engine-version.md)), which only resolves, verifies
-   and executes the pinned binary.
+4. No engine code is copied into a repository. The tool-owned executable content in a repository is limited to the
+   wrapper ([0017](0017-engine-version.md)), which only resolves, verifies and executes the pinned binary, and to hook
+   entries that call it.
 5. Commands a repository declares are its own data.
 
 ## Reasons
@@ -54,10 +54,10 @@ controls the facts only it knows.
   trade: there are several schemas to version.
 - **3.** Validation turns a mistake into an error before anything is written, and the schema version is the
   compatibility contract between files and releases ([0005](0005-schema-compatibility.md)).
-- **4.** One-line entry points exist because agents and task runners call commands by path; they contain no logic. The
-  wrapper exists because a clone must obtain the pinned release before the binary is on the machine. Limiting it to
-  resolve, verify and execute keeps every behaviour in the binary. Anything more would be engine code in the repository
-  and would diverge like the copied renderer in Context.
+- **4.** Hook entries exist because agents run hooks on events; each is one command that calls the wrapper and contains
+  no logic. The wrapper exists because a clone must obtain the pinned release before the binary is on the machine.
+  Limiting it to resolve, verify and execute keeps every behaviour in the binary. Anything more would be engine code in
+  the repository and would diverge like the copied renderer in Context.
 - **5.** The repository's build, test and lint commands belong to its stack. The binary runs them as declared and never
   interprets them, so they are data even though they execute.
 
@@ -101,5 +101,5 @@ Must be maintained:
 ## Confirmation
 
 - Validation fixtures cover each file, including invalid content and an unknown schema.
-- A test asserts that the manifest of an adopted fixture lists no executable file other than one-line entry points and
-  the wrapper.
+- A test asserts that the manifest of an adopted fixture lists no executable file other than the wrapper, and that every
+  owned hook entry is one command that calls it.

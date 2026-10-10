@@ -27,8 +27,9 @@ the sessions that do not need it.
   The set of events differs between agents ([0009](0009-agent-support.md)).
 - Interactive sessions and unattended agents need different directives: a rule for how an unattended agent reports a
   blocked task means nothing to a person at the terminal.
-- Skills are installed by a skills installer that records each skill's content hash in a lock file; a reinstall can
-  change a skill's content.
+- A repository's skills are files under `.agents/skills/`, committed like its other files
+  ([0014](0014-directory-layout.md)), whether a person wrote them or the team installed them with a tool of its choice
+  ([0022](0022-tool-integration.md)).
 - Text added to an agent's context acts as instructions. A source that someone can change without review is a channel
   for instructions. An unattended agent can write files in its working copy, skills and directive files included
   ([0011](0011-safety-invariants.md)).
@@ -37,9 +38,9 @@ the sessions that do not need it.
 
 ## Decision
 
-1. The repository declares guidance entries. Each entry is an installed skill or a repository file, with one trigger:
-   always (at session start, including when the agent fires session start again after compaction), file paths (the
-   first time in a session that the agent reads or edits a matching file), or prompt words (the person's message
+1. The repository declares guidance entries. Each entry is a skill of the repository or a repository file, with one
+   trigger: always (at session start, including when the agent fires session start again after compaction), file paths
+   (the first time in a session that the agent reads or edits a matching file), or prompt words (the person's message
    contains one of the listed words or phrases). Each entry applies to the interactive role, the unattended role or
    both, and is delivered either as its content or as a one-line pointer to it. A path or prompt entry is delivered at
    most once per session.
@@ -47,9 +48,10 @@ the sessions that do not need it.
    trigger needs, nothing is rendered for it and the health check reports the gap.
 3. An entry may be declared static. A static entry is written as a convention block in `AGENTS.md`
    ([0018](0018-conventions.md)), works without the binary, and is not also delivered by hook.
-4. Entries come only from versioned repository files and installed skills. A skill whose content does not match its
-   locked hash is not delivered, and the health check reports it. Nothing is fetched when a hook runs. For unattended
-   agents, entries are read from the session's base commit ([0011](0011-safety-invariants.md)).
+4. Entries come only from versioned repository files, skills included: a skill is delivered as the file committed under
+   `.agents/skills/`, and the health check reports an entry that names a skill the repository does not have. Nothing is
+   fetched when a hook runs. For unattended agents, entries are read from the session's base commit
+   ([0011](0011-safety-invariants.md)).
 5. Always-on content has a budget per role. The health check reports a role whose always-on content exceeds it, with
    the size of each entry.
 6. A deterministic preview shows what would be delivered for a role, a set of files and a prompt, and which trigger
@@ -69,11 +71,15 @@ the sessions that do not need it.
 - **3.** Hook delivery depends on the binary being cached on the machine ([0017](0017-engine-version.md)). A directive
   that must reach every agent in every clone belongs where agents read without the tool, and as a convention block it
   survives an eject. Delivering it by hook as well would pay its cost twice.
-- **4.** Delivered text acts as instructions, so it may come only from sources that are reviewed: versioned files, or
-  skills whose content matches the hash recorded when they were installed. Fetching at hook time would make each hook
-  depend on the network and the 50 ms budget ([0003](0003-implementation-language.md)), and would deliver content no one
-  reviewed. Reading from the base commit for unattended agents means an unattended agent cannot rewrite the instructions
-  of its next attempt at a task, as with the rest of the data that drives it ([0011](0011-safety-invariants.md)).
+- **4.** Delivered text acts as instructions, so it may come only from sources that are reviewed: files committed in the
+  repository, which a skill is like any other. How a skill got there is the team's own step, and the binary reads no
+  other tool's files, such as an installer's lock file ([0022](0022-tool-integration.md)), so the commit is what makes a
+  skill reviewed. Fetching at hook time would make each hook depend on the network and the 50 ms budget
+  ([0003](0003-implementation-language.md)), and would deliver content no one reviewed. Reading from the base commit for
+  unattended agents means an unattended agent cannot rewrite the instructions of its next attempt at a task, as with the
+  rest of the data that drives it ([0011](0011-safety-invariants.md)). Reporting a named skill that does not exist tells
+  the team that a declared entry delivers nothing. The trade: a skill edited by hand after a team installed it is
+  delivered as edited, once committed.
 - **5.** Every always-on line costs context in every session of the role. A budget makes that cost visible as a number.
   A report rather than a refusal leaves the trade to the repository.
 - **6.** What a hook adds to a session is invisible from outside it. A preview computed by the same rules lets a person
@@ -122,7 +128,9 @@ Must be maintained:
   delivers the path entry once; a prompt containing a listed word delivers the prompt entry; a session that matches
   nothing receives nothing.
 - A static entry appears as a convention block in `AGENTS.md` and in no hook output.
-- A skill whose content differs from its locked hash is not delivered and is reported by the health check.
+- An entry that names a skill absent from the fixture is reported by the health check.
+- An unattended fixture agent that edits a skill in its working copy receives the base commit's skill on its next
+  attempt.
 - No hook makes a network call.
 - In an unattended fixture whose agent edits a directive file, the next attempt receives the base commit's content.
 - The preview's output equals what the hooks deliver for the same role, files and prompt.

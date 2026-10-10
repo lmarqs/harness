@@ -23,20 +23,21 @@ global install, `harness <command>` is equivalent.
 
 ## One split: deterministic work and variable work
 
-`harness` does the work that has one right answer: scaffolding, importing, rendering, checking drift, verifying,
-launching [Ralph](ralph.md) runs (unattended agents working through a task list), firing lifecycle events, removing what
+`harness` does the work that has one right answer: scaffolding, importing, rendering, checking drift, verifying, running
+one agent for one task under the worker contract ([`harness worker`](ralph.md)), firing lifecycle events, removing what
 it wrote. Agents and people do the work that needs judgement: writing `AGENTS.md` prose, deciding which commands belong
-in the [policy](policy.md)'s `allow` list, reviewing the [to-do](scaffold.md#the-to-do) an adoption leaves, arranging a
-Ralph run's commits for review, writing memory and skills. For example, rendering the policy into
-`.claude/settings.json` has one right answer; deciding whether agents may run `terraform plan` without asking does not.
-The embedded [harness skill](skills.md#the-harness-skill) and [`harness explain`](explain.md) teach agents how to do
-that part.
+in the [policy](policy.md)'s `allow` list, reviewing the [to-do](scaffold.md#the-to-do) an adoption leaves, choosing the
+loop runner and tracker the team uses and wiring them into the repository's files (a [tool preset](presets.md) writes a
+starting point), arranging an unattended run's commits for review, writing memory and skills. For example, rendering the
+policy into `.claude/settings.json` has one right answer; deciding whether agents may run `terraform plan` without
+asking does not. The embedded [harness skill](skills.md#the-harness-skill) and [`harness explain`](explain.md) teach
+agents how to do that part.
 
 ## Two directories, two owners
 
 | Directory | Belongs to | Holds | After `harness` is removed |
 | --- | --- | --- | --- |
-| `.harness/` | `harness`: its own versioned configuration | `config.yaml` (the profile), `policy.yaml`, `hooks.yaml`, `wrapper.yaml`, `manifest.json`, an optional `ralph/prompt.hbs` | every file `harness` recorded there is deleted by both [removal modes](remove.md), and the directory once nothing else is in it; a file there that `harness` neither owns nor seeded, such as `ralph/prompt.hbs`, is listed and left for you to delete |
+| `.harness/` | `harness`: its own versioned configuration | `config.yaml` (the profile), `policy.yaml`, `hooks.yaml`, `wrapper.yaml`, `manifest.json` | every file `harness` recorded there is deleted by both [removal modes](remove.md), and the directory once nothing else is in it; a file there that `harness` neither owns nor seeded, such as a `README.md` a person added, is listed and left for you to delete |
 | `.agents/` | the cross-tool agent-content convention, shared with the `skills` CLI and the `AGENTS.md` ecosystem | `skills/` (including the tool-owned `skills/harness/`), `memory/`, `commands/`, `REVIEW.md` | kept, except the harness skill and, on undo, memory skeleton files nobody edited: other tools and agents read the rest |
 
 Nothing in `.harness/` is state, and nothing in it is ignored: every file there is committed and reviewed. State lives
@@ -50,16 +51,17 @@ carry [managed blocks](render.md#managed-blocks): `AGENTS.md`, `CLAUDE.md`, `REA
 | Engine | nobody in the repository; the release the pin names, downloaded per machine by `harnessw` | no | the `harness` binary in `$HARNESS_HOME` (default `$XDG_CACHE_HOME/harness`, or `~/.cache/harness` when `XDG_CACHE_HOME` is unset) |
 | Pin | `scaffold` and [`harness wrapper`](wrapper.md#harness-wrapper), after the running binary verifies the release's signed checksum file (`scaffold --offline` writes a [pending pin](wrapper.md#a-pending-pin)); owned, never edited by hand | yes | `.harness/wrapper.yaml` |
 | Profile, policy, hooks | people and agents; seeded once by `scaffold`, which applies the [presets](presets.md#the-presets) of the detected stacks; `harness preset apply` adds a preset's entries on request | yes | `.harness/config.yaml`, `.harness/policy.yaml`, `.harness/hooks.yaml` |
-| Rendered | `harness render`; never edited by hand | yes | `harnessw`, owned keys of `.claude/settings.json` and `.codex/config.toml`, owned entries of `.codex/hooks.json`, `.codex/rules/harness.rules`, [task shims](render.md#task-shims) for the mise task runner under `.mise/tasks/`, `.agents/skills/harness/SKILL.md`, skill links, `.harness/manifest.json` |
+| Templates | written once by `harness preset apply` or `scaffold` when the file is absent, then people and agents; never re-rendered or removed by `harness` | yes | a preset's whole files, such as `.ralph-tui/config.toml` from the `ralph-tui` [tool preset](presets.md) |
+| Rendered | `harness render`; never edited by hand | yes | `harnessw`, owned keys of `.claude/settings.json` and `.codex/config.toml`, owned entries of `.codex/hooks.json`, `.codex/rules/harness.rules`, `.agents/skills/harness/SKILL.md`, skill links, `.harness/manifest.json` |
 | Managed blocks | `harness render`, only between markers | yes | blocks inside `AGENTS.md`, `README.md`, `CLAUDE.md`, `.gitignore` |
 | Knowledge | people and agents; never generated | yes | `AGENTS.md` prose, `.agents/memory/*`, domain skills, `.agents/commands/`, `.agents/REVIEW.md` |
-| State | `harness`, `bd` (the [Beads](tasks.md) tracker's command), `ralph-tui` (which runs the tasks of a [Ralph](ralph.md) run) | never (gitignored) | the [state paths](#state) (default under `.work/`), `.beads/`, `<coordinator>/.ralph-tui/` |
+| State | `harness` | never (gitignored) | the [state paths](#state) (default under `.work/`) |
 
 The three repository files are the contract between a repository and the tool. Each has one audience:
 
 | File | Answers | Reference |
 | --- | --- | --- |
-| `.harness/config.yaml` (the profile) | What is this repository: modules, commands, lanes, tracker, agents, state paths, Ralph defaults, skill sources, standing context? | [profile](profile.md), [context](context.md) |
+| `.harness/config.yaml` (the profile) | What is this repository: modules, commands, bootstrap, lanes, agents, state paths, standing context? | [profile](profile.md), [context](context.md) |
 | `.harness/policy.yaml` (the policy) | What may agents run without asking, only after asking, or never? | [policy](policy.md) |
 | `.harness/hooks.yaml` (the hooks file) | What runs when an agent starts a session, edits a file, waits for a person or ends a turn, and what runs at each lifecycle event? | [hooks](hooks.md), [lifecycle](lifecycle.md) |
 
@@ -68,11 +70,14 @@ What `harness` renders and runs in a repository comes from the repository's own 
 ([ADR 0013](../adrs/0013-organization-content.md)). Rendering reads nothing else and needs no network, so the same
 commit renders the same bytes on every machine, and people and agents learn what a repository does by reading its files.
 A [preset](presets.md) reaches a repository only as entries `harness preset apply` or `scaffold` writes into the profile
-and the hooks file; once written, they are the repository's own. An organization's choices reach a repository the same
-way, as a reviewed change to its files, usually written by an agent following a skill the organization publishes. For
-example, when acme decides that no agent runs `terraform apply`, it publishes a skill saying so; in each of its
-Terraform repositories an agent following that skill adds `[terraform, apply]` to `shared.deny` in
-`.harness/policy.yaml`, and the team reviews that change like any other.
+and the hooks file; once written, they are the repository's own. Other tools reach a repository the same way: a loop
+runner or a tracker is wired by a command the profile declares, a lifecycle action, or a file a
+[tool preset](presets.md) writes, because the binary integrates only git and the agent harnesses it has adapters for
+([ADR 0022](../adrs/0022-tool-integration.md)). An organization's choices reach a repository the same way, as a reviewed
+change to its files, usually written by an agent following a skill the organization publishes. For example, when acme
+decides that no agent runs `terraform apply`, it publishes a skill saying so; in each of its Terraform repositories an
+agent following that skill adds `[terraform, apply]` to `shared.deny` in `.harness/policy.yaml`, and the team reviews
+that change like any other.
 
 Rendered files are committed on purpose: a clone works before its pinned release is downloaded, and reviewers see
 every permission change as a diff.
@@ -87,10 +92,9 @@ harnessw                    the wrapper: runs the pinned release (owned)
   hooks.yaml                agent hooks, notification hooks and lifecycle actions
   wrapper.yaml              the pinned release, its source and checksums
   manifest.json             ownership record
-  ralph/prompt.hbs          optional override of the embedded Ralph prompt
 .agents/                    agent content: meaningful without harness
   skills/harness/SKILL.md   the harness skill (owned)
-  skills/<name>/            domain skills and skills installed by the skills CLI (knowledge)
+  skills/<name>/            domain skills and shared skills the team installs (knowledge)
   memory/                   memory skeleton, then knowledge
   commands/                 agent commands (knowledge)
   REVIEW.md                 review guide (knowledge)
@@ -103,14 +107,13 @@ harnessw                    the wrapper: runs the pinned release (owned)
   hooks.json                owned entries only
   rules/harness.rules       owned file
   skills/harness -> ../../.agents/skills/harness
-.mise/tasks/                task shims: one-line tasks that exec ./harnessw (front_door: mise)
 AGENTS.md  README.md  CLAUDE.md  .gitignore   managed blocks, one or more per module
 .work/                      state.dir: receipts, sessions, locks, lifecycle log, hook cache (gitignored)
   worktrees/                worktrees.dir: managed worktrees
-  prds/                     tasks.prd_dir: PRD files
-  ralph-worktrees/          ralph.worktrees_dir: ralph-tui's parallel worker checkouts
-.beads/                     the Beads database (bd's own location)
 ```
+
+A repository that applies a [tool preset](presets.md) also holds that preset's templates, such as
+`.ralph-tui/config.toml` from the `ralph-tui` preset, as its own files.
 
 ## Ownership and the manifest
 
@@ -119,7 +122,7 @@ kinds of content:
 
 | Kind | What it is | Entries |
 | --- | --- | --- |
-| Owned | content `harness` renders and rewrites; never edited by hand | every owned file with its content hash (`harnessw`, `.harness/wrapper.yaml`, `.codex/rules/harness.rules`, task shims, the harness skill and its links); every managed block, with the file it lives in and its content hash; every owned key or entry inside a native file that `harness` merge-renders, including rendered `raw` hooks |
+| Owned | content `harness` renders and rewrites; never edited by hand | every owned file with its content hash (`harnessw`, `.harness/wrapper.yaml`, `.codex/rules/harness.rules`, the harness skill and its links); every managed block, with the file it lives in and its content hash; every owned key or entry inside a native file that `harness` merge-renders, including rendered `raw` hooks |
 | Seeded | files `harness` writes once; from then on the repository owns them and `render` never rewrites them | `.harness/config.yaml`, `.harness/policy.yaml` and `.harness/hooks.yaml`, written by `scaffold`, and the `.agents/memory/` skeleton, written when the memory module is enabled, by `scaffold` or by the first `render` after the module is turned on; each with the hash of the content it was created with |
 
 It also records the `schema` the files were rendered with.
@@ -155,8 +158,7 @@ Text outside markers, and keys `harness` does not own, are preserved byte for by
 Every convention a module establishes is written down where people and other tools already look, in plain language
 ([ADR 0018](../adrs/0018-conventions.md)):
 
-- in a managed block of `AGENTS.md`: where managed worktrees live and how their branches are named, how local tasks
-  are tracked and where PRD files are kept, where Ralph runs keep their state and what a worker may do, the permissions
+- in a managed block of `AGENTS.md`: where managed worktrees live and how their branches are named, the permissions
   agents work under, the memory index, and the [standing context](context.md) entries declared `static`;
 - for every path it creates, in a managed block of `.gitignore`.
 
@@ -174,8 +176,7 @@ Worktrees in this project are created in `.work/worktrees/<name>`, on branch `wo
 # /harness:worktrees
 ```
 
-Agents read these conventions from `AGENTS.md` like any other instruction, `bd` and `ralph-tui` find their state where
-the conventions put it, and git ignores what they say to ignore.
+Agents read these conventions from `AGENTS.md` like any other instruction, and git ignores what they say to ignore.
 
 ### Convention blocks and tool blocks
 
@@ -183,7 +184,7 @@ Managed blocks come in two classes:
 
 | Class | States | Ids | After [`remove --eject`](remove.md#eject) |
 | --- | --- | --- | --- |
-| Convention block | a fact that stays true without `harness`; it never names a `harness` command | `AGENTS.md`: `worktrees`, `tasks`, `ralph`, `policy`, `memory`, `context`; `CLAUDE.md`: `import`; every `.gitignore` block | markers removed, text kept |
+| Convention block | a fact that stays true without `harness`; it never names a `harness` command | `AGENTS.md`: `worktrees`, `policy`, `memory`, `context`; `CLAUDE.md`: `import`; every `.gitignore` block | markers removed, text kept |
 | Tool block | how to use `harness` in this repository; it may name `./harnessw` commands | `AGENTS.md`: `commands`, `layout`, `verify`, `lifecycle`; `README.md`: `commands` | removed |
 
 So after an eject, what is left in `AGENTS.md` and `.gitignore` is true and usable without the tool, and nothing in
@@ -206,16 +207,13 @@ The profile's `modules:` map turns features on and off. Each module is opt-in an
 | Module | Adds to the repository |
 | --- | --- |
 | `hooks` | harness hook entries in each agent's native files, from `.harness/hooks.yaml`: post-edit commands, validators, session context, notification hooks, `raw` hooks |
-| `verify` | `harness verify`; the `verify` task shim; allow entries for the command; the `verify` block in `AGENTS.md` |
-| `tasks` | `harness task`; the `task` task shim; Beads or PRD tracking; the `tasks` blocks in `AGENTS.md` and `.gitignore`, and the `beads` block when `harness` created the Beads database |
-| `ralph` | `harness ralph`; the `ralph` and `ralph:clean` task shims; allow entries for the commands; the `ralph` blocks in `AGENTS.md` and `.gitignore` |
+| `verify` | `harness verify`; allow entries for the command; the `verify` block in `AGENTS.md`; the receipt guard on `completed` with scope `task` |
 | `memory` | the `.agents/memory/` skeleton (seeded when the module is enabled, never re-rendered) and the `memory` block in `AGENTS.md` |
-| `skills` | `harness skills sync` and the `doctor` check for declared skill sources that are not installed |
 
-Always present, whatever the modules: the `.harness/` files, `harnessw`, the rendered policy, the harness skill and
-its links, the manifest, the [`harness worktree`](worktrees.md) commands, and these blocks: `commands`, `layout`,
-`worktrees`, `lifecycle` and `policy` in `AGENTS.md`; `commands` in `README.md`; `import` in `CLAUDE.md`; `state` and
-`worktrees` in `.gitignore`.
+Always present, whatever the modules: the `.harness/` files, `harnessw`, the rendered policy, the harness skill and its
+links, the manifest, the [`harness worktree`](worktrees.md) commands with task binding, the [`harness worker`](ralph.md)
+command, and these blocks: `commands`, `layout`, `worktrees`, `lifecycle` and `policy` in `AGENTS.md`; `commands` in
+`README.md`; `import` in `CLAUDE.md`; `state` and `worktrees` in `.gitignore`.
 
 [Standing context](context.md) is declared in the profile's `context` section. Entries delivered by hook need the
 `hooks` module; `static` entries go into the `context` block of `AGENTS.md` whatever the modules.
@@ -228,16 +226,13 @@ lives at paths the [profile](profile.md#state-paths) sets, outside `.harness/`; 
 | Path (profile key) | Owner | Holds |
 | --- | --- | --- |
 | `.work/` (`state.dir`), in the primary checkout | `harness` | `lifecycle.jsonl` (every lifecycle run of the clone), locks shared by every worktree of the clone |
-| `.work/` (`state.dir`), in each checkout | `harness` | `session.json` (managed worktree session), `verified.json` (the [receipt](verify.md) of a passing `harness verify`), `hook-checks.json` (post-edit cache), `context/<session-id>.json` (which triggered context entries a session has received) |
+| `.work/` (`state.dir`), in each checkout | `harness` | `session.json` (managed worktree session: base, task, actor), `verified.json` (the [receipt](verify.md) of a passing `harness verify`), `hook-checks.json` (post-edit cache), `context/<session-id>.json` (which triggered context entries a session has received), `last-worker-output` and `last-attempt.patch` (the full output and the changes of the last failed `harness worker` attempt), the record that `bootstrap` ran for a worker |
 | `.work/worktrees/` (`worktrees.dir`) | `harness` | each managed worktree, at `<dir>/<name>` |
-| `.work/prds/` (`tasks.prd_dir`) | `harness` | a gitignored home for PRD files |
-| `.work/ralph-worktrees/` (`ralph.worktrees_dir`) | `harness` | ralph-tui's worker checkouts for the parallel tasks of harness-launched Ralph runs. The coordinator and sequential task worktrees live under `worktrees.dir`, as `ralph-<session-id>` and `ralph-<session-id>-<task>` ([ralph](ralph.md)) |
-| `.beads/` | `bd` | the Beads database, found by `bd` by walking up from any nested worktree |
-| `<coordinator>/.ralph-tui/` | `ralph-tui` | configuration and session state of a harness-launched run, only inside the coordinator worktree, the isolated checkout the run executes in |
 
-`.beads/` and `.ralph-tui/` stay where `bd` and `ralph-tui` look for them. The `layout` block of `AGENTS.md` names
-every path, and the `.gitignore` blocks ignore each one the repository does not track. No state path may point inside
-`.harness/` or `.agents/`: those directories hold committed files only, so the profile refuses such a path.
+Other tools keep their own state where they choose, such as Beads in `.beads/`; `harness` neither reads, writes nor
+ignores it. The `layout` block of `AGENTS.md` names every state path, and the `.gitignore` blocks ignore each one the
+repository does not track. No state path may point inside `.harness/` or `.agents/`: those directories hold committed
+files only, so the profile refuses such a path.
 
 ## Adoption classes
 
@@ -248,7 +243,7 @@ agent.
 | --- | --- | --- | --- |
 | Greenfield | no `.claude/settings.json` permissions or hooks, no workflow engine of its own | `harness scaffold` | review the seeded profile; write `AGENTS.md` prose |
 | Brownfield, simple | permissions and hooks hand-written in `.claude/settings.json` or `.codex/` | `harness scaffold --adopt` | imported personal entries and allow/deny conflicts to review; `raw` hooks worth modelling |
-| Brownfield, complex | its own workflow engine: mise tasks such as `verify` or `ralph:run`, a root `.ralph-tui/`, an existing `.beads/` | `harness scaffold --adopt` | task-name collisions, lane definitions, choosing `ralph.config: inherit` or retiring the old config |
+| Brownfield, complex | its own workflow around agents: verification scripts, a loop runner's configuration such as a root `.ralph-tui/`, a tracker such as `.beads/` | `harness scaffold --adopt` | lane definitions from the verification scripts; pointing the loop runner's agent command at `./harnessw worker` and the tracker's updates at lifecycle actions, which a [tool preset](presets.md) can write |
 
 `scaffold --adopt` imports every permission rule and hook losslessly, proves it with an equivalence check, and prints
 a to-do of the leftovers; [`harness doctor`](doctor.md) keeps reporting open items until they are resolved. See
@@ -257,12 +252,13 @@ a to-do of the leftovers; [`harness doctor`](doctor.md) keeps reporting open ite
 ## Development lifecycle
 
 Work moves through five [lifecycle events](lifecycle.md): `start`, `verified`, `completed`, `deliver` and `landed`. A
-sixth event, `blocked`, fires out of band at any stage: when a Ralph run stops unfinished, when it skips a task after
-its retries, and when a command run without a terminal stops with exit 3 for a person to act. `harness` fires each event
-at fixed trigger points in its own commands, and a person or a coordinating agent can fire one by hand with
-`harness lifecycle run <event>`. What happens at an event is the actions the repository declares in
-`.harness/hooks.yaml`; the binary ships none. Everything that leaves the clone, such as a push, a pull request or a chat
-notification, is one of those actions.
+sixth event, `blocked`, fires out of band at any stage: `harness` fires it when a command run without a terminal stops
+with exit 3 for a person to act, and whoever drives an unattended run fires it when the run stops unfinished. `harness`
+fires each event at fixed trigger points in its own commands, and a person, a coordinating agent or a script around a
+loop runner can fire one by hand with `harness lifecycle run <event>`; nothing in the binary knows when an unattended
+run starts or ends. What happens at an event is the actions the repository declares in `.harness/hooks.yaml`; the binary
+ships none. Everything that leaves the clone, such as a push, a pull request or a chat notification, is one of those
+actions.
 
 Every action has one kind ([action kinds](lifecycle.md#action-kinds)):
 
@@ -288,38 +284,42 @@ A repository adopts `harness` without forcing anyone else to.
 
 | Who | What they experience |
 | --- | --- |
-| A teammate whose machine has not downloaded the pinned release | Committed rendered files give their agent the same permissions and instructions, convention blocks and `static` context included. The first `./harnessw` command or task shim downloads and verifies the release. Until then, every harness hook prints one line on stderr and exits 0, the session-start hook also adds one line to the agent's context, `harness <version> is not cached on this machine; run ./harnessw version once to fetch it.`, `raw` hooks keep running, and hook-delivered context, notification hooks and lifecycle events do nothing. |
+| A teammate whose machine has not downloaded the pinned release | Committed rendered files give their agent the same permissions and instructions, convention blocks and `static` context included. The first `./harnessw` command downloads and verifies the release. Until then, every harness hook prints one line on stderr and exits 0, the session-start hook also adds one line to the agent's context, `harness <version> is not cached on this machine; run ./harnessw version once to fetch it.`, `raw` hooks keep running, and hook-delivered context, notification hooks and lifecycle events do nothing. |
 | CI | Builds, tests, deploys and releases are unchanged; nothing requires the binary. `./harnessw render --check` and `./harnessw doctor` are optional steps; the wrapper downloads and verifies the pinned release ([wrapper](wrapper.md#ci)). |
 | A person who stops using it | `harness remove` undoes the adoption from the manifest; `harness remove --eject` stops managing the repository and keeps the result: convention blocks, `.gitignore` entries, permissions and `raw` hooks ([remove](remove.md)). |
 | A person who uses only part of it | Every module is opt-in; disabling one removes its files and blocks on the next render. |
 
 ## Built-in invariants
 
-These hold in every repository and cannot be turned off by any repository file
-([ADR 0011](../adrs/0011-safety-invariants.md)):
+These hold in every repository, for what the binary renders and for every agent the binary starts, and cannot be turned
+off by any repository file ([ADR 0011](../adrs/0011-safety-invariants.md)). An agent a person starts some other way,
+such as from their own loop-runner configuration, is outside them: `harness` neither detects nor prevents it
+([ADR 0022](../adrs/0022-tool-integration.md)).
 
-1. Ralph workers never run with permission bypass; bypass flags, such as Claude Code's `--dangerously-skip-permissions`
-   or Codex's `--yolo`, are refused.
+1. Agents `harness worker` starts never run with permission bypass; bypass flags among its arguments, such as Claude
+   Code's `--dangerously-skip-permissions` or Codex's `--yolo`, are refused with exit 1, naming the flag.
 2. Force pushes to the detected default branch (`origin/HEAD`) are denied.
 3. mise `:::` task chaining is denied, so an allowed `mise run lint` cannot carry a second task, as
    `mise run lint ::: deploy` would.
-4. Verification proofs are replayed outside the tree the agent can write: the Ralph worker reruns the lanes the agent's
+4. Verification proofs are replayed outside the tree the agent can write: `harness worker` reruns the lanes the agent's
    [receipt](verify.md) selected, with the profile read from the base commit.
-5. Completion is withheld until the replayed proof passes.
-6. The Ralph worker's tamper check restores the tool-owned files from the session's base commit before every agent
-   launch and fails the attempt if the agent changed them. The standing context a worker receives is read from the
-   same base commit.
+5. Completion is withheld until the replayed proof passes: only then does `harness worker` exit 0, release a loop
+   runner's completion signal and, in a worktree bound to a task, fire `completed`. Whoever fires `completed` with scope
+   `task`, it is refused without a valid receipt when the verify module is enabled.
+6. `harness worker`'s tamper check restores the tool-owned files from the base commit before it starts the agent and
+   fails the attempt if the agent changed them, a file under `.harness/` or a file standing context names. The standing
+   context a worker receives is read from the same base commit. A failed attempt returns the checkout to its base.
 7. Hooks never decide permissions.
-8. Lifecycle and notification actions never run inside a Ralph worker: lifecycle actions run in the launcher process
-   (`harness ralph` itself), the binary refuses `harness lifecycle` inside a worker, and the built-in worker deny covers
-   it in every rendered spelling (`harness`, `./harnessw`, `harnessw`, task shims).
+8. Lifecycle and notification actions never run inside an unattended agent: `harness worker` fires events in its own
+   process after the agent exits, the binary refuses `harness lifecycle` under the unattended mark (`HARNESS_WORKER=1`),
+   and the built-in worker deny covers it in every rendered spelling (`harness`, `./harnessw`, `harnessw`).
 9. `deliver` always refuses on the default branch and with uncommitted changes and, when the verify module is enabled,
    without a valid receipt for the work's base.
 10. The binary never writes knowledge (prose, memory, domain skills), contains no logic for the platform that hosts the
     team's work, such as GitHub, and never writes issues, projects, boards, comments, reviews or labels.
-11. The binary never reconfigures state it did not create: an existing `.beads/`, a root `.ralph-tui/`,
-    `core.hooksPath`, existing mise tasks, a task runner's tool versions, `CLAUDE.md` content, a `.harness/`
-    directory another tool owns.
+11. The binary never reconfigures state it did not create, such as `core.hooksPath`, `CLAUDE.md` content or a
+    `.harness/` directory another tool owns, and reads no configuration of a tool it has no code for, such as `.beads/`
+    or `.ralph-tui/`. A preset's template is written only when its file is absent.
 12. An `agent` action runs its agent under the worker contract: auto permission mode, the worker denies, bypass flags
     refused, the tamper check. It cannot commit, push or fire lifecycle events.
 13. Guards are enforced by the binary itself. Policy entries for `harness` commands are defence in depth: a command

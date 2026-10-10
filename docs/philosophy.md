@@ -42,13 +42,15 @@ skills, and the loops that run agents unattended. Across many repositories, that
 
 ## What harness is
 
-`harness` is a meta-harness. It writes, checks and removes the configuration that agent harnesses such as Claude Code,
-Codex CLI and ralph-tui (which runs agents unattended through a list of tasks) read, and it constrains how a harness
-starts when `harness` starts it. It never calls a model and never runs an agent loop: it sets the rules and never plays
+`harness` is a meta-harness. It writes, checks and removes the configuration that the agent harnesses Claude Code and
+Codex CLI read, and it constrains how an agent runs when `harness` starts it, as `harness worker` does for each task a
+loop runner hands it. It never calls a model and never runs an agent loop: it sets the rules and never plays
 ([the game master](features/README.md#the-game-master), [ADR 0001](adrs/0001-role-of-the-tool.md)).
 
 It is not an agent, not a client of hosting platforms or agent tool servers, not a source of configuration that lives
-outside your repository, and not a replacement for your task runner, skills installer or task tracker.
+outside your repository, not a launcher for any loop runner, and not a replacement for your task runner, skills
+installer or task tracker. It contains no code for those tools and works with whichever a team uses, through commands,
+actions and presets in the repository's own files ([ADR 0022](adrs/0022-tool-integration.md)).
 
 ## Tenets
 
@@ -126,6 +128,19 @@ credentials and makes no decision that needs one.
 
 **Bound by.** [ADR 0001](adrs/0001-role-of-the-tool.md),
 [principle 3](ux/principles.md#3-sets-the-rules-never-plays).
+
+### Integrates only what it configures
+
+**Problem.** Problem 4: built-in support for one loop runner, task tracker or task runner makes every repository depend
+on a choice its team did not make, and breaks with each of that tool's releases.
+
+**Tenet.** The binary integrates git and the agent harnesses it configures, and nothing else. Every other tool reaches
+a repository as data in that repository's own files: a command it declares, an action a lifecycle event runs, or the
+entries and templates of a preset. Other tools call `harness` through a stable command interface, so switching one
+changes only the repository's files.
+
+**Bound by.** [ADR 0022](adrs/0022-tool-integration.md), [ADR 0019](adrs/0019-action-kinds.md),
+[ADR 0013](adrs/0013-organization-content.md).
 
 ### A safety floor nobody can lower
 

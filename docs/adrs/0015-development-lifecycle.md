@@ -22,10 +22,11 @@ run reaches a person.
   branch, publishing uncommitted work and publishing unverified work are never wanted
   ([0011](0011-safety-invariants.md)).
 - Steps are started by different actors: a person at the terminal, a coordinating agent following shipped documentation,
-  or the tool itself at the end of an unattended run. A workflow copied by hand drifts into dialects: suppose acme
-  copies one agent workflow into `acme/api` and `acme/web`, and a year later delivery in `acme/api` runs the tests and
-  opens a draft pull request, while delivery in `acme/web` pushes without running them. A step defined once per actor
-  drifts in the same way: the person, the agent and the end of the unattended run each do it their own way
+  a script a team writes around its loop runner, or the tool itself at a point of its own work, such as the end of a
+  verified unattended attempt. A workflow copied by hand drifts into dialects: suppose acme copies one agent workflow
+  into `acme/api` and `acme/web`, and a year later delivery in `acme/api` runs the tests and opens a draft pull request,
+  while delivery in `acme/web` pushes without running them. A step defined once per actor drifts in the same way: the
+  person, the agent and the end of the unattended attempt each do it their own way
   ([0006](0006-repository-contract.md)).
 - Unattended agents are the least trusted actor ([0011](0011-safety-invariants.md)).
 - Values such as task titles and branch names are written by people and agents. Substituted into command text, they
@@ -35,6 +36,10 @@ run reaches a person.
 - Work also stops before it concludes: an unattended run ends with tasks unfinished, a task is skipped after its
   retries, a command run without a terminal refuses because a person must act. Nobody watches an unattended run; the
   person learns of the stop only by looking.
+- An unattended run as a whole, with its start, its end and its retries, belongs to the loop runner that drives it,
+  which the tool does not integrate ([0022](0022-tool-integration.md)). The tool sees one task at a time, through the
+  worker command a loop runner calls.
+- A task tracker marks a task done when it is told the task is complete, whoever tells it.
 - The clone's state is readable by every process in it, agents included.
 
 ## Decision
@@ -49,12 +54,21 @@ run reaches a person.
 4. The binary decides when an event fires and enforces the guards that apply to it. The ready-for-delivery event fires
    only for concluded work: committed, with a clean tree, on a branch other than the default branch and, when
    verification is enabled, with a valid proof of verification for the work's base ([0011](0011-safety-invariants.md)).
+   When verification is enabled, the work-completed event at the scope of a task fires only with a valid proof of
+   verification, whoever triggers it.
 5. The repository declares the actions for each event ([0019](0019-action-kinds.md)): run in order, optionally limited
-   to some of the event's scopes, each with a rule for whether its failure stops the remaining actions. The binary ships
-   no actions.
-6. Every event can be triggered by a person, by a coordinating agent, or automatically at its trigger point, and every
-   trigger runs the same declared actions under the same guards. Automatic triggering applies only to actions that opt
-   in to it.
+   to some of the event's scopes, each with a rule for whether its failure stops the remaining actions. No action runs
+   that the repository's files do not declare; a preset's actions reach them only when a person applies it.
+6. Every event can be triggered by a person, by a coordinating agent or by a script, or automatically at a trigger point
+   of the binary's own work, and every trigger runs the same declared actions under the same guards. Automatic
+   triggering applies only to actions that opt in to it. The trigger points are: creating a working copy fires work
+   started, at the scope of a task when the copy is bound to one and of a change otherwise; a verification run fires
+   work verified; a verified attempt of the worker command in a working copy bound to a task fires work completed and
+   then, when the work is concluded, ready for delivery, both at the scope of that task, and fires nothing in a working
+   copy bound to no task; removing a working copy fires work landed once for each recorded branch whose changes are on
+   the default branch; delivery across several repositories fires ready for delivery at the scope of a change in each; a
+   command run without a terminal that stops for a person fires blocked. Nothing in the binary fires an event at the
+   scope of an unattended run; its caller does.
 7. Event data reaches actions only through environment variables the binary sets for each run
    ([0019](0019-action-kinds.md)).
 8. Actions never run inside an unattended agent. The binary fires events in its own process after the agent exits, and
@@ -82,16 +96,22 @@ run reaches a person.
 - **4.** A guard is sound only when the component that checks it is the one that fires the event; if the trigger were
   trusted to check, a person, an agent and the automatic trigger could each skip it differently. The delivery guards
   apply invariant 11 of [0011](0011-safety-invariants.md): the three conditions are never a legitimate choice, so no
-  trigger can bypass them.
-- **5.** What happens at each event differs per repository and organization, and the binary carries neither
-  platform logic nor organization content ([0012](0012-write-boundary.md), [0013](0013-organization-content.md)).
-  Declared actions put those conventions in committed files that are reviewed like code. Shipping no actions means the
-  binary never sends anything out of a clone that nobody declared. The trade is that a repository that declares
-  nothing gets no delivery from the binary.
+  trigger can bypass them. The completion guard applies invariant 5 of [0011](0011-safety-invariants.md) to every
+  trigger: a tracker's action on work completed marks the task done (Context), so a person or a script that fires the
+  event by hand would otherwise record as done work that no verification passed.
+- **5.** What happens at each event differs per repository and organization, and the binary carries neither platform
+  logic nor organization content ([0012](0012-write-boundary.md), [0013](0013-organization-content.md)). Declared
+  actions put those conventions in committed files that are reviewed like code. Running only declared actions means the
+  binary never sends anything out of a clone that nobody declared. The trade is that a repository that declares nothing
+  gets no delivery from the binary.
 - **6.** One definition run by every trigger removes the per-actor drift described in Context: a person, a coordinating
-  agent and the end of an unattended run all produce the same result. Automatic triggering is opt-in per action because
-  an action that runs without anyone choosing it, such as one that publishes work, is a decision the repository must
-  make explicitly.
+  agent, a script around a loop runner and the end of a verified attempt all produce the same result. Automatic
+  triggering is opt-in per action because an action that runs without anyone choosing it, such as one that publishes
+  work, is a decision the repository must make explicitly. Each trigger point is a step the binary performs itself, so
+  it fires there with the facts of that step at hand. The run scope has no such point: the run belongs to the loop
+  runner (Context), so its caller fires the run's events. A worker attempt in a working copy bound to no task, such as
+  the one a loop runner works in, has no task for the binary to name, so it fires nothing and leaves the events to the
+  caller as well. The trade: a run whose caller fires nothing reports no stop of the run as a whole.
 - **7.** Task titles and branch names are written by people and agents; passing them as environment values keeps them
   out of the text the shell parses, so a title cannot add a command. How each action kind consumes them is decided in
   [0019](0019-action-kinds.md).
@@ -144,7 +164,8 @@ Costs:
 - Actions inherit the environment, including credentials, so an action runs with the credentials of whoever triggers
   it.
 - A step that fits no event stays outside the tool.
-- Automatic delivery at the scope of an unattended run delivers the whole run as one unit.
+- Delivery at the scope of an unattended run, triggered by the run's caller, delivers the whole run as one unit.
+- A stop of an unattended run as a whole reaches a person only when the run's caller fires the blocked event.
 - A repository that declares no actions gets no delivery from the binary, and its stops reach nobody beyond the
   command's output.
 
@@ -163,9 +184,11 @@ Must be maintained:
   environment values, and nothing in them executes.
 - A fixture in which an unattended agent tries to trigger an event is denied, and the event fires only after the agent
   exits.
-- Fixtures fire the blocked event with its reason when an unattended run stops unfinished (run scope), when a task is
-  skipped after its retries (task scope) and when a command without a terminal refuses for a person to act; none of
-  its actions runs while an unattended agent runs.
+- Fixtures fire the blocked event with its reason when a command without a terminal refuses for a person to act, and
+  when a caller triggers it at the scope of a task or of a run; none of its actions runs while an unattended agent runs.
+- With verification enabled, a fixture that triggers the work-completed event at the scope of a task without a valid
+  proof is refused and runs no action, whether a person, an agent or a script triggers it.
+- No command of the binary, run through a whole fixture lifecycle, fires an event at the scope of an unattended run.
 - Every event run in the fixture suite appears in the record with its exit status; a fixture whose environment holds a
   secret asserts that the record does not contain it.
 - With no actions declared, every event runs nothing and succeeds.

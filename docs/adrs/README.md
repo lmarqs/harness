@@ -167,3 +167,4 @@ Must be maintained:
 | [0019](0019-action-kinds.md) | What can a declared action do? | Declared actions are commands, HTTP requests or headless agent runs |
 | [0020](0020-standing-context.md) | How does known guidance reach an agent? | Guidance enters agent context through declared deterministic triggers |
 | [0021](0021-release-trust.md) | How is a new release trusted? | Only an already trusted binary admits a new release |
+| [0022](0022-tool-integration.md) | Which external programs does the binary integrate? | The binary integrates only git and the agent harnesses |

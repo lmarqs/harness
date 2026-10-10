@@ -38,7 +38,7 @@ Other forces:
 
 - Committed configuration is reviewed; clone-local state is ignored and can hold uncommitted work.
 - People, agents and third-party tools use parts of the tool's clone-local state directly: they work inside the working
-  copies the tool creates, and the loop runner reads its configuration inside them.
+  copies the tool creates, and a loop runner runs inside them.
 - Removal deletes what the manifest lists ([0007](0007-ownership.md)).
 - Another product, the CI/CD platform Harness.io, uses a `.harness/` directory at the repository root for pipeline
   definitions and ships a command-line program named `harness`.
@@ -55,9 +55,9 @@ Other forces:
    path in it is tracked; none is ignored.
 4. The tool's clone-local state lives at paths the repository's data sets, with defaults under `.work/`. No state path
    is inside `.harness/` or `.agents/`, and state is never committed.
-5. Third-party state stays where its tool requires it and is never relocated through environment variables or path
-   overrides: the task tracker's directory at the root of the primary checkout, found by its upward walk from nested
-   working copies; the loop runner's configuration only inside working copies the tool creates for it.
+5. Third-party state and configuration stay where their tool requires them and are never relocated through environment
+   variables or path overrides: the task tracker's directory at the root of the primary checkout, found by its upward
+   walk from nested working copies; the loop runner's configuration in the fixed directory it reads.
 6. Ignore rules are managed blocks, one set per capability ([0018](0018-conventions.md)), and omit any path the
    repository tracks.
 
@@ -80,10 +80,10 @@ Other forces:
   `.harness/` would put ignored paths into the committed configuration directory, contradicting point 3. State inside
   `.agents/` would show clone-local files to every tool that reads agent content. Committed state would publish one
   clone's uncommitted work.
-- **5.** The loop runner's configuration location cannot be moved, so the only way to give it tool-generated
-  configuration without touching a root configuration people use directly is a working copy the tool creates.
-  Relocating the task tracker through an override would make every invocation depend on that override, and people who
-  run the tracker directly would see different state.
+- **5.** The loop runner's configuration location cannot be moved, so its configuration, whether a person wrote it or a
+  preset seeded it ([0013](0013-organization-content.md)), lives where the loop runner looks, and a committed file
+  reaches every working copy through git. Relocating the task tracker through an override would make every invocation
+  depend on that override, and people who run the tracker directly would see different state.
 - **6.** One set of ignore blocks per capability lets one capability be removed without un-ignoring another's paths
   ([0018](0018-conventions.md)). A tracked path in an ignore rule would stop new files in a committed directory, such as
   the task tracker's directory in a repository that commits it, from being added.
@@ -141,7 +141,8 @@ Must be maintained:
 
 - The health check verifies that every link resolves.
 - Fixtures with each of the three skills-directory shapes keep their shape after adoption.
-- A test asserts that loop-runner configuration is written only inside working copies the tool created.
+- A test asserts that no command of the tool sets an environment variable or path override that moves a third-party
+  tool's directory or configuration.
 - A test asserts that every path under `.harness/` of an adopted fixture is tracked and none is ignored.
 - A fixture with non-default state paths writes state only at those paths.
 - Validation refuses a fixture whose state path points inside `.harness/` or `.agents/`.

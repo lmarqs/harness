@@ -29,8 +29,8 @@ installed, for the life of the project.
 ## Decision
 
 1. The tool is one executable written in Go, cross-compiled for Linux and macOS on amd64 and arm64.
-2. Documentation, the shipped skill, stack defaults and templates are embedded at build time. There are no helper
-   scripts, plugins or sidecar processes.
+2. Documentation, the shipped skill, the presets and the templates are embedded at build time. There are no
+   helper scripts, plugins or sidecar processes.
 3. A hook invocation adds at most 50 ms at p95 on a developer workstation, excluding the repository's own commands. A
    change that exceeds this budget is not released.
 

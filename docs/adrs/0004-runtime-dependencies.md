@@ -31,8 +31,9 @@ no hook fails for lack of a runtime.
 1. The binary needs nothing at runtime besides the operating system and git. It neither requires nor bundles an
    interpreter, a language runtime or a package manager.
 2. On Linux the binary is statically linked; on macOS it links only the system library.
-3. Work owned by a third-party tool with its own runtime is delegated to that tool when the tool is present. When it is
-   absent, the binary prints the command to run and reports the item as pending; it never installs a runtime.
+3. Work owned by a third-party tool with its own runtime stays with that tool: the binary neither reimplements it nor
+   runs the tool of its own accord, and never installs a runtime. The tool runs when a person runs it or when a command
+   or action the repository declares names it (point 4, [0022](0022-tool-integration.md)).
 4. Commands the repository declares and harnesses the tool starts belong to the repository and the user; they are not
    dependencies of the binary.
 5. The wrapper's first-run requirements, a POSIX shell, a downloader and a checksum tool, are requirements of the
@@ -47,10 +48,10 @@ no hook fails for lack of a runtime.
 - **2.** A statically linked Linux binary runs on every distribution and in minimal containers, so CI can use it by
   downloading one file. On macOS the system library is the only supported way to reach the kernel, so linking it adds
   no dependency a macOS machine lacks.
-- **3.** Reimplementing a third-party tool duplicates a specification another project owns and changes. Delegation keeps
-  that behaviour correct as the third-party tool evolves. Reporting the item as pending, instead of installing a
-  runtime, leaves each machine's runtimes to its owner. The trade: the delegated capabilities stay pending on machines
-  without the runtime.
+- **3.** Reimplementing a third-party tool duplicates a specification another project owns and changes. Leaving the work
+  with the tool keeps that behaviour correct as the tool evolves, and running it only where the repository declares it
+  keeps the tool's runtime off the binary's list of needs (point 4). The trade: work such as installing shared skills is
+  a step the team takes with that tool, on a machine that has its runtime.
 - **4.** The repository's commands are its own data ([0006](0006-repository-contract.md)) and the harnesses are the
   user's choice ([0001](0001-role-of-the-tool.md)). Counting them as the binary's dependencies would make its
   requirements unbounded.
@@ -79,7 +80,8 @@ It loses because it duplicates a specification another project owns and changes.
 
 Costs:
 
-- Capabilities delegated to third-party tools stay pending on machines without their runtime.
+- Work that belongs to a third-party tool, such as installing shared skills, needs that tool and its runtime on the
+  machine where the team runs it.
 - git is a hard dependency.
 - Libraries that need cgo or spawn external programs are excluded, which narrows library choice.
 

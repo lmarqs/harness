@@ -39,7 +39,7 @@ Facts:
    or a person, who edits the declarative sources ([0006](0006-repository-contract.md)); the binary renders and checks
    the result.
 3. The binary embeds the documentation an agent needs (the rules, their reasons and the file contracts) and ships it
-   both as a skill installed into the repository and as printable documentation.
+   both as a skill written into the repository and as printable documentation.
 4. When the binary meets input it cannot map deterministically, it leaves the input untouched and lists it as
    unresolved in a machine-readable list. It never guesses.
 

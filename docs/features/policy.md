@@ -14,9 +14,10 @@ carries over, and the limits that must always hold stay in force whatever anyone
 ## Overview
 
 The policy says what agents may do without asking (`allow`), only after a person confirms (`ask`), or never (`deny`),
-plus what is denied only to Ralph workers, the agent processes that an unattended [Ralph](ralph.md) run starts, one per
-task. It is written once, agent-neutrally where the agents allow it, and rendered into each agent's native permission
-format. A built-in base that holds the tool's invariants is always added and cannot be removed.
+plus what is denied only to workers, the agents [`harness worker`](ralph.md#the-worker-contract) runs headless, one per
+task, and that `agent` actions start. It is written once, agent-neutrally where the agents allow it, and rendered into
+each agent's native permission format. A built-in base that holds the tool's invariants is always added and cannot be
+removed.
 
 Commands are named `harness <command>` on this page. Run them through the repository's wrapper,
 `./harnessw <command>`, from the root of a checkout; with a global install, `harness <command>` is equivalent
@@ -28,7 +29,7 @@ Commands are named `harness <command>` on this page. Run them through the reposi
 - A command must never run from an agent session: add it to `shared.deny`.
 - A person must confirm something every time, even in unattended sessions: add it to `shared.ask`, knowing it costs a
   prompt every time.
-- Ralph workers must not run something that interactive sessions may: add it to `worker.deny`.
+- Workers must not run something that interactive sessions may: add it to `worker.deny`.
 - A tool other than the shell needs a rule, such as a read-only MCP tool or a web domain: add a native rule string
   under the decision it needs.
 
@@ -89,7 +90,7 @@ A string is a native rule string (form 2) when it has the form `Tool(specifier)`
 | native rule string `Bash(<words> *)` with a plain word prefix | verbatim, in the same list | the equivalent `prefix_rule` |
 | any other native rule string | verbatim, in the same list | not rendered: Claude-only |
 | bare string | `Bash(<string>)` in the same list | not rendered: Claude-only |
-| `worker.deny` | passed to Claude workers at launch as disallowed tools; also in `permissions.deny` when Claude's role is `worker` | `decision="forbidden"` when Codex's role is `worker` |
+| `worker.deny` | passed by `harness worker` to a Claude worker at launch as disallowed tools; also in `permissions.deny` when Claude's role is `worker` | `decision="forbidden"` when Codex's role is `worker` |
 
 Every Claude-only entry is listed as such in the [`policy` block](#the-convention-in-agentsmd) of `AGENTS.md`, so a
 reader sees which rules Codex does not enforce. See [agents](agents.md#roles) for what roles change.
@@ -97,22 +98,20 @@ reader sees which rules Codex does not enforce. See [agents](agents.md#roles) fo
 ### Entries for `harness` commands
 
 An agent can invoke a `harness` command in several spellings: `./harnessw <command>`, the form `AGENTS.md` teaches;
-`harness <command>` with a global install; `harnessw <command>` when the repository root is on `PATH`; and a
-[task shim](render.md#task-shims), a one-line task of the mise task runner such as `mise run verify`, when the profile
-sets `front_door: mise`. An entry for a `harness` command names the program once, as `harness`:
+`harness <command>` with a global install; and `harnessw <command>` when the repository root is on `PATH`. An entry for
+a `harness` command names the program once, as `harness`:
 
 ```yaml
 - [harness, lifecycle, run, deliver]
 ```
 
-`render` writes such an entry for each rendered spelling: `harness …`, `./harnessw …`, `harnessw …`, and the task shim's
-`mise run <task> …` when a shim exists for that command. The built-in base, the module entries and the
-[seeded entry](#the-seeded-entry) are written the same way.
+`render` writes such an entry for each rendered spelling: `harness …`, `./harnessw …` and `harnessw …`. The built-in
+base, the module entries and the [seeded entry](#the-seeded-entry) are written the same way.
 
 A prefix rule still matches only leading words, so an absolute path to the wrapper, or `sh harnessw …`, matches none of
 the rendered spellings ([pitfalls](pitfalls.md#the-wrapper-is-a-second-spelling-of-every-harness-command)). The guards
-that matter therefore never rest on these entries: the binary itself refuses `harness lifecycle run` inside a Ralph
-worker, and it enforces the [`deliver` guards](lifecycle.md#built-in-guards) whoever runs the command. The entries are
+that matter therefore never rest on these entries: the binary itself refuses `harness lifecycle run` inside a worker's
+agent, and it enforces the [`deliver` guards](lifecycle.md#built-in-guards) whoever runs the command. The entries are
 defence in depth: they make an agent stop or ask before it runs the command at all.
 
 ### The built-in base
@@ -123,9 +122,9 @@ and shown in the `policy` block of `AGENTS.md`.
 | Invariant | Entries |
 | --- | --- |
 | No force push to the default branch | `shared.deny` entries equivalent to the list below, with `main` replaced by the branch `origin/HEAD` names |
-| No mise `:::` chaining, which runs a second task in the same command and could carry an unlisted task past every rule | `shared.deny`: `"mise * ::: *"` (Claude-only: Codex cannot match mid-command) |
-| Lifecycle actions never run inside a Ralph worker | `worker.deny`: `[harness, lifecycle]`, rendered for each spelling `harness` renders. The binary refuses `harness lifecycle run` inside a worker on its own; lifecycle actions run in the launcher process ([lifecycle](lifecycle.md)) |
-| Workers never bypass permissions | not a policy entry: the Ralph worker refuses bypass flags; see [ralph](ralph.md#the-worker-contract) |
+| No task chaining with mise's `:::`, which runs a second task in the same command and could carry an unlisted task past every rule | `shared.deny`: `"mise * ::: *"` (Claude-only: Codex cannot match mid-command). A recognised command shape: the deny needs no knowledge of mise and costs nothing in a repository without it |
+| Lifecycle actions never run inside a worker's agent | `worker.deny`: `[harness, lifecycle]`, rendered for each spelling `harness` renders. The binary refuses `harness lifecycle run` inside the agent on its own; `harness worker` fires `completed` and `deliver` in its own process ([lifecycle](lifecycle.md#built-in-guards)) |
+| Workers never bypass permissions | not a policy entry: `harness worker` refuses bypass flags among the arguments it receives; see [ralph](ralph.md#the-worker-contract) |
 
 ```yaml
 # Equivalent force-push entries for a repository whose default branch is main
@@ -176,9 +175,9 @@ entry marked.
 
 `policy` is a convention block ([concepts](concepts.md#conventions-outlive-the-tool)): it describes the permissions the
 agents' native settings enforce, and stays true when `harness` is gone. Entries for `harness`'s own commands are
-therefore left out of it, since those commands no longer exist after an [eject](remove.md#eject)
+therefore left out of it, since those commands do not exist after an [eject](remove.md#eject)
 (`harness remove --eject`). `./harnessw explain policy` prints the complete effective policy, those entries included.
-For the [Node API](#a-node-api) below, with every module on and task shims:
+For the [Node API](#a-node-api) below, with every module on:
 
 ```markdown
 <!-- harness:policy -->
@@ -203,10 +202,11 @@ Allowed:
 - `mise run db:reset|docker:up|docker:down`
 - `mcp__acme_observability__search_*` (*Claude Code only*)
 
-Denied to Ralph workers, in addition:
+Denied to workers, in addition:
 - `git am|cherry-pick|commit|merge|push|rebase|reset|stash|tag|update-ref|worktree`
 - `git -C`, `git -c`
 - `gh`
+- `bd close`
 - `mise run db:reset|docker:down`
 <!-- /harness:policy -->
 ```
@@ -224,7 +224,7 @@ to be made by hand in the other agent's file and in this text.
 | `shared.allow` | list of entries | `[]` | Run without a prompt, in every session |
 | `shared.ask` | list of entries | `[]` | Always ask a person first |
 | `shared.deny` | list of entries | `[]` | Never run |
-| `worker.deny` | list of entries | `[]` | Never run by a Ralph worker, on top of `shared` |
+| `worker.deny` | list of entries | `[]` | Never run by a worker (`harness worker` or an `agent` action), on top of `shared` |
 
 `scaffold` seeds the file as:
 
@@ -268,12 +268,14 @@ shared:
     - "Read(./.env*)"
 worker:
   deny:
-    # A worker's result is verified after it exits, then committed by the worker wrapper or ralph-tui.
+    # A worker's result is verified after it exits, then committed by harness worker --commit.
     # Anything that leaves the worker's worktree before that cannot be checked or undone.
     - [git, [am, cherry-pick, commit, merge, push, rebase, reset, stash, tag, update-ref, worktree]]
     - [git, ["-C", "-c"]]
     - [gh]
-    - [harness, [ralph, worktree]]
+    - [harness, worktree]
+    # The completed action of the beads preset closes the task after the replay; the agent does not.
+    - [bd, close]
     - [mise, run, ["db:reset", "docker:down"]]
 ```
 

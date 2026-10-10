@@ -31,8 +31,8 @@ committed files of those that did, so anything harness requires of them is impos
     `./harnessw --no-download`, MUST NOT download, and when no binary is cached MUST exit 0 after one stderr line
     naming `./harnessw`. Why: a download inside a hook stalls every agent action on a slow or offline machine, and a
     failing hook interrupts sessions of people who never installed harness.
-  - An explicit entry point is one a person or agent runs on purpose: `./harnessw <command>`, a task shim (which execs
-    `./harnessw`), or a global `harness <command>`. It downloads and verifies the pinned version on first use, and
+  - An explicit entry point is one a person or agent runs on purpose: `./harnessw <command>` or a global
+    `harness <command>`. It downloads and verifies the pinned version on first use, and
     MUST exit non-zero naming the cause when it cannot obtain it: 1 for a failed download, 3 when a person must act
     first. Why: a skipped verification that exits 0 reads as a pass.
 - CI MUST NOT need the binary or the wrapper, because an adopting repository's pipelines keep their own steps.
@@ -41,7 +41,7 @@ committed files of those that did, so anything harness requires of them is impos
 - Files harness writes MUST NOT add a runtime dependency, a required CI step, or a change to build, test, deploy or
   release outputs, because those outputs belong to the repository's own toolchain. The wrapper's first-run
   requirements (a POSIX `sh`, `curl` or `wget`, `sha256sum` or `shasum`) apply only to running harness.
-- Adoption and removal are per repository and per module (for example, `modules.verify` on and `modules.ralph` off),
+- Adoption and removal are per repository and per module (for example, `modules.verify` on and `modules.memory` off),
   because a repository may want one practice without the others. Removal has two modes, undo (`harness remove`) and
   eject (`harness remove --eject`), and either leaves a repository that works with what remains (see
   [generated-content-standards.md](generated-content-standards.md#removal)).
@@ -55,8 +55,8 @@ guess made by code is wrong in the first repository nobody anticipated
 
 - Every binary command produces the same result for the same inputs on every supported machine, so a user can read
   the repository files in `.harness/` and know what `harness render` will write.
-- When the binary meets something it cannot decide without judgement (an unrecognised hook, a task name collision, a
-  `CLAUDE.md` with content), it MUST NOT guess, because a wrong guess silently rewrites a team's configuration. It
+- When the binary meets something it cannot decide without judgement (an unrecognised hook, a `CLAUDE.md` with
+  content), it MUST NOT guess, because a wrong guess silently rewrites a team's configuration. It
   leaves the item untouched and lists it as a to-do (`harness doctor --json`) that an agent or a person resolves.
 - Every judgement step an agent performs ends in a deterministic check the binary owns (`harness render --check`,
   `harness doctor`, `harness verify --check`), so the outcome of judgement is still verified.
@@ -85,9 +85,14 @@ every model change. A tool that competed with them would carry credentials, cost
   conventions, and platform logic in the binary binds every release to one platform. Everything that leaves the
   clone, a pull request included, is a declared action ([principle 7](#7-nothing-leaves-the-clone-undeclared);
   [ADR 0012](../adrs/0012-write-boundary.md)).
+- The binary integrates two kinds of external program: git and the agent harnesses it has adapters for. It contains no
+  code for any other tool, such as a loop runner, a task tracker, a skills installer or a task runner, and reads none
+  of their configuration. Such a tool reaches a repository as data: a command the profile declares, an action a
+  lifecycle event fires, or an entry or file a preset writes on request. Why: each team picks different tools, and
+  code for one would follow every release of a tool the project does not own while serving no team that chose
+  another ([ADR 0022](../adrs/0022-tool-integration.md)).
 - The binary never reconfigures state it did not create (an existing `.beads/`, the database of the Beads task tracker;
-  a root `.ralph-tui/`, the configuration of ralph-tui, which runs unattended agents; `core.hooksPath`; existing tasks
-  of the mise task runner; a task runner's tool list; `CLAUDE.md` content; a `.harness/` directory that another
+  `core.hooksPath`; a task runner's tasks and tool list; `CLAUDE.md` content; a `.harness/` directory that another
   product created), because its owners depend on it as it is.
 
 ## 4. Least surprise
@@ -106,11 +111,11 @@ every model change. A tool that competed with them would carry credentials, cost
   on its own are: the wrapper's download of the version pinned in `.harness/wrapper.yaml` (on an explicit invocation
   only, over HTTPS, verified against the pinned checksum); the release's signed checksum file, fetched by
   `harness scaffold` (not with `--offline`) and `harness wrapper` before they write a pin and re-verified by
-  `harness doctor` at most daily; the daily release check ([update notices](compatibility-standards.md#update-notices));
-  and `skills sync` (through the `skills` CLI). Each is documented and the release check can be disabled. Rendering and
-  applying a preset need none of them, because their only inputs are the repository's files and the pinned release
-  ([principle 9](#9-everything-a-repository-does-is-in-its-own-files)). Any other network access is a declared action
-  (an `http` action, or a `run` or `agent` action whose command reaches the network), visible in
+  `harness doctor` at most daily; and the daily release check
+  ([update notices](compatibility-standards.md#update-notices)). Each is documented and the release check can be
+  disabled. Rendering and applying a preset need none of them, because their only inputs are the repository's files and
+  the pinned release ([principle 9](#9-everything-a-repository-does-is-in-its-own-files)). Any other network access is a
+  declared action (an `http` action, or a `run` or `agent` action whose command reaches the network), visible in
   `harness lifecycle list` and in `.harness/hooks.yaml`.
 - Names, flags and output look the same across commands ([cli-standards.md](cli-standards.md)), so what a user learns
   on one command holds on the next.
@@ -123,7 +128,8 @@ Why: a repository is the team's work, and a tool that loses part of it is remove
 - Every mutating command accepts `--dry-run` and prints exactly the change set it would apply, so the change can be
   judged before it happens.
 - harness writes only inside content it owns: files and blocks recorded in the manifest, and the native keys it owns.
-  Everything else is preserved byte for byte, because content outside the manifest is somebody else's.
+  The one other write is a preset's template, and only where its file is absent. Everything else is preserved byte for
+  byte, because content outside the manifest is somebody else's.
 - When owned content has been edited by hand, `harness remove` refuses to delete it unless `--force` is given, and
   names each path it refused, because the hand edit may be the only copy of someone's work.
 - Every change harness makes outside its state directories (the gitignored paths the profile sets, under `.work/` by
@@ -135,19 +141,19 @@ Why: a repository is the team's work, and a tool that loses part of it is remove
 
 Why: two ways to do one thing drift apart, and a reader cannot tell which one is in force.
 
-- Each operation has one command and one spelling. There are no command aliases. The wrapper, a global install and a
-  task shim are entry points to the same command, not spellings of different ones.
+- Each operation has one command and one spelling. There are no command aliases. The wrapper and a global install are
+  entry points to the same command, not spellings of different ones.
 - Each fact lives in one file: permissions in `policy.yaml`; agent hooks, notification actions and lifecycle actions
   in `hooks.yaml`; the pinned version and its checksums in `wrapper.yaml`; everything else harness needs, standing
   context included, in `config.yaml`. Rendered files are outputs, never a second place to edit.
-- The harness version is pinned in exactly one place, `.harness/wrapper.yaml`. A pin in `mise.toml`, `.mise.toml` or
-  `.tool-versions` as well is a `harness doctor` finding, because two pins disagree as soon as one of them moves.
+- The harness version is pinned in exactly one place, `.harness/wrapper.yaml`, because two pins disagree as soon as one
+  of them moves. harness reads no other file for it.
 - Each kind of content has one home: harness's own configuration in `.harness/`, agent content (skills, memory,
   commands, review guide) in `.agents/`, state at the paths the profile sets
   ([configuration-standards.md](configuration-standards.md#where-files-live)).
-- A repository has one documented front door: either task shims or the wrapper script `./harnessw` (`front_door` in
-  the profile). Both run the same pinned binary. The `AGENTS.md` `commands` block shows only the chosen one, so agents
-  and people type the same thing.
+- A repository has one documented entry point, the wrapper script `./harnessw`. The `AGENTS.md` `commands` block shows
+  it, so agents and people type the same thing. A task the repository writes in its own task runner to call harness is
+  the repository's file, not a second entry point harness renders.
 - A skill never re-describes what a command does deterministically; it calls the command
   ([skills-standards.md](skills-standards.md)), because a description drifts from the command it describes.
 
@@ -161,9 +167,10 @@ hard to undo, so it must be written down, reviewed and guarded before it can hap
 ([ADR 0015](../adrs/0015-development-lifecycle.md), [ADR 0019](../adrs/0019-action-kinds.md)). The
 [lifecycle guide](../features/lifecycle.md) has the stages, trigger points and full reference.
 
-- **Declared.** Actions live in `.harness/hooks.yaml`. The binary, its presets included, ships no actions, so what
-  "deliver" means is decided in the repository, where an organization's delivery convention is written like any other
-  entry.
+- **Declared.** Actions live in `.harness/hooks.yaml`, and no action runs that the repository does not declare there.
+  Stack presets hold none; a tool preset's actions (the `beads` preset's, for example) reach the file only when a
+  person applies the preset and reads its diff. So what "deliver" means is decided in the repository, where an
+  organization's delivery convention is written like any other entry.
 - **Three kinds.** An action is a shell command (`run`), an HTTP request harness performs itself (`http`), or a
   headless agent run (`agent`). Notification events accept `run` and `http` only, so an agent hook never starts
   another agent.
@@ -178,7 +185,7 @@ hard to undo, so it must be written down, reviewed and guarded before it can hap
 - **One action, three triggers.** A person runs `harness lifecycle run <event>`; a coordinating agent runs the same
   command; or harness fires the action at the event's trigger point when the action sets `auto: true`. `auto`
   defaults to false, so nothing leaves the clone automatically unless a committed file says so.
-- **Guarded.** Actions never run inside a [Ralph](../features/ralph.md) worker (the agent process an unattended run
+- **Guarded.** Actions never run inside a worker (the agent [`harness worker`](cli-standards.md#the-worker-command)
   starts for one task) or an `agent` action: the binary refuses `lifecycle run` there itself, whatever spelling invoked
   it. `deliver` always refuses on the default branch and with uncommitted changes and, when the verify module is
   enabled, without a valid receipt (the record a passing `harness verify` writes). These guards are built-in invariants
@@ -195,28 +202,28 @@ hard to undo, so it must be written down, reviewed and guarded before it can hap
 Permission to run `harness lifecycle run <event>` is permission for everything that event's actions do: the actions
 run as child processes of harness, outside the agent's per-command permission checks. The scaffolded repository policy
 therefore seeds `[harness, lifecycle, run, deliver]` under `ask`, rendered for every rendered spelling (`harness`,
-`./harnessw`, `harnessw` and the task shim). It is a seeded entry: the repository owns it and MAY change it
+`./harnessw` and `harnessw`). It is a seeded entry: the repository owns it and MAY change it
 ([ADR 0015](../adrs/0015-development-lifecycle.md)). The rendered entries are defence in depth. Other spellings, such
 as an absolute path to the binary, match no prefix rule, and the binary enforces the guards itself.
 
 ## 8. Conventions outlive the tool
 
 Every convention harness establishes is written down as plain-language text where people and other tools already look,
-and stays valid after harness is removed. Why: people, agents, ralph-tui and `bd` (the Beads command) rely on where
-worktrees, task files and state live. If those conventions existed only in harness's configuration, removing harness
+and stays valid after harness is removed. Why: people, agents and the other tools in a repository rely on where
+worktrees and state live. If those conventions existed only in harness's configuration, removing harness
 would leave state that follows rules nobody wrote down ([ADR 0018](../adrs/0018-conventions.md)).
 
 - Two classes of managed block carry harness's text in `AGENTS.md`
   ([generated-content-standards.md](generated-content-standards.md#block-classes)):
   - **Convention blocks** state facts that stay true without harness: where worktrees are created and on which
-    branch, how tasks are tracked, how Ralph runs work, the effective permissions, the memory index, standing
+    branch, the effective permissions, the memory index, standing
     directives declared `static`, and the `CLAUDE.md` import. They never name a harness command.
   - **Tool blocks** describe how to use harness: its commands, what `.harness/` holds, how to verify through it, how
     work is delivered through its lifecycle. They MAY name `./harnessw` commands.
 - Each path a module establishes is also listed in a managed block of `.gitignore`, which is a convention block.
-- State lives at paths the profile sets (`state.dir`, `worktrees.dir`, `tasks.prd_dir`, `ralph.worktrees_dir`), never
-  inside `.harness/` or `.agents/`. The block text names the configured path, so people, agents, ralph-tui and `bd`
-  find it by reading the repository, not by asking harness.
+- State lives at paths the profile sets (`state.dir`, `worktrees.dir`), never inside `.harness/` or `.agents/`. The
+  block text names the configured path, so people, agents and other tools find it by reading the repository, not by
+  asking harness.
 - A block states its convention as fact. It never says it is managed by harness beyond its marker, so it reads as the
   repository's own text.
 - `harness remove --eject` keeps convention blocks and `.gitignore` entries as the repository's own content and
@@ -237,8 +244,8 @@ there, and a reviewer sees its effect without its reason ([ADR 0013](../adrs/001
   what it does.
 - Every write to the repository files is one a person or agent asked for: seeding them, migrating them, applying a
   preset with `harness preset apply`, or an edit. Why: a file that changes by itself holds decisions nobody made.
-- A built-in preset reaches a repository only as entries written into its files, and nothing records where an entry
-  came from, so each entry has one source of truth: the file it is in
+- A built-in preset reaches a repository only as entries written into its files and files its templates write, and
+  nothing records where an entry or a file came from, so each entry has one source of truth: the file it is in
   ([configuration-standards.md](configuration-standards.md#presets)).
 - An organization's choices reach its repositories as changes to each repository's files, written by a person or by an
   agent following the organization's skill, and reviewed there as a diff. The cost is that a choice shared by many

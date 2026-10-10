@@ -41,9 +41,9 @@ Commands are named `harness <command>` on this page. The examples run `fleet` th
 | Apply a stack's preset to every repository on that stack, delivered for review | `harness fleet preset apply node --yes --deliver --repos <file>` |
 | Pick up a schema change everywhere | `harness fleet render --yes --deliver` |
 | Move every repository to a new `harness` release | `harness fleet wrapper --version <tag> --deliver` |
-| Install a skill source in every repository | `harness fleet skills sync --deliver` |
+| Wire a tool, such as Beads, into every repository that uses it | `harness fleet preset apply beads --yes --deliver --repos <file>` |
 | Adopt `harness` in a set of repositories | `harness fleet scaffold --adopt --yes --deliver` |
-| Withdraw a module everywhere | `harness fleet remove --module ralph --yes --deliver` |
+| Withdraw a module everywhere | `harness fleet remove --module memory --yes --deliver` |
 
 ## How it works
 
@@ -125,7 +125,7 @@ harness fleet <command> [command args...] [--repos <file>] [--deliver] [--contin
 
 | Flag | Default | Meaning |
 | --- | --- | --- |
-| `<command> [command args...]` | required | Any repository-level `harness` command and its arguments: `scaffold`, `render`, `preset`, `remove`, `doctor`, `skills sync`, `wrapper`, `explain`, `version` |
+| `<command> [command args...]` | required | Any repository-level `harness` command and its arguments: `scaffold`, `render`, `preset`, `remove`, `doctor`, `wrapper`, `explain`, `version` |
 | `--repos <file>` | `~/.config/harness/fleet.yaml` | Fleet file |
 | `--deliver` | off | Commit each changed repository on a new local branch and fire its `deliver` event (scope `change`) |
 | `--continue-on-error` | off | Keep going after a repository fails or is blocked |
@@ -187,10 +187,10 @@ commit_message: "chore: adopt harness"
 ./harnessw fleet scaffold --adopt --yes --deliver --repos ~/fleets/new-adopters.yaml
 ```
 
-Each repository gets the presets of the stacks `scaffold` detects in it. The binary ships no actions and no preset holds
-one, so a freshly scaffolded repository declares no `deliver` actions and ends as **committed, not delivered**. Deliver
-those branches by hand, or declare `deliver` actions in each branch's `.harness/hooks.yaml`, commit them, and run
-`harness lifecycle run deliver` there.
+Each repository gets the presets of the stacks `scaffold` detects in it. No action runs that a repository does not
+declare, and no stack preset holds one, so a freshly scaffolded repository declares no `deliver` actions and ends as
+**committed, not delivered**. Deliver those branches by hand, or declare `deliver` actions in each branch's
+`.harness/hooks.yaml`, commit them, and run `harness lifecycle run deliver` there.
 
 Health check before a release:
 
@@ -202,8 +202,9 @@ Health check before a release:
 
 - Do keep the fleet file to repositories you are responsible for.
 - Do run a command once by hand in one repository before running it across the fleet.
-- Do keep one fleet file per stack for `preset apply`: a preset holds one stack's commands, lanes and hooks, and in a
-  repository on another stack its entries do not fit.
+- Do keep one fleet file per stack for a stack preset: it holds one stack's commands, lanes and hooks, and in a
+  repository on another stack its entries do not fit. A tool preset fits any repository that uses its tool, so its
+  fleet file lists those repositories.
 - Do give a change that takes judgement in each repository, such as an organization's convention, to a person or an
   agent working in that repository: `fleet` runs the same command everywhere and cannot adapt it.
 - Do use `--deliver` for anything that changes files, and declare `deliver` actions that put the change where each

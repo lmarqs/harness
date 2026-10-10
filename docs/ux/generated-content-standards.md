@@ -20,13 +20,14 @@ These rules apply to anything harness writes into a repository.
 
 | Kind | Example | How ownership is marked |
 | --- | --- | --- |
-| Owned whole file that allows comments | the wrapper `harnessw` (after its `#!` line), `.harness/wrapper.yaml`, `.codex/rules/harness.rules`, task shims (one-line mise tasks that run `./harnessw <command>`) under `.mise/tasks/`, the harness skill `.agents/skills/harness/SKILL.md` (as a YAML comment right after the opening `---` of its front matter) | header line, plus the manifest |
+| Owned whole file that allows comments | the wrapper `harnessw` (after its `#!` line), `.harness/wrapper.yaml`, `.codex/rules/harness.rules`, the harness skill `.agents/skills/harness/SKILL.md` (as a YAML comment right after the opening `---` of its front matter) | header line, plus the manifest |
 | Owned whole file that allows no comments | `.harness/manifest.json` and other JSON files | the manifest |
 | Seeded file | `.harness/config.yaml`, `.harness/policy.yaml`, `.harness/hooks.yaml`, the `.agents/memory/` skeleton | the manifest records it as seeded, with the hash it was created with: written once, then the repository's |
+| Template file | a file a preset's template wrote, such as `.ralph-tui/config.toml` from the `ralph-tui` preset | nothing: seeded content the manifest does not record, written once and only where the file was absent, then the repository's |
 | Managed block inside a human file | the [block ids](#block-ids) in `AGENTS.md`, `README.md`, `CLAUDE.md` and `.gitignore` | opening and closing markers, plus the manifest |
 | Owned keys inside a native file | `permissions.{allow,ask,deny}`, harness hook entries (agent hooks, notification and context hooks) and rendered raw hook entries in `.claude/settings.json`; the equivalent keys and entries in `.codex/config.toml` (its `notify` key when harness renders it) and `.codex/hooks.json` | the manifest |
 | Link | `.claude/skills/harness -> ../../.agents/skills/harness` | the manifest |
-| State | the paths the profile sets (`state.dir`, `worktrees.dir`, `tasks.prd_dir`, `ralph.worktrees_dir`; under `.work/` by default), including the lifecycle log `lifecycle.jsonl` in `state.dir` | gitignored by managed blocks; never committed, never listed as content, never inside `.harness/` or `.agents/` |
+| State | the paths the profile sets (`state.dir`, `worktrees.dir`; under `.work/` by default), including the lifecycle log `lifecycle.jsonl` in `state.dir` | gitignored by managed blocks; never committed, never listed as content, never inside `.harness/` or `.agents/` |
 
 The manifest (`.harness/manifest.json`) is the record of ownership. Content not listed in it is not harness's, whatever
 it looks like. Why: a header or a marker can be copied into a file harness never wrote, and only the record says what
@@ -36,6 +37,13 @@ Owned content is rendered and replaced on every render, and a hand edit to it is
 and then edited by people and agents. harness never re-renders it, and adds to the repository files only when a person
 applies a preset (`harness preset apply`), and then only what they lack. Why: the seeded files hold the repository's
 choices and knowledge, which harness cannot recompute.
+
+A template is seeded content of its own kind: a whole file in a preset or in `scaffold`, rendered once with values from
+the profile, written only when the file is absent, and from then on the repository's own file. harness never renders it
+again and never removes it, and the manifest does not record it. Why: a template is usually a file another tool reads,
+such as a loop runner's configuration, which the team then edits for that tool, and a record of where it came from
+would be a record of which presets the repository applied
+([configuration-standards.md](configuration-standards.md#presets)).
 
 `harness scaffold` seeds the repository files and applies the presets of the detected stacks as it seeds them
 ([configuration-standards.md](configuration-standards.md#presets)). The `.agents/memory/` skeleton is seeded when the
@@ -116,8 +124,7 @@ only explains how to use it. Eject (`harness remove --eject`) must keep the firs
 | Convention block | facts that hold without harness: where things are, how work is tracked, what is permitted | never | markers removed, text kept |
 | Tool block | how to use harness: its commands, its configuration, how it verifies and delivers | MAY, as `./harnessw <command>` | removed |
 
-- A convention block MUST read correctly after eject, so it never names `harnessw`, `harness`, `.harness/` or a task
-  shim.
+- A convention block MUST read correctly after eject, so it never names `harnessw`, `harness` or `.harness/`.
 - The `policy` convention block describes the effective permissions in the native files, never `policy.yaml`, so it
   stays true after eject.
 
@@ -144,13 +151,11 @@ every adopted repository, so their conventions and conditions are stated in ever
 
 | File | Block id | Class | States |
 | --- | --- | --- | --- |
-| `AGENTS.md` | `commands` | tool | how to run things: `./harnessw <command>` and, with `front_door: mise`, the task shims |
+| `AGENTS.md` | `commands` | tool | how to run things: `./harnessw <command>` |
 | `AGENTS.md` | `layout` | tool | what `.harness/`, `.agents/` and the state directories hold |
 | `AGENTS.md` | `verify` | tool | the repository's checks: lint, build, the test lanes and when each is required |
 | `AGENTS.md` | `lifecycle` | tool | the conditions work meets before it leaves the clone, and each event's actions in order |
 | `AGENTS.md` | `worktrees` | convention | where managed worktrees are created, on which branch, from which base |
-| `AGENTS.md` | `tasks` | convention | how tasks are tracked: the tracker, where task files live, claiming, completing and releasing |
-| `AGENTS.md` | `ralph` | convention | how [Ralph](../features/ralph.md) runs work: worktrees, branches, where ralph-tui state lives, what a worker may do |
 | `AGENTS.md` | `policy` | convention | the effective permissions by decision, with the entries only Claude enforces |
 | `AGENTS.md` | `memory` | convention | the index of `.agents/memory/` |
 | `AGENTS.md` | `context` | convention | the standing directives declared `static`, inline or as pointer lines |
@@ -158,22 +163,19 @@ every adopted repository, so their conventions and conditions are stated in ever
 | `CLAUDE.md` | `import` | convention | one line: `@AGENTS.md` |
 | `.gitignore` | `state` | convention | `/<state.dir>/` |
 | `.gitignore` | `worktrees` | convention | `/<worktrees.dir>/` |
-| `.gitignore` | `tasks` | convention | `/<tasks.prd_dir>/` |
-| `.gitignore` | `ralph` | convention | `/.ralph-tui/` and `/<ralph.worktrees_dir>/` |
-| `.gitignore` | `beads` | convention | `/.beads/`, only when harness created the [Beads](../features/tasks.md#trackers) database and the repository does not track the path |
 
 ### Conventions in blocks
 
 Every convention a module establishes is written where people and other tools read it, so it remains true without
 harness ([principles.md](principles.md#8-conventions-outlive-the-tool)):
 
-- In `AGENTS.md`, as a convention block of plain-language statements: where worktrees, task files and Ralph worktrees
-  are created, how tasks are tracked, what is permitted, which directives always apply.
+- In `AGENTS.md`, as a convention block of plain-language statements: where worktrees are created, what is permitted,
+  which directives always apply.
 - For each path, in a managed block of `.gitignore`.
 - The text names the configured value of each path, never a default the profile overrode, because a reader acts on
   what the text says.
 - A block's text describes the convention as fact. It never says it is managed by harness beyond the marker, and it
-  never depends on the binary to be true, so people, agents, ralph-tui and `bd` (the Beads command) can rely on it after
+  never depends on the binary to be true, so people, agents and the other tools in the repository can rely on it after
   harness is ejected.
 
 ## Owned keys in native files
@@ -237,17 +239,16 @@ Why: two teammates rendering the same commit must produce the same diff, or ever
 - Generated content is committed so that every change reaches review as a diff and a clone works without the binary.
 - A change to one repository file produces the smallest rendered diff that expresses it; unrelated lines do not move,
   so a reviewer reads only the effect of the change.
-- The binary commits in a repository in two cases only: the Ralph worker wrapper commits a task's verified work inside
-  the Ralph coordinator worktree (the isolated worktree a Ralph run executes in), and
-  `harness fleet <command> --deliver`, which runs a command across a listed set of repositories, commits the tool-owned
-  changes on a new local branch `<branch_prefix><command>`, cut from the fetched default branch, then fires that
-  repository's `deliver` actions. Any other commit, push or pull request is a declared action. Why: a commit is the
-  start of delivery, and delivery is the repository's decision. The two exceptions commit only work the binary itself
-  verified or rendered, on branches it created.
+- The binary commits in a repository in two cases only: `harness worker --commit` commits a task's verified work in the
+  checkout it ran in, and `harness fleet <command> --deliver`, which runs a command across a listed set of repositories,
+  commits the tool-owned changes on a new local branch `<branch_prefix><command>`, cut from the fetched default branch,
+  then fires that repository's `deliver` actions. Any other commit, push or pull request is a declared action. Why: a
+  commit is the start of delivery, and delivery is the repository's decision. The two exceptions commit only work the
+  binary itself verified or rendered, in a checkout its caller chose for that work or on a branch it created.
 - Reviewers judge the source change (`policy.yaml`, `hooks.yaml`, `config.yaml`); the rendered diff shows its effect
   on each agent.
-- `harness preset apply` writes its additions and renders them in the same change, so the entries and their rendered
-  effect reach review as one diff, and the drift check passes on it.
+- `harness preset apply` writes its additions and renders them in the same change, so the entries, the files its
+  templates wrote and their rendered effect reach review as one diff, and the drift check passes on it.
 - A version upgrade reaches review as one diff: `wrapper.yaml` (the version and its checksums) and every artefact the
   new release renders differently, `harnessw` and the harness skill included. The checksums were written only after
   the running binary verified the release's signed checksum file, so reviewers confirm that the version is the one
@@ -262,7 +263,7 @@ fully reversible, and a team that leaves harness must keep the conventions, perm
 Both modes:
 
 - act only on what the manifest lists, and never delete any other file: a file the manifest does not record, even
-  inside `.harness/` (such as `.harness/ralph/prompt.hbs`), is listed and left, and `.harness/` is deleted once
+  inside `.harness/`, is listed and left, and `.harness/` is deleted once
   nothing else is in it, so what removal touches is known before it runs ([ADR 0007](../adrs/0007-ownership.md));
 - refuse a listed owned file whose content no longer matches its recorded hash (it was edited by hand), name it, and
   exit 3 unless `--force` is given, because the edit may be someone's only copy of their work;
@@ -300,11 +301,11 @@ without harness:
 - It keeps rendered native files and owned keys as hand-owned content, removing their generated-file headers.
 - It removes hook entries that call harness, and permission entries that name a harness command in any rendered
   spelling, and lists them; raw hooks keep working. Why: they name a program that no longer exists in the repository.
-- It removes task shims that exec `harnessw` and lists them; it keeps any task that does not.
 - It removes the harness skill and its links, because the skill teaches commands that no longer exist.
 - It deletes `harnessw` and the owned and seeded files in `.harness/`, the manifest included, then `.harness/` once
   nothing else is in it.
 - It keeps the `.agents/memory/` skeleton and whatever people wrote into it, because it is the repository's knowledge.
 
-After eject, the repository keeps its conventions, permissions, hooks and static standing directives, and ralph-tui and
-`bd` keep working.
+After eject, the repository keeps its conventions, permissions, hooks and static standing directives, and every file a
+template wrote. A tool a preset wired keeps its own configuration; an entry in it that runs `./harnessw` is the
+repository's to change.

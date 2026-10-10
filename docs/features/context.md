@@ -18,9 +18,8 @@ context whenever a declared trigger matches: every session, the first time the a
 when the person's message contains a listed word. Agent hooks deliver the entries; an entry declared `static: true` is
 written into `AGENTS.md` instead, so it reaches agents without the binary.
 
-The triggers are deterministic: the same session, files and words give the same context on every machine. Entries
-come only from files committed in the repository and from installed skills that match their lock, and nothing is
-fetched when a hook runs.
+The triggers are deterministic: the same session, files and words give the same context on every machine. Entries come
+only from files and skills committed in the repository, and nothing is fetched when a hook runs.
 
 Commands are named `harness <command>` on this page. The examples run them through the repository's wrapper,
 `./harnessw <command>`, from the root of a checkout; with a global install, `harness <command>` is equivalent
@@ -73,13 +72,14 @@ harness context: sql-quality-check (path src/migration/1700000000000-add-invoice
 ### Roles
 
 `for` limits an entry to roles: `interactive` for every session a person starts, `worker` for
-[`agent` actions](lifecycle.md#action-kinds) and for Ralph workers, the agent processes an unattended [Ralph](ralph.md)
-run starts, one per task. The default is both. A worker session is one started with `HARNESS_WORKER=1`, which `harness`
-sets for Ralph workers and `agent` actions; every other session is interactive.
+[`agent` actions](lifecycle.md#action-kinds) and for workers, the agents
+[`harness worker`](ralph.md#the-worker-contract) runs headless, one per task. The default is both. A worker session is
+one started with `HARNESS_WORKER=1`, which `harness worker` and `agent` actions set for the agent they start; every
+other session is interactive.
 
-For a worker, the declarations and every file they name are read from the session's base commit, the commit its work
-started from, not from the worker's writable tree, so a worker cannot change its own instructions between attempts
-([safety](safety.md#standing-context)).
+For a worker, the declarations and every file they name are read from its base commit, the `HEAD` of the checkout when
+`harness worker` started, not from the worker's writable tree, so a worker cannot change its own instructions between
+attempts ([safety](safety.md#standing-context)).
 
 ### Delivery per agent
 
@@ -95,7 +95,8 @@ The text reaches the agent as additional context of that event. An agent that ha
 rendered for it, and [`harness doctor`](doctor.md) reports the gap as a note. Codex reads files through shell commands,
 which name no file to match, so a Codex session fires a `paths` entry only when it patches a matching file.
 
-In a worker session, the "person's message" is the task prompt the launcher sends.
+In a worker session, the "person's message" is the task prompt the agent receives: what the loop runner passed to
+`harness worker`, or an `agent` action's prompt.
 
 ### Static entries
 
@@ -119,11 +120,12 @@ validation error.
 
 | Source | Rule |
 | --- | --- |
-| `skill: <name>` | `.agents/skills/<name>/SKILL.md` must exist. When `skills-lock.json` lists the skill, its content must match the hash the lock records; a skill that does not match is not injected, and `harness doctor` reports it as a finding |
+| `skill: <name>` | `.agents/skills/<name>/SKILL.md` must exist; `harness doctor` reports a skill named here that does not exist as a finding. The skill is delivered as the file committed there; a worker reads it from its base commit |
 | `file: <path>` | a path inside the repository, relative to its root. Not inside the state directories. An uncommitted file reaches interactive sessions only, because workers read from the base commit |
 
-Nothing is downloaded or fetched when a hook runs. A skill reaches the repository through the
-[`skills` CLI](skills.md#declared-skill-sources) or a commit, both reviewed like any other change.
+Nothing is downloaded or fetched when a hook runs. A skill reaches the repository as a commit under `.agents/skills/`,
+whether a person wrote it or installed it with a tool of the team's choice ([shared skills](skills.md#shared-skills)),
+and is reviewed like any other change.
 
 ### Budget
 
@@ -192,9 +194,9 @@ harness context show [--role interactive|worker] [--path <file>]... [--prompt <t
 ```
 
 Prints what a session would receive and why: every `always` entry for the role, and the `when` entries the given paths
-and prompt would trigger, each with its source, delivery, trigger and line count, followed by the role's always-on
-total against the budget. Entries that would not be injected, such as a skill that does not match its lock, are listed
-with the reason. It reads the same files the hooks read and writes nothing.
+and prompt would trigger, each with its source, delivery, trigger and line count, followed by the role's always-on total
+against the budget. Entries that would not be injected, such as a skill that does not exist, are listed with the reason.
+It reads the same files the hooks read and writes nothing.
 
 | Flag | Default | Meaning |
 | --- | --- | --- |
@@ -213,11 +215,11 @@ with the reason. It reads the same files the hooks read and writes nothing.
 | Variable | Effect |
 | --- | --- |
 | `HARNESS_NO_CONTEXT=1` | Hooks inject nothing in this environment and every process started from it |
-| `HARNESS_WORKER=1` | Set by the Ralph worker launcher and for `agent` actions; selects the `worker` role |
+| `HARNESS_WORKER=1` | Set by `harness worker` and by `agent` actions for the agent they start; selects the `worker` role |
 
-Files read: `.harness/config.yaml`, the skills and files the entries name, `skills-lock.json`, the hook payload, and
-for workers the same files at the base commit. Files written: `<state.dir>/context/<session-id>.json`; by `render`, the
-hook entries in the native agent files and the `context` block of `AGENTS.md`.
+Files read: `.harness/config.yaml`, the skills and files the entries name, the hook payload, and for workers the same
+files at the base commit. Files written: `<state.dir>/context/<session-id>.json`; by `render`, the hook entries in the
+native agent files and the `context` block of `AGENTS.md`.
 
 ## Examples
 
@@ -275,7 +277,7 @@ You run unattended. Never reset or seed the shared database; e2e tests create th
 When a task needs a decision only a person can make, stop and say so in one line.
 ```
 
-Interactive sessions never see these lines. Workers read them from the run's base commit.
+Interactive sessions never see these lines. Workers read them from their base commit.
 
 ### A must-have that holds without the binary
 
@@ -333,12 +335,12 @@ always-on: 62 of 120 lines
 
 | Symptom | Cause | Fix |
 | --- | --- | --- |
-| A skill is never injected; `doctor` reports a lock mismatch | The installed skill differs from the hash in `skills-lock.json`: edited by hand, or installed outside the `skills` CLI | Reinstall it with `./harnessw skills sync`, or update it through the `skills` CLI so the lock matches |
+| A skill is never injected; `doctor` reports it missing | No `.agents/skills/<name>/SKILL.md` exists for the name in `context`, or it is not committed and the session is a worker's | Install or write the skill, commit it, or fix the name |
 | No standing context; the session shows `harness v0.9.0 is not cached on this machine; run ./harnessw version once to fetch it.` | Hooks never download, and the pinned release is not cached here | Run `./harnessw version` once; declare must-haves `static: true` |
 | A `paths` entry never fires in Codex | Codex read the file through a shell command, which names no file | Rely on edits for Codex, or make the entry `always` |
 | A `prompt` entry fires on unrelated messages | A word that is too common | Use more specific words or phrases, or a `paths` trigger |
 | The agent loads a skill twice | The skill was injected and the agent also matched its description and loaded it | Inject it as a `pointer`, or narrow the skill's description |
-| A worker ignores a new directive | The directive is not committed; workers read from the run's base commit | Commit it, then start the run |
+| A worker ignores a new directive | The directive is not committed; workers read from their base commit | Commit it, then start the run |
 | `doctor` notes the budget is exceeded | Always-on content for a role is over `context.budget` | Shorten entries, switch them to `pointer`, or move them to a trigger |
 | Nothing is injected anywhere | `HARNESS_NO_CONTEXT=1` is set, or `modules.hooks` is off | Unset the variable; turn the module on and render |
 | `render` exits 1: static entry with `for` | A static entry reaches every session that reads `AGENTS.md` | Remove `for`, or remove `static` and let the hook deliver it |

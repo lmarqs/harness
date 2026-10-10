@@ -14,10 +14,15 @@ notice it.
 ## What it is
 
 `harness` is a single command-line binary that writes, checks and removes the configuration agent harnesses read
-(Claude Code, Codex CLI, and ralph-tui, which runs agents unattended through a list of tasks). Everything it does in a
-repository is written in that repository's own files and pinned to one verified release. It never calls a model, and it
-never plays: like a game master, it sets the rules of the world and leaves the turns to the players, who are the
-developers, and their characters, the agents.
+(Claude Code and Codex CLI). Everything it does in a repository is written in that repository's own files and pinned to
+one verified release. It never calls a model, and it never plays: like a game master, it sets the rules of the world and
+leaves the turns to the players, who are the developers, and their characters, the agents.
+
+It is not a launcher for any loop runner, and it contains no code for task trackers, skills installers, task runners or
+hosting platforms. It works with whichever of them a team uses: a loop runner such as ralph-tui names
+`./harnessw worker <agent>` as its agent command, which runs the agent for each task under rules the agent cannot
+bypass, and a tracker such as Beads is updated by lifecycle actions the repository declares. Presets write that wiring
+into the repository's files on request ([ADR 0022](docs/adrs/0022-tool-integration.md)).
 
 ## Read next
 
