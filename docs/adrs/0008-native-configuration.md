@@ -34,7 +34,7 @@ told apart.
 2. Where an agent reads one shared file, the tool owns only named keys and entries: the permission lists, and the hook
    and notification entries whose command is the tool's own entry point. Every other key and entry is preserved byte
    for byte.
-3. The owned set of every native file is recorded in the manifest, under the name of the plugin that renders it
+3. The owned set of every native file is recorded in the manifest, under the name of the recipe that renders it
    ([0007](0007-ownership.md), [0022](0022-tool-integration.md)).
 4. Personal override files are never written and never recorded. They are read only during adoption, and only when a
    person chooses to import them ([0016](0016-permission-adoption.md)).
@@ -53,8 +53,8 @@ told apart.
   notifications ([0019](0019-action-kinds.md)) take effect. Byte-for-byte preservation keeps the tool's diff to its own
   keys, so a reviewer sees only what the tool changed.
 - **3.** Ownership inside a JSON file cannot be marked in the file. The manifest is where the drift check and removal
-  learn which keys to compare and which to take out ([0007](0007-ownership.md)). Recording the plugin lets a repository
-  stop using a harness plugin and lose exactly the keys it rendered.
+  learn which keys to compare and which to take out ([0007](0007-ownership.md)). Recording the recipe lets a repository
+  stop using a harness recipe and lose exactly the keys it rendered.
 - **4.** Writing an override file changes one person's setup through a change meant for the team, and recording it
   puts a personal, usually untracked file into a committed manifest. Importing it is a choice because it publishes one
   person's rules to the team ([0016](0016-permission-adoption.md)).
@@ -92,7 +92,7 @@ Costs:
 
 Must be maintained:
 
-- Round-trip tests for every native format, and the owned key set of every harness plugin
+- Round-trip tests for every native format, and the owned key set of every harness recipe
   ([0009](0009-agent-support.md)).
 
 ## Confirmation

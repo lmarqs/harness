@@ -58,7 +58,7 @@ run reaches a person.
    verification, whoever triggers it.
 5. The repository declares the actions for each event ([0019](0019-action-kinds.md)): run in order, optionally limited
    to some of the event's scopes, each with a rule for whether its failure stops the remaining actions. No action runs
-   that the repository's files do not declare; a plugin's actions reach them only as entries a person applies
+   that the repository's files do not declare; a recipe's actions reach them only as entries a person applies
    ([0013](0013-organization-content.md)).
 6. Every event can be triggered by a person, by a coordinating agent or by a script, or automatically at a trigger point
    of the binary's own work, and every trigger runs the same declared actions under the same guards. Automatic
@@ -148,7 +148,7 @@ agent has no repeatable path, and nothing runs at a trigger point when no agent 
 Extensions hook any point of the binary's operation with their own code. At its best, every extension need is met. It
 loses because extension code is engine code in repositories ([0006](0006-repository-contract.md)) that may need a
 runtime ([0004](0004-runtime-dependencies.md)). An open set of hook points has no guard that covers all of them, and the
-tool grows into a harness ([0001](0001-role-of-the-tool.md)). A plugin is data that fills fixed contracts
+tool grows into a harness ([0001](0001-role-of-the-tool.md)). A recipe is data that fills fixed contracts
 ([0022](0022-tool-integration.md), [0023](0023-core-and-contracts.md)), so it adds no hook point.
 
 ### Stops reported only in the command's output

@@ -26,13 +26,13 @@ anything is written.
   person's choices to the team.
 - Some native settings are not permission rules: default permission modes, extra readable directories, sandbox and
   approval settings, tool-server definitions, and settings an administrator manages.
-- An imported rule can contradict an invariant or a floor rule of a plugin in use ([0011](0011-safety-invariants.md),
+- An imported rule can contradict an invariant or a floor rule of a recipe in use ([0011](0011-safety-invariants.md),
   [0022](0022-tool-integration.md)), for example by allowing a bypass flag or a force push to the default branch.
 - The same rule can appear in several scopes, and a pattern can appear under both allow and deny.
 
 ## Decision
 
-1. The repository's permission source can express every native rule of every agent the release ships a harness plugin
+1. The repository's permission source can express every native rule of every agent the release ships a harness recipe
    for ([0009](0009-agent-support.md)). An entry is either a shell-command prefix, rendered for each agent in that
    agent's own syntax, or a native rule string, rendered verbatim for the agent whose syntax it is. A native rule string
    is converted for another agent only when it is a pure shell-command prefix; otherwise it takes effect for its own
@@ -41,10 +41,10 @@ anything is written.
 3. Adoption imports existing permissions and hooks from the scopes the person chooses. The project scope is the default;
    personal and user scopes are imported only on request, and every entry from them is listed for review because it
    becomes committed and shared. Which native keys hold an agent's permission rules comes from that agent's harness
-   plugin ([0009](0009-agent-support.md)). Source files are read and never written.
+   recipe ([0009](0009-agent-support.md)). Source files are read and never written.
 4. Every imported entry carries its provenance. Exact duplicates merge. A pattern present under both allow and deny
    resolves to deny and is listed as unresolved ([0002](0002-division-of-work.md)).
-5. Invariants and the floor rules of the plugins in use override imported rules. An imported entry that would weaken
+5. Invariants and the floor rules of the recipes in use override imported rules. An imported entry that would weaken
    either is dropped and reported ([0011](0011-safety-invariants.md)).
 6. Before writing anything, adoption renders the imported sources and compares the effective rule set of each agent
    with the set in effect before adoption. Every project-scope rule must still be in effect; otherwise adoption writes
@@ -64,7 +64,7 @@ anything is written.
 - **3.** The project scope is what the team already shares, so importing it changes nothing about who sees what.
   Personal and user scopes hold one person's choices; committing them is a decision that person must make, entry by
   entry. Reading without writing keeps the person's own files working exactly as before
-  ([0012](0012-write-boundary.md)). The harness plugin already describes the agent's native files
+  ([0012](0012-write-boundary.md)). The harness recipe already describes the agent's native files
   ([0009](0009-agent-support.md)), so it is where adoption learns which keys to read, and the binary holds no agent's
   file layout.
 - **4.** Provenance shows a reviewer which entries came from where, so entries nobody chose for the team can be found
@@ -108,7 +108,7 @@ Costs:
 
 Must be maintained:
 
-- Each shipped harness plugin's native rule import and its agent's full rule grammar, the per-agent equivalence
+- Each shipped harness recipe's native rule import and its agent's full rule grammar, the per-agent equivalence
   comparison, and the provenance format ([0009](0009-agent-support.md)).
 
 ## Confirmation

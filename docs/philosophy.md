@@ -6,7 +6,7 @@
 serve. A contributor or an agent reading one of them cannot tell what the project as a whole is trying to achieve, so
 a proposal can solve a problem nobody has, or work against a goal the project holds, without anyone noticing.
 
-**Goal.** In one read, anyone can learn which problems `harness` exists to solve, what it is trying to achieve and the
+**Goal.** In one read, anyone can learn which problems `the-cook` exists to solve, what it is trying to achieve and the
 tenets every decision follows from, and can check a new proposal against them.
 
 ## The problems
@@ -40,24 +40,25 @@ skills, and the loops that run agents unattended. Across many repositories, that
 - Anyone reading a repository can tell what its agents may do and why.
 - The tool's own repository is developed with the tool.
 
-## What harness is
+## What `the-cook` is
 
-`harness` is a meta-harness. It bridges a repository's declared intent, its permissions, hooks, instructions and
-lifecycle, to the programs that carry it out. It writes, checks and removes the configuration that agent harnesses
-such as Claude Code and Codex CLI read, and it constrains how an agent runs when `harness` starts it, as
-`harness worker` does for each task a loop runner hands it. It never calls a model and never runs an agent loop: it
-sets the rules and never plays ([the game master](features/README.md#the-game-master),
-[ADR 0001](adrs/0001-role-of-the-tool.md)).
+`the-cook` is a meta-harness. It bridges a repository's declared intent, its permissions, hooks, instructions and
+lifecycle, to the programs that carry it out. It writes, checks and removes the configuration that agent harnesses such
+as Claude Code and Codex CLI read, and it constrains how an agent runs when `the-cook` starts it, as `the-cook worker`
+does for each task a loop runner hands it. It never calls a model and never runs an agent loop: it sets the rules and
+never plays ([the game master](features/README.md#the-game-master), [ADR 0001](adrs/0001-role-of-the-tool.md)). The name
+comes from the kitchen: a cook follows the recipe exactly and lets nothing leave the kitchen until it passes the check.
+The agents do the cooking, and `the-cook` holds them to that standard.
 
 The binary contains code for no program. It learns each one, git and the agent harnesses included, from a
-[plugin](features/plugins.md): a versioned bundle of data that says which files the program reads, which of its
+[recipe](features/recipes.md): a versioned bundle of data that says which files the program reads, which of its
 commands answer the binary's questions and which of its arguments and commands are never safe
 ([ADR 0022](adrs/0022-tool-integration.md), [ADR 0023](adrs/0023-core-and-contracts.md)). semantic-release reaches its
 release steps through plugins in the same way, and Chef, Ansible and Terraform describe what they manage as data.
 
 It is not an agent, not a client of hosting platforms or agent tool servers, not a source of configuration that lives
 outside your repository, not a launcher for any loop runner, and not a replacement for your task runner, skills
-installer or task tracker. It works with whichever programs a team uses, through the plugins, commands and actions
+installer or task tracker. It works with whichever programs a team uses, through the recipes, commands and actions
 named in the repository's own files.
 
 ## Tenets
@@ -85,7 +86,7 @@ measures.
 
 **Tenet.** Like Terraform, where infrastructure is what its configuration declares and every change is shown as a plan
 before it is applied, a repository's agent setup is what its files declare. What agents may do there, which hooks run
-and which actions fire come from the repository's own files, the release it pins and the plugins it pins by hash, and
+and which actions fire come from the repository's own files, the release it pins and the recipes it pins by hash, and
 from nothing else: nothing is inherited, included, fetched or inferred while it runs. Generated files are committed, so
 what agents read is what a reviewer reads. Every write is shown before it happens.
 
@@ -131,7 +132,7 @@ needs judgement is done by people and by agents guided by documentation and skil
 **Problem.** A tool that runs agents itself has to follow every model and API change, and to hold credentials and
 costs that belong to each organization.
 
-**Tenet.** `harness` configures and constrains the harnesses that run agents. It never calls a model, holds no model
+**Tenet.** `the-cook` configures and constrains the harnesses that run agents. It never calls a model, holds no model
 credentials and makes no decision that needs one.
 
 **Bound by.** [ADR 0001](adrs/0001-role-of-the-tool.md),
@@ -144,10 +145,10 @@ on a choice its team did not make. A tool with code for a program also has to fo
 releases.
 
 **Tenet.** Every program the binary starts, calls or writes files for, the version control system and the agent
-harnesses included, is described by a plugin. The binary keeps the process: ownership, rendering, events, attempts,
-proof and removal. The plugins keep the program facts: the files a program reads, the commands that answer the
+harnesses included, is described by a recipe. The binary keeps the process: ownership, rendering, events, attempts,
+proof and removal. The recipes keep the program facts: the files a program reads, the commands that answer the
 binary's questions, the arguments that start it unattended and the ones that are never safe. A team switches a program
-by switching its plugin, which changes only the repository's files, and other programs call `harness` through a stable
+by switching its recipe, which changes only the repository's files, and other programs call `the-cook` through a stable
 command interface.
 
 **Bound by.** [ADR 0022](adrs/0022-tool-integration.md), [ADR 0023](adrs/0023-core-and-contracts.md).
@@ -160,7 +161,7 @@ command interface.
 hold in every repository, and no repository, copy or edit can remove them. The process invariants, such as refusing
 bypass arguments before a launch, replaying proof from the base and withholding completion, are built into the binary.
 The program facts they apply, such as which arguments bypass a harness's checks or that a force push to the default
-branch is denied, are floor rules of the shipped plugins: rendered on every render and out of reach of the
+branch is denied, are floor rules of the shipped recipes: rendered on every render and out of reach of the
 repository's policy.
 
 **Bound by.** [ADR 0011](adrs/0011-safety-invariants.md), [ADR 0022](adrs/0022-tool-integration.md).
@@ -169,7 +170,7 @@ repository's policy.
 
 **Problem.** Problem 4: repositories already hold state, records and settings that people and other tools depend on.
 
-**Tenet.** `harness` writes only what it owns, uses what others created as it finds it, and leaves the team's record
+**Tenet.** `the-cook` writes only what it owns, uses what others created as it finds it, and leaves the team's record
 of work, such as issues and pull requests, to the team.
 
 **Bound by.** [ADR 0012](adrs/0012-write-boundary.md), [ADR 0008](adrs/0008-native-configuration.md),
@@ -179,7 +180,7 @@ of work, such as issues and pull requests, to the team.
 
 **Problem.** Problem 4: teams stop using tools, and many teammates never start.
 
-**Tenet.** The working agreements `harness` sets up, such as where working copies live and how tasks are tracked, are
+**Tenet.** The working agreements `the-cook` sets up, such as where working copies live and how tasks are tracked, are
 written so that they read correctly and still hold without it.
 
 **Bound by.** [ADR 0018](adrs/0018-conventions.md),
@@ -189,7 +190,7 @@ written so that they read correctly and still hold without it.
 
 **Problem.** A tool whose authors do not live with it ships its rough edges to every adopter.
 
-**Tenet.** The `harness` repository is adopted with `harness`, and its CI runs the
+**Tenet.** The `the-cook` repository is adopted with `the-cook`, and its CI runs the
 [drift check](features/render.md#drift-check) and the [health check](features/doctor.md) on itself.
 
 **Bound by.** The project's own CI.

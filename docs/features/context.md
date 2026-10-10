@@ -1,4 +1,4 @@
-# Standing context: `context` in `.harness/config.yaml`
+# Standing context: `context` in `.cook/config.yaml`
 
 ## Objective
 
@@ -13,7 +13,7 @@ sessions where it does not.
 
 ## Overview
 
-Standing context is guidance a repository declares once, as a skill or a file, that `harness` puts into an agent's
+Standing context is guidance a repository declares once, as a skill or a file, that `the-cook` puts into an agent's
 context whenever a declared trigger matches: every session, the first time the agent reads or edits a matching file, or
 when the person's message contains a listed word. Agent hooks deliver the entries; an entry declared `static: true` is
 written into `AGENTS.md` instead, so it reaches agents without the binary.
@@ -21,8 +21,8 @@ written into `AGENTS.md` instead, so it reaches agents without the binary.
 The triggers are deterministic: the same session, files and words give the same context on every machine. Entries come
 only from files and skills committed in the repository, and nothing is fetched when a hook runs.
 
-Commands are named `harness <command>` on this page. The examples run them through the repository's wrapper,
-`./harnessw <command>`, from the root of a checkout; with a global install, `harness <command>` is equivalent
+Commands are named `the-cook <command>` on this page. The examples run them through the repository's wrapper,
+`./cook <command>`, from the root of a checkout; with a global install, `the-cook <command>` is equivalent
 ([wrapper](wrapper.md)).
 
 ## When to use it
@@ -33,7 +33,7 @@ Commands are named `harness <command>` on this page. The examples run them throu
 | A SQL review skill applied whenever the agent touches migrations or `.sql` files | a `when` entry with `paths` |
 | A timezone skill applied when the person mentions DST or time zones | a `when` entry with `prompt` |
 | Directives only unattended workers receive, such as "never touch the shared database" | an `always` entry with `for: [worker]` |
-| A directive that must hold even on a machine without the pinned binary, or after `harness remove --eject` | an `always` entry with `static: true` |
+| A directive that must hold even on a machine without the pinned binary, or after `the-cook remove --eject` | an `always` entry with `static: true` |
 | A skill the agent loads only when it judges it relevant | nothing here: install the skill and let the agent match its description ([skills](skills.md)) |
 | Repository prose a person writes and maintains: architecture, conventions, commands | `AGENTS.md`, outside the managed blocks |
 | A formatter or linter run after each edit | a `post_edit` hook ([hooks](hooks.md)) |
@@ -63,68 +63,68 @@ Every injected entry starts with one line that names it and what triggered it, s
 transcript see why it is there:
 
 ```text
-harness context: sql-quality-check (path src/migration/1700000000000-add-invoice-index.ts)
+the-cook context: sql-quality-check (path src/migration/1700000000000-add-invoice-index.ts)
 ```
 
-`harness` records which `when` entries a session has received in `<state.dir>/context/<session-id>.json` (default
+`the-cook` records which `when` entries a session has received in `<state.dir>/context/<session-id>.json` (default
 `.work/context/`), so each one is injected once per session. That file is ignored state.
 
 ### Roles
 
 `for` limits an entry to roles: `interactive` for every session a person starts, `worker` for
 [`agent` actions](lifecycle.md#action-kinds) and for workers, the agents
-[`harness worker`](ralph.md#the-worker-contract) runs headless, one per task. The default is both. A worker session is
-one started with `HARNESS_WORKER=1`, which `harness worker` and `agent` actions set for the agent they start; every
+[`the-cook worker`](ralph.md#the-worker-contract) runs headless, one per task. The default is both. A worker session is
+one started with `COOK_WORKER=1`, which `the-cook worker` and `agent` actions set for the agent they start; every
 other session is interactive.
 
 For a worker, the declarations and every file they name are read from its base commit, the head commit of the checkout
-when `harness worker` started, through the version-control plugin, not from the worker's writable tree, so a worker
+when `the-cook worker` started, through the version-control recipe, not from the worker's writable tree, so a worker
 cannot change its own instructions between attempts ([safety](safety.md#standing-context)).
 
 ### Delivery per agent
 
-`harness render` writes one hook entry per event the declarations need; `harness hook` decides what to inject. Which
+`the-cook render` writes one hook entry per event the declarations need; `the-cook hook` decides what to inject. Which
 native event carries each trigger, and where in the payload the file paths and the message are, comes from the agent's
-[harness plugin](plugins.md#the-harness-contract), which maps the payload onto a neutral event
-([payload normalisation](hooks.md#payload-normalisation)). The shipped plugins map the triggers so:
+[harness recipe](recipes.md#the-harness-contract), which maps the payload onto a neutral event
+([payload normalisation](hooks.md#payload-normalisation)). The shipped recipes map the triggers so:
 
-| Trigger | claude plugin (Claude Code 2.1.x) | codex plugin (Codex CLI 0.16x) |
+| Trigger | claude recipe (Claude Code 2.1.x) | codex recipe (Codex CLI 0.16x) |
 | --- | --- | --- |
 | `always` | `SessionStart`, which fires on startup, resume, `/clear` and after compaction, so always-on content survives a compaction | `SessionStart` |
 | `when.paths` | `PostToolUse` after `Read`, `Edit`, `Write` and `MultiEdit`, on the file path the tool names | `PostToolUse` after `apply_patch`, on the files the patch touches |
 | `when.prompt` | `UserPromptSubmit`, on the person's message | `UserPromptSubmit`, on the person's message |
 
-The text reaches the agent as additional context of that event. A trigger the harness plugin maps to no native event
-gets nothing rendered for that agent, and [`harness doctor`](doctor.md) reports the gap as a note. Codex reads files
+The text reaches the agent as additional context of that event. A trigger the harness recipe maps to no native event
+gets nothing rendered for that agent, and [`the-cook doctor`](doctor.md) reports the gap as a note. Codex reads files
 through shell commands, which name no file to match, so a Codex session fires a `paths` entry only when it patches a
 matching file.
 
 In a worker session, the "person's message" is the task prompt the agent receives: what the loop runner passed to
-`harness worker`, or an `agent` action's prompt.
+`the-cook worker`, or an `agent` action's prompt.
 
 ### Static entries
 
-An `always` entry with `static: true` is not injected by a hook. `harness render` writes it into the `context` block of
-`AGENTS.md`, as its content or as its pointer line. Each agent reads `AGENTS.md` as its harness plugin's instructions
-operation says: Claude Code through the `import` block the claude plugin renders in `CLAUDE.md`, Codex directly, and a
+An `always` entry with `static: true` is not injected by a hook. `the-cook render` writes it into the `context` block of
+`AGENTS.md`, as its content or as its pointer line. Each agent reads `AGENTS.md` as its harness recipe's instructions
+operation says: Claude Code through the `import` block the claude recipe renders in `CLAUDE.md`, Codex directly, and a
 machine where the pinned binary is not cached gets it like every other line of `AGENTS.md`.
 
 ```markdown
-<!-- harness:context -->
+<!-- cook:context -->
 Apply the coding-guidelines skill to every change: read `.agents/skills/coding-guidelines/SKILL.md`.
-<!-- /harness:context -->
+<!-- /cook:context -->
 ```
 
-The `context` block is a convention block: its text never names a `harness` command, so after
-[`harness remove --eject`](remove.md#eject) the markers go and the directive stays. A static entry reaches every session
-that reads `AGENTS.md`, so it cannot be limited with `for`. A static entry with `for` narrower than both roles is a
-validation error.
+The `context` block is a convention block: its text never names a `the-cook` command, so after
+[`the-cook remove --eject`](remove.md#eject) the markers go and the directive stays. A static entry reaches every
+session that reads `AGENTS.md`, so it cannot be limited with `for`. A static entry with `for` narrower than both roles
+is a validation error.
 
 ### Sources and trust
 
 | Source | Rule |
 | --- | --- |
-| `skill: <name>` | `.agents/skills/<name>/SKILL.md` must exist; `harness doctor` reports a skill named here that does not exist as a finding. The skill is delivered as the file committed there; a worker reads it from its base commit |
+| `skill: <name>` | `.agents/skills/<name>/SKILL.md` must exist; `the-cook doctor` reports a skill named here that does not exist as a finding. The skill is delivered as the file committed there; a worker reads it from its base commit |
 | `file: <path>` | a path inside the repository, relative to its root. Not inside the state directories. An uncommitted file reaches interactive sessions only, because workers read from the base commit |
 
 Nothing is downloaded or fetched when a hook runs. A skill reaches the repository as a commit under `.agents/skills/`,
@@ -134,7 +134,7 @@ and is reviewed like any other change.
 ### Budget
 
 `context.budget` caps the lines of always-on content one session receives, per role: `content` entries count their
-lines, pointer lines count one, and static entries count too. `harness doctor` reports a note when a role exceeds the
+lines, pointer lines count one, and static entries count too. `the-cook doctor` reports a note when a role exceeds the
 budget, listing every entry with its line count. Injection does not stop at the budget. The note is the signal to trim,
 move an entry to a trigger, or switch it to a pointer.
 
@@ -142,10 +142,10 @@ move an entry to a trigger, or switch it to a pointer.
 
 Hook-delivered context is an implicit entry point: on a machine where the pinned release is not cached, hooks do
 nothing beyond one stderr line, and no hook entry is injected. The session-start hook then adds one line to the
-session instead: `harness v0.9.0 is not cached on this machine; run ./harnessw version once to fetch it.`
+session instead: `the-cook v0.9.0 is not cached on this machine; run ./cook version once to fetch it.`
 ([hooks](hooks.md#the-missing-binary-guard)). Declare as `static` the directives a session must never miss.
 
-`HARNESS_NO_CONTEXT=1` turns injection off for every process started from that environment, for debugging a session
+`COOK_NO_CONTEXT=1` turns injection off for every process started from that environment, for debugging a session
 without standing context. Static entries stay, because they are part of `AGENTS.md`.
 
 The reasoning behind this design is in [ADR 0020](../adrs/0020-standing-context.md).
@@ -191,10 +191,10 @@ into each profile, typically by an agent following a skill the organization publ
 change. For example, an agent following acme's skill adds the same `always` entry and directive file to `acme/api` and
 to `acme/web`, and each repository reviews and merges that change on its own.
 
-### `harness context show`
+### `the-cook context show`
 
 ```text
-harness context show [--role interactive|worker] [--path <file>]... [--prompt <text>] [--json]
+the-cook context show [--role interactive|worker] [--path <file>]... [--prompt <text>] [--json]
 ```
 
 Prints what a session would receive and why: every `always` entry for the role, and the `when` entries the given paths
@@ -218,19 +218,19 @@ It reads the same files the hooks read and writes nothing.
 
 | Variable | Effect |
 | --- | --- |
-| `HARNESS_NO_CONTEXT=1` | Hooks inject nothing in this environment and every process started from it |
-| `HARNESS_WORKER=1` | Set by `harness worker` and by `agent` actions for the agent they start; selects the `worker` role |
+| `COOK_NO_CONTEXT=1` | Hooks inject nothing in this environment and every process started from it |
+| `COOK_WORKER=1` | Set by `the-cook worker` and by `agent` actions for the agent they start; selects the `worker` role |
 
-Files read: `.harness/config.yaml`, the skills and files the entries name, the hook payload, and for workers the same
+Files read: `.cook/config.yaml`, the skills and files the entries name, the hook payload, and for workers the same
 files at the base commit. Files written: `<state.dir>/context/<session-id>.json`; by `render`, the hook entries the
-harness plugins render in the native agent files, and the `context` block of `AGENTS.md`.
+harness recipes render in the native agent files, and the `context` block of `AGENTS.md`.
 
 ## Examples
 
 ### A coding-guidelines skill in every session
 
 ```yaml
-# .harness/config.yaml
+# .cook/config.yaml
 context:
   always:
     - skill: coding-guidelines
@@ -251,7 +251,7 @@ context:
 The first time in a session the agent reads or edits a migration, its next step carries one line:
 
 ```text
-harness context: sql-quality-check (path src/migration/1700000000000-add-invoice-index.ts)
+the-cook context: sql-quality-check (path src/migration/1700000000000-add-invoice-index.ts)
 Apply the sql-quality-check skill now: read .agents/skills/sql-quality-check/SKILL.md
 ```
 
@@ -293,20 +293,20 @@ context:
       static: true
 ```
 
-`harness render` writes the pointer into `AGENTS.md`:
+`the-cook render` writes the pointer into `AGENTS.md`:
 
 ```markdown
-<!-- harness:context -->
+<!-- cook:context -->
 Read `.agents/directives/house-rules.md` and apply it to every change.
-<!-- /harness:context -->
+<!-- /cook:context -->
 ```
 
-A teammate who never runs `./harnessw` still gets it, and it stays after an eject.
+A teammate who never runs `./cook` still gets it, and it stays after an eject.
 
 ### Previewing a session
 
 ```sh
-./harnessw context show --path src/migration/1700000000000-add-invoice-index.ts --prompt "fix the DST bug in reminders"
+./cook context show --path src/migration/1700000000000-add-invoice-index.ts --prompt "fix the DST bug in reminders"
 ```
 
 ```text
@@ -330,7 +330,7 @@ always-on: 62 of 120 lines
 - Do write skills so they read correctly when injected: short, self-contained, with their instructions first
   ([skills standards](../ux/skills-standards.md)).
 - Do review `context` changes like policy changes: an entry steers every agent session in the repository.
-- Do run `./harnessw context show` after changing an entry, with the paths and words you expect to trigger it.
+- Do run `./cook context show` after changing an entry, with the paths and words you expect to trigger it.
 - Don't inject files that untrusted text can reach, such as generated reports or copies of issue text; injected
   content is read as instructions.
 - Don't use context to grant or forbid commands; only the [policy](policy.md) decides permissions.
@@ -340,11 +340,11 @@ always-on: 62 of 120 lines
 | Symptom | Cause | Fix |
 | --- | --- | --- |
 | A skill is never injected; `doctor` reports it missing | No `.agents/skills/<name>/SKILL.md` exists for the name in `context`, or it is not committed and the session is a worker's | Install or write the skill, commit it, or fix the name |
-| No standing context; the session shows `harness v0.9.0 is not cached on this machine; run ./harnessw version once to fetch it.` | Hooks never download, and the pinned release is not cached here | Run `./harnessw version` once; declare must-haves `static: true` |
+| No standing context; the session shows `the-cook v0.9.0 is not cached on this machine; run ./cook version once to fetch it.` | Hooks never download, and the pinned release is not cached here | Run `./cook version` once; declare must-haves `static: true` |
 | A `paths` entry never fires in Codex | Codex read the file through a shell command, which names no file | Rely on edits for Codex, or make the entry `always` |
 | A `prompt` entry fires on unrelated messages | A word that is too common | Use more specific words or phrases, or a `paths` trigger |
 | The agent loads a skill twice | The skill was injected and the agent also matched its description and loaded it | Inject it as a `pointer`, or narrow the skill's description |
 | A worker ignores a new directive | The directive is not committed; workers read from their base commit | Commit it, then start the run |
 | `doctor` notes the budget is exceeded | Always-on content for a role is over `context.budget` | Shorten entries, switch them to `pointer`, or move them to a trigger |
-| Nothing is injected anywhere | `HARNESS_NO_CONTEXT=1` is set, or `modules.hooks` is off | Unset the variable; turn the module on and render |
+| Nothing is injected anywhere | `COOK_NO_CONTEXT=1` is set, or `modules.hooks` is off | Unset the variable; turn the module on and render |
 | `render` exits 1: static entry with `for` | A static entry reaches every session that reads `AGENTS.md` | Remove `for`, or remove `static` and let the hook deliver it |

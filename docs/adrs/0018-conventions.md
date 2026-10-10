@@ -39,9 +39,9 @@ to every agent session.
 2. Managed blocks are of two classes. Convention blocks state facts that stay true without the tool and never name its
    commands. Tool blocks describe how to use the tool and may name its commands.
 3. Eject keeps convention blocks as plain text without markers and removes tool blocks ([0007](0007-ownership.md)).
-4. Each block belongs to the capability or the plugin that establishes its convention, and removing the capability, or
-   ending the plugin's use, removes its blocks ([0010](0010-dependence-on-the-binary.md),
-   [0022](0022-tool-integration.md)). Each capability and each plugin writes its own ignore entries even when another
+4. Each block belongs to the capability or the recipe that establishes its convention, and removing the capability, or
+   ending the recipe's use, removes its blocks ([0010](0010-dependence-on-the-binary.md),
+   [0022](0022-tool-integration.md)). Each capability and each recipe writes its own ignore entries even when another
    one's entry already covers them.
 5. The tool's content in instruction files is bounded; detail lives in the shipped documentation
    ([0002](0002-division-of-work.md)). The health check reports a repository whose blocks exceed the bound.
@@ -51,7 +51,7 @@ to every agent session.
 
 - **1.** Agents act on what instruction files say, not on what the tool's configuration holds, so a convention that is
   only in the configuration is invisible to them. `AGENTS.md` is the file both supported agents reach: Codex directly,
-  Claude Code through an import line its harness plugin renders in `CLAUDE.md`, itself a convention block. Writing every
+  Claude Code through an import line its harness recipe renders in `CLAUDE.md`, itself a convention block. Writing every
   untracked path into `.gitignore` keeps clone-local state untracked in every clone, including clones without the tool;
   a path the repository chose to track stays tracked. People and third-party tools working without the tool read the
   same text, and after a removal the remaining state is still explained.
@@ -60,7 +60,7 @@ to every agent session.
   eject keep everything that stays true and remove everything that would mislead. The trade is that every block's class
   is a design decision that must be made and kept.
 - **4.** Capabilities are adopted and removed independently ([0010](0010-dependence-on-the-binary.md)), and so are
-  plugins ([0013](0013-organization-content.md)), so their text must be too. With shared ignore entries, removing one
+  recipes ([0013](0013-organization-content.md)), so their text must be too. With shared ignore entries, removing one
   would un-ignore paths another still creates, and git would start listing that state as untracked. Duplicate entries
   cost one line each and make removal local.
 - **5.** Every line in an instruction file is read in every session, so the tool's share of that file is a recurring

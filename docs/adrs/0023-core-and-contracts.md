@@ -27,26 +27,26 @@ reached through an interface the rules declare.
 - Ports-and-adapters is the established name for this shape: the core declares the interfaces it needs, the
   connections implement them, and the entry point wires the two. Its known payoffs are technology independence,
   testing with stand-ins and reuse of the core by several entry points.
-- Every plugin is data the binary interprets, never code it loads ([0022](0022-tool-integration.md),
+- Every recipe is data the binary interprets, never code it loads ([0022](0022-tool-integration.md),
   [0006](0006-repository-contract.md)).
 
 ## Decision
 
 1. The binary has three kinds of code. The core: the rules, the data models and the interfaces the rules need from
    outside. The connections: the implementations of those interfaces. The entry point: the command line, which reads
-   the repository's declared data, resolves the plugins, wires the connections and runs one use case.
+   the repository's declared data, resolves the recipes, wires the connections and runs one use case.
 2. The core depends on nothing outside itself. The connections depend on the core; the entry point depends on both.
    No name of a program, a file format of a program, or an argument of a program appears in the core.
-3. The core declares two contracts that plugins fill with data: the version control contract, a fixed set of
+3. The core declares two contracts that recipes fill with data: the version control contract, a fixed set of
    operations, each with a declared output kind, and the harness contract, the renders, launch arguments, bypass
    arguments, hook payload mapping, instructions location, skill location and native rule import for one agent
-   ([0009](0009-agent-support.md)). One connection interprets a plugin's operations for each contract.
+   ([0009](0009-agent-support.md)). One connection interprets a recipe's operations for each contract.
 4. The core declares, besides those, only generic interfaces: the files of a checkout, running a command and reading
    its exit status and output, an HTTP request, the release source, the clock, and presenting a plan, a diff, a
    finding or a question to a person. Each has one connection and an in-memory stand-in for tests.
-5. The entry point resolves every plugin the use case needs from the release or the verified cache before the use
+5. The entry point resolves every recipe the use case needs from the release or the verified cache before the use
    case runs, and hands the use case the connections configured with them. Repository data chooses parameters and
-   names plugins; it never supplies a connection.
+   names recipes; it never supplies a connection.
 6. The entry point is the only way in. People, hooks fired by a harness and loop runners all call the command line
    ([0022](0022-tool-integration.md)); the committed wrapper is such a caller ([0017](0017-engine-version.md)).
 
@@ -56,7 +56,7 @@ reached through an interface the rules declare.
   out of the core is what makes the rules the same for every program and lets a program change without a change to a
   rule. The trade: every outside need passes through an interface, which is one more indirection to read.
 - **3.** The two things the rules rely on answers from, version control and the harness, get named contracts so that a
-  plugin can fill them with data (Context) and a test can fill them with a stand-in. A fixed operation set with
+  recipe can fill them with data (Context) and a test can fill them with a stand-in. A fixed operation set with
   declared output kinds is what keeps a description possible: the binary never has to parse free text.
 - **4.** The remaining needs are not about any program. One generic connection for each keeps the list of connections
   short, and the in-memory stand-ins are what let every contract test for an invariant run without a disk, a
@@ -65,7 +65,7 @@ reached through an interface the rules declare.
   and doing it in the entry point keeps resolution, caching and verification out of the rules. Data that could supply
   a connection would let the repository, and an agent working in it, choose how the repository is read
   ([0011](0011-safety-invariants.md)).
-- **6.** One entry means one place where arguments are checked, plugins are resolved and exit statuses are mapped, and
+- **6.** One entry means one place where arguments are checked, recipes are resolved and exit statuses are mapped, and
   it is what lets any program drive the binary without code on either side.
 
 ## Rejected alternatives
@@ -88,7 +88,7 @@ mechanism differs from every other program's.
 
 Connections are loaded at run time from outside the binary. At its best, anyone adds a program without a release. It
 loses because loadable code is engine code outside the binary ([0006](0006-repository-contract.md)), needs a runtime
-or a plugin protocol ([0004](0004-runtime-dependencies.md)), and a data plugin already lets anyone add a program.
+or a recipe protocol ([0004](0004-runtime-dependencies.md)), and a data recipe already lets anyone add a program.
 
 ## Consequences
 
@@ -96,7 +96,7 @@ Costs:
 
 - Every outside need is an interface plus a connection plus a stand-in, which is more code than a direct call.
 - A need the contracts do not cover, such as an operation a new version control system lacks, is a change to the
-  contract and therefore to the plugin schema.
+  contract and therefore to the recipe schema.
 
 Must be maintained:
 

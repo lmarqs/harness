@@ -53,14 +53,14 @@ own permissions, and cannot be recorded as done without a verification that pass
 The following hold in every repository, for what the binary renders and for every agent the binary starts
 ([0022](0022-tool-integration.md)). They are built into the binary, are not expressible in repository data, and cannot
 be removed or weakened by it. Repository policy adds to them. Facts about a program that they apply, such as which
-arguments bypass a harness's checks, come from that program's plugin, marked as floor
+arguments bypass a harness's checks, come from that program's recipe, marked as floor
 ([0022](0022-tool-integration.md)).
 
-1. Unattended agents never run with permission bypass. Every argument the agent's harness plugin marks as bypass is
+1. Unattended agents never run with permission bypass. Every argument the agent's harness recipe marks as bypass is
    refused when the worker command receives it, with a message that names the argument.
-2. The deny rules that a plugin in use marks as floor are rendered into every agent's output on every render, and
-   repository policy cannot remove or weaken them. The shipped plugins mark as floor a force push to the default
-   branch the version control plugin reports, and chaining several tasks in one task-runner invocation.
+2. The deny rules that a recipe in use marks as floor are rendered into every agent's output on every render, and
+   repository policy cannot remove or weaken them. The shipped recipes mark as floor a force push to the default
+   branch the version control recipe reports, and chaining several tasks in one task-runner invocation.
 3. Proof of verification, the record a verification run leaves of the checks it ran, is replayed by the binary with
    configuration read from the committed base, outside any tree the agent can write.
 4. Completion is withheld until the replay passes. A malformed proof counts as failed.
@@ -69,7 +69,7 @@ arguments bypass a harness's checks, come from that program's plugin, marked as 
    ([0012](0012-write-boundary.md)).
 7. The binary never reconfigures state it did not create ([0012](0012-write-boundary.md)).
 8. An unattended agent cannot change the rules it runs under. Before every launch of an unattended agent, the binary
-   resolves the plugins the attempt uses from the release or the verified cache, and restores the tool-owned files
+   resolves the recipes the attempt uses from the release or the verified cache, and restores the tool-owned files
    (rendered rules, owned settings keys, hook entries, the wrapper and its pin) from the base commit of the attempt.
    After the agent exits, it compares them with the base, together with the repository data that drives the replay
    and the guidance injected into the agent ([0020](0020-standing-context.md)). Any difference fails the attempt,
@@ -96,20 +96,20 @@ arguments bypass a harness's checks, come from that program's plugin, marked as 
   policy ([0013](0013-organization-content.md)). The floor covers what the binary renders and the agents it starts,
   because those are what it controls: an agent or a loop runner a person starts outside the tool is beyond its reach,
   and reading other programs' configuration to chase it is rejected in [0022](0022-tool-integration.md). The process
-  is in the binary and the program facts are in plugins, because the binary names no program
-  ([0022](0022-tool-integration.md), [0023](0023-core-and-contracts.md)); a fact a plugin marks as floor is out of
+  is in the binary and the program facts are in recipes, because the binary names no program
+  ([0022](0022-tool-integration.md), [0023](0023-core-and-contracts.md)); a fact a recipe marks as floor is out of
   the repository's reach in the same way as the process, because the repository data never contains it.
 - **1.** Bypass removes every permission check from an agent that nobody is watching. A loop runner hands the worker
   command what its merged configuration sets as arguments (Context), so checking the arguments it receives catches a
   bypass from any of those files without reading one ([0022](0022-tool-integration.md)). Naming the argument lets the
   person find the configuration that passes it. The bypass arguments differ per harness and change between releases,
-  so the harness's plugin carries them.
-- **2.** A force push to the default branch rewrites history others build on, and asking the version control plugin
+  so the harness's recipe carries them.
+- **2.** A force push to the default branch rewrites history others build on, and asking the version control recipe
   for the default branch makes the rule right in every repository, including those whose default branch is not
   `main`, such as `acme/infra` in Context. With chaining, an allow rule for one task becomes an allow rule for any
   task, and the policy stops meaning what a reviewer reads. Both are rules a repository would lose by omission if they
-  were entries it could edit, so they are rendered from the plugin on every render. The trade: a repository whose
-  task runner has no plugin in use has no chaining deny, which the health check reports when it detects the program.
+  were entries it could edit, so they are rendered from the recipe on every render. The trade: a repository whose
+  task runner has no recipe in use has no chaining deny, which the health check reports when it detects the program.
 - **3, 4.** The agent's proof selects which checks to run. The binary runs them from configuration the agent cannot
   edit. An agent that weakens its verification in its own tree therefore changes nothing. A malformed proof fails so
   that a broken proof leads to a retry, never to a pass.
@@ -119,7 +119,7 @@ arguments bypass a harness's checks, come from that program's plugin, marked as 
   ([0002](0002-division-of-work.md), [0012](0012-write-boundary.md)).
 - **8.** Restoring before launch removes edits left by an earlier attempt, and comparing after exit catches edits made
   during this one. Reading the replay's data and the injected guidance from the base commit means an agent cannot
-  rewrite its checks or its own instructions between retries. Resolving the plugins before launch, from outside the
+  rewrite its checks or its own instructions between retries. Resolving the recipes before launch, from outside the
   working tree, means the agent cannot change how the base is read or how it is started
   ([0022](0022-tool-integration.md)); a base that cannot be read fails closed, because the base is what every other
   read trusts. Failing an attempt that changed the rules means a change to the rules reaches unattended work only
@@ -146,12 +146,12 @@ arguments bypass a harness's checks, come from that program's plugin, marked as 
 At its best, the rules are visible and adjustable per repository. It loses because editable entries are how the rules
 get lost: a copy can drop any entry a repository can edit.
 
-### Floor rules as plugin entries
+### Floor rules as recipe entries
 
-The floor's program facts ship as entries a plugin adds to the repository's policy when it is applied. At its best,
+The floor's program facts ship as entries a recipe adds to the repository's policy when it is applied. At its best,
 the rules are visible in the repository's own files and the binary renders nothing the policy does not hold. It loses
-the same way as default entries, by omission: a repository that never applies the plugin, or edits its entries away,
-has no floor. Rendered from the plugin on every render, the same rules stay visible in every agent's output and out
+the same way as default entries, by omission: a repository that never applies the recipe, or edits its entries away,
+has no floor. Rendered from the recipe on every render, the same rules stay visible in every agent's output and out
 of the repository's reach.
 
 ### Invariants with an override switch
@@ -185,9 +185,9 @@ Must be maintained:
 ## Confirmation
 
 - CI maps each numbered invariant to at least one named contract test and fails when an invariant has none.
-- A fixture in which the worker command receives a bypass argument that the harness plugin marks, passed directly or
+- A fixture in which the worker command receives a bypass argument that the harness recipe marks, passed directly or
   by a loop runner's agent entry, is refused, the message names the argument, and no agent starts.
-- A fixture policy that tries to allow a floor rule of a plugin in use still renders the deny in every agent's
+- A fixture policy that tries to allow a floor rule of a recipe in use still renders the deny in every agent's
   output.
 - A fixture attempt whose base cannot be read fails before the agent starts.
 - A fixture in which the agent edits a rendered rule or a hook entry fails the attempt and withholds completion.

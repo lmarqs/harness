@@ -1,4 +1,4 @@
-# Hooks: `.harness/hooks.yaml`
+# Hooks: `.cook/hooks.yaml`
 
 ## Objective
 
@@ -17,18 +17,18 @@ The hooks file declares, once and agent-neutrally, two kinds of automation:
 
 - **agent hooks**, which run when an agent starts a session, edits a file, waits for a person or finishes a turn:
   format or lint the edited file, run a repository validator, add a line of session context, send a notification.
-  `harness render` writes them into each agent's native hook configuration, and `harness hook` runs them when the
+  `the-cook render` writes them into each agent's native hook configuration, and `the-cook hook` runs them when the
   agent fires an event. Agent hooks give feedback and notify; they never decide permissions.
 - **lifecycle actions**, under the `lifecycle` key, which run at the [development lifecycle](lifecycle.md)'s events:
-  push a branch, open a pull request, post a chat message, clean up after a merge. `harness` runs them itself; they
+  push a branch, open a pull request, post a chat message, clean up after a merge. `the-cook` runs them itself; they
   are not rendered into agent files.
 
 The same agent hooks also deliver the repository's [standing context](context.md), declared in the profile: skills
 and directives injected when a session starts, when the agent touches matching files, or when the person's message
 contains a listed word.
 
-Commands are named `harness <command>` on this page. Run them through the repository's wrapper,
-`./harnessw <command>`, from the root of a checkout; with a global install, `harness <command>` is equivalent
+Commands are named `the-cook <command>` on this page. Run them through the repository's wrapper,
+`./cook <command>`, from the root of a checkout; with a global install, `the-cook <command>` is equivalent
 ([wrapper](wrapper.md)).
 
 ## When to use it
@@ -36,13 +36,13 @@ Commands are named `harness <command>` on this page. Run them through the reposi
 | You want | Declare |
 | --- | --- |
 | The edited file formatted or linted right after every agent edit | a `post_edit` entry |
-| The stack's usual format-on-edit or lint-on-edit hook | `./harnessw plugin apply <name>` with the stack's plugin, which adds it as a `post_edit` entry ([plugins](plugins.md#stack-plugins)) |
+| The stack's usual format-on-edit or lint-on-edit hook | `./cook recipe apply <name>` with the stack's recipe, which adds it as a `post_edit` entry ([recipes](recipes.md#stack-recipes)) |
 | A repository check run when certain files are edited | `validators` |
 | A session in a [managed worktree](worktrees.md) to know its task | `session_start.context: true` |
 | A message when an agent waits for you: a permission prompt, a question, idle input | an `attention` action |
 | A message when an agent finishes a turn | a `turn_end` action |
 | A skill or directive in the agent's context without invoking it | a `context` entry in the profile ([context](context.md)) |
-| A hook `harness` does not model, such as a `PreToolUse` path guard | a `raw` entry |
+| A hook `the-cook` does not model, such as a `PreToolUse` path guard | a `raw` entry |
 | Something to happen when work starts, is verified, completed, delivered, lands or stops for a person, such as a push, a pull request or a chat message | a `lifecycle` action |
 
 Agent hooks, notification hooks and hook-delivered standing context need `modules.hooks: true` in the
@@ -53,60 +53,60 @@ Agent hooks, notification hooks and hook-delivered standing context need `module
 ### Rendering
 
 For each declared agent, `render` writes two kinds of hook entries through the agent's
-[harness plugin](plugins.md#the-harness-contract), whose renders own the agent's native hook configuration:
+[harness recipe](recipes.md#the-harness-contract), whose renders own the agent's native hook configuration:
 
 | Entry | Events | Command |
 | --- | --- | --- |
-| harness entries | the events in the table below that the declarations need | the wrapper command below |
+| `the-cook hook` entries | the events in the table below that the declarations need | the wrapper command below |
 | raw entries | the event named in `raw`, with its matcher | the `run` command as written |
 
-Each harness plugin maps the neutral events onto its agent's native events. The shipped plugins map them so:
+Each harness recipe maps the neutral events onto its agent's native events. The shipped recipes map them so:
 
-| Purpose | claude plugin (Claude Code 2.1.x) | codex plugin (Codex CLI 0.16x) | Rendered when |
+| Purpose | claude recipe (Claude Code 2.1.x) | codex recipe (Codex CLI 0.16x) | Rendered when |
 | --- | --- | --- | --- |
 | Session context, `always` context | `SessionStart` | `SessionStart` | always, with `modules.hooks` |
-| `post_edit`, validators, `when.paths` context | `PostToolUse` (matcher `Edit\|Write\|MultiEdit`, and `Read` when `when.paths` entries exist) | `PostToolUse` (every tool, filtered by `harness hook`) | `post_edit`, validators or `when.paths` entries exist |
+| `post_edit`, validators, `when.paths` context | `PostToolUse` (matcher `Edit\|Write\|MultiEdit`, and `Read` when `when.paths` entries exist) | `PostToolUse` (every tool, filtered by `the-cook hook`) | `post_edit`, validators or `when.paths` entries exist |
 | `when.prompt` context | `UserPromptSubmit` | `UserPromptSubmit` | `when.prompt` entries exist |
 | `attention` | `Notification` | none | `attention` actions exist |
 | `turn_end` | `Stop` | the `notify` key in `.codex/config.toml` | `turn_end` actions exist |
 
-A neutral event the harness plugin maps to no native event gets nothing rendered for that agent, and
-[`harness doctor`](doctor.md) reports the gap as a note: Codex has no event for an agent waiting for a person, so the
-codex plugin maps none to `attention`, and `attention` never reaches a Codex session.
+A neutral event the harness recipe maps to no native event gets nothing rendered for that agent, and
+[`the-cook doctor`](doctor.md) reports the gap as a note: Codex has no event for an agent waiting for a person, so the
+codex recipe maps none to `attention`, and `attention` never reaches a Codex session.
 
-The harness entry's command starts the wrapper from the root of the checkout, which the version-control plugin's root
-operation finds. With the git plugin it is:
+The command of a `the-cook hook` entry starts the wrapper from the root of the checkout, which the version-control
+recipe's root operation finds. With the git recipe it is:
 
 ```sh
-"$(git rev-parse --show-toplevel)/harnessw" --no-download hook <event>
+"$(git rev-parse --show-toplevel)/cook" --no-download hook <event>
 ```
 
 `<event>` is the neutral event the entry is for: `session-start`, `post-tool-use`, `prompt-submit`, `attention` or
 `turn-end`. The command runs the wrapper committed in the checkout the agent works in, the primary checkout or a
-worktree, so the hook runs the version that checkout pins. It never depends on `harness` being on the agent's
+worktree, so the hook runs the version that checkout pins. It never depends on `the-cook` being on the agent's
 `PATH`.
 
 ### The missing-binary guard
 
 An agent hook is an implicit entry point: it runs because an agent started a session or edited a file, not because
-someone asked for `harness`. Implicit entry points never download. With `--no-download`, the wrapper runs the pinned
+someone asked for `the-cook`. Implicit entry points never download. With `--no-download`, the wrapper runs the pinned
 binary only when it is already in the cache ([wrapper](wrapper.md)). When it is not, on a fresh clone, a new machine,
 or after the pin moved to a release this machine has not fetched, the wrapper prints one line on stderr naming
-`./harnessw` and exits 0, without running `harness hook`:
+`./cook` and exits 0, without running `the-cook hook`:
 
 ```text
-harness: v0.9.0 not downloaded, hook skipped; run: ./harnessw version
+the-cook: v0.9.0 not downloaded, hook skipped; run: ./cook version
 ```
 
 The session continues normally, without lint-on-edit, standing context or notifications, until the pinned version is
-cached. Any explicit command, such as `./harnessw version`, downloads and verifies it. A teammate who never runs one
+cached. Any explicit command, such as `./cook version`, downloads and verifies it. A teammate who never runs one
 loses only that feedback.
 
 The session-start entry also adds one line to the session context, so that the agent itself knows why it has no
 standing context:
 
 ```text
-harness v0.9.0 is not cached on this machine; run ./harnessw version once to fetch it.
+the-cook v0.9.0 is not cached on this machine; run ./cook version once to fetch it.
 ```
 
 The wrapper prints both lines itself, as fixed text from its template, because no binary is there to print them. It
@@ -114,25 +114,25 @@ recognises the session-start entry by the `session-start` argument. It still nev
 Directives a session must never miss belong in [static context](context.md#static-entries), which is part of
 `AGENTS.md`.
 
-Raw entries are rendered as native hook entries running their own commands, not through `harness hook`, so they keep
-running without the binary. [`harness scaffold --adopt`](scaffold.md#how-each-source-becomes-an-entry) turns each
+Raw entries are rendered as native hook entries running their own commands, not through `the-cook hook`, so they keep
+running without the binary. [`the-cook scaffold --adopt`](scaffold.md#how-each-source-becomes-an-entry) turns each
 existing hook it cannot model into a raw entry, so that hook runs after adoption exactly as it did before. The manifest
 records raw entries as owned, so `render` updates them when `hooks.yaml` changes and `render --check` reports a hand
 edit.
 
 ### Payload normalisation
 
-Each agent sends its own JSON payload on stdin. The binary knows no agent's payload: the agent's harness plugin maps
-it, by JSON paths, onto one neutral event, and `harness hook` acts on that event. The plugin also says which tools are
+Each agent sends its own JSON payload on stdin. The binary knows no agent's payload: the agent's harness recipe maps
+it, by JSON paths, onto one neutral event, and `the-cook hook` acts on that event. The recipe also says which tools are
 edits and which are reads, and which native events are `attention`, `turn_end` and each standing-context trigger
-([the harness contract](plugins.md#the-harness-contract)).
+([the harness contract](recipes.md#the-harness-contract)).
 
-| Normalised field | Mapped by the harness plugin from |
+| Normalised field | Mapped by the harness recipe from |
 | --- | --- |
 | event | the payload's hook event name: session start, post tool use, prompt submission, waiting for a person (`attention`) or turn end (`turn_end`) |
 | session | the payload's session id, for the once-per-session [context](context.md) entries |
-| tool | the tool name. Edit tools: `Edit`, `Write`, `MultiEdit` in the claude plugin; `apply_patch` in the codex plugin. Read tool: `Read` in the claude plugin |
-| read and edited files | the tool input's file path, made relative to the checkout; for a patch tool that names no single file, the checkout's uncommitted changes against its head commit, as the version-control plugin lists them |
+| tool | the tool name. Edit tools: `Edit`, `Write`, `MultiEdit` in the claude recipe; `apply_patch` in the codex recipe. Read tool: `Read` in the claude recipe |
+| read and edited files | the tool input's file path, made relative to the checkout; for a patch tool that names no single file, the checkout's uncommitted changes against its head commit, as the version-control recipe lists them |
 | prompt | the person's message, on prompt submission |
 | message | the agent's own notification text, on `attention` and `turn_end` |
 | checkout | the payload's working directory, resolved to the primary checkout or the managed worktree it is in |
@@ -147,7 +147,7 @@ Files outside the checkout are ignored.
 | `context.always` in the profile | The `always` entries for the session's role, each headed by one line naming it ([context](context.md)) |
 
 Agent sessions never receive an update notice: moving the pin is a reviewed supply-chain decision, so the notice goes
-to people, on the stderr of explicit commands and in `harness doctor` ([update notice](installation.md#update-notice)).
+to people, on the stderr of explicit commands and in `the-cook doctor` ([update notice](installation.md#update-notice)).
 
 ### Post edit
 
@@ -155,7 +155,7 @@ For each edited file:
 
 1. Every `post_edit` entry whose `paths` match and whose `exclude` does not runs its `run` command with `{file}`
    replaced by the file's repository-relative path, shell-quoted. `{file}` and `{pattern}` in profile and hook
-   commands are the only substitutions `harness` performs. Lifecycle actions get values only through environment
+   commands are the only substitutions `the-cook` performs. Lifecycle actions get values only through environment
    variables.
 2. A content cache, `hook-checks.json` in the checkout's state directory (`state.dir`, default `.work`), records a
    hash of each file after a successful run. An edit that leaves the content identical to the cached hash skips the
@@ -164,7 +164,7 @@ For each edited file:
 4. The first time in the session a read or edited file matches a `when.paths` [context](context.md) entry, the entry
    is added to the agent's context.
 
-If a command or validator fails, `harness hook` exits 2 with the command's output on stderr. Claude Code shows that
+If a command or validator fails, `the-cook hook` exits 2 with the command's output on stderr. Claude Code shows that
 output to the model as feedback, so the agent fixes the problem in its next step. The edit itself is never undone, and
 no tool call is blocked.
 
@@ -184,13 +184,13 @@ attention:        # the agent is waiting for a person: a permission prompt, a qu
   - name: ping-me
     http:
       url_env: CHAT_WEBHOOK_URL
-      json: { text: "$HARNESS_AGENT needs you in $HARNESS_REPO ($HARNESS_BRANCH): $HARNESS_MESSAGE" }
+      json: { text: "$COOK_AGENT needs you in $COOK_REPO ($COOK_BRANCH): $COOK_MESSAGE" }
 turn_end:         # the agent finished a turn
   - name: done
-    run: notify-send "agent finished in $HARNESS_WORKTREE"
+    run: notify-send "agent finished in $COOK_WORKTREE"
 ```
 
-| Event | claude plugin (Claude Code) | codex plugin (Codex) |
+| Event | claude recipe (Claude Code) | codex recipe (Codex) |
 | --- | --- | --- |
 | `attention` | `Notification`: a permission prompt, or input idle | not rendered: Codex has no such event |
 | `turn_end` | `Stop` | `notify`, called after each turn |
@@ -199,26 +199,26 @@ Values reach the actions as environment variables, with the same rules as [lifec
 
 | Variable | Value |
 | --- | --- |
-| `HARNESS_EVENT` | `attention` or `turn_end` |
-| `HARNESS_AGENT` | the agent's name, such as `claude` or `codex` |
-| `HARNESS_MESSAGE` | the agent's own notification text, when it sends one. Untrusted: the agent writes it, and its input reaches it |
-| `HARNESS_REPO` | absolute path of the primary checkout |
-| `HARNESS_WORKTREE` | absolute path of the checkout the agent works in |
-| `HARNESS_BRANCH` | the checkout's branch |
+| `COOK_EVENT` | `attention` or `turn_end` |
+| `COOK_AGENT` | the agent's name, such as `claude` or `codex` |
+| `COOK_MESSAGE` | the agent's own notification text, when it sends one. Untrusted: the agent writes it, and its input reaches it |
+| `COOK_REPO` | absolute path of the primary checkout |
+| `COOK_WORKTREE` | absolute path of the checkout the agent works in |
+| `COOK_BRANCH` | the checkout's branch |
 
 - Actions are of kind `run` or `http` ([action kinds](lifecycle.md#action-kinds)); an `agent` action here is an
   error, so an agent hook never starts another agent.
-- `harness hook` exits 0 on these events whatever the actions return, so a failed notification never keeps an agent
+- `the-cook hook` exits 0 on these events whatever the actions return, so a failed notification never keeps an agent
   working or interrupts it. A failure is printed on stderr.
-- They do nothing in a worker's session: `harness worker` and `agent` actions set `HARNESS_WORKER=1` for the agent
+- They do nothing in a worker's session: `the-cook worker` and `agent` actions set `COOK_WORKER=1` for the agent
   they start. An unattended run reports through [lifecycle events](lifecycle.md#trigger-points) instead: in a worktree
-  bound to a task, `harness worker` fires `completed` after a verified attempt, and whatever drives the run fires
+  bound to a task, `the-cook worker` fires `completed` after a verified attempt, and whatever drives the run fires
   `blocked` and the events of scope `run`.
 - Like every agent hook, they do nothing on a machine where the pinned release is not cached
   ([the missing-binary guard](#the-missing-binary-guard)).
-- The `notify` key of `.codex/config.toml` holds one program. The codex plugin's renders own it only when they wrote it.
+- The `notify` key of `.codex/config.toml` holds one program. The codex recipe's renders own it only when they wrote it.
   When the file already sets `notify` to a program of its own, `render` keeps that program, renders no `turn_end` for
-  Codex, and `harness doctor` notes it.
+  Codex, and `the-cook doctor` notes it.
 
 ### Lifecycle actions
 
@@ -230,25 +230,25 @@ points, scopes, guards, action kinds, the environment variables actions receive,
 lifecycle:
   deliver:
     - name: push
-      run: git push -u origin "$HARNESS_BRANCH"
+      run: git push -u origin "$COOK_BRANCH"
     - name: open-pr
-      run: gh pr create --draft --fill --base "$HARNESS_DEFAULT_BRANCH" --head "$HARNESS_BRANCH"
+      run: gh pr create --draft --fill --base "$COOK_DEFAULT_BRANCH" --head "$COOK_BRANCH"
       auto: false
       scope: [task, change]        # default: all scopes of the event
       on_failure: stop             # stop (default) | continue
   landed:
     - name: delete-remote-branch
-      run: git push origin --delete "$HARNESS_BRANCH"
+      run: git push origin --delete "$COOK_BRANCH"
       auto: true
   blocked:
     - name: notify
-      http: { url_env: CHAT_WEBHOOK_URL, json: { text: "Blocked in $HARNESS_REPO: $HARNESS_REASON" } }
+      http: { url_env: CHAT_WEBHOOK_URL, json: { text: "Blocked in $COOK_REPO: $COOK_REASON" } }
       auto: true
 ```
 
 In short:
 
-- an action is a shell command (`run`), an HTTP request `harness` makes (`http`), or a headless agent run under the
+- an action is a shell command (`run`), an HTTP request `the-cook` makes (`http`), or a headless agent run under the
   [worker contract](ralph.md#the-worker-contract) (`agent`) ([action kinds](lifecycle.md#action-kinds));
 - actions run in the work's checkout, in declaration order, and the first failure stops the event with exit 2 unless
   the action says `on_failure: continue`, in which case the remaining actions run and the event still exits 2;
@@ -256,10 +256,10 @@ In short:
   name cannot inject a command;
 - secrets for `http` come only from the variables `url_env` and `headers_env` name;
 - `auto: true` runs the action at the event's automatic trigger point; every action also runs when a person or a
-  coordinating agent fires the event with `harness lifecycle run <event>`;
-- lifecycle actions never run inside the agent `harness worker` or an `agent` action starts;
+  coordinating agent fires the event with `the-cook lifecycle run <event>`;
+- lifecycle actions never run inside the agent `the-cook worker` or an `agent` action starts;
 - every action is one the repository declares in this file: the seeded files hold none, and a
-  [plugin](plugins.md#entries) such as `beads` writes its actions here, as entries, only when a person applies it.
+  [recipe](recipes.md#entries) such as `beads` writes its actions here, as entries, only when a person applies it.
 
 An action runs with the permissions of the process that fired it, outside any agent's permission checks. Review
 lifecycle actions like code; see [safety](safety.md).
@@ -277,7 +277,7 @@ lifecycle actions like code; see [safety](safety.md).
 | `validators[].when` | list of globs | required | Run when an edited file matches |
 | `validators[].run` | command | required | The check |
 | `session_start.context` | boolean | `true` | Add the managed-worktree context line |
-| `raw` | map of event name to list | `{}` | Hooks `harness` does not model, rendered as written |
+| `raw` | map of event name to list | `{}` | Hooks `the-cook` does not model, rendered as written |
 | `raw.<Event>[].matcher` | string | none | The agent's matcher for the event (for example a tool-name pattern) |
 | `raw.<Event>[].run` | command | required | The hook command |
 | `attention` | list | `[]` | Actions run when the agent waits for a person |
@@ -295,22 +295,22 @@ lifecycle actions like code; see [safety](safety.md).
 Event names in `raw` are the agents' native names, for example `SessionStart`, `PreToolUse`, `PostToolUse`, `Stop`.
 An event an agent does not support is not rendered for that agent.
 
-`harness hook` exit codes:
+`the-cook hook` exit codes:
 
 | Exit code | Meaning |
 | --- | --- |
 | 0 | Nothing to do, every command passed, or the event is `attention` or `turn_end`, whatever their actions returned |
 | 2 | A post-edit command or validator failed; its output is on stderr for the agent |
 
-When the pinned binary is not cached, the wrapper exits 0 and `harness hook` does not run. When a
-[fetched plugin](plugins.md#fetched-plugins) the hook needs is not cached, `harness hook` prints one line on stderr
-naming `./harnessw plugin fetch` and exits 0; hooks never fetch. `HARNESS_NO_CONTEXT=1`
+When the pinned binary is not cached, the wrapper exits 0 and `the-cook hook` does not run. When a
+[fetched recipe](recipes.md#fetched-recipes) the hook needs is not cached, `the-cook hook` prints one line on stderr
+naming `./cook recipe fetch` and exits 0; hooks never fetch. `COOK_NO_CONTEXT=1`
 turns off standing-context injection only ([context](context.md#environment)).
 
-Files read: stdin (the payload), `.harness/wrapper.yaml` (by the wrapper), `.harness/hooks.yaml`,
-`.harness/config.yaml`, `session.json` and `hook-checks.json` in the checkout's state directory, the read and edited
-files, the skills and files `context` entries name, the cache directory (`$HARNESS_HOME`, default
-`$XDG_CACHE_HOME/harness`, otherwise `~/.cache/harness`) for the binary.
+Files read: stdin (the payload), `.cook/wrapper.yaml` (by the wrapper), `.cook/hooks.yaml`,
+`.cook/config.yaml`, `session.json` and `hook-checks.json` in the checkout's state directory, the read and edited
+files, the skills and files `context` entries name, the cache directory (`$COOK_HOME`, default
+`$XDG_CACHE_HOME/the-cook`, otherwise `~/.cache/the-cook`) for the binary.
 Files written: `hook-checks.json`, `context/<session-id>.json` in the state directory, whatever the declared commands
 write (for example a formatter fixing the file).
 
@@ -319,7 +319,7 @@ write (for example a formatter fixing the file).
 ### A Node API
 
 ```yaml
-# .harness/hooks.yaml
+# .cook/hooks.yaml
 schema: 1
 post_edit:
   - paths: [src/**/*.ts, test/**/*.ts]
@@ -331,7 +331,7 @@ attention:
   - name: ping-me
     http:
       url_env: CHAT_WEBHOOK_URL
-      json: { text: "$HARNESS_AGENT needs you in $HARNESS_REPO ($HARNESS_BRANCH): $HARNESS_MESSAGE" }
+      json: { text: "$COOK_AGENT needs you in $COOK_REPO ($COOK_BRANCH): $COOK_MESSAGE" }
 raw:
   SessionStart: [{ run: bd prime --hook-json }]
 ```
@@ -347,7 +347,7 @@ pinned release is cached.
 schema: 1
 turn_end:
   - name: done
-    run: notify-send --app-name=agent "Turn finished" "$HARNESS_AGENT in $HARNESS_WORKTREE"
+    run: notify-send --app-name=agent "Turn finished" "$COOK_AGENT in $COOK_WORKTREE"
 ```
 
 ### A Terraform repository
@@ -383,40 +383,40 @@ raw: {}
   wired by hand.
 - Don't use hooks to allow or deny commands; put that in the [policy](policy.md).
 - Don't depend on hooks for correctness: they skip on any machine where the pinned binary is not cached yet.
-  `harness verify` is the proof.
+  `the-cook verify` is the proof.
 - Do keep lifecycle actions short and readable in the file itself; a script an action calls is part of the action
   and is reviewed with it.
 - Don't put secrets in lifecycle or notification actions: they inherit the environment of the process that fires
   them. An `http` action reads its URL and headers from the variables it names.
 - Do keep notification actions fast. They run inside the agent's hook call; an `http` action stops at its `timeout`.
-- Don't send `HARNESS_MESSAGE` anywhere it would be read as an instruction: it is the agent's text, shaped by
+- Don't send `COOK_MESSAGE` anywhere it would be read as an instruction: it is the agent's text, shaped by
   everything the agent read.
 
 ## Troubleshooting
 
 | Symptom | Cause | Fix |
 | --- | --- | --- |
-| `harness: v0.9.0 not downloaded, hook skipped; run: ./harnessw version` in the session | The pinned version is not cached on this machine, and hooks never download | Run `./harnessw version` once in the repository |
+| `the-cook: v0.9.0 not downloaded, hook skipped; run: ./cook version` in the session | The pinned version is not cached on this machine, and hooks never download | Run `./cook version` once in the repository |
 | Hooks never run | `modules.hooks` is off, the folder is not trusted by the agent, or the agent's hook feature is disabled | Turn the module on and render; trust the folder |
 | Lint runs on every edit even when nothing changed | The command rewrites the file each time | Make the command idempotent |
-| A Codex session ignores hooks | Codex reads project hooks only when its hooks feature is enabled; `harness` renders that key in `.codex/config.toml` | `harness render`, then `harness doctor` |
+| A Codex session ignores hooks | Codex reads project hooks only when its hooks feature is enabled; `the-cook` renders that key in `.codex/config.toml` | `the-cook render`, then `the-cook doctor` |
 | A raw hook stopped running | It was removed from `hooks.yaml`, or its command is not executable | Restore the entry; `chmod +x` the script |
-| A lifecycle action never runs on its own | It has no `auto: true`, or the event's guard did not let it fire | `harness lifecycle list`; read the [lifecycle log](lifecycle.md#the-lifecycle-log) |
-| The session starts with `harness v0.9.0 is not cached on this machine; run ./harnessw version once to fetch it.` | The pinned release is not cached; the session has no standing context and no notifications | Run `./harnessw version` once |
+| A lifecycle action never runs on its own | It has no `auto: true`, or the event's guard did not let it fire | `the-cook lifecycle list`; read the [lifecycle log](lifecycle.md#the-lifecycle-log) |
+| The session starts with `the-cook v0.9.0 is not cached on this machine; run ./cook version once to fetch it.` | The pinned release is not cached; the session has no standing context and no notifications | Run `./cook version` once |
 | No `attention` notification from Codex | Codex has no event for an agent waiting for a person; `doctor` notes it | Use `turn_end`, which Codex reports through `notify` |
-| No `turn_end` from Codex; `doctor` notes a `notify` program of the repository's own | `.codex/config.toml` already sets `notify` to another program | Move that program into a `turn_end` `run` action, remove the key, then `harness render` |
-| No notification on one machine | The variable in `url_env` is not set there, or the pinned release is not cached there | Set the variable in that shell; run `./harnessw version` once |
-| A notification arrives for every turn of a worker run | It cannot: notification hooks do nothing in a worker's session (`HARNESS_WORKER=1`) | Declare `completed` and `blocked` lifecycle actions for unattended runs, and have whatever drives the run fire `blocked` and the events of scope `run` |
+| No `turn_end` from Codex; `doctor` notes a `notify` program of the repository's own | `.codex/config.toml` already sets `notify` to another program | Move that program into a `turn_end` `run` action, remove the key, then `the-cook render` |
+| No notification on one machine | The variable in `url_env` is not set there, or the pinned release is not cached there | Set the variable in that shell; run `./cook version` once |
+| A notification arrives for every turn of a worker run | It cannot: notification hooks do nothing in a worker's session (`COOK_WORKER=1`) | Declare `completed` and `blocked` lifecycle actions for unattended runs, and have whatever drives the run fire `blocked` and the events of scope `run` |
 
 ## Coexistence
 
-Hook entries `harness` did not render (for example one a Claude Code plugin or a person added to
+Hook entries `the-cook` did not render (for example one a Claude Code plugin or a person added to
 `.claude/settings.json`) are preserved. `settings.local.json` hooks are never touched. See
 [compatibility](compatibility.md).
 
-After [`harness remove --eject`](remove.md#eject), raw entries stay in the native files as the repository's own hooks
-and keep working. The harness entries, including notifications and standing-context injection, are removed, and listed
-in the output, because they call a wrapper that eject deletes. Static context entries stay in `AGENTS.md`.
+After [`the-cook remove --eject`](remove.md#eject), raw entries stay in the native files as the repository's own hooks
+and keep working. The `the-cook hook` entries, including notifications and standing-context injection, are removed, and
+listed in the output, because they call a wrapper that eject deletes. Static context entries stay in `AGENTS.md`.
 
 The reasoning for hooks that give feedback but never decide permissions is in
 [ADR 0011](../adrs/0011-safety-invariants.md); for action kinds and notification events, in

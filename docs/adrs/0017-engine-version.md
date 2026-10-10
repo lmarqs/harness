@@ -32,7 +32,7 @@ first command works with nothing installed beforehand.
   ([0003](0003-implementation-language.md)). A download inside a hook breaks both.
 - A fresh clone whose hooks find no binary runs agent sessions without the tool's hooks, and the agent has no way to
   know why.
-- The tool is one executable with its builtin plugins and templates embedded ([0003](0003-implementation-language.md));
+- The tool is one executable with its builtin recipes and templates embedded ([0003](0003-implementation-language.md));
   it needs only the operating system at runtime ([0004](0004-runtime-dependencies.md)); a repository holds no engine
   code ([0006](0006-repository-contract.md)).
 - Starting a container, even from an image already present, takes a container runtime hundreds of milliseconds; anyone
@@ -103,7 +103,7 @@ first command works with nothing installed beforehand.
 - **2.** One exact release per repository makes every machine, every pipeline and the committed artefacts agree, so the
   drift check gives the same answer everywhere. Per-platform checksums let the wrapper verify what it downloads without
   trusting the download host alone. The pin exists in one place because two pins drift apart after the first upgrade
-  that touches only one. The release also fixes the builtin plugins, so every machine describes the programs a
+  that touches only one. The release also fixes the builtin recipes, so every machine describes the programs a
   repository uses the same way ([0022](0022-tool-integration.md)). The pin is owned, not seeded: its checksums are worth
   something only if an admitted release verified them ([0021](0021-release-trust.md)), so a hand edit has to show as
   drift instead of becoming the repository's choice.

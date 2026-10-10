@@ -15,8 +15,8 @@ its mistake named, never partly applied.
 
 ## Overview
 
-These rules cover the files that people and agents edit and harness reads. The field-by-field reference is in
-[../features/](../features/) and in `harness explain profile|policy|hooks|lifecycle|context`. Terms used here in a
+These rules cover the files that people and agents edit and `the-cook` reads. The field-by-field reference is in
+[../features/](../features/) and in `the-cook explain profile|policy|hooks|lifecycle|context`. Terms used here in a
 precise sense, such as profile, seeded, owned, receipt and worker, are defined in the
 [glossary](../features/glossary.md).
 
@@ -28,40 +28,40 @@ makes removal pick files out of a tree others write, and state inside a committe
 
 | Location | Owner | Holds |
 | --- | --- | --- |
-| `.harness/` | harness's own versioned configuration | `config.yaml` (the profile), `policy.yaml`, `hooks.yaml`, `wrapper.yaml` and the manifest `manifest.json`. Everything in it is committed; nothing in it is state and nothing in it is ignored |
-| `.agents/` | agent content, the cross-tool convention other tools (the `skills` CLI, the `AGENTS.md` ecosystem) share | `skills/` (including the tool-owned `skills/harness/`), `memory/`, `commands/`, `REVIEW.md`, and repository files that standing context points to. It stays meaningful without harness |
-| repository root | the repository, with managed blocks | `harnessw` (the wrapper, tool-owned), `AGENTS.md`, `CLAUDE.md`, `README.md`, `.gitignore` |
-| state paths ([below](#state-paths)) | harness, clone-local | receipts, sessions, locks, the lifecycle log, the hook cache, standing-context session records, the last failed worker output, managed worktrees |
+| `.cook/` | the versioned configuration of `the-cook` | `config.yaml` (the profile), `policy.yaml`, `hooks.yaml`, `wrapper.yaml` and the manifest `manifest.json`. Everything in it is committed; nothing in it is state and nothing in it is ignored |
+| `.agents/` | agent content, the cross-tool convention other tools (the `skills` CLI, the `AGENTS.md` ecosystem) share | `skills/` (including the tool-owned `skills/the-cook/`), `memory/`, `commands/`, `REVIEW.md`, and repository files that standing context points to. It stays meaningful without `the-cook` |
+| repository root | the repository, with managed blocks | `cook` (the wrapper, tool-owned), `AGENTS.md`, `CLAUDE.md`, `README.md`, `.gitignore` |
+| state paths ([below](#state-paths)) | `the-cook`, clone-local | receipts, sessions, locks, the lifecycle log, the hook cache, standing-context session records, the last failed worker output, managed worktrees |
 
-- harness configuration never goes in `.agents/`, and agent content never goes in `.harness/`, so each directory can
-  be read, reviewed and removed on its own terms.
-- State never goes in `.harness/` or `.agents/`, because both are committed trees.
+- The configuration of `the-cook` never goes in `.agents/`, and agent content never goes in `.cook/`, so each directory
+  can be read, reviewed and removed on its own terms.
+- State never goes in `.cook/` or `.agents/`, because both are committed trees.
 - Each convention a location carries (what it holds, where state lives) is also written in `AGENTS.md`, so it holds
-  without harness ([generated-content-standards.md](generated-content-standards.md#conventions-in-blocks)).
+  without `the-cook` ([generated-content-standards.md](generated-content-standards.md#conventions-in-blocks)).
 
 ## The user-editable files
 
 | File | Scope | Holds |
 | --- | --- | --- |
-| `.harness/config.yaml` | repository, committed | the profile: the plugins in use (`plugins`, `vcs`, each agent's `plugin`), modules, bootstrap, commands, lanes, agents (roles, Codex writable roots), standing context, block budget, state paths |
-| `.harness/policy.yaml` | repository, committed | the repository's permission entries; the floor rules of the plugins in use are rendered beside them and are not in this file |
-| `.harness/hooks.yaml` | repository, committed | agent-neutral hook declarations, notification actions (`attention`, `turn_end`) and lifecycle actions |
-| `.harness/wrapper.yaml` | repository, committed | the pinned release: `schema`, `version`, `source`, `checksums`; owned: written only by `harness scaffold` and `harness wrapper`, never by hand |
-| `~/.config/harness/fleet.yaml` (or `--repos <file>`) | machine | `repos` (the repository list), `branch_prefix` (default `harness/`) and `commit_message` (default `chore(harness): <command>`) for `harness fleet` |
+| `.cook/config.yaml` | repository, committed | the profile: the recipes in use (`recipes`, `vcs`, each agent's `recipe`), modules, bootstrap, commands, lanes, agents (roles, Codex writable roots), standing context, block budget, state paths |
+| `.cook/policy.yaml` | repository, committed | the repository's permission entries; the floor rules of the recipes in use are rendered beside them and are not in this file |
+| `.cook/hooks.yaml` | repository, committed | agent-neutral hook declarations, notification actions (`attention`, `turn_end`) and lifecycle actions |
+| `.cook/wrapper.yaml` | repository, committed | the pinned release: `schema`, `version`, `source`, `checksums`; owned: written only by `the-cook scaffold` and `the-cook wrapper`, never by hand |
+| `~/.config/the-cook/fleet.yaml` (or `--repos <file>`) | machine | `repos` (the repository list), `branch_prefix` (default `the-cook/`) and `commit_message` (default `chore(the-cook): <command>`) for `the-cook fleet` |
 
 Each fact has one file ([principles.md](principles.md#6-one-way-to-do-each-thing)). A new setting goes in the file
 whose audience it serves: permissions in the policy, hooks and actions in the hooks file, the pinned version in the
-wrapper file, everything else harness needs about the repository in the profile. Why: a reviewer of a permission
+wrapper file, everything else `the-cook` needs about the repository in the profile. Why: a reviewer of a permission
 change reads one file that holds only permissions. Another repository file requires a change to this standard, with
 its reason.
 
 ### `wrapper.yaml`
 
 ```yaml
-# generated by harness: change with ./harnessw wrapper --version <tag>
+# generated by the-cook: change with ./cook wrapper --version <tag>
 schema: 1
 version: <tag>
-source: github:lmarqs/harness
+source: github:lmarqs/the-cook
 checksums:
   linux-amd64: <sha256>
   linux-arm64: <sha256>
@@ -73,7 +73,7 @@ checksums:
 | --- | --- | --- | --- |
 | `schema` | integer | required | the file's schema |
 | `version` | release tag | required | the exact release the wrapper runs; never a range or `latest` |
-| `source` | source | `github:lmarqs/harness` | where releases come from: `github:<owner>/<repo>`, shorthand for `https://github.com/<owner>/<repo>/releases`, or any HTTPS base URL laid out the same way: assets at `<source>/download/<tag>/<asset>`, the newest release's files at `<source>/latest/download/<asset>` |
+| `source` | source | `github:lmarqs/the-cook` | where releases come from: `github:<owner>/<repo>`, shorthand for `https://github.com/<owner>/<repo>/releases`, or any HTTPS base URL laid out the same way: assets at `<source>/download/<tag>/<asset>`, the newest release's files at `<source>/latest/download/<asset>` |
 | `checksums` | map of platform to sha256 | required | the checksum of the release asset for each supported platform: `linux-amd64`, `linux-arm64`, `darwin-amd64`, `darwin-arm64`; the wrapper refuses a download that does not match |
 
 - `version` is exact, never a range, because a range would let two machines run different releases against one
@@ -84,10 +84,10 @@ checksums:
 - `wrapper.yaml` is owned: it starts with the header above, the manifest records it, and a hand edit is drift. Why:
   its checksums are worth something only if a trusted binary verified them, so a hand edit must not pass as the
   repository's choice ([ADR 0017](../adrs/0017-engine-version.md)).
-- `wrapper.yaml` is the only place harness reads the version it runs, so the wrapper and a global `harness` resolve
-  the same release from one file. harness reads no other tool's version file
+- `wrapper.yaml` is the only place `the-cook` reads the version it runs, so the wrapper and a global `the-cook` resolve
+  the same release from one file. `the-cook` reads no other tool's version file
   ([ADR 0022](../adrs/0022-tool-integration.md)).
-- `harness wrapper --version <tag>` (or `--latest`) and `harness scaffold` write `checksums` only from the release's
+- `the-cook wrapper --version <tag>` (or `--latest`) and `the-cook scaffold` write `checksums` only from the release's
   checksum file after the running binary has verified its signature, or, with `scaffold --offline`, write the literal
   `pending`, which admits no download
   ([compatibility-standards.md](compatibility-standards.md#release-trust)), so a person never copies a checksum by
@@ -96,7 +96,7 @@ checksums:
 
 ### State paths
 
-State lives at paths the profile sets, outside `.harness/`, because repositories already have conventions for where
+State lives at paths the profile sets, outside `.cook/`, because repositories already have conventions for where
 local state goes, and a tool that fixes one location fights them:
 
 ```yaml
@@ -111,42 +111,42 @@ worktrees:
 | `state.dir` | `.work` | receipts, sessions, locks, the lifecycle log, the hook cache, standing-context session records; in each checkout a worker runs in, the record of its bootstrap, `last-worker-output` and `last-attempt.patch` |
 | `worktrees.dir` | `.work/worktrees` | each managed worktree, at `<dir>/<name>` |
 
-- Paths are repository-relative. A path inside `.harness/` or `.agents/` is a validation error (exit 1), because both
+- Paths are repository-relative. A path inside `.cook/` or `.agents/` is a validation error (exit 1), because both
   trees are committed.
 - Defaults are literal paths. Changing one re-renders the blocks that state it and does not move existing state,
   because moving a worktree with uncommitted work is a person's decision.
-- Each path is a convention: the module that uses it states it in a managed block of `AGENTS.md`, and the git plugin
+- Each path is a convention: the module that uses it states it in a managed block of `AGENTS.md`, and the git recipe
   ignores it in a managed block of `.gitignore`, naming the configured value
   ([generated-content-standards.md](generated-content-standards.md#conventions-in-blocks)).
 - Other programs keep their files where they look for them, such as `.beads/` for Beads and `.ralph-tui/` for
-  ralph-tui. No profile key names those paths: the plugin that describes a program names the paths it writes or
-  ignores, such as the ralph-tui plugin's block in `.gitignore`, because the binary contains code for no program
+  ralph-tui. No profile key names those paths: the recipe that describes a program names the paths it writes or
+  ignores, such as the ralph-tui recipe's block in `.gitignore`, because the binary contains code for no program
   ([ADR 0022](../adrs/0022-tool-integration.md)).
 
 ## Ownership
 
-- The repository files `config.yaml`, `policy.yaml` and `hooks.yaml` are seeded: harness writes them once at `scaffold`
-  or `scaffold --adopt`, and from then on they belong to the repository. harness writes them again only to migrate a
-  schema or to apply a plugin a person asked for ([below](#plugins)). `wrapper.yaml` and `manifest.json` are owned.
-  harness writes `wrapper.yaml` on scaffold and re-pin (`harness wrapper`), and `manifest.json` on scaffold, render and
-  re-pin. `wrapper.yaml` carries a header naming the operation that changes it; `manifest.json`, being JSON, carries
-  none. Each such write is shown before it happens, through `--dry-run` and the confirmation rules in
+- The repository files `config.yaml`, `policy.yaml` and `hooks.yaml` are seeded: `the-cook` writes them once at
+  `scaffold` or `scaffold --adopt`, and from then on they belong to the repository. `the-cook` writes them again only to
+  migrate a schema or to apply a recipe a person asked for ([below](#recipes)). `wrapper.yaml` and `manifest.json` are
+  owned. `the-cook` writes `wrapper.yaml` on scaffold and re-pin (`the-cook wrapper`), and `manifest.json` on scaffold,
+  render and re-pin. `wrapper.yaml` carries a header naming the operation that changes it; `manifest.json`, being JSON,
+  carries none. Each such write is shown before it happens, through `--dry-run` and the confirmation rules in
   [cli-standards.md](cli-standards.md#confirmations---yes-and---force). Why: the seeded files hold the repository's
-  choices, so harness must not overwrite them; the owned files hold facts harness computes.
-- When harness writes one of these files, it preserves comments, key order and blank lines that it does not need to
+  choices, so `the-cook` must not overwrite them; the owned files hold facts `the-cook` computes.
+- When `the-cook` writes one of these files, it preserves comments, key order and blank lines that it does not need to
   change, because people annotate them.
 - Every entry adoption imports carries a provenance comment naming its source file and scope
-  (`# imported from .claude/settings.json (project)`). The comment belongs to the repository from then on: harness
+  (`# imported from .claude/settings.json (project)`). The comment belongs to the repository from then on: `the-cook`
   never rewrites or removes it, and a person MAY delete it once the entry is reviewed. Undo uses project-scope
   provenance comments to write those entries back as native settings.
 
 ## Inputs
 
-What harness renders and runs in a repository is determined by the repository's own files, the release it pins and
-the plugins it pins by hash, and by nothing else ([ADR 0013](../adrs/0013-organization-content.md),
+What `the-cook` renders and runs in a repository is determined by the repository's own files, the release it pins and
+the recipes it pins by hash, and by nothing else ([ADR 0013](../adrs/0013-organization-content.md),
 [ADR 0022](../adrs/0022-tool-integration.md)).
 
-- No repository file has a key that names a source outside the repository for what harness renders or runs: no
+- No repository file has a key that names a source outside the repository for what `the-cook` renders or runs: no
   inheritance, no includes, no remote sources. Validation rejects such a key like any other unknown key. Why: people and
   agents learn what a repository does from its files. A rule resolved from elsewhere acts in the repository while its
   source sits outside it, so an agent working there cannot read it and a reviewer sees its effect without its reason.
@@ -155,12 +155,13 @@ the plugins it pins by hash, and by nothing else ([ADR 0013](../adrs/0013-organi
   else published a change.
 - Two keys name a source outside the repository, and each is pinned by hash. `source` in `wrapper.yaml` is where the
   wrapper downloads the pinned release, which it runs only when the download matches the committed checksums. `source`
-  of a fetched plugin under `plugins:` is where `harness plugin fetch` and `harness plugin apply` download that plugin,
-  which harness loads only from the per-user cache and only when its content matches the committed `sha256`. Why: what
-  arrives from either takes effect only as the content the repository pinned and reviewed. Shared skills arrive the same
-  way as any other file: the team installs them with the tool of its choice and commits `.agents/skills/`.
-- Machine-level files (the fleet file, the cache under `$HARNESS_HOME`) never affect what is rendered into a
-  repository: a cached plugin is loaded only when it matches the hash the repository pins, so two machines render the
+  of a fetched recipe under `recipes:` is where `the-cook recipe fetch` and `the-cook recipe apply` download that
+  recipe, which `the-cook` loads only from the per-user cache and only when its content matches the committed `sha256`.
+  Why: what arrives from either takes effect only as the content the repository pinned and reviewed. Shared skills
+  arrive the same way as any other file: the team installs them with the tool of its choice and commits
+  `.agents/skills/`.
+- Machine-level files (the fleet file, the cache under `$COOK_HOME`) never affect what is rendered into a
+  repository: a cached recipe is loaded only when it matches the hash the repository pins, so two machines render the
   same bytes.
 - An organization's choices (which observability tools agents may read without asking, a deny on each repository's
   deploy command, a CI-trigger commit in delivery
@@ -178,15 +179,15 @@ to that file's format ([compatibility-standards.md](compatibility-standards.md#w
 must recognise a file it does not understand before it rewrites that file with outdated rules
 ([ADR 0005](../adrs/0005-schema-compatibility.md)).
 
-| The file's schema is… | harness… |
+| The file's schema is… | `the-cook`… |
 | --- | --- |
 | the current one | reads it |
 | older and supported | reads it as written; rendering is unchanged; the migration is offered, never applied silently |
-| newer than the binary knows | refuses, exit 3 (a person must decide which version to run), naming the file, the schema found, the highest schema this binary supports, and the release to run: the pinned release from `.harness/wrapper.yaml`, which `./harnessw <command>` runs ([ADR 0005](../adrs/0005-schema-compatibility.md)) |
+| newer than the binary knows | refuses, exit 3 (a person must decide which version to run), naming the file, the schema found, the highest schema this binary supports, and the release to run: the pinned release from `.cook/wrapper.yaml`, which `./cook <command>` runs ([ADR 0005](../adrs/0005-schema-compatibility.md)) |
 | missing or not an integer | refuses, exit 1, with the expected first line |
 
 Every machine running through the wrapper runs the pinned version, so a newer-schema refusal occurs only when the pin is
-bypassed (`HARNESS_BINARY`, or a global binary too old to defer to the pin)
+bypassed (`COOK_BINARY`, or a global binary too old to defer to the pin)
 ([compatibility-standards.md](compatibility-standards.md#installation-and-version-pinning)).
 
 Migration UX:
@@ -200,11 +201,11 @@ Migration UX:
 ## Defaults
 
 - An absent key takes its documented default. Defaults are listed in the features reference and in
-  `harness explain`, so a short file is still fully specified.
+  `the-cook explain`, so a short file is still fully specified.
 - A module absent from `modules` is off. Adoption is opt-in per module, because a repository adopts the practices it
   chooses ([principles.md](principles.md#1-optional-and-transparent)).
-- Seeded files contain the values harness detected and the switches a user is expected to change, not a copy of every
-  default, so the file shows the repository's choices rather than harness's.
+- Seeded files contain the values `the-cook` detected and the switches a user is expected to change, not a copy of every
+  default, so the file shows the repository's choices rather than the defaults of `the-cook`.
 - A default never weakens safety and never changes within a schema version, because a default is applied to every
   repository that did not choose otherwise.
 
@@ -213,7 +214,7 @@ Migration UX:
 New behaviour enters the files in this order of preference, because each step costs repositories more than the one
 before:
 
-1. Data in the existing formats: a plugin or a declared action. Support for any program takes this form. It changes
+1. Data in the existing formats: a recipe or a declared action. Support for any program takes this form. It changes
    no schema of the repository files, and a repository that does not use the program carries nothing.
 2. A new optional key whose absence keeps the existing behaviour. This is not a breaking change and does not bump the
    schema.
@@ -222,8 +223,8 @@ before:
 
 Code in the binary for a program is not on this list: a key, a value or a command that exists to serve one version
 control system, agent harness, loop runner, tracker, skills installer, task runner or hosting platform is never added.
-A need the plugin format cannot express is a change to the plugin schema or to a contract
-([plugins](../features/plugins.md)). Why: each program has its own formats and releases, so code for one follows every
+A need the recipe format cannot express is a change to the recipe schema or to a contract
+([recipes](../features/recipes.md)). Why: each program has its own formats and releases, so code for one follows every
 release of a program the project does not own and serves no team that chose another
 ([ADR 0022](../adrs/0022-tool-integration.md), [ADR 0023](../adrs/0023-core-and-contracts.md)).
 
@@ -233,21 +234,21 @@ repository declared.
 
 ## Validation messages
 
-Validation runs on every command that reads the file, and `harness doctor` reports it as findings. Every message:
+Validation runs on every command that reads the file, and `the-cook doctor` reports it as findings. Every message:
 
 - names the file, line and column, and the full key path (`verify.lanes.e2e.required_when[2]`);
 - shows the offending value and what was expected (type, allowed values, pattern);
-- for an unknown key, names the closest known key and adds that a newer harness may define it;
+- for an unknown key, names the closest known key and adds that a newer release of `the-cook` may define it;
 - ends with the command that confirms the fix.
 
 All problems in a file are reported in one run. Why: the person or agent fixing the file needs the exact place and the
 exact fix, and one round trip per mistake wastes both.
 
 ```text
-harness: .harness/config.yaml:14:5: unknown key "verify.lanes.e2e.requried_when"
+the-cook: .cook/config.yaml:14:5: unknown key "verify.lanes.e2e.requried_when"
   did you mean "required_when"?
-  if the key comes from a newer harness, raise the pin: ./harnessw wrapper --version <tag>
-  then run: ./harnessw doctor
+  if the key comes from a newer the-cook, raise the pin: ./cook wrapper --version <tag>
+  then run: ./cook doctor
 ```
 
 ## Values and placeholders
@@ -256,12 +257,13 @@ harness: .harness/config.yaml:14:5: unknown key "verify.lanes.e2e.requried_when"
   every machine.
 - Commands are strings run with `sh -c` from the root of the checkout they apply to (the primary clone or a worktree).
 - The placeholders `{file}` (one repository-relative path) and `{pattern}` (one lane pattern) in profile and hook
-  commands are the only substitutions in command text; harness shell-quotes each value. Each field documents which
+  commands are the only substitutions in command text; `the-cook` shell-quotes each value. Each field documents which
   placeholder it accepts; any other placeholder is a validation error, and a new value is added as an environment
   variable, never as a new placeholder. Why: substitution into command text is an injection path, so it stays limited
   to two quoted values.
-- Actions receive values per kind ([cli-standards.md](cli-standards.md#values-passed-to-user-declared-commands-and-actions)):
-  - `run`: only through environment variables, which the shell expands; harness substitutes nothing.
+- Actions receive values per kind
+  ([cli-standards.md](cli-standards.md#values-passed-to-user-declared-commands-and-actions)):
+  - `run`: only through environment variables, which the shell expands; `the-cook` substitutes nothing.
   - `http`: in `json`, every `$NAME` inside a string becomes the JSON-encoded value of environment variable `NAME`,
     so a value can never break the document's structure; an unset variable becomes an empty string and a note.
   - `agent`: in `prompt`, every `$NAME` becomes the variable's value as plain text.
@@ -269,10 +271,10 @@ harness: .harness/config.yaml:14:5: unknown key "verify.lanes.e2e.requried_when"
 
 ## Policy entries
 
-`.harness/policy.yaml` holds the repository's permission entries under `shared.allow`, `shared.ask`, `shared.deny` and
-`worker.deny`; the floor rules of the plugins in use are rendered beside them ([below](#the-floor)). Every native rule
+`.cook/policy.yaml` holds the repository's permission entries under `shared.allow`, `shared.ask`, `shared.deny` and
+`worker.deny`; the floor rules of the recipes in use are rendered beside them ([below](#the-floor)). Every native rule
 an agent understands is expressible, in one of three forms, because a rule the policy cannot express is lost when
-harness takes ownership of the native key ([ADR 0016](../adrs/0016-permission-adoption.md)):
+`the-cook` takes ownership of the native key ([ADR 0016](../adrs/0016-permission-adoption.md)):
 
 | Form | Example | Renders as |
 | --- | --- | --- |
@@ -280,30 +282,30 @@ harness takes ownership of the native key ([ADR 0016](../adrs/0016-permission-ad
 | Native rule string: `Tool(specifier)`, `Tool`, or `mcp__server__tool`, with globs | `WebFetch(domain:example.com)`, `Read(./secrets/**)`, `mcp__acme-observability__get_*` | verbatim for Claude. For Codex only `Bash(<prefix> *)` with a pure prefix converts; any other string is Claude-only |
 | Any other string: not `Tool(specifier)`, not a bare tool name, not `mcp__…` | `"gh pr merge *--admin*"` | shorthand for `Bash(<string>)`, Claude-only |
 
-- An entry that names a harness command is written once with the program name, `[harness, lifecycle, run, deliver]`, and
-  rendered for every rendered spelling: `harness …`, `./harnessw …` and `harnessw …`. Why: an entry written for one
+- An entry that names a `the-cook` command is written once with the program name, `[the-cook, lifecycle, run, deliver]`,
+  and rendered for every rendered spelling: `the-cook …`, `./cook …` and `cook …`. Why: an entry written for one
   spelling leaves the others open, and writing all of them by hand drifts. Other spellings (an absolute path to the
-  binary, `sh harnessw …`) match no prefix rule; the binary's own guards catch them
+  binary, `sh cook …`) match no prefix rule; the binary's own guards catch them
   ([ADR 0011](../adrs/0011-safety-invariants.md)).
 - MCP tools are native rule strings under `allow`, `ask` or `deny`, like any other tool.
 - Precedence is the same for every agent: deny, then ask, then allow, so one policy means the same thing in each.
 - A Claude-only entry is listed as such in the `policy` block of `AGENTS.md`, so a reader sees which rules Codex does
   not enforce.
-- The same pattern under `allow` and `deny` resolves to deny and is reported by `harness doctor`, because the safer
+- The same pattern under `allow` and `deny` resolves to deny and is reported by `the-cook doctor`, because the safer
   reading holds until a person decides.
 - A bare string is a native rule string when it is `Tool(specifier)`, a bare tool name (`WebSearch`, `Read`) or an
   `mcp__…` name; any other string is a shell command, because shell commands are the common case and a tool name is
   recognisable by its form.
-- An entry that would weaken a floor rule of a plugin in use (allowing a bypass argument the claude plugin marks, or a
-  force push to the default branch, a floor rule of the git plugin) is never rendered: `harness render` drops it and
-  reports it, the floor rule is rendered regardless, and `harness doctor` reports the entry as a finding. Why: floor
-  rules hold in every repository that uses the plugin, and a policy file that claims otherwise misleads its readers
+- An entry that would weaken a floor rule of a recipe in use (allowing a bypass argument the claude recipe marks, or a
+  force push to the default branch, a floor rule of the git recipe) is never rendered: `the-cook render` drops it and
+  reports it, the floor rule is rendered regardless, and `the-cook doctor` reports the entry as a finding. Why: floor
+  rules hold in every repository that uses the recipe, and a policy file that claims otherwise misleads its readers
   until someone removes the entry ([ADR 0011](../adrs/0011-safety-invariants.md),
   [ADR 0016](../adrs/0016-permission-adoption.md)).
 
 ## Declared actions
 
-Actions are declared in `.harness/hooks.yaml`: lifecycle actions under the top-level `lifecycle:` key, notification
+Actions are declared in `.cook/hooks.yaml`: lifecycle actions under the top-level `lifecycle:` key, notification
 actions under `attention:` and `turn_end:`, beside the agent-hook keys (`post_edit`, `validators`, `session_start`,
 `raw`). Behaviour, trigger points and guards: [lifecycle guide](../features/lifecycle.md) and
 [hooks](../features/hooks.md). Why: everything that leaves the clone is written down and reviewed before it can happen
@@ -316,30 +318,30 @@ lifecycle:
     - name: notify-chat
       http:
         url_env: CHAT_WEBHOOK_URL
-        json: { text: "$HARNESS_TASK finished on $HARNESS_BRANCH: $HARNESS_SUMMARY" }
+        json: { text: "$COOK_TASK finished on $COOK_BRANCH: $COOK_SUMMARY" }
       auto: true
       on_failure: continue
   deliver:
     - name: push
-      run: git push -u origin "$HARNESS_BRANCH"
+      run: git push -u origin "$COOK_BRANCH"
     - name: open-pr
-      run: gh pr create --draft --fill --base "$HARNESS_DEFAULT_BRANCH" --head "$HARNESS_BRANCH"
+      run: gh pr create --draft --fill --base "$COOK_DEFAULT_BRANCH" --head "$COOK_BRANCH"
       scope: [task, change]
   landed:
     - name: lessons
       agent:
-        prompt: "Read the merged change on $HARNESS_BRANCH and add durable lessons to .agents/memory/."
+        prompt: "Read the merged change on $COOK_BRANCH and add durable lessons to .agents/memory/."
   blocked:
     - name: page-me
       http:
         url_env: CHAT_WEBHOOK_URL
-        json: { text: "harness stopped in $HARNESS_REPO: $HARNESS_REASON" }
+        json: { text: "the-cook stopped in $COOK_REPO: $COOK_REASON" }
       auto: true
 attention:
   - name: ping-me
     http:
       url_env: CHAT_WEBHOOK_URL
-      json: { text: "$HARNESS_AGENT needs you in $HARNESS_REPO: $HARNESS_MESSAGE" }
+      json: { text: "$COOK_AGENT needs you in $COOK_REPO: $COOK_MESSAGE" }
 turn_end:
   - name: done
     run: notify-send "agent finished"
@@ -352,11 +354,11 @@ single meaning.
 | --- | --- | --- | --- |
 | `lifecycle.<event>` | list | none | actions for one event: `start`, `verified`, `completed`, `deliver`, `landed` or `blocked`; any other key is a validation error |
 | `attention`, `turn_end` | list | none | notification actions: the agent is waiting for a person; the agent finished a turn. Kinds `run` and `http` only |
-| `name` | string | required | the action's name, unique within its event; `harness lifecycle run --action <name>` selects a lifecycle action |
+| `name` | string | required | the action's name, unique within its event; `the-cook lifecycle run --action <name>` selects a lifecycle action |
 | `run` | command | one kind required | run with `sh -c` in the worktree; receives values only as environment variables |
-| `http` | map | one kind required | a request harness performs itself, keys below |
+| `http` | map | one kind required | a request `the-cook` performs itself, keys below |
 | `agent` | map | one kind required | a headless agent run under the worker contract, keys below; lifecycle actions only |
-| `auto` | boolean | `false` | lifecycle actions: when true, harness fires the action at the event's trigger point; when false, it runs only through `harness lifecycle run` |
+| `auto` | boolean | `false` | lifecycle actions: when true, `the-cook` fires the action at the event's trigger point; when false, it runs only through `the-cook lifecycle run` |
 | `scope` | list of `task`, `run`, `change` | every scope the event supports | lifecycle actions: the scopes in which the action runs; a scope the event does not support is a validation error |
 | `on_failure` | `stop` or `continue` | `stop` | lifecycle actions: `stop`: the first failure stops the event with exit 2; `continue`: the remaining actions run, and the event still exits 2 if any action failed |
 
@@ -384,34 +386,34 @@ single meaning.
 | `model` | model id | the agent's default | the model to run |
 | `effort` | effort level | the agent's default | the reasoning effort |
 
-- An `agent` action runs under the worker contract: auto permission mode, the floor rules of the plugins in use and the
+- An `agent` action runs under the worker contract: auto permission mode, the floor rules of the recipes in use and the
   repository's worker denies, floor bypass arguments refused, the tamper check. It cannot commit, push or fire lifecycle
   events; its file changes stay uncommitted and are listed in the lifecycle log and the output. Why: an agent started by
-  an event is as unattended as one `harness worker` starts, so it gets the same bounds.
+  an event is as unattended as one `the-cook worker` starts, so it gets the same bounds.
 - Actions run in the worktree of the work the event concerns. On `landed`, `run` and `http` actions run in the primary
-  checkout. An `agent` action runs in a fresh worktree of the default branch, which harness creates under
-  `worktrees.dir` as `landed-<name>-<n>` and records. harness leaves that worktree with the agent's uncommitted edits
-  for a person to review, commit or remove with `harness worktree remove`. Why: once work has landed its worktree is
+  checkout. An `agent` action runs in a fresh worktree of the default branch, which `the-cook` creates under
+  `worktrees.dir` as `landed-<name>-<n>` and records. `the-cook` leaves that worktree with the agent's uncommitted edits
+  for a person to review, commit or remove with `the-cook worktree remove`. Why: once work has landed its worktree is
   about to go, and the primary checkout holds whatever a person is doing there
   ([ADR 0019](../adrs/0019-action-kinds.md)).
 - Prompts that include untrusted values (task titles, agent messages) are a prompt-injection surface; the worker
   contract bounds what an injected instruction can do.
-- `auto: true` on an `agent` action is allowed and is reported by `harness doctor` as a note, because each automatic
+- `auto: true` on an `agent` action is allowed and is reported by `the-cook doctor` as a note, because each automatic
   run costs tokens and gives a different result each time.
 - An event's actions run in the order `hooks.yaml` declares them, so the order a reviewer reads is the order they
   run.
-- Actions are code. They are committed, reviewed like code, and run as child processes of harness with the
+- Actions are code. They are committed, reviewed like code, and run as child processes of `the-cook` with the
   permissions of the person or process that fired the event, outside any agent's per-command permission checks.
 - `auto` defaults to false, so adding an action never makes anything leave the clone unattended; `auto: true` is a
   reviewed, committed decision.
-- harness is never an MCP client. Work that needs an MCP tool is an `agent` action or the coordinating agent's job;
+- `the-cook` is never an MCP client. Work that needs an MCP tool is an `agent` action or the coordinating agent's job;
   a deterministic integration uses the service's API (`http`) or CLI (`run`). Why: the agent owns its MCP connections,
   their credentials and their permissions ([ADR 0001](../adrs/0001-role-of-the-tool.md)).
 
 ## Standing context
 
 Standing context puts known guidance in front of an agent at the moment it applies, without anyone invoking it. It is
-declared under `context:` in `.harness/config.yaml`. Reference: [context](../features/context.md). Why: guidance a
+declared under `context:` in `.cook/config.yaml`. Reference: [context](../features/context.md). Why: guidance a
 person must remember to invoke is skipped exactly when it matters, while a deterministic trigger applies it every time
 ([ADR 0020](../adrs/0020-standing-context.md)).
 
@@ -445,45 +447,45 @@ context:
 
 - Each `when` entry is injected at most once per session, so a matching file read twenty times costs one injection.
 - Sources are repository files and skills committed under `.agents/skills/` only, delivered as the committed file. A
-  skill named in `context` that does not exist under `.agents/skills/` is a `harness doctor` finding. Nothing is
+  skill named in `context` that does not exist under `.agents/skills/` is a `the-cook doctor` finding. Nothing is
   fetched when a hook runs, and no installer's lock file is read. Why: injected text steers an agent, so it must come
   from reviewed, versioned content, and the commit is that review whichever tool installed the skill
   ([ADR 0022](../adrs/0022-tool-integration.md)).
-- For an agent `harness worker` starts, injected content is read from the base commit the worker recorded, so a worker
+- For an agent `the-cook worker` starts, injected content is read from the base commit the worker recorded, so a worker
   cannot change its own instructions between attempts.
 - A `static` entry works without the binary and survives eject, because it is a convention block; it is not also
   injected by a hook, so it is never loaded twice. Static entries count against `context.budget`, not against the
   `AGENTS.md` block budget.
-- `harness doctor` reports a note when always-on content for a role exceeds `context.budget` and lists every entry
+- `the-cook doctor` reports a note when always-on content for a role exceeds `context.budget` and lists every entry
   with its line count, because every always-on line is paid in every session.
-- `harness context show` previews what would be injected and why, so the effect of an entry can be checked without
+- `the-cook context show` previews what would be injected and why, so the effect of an entry can be checked without
   starting an agent.
 
-## Plugins
+## Recipes
 
-A plugin is a named, versioned bundle of data that describes one program to the binary: git, an agent harness, a loop
+A recipe is a named, versioned bundle of data that describes one program to the binary: git, an agent harness, a loop
 runner, a task tracker, a task runner, a skills installer or a technology stack. The binary contains code for no
-program. The plugin format, the two contracts and the contents of every builtin plugin are in
-[plugins](../features/plugins.md); this section governs how a repository names the plugins it uses and what each part
-of a plugin may write. Why: each team picks different programs and each program changes on its own schedule, so a
+program. The recipe format, the two contracts and the contents of every builtin recipe are in
+[recipes](../features/recipes.md); this section governs how a repository names the recipes it uses and what each part
+of a recipe may write. Why: each team picks different programs and each program changes on its own schedule, so a
 program's description changes with the program and not with the binary, while each repository keeps the final say over
 its own files ([ADR 0022](../adrs/0022-tool-integration.md), [ADR 0023](../adrs/0023-core-and-contracts.md),
 [ADR 0013](../adrs/0013-organization-content.md)).
 
-### The plugins in use
+### The recipes in use
 
-The profile names every plugin the repository uses, the plugin that fills the version-control contract and the harness
-plugin of each agent:
+The profile names every recipe the repository uses, the recipe that fills the version-control contract and the harness
+recipe of each agent:
 
 ```yaml
-plugins:
+recipes:
   - git
   - claude
   - codex
   - node
   - beads
   - name: acme-deploy
-    source: github:acme/harness-plugins
+    source: github:acme/cookbook
     version: 1.4.0
     sha256: <sha256>
 vcs: git
@@ -494,118 +496,118 @@ agents:
 
 | Key | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `plugins` | list | the plugins `harness scaffold` applied | every plugin the repository uses: a builtin plugin by name, a fetched plugin as a map with `name`, `source`, `version` and `sha256` |
-| `plugins[].source` | source | required for a fetched plugin | where the plugin comes from: `github:<owner>/<repo>`, or any HTTPS base URL laid out like the release source in `wrapper.yaml` |
-| `plugins[].version` | exact version | required for a fetched plugin | the plugin version; never a range |
-| `plugins[].sha256` | sha256 | required for a fetched plugin | the hash of the plugin's content; harness loads the plugin only when its content matches |
-| `vcs` | plugin name | none; `harness scaffold` writes `git` | the plugin that fills the [version-control contract](../features/plugins.md#the-version-control-contract) |
-| `agents.<name>.plugin` | plugin name | the agent's name | the plugin that fills the [harness contract](../features/plugins.md#the-harness-contract) for that agent |
+| `recipes` | list | the recipes `the-cook scaffold` applied | every recipe the repository uses: a builtin recipe by name, a fetched recipe as a map with `name`, `source`, `version` and `sha256` |
+| `recipes[].source` | source | required for a fetched recipe | the URL of the cookbook that publishes the recipe: `github:<owner>/<repo>`, or any HTTPS base URL laid out like the release source in `wrapper.yaml` |
+| `recipes[].version` | exact version | required for a fetched recipe | the recipe version; never a range |
+| `recipes[].sha256` | sha256 | required for a fetched recipe | the hash of the recipe's content; `the-cook` loads the recipe only when its content matches |
+| `vcs` | recipe name | none; `the-cook scaffold` writes `git` | the recipe that fills the [version-control contract](../features/recipes.md#the-version-control-contract) |
+| `agents.<name>.recipe` | recipe name | the agent's name | the recipe that fills the [harness contract](../features/recipes.md#the-harness-contract) for that agent |
 
-- `vcs` and every `agents.<name>.plugin` name a plugin listed in `plugins`; any other name is a validation error
-  (exit 1). A plugin fills at most one contract. Why: an answer the binary relies on, such as the base revision of an
+- `vcs` and every `agents.<name>.recipe` name a recipe listed in `recipes`; any other name is a validation error
+  (exit 1). A recipe fills at most one contract. Why: an answer the binary relies on, such as the base revision of an
   attempt, has exactly one source, and a name that resolves to nothing must fail before anything runs.
-- A builtin plugin is embedded in the release and tested in the project's CI against the program versions the
-  documentation names. A fetched plugin is fetched only by `harness plugin fetch` and `harness plugin apply`, cached in
-  the per-user cache under its hash, and verified against `sha256` on every load; a mismatch exits 1. A fetched plugin
-  cannot use a builtin plugin's name (exit 1). Why: a hash pin gives a fetched plugin the same trust as a pinned
+- A builtin recipe is embedded in the release and tested in the project's CI against the program versions the
+  documentation names. A fetched recipe is fetched only by `the-cook recipe fetch` and `the-cook recipe apply`, cached
+  in the per-user cache under its hash, and verified against `sha256` on every load; a mismatch exits 1. A fetched
+  recipe cannot use a builtin recipe's name (exit 1). Why: a hash pin gives a fetched recipe the same trust as a pinned
   release, and a shipped description is never replaced quietly under the name every page documents
   ([ADR 0021](../adrs/0021-release-trust.md)).
-- No other command fetches, and hooks and unattended attempts never do. A fetched plugin that is not in the cache when
-  a command needs it, `harness render`, a hook or a `harness worker` attempt, is a missing prerequisite, exit 3, and
-  the message names `./harnessw plugin fetch`. Why: a fetch during an unattended attempt would hand the attempt to
+- No other command fetches, and hooks and unattended attempts never do. A fetched recipe that is not in the cache when
+  a command needs it, `the-cook render`, a hook or a `the-cook worker` attempt, is a missing prerequisite, exit 3, and
+  the message names `./cook recipe fetch`. Why: a fetch during an unattended attempt would hand the attempt to
   whoever controls the source, and a render that fetched would depend on the network
   ([ADR 0022](../adrs/0022-tool-integration.md)).
 
 ### What each part writes
 
-A plugin holds up to five parts: entries, templates, renders, operations and checks
-([plugins](../features/plugins.md#entries)). Entries and templates become the repository's own; renders stay owned by
-harness; operations and checks write nothing.
+A recipe holds up to five parts: entries, templates, renders, operations and checks
+([recipes](../features/recipes.md#entries)). Entries and templates become the repository's own; renders stay owned by
+`the-cook`; operations and checks write nothing.
 
-- Entries are additions to `.harness/config.yaml` (its standing context included), `.harness/policy.yaml` and
-  `.harness/hooks.yaml`. Stack plugins hold entries for `.harness/config.yaml` (commands, lanes, validators, module
-  switches) and `.harness/hooks.yaml` (post-edit hooks) only, because permissions, actions and standing context are a
-  repository's own choices. A plugin that connects a program also holds the `worker.deny` entries and lifecycle actions
-  the program needs, such as the `beads` plugin's `bead-start`, `bead-close` and `bead-comment` actions on `start`,
+- Entries are additions to `.cook/config.yaml` (its standing context included), `.cook/policy.yaml` and
+  `.cook/hooks.yaml`. Stack recipes hold entries for `.cook/config.yaml` (commands, lanes, validators, module
+  switches) and `.cook/hooks.yaml` (post-edit hooks) only, because permissions, actions and standing context are a
+  repository's own choices. A recipe that connects a program also holds the `worker.deny` entries and lifecycle actions
+  the program needs, such as the `beads` recipe's `bead-start`, `bead-close` and `bead-comment` actions on `start`,
   `completed` and `blocked`, because connecting the program is exactly those entries. Why: no action runs that the
-  repository does not declare in its own `hooks.yaml`, and a plugin's actions reach that file only when a person applies
-  the plugin and reads its diff ([ADR 0012](../adrs/0012-write-boundary.md)).
-- A template is a whole file in a plugin or in `scaffold`, such as the `ralph-tui` plugin's `.ralph-tui/config.toml`.
+  repository does not declare in its own `hooks.yaml`, and a recipe's actions reach that file only when a person applies
+  the recipe and reads its diff ([ADR 0012](../adrs/0012-write-boundary.md)).
+- A template is a whole file in a recipe or in `scaffold`, such as the `ralph-tui` recipe's `.ralph-tui/config.toml`.
   It is rendered once with values from the profile and written only when the file is absent; from then on it is the
-  repository's own file, never rendered again and never removed by harness. When the file exists, applying reports
+  repository's own file, never rendered again and never removed by `the-cook`. When the file exists, applying reports
   `kept <path>: exists` and writes nothing to it. Why: a file another program reads is edited for that program by the
   team, and rewriting it would undo their edits.
-- Renders are files, keys and blocks harness writes on every `harness render` from the repository's files and the
-  plugin's floor rules, such as the claude plugin's `permissions.*` keys and hook entries in `.claude/settings.json`,
-  the codex plugin's rules file, or the ralph-tui plugin's block in `.gitignore`. The manifest records each one with the
-  plugin as its owner, the drift check covers it, and `harness remove` removes it
+- Renders are files, keys and blocks `the-cook` writes on every `the-cook render` from the repository's files and the
+  recipe's floor rules, such as the claude recipe's `permissions.*` keys and hook entries in `.claude/settings.json`,
+  the codex recipe's rules file, or the ralph-tui recipe's block in `.gitignore`. The manifest records each one with the
+  recipe as its owner, the drift check covers it, and `the-cook remove` removes it
   ([generated-content-standards.md](generated-content-standards.md#kinds-of-generated-content)). Why: a program's native
   files follow the repository's neutral sources, so they are computed every time rather than edited
   ([ADR 0007](../adrs/0007-ownership.md), [ADR 0008](../adrs/0008-native-configuration.md)).
 
 ### The floor
 
-A plugin may mark deny rules and bypass arguments as floor. Floor rules are part of the plugin's renders: harness
-renders them into every agent's output on every render, never writes them into `.harness/policy.yaml`, and a policy
+A recipe may mark deny rules and bypass arguments as floor. Floor rules are part of the recipe's renders: `the-cook`
+renders them into every agent's output on every render, never writes them into `.cook/policy.yaml`, and a policy
 entry that would remove or weaken one is dropped from the output and reported ([above](#policy-entries)). A floor bypass
-argument is refused by `harness worker` and by `agent` actions. The shipped floor:
+argument is refused by `the-cook worker` and by `agent` actions. The shipped floor:
 
-| Plugin | Floor |
+| Recipe | Floor |
 | --- | --- |
-| `git` | deny a force push to the default branch the plugin reports |
+| `git` | deny a force push to the default branch the recipe reports |
 | `mise` | deny `mise * ::: *`, which chains a second task into one invocation |
-| `claude`, `codex` | each marks the arguments that bypass its agent's permission checks, refused at every launch ([plugins](../features/plugins.md#the-floor)) |
+| `claude`, `codex` | each marks the arguments that bypass its agent's permission checks, refused at every launch ([recipes](../features/recipes.md#the-floor)) |
 
-- The `policy` block of `AGENTS.md` lists each floor rule with the plugin it comes from, such as
-  `(*floor rule of the git plugin*)`. Why: the rule is enforced but is not in `policy.yaml`, so a reader of the
+- The `policy` block of `AGENTS.md` lists each floor rule with the recipe it comes from, such as
+  `(*floor rule of the git recipe*)`. Why: the rule is enforced but is not in `policy.yaml`, so a reader of the
   permissions needs its source named ([generated-content-standards.md](generated-content-standards.md#block-ids)).
 - The process that applies the floor is built into the binary: refusing before a launch, rendering a deny into every
-  output, restoring and comparing the rendered files around an attempt. The program facts are the plugin's. Why: a
+  output, restoring and comparing the rendered files around an attempt. The program facts are the recipe's. Why: a
   bypass argument or a chaining syntax changes when its program changes, while the guarantee that no repository data
   can lower it must hold for every program ([ADR 0011](../adrs/0011-safety-invariants.md),
   [ADR 0022](../adrs/0022-tool-integration.md)).
-- A repository that does not use a plugin does not get its floor. `harness doctor` reports a program whose plugin's
-  detect rule matches the repository while the plugin is not in `plugins` (`mise detected; its plugin and its floor
-  are not in use; run ./harnessw plugin apply mise`), exit 2. Why: a program in use without its plugin runs without the
-  plugin's floor, and the finding turns that gap into a decision a person makes.
+- A repository that does not use a recipe does not get its floor. `the-cook doctor` reports a program whose recipe's
+  detect rule matches the repository while the recipe is not in `recipes` (`mise detected; its recipe and its floor
+  are not in use; run ./cook recipe apply mise`), exit 2. Why: a program in use without its recipe runs without the
+  recipe's floor, and the finding turns that gap into a decision a person makes.
 
-### Applying a plugin
+### Applying a recipe
 
-- A plugin is applied only on request: by `harness scaffold`, to the files it seeds (the plugins whose detect rule
-  matches, plus those `--plugin` names), and by `harness plugin apply <name>...` at any later time. No other command
-  writes a plugin's entries or templates. Why: every write to a repository's files is then one a person asked for.
-- Applying adds the plugin's name to `plugins`, adds only the entries the repository lacks, and never removes or
-  reorders anything. Why: the repository's own entries stay authoritative, and a second application of the same plugin
+- A recipe is applied only on request: by `the-cook scaffold`, to the files it seeds (the recipes whose detect rule
+  matches, plus those `--recipe` names), and by `the-cook recipe apply <name>...` at any later time. No other command
+  writes a recipe's entries or templates. Why: every write to a repository's files is then one a person asked for.
+- Applying adds the recipe's name to `recipes`, adds only the entries the repository lacks, and never removes or
+  reorders anything. Why: the repository's own entries stay authoritative, and a second application of the same recipe
   by the same release adds nothing, which makes applying again harmless.
   - A list entry (a hook declaration, a validator) is added when no equal entry exists, because an equal entry already
     says the same thing.
   - A named item (a command, a lane) is added only when the repository has none by that name. When the repository's
-    item differs from the plugin's, the repository's stays and the difference is reported
-    (`kept lanes.unit: differs from plugin node`). Why: an item the repository names is its decision, made and
+    item differs from the recipe's, the repository's stays and the difference is reported
+    (`kept lanes.unit: differs from recipe node`). Why: an item the repository names is its decision, made and
     reviewed there; replacing it would undo that decision, and reporting the difference lets a person choose.
   - A scalar key (such as `modules.verify`) is written only when absent, because a value that is present is the
-    repository's choice, even when it equals the default. A present value that differs from the plugin's is reported
-    like a kept item, so nothing the plugin would have changed goes unmentioned.
+    repository's choice, even when it equals the default. A present value that differs from the recipe's is reported
+    like a kept item, so nothing the recipe would have changed goes unmentioned.
 - Comments, key order and blank lines are preserved. Why: people annotate these files, and the diff of an application
   must show only its additions.
 - The additions, entries and templates alike, are shown as a diff and confirmed before anything is written. `--yes`
   answers the question. `--dry-run` prints the diff and writes nothing. Without a terminal and without `--yes`, nothing
   is written and the command exits 3 ([cli-standards.md](cli-standards.md#confirmations---yes-and---force)). Why: once
   written, the entries are the repository's own and nothing marks where they came from, so the diff before writing is
-  the one moment a person sees them as a plugin's additions.
-- After writing, the command renders the repository as `harness render` does, so the additions and their rendered
+  the one moment a person sees them as a recipe's additions.
+- After writing, the command renders the repository as `the-cook render` does, so the additions and their rendered
   effect reach review as one diff and the drift check passes on it.
-- `plugins` records which plugins are in use, and the manifest records the owner of each render. Nothing records which
-  entries a plugin added: not the manifest, not a comment, not a header in a template. Why: each entry then has one
+- `recipes` records which recipes are in use, and the manifest records the owner of each render. Nothing records which
+  entries a recipe added: not the manifest, not a comment, not a header in a template. Why: each entry then has one
   source of truth, the file it is in, and the tool has nothing it could later use to change those entries by itself. A
   report built on such a record would also nag a repository that removed an entry on purpose.
-- Deleting a name from `plugins` and rendering removes that plugin's renders, floor rules included; its applied entries
+- Deleting a name from `recipes` and rendering removes that recipe's renders, floor rules included; its applied entries
   and templates stay as the repository's own. Applied entries are changed or removed by editing the file, like any
-  other entry, and removing harness (`harness remove`, `harness remove --eject`) deletes the seeded files in
-  `.harness/` whatever they hold, and leaves every file a template wrote, so applying a plugin's entries has no inverse
+  other entry, and removing `the-cook` (`the-cook remove`, `the-cook remove --eject`) deletes the seeded files in
+  `.cook/` whatever they hold, and leaves every file a template wrote, so applying a recipe's entries has no inverse
   ([cli-standards.md](cli-standards.md#command-grammar)).
-- A newer release may hold more entries in a builtin plugin. They reach a repository only when someone applies the
-  plugin again: after an upgrade, `./harnessw plugin apply node --dry-run` shows what it would add. A newer release's
+- A newer release may hold more entries in a builtin recipe. They reach a repository only when someone applies the
+  recipe again: after an upgrade, `./cook recipe apply node --dry-run` shows what it would add. A newer release's
   renders and floor rules take effect on the first render after the upgrade, under the rules for
   [rendered output across releases](compatibility-standards.md#rendered-output-across-releases). Why: an upgrade
   changes the release a repository runs, never the entries it owns.
@@ -615,18 +617,19 @@ argument is refused by `harness worker` and by `agent` actions. The shipped floo
 Why: the repository files are committed and readable by everyone with access to them, and a secret in a committed
 file is published.
 
-- The repository files in `.harness/` MUST NOT contain tokens, passwords, keys or internal credentials, in values,
+- The repository files in `.cook/` MUST NOT contain tokens, passwords, keys or internal credentials, in values,
   comments, action commands, URLs or headers.
 - A setting or action that needs a credential refers to an environment variable by name (`url_env`, `headers_env`, or
   a variable a `run` command reads), or relies on the authentication of the tool it calls (`git`, the hosting
   platform's CLI). Actions inherit the environment of the process that fires them; that environment, never a file,
   carries the credential. Every action of a repository can read every variable in that environment, so a webhook
   secret is visible to all of them.
-- harness never prints the value of an environment variable it reads. A lifecycle dry run prints only the `HARNESS_*`
-  variables harness sets for the action. The lifecycle log never records URLs, headers, bodies or prompts.
-- Personal preferences belong in the agents' own local files (`settings.local.json`, `*.local.toml`) or in `HARNESS_*`
-  environment variables. harness never writes those files and reads them only through `harness scaffold --import local`.
-  What that import copies into `policy.yaml` becomes committed and shared, and is marked for review in the to-do.
+- `the-cook` never prints the value of an environment variable it reads. A lifecycle dry run prints only the `COOK_*`
+  variables `the-cook` sets for the action. The lifecycle log never records URLs, headers, bodies or prompts.
+- Personal preferences belong in the agents' own local files (`settings.local.json`, `*.local.toml`) or in `COOK_*`
+  environment variables. `the-cook` never writes those files and reads them only through
+  `the-cook scaffold --import local`. What that import copies into `policy.yaml` becomes committed and shared, and is
+  marked for review in the to-do.
 
 ## What never becomes a setting
 
@@ -637,22 +640,22 @@ that decides it, because a setting that weakens them would copy along with the f
 [ADR 0017](../adrs/0017-engine-version.md), [ADR 0021](../adrs/0021-release-trust.md),
 [ADR 0022](../adrs/0022-tool-integration.md)).
 
-- Workers never bypass permissions: every argument the agent's harness plugin marks as a floor bypass argument is
+- Workers never bypass permissions: every argument the agent's harness recipe marks as a floor bypass argument is
   refused.
-- The floor rules of the plugins in use, such as the git plugin's deny of a force push to the default branch and the
-  mise plugin's deny of `:::` task chaining, are rendered on every render and no policy entry removes or weakens them
+- The floor rules of the recipes in use, such as the git recipe's deny of a force push to the default branch and the
+  mise recipe's deny of `:::` task chaining, are rendered on every render and no policy entry removes or weakens them
   ([ADR 0022](../adrs/0022-tool-integration.md)).
 - Verification proofs are replayed outside the agent's writable tree, and completion is withheld until the replay
   passes.
 - Hooks never decide permissions.
-- The plugins an attempt uses are resolved from the release or the per-user cache before its agent starts, and nothing
+- The recipes an attempt uses are resolved from the release or the per-user cache before its agent starts, and nothing
   is fetched during a hook or an attempt.
-- Tool-owned files are restored from the base commit before `harness worker` or an `agent` action starts its agent and
-  compared after it, together with the files under `.harness/` and the files standing context names; any difference
-  fails the attempt, and so does a base that cannot be read. A failed `harness worker` attempt returns the checkout to
+- Tool-owned files are restored from the base commit before `the-cook worker` or an `agent` action starts its agent and
+  compared after it, together with the files under `.cook/` and the files standing context names; any difference
+  fails the attempt, and so does a base that cannot be read. A failed `the-cook worker` attempt returns the checkout to
   its base, keeping its changes in `last-attempt.patch`, so the next attempt starts from checked files.
 - Lifecycle actions never run inside a worker or an `agent` action: the binary refuses `lifecycle run` there, and it
-  renders `[harness, lifecycle]` into every worker deny for every rendered spelling.
+  renders `[the-cook, lifecycle]` into every worker deny for every rendered spelling.
 - An `agent` action runs under the worker contract and cannot commit, push or fire lifecycle events.
 - `deliver` always refuses on the default branch and with uncommitted changes and, when the verify module is enabled,
   without a valid receipt for the work's base.
@@ -663,15 +666,16 @@ that decides it, because a setting that weakens them would copy along with the f
 - The binary never writes knowledge and never writes the team's record of work (issues, projects, boards, comments,
   reviews, labels).
 - The binary never reconfigures state it did not create.
-- What harness renders and runs comes only from the repository's files, its pinned release and the plugins it pins
-  by hash; no repository file names a source outside the repository for it except a release or a plugin pinned by
+- What `the-cook` renders and runs comes only from the repository's files, its pinned release and the recipes it pins
+  by hash; no repository file names a source outside the repository for it except a release or a recipe pinned by
   hash.
-- A fetched plugin cannot use a builtin plugin's name.
-- A plugin's entries are applied only on request and only add; a template is written only where its file is absent; a
-  plugin's renders are recorded in the manifest under its name; nothing records which entries a plugin added.
+- A fetched recipe cannot use a builtin recipe's name.
+- A recipe's entries are applied only on request and only add; a template is written only where its file is absent; a
+  recipe's renders are recorded in the manifest under its name; nothing records which entries a recipe added.
 - The managed-block marker syntax, the block classes, the generated-file header and the manifest location.
-- The locations of harness configuration (`.harness/`) and agent content (`.agents/`); only state paths are settings.
-- The harness version is pinned only in `.harness/wrapper.yaml`.
+- The locations of the configuration of `the-cook` (`.cook/`) and agent content (`.agents/`); only state paths are
+  settings.
+- The version of `the-cook` is pinned only in `.cook/wrapper.yaml`.
 - Implicit entry points (rendered agent hooks) never download a binary.
 - The wrapper never caches or executes a downloaded binary whose checksum does not match `wrapper.yaml`, and downloads
   only over HTTPS.

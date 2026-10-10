@@ -1,4 +1,4 @@
-# 0022. Every program the binary uses is described by a plugin
+# 0022. Every program the binary uses is described by a recipe
 
 ## Objective
 
@@ -38,30 +38,30 @@ description of that program, and the tool's code names no program at all.
   description fetched during an unattended run can be swapped by whoever controls the source
   ([0011](0011-safety-invariants.md), [0021](0021-release-trust.md)).
 - semantic-release, a release tool in wide use, keeps its own git commands in its core and reaches every other program
-  through plugins. Chef, Ansible and Terraform describe the systems they manage as data and ship the descriptions for
+  through recipes. Chef, Ansible and Terraform describe the systems they manage as data and ship the descriptions for
   the common ones with the tool.
 
 ## Decision
 
 1. The binary contains code for no external program. Every program it starts, calls or writes files for is described
-   by a plugin: a named, versioned bundle of data the binary interprets. That includes the version control system and
+   by a recipe: a named, versioned bundle of data the binary interprets. That includes the version control system and
    the agent harnesses.
-2. A plugin holds up to five parts. Entries: additions to the repository's declared data, applied once and the
+2. A recipe holds up to five parts. Entries: additions to the repository's declared data, applied once and the
    repository's own afterwards ([0013](0013-organization-content.md)). Templates: whole files written once where absent,
    never recorded or removed ([0012](0012-write-boundary.md)). Renders: files, keys and blocks the binary renders on
-   every render from the repository's declared data and the plugin's floor rules, owned and recorded under the plugin's
+   every render from the repository's declared data and the recipe's floor rules, owned and recorded under the recipe's
    name ([0007](0007-ownership.md), [0008](0008-native-configuration.md)). Operations: the commands and mappings that
    fill one of the binary's contracts ([0023](0023-core-and-contracts.md)). Checks: a version command with a supported
    range, and a detect rule that tells adoption the program is in use.
-3. The release embeds and tests plugins for the common programs: the version control system, the two adapted
+3. The release embeds and tests recipes for the common programs: the version control system, the two adapted
    harnesses, a loop runner, a task tracker, a task runner, a skills installer, and one per supported stack. A
-   repository may also declare a plugin from an outside source, pinned by version and content hash, which the binary
-   fetches only on an explicit command, caches outside the repository and verifies by hash on every load. A plugin
+   repository may also declare a recipe from an outside source, pinned by version and content hash, which the binary
+   fetches only on an explicit command, caches outside the repository and verifies by hash on every load. A recipe
    from outside cannot take the name of an embedded one.
-4. Nothing fetches during a hook or an unattended attempt. A plugin the attempt needs and does not have is a missing
-   prerequisite, reported before any agent starts. An unattended attempt resolves the plugins it needs before the
+4. Nothing fetches during a hook or an unattended attempt. A recipe the attempt needs and does not have is a missing
+   prerequisite, reported before any agent starts. An unattended attempt resolves the recipes it needs before the
    agent starts and uses that resolution for every read, comparison, reset and launch of the attempt.
-5. Facts about a program that the safety rules depend on are part of that program's plugin, marked as floor: the
+5. Facts about a program that the safety rules depend on are part of that program's recipe, marked as floor: the
    arguments that bypass a harness's permission checks, and deny rules such as a force push to the default branch or
    a task runner's chaining syntax. The binary renders floor rules into every agent's output on every render and
    refuses floor arguments at every launch, and repository data cannot remove or weaken either. The process around
@@ -71,9 +71,9 @@ description of that program, and the tool's code names no program at all.
 7. Other programs reach the binary only through its command line. The worker command's arguments, exit statuses and
    environment are a stable interface that a loop runner's configuration names; a completion signal a loop runner
    expects is text the caller hands to the worker command, which releases it only for a verified attempt.
-8. The health check reports a program that a plugin, a declared command or an action names and that is not installed,
-   a program whose version falls outside its plugin's supported range, and a program whose plugin's detect rule
-   matches the repository while the plugin is not in use. It reports a plugin that the release did not ship as not
+8. The health check reports a program that a recipe, a declared command or an action names and that is not installed,
+   a program whose version falls outside its recipe's supported range, and a program whose recipe's detect rule
+   matches the repository while the recipe is not in use. It reports a recipe that the release did not ship as not
    verified by the release.
 
 ## Reasons
@@ -86,12 +86,12 @@ description of that program, and the tool's code names no program at all.
   cannot express.
 - **2.** The five parts are the five ways a program touches a repository: once (entries, templates), on every render
   (renders), when the binary needs an answer or starts it (operations), and when a person checks the machine
-  (checks). Naming them keeps each plugin reviewable as data ([0006](0006-repository-contract.md)) and keeps
+  (checks). Naming them keeps each recipe reviewable as data ([0006](0006-repository-contract.md)) and keeps
   ownership exact: a render is recorded, a template is not.
 - **3.** Shipping the common descriptions with the release makes adoption one command for the usual stack and puts
   the project's tests behind them, which is where a team expects the safety facts of point 5 to be maintained. An
   outside source lets a team describe a program the project does not know, which is what agnostic means. Pinning by
-  hash and verifying on load gives an outside plugin the same trust as a release
+  hash and verifying on load gives an outside recipe the same trust as a release
   ([0021](0021-release-trust.md)). Refusing an embedded name keeps a shipped description from being replaced quietly
   under the name every page documents.
 - **4.** An unattended attempt that fetched would hand the attempt to whoever controls the source, and a description
@@ -100,10 +100,10 @@ description of that program, and the tool's code names no program at all.
 - **5.** The bypass arguments of a harness and the chaining syntax of a task runner are facts about those programs, so
   they belong with the program's description, and they change when the program changes. Marking them as floor, and
   rendering them on every render instead of applying them once as entries, is what keeps them from being lost the way
-  editable entries are lost ([0011](0011-safety-invariants.md)): a repository can edit its own data, not a plugin's
+  editable entries are lost ([0011](0011-safety-invariants.md)): a repository can edit its own data, not a recipe's
   floor. The process that applies them, refusing before launch, rendering a deny in every output, replaying proof
   from the base, is what must not depend on any program, and it stays in the binary. The trade: a team that writes
-  its own harness plugin owns its floor, in the open, in a file a reviewer reads.
+  its own harness recipe owns its floor, in the open, in a file a reviewer reads.
 - **6.** A tool that reads other programs' configuration to catch overrides has to follow every format, and it still
   misses a script a person writes around the program (Context). The tool's job is to set things up and to keep its
   own promises, not to police what people run outside it. The trade: a person whose loop-runner configuration turns
@@ -113,18 +113,18 @@ description of that program, and the tool's code names no program at all.
   withholding it from an attempt that failed.
 - **8.** A declared command that names a missing program fails for everyone who runs it, and reporting that needs no
   knowledge of the program. A version range matters wherever the binary writes a format a program reads or relies on
-  what it prints, and the plugin that describes the program is where that range is known. A program in use without
-  its plugin also runs without the plugin's floor, so the detect rule turns that gap into a finding. Naming an
-  unverified plugin tells a reader whose tests stand behind it.
+  what it prints, and the recipe that describes the program is where that range is known. A program in use without
+  its recipe also runs without the recipe's floor, so the detect rule turns that gap into a finding. Naming an
+  unverified recipe tells a reader whose tests stand behind it.
 
 ## Rejected alternatives
 
-### Built-in code for the version control system and the harnesses, plugins for the rest
+### Built-in code for the version control system and the harnesses, recipes for the rest
 
 The binary keeps git, Claude Code and Codex CLI in its own code, because it relies on git's answers and must know a
 harness's bypass arguments to refuse them, and reaches every other program through declared commands. At its best,
 the safety facts live in compiled, signed code and the binary parses no description. It loses because the line it
-draws is about trust, not about kind: an embedded plugin is part of the same signed release as compiled code, so the
+draws is about trust, not about kind: an embedded recipe is part of the same signed release as compiled code, so the
 trust is equal, while the mechanism stops being uniform, a third harness or another version control system needs a
 release of the binary, and the binary's own code names programs its users may not run.
 
@@ -137,11 +137,11 @@ compatibility code between third-party programs lives in the binary (Context), a
 break every repository at once, and a person can still run the program outside the binary, so the end-to-end guard is
 partial anyway.
 
-### Plugins as executable code
+### Recipes as executable code
 
-Plugins are programs or libraries the binary loads, as a release tool's plugins are packages in its language. At its
-best, a plugin can do anything the program needs, and the description format never limits it. It loses because
-executable plugins are engine code beside the binary, which the repository contract excludes
+Recipes are programs or libraries the binary loads, as a release tool's recipes are packages in its language. At its
+best, a recipe can do anything the program needs, and the description format never limits it. It loses because
+executable recipes are engine code beside the binary, which the repository contract excludes
 ([0006](0006-repository-contract.md)), they bring a runtime the binary does not have
 ([0004](0004-runtime-dependencies.md)), and the parts the binary needs from a program (Context) are small enough to
 describe.
@@ -157,32 +157,32 @@ read from the repository, and an agent working in the tree could rewrite the des
 
 Costs:
 
-- The plugin format is one more schema to version, and every program feature it cannot express is either added to the
+- The recipe format is one more schema to version, and every program feature it cannot express is either added to the
   format or left out.
 - A repository that wants a tracker updated, a loop runner configured or shared skills installed carries the entries
-  and files for it, written by a plugin, a person or an agent.
+  and files for it, written by a recipe, a person or an agent.
 - Nothing fires the events of an unattended run as a whole; whoever drives the run fires them.
 - A bypass setting in a loop runner's configuration surfaces only when the worker command refuses it, at the first task.
-- A team that writes its own harness plugin, or its own version control plugin, is responsible for the safety facts
+- A team that writes its own harness recipe, or its own version control recipe, is responsible for the safety facts
   in it; the health check says so.
-- Each shipped plugin is tested against the real program, which makes CI heavier.
+- Each shipped recipe is tested against the real program, which makes CI heavier.
 
 Must be maintained:
 
-- The plugin schema and the two contracts, as a public format other people write to.
-- The shipped plugins, checked against the program versions the documentation names.
+- The recipe schema and the two contracts, as a public format other people write to.
+- The shipped recipes, checked against the program versions the documentation names.
 - The worker command's arguments, exit statuses and environment, as a stable interface other programs name.
 
 ## Confirmation
 
 - A CI check fails when the binary's source contains the name of any external program, or starts a program that no
-  plugin, declared command or action names.
-- Fixtures run every shipped plugin against the version of its program the documentation names: the git plugin's
-  operations, the harness plugins' renders, launches and payload mappings, the ralph-tui and Beads plugins end to
+  recipe, declared command or action names.
+- Fixtures run every shipped recipe against the version of its program the documentation names: the git recipe's
+  operations, the harness recipes' renders, launches and payload mappings, the ralph-tui and Beads recipes end to
   end. In the ralph-tui fixture, an agent entry configured with a bypass argument fails at the first task with the
   worker command's refusal, and a failed attempt never releases the completion signal.
-- A fixture plugin from an outside source with a wrong hash is refused on load; a fixture attempt that needs an
-  uncached plugin fails before any agent starts and no fetch happens.
-- A fixture plugin that reuses an embedded name is refused.
+- A fixture recipe from an outside source with a wrong hash is refused on load; a fixture attempt that needs an
+  uncached recipe fails before any agent starts and no fetch happens.
+- A fixture recipe that reuses an embedded name is refused.
 - A fixture repository on a machine without any of the programs in Context passes the health check with every missing
   program named.

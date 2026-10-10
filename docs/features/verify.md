@@ -12,15 +12,15 @@ edit makes it unchecked again.
 
 ## Overview
 
-`harness verify` runs the checks a change needs and, when they pass, writes a receipt: a small record bound to the
+`the-cook verify` runs the checks a change needs and, when they pass, writes a receipt: a small record bound to the
 change's base commit and to the exact content of every changed file. Any later edit invalidates it. The checks are the
 lint command, validators, build and test **lanes** the [profile](profile.md#verify) declares; a lane is a named family
 of test commands, such as `unit` or `e2e`, run with the test patterns you give it (`--lane unit=invoice`). The
-[`completed` guard](tasks.md#the-completed-guard) on a task and [`harness worker`](ralph.md), which runs an agent
-unattended, require a valid receipt; `harness verify --check` tells you whether you have one.
+[`completed` guard](tasks.md#the-completed-guard) on a task and [`the-cook worker`](ralph.md), which runs an agent
+unattended, require a valid receipt; `the-cook verify --check` tells you whether you have one.
 
-Commands are named `harness <command>` on this page. The examples run them through the repository's wrapper,
-`./harnessw <command>`, from the root of a checkout; with a global install, `harness <command>` is equivalent
+Commands are named `the-cook <command>` on this page. The examples run them through the repository's wrapper,
+`./cook <command>`, from the root of a checkout; with a global install, `the-cook <command>` is equivalent
 ([wrapper](wrapper.md)).
 
 ## When to use it
@@ -28,31 +28,31 @@ Commands are named `harness <command>` on this page. The examples run them throu
 - Before calling a change done: lint, build and the relevant test lanes in one command.
 - Before firing `completed` for a task, which the [`completed` guard](tasks.md#the-completed-guard) refuses without a
   valid receipt.
-- In an agent that [`harness worker`](ralph.md) runs, as the last step before the agent exits: the worker replays what
+- In an agent that [`the-cook worker`](ralph.md) runs, as the last step before the agent exits: the worker replays what
   the receipt selects.
 - With `--full`, before merging a change that needs every suite.
 
-While you iterate, run single tests with the repository's own commands, and run `harness verify` once the change is
+While you iterate, run single tests with the repository's own commands, and run `the-cook verify` once the change is
 ready.
 
 ## How it works
 
 ### Base and changed files
 
-The base is the commit the change is measured against. `harness verify` reads it, and the changed files, through the
-[version-control plugin](plugins.md#the-version-control-contract):
+The base is the commit the change is measured against. `the-cook verify` reads it, and the changed files, through the
+[version-control recipe](recipes.md#the-version-control-contract):
 
 | Where you run it | Base |
 | --- | --- |
 | A [managed worktree](worktrees.md) | the commit the worktree started from, recorded in its session |
-| Any other checkout | the merge-base of the head commit with the default branch the version-control plugin reports; with the git plugin, the merge-base of `HEAD` with the branch `origin/HEAD` names, or with the local default branch in a clone without a remote |
+| Any other checkout | the merge-base of the head commit with the default branch the version-control recipe reports; with the git recipe, the merge-base of `HEAD` with the branch `origin/HEAD` names, or with the local default branch in a clone without a remote |
 | With `--base <ref>` | that commit; in a managed worktree, only the recorded base or one of its ancestors |
 
 A base may only move earlier, never later: an earlier base adds files to the check, a later one would leave changes
 out.
 
 Changed files are the files that differ from the base (committed or not) plus untracked files that are not ignored, as
-the version-control plugin lists them.
+the version-control recipe lists them.
 
 ### The run
 
@@ -67,11 +67,11 @@ the version-control plugin lists them.
 8. Fingerprint again. If any file changed while the checks ran, fail: the checks did not see the final content.
 9. Write the receipt to `verified.json` in the checkout's state directory (`state.dir`, default `.work`).
 10. Fire the `verified` [lifecycle event](lifecycle.md): scope `task` in a worktree bound to a task, `change` otherwise.
-    Actions declared with `auto: true` run; `HARNESS_RECEIPT` and `HARNESS_SUMMARY` carry the receipt's path and its
+    Actions declared with `auto: true` run; `COOK_RECEIPT` and `COOK_SUMMARY` carry the receipt's path and its
     one-line summary. A failing automatic event is reported on stderr and recorded in the
     [lifecycle log](lifecycle.md#the-lifecycle-log). The receipt stays written and the exit code is the verification's.
 
-`harness verify --check` never fires `verified`.
+`the-cook verify --check` never fires `verified`.
 
 All commands come from the [profile](profile.md#verify) and run from the checkout root.
 
@@ -118,12 +118,12 @@ A lane named twice, both selected and skipped, or not declared in the profile is
 | `skipped` | for each skipped lane, the reason given |
 | `full` | whether `--full` ran |
 
-The receipt lives in the checkout's state directory, which the git plugin's renders ignore in `.gitignore`, so it is
+The receipt lives in the checkout's state directory, which the git recipe's renders ignore in `.gitignore`, so it is
 local to that checkout.
 
 ### Freshness
 
-`harness verify --check` accepts the receipt only if:
+`the-cook verify --check` accepts the receipt only if:
 
 - it exists and is well formed;
 - in a managed worktree, its base is the recorded base or an ancestor of it;
@@ -142,17 +142,17 @@ local to that checkout.
 | Consumer | Uses the receipt to |
 | --- | --- |
 | The [`completed` guard](tasks.md#the-completed-guard) | refuse `completed` with scope `task` without a valid receipt, when the verify module is enabled |
-| [`harness worker`](ralph.md#the-worker-contract) | read which lanes and skip reasons the agent chose, then **replay** them itself from a tree the agent cannot write. The receipt only selects the checks, and the replay is the proof |
+| [`the-cook worker`](ralph.md#the-worker-contract) | read which lanes and skip reasons the agent chose, then **replay** them itself from a tree the agent cannot write. The receipt only selects the checks, and the replay is the proof |
 | The [`deliver` guard](lifecycle.md#built-in-guards) | refuse delivery of work without a valid receipt for its base, when the verify module is enabled |
 
 ### The `verify` block in `AGENTS.md`
 
-With the verify module on, `harness render` writes the repository's checks into the `verify` block of `AGENTS.md`, in
+With the verify module on, `the-cook render` writes the repository's checks into the `verify` block of `AGENTS.md`, in
 plain language, from the profile's `commands` and `verify` sections, and says how to record them with
-`./harnessw verify`. For the Node API in the [profile examples](profile.md#a-node-api):
+`./cook verify`. For the Node API in the [profile examples](profile.md#a-node-api):
 
 ```markdown
-<!-- harness:verify -->
+<!-- cook:verify -->
 A change is done when its checks pass. Run them from the root of the checkout; `{file}` stands for one changed file
 and `{pattern}` for a test pattern.
 
@@ -166,20 +166,20 @@ and `{pattern}` for a test pattern.
 - When a changed file matches `openapi/**` or `src/**/*.dto.ts`, run `npm run openapi:check`.
 
 A missing service or dependency is blocked work, never a reason to skip a lane. Record the result with
-`./harnessw verify --lane <lane>=<pattern>` or `--skip <lane>=<reason>`; `./harnessw explain verify` has the rules.
-<!-- /harness:verify -->
+`./cook verify --lane <lane>=<pattern>` or `--skip <lane>=<reason>`; `./cook explain verify` has the rules.
+<!-- /cook:verify -->
 ```
 
 `verify` is a [tool block](concepts.md#convention-blocks-and-tool-blocks): the lane rules, the receipt and its replay
-exist only while `harness` manages the repository, so the block describes how to use `harness` here and names
-`./harnessw verify`. An eject ([`harness remove --eject`](remove.md#eject)) removes it, as does
-`harness remove --module verify`. A repository that wants its checks written down after an eject keeps them in
+exist only while `the-cook` manages the repository, so the block describes how to use `the-cook` here and names
+`./cook verify`. An eject ([`the-cook remove --eject`](remove.md#eject)) removes it, as does
+`the-cook remove --module verify`. A repository that wants its checks written down after an eject keeps them in
 `AGENTS.md` prose outside the markers.
 
 ## Reference
 
 ```text
-harness verify [--lane <name>=<pattern>]... [--skip <name>=<reason>]... [--full] [--base <ref>] [--check]
+the-cook verify [--lane <name>=<pattern>]... [--skip <name>=<reason>]... [--full] [--base <ref>] [--check]
 ```
 
 | Flag | Default | Meaning |
@@ -196,7 +196,7 @@ harness verify [--lane <name>=<pattern>]... [--skip <name>=<reason>]... [--full]
 | 1 | Error: a lane rule is not met, unknown lane, invalid `--base`, files changed during verification |
 | 2 | A check failed (lint, validator, build or lane), so no receipt was written; or, with `--check`, no valid receipt |
 
-Files read: the profile, the hooks file, the history and the changed files through the version-control plugin,
+Files read: the profile, the hooks file, the history and the changed files through the version-control recipe,
 `session.json` in the checkout's state directory. Files written: `verified.json` in the checkout's state directory,
 `lifecycle.jsonl` in the primary checkout's state directory; whatever the repository's commands and `verified` actions
 write.
@@ -207,31 +207,31 @@ write.
 
 ```sh
 # a service change, covered by unit tests; no HTTP surface touched
-./harnessw verify --lane unit=invoice --skip e2e="no route, controller or guard changed"
+./cook verify --lane unit=invoice --skip e2e="no route, controller or guard changed"
 
 # a controller change: e2e cannot be skipped
-./harnessw verify --lane unit=invoice --lane e2e=invoices
+./cook verify --lane unit=invoice --lane e2e=invoices
 
 # a documentation-only change
-./harnessw verify
+./cook verify
 
 # before merging something broad
-./harnessw verify --full
+./cook verify --full
 ```
 
 ### A Terraform repository
 
 ```sh
-./harnessw verify --lane validate=envs/staging --lane plan=envs/staging
+./cook verify --lane validate=envs/staging --lane plan=envs/staging
 # a change under modules/** requires the plan lane:
-./harnessw verify --lane validate=envs/staging --skip plan="no backend access"   # refused
+./cook verify --lane validate=envs/staging --skip plan="no backend access"   # refused
 ```
 
 ### A Go repository
 
 ```sh
-./harnessw verify --lane test=./internal/billing/... --lane vet=./internal/billing/...
-./harnessw verify --check && echo "receipt valid"
+./cook verify --lane test=./internal/billing/... --lane vet=./internal/billing/...
+./cook verify --check && echo "receipt valid"
 ```
 
 ## Guidelines

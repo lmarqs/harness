@@ -32,7 +32,7 @@ withdraw one practice at a time.
 3. An implicit entry point calls the wrapper in a mode that runs only an already cached binary and never downloads
    ([0017](0017-engine-version.md)). When the pinned binary is not cached, it writes one line on stderr and exits
    successfully; the session-start hook also tells the agent, once per session, how to fetch the pinned release. A
-   plugin from an outside source that is not cached is handled the same way: the implicit entry point skips with one
+   recipe from an outside source that is not cached is handled the same way: the implicit entry point skips with one
    line on stderr naming how to fetch it, and exits successfully ([0022](0022-tool-integration.md)).
 4. An explicit entry point that cannot run the pinned binary names what is missing and exits non-zero, so an absent
    check is never reported as a passing one.
@@ -50,10 +50,10 @@ withdraw one practice at a time.
   inside a hook needs the network and cannot fit the 50 ms budget. It would make every first session on a machine slow
   or fragile. Exiting successfully keeps the session going, and the one stderr line tells the person why the hook did
   nothing. The person may never see stderr, while the agent reads its session context, so the one hint per session goes
-  there and names the explicit command that fetches the release. A plugin from an outside source that is not cached is
+  there and names the explicit command that fetches the release. A recipe from an outside source that is not cached is
   the same situation one level down, and fetching it inside a hook is refused for a further reason: it would let its
   source change what runs while nobody watches ([0022](0022-tool-integration.md)). The trade is that checks the hook
-  would run are skipped on that machine until the binary and its plugins are cached.
+  would run are skipped on that machine until the binary and its recipes are cached.
 - **4.** An explicit call asks for a result. Exiting zero without running the check would report a pass that never
   happened, which is worse than failing. A non-zero exit that names the missing piece tells the caller exactly what to
   fix. Explicit calls may fetch the pinned release ([0017](0017-engine-version.md)), because someone asked for them.

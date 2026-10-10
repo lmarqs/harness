@@ -12,37 +12,37 @@ meets a behaviour can tell whether it is intended or a defect.
 
 ## Overview
 
-These pages hold the rules for everything `harness` presents to the people, agents and systems that meet it:
-commands, flags, output, exit codes, configuration files, generated content, skills and documentation. They are
-normative, like architecture decision records, but they govern how harness is experienced rather than how it is built.
+These pages hold the rules for everything `the-cook` presents to the people, agents and systems that meet it: commands,
+flags, output, exit codes, configuration files, generated content, skills and documentation. They are normative, like
+architecture decision records, but they govern how `the-cook` is experienced rather than how it is built.
 
 - Architecture decisions: [../adrs/](../adrs/)
 - Individual features and their reference: [../features/](../features/)
-- Terms (profile, policy, managed block, manifest, receipt, plugin, contract, renders, lane, …):
+- Terms (profile, policy, managed block, manifest, receipt, recipe, contract, renders, lane, …):
   [glossary](../features/glossary.md)
-- Plugins, the contracts they fill and their floor rules: [plugins](../features/plugins.md)
+- Recipes, the contracts they fill and their floor rules: [recipes](../features/recipes.md)
 
-A standard here applies to every feature, present and future. When the binary, a generated file, the harness skill or
+A standard here applies to every feature, present and future. When the binary, a generated file, the shipped skill or
 a features page disagrees with a standard, that artifact is wrong and is corrected to match the standard. When a
 standard disagrees with an ADR, the ADR wins and the standard is corrected, because the ADRs decide the architecture
 the standards present to users.
 
-These pages name commands `harness <command>`, the program's name. In a repository they run through the committed
-wrapper as `./harnessw <command>` ([cli-standards.md](cli-standards.md#entry-points)).
+These pages name commands `the-cook <command>`, the program's name. In a repository they run through the committed
+wrapper as `./cook <command>` ([cli-standards.md](cli-standards.md#entry-points)).
 
 ## Who these standards protect
 
-| User | Meets harness through | What the standards guarantee |
+| User | Meets `the-cook` through | What the standards guarantee |
 | --- | --- | --- |
-| Developer in an adopted repository | `./harnessw`, generated files in pull requests | one pinned version on every machine, predictable commands, readable diffs, nothing written without being shown first |
-| Interactive agent (Claude Code, Codex) | rendered settings, hooks, `AGENTS.md` blocks, injected standing context, the harness skill, `harness explain` | parseable output, exact next commands, text that matches the binary |
-| Unattended agent (one [`harness worker`](../features/ralph.md) runs for a loop runner, an [`agent` action](../features/lifecycle.md#action-kinds), a coordinating agent) | the CLI without a terminal, exit codes, JSON | no prompts, a distinct "blocked" outcome, no hidden state |
-| Another tool that calls harness (a loop runner, a tracker updated by actions) | `harness worker`, lifecycle events and their `HARNESS_*` variables, files a plugin wrote | a stable worker interface; no code for the tool in the binary and no reading of its configuration; every file it reads is the repository's own |
-| CI | the optional `./harnessw render --check` and `./harnessw doctor` steps | deterministic checks with the pinned, checksum-verified version; nothing required |
-| Repository owner or teammate who does not use harness | committed files only | a clone that builds, tests and runs agents without the binary; conventions written in plain language in `AGENTS.md` and `.gitignore` |
-| Repository that stops using harness | `harness remove`, `harness remove --eject` | undo returns the repository to a working state without harness; eject keeps its conventions, permissions and hooks as the repository's own |
+| Developer in an adopted repository | `./cook`, generated files in pull requests | one pinned version on every machine, predictable commands, readable diffs, nothing written without being shown first |
+| Interactive agent (Claude Code, Codex) | rendered settings, hooks, `AGENTS.md` blocks, injected standing context, the shipped skill, `the-cook explain` | parseable output, exact next commands, text that matches the binary |
+| Unattended agent (one [`the-cook worker`](../features/ralph.md) runs for a loop runner, an [`agent` action](../features/lifecycle.md#action-kinds), a coordinating agent) | the CLI without a terminal, exit codes, JSON | no prompts, a distinct "blocked" outcome, no hidden state |
+| Another tool that calls `the-cook` (a loop runner, a tracker updated by actions) | `the-cook worker`, lifecycle events and their `COOK_*` variables, files a recipe wrote | a stable worker interface; no code for the tool in the binary and no reading of its configuration; every file it reads is the repository's own |
+| CI | the optional `./cook render --check` and `./cook doctor` steps | deterministic checks with the pinned, checksum-verified version; nothing required |
+| Repository owner or teammate who does not use `the-cook` | committed files only | a clone that builds, tests and runs agents without the binary; conventions written in plain language in `AGENTS.md` and `.gitignore` |
+| Repository that stops using `the-cook` | `the-cook remove`, `the-cook remove --eject` | undo returns the repository to a working state without `the-cook`; eject keeps its conventions, permissions and hooks as the repository's own |
 | Pull-request reviewer | diffs of rendered files, managed blocks and the pin | every generated change visible and traceable to a source file; every version change traceable to a signed release |
-| Workflow maintainer | `fleet`, builtin and fetched plugins and `harness plugin apply`, declared actions, organization skills, schemas | one way to do each thing, safe across many repositories; nothing leaves a clone undeclared; nothing reaches a repository except as a reviewed change to its own files |
+| Workflow maintainer | `fleet`, builtin and fetched recipes and `the-cook recipe apply`, declared actions, organization skills, schemas | one way to do each thing, safe across many repositories; nothing leaves a clone undeclared; nothing reaches a repository except as a reviewed change to its own files |
 | Open-source user | any of the above | no organization-specific content in the binary, its skill or its docs |
 
 ## Normative language
@@ -64,7 +64,7 @@ in the way; a rule without one can only be obeyed or ignored.
 ## Changing a standard
 
 A standard is edited in place, in the same pull request that changes the behaviour it governs. Why: the standards
-describe what harness is, so a standard and the behaviour it describes change together or not at all.
+describe what `the-cook` is, so a standard and the behaviour it describes change together or not at all.
 
 - The edited rule keeps its reason, updated when the reason changed.
 - A change that would contradict an ADR changes the ADR first, in the same pull request, because the ADR is the
@@ -79,9 +79,9 @@ describe what harness is, so a standard and the behaviour it describes change to
 | --- | --- |
 | [principles.md](principles.md) | The user-facing principles every other standard derives from, and how they rank when they conflict |
 | [cli-standards.md](cli-standards.md) | Entry points (the wrapper, a global install, implicit hooks), the worker command other tools call, command grammar, naming, flags, output, exit codes, errors, confirmations, dry-run, non-interactive use, environment variables, help, version, deprecation |
-| [when-cli-when-skill.md](when-cli-when-skill.md) | Where new behaviour goes: command, flag, profile field, declared action, standing-context entry, skill, plugin (builtin or fetched) or the repository itself; support for a third-party program as a plugin or a declared action |
-| [skills-standards.md](skills-standards.md) | The harness skill, organization skills and repository skills: when to create each, structure, use as standing context, evaluation |
-| [configuration-standards.md](configuration-standards.md) | Where files live (`.harness/`, `.agents/`, state paths) and the user-editable files: the wrapper pin, inputs (only the repository's own files and its pinned release), schemas, defaults, validation, policy entry forms, declared actions and their kinds, standing context, the plugins in use (`plugins:`, `vcs:`, `agents.<name>.plugin`), secrets, what never becomes a setting |
-| [generated-content-standards.md](generated-content-standards.md) | Everything harness writes into a repository: headers, owned and seeded files, template files, managed-block markers, ids and classes, the `AGENTS.md` budget, determinism, review, removal (undo and eject) |
+| [when-cli-when-skill.md](when-cli-when-skill.md) | Where new behaviour goes: command, flag, profile field, declared action, standing-context entry, skill, recipe (builtin or fetched) or the repository itself; support for a third-party program as a recipe or a declared action |
+| [skills-standards.md](skills-standards.md) | The shipped skill, organization skills and repository skills: when to create each, structure, use as standing context, evaluation |
+| [configuration-standards.md](configuration-standards.md) | Where files live (`.cook/`, `.agents/`, state paths) and the user-editable files: the wrapper pin, inputs (only the repository's own files and its pinned release), schemas, defaults, validation, policy entry forms, declared actions and their kinds, standing context, the recipes in use (`recipes:`, `vcs:`, `agents.<name>.recipe`), secrets, what never becomes a setting |
+| [generated-content-standards.md](generated-content-standards.md) | Everything `the-cook` writes into a repository: headers, owned and seeded files, template files, managed-block markers, ids and classes, the `AGENTS.md` budget, determinism, review, removal (undo and eject) |
 | [messages-and-docs.md](messages-and-docs.md) | Voice and tone for CLI messages, agent-facing text, block text and documentation; the features page template |
-| [compatibility-standards.md](compatibility-standards.md) | Versioning, breaking changes, plugins across releases and their version ranges, adoption equivalence, deprecation windows, supported agents, coexistence, transparency, version pinning and release trust, update notices |
+| [compatibility-standards.md](compatibility-standards.md) | Versioning, breaking changes, recipes across releases and their version ranges, adoption equivalence, deprecation windows, supported agents, coexistence, transparency, version pinning and release trust, update notices |

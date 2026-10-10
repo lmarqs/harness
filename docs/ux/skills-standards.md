@@ -14,9 +14,9 @@ and ends in a result a check confirms rather than one taken on trust.
 
 ## Overview
 
-A skill is a directory with a `SKILL.md` that an agent loads when its description matches the task, or that harness
+A skill is a directory with a `SKILL.md` that an agent loads when its description matches the task, or that `the-cook`
 injects through standing context. Skills carry the judgement half of the work; the binary carries the deterministic half
-([when-cli-when-skill.md](when-cli-when-skill.md)). This page covers the skill harness ships and the rules harness
+([when-cli-when-skill.md](when-cli-when-skill.md)). This page covers the skill `the-cook` ships and the rules `the-cook`
 expects of the skills around it. Terms such as standing context, pin and profile are defined in the
 [glossary](../features/glossary.md).
 
@@ -24,31 +24,31 @@ expects of the skills around it. Terms such as standing context, pin and profile
 
 | Kind | Lives in | Written by | Reaches a repository by | Holds |
 | --- | --- | --- | --- | --- |
-| **Harness skill** | the binary; installed at `.agents/skills/harness/` | harness maintainers | `harness render` (tool-owned, listed in the manifest) | how to run harness (`./harnessw <command>`), edit the repository files in `.harness/`, finish an adoption, read `doctor` findings, when to run `harness lifecycle run <event>`, and why the invariants exist |
-| **Organization skill** | an organization's skills repository | the organization | installed by the team with the tool of its choice, such as the [`skills` CLI](https://github.com/vercel-labs/skills) (`npx skills add acme/agent-skills`), and committed under `.agents/skills/`; the binary has no code for the installer, which the [`skills` plugin](../features/plugins.md#skills) describes ([ADR 0022](../adrs/0022-tool-integration.md)) | conventions shared by one organization's repositories, and how to write them into one repository's files: delivery actions, policy entries (observability read patterns, deploy denies), review, domain vocabulary |
+| **shipped skill** | the binary; installed at `.agents/skills/the-cook/` | `the-cook` maintainers | `the-cook render` (tool-owned, listed in the manifest) | how to run `the-cook` (`./cook <command>`), edit the repository files in `.cook/`, finish an adoption, read `doctor` findings, when to run `the-cook lifecycle run <event>`, and why the invariants exist |
+| **Organization skill** | an organization's skills repository | the organization | installed by the team with the tool of its choice, such as the [`skills` CLI](https://github.com/vercel-labs/skills) (`npx skills add acme/agent-skills`), and committed under `.agents/skills/`; the binary has no code for the installer, which the [`skills` recipe](../features/recipes.md#skills) describes ([ADR 0022](../adrs/0022-tool-integration.md)) | conventions shared by one organization's repositories, and how to write them into one repository's files: delivery actions, policy entries (observability read patterns, deploy denies), review, domain vocabulary |
 | **Repository skill** | `.agents/skills/<name>/` in the repository | people and agents in that repository | committed directly | knowledge of one repository: its modules, risks, procedures |
 
-The binary writes only the harness skill. Organization and repository skills are knowledge; the binary never creates,
+The binary writes only the shipped skill. Organization and repository skills are knowledge; the binary never creates,
 edits or deletes them ([principles.md](principles.md#3-sets-the-rules-never-plays)), because knowledge needs judgement
 the binary does not have.
 
 In a repository, every skill lives under `.agents/skills/`, the agent-content directory other tools share, so a skills
-installer, the agents and people find them in one place. harness's own configuration lives in `.harness/` and never
+installer, the agents and people find them in one place. The configuration of `the-cook` lives in `.cook/` and never
 among skills ([configuration-standards.md](configuration-standards.md#where-files-live)).
 
 ## When to create each
 
 | Situation | Kind | Why |
 | --- | --- | --- |
-| Agents misuse a harness file or command in many unrelated repositories | harness skill (change ships in a release) | the fix reaches each repository in the diff that moves its pin to that release |
-| A new `harness explain` topic is needed | harness skill reference with the same text | both come from one embedded source |
-| A convention holds across one organization's repositories, as judgement or as entries harness enforces (a deny, a delivery action) | organization skill that guides an agent to write it into each repository's files ([below](#organization-skills-that-write-repository-entries)) | the organization owns and reviews the skill once; applying it to a repository takes judgement, and each repository reviews the result |
+| Agents misuse a `the-cook` file or command in many unrelated repositories | shipped skill (change ships in a release) | the fix reaches each repository in the diff that moves its pin to that release |
+| A new `the-cook explain` topic is needed | shipped skill reference with the same text | both come from one embedded source |
+| A convention holds across one organization's repositories, as judgement or as entries `the-cook` enforces (a deny, a delivery action) | organization skill that guides an agent to write it into each repository's files ([below](#organization-skills-that-write-repository-entries)) | the organization owns and reviews the skill once; applying it to a repository takes judgement, and each repository reviews the result |
 | A procedure or body of knowledge is specific to one repository | repository skill | it is reviewed where it applies |
 | Known guidance must apply every session, or whenever certain files or words appear | an existing skill plus a standing-context entry ([configuration-standards.md](configuration-standards.md#standing-context)) | the trigger is deterministic; the skill stays the single text |
-| The behaviour is deterministic and organization neutral | not a skill: a command, flag, profile field or [plugin](../features/plugins.md) | prose would drift from the behaviour |
+| The behaviour is deterministic and organization neutral | not a skill: a command, flag, profile field or [recipe](../features/recipes.md) | prose would drift from the behaviour |
 | A one-off instruction for a single session | not a skill: the prompt | a skill outlives the session it was written for |
 
-The harness skill names no organization, vendor or company convention, because it ships to every user of an open-source
+The shipped skill names no organization, vendor or company convention, because it ships to every user of an open-source
 tool. Anything that would need one belongs in an organization skill, and from there in each repository's files.
 
 ## Structure
@@ -69,7 +69,7 @@ tool. Anything that would need one belongs in an organization skill, and from th
   needed only in some cases moves to `references/` with a one-line pointer saying when to read it. Why: the body is
   loaded in full whenever the skill is used.
 - Procedures are numbered steps. Each step that changes state names the command that performs it. The last step is the
-  check that proves the result (`harness render --check`, `harness doctor`, `harness verify --check`), so the outcome
+  check that proves the result (`the-cook render --check`, `the-cook doctor`, `the-cook verify --check`), so the outcome
   of the agent's judgement is verified by the binary.
 
 ## Skills used as standing context
@@ -86,15 +86,15 @@ for standing context:
   first screen of the body are enough to act on;
 - reads correctly when loaded twice, once injected and once by description, because the agent's own matching is left
   as it is ([compatibility-standards.md](compatibility-standards.md#coexistence));
-- is committed under `.agents/skills/`, whichever tool installed it, because harness injects the committed file (for a
-  worker, as it is at the base commit) and reports a `context` entry that names a skill not found there.
+- is committed under `.agents/skills/`, whichever tool installed it, because `the-cook` injects the committed file (for
+  a worker, as it is at the base commit) and reports a `context` entry that names a skill not found there.
 
 A directive that must apply even without the binary is declared `static`, so it is written into `AGENTS.md` and does
 not depend on a hook.
 
 ## Organization skills that write repository entries
 
-An organization's choices that harness enforces (which observability tools agents may read without asking, a deny on
+An organization's choices that `the-cook` enforces (which observability tools agents may read without asking, a deny on
 each repository's deploy command, a CI-trigger commit in delivery, the actions that update the task tracker its
 repositories use) reach a
 repository only as entries in its own files, written by a person or by an agent following the organization's skill. Why:
@@ -104,15 +104,15 @@ repositories, so applying them takes judgement ([ADR 0013](../adrs/0013-organiza
 - states each entry with the reason the organization holds it, and how to fit it to the repository in front of the
   agent: which entries apply, and what to do with an entry the repository already has, because the agent decides per
   repository;
-- has the agent edit `.harness/policy.yaml`, `.harness/hooks.yaml` or `.harness/config.yaml`, never a rendered file or
+- has the agent edit `.cook/policy.yaml`, `.cook/hooks.yaml` or `.cook/config.yaml`, never a rendered file or
   a managed block, because those are replaced by the next render;
-- ends by running `harness render` and then `harness doctor`, so the entries and their rendered effect reach review as
+- ends by running `the-cook render` and then `the-cook doctor`, so the entries and their rendered effect reach review as
   one diff and the binary checks the result.
 
 For example, acme's CI runs a pull request only when its tip commit carries `#ci`, and acme's agents may search its
 observability service without asking. acme's skill has the agent add `"mcp__acme_observability__search_*"` under
-`shared.allow` in `.harness/policy.yaml`, read the repository's CI configuration, and, only where that CI waits for
-`#ci`, declare a `ci-trigger` action before the pull-request action under `lifecycle.deliver` in `.harness/hooks.yaml`
+`shared.allow` in `.cook/policy.yaml`, read the repository's CI configuration, and, only where that CI waits for
+`#ci`, declare a `ci-trigger` action before the pull-request action under `lifecycle.deliver` in `.cook/hooks.yaml`
 ([lifecycle](../features/lifecycle.md#an-organization-convention-a-ci-trigger-commit-before-the-pull-request)).
 
 ## Explain the reasoning
@@ -120,7 +120,7 @@ observability service without asking. acme's skill has the agent add `"mcp__acme
 Each rule in a skill carries its reason in one sentence. An agent that knows why a rule exists applies it to cases
 the text did not foresee and does not drop it when it seems inconvenient.
 
-- Good: "Edit `.harness/policy.yaml`, never `.claude/settings.json`: the settings file is rendered from the policy and
+- Good: "Edit `.cook/policy.yaml`, never `.claude/settings.json`: the settings file is rendered from the policy and
   `render --check` fails on hand edits."
 - Not enough: "Never edit `.claude/settings.json`."
 
@@ -136,29 +136,29 @@ running the command skips the command's checks.
 - A skill never tells an agent to edit a rendered file, edit inside a managed block, or bypass permissions, because
   each of those is undone by the next render or refused by the invariants.
 - A skill that ends in delivery does its judgement steps (grouping commits, wording messages), then runs
-  `harness lifecycle run deliver`. It never repeats the declared actions (a push, a pull-request command, a webhook)
+  `the-cook lifecycle run deliver`. It never repeats the declared actions (a push, a pull-request command, a webhook)
   by hand, so every side effect outside the clone stays declared, guarded and recorded.
-- Flag tables, schemas and exit codes are not copied into skills. A skill points to `harness <command> --help` or
-  `harness explain <topic>` for them.
+- Flag tables, schemas and exit codes are not copied into skills. A skill points to `the-cook <command> --help` or
+  `the-cook explain <topic>` for them.
 
-## Keeping the harness skill and the CLI in sync
+## Keeping the shipped skill and the CLI in sync
 
 Why: an agent acts on the skill; when the skill and the binary disagree, the agent acts on wrong rules.
 
-- `harness explain <topic>` prints the same text as the harness skill's reference for that topic. Both come from one
+- `the-cook explain <topic>` prints the same text as the shipped skill's reference for that topic. Both come from one
   embedded source, so they cannot disagree.
-- Every topic listed by `harness explain` has a reference in the skill, and every reference is reachable from
+- Every topic listed by `the-cook explain` has a reference in the skill, and every reference is reachable from
   `SKILL.md`.
-- Every command line quoted in the harness skill MUST exist in the CLI surface of the same release. The release
+- Every command line quoted in the shipped skill MUST exist in the CLI surface of the same release. The release
   process checks this.
-- The harness skill writes commands as `./harnessw <command>` and shows `harness <command>` as the equivalent when
-  harness is installed globally ([cli-standards.md](cli-standards.md#entry-points)).
+- The shipped skill writes commands as `./cook <command>` and shows `the-cook <command>` as the equivalent when
+  `the-cook` is installed globally ([cli-standards.md](cli-standards.md#entry-points)).
 - A change to a command's behaviour, a file schema or an invariant updates the matching skill text in the same pull
   request.
 
 ## Evaluation before release
 
-A skill is released only after it is evaluated. For the harness skill this is required; organization and repository
+A skill is released only after it is evaluated. For the shipped skill this is required; organization and repository
 skills SHOULD follow the same practice. Why: a skill's effect is seen only in what agents do with it, and reading the
 text does not show that.
 

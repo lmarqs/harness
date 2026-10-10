@@ -44,7 +44,7 @@ the sessions that do not need it.
    contains one of the listed words or phrases). Each entry applies to the interactive role, the unattended role or
    both, and is delivered either as its content or as a one-line pointer to it. A path or prompt entry is delivered at
    most once per session.
-2. Entries are delivered through agent hooks, which each agent's harness plugin renders and maps onto the native events
+2. Entries are delivered through agent hooks, which each agent's harness recipe renders and maps onto the native events
    that carry each trigger ([0009](0009-agent-support.md)). Where an agent lacks the event a trigger needs, nothing is
    rendered for it and the health check reports the gap.
 3. An entry may be declared static. A static entry is written as a convention block in `AGENTS.md`
@@ -66,7 +66,7 @@ the sessions that do not need it.
   the sessions where it applies. The role split serves the two audiences with their own directives. A pointer costs one
   line and leaves the reading to the agent; content costs its full length and guarantees the text is present. Delivering
   a path or prompt entry once per session keeps repeated matches from repeating the same text.
-- **2.** A hook is the only point where text enters an agent's context without the person typing it, and harness plugins
+- **2.** A hook is the only point where text enters an agent's context without the person typing it, and harness recipes
   already render hooks per agent ([0009](0009-agent-support.md)). Reporting a missing event, instead of emulating it,
   keeps the difference between agents visible.
 - **3.** Hook delivery depends on the binary being cached on the machine ([0017](0017-engine-version.md)). A directive
@@ -120,7 +120,7 @@ Costs:
 
 Must be maintained:
 
-- For each shipped harness plugin, the hook events that carry each trigger.
+- For each shipped harness recipe, the hook events that carry each trigger.
 - The declaration format and the preview, as part of the public contract ([0006](0006-repository-contract.md)).
 
 ## Confirmation

@@ -13,9 +13,9 @@ same way. A reader of any documentation page finds what is true now, in the plac
 
 ## Overview
 
-These rules set the voice, tone and structure of every text harness produces or ships: CLI messages, hook output,
-`doctor` findings, injected standing context, the harness skill, `harness explain`, managed-block content and the
-documentation in this repository. Terms such as standing context, managed block, module and harness skill are defined in
+These rules set the voice, tone and structure of every text `the-cook` produces or ships: CLI messages, hook output,
+`doctor` findings, injected standing context, the shipped skill, `the-cook explain`, managed-block content and the
+documentation in this repository. Terms such as standing context, managed block, module and shipped skill are defined in
 the [glossary](../features/glossary.md).
 
 ## Voice
@@ -24,10 +24,10 @@ the [glossary](../features/glossary.md).
 | --- | --- | --- |
 | Present tense, describe what is | `render writes .claude/settings.json` | `render will write…`, `render now writes…` |
 | Concise: one fact per sentence, no filler | `2 files drifted` | `It looks like there may be a couple of files that have drifted` |
-| Name the thing exactly | `.harness/policy.yaml:14` | `your policy file` |
-| Imperative for instructions | `run: ./harnessw render` | `you may want to consider running render` |
+| Name the thing exactly | `.cook/policy.yaml:14` | `your policy file` |
+| Imperative for instructions | `run: ./cook render` | `you may want to consider running render` |
 | Neutral, no blame, no apology | `.claude/settings.json was edited by hand` | `you broke settings.json`, `sorry, …` |
-| Plain words | `refused`, `skipped`, `drift` | `oops`, `whoops`, exclamation marks, emoji |
+| Plain words | `refused`, `skipped`, `drift` | `oops`, `whoops`, exclamation marks, any emoji other than the TTY prefix 😎 ([cli-standards.md](cli-standards.md#color-emoji-and-terminal-control)) |
 | No marketing | `renders permissions for each agent` | `seamlessly`, `powerful`, `blazing fast` |
 | Consistent terms | the terms in the [glossary](../features/glossary.md), one term per concept | alternating `profile`/`config`/`settings` for one file |
 
@@ -36,13 +36,16 @@ context becomes a wrong action.
 
 ## CLI messages
 
-- Every message on stderr starts with `harness: `, so it can be told apart from the output of commands harness runs.
-  A message that needs detail continues on indented lines below it.
+- The first line of every message on stderr starts with `the-cook: `, so it can be told apart from the output of
+  commands `the-cook` runs; a result on stdout written to a pipe or file carries no prefix. On a TTY, under the
+  conditions that allow color, a message written for a person starts with 😎 and one space instead; text for an agent, a
+  parser or a loop runner never does ([cli-standards.md](cli-standards.md#color-emoji-and-terminal-control)). A message
+  that needs detail continues on indented lines below it.
 - Warnings start with `warning: `; they never change the exit code, because a warning informs and must not fail a
   script.
 - A message about a file names it relative to the repository root, with `:line:column` when known, so an editor or
   agent can open it directly.
-- Messages contain no ANSI escapes when the stream is not a TTY ([cli-standards.md](cli-standards.md#color-and-terminal-control)),
+- Messages contain no ANSI escapes when the stream is not a TTY ([cli-standards.md](cli-standards.md#color-emoji-and-terminal-control)),
   so logs and transcripts stay readable.
 
 ## Error messages
@@ -54,33 +57,49 @@ Every error has three parts, in this order, because a reader needs to know what 
 3. **Next**: the exact command or edit that moves forward, copyable as is.
 
 ```text
-harness: render --check: 2 files drifted from .harness/policy.yaml
+the-cook: render --check: 2 files drifted from .cook/policy.yaml
   .claude/settings.json: permissions.allow differs (edited by hand)
-  .codex/rules/harness.rules: content differs
-  run: ./harnessw render
+  .codex/rules/the-cook.rules: content differs
+  run: ./cook render
 ```
 
 ```text
-harness: remove: .codex/rules/harness.rules was edited by hand and was not removed
+the-cook: remove: .codex/rules/the-cook.rules was edited by hand and was not removed
   its content no longer matches the manifest
-  review the file, then run: ./harnessw remove --force
+  review the file, then run: ./cook remove --force
 ```
 
 ```text
-harness: wrapper: v1.4.0 refused: the signature of its checksum file does not verify
+the-cook: wrapper: v1.4.0 refused: the signature of its checksum file does not verify
   the release was not signed by a key this binary trusts
   keep the current pin, or confirm the release with its publisher
 ```
 
 ```text
-harness: v0.9.0 not downloaded, hook skipped; run: ./harnessw version
+the-cook: v0.9.0 not downloaded, hook skipped; run: ./cook version
 ```
 
 The last example is the complete message a rendered hook prints when the pinned version is not in the machine's cache of
-downloaded releases. The hook exits 0 and the session continues. The next step names `./harnessw`, the explicit entry
+downloaded releases. The hook exits 0 and the session continues. The next step names `./cook`, the explicit entry
 point that downloads the pinned version, because the hook itself never downloads.
 
-- The next step names a command when one exists, in the documented invocation `./harnessw <command>`
+The examples show each message as it reads in a pipe, a log or CI. On a TTY, the first line of a message written for a
+person starts with 😎 instead of `the-cook: `, and the rest is unchanged:
+
+```text
+😎 render --check: 2 files drifted from .cook/policy.yaml
+  run: ./cook render
+```
+
+```text
+the-cook: render --check: 2 files drifted from .cook/policy.yaml
+  run: ./cook render
+```
+
+The status word (`drifted`) is in both, because the emoji only decorates. The hook message never carries the emoji,
+because it enters an agent's session.
+
+- The next step names a command when one exists, in the documented invocation `./cook <command>`
   ([cli-standards.md](cli-standards.md#entry-points)). It never says only "check your configuration", because that
   leaves the reader where they started.
 - When the next step is a person's decision (exit 3), the message says so and names the choices, so an agent stops and
@@ -101,7 +120,7 @@ point that downloads the pinned version, because the hook itself never downloads
   the same reason.
 - When the pinned binary is not cached, the session-start hook prints its stderr skip line and also adds exactly one
   line to the agent's context:
-  `harness <version> is not cached on this machine; run ./harnessw version once to fetch it.` One line per session
+  `the-cook <version> is not cached on this machine; run ./cook version once to fetch it.` One line per session
   explains every missing hook, notification and injection without repeating on each tool call. The wrapper prints it
   from its template, because no binary is present.
 - An injected standing-context pointer is exactly one line: `Apply the <name> skill now: read <path>`, so the agent
@@ -118,14 +137,14 @@ derive. Explanations of a repository's choices are written by people or agents o
 The two block classes ([generated-content-standards.md](generated-content-standards.md#block-classes)) are written
 differently:
 
-- **Convention blocks** state facts that hold without harness, in the voice of the repository: "Worktrees in this
+- **Convention blocks** state facts that hold without `the-cook`, in the voice of the repository: "Worktrees in this
   project are created in `.work/worktrees/<name>`, on branch `work/<name>`, from committed code." They never name a
-  harness command, the wrapper or `.harness/`, and never say they are managed beyond their marker. Why:
-  `harness remove --eject` keeps their text, which must still be true and usable afterwards.
-- **Tool blocks** explain how to use harness and name its commands in the documented form, `./harnessw <command>`.
+  `the-cook` command, the wrapper or `.cook/`, and never say they are managed beyond their marker. Why:
+  `the-cook remove --eject` keeps their text, which must still be true and usable afterwards.
+- **Tool blocks** explain how to use `the-cook` and name its commands in the documented form, `./cook <command>`.
   Why: eject removes them, so they may depend on the tool.
 - Every block stays within the [`AGENTS.md` budget](../features/render.md#the-agentsmd-budget): one fact per line,
-  detail left to `harness explain` and the skill, because agents read `AGENTS.md` in every session.
+  detail left to `the-cook explain` and the skill, because agents read `AGENTS.md` in every session.
 
 ## Documentation structure
 
@@ -183,7 +202,7 @@ A section with no content is omitted rather than left empty.
   control keeps the past.
 - Each page stands alone: define a term on first use or link it to the [glossary](../features/glossary.md), because
   readers arrive from search and links, not from page one.
-- A page states only what any reader can check: facts about harness, public facts about third-party tools, and worked
+- A page states only what any reader can check: facts about `the-cook`, public facts about third-party tools, and worked
   examples set in a made-up organization. It never points at context the reader does not have, such as a survey of
   unnamed repositories, an earlier implementation, a conversation or "the original". Why: a claim that depends on
   unseen context reads as an unexplained reference to an outsider, and a concrete example makes the same point to
@@ -193,19 +212,21 @@ A section with no content is omitted rather than left empty.
 - Pages link to each other with relative links, use tables for reference material, and put commands, YAML and output in
   fenced code blocks with a language tag, because a relative link keeps working wherever the pages are read, a table is
   where a reader looks up a value, and a tagged block renders and copies exactly as written.
-- No organization names in examples or in content harness carries; examples use `acme` for an organization and
-  `acme/api` for a repository, because harness is open source and its docs must fit any organization. Third-party
-  products (Claude Code, Codex, GitHub, ralph-tui, Beads, the `skills` CLI, Harness.io, a CI/CD platform whose CLI is
-  also called `harness`) are named where their behaviour matters, because a reader needs to know which tool a rule is
-  about.
-- What harness does with a program is attributed to the plugin that describes it: "the version-control plugin reports
-  the default branch", "a floor rule of the git plugin". A program's own commands appear only as examples of what its
-  plugin runs ("with the git plugin, `git worktree add`"). Why: the binary contains code for no program, so a page that
-  says harness runs git describes a binary that does not exist ([plugins](../features/plugins.md),
+- Prose names the tool `the-cook`, code-formatted, wherever it means the tool, because that is the name a reader types:
+  the same word reads the same in a sentence and in a command, and it never takes a capital letter, even at the start of
+  a sentence. The generic idea keeps its plain words: an agent harness, a meta-harness, a harness recipe.
+- No organization names in examples or in content `the-cook` carries; examples use `acme` for an organization and
+  `acme/api` for a repository, because `the-cook` is open source and its docs must fit any organization. Third-party
+  products (Claude Code, Codex, GitHub, ralph-tui, Beads, the `skills` CLI) are named where their behaviour matters,
+  because a reader needs to know which tool a rule is about.
+- What `the-cook` does with a program is attributed to the recipe that describes it: "the version-control recipe reports
+  the default branch", "a floor rule of the git recipe". A program's own commands appear only as examples of what its
+  recipe runs ("with the git recipe, `git worktree add`"). Why: the binary contains code for no program, so a page that
+  says `the-cook` runs git describes a binary that does not exist ([recipes](../features/recipes.md),
   [ADR 0022](../adrs/0022-tool-integration.md)).
 - Example commands are complete and run as written; example output is copied from a real run of the documented
   release, so a reader can trust what they copy.
-- Commands that run inside a repository are written as `./harnessw <command>`, with `harness <command>` shown as the
-  equivalent when harness is installed globally ([cli-standards.md](cli-standards.md#entry-points)). The standards in
-  `docs/ux/` name commands `harness <command>`, the program's name.
-- `harness explain <topic>` and the harness skill follow the same rules; they are documentation shipped in the binary.
+- Commands that run inside a repository are written as `./cook <command>`, with `the-cook <command>` shown as the
+  equivalent when `the-cook` is installed globally ([cli-standards.md](cli-standards.md#entry-points)). The standards in
+  `docs/ux/` name commands `the-cook <command>`, the program's name.
+- `the-cook explain <topic>` and the shipped skill follow the same rules; they are documentation shipped in the binary.

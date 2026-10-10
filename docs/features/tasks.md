@@ -12,7 +12,7 @@ pass.
 
 ## Overview
 
-`harness` binds a [managed worktree](worktrees.md) to a task and fires [lifecycle events](lifecycle.md) around the work
+`the-cook` binds a [managed worktree](worktrees.md) to a task and fires [lifecycle events](lifecycle.md) around the work
 on it. It contains no code for any task tracker: it never reads or writes a tracker's data and never checks that a
 task id exists. A tracker is wired by actions the repository declares on the events `start`, `completed` and
 `blocked`, which read the task id and the actor from the environment
@@ -20,64 +20,64 @@ task id exists. A tracker is wired by actions the repository declares on the eve
 
 Three pieces make this work:
 
-- **Task binding.** `harness worktree create <name> --task <id>` records a free-form task id. Every event fired in that
-  worktree carries it in `HARNESS_TASK`, as well as the worktree's actor in `HARNESS_ACTOR`, which every managed
+- **Task binding.** `the-cook worktree create <name> --task <id>` records a free-form task id. Every event fired in that
+  worktree carries it in `COOK_TASK`, as well as the worktree's actor in `COOK_ACTOR`, which every managed
   worktree has.
 - **The `completed` guard.** `completed` with scope `task` is refused (exit 3) without a valid
   [verification receipt](verify.md) when the verify module is on, whoever fires it.
-- **Trackers wired by actions.** The `beads` [plugin](plugins.md#beads) writes the actions for Beads, a task tracker
+- **Trackers wired by actions.** The `beads` [recipe](recipes.md#beads) writes the actions for Beads, a task tracker
   that keeps its database in `.beads/` and is used through its `bd` command. Any other tracker is wired the same way
   with its own command line, such as GitHub issues through `gh`.
 
-Commands are named `harness <command>` on this page. The examples run them through the repository's wrapper,
-`./harnessw <command>`, from the root of a checkout; with a global install, `harness <command>` is equivalent
+Commands are named `the-cook <command>` on this page. The examples run them through the repository's wrapper,
+`./cook <command>`, from the root of a checkout; with a global install, `the-cook <command>` is equivalent
 ([wrapper](wrapper.md)).
 
 ## When to use it
 
 - You work on tasks of a tracker in managed worktrees and want the tracker updated when work starts, finishes or stops.
-- You want a task to count as finished only after `harness verify` passed on its final content.
-- You run an unattended loop through [`harness worker`](ralph.md), which fires `completed` for each verified attempt.
+- You want a task to count as finished only after `the-cook verify` passed on its final content.
+- You run an unattended loop through [`the-cook worker`](ralph.md), which fires `completed` for each verified attempt.
 
-Without a tracker, leave out `--task`: worktrees and `harness verify` work without tasks.
+Without a tracker, leave out `--task`: worktrees and `the-cook verify` work without tasks.
 
 ## How it works
 
 ### Task binding
 
-`harness worktree create <name> --task <id>` records the id in the worktree's session (`session.json` in the
+`the-cook worktree create <name> --task <id>` records the id in the worktree's session (`session.json` in the
 worktree's state directory) next to its base commit and its actor, `<user>:<name>:<random>`. The id is free-form: a
-bead id such as `acme-api-7f2`, an issue number such as `412`, or any string the team's tracker understands. `harness`
+bead id such as `acme-api-7f2`, an issue number such as `412`, or any string the team's tracker understands. `the-cook`
 does not interpret it.
 
 | In a worktree bound to a task | Value |
 | --- | --- |
 | Scope of the events fired there | `task`, unless `--scope` says otherwise ([scopes](lifecycle.md#scopes)) |
-| `HARNESS_TASK` | the id given with `--task` |
-| `HARNESS_ACTOR` | the worktree's actor, `<user>:<name>:<random>` |
+| `COOK_TASK` | the id given with `--task` |
+| `COOK_ACTOR` | the worktree's actor, `<user>:<name>:<random>` |
 
 | Event | Fired, with scope `task` |
 | --- | --- |
-| `start` | by `harness worktree create --task`, in the new worktree |
-| `verified` | by every `harness verify` that passes there |
-| `completed` | by [`harness worker`](ralph.md) after a verified attempt in a worktree bound to a task, or by a person or agent with `harness lifecycle run completed` |
-| `deliver` | by `harness worker` after `completed` when the work is concluded, or by `harness lifecycle run deliver` |
-| `blocked` | by a `harness` command run without a terminal that exits 3, with `HARNESS_REASON` set to its one-line refusal |
+| `start` | by `the-cook worktree create --task`, in the new worktree |
+| `verified` | by every `the-cook verify` that passes there |
+| `completed` | by [`the-cook worker`](ralph.md) after a verified attempt in a worktree bound to a task, or by a person or agent with `the-cook lifecycle run completed` |
+| `deliver` | by `the-cook worker` after `completed` when the work is concluded, or by `the-cook lifecycle run deliver` |
+| `blocked` | by a `the-cook` command run without a terminal that exits 3, with `COOK_REASON` set to its one-line refusal |
 
 At an automatic trigger point only actions declared with `auto: true` run. A failing automatic event is reported on
 stderr and recorded in the [lifecycle log](lifecycle.md#the-lifecycle-log), and never changes the exit code of the
-command that fired it. `harness lifecycle run` runs exactly one event, every action of it for the scope, so after a
-manual `completed`, delivery is its own `harness lifecycle run deliver`.
+command that fired it. `the-cook lifecycle run` runs exactly one event, every action of it for the scope, so after a
+manual `completed`, delivery is its own `the-cook lifecycle run deliver`.
 
 ### The `completed` guard
 
 `completed` with scope `task` is refused with exit 3 when the verify module is on (`modules.verify: true`) and the
-checkout has no valid receipt (`harness verify --check` fails). No action runs, and the refusal is recorded in the
+checkout has no valid receipt (`the-cook verify --check` fails). No action runs, and the refusal is recorded in the
 lifecycle log. The guard is a [built-in guard](lifecycle.md#built-in-guards): it applies whoever fires the event, a
-person, an agent or `harness worker`, and no repository file removes it. A tracker action on `completed` therefore
+person, an agent or `the-cook worker`, and no repository file removes it. A tracker action on `completed` therefore
 closes a task only after its checks passed on its final content.
 
-`harness worker` fires `completed` only after it replayed the agent's verification itself, so in a worker the guard and
+`the-cook worker` fires `completed` only after it replayed the agent's verification itself, so in a worker the guard and
 the replay agree. It fires `completed` and `deliver` only in a worktree bound to a task; in a worktree without one, such
 as a loop runner's, it fires no event, and whoever drives the run fires the run-scope events.
 
@@ -88,48 +88,48 @@ command with the task id and the actor:
 
 | Event | What the action does with the tracker |
 | --- | --- |
-| `start` | marks the task in progress and assigned to `$HARNESS_ACTOR` |
-| `completed` | closes the task `$HARNESS_TASK`, or records that it passed its checks |
-| `blocked` | records `$HARNESS_REASON` on the task |
+| `start` | marks the task in progress and assigned to `$COOK_ACTOR` |
+| `completed` | closes the task `$COOK_TASK`, or records that it passed its checks |
+| `blocked` | records `$COOK_REASON` on the task |
 
-The actions are the repository's own entries in `.harness/hooks.yaml`, reviewed like any other change. Switching
+The actions are the repository's own entries in `.cook/hooks.yaml`, reviewed like any other change. Switching
 trackers changes those entries and nothing else. A program an action names that is not on `PATH` is a
-[`harness doctor`](doctor.md) finding.
+[`the-cook doctor`](doctor.md) finding.
 
-#### The Beads plugin
+#### The Beads recipe
 
-`harness plugin apply beads` writes these entries for Beads 1.3.1, after showing them as a diff
-([plugins](plugins.md#how-apply-works)):
+`the-cook recipe apply beads` writes these entries for Beads 1.3.1, after showing them as a diff
+([recipes](recipes.md#how-apply-works)):
 
 ```yaml
-# .harness/hooks.yaml
+# .cook/hooks.yaml
 lifecycle:
   start:
     - name: bead-start
-      run: bd update "$HARNESS_TASK" --status in_progress --assignee "$HARNESS_ACTOR"
+      run: bd update "$COOK_TASK" --status in_progress --assignee "$COOK_ACTOR"
       auto: true
       scope: [task]
   completed:
     - name: bead-close
-      run: bd close "$HARNESS_TASK" --reason "verified"
+      run: bd close "$COOK_TASK" --reason "verified"
       auto: true
       scope: [task]
   blocked:
     - name: bead-comment
-      run: bd comments add "$HARNESS_TASK" "$HARNESS_REASON"
+      run: bd comments add "$COOK_TASK" "$COOK_REASON"
       auto: true
       scope: [task]
 ```
 
 ```yaml
-# .harness/config.yaml
+# .cook/config.yaml
 agents:
   codex:
     writable_roots: [.beads]
 ```
 
 ```yaml
-# .harness/policy.yaml
+# .cook/policy.yaml
 worker:
   deny:
     - [bd, close]
@@ -138,31 +138,31 @@ worker:
 - The `completed` action closes the bead from the process that fired the event, and a worker's agent is denied
   `bd close`, so a bead closes only through the guarded event.
 - Codex workers get `.beads/` as a writable root, so `bd` commands the agent runs can update the database.
-- `bd` refuses a missing id, so an action that runs with `HARNESS_TASK` unset fails instead of touching another bead.
+- `bd` refuses a missing id, so an action that runs with `COOK_TASK` unset fails instead of touching another bead.
 - Nothing initialises, configures or localises a Beads database. Creating one is `bd`'s own job (`bd init`).
-- When ralph-tui runs with its Beads tracker, ralph-tui updates bead status itself ([ralph](ralph.md)). The plugin's
+- When ralph-tui runs with its Beads tracker, ralph-tui updates bead status itself ([ralph](ralph.md)). The recipe's
   actions matter for interactive work in managed worktrees.
 
 #### GitHub issues with `gh`
 
-No builtin plugin holds these; a repository declares them itself. The task id is the issue number:
+No builtin recipe holds these; a repository declares them itself. The task id is the issue number:
 
 ```yaml
-# .harness/hooks.yaml
+# .cook/hooks.yaml
 lifecycle:
   start:
     - name: issue-assign
-      run: gh issue edit "$HARNESS_TASK" --add-assignee "@me"
+      run: gh issue edit "$COOK_TASK" --add-assignee "@me"
       auto: true
       scope: [task]
   completed:
     - name: issue-verified
-      run: gh issue comment "$HARNESS_TASK" --body "Verified on $HARNESS_BRANCH: $HARNESS_SUMMARY"
+      run: gh issue comment "$COOK_TASK" --body "Verified on $COOK_BRANCH: $COOK_SUMMARY"
       auto: true
       scope: [task]
   blocked:
     - name: issue-blocked
-      run: gh issue comment "$HARNESS_TASK" --body "Blocked: $HARNESS_REASON"
+      run: gh issue comment "$COOK_TASK" --body "Blocked: $COOK_REASON"
       auto: true
       scope: [task]
 ```
@@ -173,15 +173,15 @@ actions write to the team's record, so declare them only where the team wants th
 ## Reference
 
 ```text
-harness worktree create <name> --task <id>
-harness lifecycle run completed [--scope task]
+the-cook worktree create <name> --task <id>
+the-cook lifecycle run completed [--scope task]
 ```
 
 | Variable | Value | Set |
 | --- | --- | --- |
-| `HARNESS_TASK` | the id given with `--task` | every event fired in a worktree bound to a task |
-| `HARNESS_ACTOR` | the worktree's actor, `<user>:<name>:<random>` | every event fired in a managed worktree |
-| `HARNESS_REASON` | the one-line refusal of the command that exited 3 | `blocked`, when it fires at a trigger point |
+| `COOK_TASK` | the id given with `--task` | every event fired in a worktree bound to a task |
+| `COOK_ACTOR` | the worktree's actor, `<user>:<name>:<random>` | every event fired in a managed worktree |
+| `COOK_REASON` | the one-line refusal of the command that exited 3 | `blocked`, when it fires at a trigger point |
 
 | Exit code of `completed`, scope `task` | Meaning |
 | --- | --- |
@@ -190,7 +190,7 @@ harness lifecycle run completed [--scope task]
 | 3 | Refused: no valid receipt while the verify module is on; no action ran |
 
 The full flags and exit codes are in [worktrees](worktrees.md#reference) and [lifecycle](lifecycle.md#reference).
-Files read: `session.json` in the worktree's state directory, `verified.json` for the guard, `.harness/hooks.yaml`.
+Files read: `session.json` in the worktree's state directory, `verified.json` for the guard, `.cook/hooks.yaml`.
 Files written: the lifecycle log; whatever the actions write.
 
 ## Examples
@@ -198,13 +198,13 @@ Files written: the lifecycle log; whatever the actions write.
 ### A Node API with Beads
 
 ```sh
-./harnessw plugin apply beads
-./harnessw worktree create invoice-rounding --task acme-api-7f2   # bead-start marks acme-api-7f2 in progress
+./cook recipe apply beads
+./cook worktree create invoice-rounding --task acme-api-7f2   # bead-start marks acme-api-7f2 in progress
 cd .work/worktrees/invoice-rounding
 # edit, test
-./harnessw verify --lane unit=invoice --skip e2e="no route, controller or guard changed"
-./harnessw lifecycle run completed                                # bead-close closes acme-api-7f2
-./harnessw lifecycle run deliver
+./cook verify --lane unit=invoice --skip e2e="no route, controller or guard changed"
+./cook lifecycle run completed                                # bead-close closes acme-api-7f2
+./cook lifecycle run deliver
 ```
 
 `bd ready`, `bd show`, `bd search` and the rest of `bd` keep working as usual.
@@ -214,22 +214,22 @@ cd .work/worktrees/invoice-rounding
 With the actions of [GitHub issues with `gh`](#github-issues-with-gh) declared:
 
 ```sh
-./harnessw worktree create export-csv --task 412                  # issue-assign assigns issue 412
+./cook worktree create export-csv --task 412                  # issue-assign assigns issue 412
 cd .work/worktrees/export-csv
-./harnessw verify --lane test=./internal/export/...
-./harnessw lifecycle run completed                                # issue-verified comments with the summary
+./cook verify --lane test=./internal/export/...
+./cook lifecycle run completed                                # issue-verified comments with the summary
 ```
 
 ### A Terraform repository without a tracker
 
-Create worktrees without `--task` and declare no tracker actions; worktrees and `harness verify` work without tasks.
+Create worktrees without `--task` and declare no tracker actions; worktrees and `the-cook verify` work without tasks.
 
 ## Guidelines
 
 - Do bind a worktree to one task with `--task`, so every event fired there names it.
-- Do run `harness verify` before firing `completed`; the guard refuses it otherwise.
+- Do run `the-cook verify` before firing `completed`; the guard refuses it otherwise.
 - Do keep tracker actions scoped to `task`, so a worktree without a task never runs them.
-- Don't let a worker's agent close tasks itself; deny the tracker's close command in `worker.deny`, as the Beads plugin
+- Don't let a worker's agent close tasks itself; deny the tracker's close command in `worker.deny`, as the Beads recipe
   does.
 - Don't share task ids across clones of a clone-local tracker such as Beads: they mean something only where the
   tracker's data is.
@@ -238,19 +238,19 @@ Create worktrees without `--task` and declare no tracker actions; worktrees and 
 
 | Symptom | Cause | Fix |
 | --- | --- | --- |
-| `lifecycle run completed` exits 3 and runs no action | No valid receipt, or a file changed after `verify` | `harness verify …`, then fire `completed` again |
-| The tracker did not change when the worktree was created | The `start` action is not `auto: true`, is not scoped to `task`, or failed | `harness lifecycle list`; the lifecycle log shows the failure; `harness lifecycle run start` retries it |
+| `lifecycle run completed` exits 3 and runs no action | No valid receipt, or a file changed after `verify` | `the-cook verify …`, then fire `completed` again |
+| The tracker did not change when the worktree was created | The `start` action is not `auto: true`, is not scoped to `task`, or failed | `the-cook lifecycle list`; the lifecycle log shows the failure; `the-cook lifecycle run start` retries it |
 | A Beads action fails with a missing id | `completed` or `blocked` was fired by hand, with scope `task`, in a worktree created without `--task` | Bind the worktree with `--task`; under ralph-tui's Beads tracker, ralph-tui updates the bead itself |
 | `doctor` reports `bd` or `gh` not on `PATH` | A declared action names a program this machine lacks | Install it, or remove the action |
-| A bead is assigned to `<user>:<worktree>:<random>` | That is the worktree's actor, from `HARNESS_ACTOR` | Nothing to do; the actor names the worktree that holds the task |
+| A bead is assigned to `<user>:<worktree>:<random>` | That is the worktree's actor, from `COOK_ACTOR` | Nothing to do; the actor names the worktree that holds the task |
 
 ## Coexistence
 
 - The binary contains no code for any task tracker or hosting platform. What reaches a tracker or GitHub is what the
   repository's own actions write, and a pull request is opened only by a `deliver` action the repository declares.
 - An existing `.beads/`, including one synchronised across machines or tracked in git, is the tracker's own data:
-  `harness` neither reads nor configures it, and what the actions write into it travels where its synchronisation
+  `the-cook` neither reads nor configures it, and what the actions write into it travels where its synchronisation
   sends it ([ADR 0012](../adrs/0012-write-boundary.md)).
-- `harness` does not change `core.hooksPath`.
+- `the-cook` does not change `core.hooksPath`.
 
 See [compatibility](compatibility.md#beads).

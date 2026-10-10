@@ -26,12 +26,12 @@ stays the team's.
   they rely on.
 - People run the loop runner, ralph-tui (0.12), directly, and it names branches by a fixed pattern. A tool that cleans
   branches by pattern can delete a branch a person created.
-- Another product, the CI/CD platform Harness.io, keeps its pipeline definitions in a directory at the repository root
-  whose name is the name of the tool's configuration directory ([0014](0014-directory-layout.md)).
+- A directory name at the repository root is not reserved: any program or person may create one, including one with
+  the name of the tool's configuration directory ([0014](0014-directory-layout.md)).
 - The loop runner merges its per-user configuration into every run it starts, and anyone can start it without the tool
   ([0022](0022-tool-integration.md)).
 - Some starting files are another tool's configuration, such as a loop runner's agent entries that name the tool's
-  worker command; a plugin can supply one as a template ([0013](0013-organization-content.md)).
+  worker command; a recipe can supply one as a template ([0013](0013-organization-content.md)).
 - The tool's own releases must be fetched from somewhere; some networks reach only an internal mirror.
 
 ## Decision
@@ -43,14 +43,14 @@ stays the team's.
    binary records, such as the task a working copy is bound to, stays in the clone.
 3. Delivery is everything that leaves the clone: a push, a pull request, a CI trigger, a notification. It happens only
    through actions that the repository declares on lifecycle events ([0015](0015-development-lifecycle.md),
-   [0019](0019-action-kinds.md)). No action runs that the repository's files do not declare: a plugin that holds actions
+   [0019](0019-action-kinds.md)). No action runs that the repository's files do not declare: a recipe that holds actions
    writes them into those files only when a person applies it.
 4. The binary never reconfigures state it did not create:
    - an existing third-party database is left as found;
    - another program's configuration and files are written only as a template a person applies, where the file is
-     absent, or as content a plugin renders and the manifest records ([0007](0007-ownership.md),
+     absent, or as content a recipe renders and the manifest records ([0007](0007-ownership.md),
      [0013](0013-organization-content.md), [0022](0022-tool-integration.md)), and are never read beyond the files a
-     plugin renders into and the rules adoption imports ([0008](0008-native-configuration.md),
+     recipe renders into and the rules adoption imports ([0008](0008-native-configuration.md),
      [0016](0016-permission-adoption.md));
    - the version control system's configuration, such as git's hooks path, is not changed; a setting an operation needs
      is passed on that operation's own command, never written into the configuration ([0022](0022-tool-integration.md));
@@ -82,10 +82,11 @@ stays the team's.
   replaces a file someone already keeps, and from then on the file is the repository's own
   ([0013](0013-organization-content.md)). The trade: a setting in another tool's configuration that works against the
   tool, such as a bypass, surfaces only when the binary meets it in its own input ([0011](0011-safety-invariants.md)).
-- **5.** A directory of the same name that another product reads holds files the binary does not own. Writing into it
-  would mix two products' files, and removal, which deletes what the manifest lists ([0007](0007-ownership.md)), would
-  then operate inside a directory another product depends on. Refusing is the only outcome that cannot damage it. The
-  trade: a repository that uses that product cannot adopt the tool.
+- **5.** A directory of the same name that the binary did not create holds files the binary does not own, and another
+  program may read them. Writing into it would mix the binary's files with someone else's, and removal, which deletes
+  what the manifest lists ([0007](0007-ownership.md)), would then operate inside a directory others depend on. Refusing
+  is the only outcome that cannot damage it. The trade: a repository whose root already holds such a directory cannot
+  adopt the tool until it is moved.
 - **6.** Branch and directory names collide with those people and other tools create. A record of what the binary
   created is the only proof that something is its to remove.
 
@@ -124,7 +125,8 @@ Costs:
   work in the clone.
 - The guarantee covers the binary's own behaviour. A declared action can write anywhere its credentials reach,
   including the team's record; that choice belongs to whoever declares and reviews it.
-- A repository that already uses the other product's directory of the same name cannot adopt the tool.
+- A repository whose root already holds a directory of the configuration directory's name, created by something
+  else, cannot adopt the tool until it is moved.
 
 Must be maintained:
 
@@ -139,7 +141,7 @@ Must be maintained:
 - A fixture with a foreign tool configuration directory refuses adoption, names the conflict and writes nothing.
 - A fixture whose root and per-user loop-runner configurations set a bypass runs every command of the tool without
   opening either file, and both are byte-identical afterwards.
-- Applying a plugin whose template names a loop-runner configuration that already exists leaves that file byte-identical
+- Applying a recipe whose template names a loop-runner configuration that already exists leaves that file byte-identical
   and reports it as kept.
 - Review rejects any hosting-platform client library, platform API endpoint or platform credential in the binary.
 - A fixture with no declared lifecycle actions, taken through every lifecycle event, leaves its remote unchanged.
