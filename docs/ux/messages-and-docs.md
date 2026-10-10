@@ -27,7 +27,7 @@ the [glossary](../features/glossary.md).
 | Name the thing exactly | `.cook/policy.yaml:14` | `your policy file` |
 | Imperative for instructions | `run: ./cook render` | `you may want to consider running render` |
 | Neutral, no blame, no apology | `.claude/settings.json was edited by hand` | `you broke settings.json`, `sorry, …` |
-| Plain words | `refused`, `skipped`, `drift` | `oops`, `whoops`, exclamation marks, any emoji other than the TTY prefix 😎 ([cli-standards.md](cli-standards.md#color-emoji-and-terminal-control)) |
+| Plain words | `refused`, `skipped`, `drift` | `oops`, `whoops`, exclamation marks, any emoji outside the icon set ([cli-standards.md](cli-standards.md#icons)) |
 | No marketing | `renders permissions for each agent` | `seamlessly`, `powerful`, `blazing fast` |
 | Consistent terms | the terms in the [glossary](../features/glossary.md), one term per concept | alternating `profile`/`config`/`settings` for one file |
 
@@ -38,9 +38,10 @@ context becomes a wrong action.
 
 - The first line of every message on stderr starts with `the-cook: `, so it can be told apart from the output of
   commands `the-cook` runs; a result on stdout written to a pipe or file carries no prefix. On a TTY, under the
-  conditions that allow color, a message written for a person starts with 😎 and one space instead; text for an agent, a
-  parser or a loop runner never does ([cli-standards.md](cli-standards.md#color-emoji-and-terminal-control)). A message
-  that needs detail continues on indented lines below it.
+  conditions that allow color, a message written for a person starts with the icon of its kind and one space instead;
+  text for an agent, a parser or a loop runner never does
+  ([cli-standards.md](cli-standards.md#color-emoji-and-terminal-control)). A message that needs detail continues on
+  indented lines below it.
 - Warnings start with `warning: `; they never change the exit code, because a warning informs and must not fail a
   script.
 - A message about a file names it relative to the repository root, with `:line:column` when known, so an editor or
@@ -84,10 +85,11 @@ downloaded releases. The hook exits 0 and the session continues. The next step n
 point that downloads the pinned version, because the hook itself never downloads.
 
 The examples show each message as it reads in a pipe, a log or CI. On a TTY, the first line of a message written for a
-person starts with 😎 instead of `the-cook: `, and the rest is unchanged:
+person starts with the icon of its kind ([icons](cli-standards.md#icons)) instead of `the-cook: `, and the rest is
+unchanged:
 
 ```text
-😎 render --check: 2 files drifted from .cook/policy.yaml
+🔥 render --check: 2 files drifted from .cook/policy.yaml
   run: ./cook render
 ```
 

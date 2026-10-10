@@ -309,16 +309,45 @@ deliberate the choice it expresses.
 - Color and cursor control are used only when the stream is a TTY, `NO_COLOR` is unset or empty, and `TERM` is not
   `dumb`. Each stream is tested on its own, because stdout and stderr are often redirected separately.
 - Output written to a pipe or file contains no ANSI escape sequences, so logs and agent transcripts stay readable.
-- The first line of each message `the-cook` writes for a person (a result, a refusal, a finding, a prompt) starts with 😎
-  and one space under the same conditions as color. Otherwise a message on stderr starts with `the-cook: `, so every
-  line still says who wrote it, and a result on stdout carries no prefix, so a pipe receives only the result
-  ([messages-and-docs.md](messages-and-docs.md#cli-messages)). Why: the emoji gives the tool its voice in a person's
-  terminal, and the TTY rule keeps logs, CI, agents and parsers byte-stable, as it does for color.
-- The emoji never appears in `--json` output, in hook output or anything else that enters an agent's context (a hook's
+- The first line of each message `the-cook` writes for a person (a result, a refusal, a finding, a prompt) starts with
+  the icon of its kind ([Icons](#icons)) and one space under the same conditions as color. Otherwise a message on stderr
+  starts with `the-cook: `, so every line still says who wrote it, and a result on stdout carries no prefix, so a pipe
+  receives only the result ([messages-and-docs.md](messages-and-docs.md#cli-messages)). Why: the icons give the tool its
+  voice in a person's terminal, and the TTY rule keeps logs, CI, agents and parsers byte-stable, as it does for color.
+- No icon appears in `--json` output, in hook output or anything else that enters an agent's context (a hook's
   stderr line, the session-start context line), in `the-cook worker` output, in rendered files, or in documentation
   prose. Why: an agent or a loop runner reads those bytes, and a completion signal must match exactly.
-- The emoji is decoration only: the status word (`ok`, `drift`, `refused`) is always present, and the emoji never
-  replaces a word, for the same reason color never does.
+- An icon is decoration only: the status word (`ok`, `drift`, `refused`) is always present, and an icon never replaces
+  a word, for the same reason color never does.
+
+### Icons
+
+The icons come from the kitchen and the lab, the tool's name. Each one marks exactly one kind of message, so a person
+who learns the set reads a terminal at a glance, and a message never carries two icons.
+
+| Icon | Kind | Examples |
+| --- | --- | --- |
+| 😎 | a result or a piece of information, the default | `render` wrote its files; `recipe list`; `version` |
+| 💎 | verified: proof passed | `verify` recorded a receipt; `verify --check` found a valid one |
+| 🧪 | a check is running | a `verify` lane, a `doctor` check in progress |
+| 🍳 | files are being written | `scaffold`, `recipe apply`, `render` while it writes |
+| 📖 | a recipe or a cookbook is shown | `recipe show`, `explain` |
+| 🧾 | a receipt is read or reported | the receipt line of `doctor`, a receipt shown by `explain` |
+| 🧂 | a warning: take it with a grain of salt | the update notice, a deprecation note; never changes the exit code |
+| 🔥 | a check ran and failed, exit 2 | drift, a `doctor` finding, a failed lane |
+| 💥 | an error, exit 1 | invalid input, a failed download, a hash mismatch |
+| ⛔ | blocked or refused, exit 3 | a lifecycle guard, a confirmation without a terminal, a missing program |
+| 🧯 | something is being undone | `remove`, `remove --eject` |
+| ⏳ | waiting on something | a lock held by another process, a long download |
+
+- The icon follows the message's outcome, so a command that fails shows 🔥, 💥 or ⛔ whatever its own icon would be.
+  Progress lines carry the icon of the activity (🧪, 🍳, ⏳) and the final line the icon of the outcome.
+- Only the icons in this table are used. Each is a single code point that is an emoji by default, from Unicode 11 or
+  earlier, with no variation selector and no joiner. Why: terminals compute the width of a joined or variation-selector
+  sequence differently, so ⚗️ (alembic), ☠️ or 🧑‍🍳 (cook) misalign columns in some of them, and a font from before
+  Unicode 11 shows a box instead of a newer emoji.
+- Adding or changing an icon is a change to this table, reviewed like any other standard; the meaning of an icon never
+  changes, because people learn it.
 
 ### JSON
 
