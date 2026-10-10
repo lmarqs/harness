@@ -6,8 +6,8 @@
 by hand or by an agent, the mechanical part comes out different every time, so repositories diverge and nothing can
 check them. Done by a program, the judgement part breaks on the first input nobody foresaw.
 
-**Goal.** Mechanical setup work gives the same result in every repository, a result that can be checked, and judgement
-stays with the people and agents who can exercise it.
+**Goal.** Mechanical setup work gives the same checkable result in every repository, and judgement stays with the people
+and agents who can exercise it.
 
 ## Context
 
@@ -36,8 +36,8 @@ Facts:
 2. The binary never writes prose, memory, domain skills or policy choices. Work that needs judgement belongs to an agent
    or a person, who edits the declarative sources ([0006](0006-repository-contract.md)); the binary renders and checks
    the result.
-3. The binary ships the documentation an agent needs, the rules, their reasons and the file contracts, embedded in
-   itself, both as a skill installed into the repository and as printable documentation.
+3. The binary embeds the documentation an agent needs (the rules, their reasons and the file contracts) and ships it
+   both as a skill installed into the repository and as printable documentation.
 4. When the binary meets input it cannot map deterministically, it leaves the input untouched and lists it as
    unresolved in a machine-readable list. It never guesses.
 

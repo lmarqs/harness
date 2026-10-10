@@ -17,7 +17,7 @@ different words.
 
 An ADR has no status, no date and no history. It describes the decision in force, in the present tense. When a
 decision changes, its ADR is edited in the same pull request that changes the behaviour, and every ADR that references
-it is checked in that pull request. Git keeps the past; the ADR keeps the present.
+it is checked in that pull request. Git history holds the earlier versions.
 
 A decision that stops applying is deleted, together with every reference to it. Its number is not reused.
 
@@ -40,8 +40,8 @@ Neither part names a solution: no mechanism the decision introduces, none of the
 One ADR has one objective; a decision that serves two objectives is two ADRs. When the problem no longer exists, the
 decision no longer applies, and the ADR is deleted.
 
-Reasons: a decision read without its problem is judged against whatever problem the reader assumes; a decision without
-its goal cannot be confirmed, because nothing says what success looks like; and a decision whose problem is gone stays
+Reasons: a decision read without its problem is judged against whatever problem the reader assumes. A decision without
+its goal cannot be confirmed, because nothing says what success looks like. A decision whose problem is gone stays
 in force only because nobody asked why it was there.
 
 ## Reasons come first

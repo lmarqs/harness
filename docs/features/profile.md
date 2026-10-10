@@ -14,9 +14,9 @@ and every agent and tool working there uses the same answer.
 
 The profile tells `harness` what a repository is: which modules it uses, how to bootstrap a checkout, how to lint and
 build, which verification lanes exist, which task tracker and agents it uses, Ralph defaults, skill sources, and the
-standing context agents receive. It is seeded and then repository-owned: `scaffold` seeds it once, with the entries
-of the [presets](presets.md) of the stacks it detects, and from then on people and agents edit it,
-`harness preset apply` adds a stack's entries to it, and `harness render` reads it.
+standing context agents receive. It is seeded and then repository-owned. `scaffold` seeds it once, with the entries of
+the [presets](presets.md) of the stacks it detects. From then on people and agents edit it, `harness preset apply` adds
+a stack's entries to it, and `harness render` reads it.
 
 Examples on this page run commands as `./harnessw <command>`, through the repository's [wrapper](wrapper.md); with a
 global install, `harness <command>` is equivalent.
@@ -49,7 +49,7 @@ Run `./harnessw render` after every edit, and `./harnessw doctor` to check globs
   worktree).
 - **Placeholders**: `{file}` is replaced by one repository-relative path, `{pattern}` by one lane pattern; `harness`
   shell-quotes each value. These placeholders in profile and hook commands are the only substitutions `harness`
-  performs; lifecycle actions get values only through environment variables.
+  performs. Lifecycle actions get values only through environment variables.
 - **Unknown keys** are an error, so a typo never silently disables something.
 
 ## Reference
@@ -170,8 +170,9 @@ A map from agent name to its settings. Only declared agents are rendered. Agents
 
 ### `context`
 
-Standing context is guidance `harness` puts into agent sessions when a declared trigger fires, so nobody has to invoke
-a directive or a skill by name. Behaviour per agent, the hook events used, and more examples: [context](context.md).
+Standing context is guidance `harness` puts into agent sessions when a declared trigger fires, so nobody has to invoke a
+directive or a skill by name. The [context](context.md) page covers behaviour per agent, the hook events used, and more
+examples.
 
 ```yaml
 context:
@@ -212,7 +213,7 @@ Sources are repository files and skills installed under `.agents/skills/`; nothi
 listed in `skills-lock.json` is injected only while it matches its locked hash, and `doctor` reports a mismatch as a
 finding. A Ralph worker receives the entries as they are at its session's base commit. Hook delivery needs
 `modules.hooks`; `static` entries do not. Preview what a session would receive with
-[`harness context show`](context.md#harness-context-show); `HARNESS_NO_CONTEXT=1` turns injection off for one process
+[`harness context show`](context.md#harness-context-show). `HARNESS_NO_CONTEXT=1` turns injection off for one process
 tree.
 
 ### `blocks`
@@ -223,10 +224,10 @@ tree.
 
 ### State paths
 
-State is clone-local, gitignored and disposable, and lives outside `.harness/`. Four keys say where; each path is
-relative to the repository root, and each is written down as a convention in a managed block of `AGENTS.md` and a
-managed block of `.gitignore` ([block ids](render.md#block-ids)), so people, agents, ralph-tui and `bd` find it, with
-or without `harness`.
+State is clone-local, gitignored and disposable, and lives outside `.harness/`. Four keys say where, each relative to
+the repository root. Each path is written down as a convention in a managed block of `AGENTS.md` and a managed block of
+`.gitignore` ([block ids](render.md#block-ids)), so people, agents, ralph-tui and `bd` find it, with or without
+`harness`.
 
 ```yaml
 state:
@@ -287,7 +288,7 @@ ralph:
   default_agent: claude
   max_iterations: 5
   agents:
-    claude: { model: claude-sonnet-4-5, effort: medium }
+    claude: { model: claude-sonnet-5-5, effort: medium }
     codex: { model: gpt-5-codex, effort: high }
 skills: { sources: [lmarqs/skills] }
 context:
@@ -342,7 +343,7 @@ verify:
     vet: { select: go vet {pattern}, full: go vet ./... }
 tracker: { default: prd }
 agents: { claude: { role: interactive }, codex: { role: interactive } }
-ralph: { config: managed, default_agent: claude, max_iterations: 8, agents: { claude: { model: claude-sonnet-4-5, effort: high } } }
+ralph: { config: managed, default_agent: claude, max_iterations: 8, agents: { claude: { model: claude-sonnet-5-5, effort: high } } }
 skills: { sources: [lmarqs/skills] }
 ```
 

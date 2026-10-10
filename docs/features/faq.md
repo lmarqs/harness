@@ -41,10 +41,10 @@ API through an `http` action, or its CLI through a `run` action.
 
 ### Do my teammates need to install it?
 
-No. The repository's committed wrapper, `./harnessw`, downloads the pinned release the first time they run a command;
-it needs a POSIX `sh`, `curl` or `wget`, and `sha256sum` or `shasum`. Rendered files are committed, so their agents
-get the same permissions and instructions before that. Agent hooks never download: until the release is cached they
-print one line naming `./harnessw` and continue ([installation](installation.md#before-the-first-download)).
+No. The repository's committed wrapper, `./harnessw`, downloads the pinned release the first time they run a command. It
+needs a POSIX `sh`, `curl` or `wget`, and `sha256sum` or `shasum`. Rendered files are committed, so their agents get the
+same permissions and instructions before that. Agent hooks never download: until the release is cached they print one
+line naming `./harnessw` and continue ([installation](installation.md#before-the-first-download)).
 
 ### What is `harnessw`?
 
@@ -96,7 +96,7 @@ It operates at the git repository root: one profile, policy and hooks file per r
 
 ### Does it run on Windows?
 
-No. linux and macOS, on amd64 and arm64; the wrapper is a POSIX `sh` script.
+No. It runs on linux and macOS, on amd64 and arm64, and the wrapper is a POSIX `sh` script.
 
 ## Files
 
@@ -129,12 +129,11 @@ review.
 
 ### How do I stop using it?
 
-Two ways ([remove](remove.md)). `./harnessw remove` undoes the adoption: it deletes what `harness` added and writes
-back the permission rules and hooks adoption imported. `./harnessw remove --eject` stops `harness` managing the
-repository and keeps the result: the conventions in `AGENTS.md` and `.gitignore`, the permissions and the `raw` hooks
-stay as hand-owned files. Both delete `harnessw` and the files in `.harness/` that `harness` owns or seeded, then
-`.harness/` once it is empty; a file the manifest does not record, such as `.harness/ralph/prompt.hbs`, is listed and
-left.
+Two ways ([remove](remove.md)). `./harnessw remove` undoes the adoption: it deletes what `harness` added and writes back
+the permission rules and hooks adoption imported. `./harnessw remove --eject` stops `harness` managing the repository
+and keeps the result: the conventions in `AGENTS.md` and `.gitignore`, the permissions and the `raw` hooks stay as
+hand-owned files. Both delete `harnessw` and the files in `.harness/` that `harness` owns or seeded, then `.harness/`
+once it is empty. A file the manifest does not record, such as `.harness/ralph/prompt.hbs`, is listed and left.
 
 ### Does anything keep working after an eject?
 
@@ -261,7 +260,7 @@ against the final content, with rules read from the base commit, before it relea
 ### Does `harness` open the pull request after a run?
 
 The binary has no logic for pull requests or any hosting platform. A run ends on a local branch. What happens next is
-the repository's `deliver` actions, for example `git push` and `gh pr create` declared in `.harness/hooks.yaml`: they
+the repository's `deliver` actions, for example `git push` and `gh pr create` declared in `.harness/hooks.yaml`. They
 run automatically when declared with `auto: true`, or when a person or a coordinating agent runs
 `./harnessw lifecycle run deliver`. Most runs need judgement first (which task commits go together, how to word them),
 so an agent arranges the commits with a skill and then fires `deliver` ([ralph](ralph.md#delivery)).
@@ -283,16 +282,16 @@ the only pin, and `doctor` reports a second one as a finding.
 ### How do I upgrade?
 
 `./harnessw wrapper --version <tag>`, or `--latest`, moves the pin and renders the repository with the new release in
-the same change, so the pin and everything the new release renders differently arrive as one diff; review it and
-commit it. `harness fleet wrapper --version <tag> --deliver` does the same across many repositories
+the same change, so the pin and everything the new release renders differently arrive as one diff. Review it and commit
+it. `harness fleet wrapper --version <tag> --deliver` does the same across many repositories
 ([wrapper](wrapper.md#upgrading)).
 
 ### We upgraded, but the new release's preset entries are not in the repository.
 
-A preset's entries reach a repository only when someone applies it. The upgrade renders the repository's files with
-the new release and leaves their entries as they are. Run `./harnessw preset apply node --dry-run` to see what the
-newer `node` preset would add; without `--dry-run` it shows the same diff, asks, adds only what the repository lacks,
-and renders ([presets](presets.md#how-apply-works)).
+A preset's entries reach a repository only when someone applies it. The upgrade renders the repository's files with the
+new release and leaves their entries as they are. Run `./harnessw preset apply node --dry-run` to see what the newer
+`node` preset would add. Without `--dry-run` it shows the same diff, asks, adds only what the repository lacks, and
+renders ([presets](presets.md#how-apply-works)).
 
 ### A teammate's `harness` refuses our repository.
 
@@ -303,14 +302,14 @@ repository's `schema`, or their global binary is too old to defer to the pin. Un
 ### Is it safe to run a binary that a committed script downloads?
 
 The script downloads over HTTPS and runs a binary only after its sha256 matches the checksum committed in
-`.harness/wrapper.yaml`. Those checksums were written by a `harness` binary only after it verified the release's
-signed checksum file with the release keys it embeds, so a pin can name only a release the project signed. Trust
-starts with the first binary you installed, and every later pin change is verified by a binary already trusted and
-reviewed as a diff of `wrapper.yaml`. `doctor`, when online, re-verifies the pin against the signed file. Agent hooks
-never download ([installation](installation.md#release-trust)).
+`.harness/wrapper.yaml`. A `harness` binary wrote those checksums only after it verified the release's signed checksum
+file with the release keys it embeds, so a pin can name only a release the project signed. Trust starts with the first
+binary you installed, and every later pin change is verified by a binary already trusted and reviewed as a diff of
+`wrapper.yaml`. `doctor`, when online, re-verifies the pin against the signed file. Agent hooks never download
+([installation](installation.md#release-trust)).
 
 ### How do I turn off the update notice?
 
 `export HARNESS_NO_UPDATE_CHECK=1`. The notice is one stderr line on explicit commands, at most once a day, plus a
-`doctor` note; it never appears in agent sessions, because moving the pin is a reviewed decision, not one an agent
-takes because it read a notice ([installation](installation.md#update-notice)).
+`doctor` note. It never appears in agent sessions, because moving the pin is a reviewed decision, not one an agent takes
+because it read a notice ([installation](installation.md#update-notice)).

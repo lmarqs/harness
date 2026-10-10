@@ -45,7 +45,7 @@ A repository where people use Codex interactively and also want Codex workers ch
 Codex workers. Claude Code can be both, since its worker denies are passed at launch.
 
 A Codex worker's denies live in files inside its own task checkout, which the agent can write. The worker's
-[tamper check](ralph.md#the-worker-contract) closes that gap: before every launch it restores
+[tamper check](ralph.md#the-worker-contract) closes that gap. Before every launch it restores
 `.codex/rules/harness.rules`, the owned `.codex/config.toml` keys and the harness entries of `.codex/hooks.json` from
 the session's base commit, and after the agent exits it compares them again. An attempt whose agent changed any of
 them fails, whatever the receipt says. The same check covers Claude Code's owned keys in `.claude/settings.json` and,
@@ -68,9 +68,9 @@ hooks and its next attempt run.
 | Harness skill | `.claude/skills/harness` | `.codex/skills/harness` |
 | Never written | `.claude/settings.local.json` (read only by `scaffold --import local`), `.claude/worktrees/` (never scanned) | `*.local.toml` (read only by `scaffold --import local`) |
 
-Both adapters write the same hook command, `"$(git rev-parse --show-toplevel)/harnessw" --no-download hook <event>`. It runs
-the pinned binary of the checkout the agent works in, from the cache, and never downloads: when the binary is not
-cached it prints one line naming `./harnessw` and exits 0 ([hooks](hooks.md#the-missing-binary-guard)).
+Both adapters write the same hook command, `"$(git rev-parse --show-toplevel)/harnessw" --no-download hook <event>`. It
+runs the pinned binary of the checkout the agent works in, from the cache, and never downloads. When the binary is not
+cached, it prints one line naming `./harnessw` and exits 0 ([hooks](hooks.md#the-missing-binary-guard)).
 
 See [render](render.md#merge-rendering-native-files) for the merge rules: every key and entry the adapter does not own
 is preserved byte for byte.
@@ -132,7 +132,7 @@ A Go repository where people use both agents interactively, and Ralph runs Claud
 
 ```yaml
 agents: { claude: { role: interactive }, codex: { role: interactive } }
-ralph: { config: managed, default_agent: claude, max_iterations: 8, agents: { claude: { model: claude-sonnet-4-5, effort: medium } } }
+ralph: { config: managed, default_agent: claude, max_iterations: 8, agents: { claude: { model: claude-sonnet-5-5, effort: medium } } }
 ```
 
 A Terraform repository where only Claude Code is used:

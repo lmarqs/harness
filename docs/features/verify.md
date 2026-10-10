@@ -27,8 +27,8 @@ Commands are named `harness <command>` on this page. The examples run them throu
 - In a Ralph worker, as the last step before signalling completion.
 - With `--full`, before merging a change that needs every suite.
 
-`harness verify` is not a replacement for running a single test while you iterate; use the repository's own commands
-for that, and `verify` once the change is ready.
+While you iterate, run single tests with the repository's own commands, and run `harness verify` once the change is
+ready.
 
 ## How it works
 
@@ -59,11 +59,10 @@ Changed files are the files that differ from the base (committed or not) plus un
 7. Run the lanes: `select` once per pattern, or `full` with `--full`.
 8. Fingerprint again. If any file changed while the checks ran, fail: the checks did not see the final content.
 9. Write the receipt to `verified.json` in the checkout's state directory (`state.dir`, default `.work`).
-10. Fire the `verified` [lifecycle event](lifecycle.md): scope `task` in a worktree bound to a task, `change`
-    otherwise. Actions declared with `auto: true` run; `HARNESS_RECEIPT` and `HARNESS_SUMMARY` carry the receipt's
-    path and its one-line summary. A failing automatic event is reported on stderr and recorded in the
-    [lifecycle log](lifecycle.md#the-lifecycle-log);
-    the receipt stays written and the exit code is the verification's.
+10. Fire the `verified` [lifecycle event](lifecycle.md): scope `task` in a worktree bound to a task, `change` otherwise.
+    Actions declared with `auto: true` run; `HARNESS_RECEIPT` and `HARNESS_SUMMARY` carry the receipt's path and its
+    one-line summary. A failing automatic event is reported on stderr and recorded in the
+    [lifecycle log](lifecycle.md#the-lifecycle-log). The receipt stays written and the exit code is the verification's.
 
 `harness verify --check` never fires `verified`.
 
@@ -130,7 +129,7 @@ to that checkout.
 | Consumer | Uses the receipt to |
 | --- | --- |
 | [`harness task complete`](tasks.md) | refuse completion without a valid receipt |
-| The [Ralph worker](ralph.md#the-worker-contract) | read which lanes and skip reasons the agent chose, then **replay** them itself from a tree the agent cannot write. The receipt only selects; the replay is the proof |
+| The [Ralph worker](ralph.md#the-worker-contract) | read which lanes and skip reasons the agent chose, then **replay** them itself from a tree the agent cannot write. The receipt only selects the checks, and the replay is the proof |
 | The [`deliver` guard](lifecycle.md#built-in-guards) | refuse delivery of work without a valid receipt for its base, when the verify module is enabled |
 
 ### The `verify` block in `AGENTS.md`

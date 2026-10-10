@@ -53,8 +53,8 @@ cannot be removed or weakened by it. Repository policy adds to them.
 8. The binary never reconfigures state it did not create ([0012](0012-write-boundary.md)).
 9. Tool-owned files cannot be tampered with by an unattended agent. Before every launch of an unattended agent, the
    binary restores the tool-owned files (rendered rules, owned settings keys, hook entries) from the session's base
-   commit; after the agent exits, it compares them with the base. Any difference fails the attempt, withholds
-   completion and is reported. The repository data that drives the replay, and the guidance injected into the agent
+   commit. After the agent exits, it compares them with the base. Any difference fails the attempt, withholds completion
+   and is reported. The repository data that drives the replay, and the guidance injected into the agent
    ([0020](0020-standing-context.md)), are read from the base commit.
 10. Lifecycle actions and notification actions never run inside an unattended agent. The binary fires lifecycle
     events in its own process after the agent exits, and unattended agents are denied triggering events.
@@ -71,23 +71,23 @@ cannot be removed or weakened by it. Repository policy adds to them.
 
 - **All.** Every rule in this list is never a legitimate choice, so a repository loses nothing by being unable to
   configure it. Rules that are configuration get dropped: two of three copies of one workflow lost them by omission.
-  Built into the binary, the floor travels with every release and no copy of a repository's files can lower it. The
-  line between invariant and policy is exactly "never legitimate"; everything an organization may want differently
-  stays policy ([0013](0013-organization-content.md)).
+  Built into the binary, the floor travels with every release and no copy of a repository's files can lower it. The line
+  between invariant and policy is exactly "never legitimate". Everything an organization may want differently stays
+  policy ([0013](0013-organization-content.md)).
 - **1.** Bypass removes every permission check from an agent that nobody is watching. Naming the source of the flag
   (an argument or an inherited configuration file) lets the person fix the file that carries it.
 - **2.** A force push to the default branch rewrites history others build on. Detecting the branch from the remote's
   `HEAD` makes the rule right in the 5 surveyed repositories whose default branch is not `main`.
 - **3.** With chaining, an allow rule for one task becomes an allow rule for any task, and the policy stops meaning
   what a reviewer reads.
-- **4, 5.** The agent's proof selects which checks to run; the binary runs them, from configuration the agent cannot
+- **4, 5.** The agent's proof selects which checks to run. The binary runs them from configuration the agent cannot
   edit. An agent that weakens its verification in its own tree therefore changes nothing. A malformed proof fails so
   that a broken proof leads to a retry, never to a pass.
 - **6.** Permissions decided in hooks would live in code paths reviewers do not read, beside the policy they do. One
   reviewable source keeps every agent's permissions explainable ([0009](0009-agent-support.md)).
 - **7, 8.** These hold whatever an agent asks the binary to do, because unattended agents run the binary
   ([0002](0002-division-of-work.md), [0012](0012-write-boundary.md)).
-- **9.** Restoring before launch removes edits left by an earlier attempt; comparing after exit catches edits made
+- **9.** Restoring before launch removes edits left by an earlier attempt, and comparing after exit catches edits made
   during this one. Reading the replay's data and the injected guidance from the base commit means an agent cannot
   rewrite its checks or its own instructions between retries. The trade is that an agent cannot change its own
   permissions, hooks or guidance during a session, even on purpose.
@@ -95,11 +95,11 @@ cannot be removed or weakened by it. Repository policy adds to them.
   to the agent. Firing events in the binary's own process after the agent exits keeps actions out of its hands.
 - **11.** Delivery leaves the clone, so its mistakes are visible to others and hard to undo, and the three refused
   states are never wanted. Refusing before any action runs keeps a partial delivery from happening.
-- **12.** An agent started by an action is unattended in every respect that matters: nobody watches it, it runs with
-  the person's credentials, and its prompt can carry injected text. The unattended contract already bounds such an
-  agent; reusing it gives one contract to test instead of a second, weaker one. Without the commit, push and event
+- **12.** An agent started by an action is unattended in every respect that matters: nobody watches it, it runs with the
+  person's credentials, and its prompt can carry injected text. The unattended contract already bounds such an agent.
+  Reusing it gives one contract to test instead of a second, weaker one. Without the commit, push and event
   restrictions, an action could deliver past the guards of invariant 11 or chain events.
-- **13.** Prefix rules match literal words, and the spellings of a tool command are open-ended; no finite rule list
+- **13.** Prefix rules match literal words, and the spellings of a tool command are open-ended. No finite rule list
   covers an absolute path or a shell running the wrapper script. A guard the binary checks holds whatever spelling
   started it. Permission rules still stop the common spellings before the binary starts and show intent in review.
 
@@ -107,8 +107,8 @@ cannot be removed or weakened by it. Repository policy adds to them.
 
 ### Default policy entries the repository can edit
 
-At its best, the rules are visible and adjustable per repository. It loses because this is how they are lost: an entry
-a repository can edit is an entry a copy can drop.
+At its best, the rules are visible and adjustable per repository. It loses because editable entries are how the rules
+get lost: a copy can drop any entry a repository can edit.
 
 ### An opt-in safety preset
 

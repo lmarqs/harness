@@ -15,7 +15,7 @@ its mistake named, never partly applied.
 
 ## Overview
 
-Rules for files that people and agents edit and harness reads. Field-by-field reference lives in
+These rules cover the files that people and agents edit and harness reads. The field-by-field reference is in
 [../features/](../features/) and in `harness explain profile|policy|hooks|lifecycle|context`.
 
 ## Where files live
@@ -128,9 +128,9 @@ ralph:
 
 - The repository files `config.yaml`, `policy.yaml` and `hooks.yaml` are seeded: harness writes them once at `scaffold`
   or `scaffold --adopt`, and from then on they belong to the repository. harness writes them again only to migrate a
-  schema or to apply a preset a person asked for ([below](#presets)). `wrapper.yaml` and `manifest.json` are owned:
-  harness writes `wrapper.yaml` on scaffold and re-pin (`harness wrapper`) and `manifest.json` on scaffold, render and
-  re-pin; `wrapper.yaml` carries a header naming the operation that changes it, and `manifest.json`, being JSON, carries
+  schema or to apply a preset a person asked for ([below](#presets)). `wrapper.yaml` and `manifest.json` are owned.
+  harness writes `wrapper.yaml` on scaffold and re-pin (`harness wrapper`), and `manifest.json` on scaffold, render and
+  re-pin. `wrapper.yaml` carries a header naming the operation that changes it; `manifest.json`, being JSON, carries
   none. Each such write is shown before it happens, through `--dry-run` and the confirmation rules in
   [cli-standards.md](cli-standards.md#confirmations---yes-and---force). Why: the seeded files hold the repository's
   choices, so harness must not overwrite them; the owned files hold facts harness computes.
@@ -147,12 +147,12 @@ What harness renders and runs in a repository is determined by the repository's 
 and by nothing else ([ADR 0013](../adrs/0013-organization-content.md)).
 
 - No repository file has a key that names a source outside the repository for what harness renders or runs: no
-  inheritance, no includes, no remote sources. Validation rejects such a key like any other unknown key. Why: people
-  and agents learn what a repository does from its files. A rule resolved from elsewhere acts in the repository while
-  its source sits outside it, so an agent working there cannot read it and a reviewer sees its effect without its
-  reason. With the repository's files and the pinned release as the only inputs, the same commit renders the same
-  bytes on every machine and every day, with no fetch, no cache and no check that fails because someone else
-  published a change.
+  inheritance, no includes, no remote sources. Validation rejects such a key like any other unknown key. Why: people and
+  agents learn what a repository does from its files. A rule resolved from elsewhere acts in the repository while its
+  source sits outside it, so an agent working there cannot read it and a reviewer sees its effect without its reason.
+  With the repository's files and the pinned release as the only inputs, the same commit renders the same bytes on every
+  machine and every day. Rendering fetches nothing and caches nothing, and no check fails because someone else published
+  a change.
 - Two keys name a source outside the repository, and neither is an input to rendering. `source` in `wrapper.yaml`
   is where the wrapper downloads the pinned release, which it runs only when the download matches the committed
   checksums. `skills.sources` in the profile is read by `harness skills sync`, which installs skills into
@@ -214,9 +214,9 @@ before:
 2. A new value in an existing enumerated key, under the same condition.
 3. A renamed, removed or redefined key, or a changed default: a breaking change, a schema bump and a migration.
 
-A file that uses a key newer than the running binary fails validation on that binary rather than being rendered with
-the key ignored: an older binary refuses, it does not render something different. Why: an ignored key would silently
-drop a permission, an action or a guard the repository declared.
+A file that uses a key newer than the running binary fails validation: that binary refuses the file rather than
+rendering it with the key ignored. Why: an ignored key would silently drop a permission, an action or a guard the
+repository declared.
 
 ## Validation messages
 
@@ -375,10 +375,11 @@ single meaning.
   uncommitted and are listed in the lifecycle log and the output. Why: an agent started by an event is as unattended
   as a Ralph worker, so it gets the same bounds.
 - Actions run in the worktree of the work the event concerns. On `landed`, `run` and `http` actions run in the primary
-  checkout, and an `agent` action runs in a fresh worktree of the default branch that harness creates under
-  `worktrees.dir` as `landed-<slug>-<n>`, records, and leaves with the agent's uncommitted edits for a person to
-  review, commit or remove with `harness worktree remove`. Why: once work has landed its worktree is about to go, and
-  the primary checkout holds whatever a person is doing there ([ADR 0019](../adrs/0019-action-kinds.md)).
+  checkout. An `agent` action runs in a fresh worktree of the default branch, which harness creates under
+  `worktrees.dir` as `landed-<slug>-<n>` and records. harness leaves that worktree with the agent's uncommitted edits
+  for a person to review, commit or remove with `harness worktree remove`. Why: once work has landed its worktree is
+  about to go, and the primary checkout holds whatever a person is doing there
+  ([ADR 0019](../adrs/0019-action-kinds.md)).
 - Prompts that include untrusted values (task titles, agent messages) are a prompt-injection surface; the worker
   contract bounds what an injected instruction can do.
 - `auto: true` on an `agent` action is allowed and is reported by `harness doctor` as a note, because each automatic
@@ -395,8 +396,8 @@ single meaning.
 
 ## Standing context
 
-Standing context puts known guidance in front of an agent at the moment it applies, without anyone invoking it.
-Declared under `context:` in `.harness/config.yaml`. Reference: [context](../features/context.md). Why: guidance a
+Standing context puts known guidance in front of an agent at the moment it applies, without anyone invoking it. It is
+declared under `context:` in `.harness/config.yaml`. Reference: [context](../features/context.md). Why: guidance a
 person must remember to invoke is skipped exactly when it matters, while a deterministic trigger applies it every time
 ([ADR 0020](../adrs/0020-standing-context.md)).
 
@@ -472,11 +473,11 @@ deterministically, while each repository keeps the final say over its own files
     like a kept item, so nothing the preset would have changed goes unmentioned.
 - Comments, key order and blank lines are preserved. Why: people annotate these files, and the diff of an application
   must show only its additions.
-- The additions are shown as a diff and confirmed before anything is written. `--yes` answers the question;
-  `--dry-run` prints the diff and writes nothing; without a terminal and without `--yes`, nothing is written and the
-  command exits 3 ([cli-standards.md](cli-standards.md#confirmations---yes-and---force)). Why: once written, the
-  entries are the repository's own and nothing marks where they came from, so the diff before writing is the one
-  moment a person sees them as a preset's additions.
+- The additions are shown as a diff and confirmed before anything is written. `--yes` answers the question. `--dry-run`
+  prints the diff and writes nothing. Without a terminal and without `--yes`, nothing is written and the command exits 3
+  ([cli-standards.md](cli-standards.md#confirmations---yes-and---force)). Why: once written, the entries are the
+  repository's own and nothing marks where they came from, so the diff before writing is the one moment a person sees
+  them as a preset's additions.
 - After writing, the command renders the repository as `harness render` does, so the additions and their rendered
   effect reach review as one diff and the drift check passes on it.
 - Nothing records which presets a repository applied: not the manifest, not a comment. Why: each entry then has one
@@ -504,8 +505,8 @@ file is published.
 - harness never prints the value of an environment variable it reads. A lifecycle dry run prints only the `HARNESS_*`
   variables harness sets for the action. The lifecycle log never records URLs, headers, bodies or prompts.
 - Personal preferences belong in the agents' own local files (`settings.local.json`, `*.local.toml`) or in `HARNESS_*`
-  environment variables. harness never writes those files; they are read only by `harness scaffold --import local`,
-  and what that import copies into `policy.yaml` becomes committed and shared, and is marked for review in the to-do.
+  environment variables. harness never writes those files and reads them only through `harness scaffold --import local`.
+  What that import copies into `policy.yaml` becomes committed and shared, and is marked for review in the to-do.
 
 ## What never becomes a setting
 

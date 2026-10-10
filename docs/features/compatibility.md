@@ -13,10 +13,9 @@ reader can check that for each tool before adopting.
 
 ## Overview
 
-This page lists what `harness` shares a repository with and how it stays out of the way. The rule behind every row:
-**`harness` never reconfigures state it did not create, never writes knowledge, and contains no logic for any hosting
-platform.** What it sets up does not depend on it either: every convention is written down in plain text, and an eject
-keeps it.
+`harness` shares a repository with the tools, settings and records below, and stays out of their way. It never
+reconfigures state it did not create, never writes knowledge, and contains no logic for any hosting platform. What it
+sets up does not depend on it either: every convention is written down in plain text, and an eject keeps it.
 
 Commands on this page run as `./harnessw <command>`, through the repository's [wrapper](wrapper.md); with a global
 install, `harness <command>` is equivalent.
@@ -173,21 +172,21 @@ An adopted repository's CI/CD is unchanged:
 - Within one repository there is no version skew: `.harness/wrapper.yaml` pins one release, and both `./harnessw` and
   a global install run it. It is the only pin; a second pin in a task runner's file is a `doctor` finding.
 - A pin changes only through `harness wrapper` or `scaffold`, which write its checksums after the running binary
-  verifies the release's signed checksum file with the release keys it embeds; `scaffold --offline` leaves them
+  verifies the release's signed checksum file with the release keys it embeds. `scaffold --offline` leaves them
   [pending](wrapper.md#a-pending-pin), and nothing downloads against a pending pin. The wrapper then checks each
-  download against the committed checksums. `doctor`, when online, re-verifies the pinned release's signed checksum
-  file against `wrapper.yaml` ([wrapper](wrapper.md#security)).
+  download against the committed checksums. `doctor`, when online, re-verifies the pinned release's signed checksum file
+  against `wrapper.yaml` ([wrapper](wrapper.md#security)).
 - Rendered output depends on the sources and on the pinned release, and never records the release; rendered files
   carry the `schema`.
 - `harness wrapper --version <tag>` renders the repository with the new release in the same change, migrating
   older-schema files, so the pin and every artefact the new release renders differently land in one diff
   ([wrapper](wrapper.md#upgrading)). A binary older than the repository's schema refuses, naming the pinned release to
-  run; that happens only when the pin is bypassed, through `HARNESS_BINARY` or a global binary too old to defer to the
+  run. That happens only when the pin is bypassed, through `HARNESS_BINARY` or a global binary too old to defer to the
   pin ([installation](installation.md#version-skew)).
 - `harness doctor` checks `claude`, `codex`, `bd` and `ralph-tui`, and `mise` when task shims are rendered and the
   `skills` CLI when the skills module is enabled, against the release's supported versions, and reports a version
   outside that range as a finding.
-- The drift check is run by the pinned release and fails on any difference, the harness skill included
+- The pinned release runs the drift check, which fails on any difference, the harness skill included
   ([ADR 0007](../adrs/0007-ownership.md)). A binary other than the pinned release, run through `HARNESS_BINARY`, gets a
   `doctor` note, because its drift results may differ.
 
@@ -204,13 +203,13 @@ removing it does not strand the repository ([remove](remove.md)):
 | Native settings keep their permissions and `raw` hooks as hand-owned content | agents keep the same rules |
 | `.beads/` and the coordinator's `.ralph-tui/` stay where `bd` and ralph-tui look | `bd` and direct ralph-tui runs |
 
-The tool blocks, which describe how to use `harness` (`commands`, `layout`, `verify` and `lifecycle` in `AGENTS.md`,
-`commands` in `README.md`), are removed by the eject, together with the harness skill, its links and the task shims, so
-nothing left behind names a command that no longer exists.
+The eject removes the tool blocks, which describe how to use `harness` (`commands`, `layout`, `verify` and `lifecycle`
+in `AGENTS.md`, `commands` in `README.md`), together with the harness skill, its links and the task shims, so nothing
+left behind names a command that no longer exists.
 
 An undo, `harness remove` without `--eject`, instead returns the repository to the setup it had before adoption: every
 block and its text is removed, and the settings adoption imported are written back. Both modes delete `harnessw`, the
-files `.harness/` holds that `harness` owns or seeded, and then `.harness/` once nothing else is in it; a file the
+files `.harness/` holds that `harness` owns or seeded, and then `.harness/` once nothing else is in it. A file the
 manifest does not record, such as `.harness/ralph/prompt.hbs`, is listed and left. Both leave state where it is.
 
 ## Not supported

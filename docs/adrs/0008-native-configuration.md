@@ -3,7 +3,7 @@
 ## Objective
 
 **Problem.** The files agents read their permissions and hooks from are shared with people, who keep their own settings
-there. Rewriting such a file as a whole destroys those settings; editing it without clear ownership leaves nobody able
+there. Rewriting such a file as a whole destroys those settings. Editing it without clear ownership leaves nobody able
 to tell the tool's content from a person's.
 
 **Goal.** People keep every setting they put in a shared native file, and the tool's content in that file can always be
@@ -45,7 +45,7 @@ told apart.
   agent reads a directory, this costs nothing, because people's files in the same directory are never opened.
 - **2.** Claude Code's project settings cannot include another file, and people keep permissions, hooks, environment,
   model, plugin and status-line keys in it. Owning the whole file would destroy those keys in every repository that
-  has one; owning nothing would leave the policy without effect. The permission lists and the entries that call the
+  has one, and owning nothing would leave the policy without effect. The permission lists and the entries that call the
   tool are the narrowest set that still makes the rendered policy and the declared hooks and notifications
   ([0019](0019-action-kinds.md)) take effect. Byte-for-byte preservation keeps the tool's diff to its own keys, so a
   reviewer sees only what the tool changed.

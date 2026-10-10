@@ -13,9 +13,9 @@ and can check a setup against the known traps before relying on it.
 
 ## Overview
 
-The places where agents, permission systems, worktrees and trackers behave differently from what a reasonable person
-expects, and what `harness` does about each. Every entry has four parts: the **symptom** you see, **why** it happens,
-what **`harness` does** about it, and what **you do**.
+Each entry below is a place where agents, permission systems, worktrees or trackers behave differently from what a
+reasonable person expects, with what `harness` does about it. Every entry has four parts: the **symptom** you see,
+**why** it happens, what **`harness` does** about it, and what **you do**.
 
 For the principles behind these entries, read [safety](safety.md). For the terms, see the [glossary](glossary.md).
 
@@ -46,7 +46,7 @@ Commands are named `harness <command>` on this page. Run them through the reposi
 - **What `harness` does.** Renders prefixes exactly; it does not parse each tool's flags.
 - **What you do.** Leave production and cloud writes unlisted for people, and deny the whole tool to workers
   (`worker.deny: [[kubectl]]`). Where Claude Code must also stop the flag-first spelling, add a raw string such as
-  `"kubectl * patch *"`, knowing it is Claude-only.
+  `"kubectl * patch *"`; it is Claude-only.
 
 ### `git -C` and `git -c` slip past git prefixes
 
@@ -669,7 +669,7 @@ Commands are named `harness <command>` on this page. Run them through the reposi
 
 - **Symptom.** A task completes and its issue is unchanged; a delivered branch has no comment on its pull request.
 - **Why.** Issues, comments, reviews, labels and boards are the team's record. The binary writes none of them, and
-  lifecycle actions deliver work, they do not report on it.
+  lifecycle actions deliver work and do not report on it.
 - **What `harness` does.** Keeps task state in the clone and leaves the record to people, agents and CI.
 - **What you do.** Have the coordinating agent update the issue or the pull request as its skill says, or let CI
   report.

@@ -96,17 +96,17 @@ harness: v0.9.0 not downloaded, hook skipped; run: ./harnessw version
 ```
 
 The session continues normally, without lint-on-edit, standing context or notifications, until the pinned version is
-cached: any explicit command, such as `./harnessw version` or a task shim, downloads and verifies it. A teammate who
+cached. Any explicit command, such as `./harnessw version` or a task shim, downloads and verifies it. A teammate who
 never runs one loses only that feedback.
 
-The session-start entry also adds one line to the session context, in addition to the stderr line, so that the
-agent itself knows why it has no standing context:
+The session-start entry also adds one line to the session context, so that the agent itself knows why it has no
+standing context:
 
 ```text
 harness v0.9.0 is not cached on this machine; run ./harnessw version once to fetch it.
 ```
 
-The wrapper prints both lines itself, as fixed text from its template, because no binary is there to print them; it
+The wrapper prints both lines itself, as fixed text from its template, because no binary is there to print them. It
 recognises the session-start entry by the `session-start` argument. It still never downloads and still exits 0.
 Directives a session must never miss belong in [static context](context.md#static-entries), which is part of
 `AGENTS.md`.
@@ -147,10 +147,10 @@ For each edited file:
 
 1. Every `post_edit` entry whose `paths` match and whose `exclude` does not runs its `run` command with `{file}`
    replaced by the file's repository-relative path, shell-quoted. `{file}` and `{pattern}` in profile and hook
-   commands are the only substitutions `harness` performs; lifecycle actions get values only through environment
+   commands are the only substitutions `harness` performs. Lifecycle actions get values only through environment
    variables.
 2. A content cache, `hook-checks.json` in the checkout's state directory (`state.dir`, default `.work`), records a
-   hash of each file after a successful run; an edit that leaves the content identical to the cached hash skips the
+   hash of each file after a successful run. An edit that leaves the content identical to the cached hash skips the
    command.
 3. Every validator whose `when` matches any edited file runs once.
 4. The first time in the session a read or edited file matches a `when.paths` [context](context.md) entry, the entry
@@ -206,15 +206,15 @@ Values reach the actions as environment variables, with the same rules as lifecy
   [`blocked`](lifecycle.md#events).
 - Like every agent hook, they do nothing on a machine where the pinned release is not cached
   ([the missing-binary guard](#the-missing-binary-guard)).
-- The `notify` key of `.codex/config.toml` holds one program. `harness` owns it only when it rendered it: when the file
+- The `notify` key of `.codex/config.toml` holds one program. `harness` owns it only when it rendered it. When the file
   already sets `notify` to a program of its own, `render` keeps that program, renders no `turn_end` for Codex, and
   `harness doctor` notes it.
 
 ### Lifecycle actions
 
 The `lifecycle` key maps each event to an ordered list of actions. The events are `start`, `verified`, `completed`,
-`deliver`, `landed` and the out-of-band `blocked`; [lifecycle](lifecycle.md) is the full reference: trigger points,
-scopes, guards, action kinds, the environment variables actions receive, and the log.
+`deliver`, `landed` and the out-of-band `blocked`. The [lifecycle](lifecycle.md) page is the full reference for trigger
+points, scopes, guards, action kinds, the environment variables actions receive, and the log.
 
 ```yaml
 lifecycle:
@@ -243,7 +243,8 @@ In short:
 - actions run in the work's checkout, in declaration order, and the first failure stops the event with exit 2 unless
   the action says `on_failure: continue`, in which case the remaining actions run and the event still exits 2;
 - values reach an action only as environment variables, never substituted into `run`, so a task title or a branch
-  name cannot inject a command; secrets for `http` come only from the variables `url_env` and `headers_env` name;
+  name cannot inject a command;
+- secrets for `http` come only from the variables `url_env` and `headers_env` name;
 - `auto: true` runs the action at the event's automatic trigger point; every action also runs when a person or a
   coordinating agent fires the event with `harness lifecycle run <event>`;
 - lifecycle actions never run inside a Ralph worker;

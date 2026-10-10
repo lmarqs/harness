@@ -33,7 +33,7 @@ itself never shows as drift.
 
 ## Reasons
 
-- **1.** An integer that versions the file's shape separates the contract from the release; because most releases keep
+- **1.** An integer that versions the file's shape separates the contract from the release. Because most releases keep
   the shape, most upgrades touch no repository file. Validation before action stops a malformed file before anything is
   written.
 - **2.** Refusal is the only safe response to fields the binary does not know: proceeding would misread or drop them and
@@ -46,7 +46,7 @@ itself never shows as drift.
   differently, and that change lands in the upgrade's own diff ([0017](0017-engine-version.md)). The pin is the one
   committed record of a release.
 - **5.** Each schema change costs one migration in every adopting repository and one more code path in the binary.
-  Keeping changes rare bounds the first cost; a support window bounds the second.
+  Keeping changes rare bounds the first cost, and a support window bounds the second.
 
 ## Rejected alternatives
 
@@ -59,7 +59,7 @@ blocks every teammate who has not upgraded.
 ### Tolerant reading: unknown fields are ignored
 
 At its best, older binaries keep working with newer files. It loses because an ignored field can be a deny rule or a
-guard; ignoring it silently widens what agents may do, and the next render writes the weaker result back.
+guard. Ignoring it silently widens what agents may do, and the next render writes the weaker result back.
 
 ### No version contract
 

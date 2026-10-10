@@ -40,12 +40,12 @@ cd ~/src/acme-api
 ./harnessw version
 ```
 
-The first run downloads the release pinned in `.harness/wrapper.yaml` over HTTPS from the release source the file
-names, the project's GitHub releases by default or a mirror ([release source](wrapper.md#release-source)), checks its
-sha256 against the pinned checksum, stores it in the per-user cache, `$HARNESS_HOME/versions/<version>/`
-(by default `$XDG_CACHE_HOME/harness`, or `~/.cache/harness` when `XDG_CACHE_HOME` is unset), and runs it. Later
-runs start from the cache and need no network. Every clone, teammate and CI job that goes through the wrapper
-runs the same release.
+The first run downloads the release pinned in `.harness/wrapper.yaml` over HTTPS from the release source the file names:
+the project's GitHub releases by default, or a mirror ([release source](wrapper.md#release-source)). It checks the
+release's sha256 against the pinned checksum, stores it in the per-user cache, `$HARNESS_HOME/versions/<version>/` (by
+default `$XDG_CACHE_HOME/harness`, or `~/.cache/harness` when `XDG_CACHE_HOME` is unset), and runs it. Later runs start
+from the cache and need no network. Every clone, teammate and CI job that goes through the wrapper runs the same
+release.
 
 | Needed | When |
 | --- | --- |
@@ -83,8 +83,8 @@ page.
 
 ## Global install (optional)
 
-A global install is a convenience: `harness` on your PATH everywhere, for scaffolding and for
-[fleet](fleet.md) runs. It never changes what a pinned repository runs.
+A global install puts `harness` on your PATH everywhere, for scaffolding and for [fleet](fleet.md) runs. It never
+changes what a pinned repository runs.
 
 With [mise](https://mise.jdx.dev):
 
@@ -141,7 +141,7 @@ pinned repositories.
 Every release publishes a checksum file covering its platform binaries, and a signature over that file. Every `harness`
 binary embeds the release keys it trusts. `scaffold` and `harness wrapper` write a pin's checksums only after the
 running binary has verified the target release's checksum file against those keys, and a
-[pending pin](wrapper.md#a-pending-pin) from `scaffold --offline` admits no download until they do; `harnessw`, a plain
+[pending pin](wrapper.md#a-pending-pin) from `scaffold --offline` admits no download until they do. `harnessw`, a plain
 `sh` script, then checks each download against the checksums committed in `wrapper.yaml`. `harness doctor`, when online,
 re-verifies the pinned release's signed checksum file against `wrapper.yaml`.
 

@@ -44,15 +44,15 @@ the facts only it knows.
 - **1.** With the engine in one binary, a fix ships as one release and reaches a repository through one reviewed change
   to its pin ([0017](0017-engine-version.md)). There is no copy to edit locally, which is how the 108-line fork arose. A
   repository changes only when its own facts change.
-- **2.** YAML reads well in diffs, takes comments, and parses without a runtime ([0004](0004-runtime-dependencies.md));
-  agents edit it reliably. One concern per file lets a permission change be reviewed as a diff of a file that holds only
+- **2.** YAML reads well in diffs, takes comments, and parses without a runtime ([0004](0004-runtime-dependencies.md)).
+  Agents edit it reliably. One concern per file lets a permission change be reviewed as a diff of a file that holds only
   permissions. Hook declarations and actions share a file because both state what runs when an event occurs. The
-  standing-context declarations sit with the repository's facts because they describe the repository, not what runs.
-  The trade: several schemas to version.
+  standing-context declarations sit with the repository's facts because they describe the repository, not what runs. The
+  trade: there are several schemas to version.
 - **3.** Validation turns a mistake into an error before anything is written, and the schema version is the
   compatibility contract between files and releases ([0005](0005-schema-compatibility.md)).
 - **4.** One-line entry points exist because agents and task runners call commands by path; they contain no logic. The
-  wrapper exists because a clone must obtain the pinned release before the binary is on the machine; limiting it to
+  wrapper exists because a clone must obtain the pinned release before the binary is on the machine. Limiting it to
   resolve, verify and execute keeps every behaviour in the binary. Anything more would be engine code in the repository
   and would diverge like the copies did.
 - **5.** The repository's build, test and lint commands belong to its stack. The binary runs them as declared and never
@@ -63,8 +63,8 @@ the facts only it knows.
 ### Vendored engine per repository, locked by hash and updated by bot pull requests
 
 At its best, it works offline, agents can read the engine inside the repository, and pinning comes free. It loses
-because every fix becomes one change per repository, copies get edited locally, which is how the 108-line fork
-happened, each repository needs the engine's runtime, and the update volume is high while the engine changes often.
+because every fix becomes one change per repository and copies get edited locally, which is how the 108-line fork
+happened. Each repository also needs the engine's runtime, and the update volume is high while the engine changes often.
 
 ### Hand-copied engine
 
@@ -78,9 +78,9 @@ a permission change is easiest to review as a change to a file that holds only p
 
 ### Configuration as code
 
-A scripting language or a DSL in the repository. At its best, it is expressive. It loses because it needs a runtime, it
-cannot be validated or rendered deterministically ([0002](0002-division-of-work.md)), and readers must execute it in
-their heads to know its effect.
+The repository holds its configuration in a scripting language or a DSL. At its best, it is expressive. It loses because
+it needs a runtime, it cannot be validated or rendered deterministically ([0002](0002-division-of-work.md)), and readers
+must execute it in their heads to know its effect.
 
 ## Consequences
 

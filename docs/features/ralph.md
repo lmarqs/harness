@@ -13,13 +13,12 @@ the repository grants it.
 
 ## Overview
 
-`harness ralph` launches [ralph-tui](https://github.com/subsy/ralph-tui) to work through a set of tasks unattended,
-one agent process per task, from Beads or a PRD file. `harness` supplies what makes the run safe to leave alone: an
-isolated coordinator checkout, a generated ralph-tui configuration, and a worker wrapper that pins the agent's
-permission mode, refuses permission bypass, restores and checks the tool-owned files around every agent launch,
-replays the agent's verification from a tree the agent cannot write, and withholds completion until that replay
-passes. Lifecycle events fire from the launcher, and their actions run in the launcher process, never inside a
-worker.
+`harness ralph` launches [ralph-tui](https://github.com/subsy/ralph-tui) to work through a set of tasks unattended, one
+agent process per task, from Beads or a PRD file. `harness` supplies what makes the run safe to leave alone: an isolated
+coordinator checkout, a generated ralph-tui configuration, and a worker wrapper. The worker wrapper pins the agent's
+permission mode, refuses permission bypass, restores and checks the tool-owned files around every agent launch, replays
+the agent's verification from a tree the agent cannot write, and withholds completion until that replay passes.
+Lifecycle events fire from the launcher, and their actions run in the launcher process, never inside a worker.
 
 Commands are named `harness <command>` on this page. The examples run them through the repository's wrapper,
 `./harnessw <command>`, from the root of a checkout; with a global install, `harness <command>` is equivalent
@@ -93,19 +92,18 @@ wrapper:
 2. Refuses permission-bypass flags: `--dangerously-skip-permissions`, `--dangerously-bypass-approvals-and-sandbox`,
    `--yolo` and the `danger-full-access` sandbox. When such a flag comes from an inherited or global ralph-tui
    configuration, the message names the key that injected it.
-3. Reads the profile, policy and hooks file **from the session's base commit**, not from the worker's checkout, so an
-   agent cannot weaken the rules its own result is checked against. The [standing context](context.md) injected into
-   the worker's session is read from the base commit too, so an agent cannot rewrite its own instructions between
-   attempts.
+3. Reads the profile, policy and hooks file from the session's base commit, not from the worker's checkout, so an agent
+   cannot weaken the rules its own result is checked against. The [standing context](context.md) injected into the
+   worker's session is read from the base commit too, so an agent cannot rewrite its own instructions between attempts.
 4. Runs the **tamper check**, first half: restores every tool-owned file in the task checkout (the rendered rules,
    the owned keys of the native settings files, the harness hook entries, the wrapper `harnessw` and its pin
    `.harness/wrapper.yaml`) from the session's base commit.
 5. Pins the permission mode:
    - Claude Code: `--permission-mode auto`, plus `worker.deny` as disallowed tools.
-   - Codex: the `workspace-write` sandbox with network access; besides the task checkout, the only writable roots are
-     the clone's shared state directory, mise's cache directory and, with Beads, the clone's `.beads/`; `worker.deny`
-     applies through the rendered rules, which the tamper check keeps intact, which is why Codex must have
-     `role: worker` to run as a worker ([agents](agents.md#roles)).
+   - Codex: the `workspace-write` sandbox with network access. Besides the task checkout, the only writable roots are
+     the clone's shared state directory, mise's cache directory and, with Beads, the clone's `.beads/`. `worker.deny`
+     applies through the rendered rules, which the tamper check keeps intact; that is why Codex must have `role: worker`
+     to run as a worker ([agents](agents.md#roles)).
 6. Claims the task as the run's actor (`ralph:<session-id>`), when using Beads.
 7. Runs the profile's `bootstrap` once per task checkout.
 8. Runs the agent with the task prompt and `HARNESS_WORKER=1` in its environment, buffering its output instead of
@@ -115,8 +113,8 @@ wrapper:
 9. Runs the tamper check, second half: compares the tool-owned files with the base commit. Any difference fails the
    attempt and is reported by path: an agent that rewrote its own rules cannot complete.
 10. When the agent exits successfully, reads the receipt the agent wrote with `harness verify`. A missing or malformed
-    receipt is a failed attempt. Otherwise the wrapper **replays** the lanes and skip reasons it selected against the
-    final content, with the profile from the base commit. The receipt only selects; the replay is the proof.
+    receipt is a failed attempt. Otherwise the wrapper replays the lanes and skip reasons it selected against the final
+    content, with the profile from the base commit. The receipt only selects; the replay is the proof.
 11. If the replay passes: commits and integrates (sequential mode), then prints the buffered output, including the
     agent's `<promise>COMPLETE</promise>`.
 12. If anything fails: withholds the output, keeps it in `last-worker-output` in the task checkout's state directory,
@@ -124,11 +122,11 @@ wrapper:
 
 Stopping Ralph stops the agent and any replayed checks, with every process they started.
 
-Workers never commit, push, merge, close tasks, edit PRD status or fire lifecycle events themselves. The embedded
-prompt says so; the binary refuses `harness lifecycle run` under `HARNESS_WORKER=1`, whatever spelling started it; the
-built-in base also denies `harness lifecycle` to every worker, rendered for each spelling `harness` renders, as
-defence in depth; and the repository's `worker.deny` denies the rest ([policy](policy.md#a-node-api)). A worker that
-lacks a permission reports the task as blocked.
+Workers never commit, push, merge, close tasks, edit PRD status or fire lifecycle events themselves. The embedded prompt
+says so. The binary refuses `harness lifecycle run` under `HARNESS_WORKER=1`, whatever spelling started it. As defence
+in depth, the built-in base also denies `harness lifecycle` to every worker, rendered for each spelling `harness`
+renders. The repository's `worker.deny` denies the rest ([policy](policy.md#a-node-api)). A worker that lacks a
+permission reports the task as blocked.
 
 ### Lifecycle events
 
@@ -172,10 +170,10 @@ In both modes these keys are forced, whatever the base says:
 | Beads working directory | the primary checkout, so every worktree shares the clone's database |
 
 The root `.ralph-tui/config.toml` is never written, and is read only with `inherit`. ralph-tui's global configuration,
-`~/.config/ralph-tui/config.toml`, which ralph-tui merges into every run it starts, is never written either; the
-launcher reads it for one purpose, to find and name a bypass setting it would inject into a harness-launched run
-([ADR 0012](../adrs/0012-write-boundary.md)). Trackers other than `beads` and `json` (PRD) in an inherited configuration
-are not supported by the launcher.
+`~/.config/ralph-tui/config.toml`, which ralph-tui merges into every run it starts, is never written either. The
+launcher reads it for one purpose: to find and name a bypass setting it would inject into a harness-launched run
+([ADR 0012](../adrs/0012-write-boundary.md)). The launcher does not support trackers other than `beads` and `json` (PRD)
+in an inherited configuration.
 
 ### The prompt
 
@@ -221,9 +219,9 @@ still runs in that coordinator.
 
 For each recorded branch that has landed, `clean` fires the `landed` event once, before it removes the session's
 worktrees. Its `run` and `http` actions run in the primary checkout, and an `agent` action runs in a fresh worktree of
-the default branch ([lifecycle](lifecycle.md#agent)). Each recorded branch fires `landed` at most once successfully;
-a failed `landed` is re-fired manually with `harness lifecycle run landed --session <session-id>`. A failing action
-never changes `clean`'s exit code.
+the default branch ([lifecycle](lifecycle.md#agent)). Each recorded branch fires `landed` at most once successfully. To
+re-fire a failed `landed`, run `harness lifecycle run landed --session <session-id>` manually. A failing action never
+changes `clean`'s exit code.
 
 It refuses to run while a Ralph run holds the clone's lock. Branches and worktrees `harness` did not record, such as
 `ralph/session-*` branches from direct ralph-tui runs, are never touched.
@@ -232,7 +230,7 @@ It refuses to run while a Ralph run holds the clone's lock. Branches and worktre
 
 The result of a run is a local branch with one commit per task, starting from the commit the run was launched from:
 `work/ralph-<session-id>` in sequential mode, `ralph/session-<session-id>` in parallel mode. The binary contains no
-delivery logic of its own: what delivery means is the repository's `deliver` actions.
+delivery logic of its own; the repository's `deliver` actions define what delivery means.
 
 | Delivery | How |
 | --- | --- |
@@ -270,8 +268,8 @@ reports a missing permission as blocked work. The result of a run is a local bra
 
 These are convention blocks: they state the convention as a fact and name no `harness` command. After
 [`harness remove --eject`](remove.md#eject) the markers go and the text and ignore entries stay: ralph-tui keeps running
-from its own configuration, and people and agents know where runs live and what a worker may do. Nothing enforces the
-worker contract any more: no bypass refusal, no tamper check, no replay. `harness remove --module ralph` removes the
+from its own configuration, and people and agents know where runs live and what a worker may do. Nothing then enforces
+the worker contract: there is no bypass refusal, tamper check or replay. `harness remove --module ralph` removes the
 blocks and leaves coordinators and run branches in place.
 
 ## Reference

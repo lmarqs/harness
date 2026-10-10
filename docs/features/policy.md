@@ -48,8 +48,8 @@ The effective policy is the union of:
 Nothing else contributes an entry: no file outside the repository is read
 ([ADR 0013](../adrs/0013-organization-content.md)). Lists are unions: no source removes an entry from another, and
 nothing removes a built-in invariant. An entry in the policy file that would weaken an invariant, such as an `allow` for
-a force push to the default branch, is not a validation error: `render` leaves it out of the output, renders the
-invariant, and reports the entry, and `doctor` reports it as a finding until it is removed
+a force push to the default branch, is not a validation error. `render` leaves it out of the output, renders the
+invariant and reports the entry. `doctor` reports it as a finding until it is removed
 ([ADR 0011](../adrs/0011-safety-invariants.md)). When a command matches entries with different decisions, the decision
 is taken in this order, in every agent:
 
@@ -156,9 +156,9 @@ ask:
 
 `render` writes it for each spelling `harness` renders. Permitting an agent to run `harness lifecycle run deliver`
 permits everything the `deliver` actions do: they run as child processes of `harness`, where the agent's per-command
-permissions do not reach. The seeded `ask` keeps a person in the loop before delivery. It is a seeded entry the
-repository owns and may change, not an invariant ([ADR 0015](../adrs/0015-development-lifecycle.md)): a repository whose
-`deliver` actions only open draft pull requests may move it to `allow`. Lifecycle actions are committed
+permissions do not reach. The seeded `ask` keeps a person in the loop before delivery. It is a seeded entry, which the
+repository owns and may change; it is not an invariant ([ADR 0015](../adrs/0015-development-lifecycle.md)). A repository
+whose `deliver` actions only open draft pull requests may move it to `allow`. Lifecycle actions are committed
 configuration; review them like code ([lifecycle](lifecycle.md), [safety](safety.md)).
 
 ### Adoption
@@ -176,9 +176,9 @@ entry marked.
 
 `policy` is a convention block ([concepts](concepts.md#conventions-outlive-the-tool)): it describes the permissions the
 agents' native settings enforce, and stays true when `harness` is gone. Entries for `harness`'s own commands are
-therefore left out of it, since those commands no longer exist after an eject; `./harnessw explain policy` prints the
-complete effective policy, those entries included. For the [Node API](#a-node-api) below, with every module on and
-task shims:
+therefore left out of it, since those commands no longer exist after an eject. `./harnessw explain policy` prints the
+complete effective policy, those entries included. For the [Node API](#a-node-api) below, with every module on and task
+shims:
 
 ```markdown
 <!-- harness:policy -->
@@ -211,10 +211,10 @@ Denied to Ralph workers, in addition:
 <!-- /harness:policy -->
 ```
 
-The block states the permissions as facts. After [`harness remove --eject`](remove.md#eject) the markers go and the
-text stays, and the rendered permissions stay in each agent's settings as the repository's own: agents keep working
-under the same rules, and the block keeps describing them. From then on nothing renders them, so a change to one
-settings file has to be made by hand in the other agent's file and in this text.
+The block states the permissions as facts. After [`harness remove --eject`](remove.md#eject) the markers go and the text
+stays. The rendered permissions stay in each agent's settings as the repository's own, so agents keep working under the
+same rules and the block keeps describing them. From then on nothing renders them, so a change to one settings file has
+to be made by hand in the other agent's file and in this text.
 
 ## Reference
 

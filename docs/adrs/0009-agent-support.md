@@ -43,7 +43,7 @@ another agent changes no repository's declarations.
 ## Reasons
 
 - **1.** One source means one change reaches every agent with equivalent effect. The alternative, one hand-written
-  file per agent, drifts; the workflow copy that needs a check to keep two agents' files in step shows the cost.
+  file per agent, drifts. The workflow copy that needs a check to keep two agents' files in step shows the cost.
 - **2.** Each agent's syntax, schema and release cadence is confined to one component. A format change in one agent
   is fixed in one adapter, and the other agents' output is untouched. The supported-version declaration lets the
   health check stop an unsupported agent version before the tool renders configuration that agent misreads.
@@ -57,7 +57,7 @@ another agent changes no repository's declarations.
   outside the model cannot adopt without losing them, which [0016](0016-permission-adoption.md) forbids. Skipping a
   raw entry for agents that cannot express it keeps every other adapter's output valid.
 - **6.** Role assignments differ between repositories. An adapter that fixed one assignment would impose it on every
-  repository; as data, each repository states its own.
+  repository. With the assignment as data, each repository states its own.
 
 ## Rejected alternatives
 

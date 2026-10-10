@@ -110,9 +110,9 @@ Apply the karpathy-guidelines skill to every change: read `.agents/skills/karpat
 ```
 
 The `context` block is a convention block: its text never names a `harness` command, so after
-[`harness remove --eject`](remove.md#eject) the markers go and the directive stays. A static entry reaches every
-session that reads `AGENTS.md`, so it cannot be limited with `for`: a static entry with `for` narrower than both roles
-is a validation error.
+[`harness remove --eject`](remove.md#eject) the markers go and the directive stays. A static entry reaches every session
+that reads `AGENTS.md`, so it cannot be limited with `for`. A static entry with `for` narrower than both roles is a
+validation error.
 
 ### Sources and trust
 
@@ -128,8 +128,8 @@ Nothing is downloaded or fetched when a hook runs. A skill reaches the repositor
 
 `context.budget` caps the lines of always-on content one session receives, per role: `content` entries count their
 lines, pointer lines count one, and static entries count too. `harness doctor` reports a note when a role exceeds the
-budget, listing every entry with its line count. Injection does not stop at the budget; the note is the signal to
-trim, move an entry to a trigger, or switch it to a pointer.
+budget, listing every entry with its line count. Injection does not stop at the budget. The note is the signal to trim,
+move an entry to a trigger, or switch it to a pointer.
 
 ### When the binary is absent
 

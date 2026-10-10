@@ -44,15 +44,15 @@ withdraw one practice at a time.
   clones the repository. Rendered configuration is committed ([0007](0007-ownership.md)), so agents read it whether
   or not the binary exists on the machine.
 - **2, 3.** A failing hook stops sessions, so an implicit entry point must not fail for lack of the binary. A download
-  inside a hook needs the network and cannot fit the 50 ms budget; it would make every first session on a machine
-  slow or fragile. Exiting successfully keeps the session going, and the one stderr line tells the person why the hook
-  did nothing. The person may never see stderr, while the agent reads its session context, so the one hint per session
-  goes there and names the explicit command that fetches the release. The trade is that checks the hook would run are
-  skipped on that machine until the binary is cached.
+  inside a hook needs the network and cannot fit the 50 ms budget. It would make every first session on a machine slow
+  or fragile. Exiting successfully keeps the session going, and the one stderr line tells the person why the hook did
+  nothing. The person may never see stderr, while the agent reads its session context, so the one hint per session goes
+  there and names the explicit command that fetches the release. The trade is that checks the hook would run are skipped
+  on that machine until the binary is cached.
 - **4.** An explicit call asks for a result. Exiting zero without running the check would report a pass that never
   happened, which is worse than failing. A non-zero exit that names the missing piece tells the caller exactly what to
   fix. Explicit calls may fetch the pinned release ([0017](0017-engine-version.md)), because someone asked for them.
-- **5.** The CI outputs of the 34 repositories with hosted workflows are what their teams ship; adoption must not
+- **5.** The CI outputs of the 34 repositories with hosted workflows are what their teams ship, and adoption must not
   change them. A required step would make the tool a dependency of every pipeline. Teams that want a drift gate add it
   themselves.
 - **6.** Repositories need different subsets of the tool's practices, and withdrawing one practice must not withdraw
@@ -62,9 +62,9 @@ withdraw one practice at a time.
 
 ### Require the binary
 
-Entry points fail when it is missing. At its best, every check always runs and nothing is skipped silently. It loses
-because it breaks sessions and pipelines for everyone who has not installed the tool, and turns one person's adoption
-into a team mandate.
+Entry points fail when the binary is missing. At its best, every check always runs and nothing is skipped silently. It
+loses because it breaks sessions and pipelines for everyone who has not installed the tool, and turns one person's
+adoption into a team mandate.
 
 ### Implicit entry points that download the pinned release
 
@@ -74,8 +74,8 @@ the network to every agent session.
 
 ### A required CI gate in every adopting repository
 
-At its best, drift never reaches the default branch. It loses because it adds a dependency to every pipeline; teams
-that want the gate add it themselves.
+At its best, drift never reaches the default branch. It loses because it adds a dependency to every pipeline. Teams that
+want the gate add it themselves.
 
 ### All-or-nothing adoption
 

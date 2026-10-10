@@ -28,7 +28,7 @@ the sessions that do not need it.
 - Skills are installed by a skills installer that records each skill's content hash in a lock file; a reinstall can
   change a skill's content.
 - Text added to an agent's context acts as instructions. A source that someone can change without review is a channel
-  for instructions; an unattended agent can write files in its working copy, skills and directive files included
+  for instructions. An unattended agent can write files in its working copy, skills and directive files included
   ([0011](0011-safety-invariants.md)).
 - A hook invocation adds at most 50 ms at p95 ([0003](0003-implementation-language.md)), and hooks do nothing on a
   machine where the pinned release is not cached ([0017](0017-engine-version.md)).
@@ -56,7 +56,7 @@ the sessions that do not need it.
 ## Reasons
 
 - **1.** Session start, a file path and a word in a prompt are mechanical facts, so the same session gives the same
-  delivery every time ([0002](0002-division-of-work.md)); known guidance applies because a trigger matched, not because
+  delivery every time ([0002](0002-division-of-work.md)). Known guidance applies because a trigger matched, not because
   someone remembered to name it or the model chose it. Path and prompt triggers confine the cost of narrow guidance to
   the sessions where it applies. The role split serves the two audiences with their own directives. A pointer costs one
   line and leaves the reading to the agent; content costs its full length and guarantees the text is present. Delivering
@@ -72,8 +72,8 @@ the sessions that do not need it.
   depend on the network and the 50 ms budget ([0003](0003-implementation-language.md)), and would deliver content no one
   reviewed. Reading from the base commit for unattended agents means a worker cannot rewrite its own instructions
   between attempts, as with the rest of the data that drives it ([0011](0011-safety-invariants.md)).
-- **5.** Every always-on line costs context in every session of the role. A budget makes that cost visible as a number;
-  a report rather than a refusal leaves the trade to the repository.
+- **5.** Every always-on line costs context in every session of the role. A budget makes that cost visible as a number.
+  A report rather than a refusal leaves the trade to the repository.
 - **6.** What a hook adds to a session is invisible from outside it. A preview computed by the same rules lets a person
   or an agent check the triggers before relying on them.
 

@@ -50,10 +50,9 @@ to every agent session.
 - **1.** Agents act on what instruction files say, not on what the tool's configuration holds, so a convention that is
   only in the configuration is invisible to them. `AGENTS.md` is the file both supported agents reach: Codex directly,
   Claude Code through an import line the tool keeps in `CLAUDE.md`, itself a convention block. Writing every untracked
-  path into `.gitignore` keeps clone-local state untracked in every clone, including clones without the tool; a path
-  the repository chose to track stays tracked. People and
-  third-party tools working without the tool read the same text, and after a removal the remaining state is still
-  explained.
+  path into `.gitignore` keeps clone-local state untracked in every clone, including clones without the tool; a path the
+  repository chose to track stays tracked. People and third-party tools working without the tool read the same text, and
+  after a removal the remaining state is still explained.
 - **2, 3.** A sentence that names one of the tool's commands becomes false the moment the tool is gone, and an agent
   that reads it runs a command that is not there. Splitting blocks by whether their text holds without the tool lets
   eject keep everything that stays true and remove everything that would mislead. The trade is that every block's class
@@ -75,14 +74,14 @@ to every agent session.
 
 The configuration is the one place the conventions are stated, and the tool's documentation explains them. At its best,
 nothing is stated twice and no instruction file grows. It loses because agents read instruction files, not the tool's
-configuration; people and third-party tools working without the tool find no statement of its conventions; and after
+configuration. People and third-party tools working without the tool find no statement of its conventions, and after
 removal the remaining state follows rules nobody wrote down.
 
 ### One block holding everything the tool writes
 
 At its best, there is one pair of markers per file and one place to read the tool's text. It loses because eject cannot
-keep part of a block, so it would keep text that names missing commands or drop conventions that still hold; and
-removing one capability would rewrite text that belongs to the others.
+keep part of a block, so it would keep text that names missing commands or drop conventions that still hold. Removing
+one capability would also rewrite text that belongs to the others.
 
 ### Conventions in a separate file linked from the instruction file
 

@@ -14,7 +14,7 @@ has lost nothing a person wrote, and keeps the conventions the team chose to kee
 
 ## Overview
 
-Rules for anything harness writes into a repository.
+These rules apply to anything harness writes into a repository.
 
 ## Kinds of generated content
 
@@ -28,16 +28,16 @@ Rules for anything harness writes into a repository.
 | Link | `.claude/skills/harness -> ../../.agents/skills/harness` | the manifest |
 | State | the paths the profile sets (`state.dir`, `worktrees.dir`, `tasks.prd_dir`, `ralph.worktrees_dir`; under `.work/` by default), including the lifecycle log `lifecycle.jsonl` in `state.dir` | gitignored by managed blocks; never committed, never listed as content, never inside `.harness/` or `.agents/` |
 
-The manifest (`.harness/manifest.json`) is the record of ownership. Content not listed in it is not harness's,
-whatever it looks like. Why: a header or a marker can be copied into a file harness never wrote; only the record says
-what harness created.
+The manifest (`.harness/manifest.json`) is the record of ownership. Content not listed in it is not harness's, whatever
+it looks like. Why: a header or a marker can be copied into a file harness never wrote, and only the record says what
+harness created.
 
-Owned content is rendered and replaced on every render; a hand edit to it is drift. Seeded content is written once and
-then edited by people and agents; harness never re-renders it, and adds to the repository files only when a person
+Owned content is rendered and replaced on every render, and a hand edit to it is drift. Seeded content is written once
+and then edited by people and agents. harness never re-renders it, and adds to the repository files only when a person
 applies a preset (`harness preset apply`), and then only what they lack. Why: the seeded files hold the repository's
 choices and knowledge, which harness cannot recompute.
 
-The repository files are seeded by `harness scaffold`, which applies the presets of the detected stacks as it seeds them
+`harness scaffold` seeds the repository files and applies the presets of the detected stacks as it seeds them
 ([configuration-standards.md](configuration-standards.md#presets)). The `.agents/memory/` skeleton is seeded when the
 memory module is enabled, by `harness scaffold` or by the first `harness render` after the module is enabled, and is
 never re-rendered. The recorded creation hash is what lets undo tell an untouched skeleton from content someone wrote
@@ -91,14 +91,14 @@ Worktrees in this project are created in `.work/worktrees/<name>`, on branch `wo
 - Block ids come from a documented, closed set. An id is never renamed except through a schema migration, because
   the manifest and the markers already committed in repositories refer to it.
 - A file holds at most one block per id, so an id names exactly one place.
-- Everything between the markers is owned by harness and replaced on render. Everything outside them is never read
+- harness owns everything between the markers and replaces it on render. Everything outside them is never read
   for writing, reordered or reformatted, because it belongs to whoever wrote it.
 - A new block is appended at the end of the file. Once present, a block may be moved anywhere in the file by a person,
   and harness updates it where it is, so a team can arrange its own file.
 - Block text comes only from the binary's templates and the repository's values: fixed sentences that state a
   convention with its configured values, tables, lists, one-line imports, and, in the `context` block, the text of the
   repository files and installed skills that `static` entries name. It is never free prose, opinion or knowledge,
-  because the binary does only deterministic work ([ADR 0002](../adrs/0002-division-of-work.md)), and no source
+  because the binary does only deterministic work ([ADR 0002](../adrs/0002-division-of-work.md)). No source
   outside the repository adds text to a block, because text there acts in every session while its source would sit
   where nobody working in the repository reads it ([ADR 0013](../adrs/0013-organization-content.md)).
 - A `.gitignore` block omits any path the repository tracks, so ignoring never hides a committed file.
@@ -108,7 +108,7 @@ Worktrees in this project are created in `.work/worktrees/<name>`, on branch `wo
 ### Block classes
 
 Every block belongs to one of two classes. Why: some of harness's text states facts that stay true without it, and
-some only explains how to use it; eject must keep the first and must not leave the second behind
+some only explains how to use it. Eject must keep the first and must not leave the second behind
 ([ADR 0018](../adrs/0018-conventions.md)).
 
 | Class | States | Mentions harness commands | On `harness remove --eject` |
@@ -184,14 +184,14 @@ Why: native files are shared with people and other tools, so harness owns the ke
 - harness changes only the keys it owns. Every other key, its value, its order and its formatting are preserved byte
   for byte.
 - Owned permission lists belong to harness entirely: an entry added there by hand is drift. To keep it, add it to
-  `policy.yaml`; adoption does this for entries that existed before harness. Why: two writers of one list cannot both
+  `policy.yaml`. Adoption does this for entries that existed before harness. Why: two writers of one list cannot both
   be right after the next render.
 - Hook entries are owned one by one. harness owns the entries that run the harness hook command (agent hooks,
   notification hooks such as Claude Code's `Notification` and `Stop`, and the hooks that inject standing context) and
   the native entries it renders from `raw` declarations in `hooks.yaml`. Hooks added by other tools or by hand are
   preserved where they are. Codex's `notify` setting in `.codex/config.toml` is owned only when it is absent or
-  already the harness hook command, because it holds one program: a repository's own `notify` program is left in
-  place, `turn_end` is not rendered for Codex, and `harness doctor` notes it.
+  already the harness hook command, because it holds one program. When a repository has its own `notify` program,
+  harness leaves it in place and does not render `turn_end` for Codex, and `harness doctor` notes it.
 - A raw hook renders as a native entry that runs its own command, not the harness hook command, so it keeps working
   without the binary. It is recorded in the manifest as owned: a hand edit to it is drift, `harness remove` removes
   it, and `harness remove --eject` keeps it as hand-owned.
@@ -207,7 +207,7 @@ Why: two teammates rendering the same commit must produce the same diff, or ever
 - The same repository files and pinned release produce the same bytes on every supported operating system, with no
   network access and an empty per-user cache, because nothing else is an input
   ([ADR 0013](../adrs/0013-organization-content.md)). A new release may render differently, the harness skill and
-  `harnessw` included; `harness wrapper --version <tag>` renders the repository with the new release in the same change
+  `harnessw` included. `harness wrapper --version <tag>` renders the repository with the new release in the same change
   as the pin, so every such difference reaches review in the upgrade's diff
   ([compatibility-standards.md](compatibility-standards.md#rendered-output-across-releases),
   [ADR 0017](../adrs/0017-engine-version.md)). Rendered content never records the release that rendered it
@@ -224,7 +224,7 @@ Why: two teammates rendering the same commit must produce the same diff, or ever
   the hand edit belongs in the source, where the next render keeps it.
 - Drift is detected by comparing against the manifest's hashes, so it is reported even when the repository files
   have not changed.
-- The drift check is run by the pinned release, and no owned file is exempt, the harness skill included: the pinned
+- The pinned release runs the drift check, and no owned file is exempt, the harness skill included. The pinned
   release renders the skill the repository has, because upgrades render in their own change. A binary other than the
   pinned release (`HARNESS_BINARY`) gets a `harness doctor` note naming both versions, because its drift results may
   differ. Why: an exemption would hide exactly the hand edits the check exists to catch
@@ -239,7 +239,7 @@ Why: two teammates rendering the same commit must produce the same diff, or ever
   the Ralph coordinator worktree, and `harness fleet <command> --deliver` commits the tool-owned changes on a new local
   branch `<branch_prefix><command>`, cut from the fetched default branch, then fires that repository's `deliver`
   actions. Any other commit, push or pull request is a declared action. Why: a commit is the start of delivery, and
-  delivery is the repository's decision; the two exceptions commit only work the binary itself verified or rendered,
+  delivery is the repository's decision. The two exceptions commit only work the binary itself verified or rendered,
   on branches it created.
 - Reviewers judge the source change (`policy.yaml`, `hooks.yaml`, `config.yaml`); the rendered diff shows its effect
   on each agent.
@@ -252,7 +252,7 @@ Why: two teammates rendering the same commit must produce the same diff, or ever
 
 ## Removal
 
-Removal has two modes: undo takes harness and what it wrote out of the repository; eject stops harness managing the
+Removal has two modes. Undo takes harness and what it wrote out of the repository. Eject stops harness managing the
 repository and keeps what it wrote. Reference: [`harness remove`](../features/remove.md). Why: a trial adoption must be
 fully reversible, and a team that leaves harness must keep the conventions, permissions and hooks it came to rely on.
 
@@ -275,7 +275,7 @@ without harness:
 - It deletes the owned files and links, removes every managed block including its markers and text, and removes owned
   keys and entries from native files. Without `--module`, it also deletes `harnessw`, `wrapper.yaml`, the manifest and
   the seeded repository files in `.harness/`, listing the seeded files first, and then `.harness/` once nothing else
-  is in it; their history stays in version control. Entries a preset added are part of those files and go with them.
+  is in it. Their history stays in version control. Entries a preset added are part of those files and go with them.
   Why: the seeded files have no meaning without harness.
 - A seeded file outside `.harness/` (the `.agents/memory/` skeleton) is deleted only while it still matches the hash
   the manifest recorded when it was seeded; an edited one is kept and listed. Why: an untouched skeleton is harness

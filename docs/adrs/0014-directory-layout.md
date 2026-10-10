@@ -74,11 +74,11 @@ Other forces:
   only tracked paths keeps its meaning simple: what is in it is what the repository committed, with no ignore rules
   inside a committed tree.
 - **4.** People and third-party tools work directly in the tool's state, chiefly its working copies, and repositories
-  have their own conventions for where those go (28 surveyed repositories keep an agent's worktrees under `.claude/`).
-  A configurable path with a default lets each repository keep its convention, while the default gives one root to
-  ignore. State inside `.harness/` would put ignored paths into the committed configuration directory, contradicting
-  point 3; state inside `.agents/` would show clone-local files to every tool that reads agent content. Committed
-  state would publish one clone's uncommitted work.
+  have their own conventions for where those go (28 surveyed repositories keep an agent's worktrees under `.claude/`). A
+  configurable path with a default lets each repository keep its convention, while the default gives one root to ignore.
+  State inside `.harness/` would put ignored paths into the committed configuration directory, contradicting point 3.
+  State inside `.agents/` would show clone-local files to every tool that reads agent content. Committed state would
+  publish one clone's uncommitted work.
 - **5.** The loop runner's configuration location cannot be moved, so the only way to give it tool-generated
   configuration without touching a root configuration people use directly is a working copy the tool creates.
   Relocating the task tracker through an override would make every invocation depend on that override, and people who
@@ -92,8 +92,8 @@ Other forces:
 ### One directory for everything, state included
 
 At its best, every file the tool touches is in one place, one ignore rule covers the state, and removal deletes one
-directory. It loses because it mixes committed configuration with ignored state; it fixes one location for working
-copies in every repository; and working copies that people and third-party tools use directly would sit inside a
+directory. It loses because it mixes committed configuration with ignored state. It also fixes one location for working
+copies in every repository, and working copies that people and third-party tools use directly would sit inside a
 directory that removal must either delete with their contents or leave half removed.
 
 ### Configuration inside `.agents/`
@@ -105,8 +105,8 @@ write.
 
 ### One fixed root for state
 
-At its best, one ignore rule and one layout to test. It loses because repositories keep working copies where their
-own conventions put them, and people and other tools work inside those copies directly.
+At its best, there is one ignore rule and one layout to test. It loses because repositories keep working copies where
+their own conventions put them, and people and other tools work inside those copies directly.
 
 ### Relocate third-party state through overrides
 
@@ -115,8 +115,8 @@ those tools directly see different state.
 
 ### Whole-directory links from native directories
 
-At its best, one link per directory. It loses because in 10 surveyed repositories the target is a real directory, and
-replacing it moves files people own.
+At its best, each directory needs one link. It loses because in 10 surveyed repositories the target is a real directory,
+and replacing it moves files people own.
 
 ## Consequences
 

@@ -22,8 +22,8 @@ the presets of the stacks it detects the same way.
 
 Once written, the entries are the repository's own, like entries anyone wrote by hand. Nothing records which presets a
 repository applied, and people and agents change or delete the entries by editing the file. What `harness` renders and
-runs in a repository comes from that repository's files and the release it pins, and from nothing else: no inheritance,
-no includes, no source outside the repository. Rendering needs no network
+runs in a repository comes only from that repository's files and the release it pins. There is no inheritance, no
+includes and no source outside the repository. Rendering needs no network
 ([ADR 0013](../adrs/0013-organization-content.md)).
 
 Commands are named `harness <command>` on this page. The examples run them through the repository's wrapper,
@@ -118,19 +118,19 @@ is added and the second one's is reported as kept.
 ### Applying again
 
 Applying is idempotent: a second `apply` of the same preset by the same release adds nothing, because every entry is
-already there. That makes applying again the way to take a later release's improvements to a preset: after moving the
+already there. Applying again is therefore the way to take a later release's improvements to a preset. After moving the
 pin ([wrapper](wrapper.md#upgrading)), `./harnessw preset apply node --dry-run` shows what the new release would add,
-and `./harnessw preset apply node` adds it, as a diff to review.
+and `./harnessw preset apply node` adds it as a diff to review.
 
 Applying again also adds back an entry the repository deleted, because nothing records that it was removed on purpose.
 Read the diff before confirming.
 
 ### After applying
 
-Nothing records which presets a repository applied: not the manifest, not a comment in the file. Each entry's one
-source of truth is the file it is in, and `harness` holds no record it could later use to change those entries by
-itself ([ADR 0013](../adrs/0013-organization-content.md)). Change or delete an applied entry by editing the file, then
-run `./harnessw render`.
+Nothing records which presets a repository applied, not even the manifest or a comment in the file. Each entry's one
+source of truth is the file it is in, and `harness` holds no record it could later use to change those entries by itself
+([ADR 0013](../adrs/0013-organization-content.md)). Change or delete an applied entry by editing the file, then run
+`./harnessw render`.
 
 No command removes a preset: its entries are the repository's like any other, and leave the same way, by editing the
 file. Both removal modes of [`harness remove`](remove.md) delete the seeded `.harness/` files whatever they hold, so
@@ -261,7 +261,7 @@ harness fleet preset apply node --yes --deliver
 ```
 
 Each repository that lacks some of the preset's entries gets a branch with the additions and their rendered effect,
-delivered through its own `deliver` actions; a repository that already holds every entry is reported as unchanged
+delivered through its own `deliver` actions. A repository that already holds every entry is reported as unchanged
 ([fleet](fleet.md)). The command runs without a terminal in each repository, so it needs `--yes`.
 
 ## Guidelines

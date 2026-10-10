@@ -44,9 +44,9 @@ host, would run everywhere, and checksums alone cannot tell.
 
 - **1.** One signature over the checksum file covers every platform asset, and the checksums are exactly what the pin
   records ([0017](0017-engine-version.md)), so the signature extends to everything the wrapper later checks.
-- **2.** Embedded keys need no fetch at verification time; fetching them from the release host would trust the same
-  host the signature exists to distrust. Introducing the next key in a release signed by the current one moves trust
-  forward without a gap, and the overlap lets binaries of both generations verify the releases between them.
+- **2.** Embedded keys need no fetch at verification time. Fetching them from the release host would trust the same host
+  the signature exists to distrust. Introducing the next key in a release signed by the current one moves trust forward
+  without a gap, and the overlap lets binaries of both generations verify the releases between them.
 - **3.** This moves the trust decision from whatever the person upgrading downloaded to what a binary already trusted
   verified, which closes the gap that checksums alone leave. Writing nothing on failure keeps the repository on its last
   verified pin, and every accepted change still arrives as a diff for review. A pin without checksums gives the wrapper
@@ -55,8 +55,8 @@ host, would run everywhere, and checksums alone cannot tell.
   ([0004](0004-runtime-dependencies.md)). Because a verifying binary wrote the committed checksums (point 3), the
   wrapper's checksum comparison carries that verification over to each download.
 - **5.** Some first binary has to be trusted without a prior one. Installing it from the release page over HTTPS or
-  through a package manager is the one step that rests on host authentication alone; every later release is admitted
-  by a verified binary.
+  through a package manager is the one step that rests on host authentication alone. Every later release is admitted by
+  a verified binary.
 - **6.** A checksum edited by hand in the pin, or a checksum file replaced on the host after the pin was written, is
   found. Running online only, and as part of the health check, costs nothing to a machine without network access.
 
@@ -70,8 +70,8 @@ it is: a release compromised before its checksum was recorded passes every later
 ### Keyless signing with a public transparency log
 
 At its best, there is no long-lived key to protect, and every signature leaves a public audit trail. It loses because
-verification needs a large verification library or an external tool, and depends on trust roots and log state that
-live outside the release; neither fits a shell wrapper or a binary limited to the operating system and git
+verification needs a large verification library or an external tool, and depends on trust roots and log state that live
+outside the release. Neither fits a shell wrapper or a binary limited to the operating system and git
 ([0004](0004-runtime-dependencies.md)).
 
 ### OpenPGP signatures
@@ -94,11 +94,11 @@ because the wrapper would need a signature tool on every machine, which is the d
 
 Costs:
 
-- A compromised signing key signs releases that every binary trusting it accepts until a release retires the key;
-  binaries that are never upgraded keep trusting it.
+- A compromised signing key signs releases that every binary trusting it accepts until a release retires the key.
+  Binaries that are never upgraded keep trusting it.
 - A lost signing key cannot introduce its successor, so people install a new binary as a new trust root.
 - The first installation rests on host authentication alone.
-- The wrapper checks the downloaded asset against the committed checksum, not the signature; a checksum edited by hand
+- The wrapper checks the downloaded asset against the committed checksum, not the signature. A checksum edited by hand
   in the pin passes the wrapper and is caught by the drift check ([0007](0007-ownership.md)) and the health check.
 - The release process holds a signing key that must be protected.
 

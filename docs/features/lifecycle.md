@@ -13,10 +13,10 @@ published, and a person learns when work finishes or stops and needs them.
 
 ## Overview
 
-This page follows a change through its whole life with `harness`: from the plan to the moment its commits are on the
-default branch. For each stage it says who acts, what `harness` guarantees and what is left to judgement. The second
-half is the reference for lifecycle events: the points where `harness` runs the actions a repository declares, such as
-pushing a branch, opening a pull request or posting a chat notification.
+With `harness`, a change goes through a series of stages, from the plan to the moment its commits are on the default
+branch. Each stage below names who acts, what `harness` guarantees and what is left to judgement. Lifecycle events are
+the points where `harness` runs the actions a repository declares, such as pushing a branch, opening a pull request or
+posting a chat notification; their reference follows the stages.
 
 `harness` contains no logic for any hosting platform. Everything that leaves the clone (a push, a pull request, a CI
 trigger, a notification) is an **action** that the repository declares on a **lifecycle event** in its own
@@ -215,14 +215,14 @@ Trigger-point details:
   nothing.
 - **Concluded** work, for the automatic `deliver`: the branch has commits that are not on the default branch, the tree
   is clean, the branch is not the default branch, and, when the verify module is enabled, the receipt is valid for the
-  work's base. When the work is not concluded, the automatic `deliver` does not fire; the command says which condition
-  is unmet and the record shows the event as skipped. A `change` has no `completed` event, so its `deliver` fires only
+  work's base. When the work is not concluded, the automatic `deliver` does not fire. The command says which condition
+  is unmet, and the record shows the event as skipped. A `change` has no `completed` event, so its `deliver` fires only
   when triggered manually or by `harness fleet --deliver`.
 - `harness worktree remove` and `harness ralph clean` fire `landed` once per recorded branch whose patches are on the
   default branch, before they remove its worktree. `run` and `http` actions on `landed` run in the primary checkout,
   because the work is already on the default branch and its worktree is about to be removed; an `agent` action on
   `landed` runs in a fresh worktree ([`agent`](#agent)). Each recorded branch fires `landed` at most once
-  successfully; a failed `landed` is re-fired manually with `harness lifecycle run landed`.
+  successfully. A failed `landed` is fired again by hand with `harness lifecycle run landed`.
 - `harness doctor` never fires events or runs actions. It reports recorded branches that have landed and prints the
   command that fires `landed` for each ([doctor](doctor.md#landed-branches)).
 - An automatic event never undoes the command that fired it and never changes its exit code: the receipt stays
@@ -625,9 +625,9 @@ lifecycle:
 ./harnessw worktree remove invoice-rounding      # fires landed, then removes the worktree
 ```
 
-`harness doctor` only reports the merged `work/invoice-rounding`; `harness worktree remove` fires `landed` before it
+`harness doctor` only reports the merged `work/invoice-rounding`. `harness worktree remove` fires `landed` before it
 removes the worktree, and the action runs in the primary checkout. When the action fails, the removal still happens
-and keeps its own exit code; fix the action and run `harness lifecycle run landed --task acme-api-7f2` to fire it
+and keeps its own exit code. Fix the action and run `harness lifecycle run landed --task acme-api-7f2` to fire it
 again. Ralph sessions are cleaned by `harness ralph clean`, which fires `landed` with scope `run`.
 
 ### A chat notification when work completes or stops
@@ -683,7 +683,7 @@ git -C .work/worktrees/landed-invoice-rounding-1 status --short          # its e
 ```
 
 The action has no `auto: true`: each run costs a model run, so a person or a coordinating agent starts it when the
-change taught something. The agent cannot commit; a person reviews its edits in
+change taught something. The agent cannot commit. A person reviews its edits in
 `.work/worktrees/landed-invoice-rounding-1`, commits them on `work/landed-invoice-rounding-1` and delivers that branch,
 or removes the worktree.
 

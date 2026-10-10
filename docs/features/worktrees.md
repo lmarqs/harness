@@ -74,7 +74,7 @@ trust, configuration and Beads database.
   (compared with `git cherry`), after its own checks pass and before it removes the worktree, so automatic `landed`
   actions run in it. Each recorded branch fires `landed` at most once successfully; a failed `landed` is re-fired
   manually with `harness lifecycle run landed`. A failing action is reported on stderr and recorded in the
-  [lifecycle log](lifecycle.md#the-lifecycle-log); the exit code is the removal's.
+  [lifecycle log](lifecycle.md#the-lifecycle-log). The exit code is the removal's.
 
 `harness doctor` lists managed worktrees whose branch has landed and prints the `harness worktree remove` command for
 each; it never fires `landed` itself.
@@ -102,8 +102,8 @@ Worktrees in this project are created in `.work/worktrees/<name>`, on branch `wo
 
 `<name>` is the worktree's name. `worktrees` is a convention block: it states the convention as a fact and names no
 `harness` command, so it holds without `harness`. After [`harness remove --eject`](remove.md#eject) the markers go and
-the text and the ignore entry stay, and people and agents creating worktrees by hand with `git worktree add` keep
-following it. Worktrees are part of the core, so only an undo removes both blocks.
+the text and the ignore entry stay. People and agents creating worktrees by hand with `git worktree add` keep following
+it. Worktrees are part of the core, so only an undo removes both blocks.
 
 The `.gitignore` block lists `/.work/worktrees/` even though the `state` block's `/.work/` already covers it: each
 module writes its own entries, so removing one module never un-ignores another module's paths.
@@ -201,5 +201,5 @@ git branch -d work/fix-invoice-rounding           # when the branch is merged
 ## Coexistence
 
 `harness` manages only the worktrees it recorded in the configured worktrees directory. Claude Code's own
-`.claude/worktrees/` and worktrees created by other tools or by hand are never listed, cleaned or modified. Branch names start with `work/`, so they do not collide with
-ralph-tui's `ralph/session-*` branches.
+`.claude/worktrees/` and worktrees created by other tools or by hand are never listed, cleaned or modified. Branch names
+start with `work/`, so they do not collide with ralph-tui's `ralph/session-*` branches.

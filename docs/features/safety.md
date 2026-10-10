@@ -13,13 +13,13 @@ and what that protection does not stop, and every gap left open is one they chos
 
 ## Overview
 
-`harness` lets agents work in a repository, attended or not, without handing them more than the work needs. This page
-explains what it defends against, which layers do the defending, and how to configure a repository so the layers
-hold: where to place a policy entry, what changes when nobody is watching, why lifecycle actions are code, what an
-`agent` action may do, where standing context may come from, where secrets must not go, and what to read in a rendered
-diff. It ends with a checklist for unattended runs.
+`harness` lets agents work in a repository, attended or not, without handing them more than the work needs. The
+guidelines cover what it defends against, which layers do the defending, and how to configure a repository so the layers
+hold. That configuration covers where to place a policy entry, what changes when nobody is watching, why lifecycle
+actions are code, what an `agent` action may do, where standing context may come from, where secrets must not go, and
+what to read in a rendered diff. A checklist for unattended runs closes the page.
 
-The traps behind many of these guidelines are described one by one in [pitfalls](pitfalls.md).
+[Pitfalls](pitfalls.md) describes the traps behind many of these guidelines one by one.
 
 Commands are named `harness <command>` on this page. Run them through the repository's wrapper,
 `./harnessw <command>`, from the root of a checkout; with a global install, `harness <command>` is equivalent
@@ -34,7 +34,7 @@ Commands are named `harness <command>` on this page. Run them through the reposi
 | A coordinating agent left alone | an untrusted contributor, with nobody present | the same agent, without the person who would catch a wrong step |
 | A Ralph worker | the least trusted | unattended, driven by task text, and the one that writes the code its own checks run |
 | Task, issue and pull-request text | untrusted input | anyone who can write it can address the agent that reads it |
-| Lifecycle actions, notification actions, raw hooks, validators, lane commands | code | they run with the person's credentials; `harness` runs them, it does not judge them |
+| Lifecycle actions, notification actions, raw hooks, validators, lane commands | code | they run with the person's credentials; `harness` runs them without judging them |
 | An `agent` action | an unattended agent | it runs headless on a prompt, often with values written by people and agents in it; it runs under the worker contract |
 | Standing context: the skills and files `context` entries name | instructions | every matching session reads them as guidance; whoever can change them steers the agents |
 | `HARNESS_MESSAGE`, `HARNESS_REASON`, task titles and summaries | untrusted input | agents and task text shape them; they reach notifications and `agent` prompts |
@@ -99,9 +99,10 @@ flowchart TD
 | unlisted | production, cloud and repository-settings writes | `kubectl apply`, `aws …`, `gh repo edit` |
 | `worker.deny` | everything that leaves the worker's worktree before the worker wrapper verifies it | commits, pushes, refs and worktrees, `git -C`/`git -c`, the hosting platform's CLI, shared local services, production and cloud |
 
-Why production stays unlisted rather than denied: a person at the terminal decides case by case; an unattended
-Claude Code session in auto mode leaves it to its classifier, which judges it from the conversation; workers are denied
-it through `worker.deny`. A `deny` would also stop the person who means it.
+Production stays unlisted rather than denied because a `deny` would also stop the person who means it. Each kind of
+session handles it in its own way. A person at the terminal decides case by case. An unattended Claude Code session in
+auto mode leaves it to its classifier, which judges it from the conversation. Workers are denied it through
+`worker.deny`.
 
 Write the reason above each group of entries. The reason is what a reviewer evaluates, and an entry broader than its
 reason is a finding.
@@ -113,10 +114,10 @@ policy entry for a `harness` command is written once, `[harness, lifecycle, run,
 every one of those spellings ([policy](policy.md#entries-for-harness-commands)). A prefix rule still matches leading
 words only, so an absolute path to the wrapper or `sh harnessw …` matches none of them.
 
-The guards that matter therefore never rest on policy entries. The binary refuses `harness lifecycle run` inside a
-Ralph worker on its own, because the worker launcher sets `HARNESS_WORKER=1` and the binary checks it, and it enforces
-the `deliver` guards whoever runs the command and however it is spelled. The entries are defence in depth: they make
-an agent stop or ask before it runs the command at all ([ADR 0011](../adrs/0011-safety-invariants.md)).
+The guards that matter therefore never rest on policy entries. The binary refuses `harness lifecycle run` inside a Ralph
+worker on its own: the worker launcher sets `HARNESS_WORKER=1`, and the binary checks it. The binary also enforces the
+`deliver` guards whoever runs the command and however it is spelled. The entries are defence in depth: they make an
+agent stop or ask before it runs the command at all ([ADR 0011](../adrs/0011-safety-invariants.md)).
 
 ## Unattended runs
 
@@ -133,8 +134,8 @@ Two rules decide how an unattended session behaves:
 - **An `allow` entry skips the auto-mode classifier.** The command runs without judgement. A broad `allow`, such as
   `[git]`, lets a push to the default branch run directly: branch protection, not the agent, is then the gate.
 
-So, before leaving a session alone: every `ask` it reaches is either acceptable as a stop or moved, and every
-`allow` is one you accept with no judgement applied.
+Before leaving a session alone, check that every `ask` it reaches is either acceptable as a stop or moved, and that
+every `allow` is one you accept with no judgement applied.
 
 ## The worker contract and the tamper check
 
@@ -178,16 +179,16 @@ that fired them, outside the agent's per-command permission checks.
 - **Every action sees the whole environment.** A webhook URL exported for one `http` action is visible to every `run`
   and `agent` action of every event fired from that shell.
 
-What follows:
+In practice:
 
 - Review `lifecycle` changes in `.harness/hooks.yaml` like code, including those an agent wrote while following an
   organization's skill.
 - Keep the seeded `ask` on `[harness, lifecycle, run, deliver]` until the actions are ones you accept an agent running
   unasked. Moving it to `allow` is a decision about the actions, not about the command.
 - Check `harness lifecycle list` for `auto: true` before granting an agent a command with a trigger point.
-- Keep actions to delivery and notification. `harness` itself never writes the team's record; an action can, with
-  the credentials it runs with, so declare one only when the team decided it, and never one that touches production
-  ([ADR 0012](../adrs/0012-write-boundary.md)).
+- Keep actions to delivery and notification. `harness` itself never writes the team's record, but an action can, with
+  the credentials it runs with. Declare such an action only when the team decided it, and never one that touches
+  production ([ADR 0012](../adrs/0012-write-boundary.md)).
 - `harness` is never an MCP client. An integration that needs an MCP tool is an `agent` action, which uses the agent's
   own MCP connections and their credentials under the worker contract; a deterministic one uses the service's API
   through `http` or its CLI through `run` ([ADR 0019](../adrs/0019-action-kinds.md)).
@@ -219,7 +220,7 @@ prompt.
 
 ## Standing context
 
-[Standing context](context.md) is read as instructions by every session it reaches, so its sources are controlled:
+Every session that [standing context](context.md) reaches reads it as instructions, so its sources are controlled:
 
 - Entries name only repository files and skills installed under `.agents/skills/`. Nothing is fetched when a hook runs.
 - A skill listed in `skills-lock.json` is injected only when its content matches the locked hash; `harness doctor`
@@ -259,7 +260,7 @@ Every clone runs the `harness` release that `.harness/wrapper.yaml` pins, throug
 - Never write a secret in the profile, the policy, the hooks file or an action. They are committed, rendered into
   files every clone has, and shown in diffs.
 - Actions, hooks, validators, lanes and agents inherit the environment. Start unattended runs from a shell that holds
-  only the credentials the run needs: no production tokens, no cloud administrator profile.
+  only the credentials the run needs, without production tokens or a cloud administrator profile.
 - An `http` action reads its URL and header values only from the variables `url_env` and `headers_env` name, never
   from the file. `harness` never prints or logs them: `--dry-run` shows the variable names, and the
   [lifecycle log](lifecycle.md#the-lifecycle-log) holds no environment values, URLs, headers, bodies or prompts.
@@ -268,8 +269,7 @@ Every clone runs the `harness` release that `.harness/wrapper.yaml` pins, throug
 - A command that looks local can follow an environment file to a remote system, such as a migration whose `.env`
   points at a shared database. Check what the environment files point at before allowing such a command
   ([pitfalls](pitfalls.md#a-local-command-follows-an-environment-file-to-a-remote-system)).
-- MCP server definitions, which often carry tokens, are not managed by `harness`. Keep them in each person's own
-  settings.
+- `harness` does not manage MCP server definitions, which often carry tokens. Keep them in each person's own settings.
 
 ## Importing personal scopes
 

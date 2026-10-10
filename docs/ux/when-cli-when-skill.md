@@ -14,9 +14,8 @@ who can exercise it.
 
 ## Overview
 
-Every new capability has exactly one home. This page is the rule for choosing it
-([ADR 0002](../adrs/0002-division-of-work.md)). It applies to proposals for harness itself and to the advice harness
-gives repositories through its skill.
+Every new capability has exactly one home, chosen by the rules below ([ADR 0002](../adrs/0002-division-of-work.md)).
+They apply to proposals for harness itself and to the advice harness gives repositories through its skill.
 
 ## Destinations
 
@@ -54,7 +53,7 @@ gives repositories through its skill.
 | yes | yes | yes | no | no | built-in invariant | a rule every repository needs and none may drop cannot be a setting, or it is lost by copying |
 | yes | yes | no | no | no | command, flag, or profile field (see below) | one implementation serves every repository and is fixed in one release |
 | yes | in every repository of one stack | no | no | no | built-in preset, applied with `harness preset apply` | stack facts are the same in every repository on that stack, so the binary supplies them; applying on request keeps every write something a person asked for |
-| yes | any | no | yes | no | entries in each repository's files, written by an agent following an organization skill | organization content stays out of an open-source binary; it differs between an organization's repositories, so applying it takes judgement, and each repository reviews the result as a diff |
+| yes | any | no | yes | in applying it | entries in each repository's files, written by an agent following an organization skill | organization content stays out of an open-source binary; it differs between an organization's repositories, so applying it takes judgement, and each repository reviews the result as a diff |
 | yes | any | no | yes, or one repository | no | declared action, when it reaches outside the clone at a lifecycle or agent event ([below](#declared-actions)) | side effects outside the clone must be declared, reviewed and guarded |
 | yes | no | no | no | no | left to the repository (a mise task or a profile value) | one repository's need does not justify a contract every user carries |
 | no | yes | any | no | yes | harness skill, with a binary check that proves the outcome | judgement belongs to agents, and the check keeps it honest |
@@ -67,8 +66,8 @@ is deterministic even when the guidance is not.
 
 A safety-relevant rule that is organization specific (a deploy deny, a protected branch other than the default) is an
 entry in each repository's `policy.yaml`, written there by a person or by an agent following the organization's skill.
-It is enforced by the rendered policy like any other entry, but it is not a built-in invariant, because the binary
-contains no organization-specific content.
+The rendered policy enforces it like any other entry. It is not a built-in invariant, because the binary contains no
+organization-specific content.
 
 ## Declared actions
 
@@ -85,15 +84,16 @@ A behaviour is a declared action when all of these hold:
 Why: these are the side effects whose form differs per team, so the team declares them and harness only fires them
 under its guards ([ADR 0015](../adrs/0015-development-lifecycle.md), [ADR 0019](../adrs/0019-action-kinds.md)).
 
-Where it is declared: in the repository's **`hooks.yaml`**, always. An action that holds for an organization's
+A declared action is always declared in the repository's `hooks.yaml`. An action that holds for an organization's
 repositories (open a pull request on a given hosting platform, add the organization's CI-trigger commit, post to the
 organization's chat) is written into each repository's `hooks.yaml` by a person or by an agent following the
 organization's skill, and reviewed there as a diff. Why: an action runs in its repository with the credentials of
 whoever fires it, so it must be readable and reviewed where it runs ([ADR 0013](../adrs/0013-organization-content.md)).
 
-Never in the binary. The binary contains no logic for the platform that hosts the team's work and ships no actions
-([ADR 0012](../adrs/0012-write-boundary.md)); a command or flag that pushes, opens a pull request or calls a hosting
-platform is a design error, whatever the convenience ([principles.md](principles.md#7-nothing-leaves-the-clone-undeclared)).
+A declared action never lives in the binary. The binary contains no logic for the platform that hosts the team's work
+and ships no actions ([ADR 0012](../adrs/0012-write-boundary.md)). A command or flag that pushes, opens a pull request
+or calls a hosting platform is a design error, whatever the convenience
+([principles.md](principles.md#7-nothing-leaves-the-clone-undeclared)).
 
 ### Choosing the kind
 
@@ -152,22 +152,20 @@ of owner:
 - The binary never performs the judgement half by heuristics; the skill never re-implements the deterministic half
   in prose.
 
-Adoption is the model: `harness scaffold --adopt` imports what it can map and lists the rest as a to-do; the harness
-skill guides the agent through the to-do; `harness doctor` confirms the result.
+Adoption is the model. `harness scaffold --adopt` imports what it can map and lists the rest as a to-do, the harness
+skill guides the agent through the to-do, and `harness doctor` confirms the result.
 
 Repository content follows the same split ([ADR 0013](../adrs/0013-organization-content.md)):
 
 - Stack facts need no judgement, so they are built-in presets the binary writes on request (`harness scaffold`,
   `harness preset apply <name>`), adding only what the repository lacks.
 - An organization's conventions differ between its repositories, so an agent following the organization's skill
-  decides which entries a repository needs and writes them into its files; `harness render` renders them and
+  decides which entries a repository needs and writes them into its files. `harness render` renders them and
   `harness doctor` checks the result.
-- Either way the entries end in the repository's own files and reach review as a diff; the binary never reads an
+- Either way the entries end in the repository's own files and reach review as a diff. The binary never reads an
   organization's conventions from anywhere else.
 
 ## Worked examples
-
-Each row shows a request and where it goes.
 
 | Request | Analysis | Destination |
 | --- | --- | --- |
@@ -213,7 +211,7 @@ Each row shows a request and where it goes.
 
 ## Anti-patterns
 
-Each of these breaks a principle; the reason is given with it.
+Each of these breaks a principle, for the reason given after it.
 
 - A command that writes free prose, memory or skill content: the binary does only deterministic work. Managed blocks
   hold only fixed convention statements derived from the repository files.

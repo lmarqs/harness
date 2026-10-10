@@ -47,8 +47,8 @@ committed files of those that did, so anything harness requires of them is impos
 
 ## 2. The binary is deterministic; judgement belongs to agents
 
-From the user's side, the split reads: **whatever harness does, you can predict; whatever needs judgement, an agent
-does and harness checks.** Why: deterministic output can be reviewed once and trusted in every repository, while a
+From the user's side, everything harness does is predictable. An agent does whatever needs judgement, and harness
+checks the result. Why: deterministic output can be reviewed once and trusted in every repository, while a
 guess made by code is wrong in the first repository nobody anticipated
 ([ADR 0002](../adrs/0002-division-of-work.md)).
 
@@ -60,13 +60,13 @@ guess made by code is wrong in the first repository nobody anticipated
 - Every judgement step an agent performs ends in a deterministic check the binary owns (`harness render --check`,
   `harness doctor`, `harness verify --check`), so the outcome of judgement is still verified.
 
-Where a given behaviour belongs is decided by [when-cli-when-skill.md](when-cli-when-skill.md).
+[when-cli-when-skill.md](when-cli-when-skill.md) decides where a given behaviour belongs.
 
 ## 3. Sets the rules, never plays
 
 harness is a meta-harness (see the [glossary](../features/glossary.md)): it configures and constrains the tools that
 run models, and it never takes their place. Why: the agents people already use are developed by their vendors and
-follow every model change; a tool that competed with them would carry credentials, cost and a second loop to maintain
+follow every model change. A tool that competed with them would carry credentials, cost and a second loop to maintain
 ([ADR 0001](../adrs/0001-role-of-the-tool.md)).
 
 - The binary never calls a model and is never a client of an agent tool server (MCP). Work that needs a model or an
@@ -90,7 +90,7 @@ follow every model change; a tool that competed with them would carry credential
 
 - A command does what its name says and nothing else. Read commands (`doctor`, `explain`, `version`, `context show`,
   `lifecycle list`, `preset list`, `preset show`, `render --check`, `verify --check`) MUST NOT modify the repository,
-  fire lifecycle events or run actions. Why: agents and CI call read commands freely; a side effect there happens
+  fire lifecycle events or run actions. Why: agents and CI call read commands freely, so a side effect there happens
   without anyone deciding it.
 - The same invocation in the same state gives the same result. Running a mutation twice changes nothing the second
   time and says so, because agents retry and a retry must be safe.
@@ -113,7 +113,7 @@ follow every model change; a tool that competed with them would carry credential
 
 ## 5. Never destroy; always show what will change
 
-Why: a repository is the team's work; a tool that loses part of it is removed and not trusted again
+Why: a repository is the team's work, and a tool that loses part of it is removed and not trusted again
 ([ADR 0007](../adrs/0007-ownership.md)).
 
 - Every mutating command accepts `--dry-run` and prints exactly the change set it would apply, so the change can be
@@ -142,7 +142,7 @@ Why: two ways to do one thing drift apart, and a reader cannot tell which one is
   commands, review guide) in `.agents/`, state at the paths the profile sets
   ([configuration-standards.md](configuration-standards.md#where-files-live)).
 - A repository has one documented front door: either task shims or the wrapper script `./harnessw` (`front_door` in
-  the profile). Both run the same pinned binary; the `AGENTS.md` `commands` block shows only the chosen one, so agents
+  the profile). Both run the same pinned binary. The `AGENTS.md` `commands` block shows only the chosen one, so agents
   and people type the same thing.
 - A skill never re-describes what a command does deterministically; it calls the command
   ([skills-standards.md](skills-standards.md)), because a description drifts from the command it describes.
@@ -154,8 +154,8 @@ trigger, a notification, a call to a service) happens only through a **declared 
 declares on a lifecycle event (`start`, `verified`, `completed`, `deliver`, `landed`, or the out-of-band `blocked`) or
 on an agent notification event (`attention`, `turn_end`). Why: a side effect outside the clone is visible to others and
 hard to undo, so it must be written down, reviewed and guarded before it can happen
-([ADR 0015](../adrs/0015-development-lifecycle.md), [ADR 0019](../adrs/0019-action-kinds.md)). Stages, trigger points
-and the full reference: [lifecycle guide](../features/lifecycle.md).
+([ADR 0015](../adrs/0015-development-lifecycle.md), [ADR 0019](../adrs/0019-action-kinds.md)). The
+[lifecycle guide](../features/lifecycle.md) has the stages, trigger points and full reference.
 
 - **Declared.** Actions live in `.harness/hooks.yaml`. The binary, its presets included, ships no actions, so what
   "deliver" means is decided in the repository, where an organization's delivery convention is written like any other
@@ -169,8 +169,8 @@ and the full reference: [lifecycle guide](../features/lifecycle.md).
 - **Recorded.** Every run appends its event, scope, and each action's name, kind, exit status and duration to the
   lifecycle log, `lifecycle.jsonl` in the state directory of the primary checkout (`.work/lifecycle.jsonl` by
   default). The log never records URLs, headers, bodies or prompts, because they can carry secrets and untrusted
-  text. Dry runs are not recorded. A failing automatic event never changes the exit code of the command that fired it;
-  it is reported on stderr and recorded.
+  text. Dry runs are not recorded. A failing automatic event never changes the exit code of the command that fired it.
+  harness reports it on stderr and records it.
 - **One action, three triggers.** A person runs `harness lifecycle run <event>`; a coordinating agent runs the same
   command; or harness fires the action at the event's trigger point when the action sets `auto: true`. `auto`
   defaults to false, so nothing leaves the clone automatically unless a committed file says so.
@@ -184,21 +184,21 @@ and the full reference: [lifecycle guide](../features/lifecycle.md).
   inherits), never from a committed file.
 - **Agents for agent work.** Work that needs judgement or an MCP tool after an event is an `agent` action or the
   coordinating agent's job; harness never connects to an MCP server itself.
-- **Transparent.** Without the binary no action fires; a person pushes and opens pull requests by hand, exactly as
+- **Transparent.** Without the binary no action fires, and a person pushes and opens pull requests by hand, exactly as
   before adoption.
 
 Permission to run `harness lifecycle run <event>` is permission for everything that event's actions do: the actions
 run as child processes of harness, outside the agent's per-command permission checks. The scaffolded repository policy
 therefore seeds `[harness, lifecycle, run, deliver]` under `ask`, rendered for every rendered spelling (`harness`,
 `./harnessw`, `harnessw` and the task shim). It is a seeded entry: the repository owns it and MAY change it
-([ADR 0015](../adrs/0015-development-lifecycle.md)). The rendered entries are defence in depth: other spellings, such
-as an absolute path to the binary, match no prefix rule, and the guards themselves are enforced by the binary.
+([ADR 0015](../adrs/0015-development-lifecycle.md)). The rendered entries are defence in depth. Other spellings, such
+as an absolute path to the binary, match no prefix rule, and the binary enforces the guards itself.
 
 ## 8. Conventions outlive the tool
 
 Every convention harness establishes is written down as plain-language text where people and other tools already
 look, and stays valid after harness is removed. Why: people, agents, ralph-tui and `bd` rely on where worktrees, task
-files and state live; if those conventions existed only in harness's configuration, removing harness would leave state
+files and state live. If those conventions existed only in harness's configuration, removing harness would leave state
 that follows rules nobody wrote down ([ADR 0018](../adrs/0018-conventions.md)).
 
 - Two classes of managed block carry harness's text in `AGENTS.md`
@@ -254,7 +254,7 @@ Apply them in this order, because each earlier principle protects something hard
 8. Least surprise.
 9. One way to do each thing.
 
-Example: a convenient default that would overwrite a hand-edited file loses to "never destroy"; the command refuses
+Example: a convenient default that would overwrite a hand-edited file loses to "never destroy", so the command refuses
 and names `--force` instead. A shared source that would let an organization change a rule once for all its
 repositories loses to "everything a repository does is in its own files", even though one place for the rule would
-serve "one way to do each thing": the rule is written into each repository instead.
+serve "one way to do each thing". The rule is written into each repository instead.

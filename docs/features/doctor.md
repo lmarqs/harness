@@ -84,9 +84,8 @@ format, `doctor` is where it shows first.
 ### JSON output
 
 `harness doctor --json` prints one JSON document with the findings, the open adoption to-do items, the notes and the
-landed branches,
-each with its check, the path or entry it concerns, a message and the command or edit that resolves it. Agents read
-it to plan the remaining work; nothing in it requires a person to parse prose.
+landed branches, each with its check, the path or entry it concerns, a message and the command or edit that resolves it.
+Agents read it to plan the remaining work; nothing in it requires a person to parse prose.
 
 ## Reference
 
@@ -155,7 +154,7 @@ CI step, after `render --check`:
 - Do fix findings at their source: the repository files, the mise tasks, the globs. `doctor` only reports.
 - Do run `doctor` before launching Ralph in a repository you have not used it in.
 - Do read the `landed` actions with `./harnessw lifecycle list` before running the command `doctor` prints for a landed
-  branch: their automatic actions run.
+  branch, because that command runs their automatic actions.
 - Don't gate CI on `doctor` until the adoption to-do is empty, or every pull request fails for an unrelated reason.
 
 ## Troubleshooting

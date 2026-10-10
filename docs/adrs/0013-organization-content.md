@@ -89,12 +89,12 @@ remove.
 
 ### Shared sources resolved at every render
 
-A repository names shared sources, pinned to a commit, and the tool merges their entries into every render. At its
-best, an organization changes a rule in one place, and each repository takes it with a one-line change of the pinned
-commit. It loses because the rule never appears in the repository it governs (point 2); each repository still reviews
-every move, so only the writing is saved; and merging needs fetching, a per-user cache, recorded commits and override
-rules that a person must learn before they can predict what a repository does. Without the pin, the same commit
-renders differently on different days, and the drift check fails in repositories that changed nothing.
+A repository names shared sources, pinned to a commit, and the tool merges their entries into every render. At its best,
+an organization changes a rule in one place, and each repository takes it with a one-line change of the pinned commit.
+It loses because the rule never appears in the repository it governs (point 2). Each repository still reviews every
+move, so only the writing is saved. Merging needs fetching, a per-user cache, recorded commits and override rules that a
+person must learn before they can predict what a repository does. Without the pin, the same commit renders differently
+on different days, and the drift check fails in repositories that changed nothing.
 
 ### Applied presets recorded in the manifest
 

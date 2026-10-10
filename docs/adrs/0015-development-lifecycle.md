@@ -47,9 +47,9 @@ run reaches a person.
 4. The binary decides when an event fires and enforces the guards that apply to it. The ready-for-delivery event fires
    only for concluded work: committed, with a clean tree, on a branch other than the default branch and, when
    verification is enabled, with a valid proof of verification for the work's base ([0011](0011-safety-invariants.md)).
-5. The repository declares the actions for each event ([0019](0019-action-kinds.md)):
-   run in order, optionally limited to some of the event's scopes, each with a rule for whether its failure stops the
-   remaining actions. The binary ships no actions.
+5. The repository declares the actions for each event ([0019](0019-action-kinds.md)): run in order, optionally limited
+   to some of the event's scopes, each with a rule for whether its failure stops the remaining actions. The binary ships
+   no actions.
 6. Every event can be triggered by a person, by a coordinating agent, or automatically at its trigger point, and every
    trigger runs the same declared actions under the same guards. Automatic triggering applies only to actions that opt
    in to it.
@@ -70,9 +70,9 @@ run reaches a person.
 
 - **1, 3.** The recurring points are common to every change, so one fixed vocabulary serves every repository: actions
   written for one repository carry over to another unchanged, and the shipped documentation describes one lifecycle
-  instead of one per repository. A set that repositories could extend would give
-  each repository its own event names, which is the dialect problem the hand-ported copies show. The trade is that a
-  step that fits no event stays outside the tool.
+  instead of one per repository. A set that repositories could extend would give each repository its own event names,
+  which is the dialect problem the hand-ported copies show. The trade is that a step that fits no event stays outside
+  the tool.
 - **2.** A stop is the moment a person is needed, and in an unattended run it is also the moment nobody is watching.
   Modelling every stop as one event lets a repository attach one notification to all of them instead of configuring
   each cause. It is out of band because it is not a step in the order of a change. It needs no guard beyond the
@@ -102,8 +102,8 @@ run reaches a person.
   applies the guards to the agent's result, so judgement never bypasses them.
 - **11.** Permitting an agent to trigger delivery permits every action declared for it, and those actions run outside
   the agent's per-command checks. Until a team has seen what its delivery actions do, a person confirms each one. The
-  choice is the repository's, not an invariant, because a team that trusts its actions may let its coordinating agent
-  deliver unattended; so the entry is seeded, not built in ([0011](0011-safety-invariants.md)).
+  choice is the repository's and not an invariant, because a team that trusts its actions may let its coordinating agent
+  deliver unattended. The entry is therefore seeded instead of built in ([0011](0011-safety-invariants.md)).
 
 ## Rejected alternatives
 
@@ -111,7 +111,7 @@ run reaches a person.
 
 The binary pushes and opens pull requests through the most common platform's API. At its best, delivery works with no
 configuration for most users. It loses because it binds every release to one platform's API, credentials and
-conventions; organizations with other conventions or another platform still need their own path; and it contradicts
+conventions. Organizations with other conventions or another platform still need their own path, and it contradicts
 [0012](0012-write-boundary.md) and [0013](0013-organization-content.md).
 
 ### Delivery left entirely to agents and skills
@@ -122,9 +122,9 @@ agent has no repeatable path, and nothing runs at a trigger point when no agent 
 
 ### A general plugin system
 
-Plugins hook any point of the binary's operation with their own code. At its best, every extension need is met. It
-loses because plugin code is engine code in repositories ([0006](0006-repository-contract.md)) that may need a runtime
-([0004](0004-runtime-dependencies.md)); an open set of hook points has no guard that covers all of them; and the tool
+Plugins hook any point of the binary's operation with their own code. At its best, every extension need is met. It loses
+because plugin code is engine code in repositories ([0006](0006-repository-contract.md)) that may need a runtime
+([0004](0004-runtime-dependencies.md)). An open set of hook points has no guard that covers all of them, and the tool
 grows into a harness ([0001](0001-role-of-the-tool.md)).
 
 ### Stops reported only in the command's output

@@ -13,9 +13,9 @@ same way. A reader of any documentation page finds what is true now, in the plac
 
 ## Overview
 
-Voice, tone and structure for every text harness produces or ships: CLI messages, hook output, `doctor` findings,
-injected standing context, the harness skill, `harness explain`, managed-block content and the documentation in this
-repository.
+These rules set the voice, tone and structure of every text harness produces or ships: CLI messages, hook output,
+`doctor` findings, injected standing context, the harness skill, `harness explain`, managed-block content and the
+documentation in this repository.
 
 ## Voice
 
@@ -46,8 +46,7 @@ context becomes a wrong action.
 
 ## Error messages
 
-Every error has three parts, in order, because a reader needs to know what broke, why, and what to do, and in that
-order:
+Every error has three parts, in this order, because a reader needs to know what broke, then why, then what to do:
 
 1. **What failed**: the command and the object, with its path or name.
 2. **Why**: the cause in one sentence, with the found and the expected value when they exist.
@@ -76,9 +75,9 @@ harness: wrapper: v1.4.0 refused: the signature of its checksum file does not ve
 harness: v0.9.0 not downloaded, hook skipped; run: ./harnessw version
 ```
 
-The last example is the complete message a rendered hook prints when the pinned version is not in the machine cache.
-The hook exits 0 and the session continues; the next step names `./harnessw`, the explicit entry point that downloads
-the pinned version, because the hook itself never downloads.
+The last example is the complete message a rendered hook prints when the pinned version is not in the machine cache. The
+hook exits 0 and the session continues. The next step names `./harnessw`, the explicit entry point that downloads the
+pinned version, because the hook itself never downloads.
 
 - The next step names a command when one exists, in the documented invocation `./harnessw <command>`
   ([cli-standards.md](cli-standards.md#entry-points)). It never says only "check your configuration", because that
@@ -90,7 +89,7 @@ the pinned version, because the hook itself never downloads.
 
 ## Agent-readable output
 
-- `--json` is the interface for agents and scripts; human text may change wording between releases, JSON fields may
+- `--json` is the interface for agents and scripts. Human text may change wording between releases, but JSON fields may
   not ([cli-standards.md](cli-standards.md#json)). Why: a program that parses prose breaks on the next rewording.
 - Each to-do item and `doctor` finding names the file, the problem and the next action, and is stable across runs for
   the same state, so an agent can track it.
@@ -148,10 +147,10 @@ Every ADR, user-experience standard, feature page and top-level page opens, righ
 - **Problem.** Who has the problem, and what goes wrong for them or what they need and lack.
 - **Goal.** The outcome that holds once the problem is solved, stated so that a reader can tell whether it holds.
 
-The section is a few plain sentences that a reader understands without any data. It names no solution: data,
-examples, design and reference come after it. Why: a reader has to know why a subject is on the table before reading
-how it is handled, or they judge it against a purpose they assumed; and something whose objective nobody can state
-should not exist ([philosophy](../philosophy.md#start-from-the-objective)).
+The section is a few plain sentences that a reader understands without any data. It names no solution: data, examples,
+design and reference come after it. Why: a reader has to know why a subject is on the table before reading how it is
+handled, or they judge it against a purpose they assumed. Something whose objective nobody can state should not exist
+([philosophy](../philosophy.md#start-from-the-objective)).
 
 The Objective section holds only those two parts. What the document is and what it covers follows under its own
 heading: `## Overview` on a features page or a standard, `## Context` in an ADR. Why: a reader scanning the outline,
@@ -182,8 +181,9 @@ A section with no content is omitted rather than left empty.
   control keeps the past.
 - Each page stands alone: define a term on first use or link it to the [glossary](../features/glossary.md), because
   readers arrive from search and links, not from page one.
-- Relative links between pages. Tables for reference material. Fenced code blocks with a language tag for commands,
-  YAML and output.
+- Pages link to each other with relative links, use tables for reference material, and put commands, YAML and output in
+  fenced code blocks with a language tag, because a relative link keeps working wherever the pages are read, a table is
+  where a reader looks up a value, and a tagged block renders and copies exactly as written.
 - No organization names in examples or in content harness carries; examples use `acme` for an organization and
   `acme/api` for a repository, because harness is open source and its docs must fit any organization. Third-party
   products (Claude Code, Codex, GitHub, the `skills` CLI, Harness.io) are named where their behaviour matters, because

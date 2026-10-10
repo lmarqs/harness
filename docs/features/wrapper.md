@@ -13,16 +13,16 @@ nothing installed beforehand, and a release runs only if its publisher signed it
 
 ## Overview
 
-`harnessw` is a POSIX `sh` script committed at the root of every adopted repository. It runs the `harness` release
-the repository pins in `.harness/wrapper.yaml`: the first time a machine needs that release, the wrapper downloads it
-over HTTPS, checks its sha256 against the pinned checksum, caches it and runs it; afterwards it runs it from the cache,
+`harnessw` is a POSIX `sh` script committed at the root of every adopted repository. It runs the `harness` release the
+repository pins in `.harness/wrapper.yaml`. The first time a machine needs that release, the wrapper downloads it over
+HTTPS, checks its sha256 against the pinned checksum, caches it and runs it. Afterwards it runs it from the cache,
 offline. People, agents, task shims and agent hooks all reach `harness` through it, so every machine runs the same
 release in a given repository, and nobody installs anything to work in one.
 
-`.harness/wrapper.yaml` is the only place a repository pins `harness`. It is owned content: the manifest records it,
-and a hand edit is drift. Every change to that pin is verified by a `harness` binary against the release's signed
-checksum file before it is written, so trust passes from the first binary a person installs to every release the
-repository later moves to ([trust chain](#the-trust-chain)).
+`.harness/wrapper.yaml` is the only place a repository pins `harness`. It is owned content: the manifest records it, and
+a hand edit is drift. A `harness` binary verifies every change to that pin against the release's signed checksum file
+before the change is written, so trust passes from the first binary a person installs to every release the repository
+later moves to ([trust chain](#the-trust-chain)).
 
 Examples on this page run commands as `./harnessw <command>`; with a
 [global install](installation.md#global-install-optional), `harness <command>` is equivalent.
@@ -75,11 +75,11 @@ Every invocation follows the same steps:
 
 `exec` hands the process over: standard input, output, error and the exit code are those of `harness`.
 
-The checksum is checked once, when the binary is downloaded; afterwards the wrapper trusts the cached file. The
-wrapper checks only the sha256 against `wrapper.yaml`; it never checks signatures, so it needs no signature tool.
-Signatures are checked by `harness` binaries, when a pin is written ([the trust chain](#the-trust-chain)). The cache
-is per user and shared by every repository on the machine, so two repositories that pin the same release share one
-binary. The pinned version changes only through a commit, so a cached release never needs a network check.
+The wrapper checks the checksum once, when it downloads the binary, and afterwards trusts the cached file. It checks
+only the sha256 against `wrapper.yaml` and never checks signatures, so it needs no signature tool. `harness` binaries
+check signatures when they write a pin ([the trust chain](#the-trust-chain)). The cache is per user and shared by every
+repository on the machine, so two repositories that pin the same release share one binary. The pinned version changes
+only through a commit, so a cached release never needs a network check.
 
 ### Which entry points download
 
@@ -117,7 +117,7 @@ A global `harness` (one on your PATH) looks for `.harness/wrapper.yaml` in the r
 | A repository whose `wrapper.yaml` pin of another version is [pending](#a-pending-pin) | execs the pinned release from the cache; when it is not cached, runs `harness wrapper` itself, which completes the pin, and exits 3 naming that command for anything else |
 | Anywhere else | runs itself |
 
-A global install is a convenience, never a source of version skew: within one repository every machine runs the
+A global install is a convenience and never causes version skew, because within one repository every machine runs the
 pinned release.
 
 The name `harness` is also used by another product's CLI. `./harnessw` always runs the pinned binary from its own
@@ -192,8 +192,8 @@ source: https://artifacts.acme.internal/harness/releases
 ```
 
 The mirror needs no trust of its own. `harness wrapper` verifies a release's signed checksum file with the keys the
-running binary embeds before it pins it, and the update check, `harness wrapper` without flags and `--latest` verify
-the newest release's signed checksum file before they name it, so a host cannot offer a release its publisher did not
+running binary embeds before it pins it. The update check, `harness wrapper` without flags and `--latest` verify the
+newest release's signed checksum file before they name it. A host therefore cannot offer a release its publisher did not
 sign.
 
 ### A pending pin
@@ -252,13 +252,13 @@ checksums:
 | `source` | string | `github:lmarqs/harness` | Where releases are downloaded from: `github:<owner>/<repo>`, shorthand for `https://github.com/<owner>/<repo>/releases`, or an HTTPS base URL laid out the same way ([release source](#release-source)) |
 | `checksums` | map, or `pending` | required | The sha256 of the release binary for each platform, 64 hexadecimal characters each: `linux-amd64`, `linux-arm64`, `darwin-amd64`, `darwin-arm64`. `pending` when `scaffold --offline` wrote the pin: no download is admitted until `harness wrapper --version <tag>` completes it ([a pending pin](#a-pending-pin)) |
 
-[`harness scaffold`](scaffold.md) writes the file and [`harness wrapper`](#harness-wrapper) rewrites it, always with
-`version` and `checksums` from the same release's signed checksum file, verified first
-([the trust chain](#the-trust-chain)), or, with `scaffold --offline`, with `checksums: pending`. It is owned content,
-recorded in the manifest, committed and never ignored; its first line is the generated header. `harnessw` reads it with
-plain `sh`, so the file keeps this flat shape: one key per line, no anchors, no flow style. Change it through
-`harness wrapper`, not by hand: a hand edit is drift, and `harness doctor` reports checksums that differ from the
-release's signed checksum file.
+[`harness scaffold`](scaffold.md) writes the file and [`harness wrapper`](#harness-wrapper) rewrites it. Both always
+take `version` and `checksums` from the same release's signed checksum file and verify that file first
+([the trust chain](#the-trust-chain)); the one exception is `scaffold --offline`, which writes `checksums: pending`. It
+is owned content, recorded in the manifest, committed and never ignored; its first line is the generated header.
+`harnessw` reads it with plain `sh`, so the file keeps this flat shape: one key per line, no anchors, no flow style.
+Change it through `harness wrapper`, not by hand: a hand edit is drift, and `harness doctor` reports checksums that
+differ from the release's signed checksum file.
 
 ### `harnessw`
 
@@ -363,10 +363,10 @@ Rendered output depends on the sources and on the release that renders them, and
 reviewers see the release and its effect in one pull request, and the drift check, which always runs as the pinned
 release, finds nothing to report on it.
 
-Explicit commands print one line on stderr, and `harness doctor` a note, when a release newer than the pin exists:
-checked at most once per day, cached, never blocking, and never shown in an agent session. The line names the
-command, such as `./harnessw wrapper --version v0.10.0`; `HARNESS_NO_UPDATE_CHECK=1` turns the check off
-([installation](installation.md#update-notice)).
+When a release newer than the pin exists, explicit commands print one line on stderr and `harness doctor` prints a note.
+The check runs at most once per day and its result is cached; it never blocks, and nothing is shown in an agent session.
+The line names the command, such as `./harnessw wrapper --version v0.10.0`; `HARNESS_NO_UPDATE_CHECK=1` turns the check
+off ([installation](installation.md#update-notice)).
 
 ### Many repositories
 
@@ -432,9 +432,9 @@ install -m 0755 ./harness "$dir/harness"
   checksum committed in `wrapper.yaml`. A mismatch deletes the download and exits 1, so a changed release asset, a
   rewriting proxy or a hand-edited `version` cannot run.
 - **Review the pin.** An upgrade's diff of `.harness/wrapper.yaml` is a dependency bump: `version` and every checksum
-  change together, the tag is one you meant to adopt, and `source` did not move. A `source` change points the
-  repository at another host; a mirror serves the same signed files, so the embedded keys verify it exactly like the
-  project's own release host, and a host serving anything else is refused.
+  change together, the tag is one you meant to adopt, and `source` did not move. A `source` change points the repository
+  at another host. A mirror serves the same signed files, so the embedded keys verify it exactly like the project's own
+  release host, and a host serving anything else is refused.
 - **`harness doctor`**, when online, re-verifies the pinned release's signed checksum file against `wrapper.yaml` and
   reports a difference, so a hand-edited checksum does not stay unnoticed.
 - **`harnessw` is owned.** `harness render --check` and `harness doctor` report any difference from the pinned

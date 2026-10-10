@@ -95,13 +95,13 @@ stays the team's.
 
 ### Integrate with the issue tracker
 
-Synchronise tasks and post progress. At its best, the team gets one view of all work. It loses because it makes the
-tool a second writer to the team's record, which people and agents already write under the team's permissions.
+The tool synchronises tasks and posts progress. At its best, the team gets one view of all work. It loses because it
+makes the tool a second writer to the team's record, which people and agents already write under the team's permissions.
 
 ### Built-in pull-request creation on a person's request
 
 At its best, the common case works with no configuration. It loses because it puts one hosting platform's API,
-credentials and conventions in the binary; organizations that deliver differently still need their own path; and two
+credentials and conventions in the binary. Organizations that deliver differently still need their own path, and two
 delivery paths exist where one suffices.
 
 ### Normalise third-party state on adoption

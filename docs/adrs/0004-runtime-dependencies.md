@@ -39,18 +39,18 @@ no hook fails for lack of a runtime.
 ## Reasons
 
 - **1.** The survey shows no runtime that every repository shares. Requiring one turns adoption into an installation
-  project and adds a setup step to every CI job that runs a check; a mismatched interpreter breaks hooks inside agent
+  project and adds a setup step to every CI job that runs a check. A mismatched interpreter breaks hooks inside agent
   sessions. git is the one program the tool cannot work without and that every clone already has. The trade: git is a
   hard dependency.
 - **2.** A statically linked Linux binary runs on every distribution and in minimal containers, so CI can use it by
   downloading one file. On macOS the system library is the only supported way to reach the kernel, so linking it adds
   no dependency a macOS machine lacks.
 - **3.** Reimplementing a third-party tool duplicates a specification another project owns and changes. Delegation keeps
-  that behaviour correct as the third-party tool evolves; reporting the item as pending, instead of installing a
+  that behaviour correct as the third-party tool evolves. Reporting the item as pending, instead of installing a
   runtime, leaves each machine's runtimes to its owner. The trade: those capabilities stay pending on machines without
   the runtime.
 - **4.** The repository's commands are its own data ([0006](0006-repository-contract.md)) and the harnesses are the
-  user's choice ([0001](0001-role-of-the-tool.md)); counting them as the binary's dependencies would make its
+  user's choice ([0001](0001-role-of-the-tool.md)). Counting them as the binary's dependencies would make its
   requirements unbounded.
 - **5.** The wrapper runs before any binary exists on the machine, so it can rely only on what a POSIX system provides.
   Once the binary runs, it uses none of those tools, so point 1 stays true of the binary.

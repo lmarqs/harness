@@ -55,8 +55,8 @@ value written by people or agents runs as a command or instruction it was not me
 
 - **1.** The moments a person acts on are when an agent waits for them and when it finishes; attaching actions there
   covers the common notification needs with the same declaration format, value rules and secret rules as lifecycle
-  actions, instead of a second mechanism. Only these two events, because the others fire many times per turn and would
-  turn a notification into noise.
+  actions, instead of a second mechanism. Actions attach to only these two events because the others fire many times per
+  turn and would turn a notification into noise.
 - **2.** The three kinds follow the division of [0002](0002-division-of-work.md): deterministic local work is a
   command, a deterministic remote call is an HTTP request, and work that needs judgement is an agent run. Exactly one
   kind per action keeps the rules that apply to each action unambiguous.
@@ -69,11 +69,11 @@ value written by people or agents runs as a command or instruction it was not me
   status is the protocol's own success signal. A redirect to another host would send the request, and possibly its
   headers, to a host the declaration never named.
 - **5.** Judgement belongs to an agent ([0002](0002-division-of-work.md)), and the tool starts a harness rather than
-  calling a model ([0001](0001-role-of-the-tool.md)). The prompt can carry untrusted text, so the agent may be misled;
-  the unattended-agent contract bounds what a misled agent can do, and denying commits, pushes and events keeps an
+  calling a model ([0001](0001-role-of-the-tool.md)). The prompt can carry untrusted text, so the agent may be misled.
+  The unattended-agent contract bounds what a misled agent can do, and denying commits, pushes and events keeps an
   action's agent from publishing work or starting further actions. Uncommitted, reported edits leave the result to a
   person. Once work has landed, its task working copy is about to be removed and the primary checkout holds whatever a
-  person is doing; a fresh, recorded working copy gives the agent the merged code without touching either, and its
+  person is doing. A fresh, recorded working copy gives the agent the merged code without touching either, and its
   record lets cleanup remove it later ([0012](0012-write-boundary.md)).
 - **6.** An agent run on a notification event would start a harness from inside a harness at every turn end, an
   unbounded cost and a loop nobody watches. Commands and HTTP requests are enough to notify a person.
@@ -81,11 +81,11 @@ value written by people or agents runs as a command or instruction it was not me
   and a varying result. Requiring an explicit opt-in, and reporting automatic agent runs, keeps that cost a visible
   choice of the repository.
 - **8.** A tool-server client in the binary would hold service credentials and follow a moving protocol, and the tool
-  would act as a harness ([0001](0001-role-of-the-tool.md)). The coordinating agent, or an agent run, already owns
-  those connections and credentials; deterministic integrations reach the service through its API (an HTTP request) or
-  its command-line client (a command).
-- **9.** The record lives in the clone's state, which agents read. URLs, headers and bodies carry secrets and prompts
-  carry untrusted text; the name, kind, status and duration are enough to audit what ran.
+  would act as a harness ([0001](0001-role-of-the-tool.md)). The coordinating agent, or an agent run, already owns those
+  connections and credentials. Deterministic integrations reach the service through its API (an HTTP request) or its
+  command-line client (a command).
+- **9.** The record lives in the clone's state, which agents read. URLs, headers and bodies carry secrets, and prompts
+  carry untrusted text. The name, kind, status and duration are enough to audit what ran.
 
 ## Rejected alternatives
 
@@ -100,7 +100,7 @@ lines that other processes can read.
 
 At its best, actions call the same tools agents use, deterministically and without the cost of an agent run. It loses
 because the binary would hold service credentials and a protocol client that follows a moving specification, and the
-tool would act as a harness ([0001](0001-role-of-the-tool.md)); an agent already owns those connections.
+tool would act as a harness ([0001](0001-role-of-the-tool.md)). An agent already owns those connections.
 
 ### A plugin system for integrations
 

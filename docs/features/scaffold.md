@@ -42,8 +42,8 @@ finds nothing to import and behaves like a plain scaffold.
 
 ### Greenfield
 
-1. **Detect.** The stacks from marker files, the default branch from `origin/HEAD`, whether mise is configured. A
-   `.harness/` directory that holds neither a `harness` profile nor a manifest belongs to another tool: `scaffold`
+1. **Detect.** Find the stacks from marker files, the default branch from `origin/HEAD`, and whether mise is configured.
+   A `.harness/` directory that holds neither a `harness` profile nor a manifest belongs to another tool: `scaffold`
    stops with exit 3 and names it, before planning anything.
 2. **Plan.** Build the list of files, blocks and links to write. With `--dry-run`, print it and stop.
 3. **Confirm.** Show the plan and ask. `--yes` skips the question. Without a terminal and without `--yes`, nothing is
@@ -51,9 +51,9 @@ finds nothing to import and behaves like a plain scaffold.
 4. **Seed** the repository files, once:
    - `.harness/config.yaml`: its skeleton, plus the detected stacks' preset entries (commands, lanes, validators,
      module switches);
-   - `.harness/policy.yaml` with one seeded entry, `[harness, lifecycle, run, deliver]` under `shared.ask`, rendered
-     for each spelling `harness` renders, so the agent's own permission prompt asks a person before an agent
-     runs the repository's delivery actions; it is a seeded entry the repository owns and may change
+   - `.harness/policy.yaml` with one seeded entry, `[harness, lifecycle, run, deliver]` under `shared.ask`, rendered for
+     each spelling `harness` renders, so the agent's own permission prompt asks a person before an agent runs the
+     repository's delivery actions. The repository owns this seeded entry and may change it
      ([policy](policy.md#the-seeded-entry), [ADR 0015](../adrs/0015-development-lifecycle.md));
    - `.harness/hooks.yaml`: its skeleton, plus the presets' post-edit hooks, with no `lifecycle` actions: the binary
      ships none;
@@ -83,11 +83,12 @@ seeds, with the same rules as [`harness preset apply`](presets.md#how-apply-work
 | `terraform` | `*.tf` files | format command, `validate` and `plan` lanes, a format-on-edit hook, `modules.ralph: false` |
 | `python` | `pyproject.toml` or `requirements.txt` | lint command, a test lane, a lint-on-edit hook |
 
-A polyglot repository gets the presets of every detected stack, applied in the order of this table: their lanes and
-hooks side by side, and, for an item both name, such as `commands.lint`, the first preset's entry, with the other
-reported as kept. `--preset <name>` replaces detection with one preset, and `--preset none` applies none. A repository
-whose stack is not recognised gets no preset: the seeded files hold their skeleton and the seeded delivery `ask` entry
-only.
+A polyglot repository gets the presets of every detected stack, applied in the order of this table. Their lanes and
+hooks sit side by side. For an item both name, such as `commands.lint`, the repository gets the first preset's entry,
+and the other preset's differing entry is reported, as [`preset apply`](presets.md#how-apply-works) reports every
+difference it does not write. `--preset <name>` replaces detection with one preset, and `--preset none` applies none. A
+repository whose stack is not recognised gets no preset: the seeded files hold their skeleton and the seeded delivery
+`ask` entry only.
 
 The applied entries are the repository's from the moment they are written, and nothing records which presets were
 applied. A stack the repository gains later gets its entries with `./harnessw preset apply <name>`.
@@ -389,11 +390,11 @@ to-do:
 - Do commit the scaffold as its own commit, so later changes to the repository files are reviewable on their own.
 - Do complete a pending pin before you push: until then, no machine without the release in its cache can run
   `./harnessw`.
-- Do review the seeded lanes and commands: presets guess from the stack, the repository knows its real commands.
+- Do review the seeded lanes and commands: presets guess from the stack, while the repository knows its real commands.
 - Do give the to-do to an agent with the harness skill; it is written for that.
 - Do import `local` or `user` only when those settings are meant for everyone, and review each entry they bring.
-- Don't run `scaffold` again to "refresh" a repository: edit the repository files and run `./harnessw render`; to
-  add a stack's entries, run `./harnessw preset apply <name>`; to move to another release, run `./harnessw wrapper`.
+- Don't run `scaffold` again to "refresh" a repository. Edit the repository files and run `./harnessw render`. To add a
+  stack's entries, run `./harnessw preset apply <name>`. To move to another release, run `./harnessw wrapper`.
 - Don't hand-edit rendered files to finish an adoption; the next render overwrites them and `render --check` fails.
 
 ## Troubleshooting

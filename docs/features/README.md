@@ -12,13 +12,13 @@ and can find the page for any part of it.
 
 ## Overview
 
-`harness` is a command-line tool that sets up, constrains and checks the environment coding agents work in. It
-writes the permission rules, hooks and instructions that Claude Code and Codex read; it gives people and agents the
-same commands for task worktrees, verification receipts and local task tracking; and it launches unattended
-[Ralph](ralph.md) runs whose workers cannot bypass permissions or claim work they did not verify. It fires
-[development lifecycle](lifecycle.md) events at fixed points, so what a repository declares (a push, a pull request,
-a cleanup) happens at the same moment for people and agents. It never calls a model, never writes knowledge such as
-prose, memory or domain skills, and contains no logic for any hosting platform.
+`harness` is a command-line tool that sets up, constrains and checks the environment coding agents work in. It writes
+the permission rules, hooks and instructions that Claude Code and Codex read. It gives people and agents the same
+commands for task worktrees, verification receipts and local task tracking. It launches unattended [Ralph](ralph.md)
+runs whose workers cannot bypass permissions or claim work they did not verify. It fires
+[development lifecycle](lifecycle.md) events at fixed points, so what a repository declares (a push, a pull request, a
+cleanup) happens at the same moment for people and agents. It never calls a model, never writes knowledge such as prose,
+memory or domain skills, and contains no logic for any hosting platform.
 
 ## The game master
 

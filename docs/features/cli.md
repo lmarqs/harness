@@ -12,8 +12,8 @@ environment changes it, without reading the feature pages.
 
 ## Overview
 
-Every `harness` command, flag, exit code and environment variable on one page. Each command links to its feature page
-for behaviour and examples.
+Every `harness` command, flag, exit code and environment variable is on this page. Each command links to its feature
+page for behaviour and examples.
 
 In an adopted repository every command runs through the committed [wrapper](wrapper.md), as `./harnessw <command>`,
 which runs the release the repository pins; with a global install, `harness <command>` is equivalent. Synopses on this
@@ -58,10 +58,10 @@ harness version [--check-update]
 ./harnessw [--no-download] <command> [args...]
 ```
 
-`harnessw` resolves the release pinned in `.harness/wrapper.yaml`, downloads and verifies it when it is not cached,
-and execs `harness` with the remaining arguments. `--no-download`, which must come first, runs only a cached release:
-when none is cached it prints one line naming `./harnessw` on stderr, and for `hook session-start` also one line of
-agent context on stdout, then exits 0. Rendered agent hooks use it.
+`harnessw` resolves the release pinned in `.harness/wrapper.yaml`, downloads and verifies it when it is not cached, and
+execs `harness` with the remaining arguments. `--no-download`, which must come first, runs only a cached release. When
+none is cached, it prints one line naming `./harnessw` on stderr, and for `hook session-start` also one line of agent
+context on stdout, then exits 0. Rendered agent hooks use it.
 
 | Exit code | Meaning |
 | --- | --- |
@@ -85,7 +85,7 @@ release, downloading it through the same verified path only when the command was
 | `--verbose` | every command | Print each command `harness` runs and why |
 
 Commands never prompt without a terminal: where confirmation is needed and `--yes` is absent, they stop with exit 3.
-`harness lifecycle run` never asks for confirmation; the gate for agents is the policy
+`harness lifecycle run` never asks for confirmation. The gate for agents is the policy
 ([the seeded entry](policy.md#the-seeded-entry)), and inside a Ralph worker the binary refuses it whatever the policy
 says.
 
@@ -106,10 +106,10 @@ Inside a Ralph worker nothing fires.
 
 Some commands fire a [lifecycle event](lifecycle.md) when they succeed, which runs the actions the repository declares
 with `auto: true`. The command's own work stands whatever the actions do: a written receipt stays written, a completed
-task stays completed. A failing automatic event never changes the exit code of the command that fired it: it is
-reported on stderr and recorded in `.work/lifecycle.jsonl` in the primary checkout; `harness lifecycle run <event>`
-retries it. When the work is not concluded (uncommitted changes, the default branch, or no valid receipt when the
-verify module is enabled), the automatic `deliver` does not fire, and the command says which condition is unmet.
+task stays completed. A failing automatic event never changes the exit code of the command that fired it. It is reported
+on stderr and recorded in `.work/lifecycle.jsonl` in the primary checkout, and `harness lifecycle run <event>` retries
+it. When the work is not concluded (uncommitted changes, the default branch, or no valid receipt when the verify module
+is enabled), the automatic `deliver` does not fire, and the command says which condition is unmet.
 
 | Command | Fires |
 | --- | --- |
@@ -197,11 +197,10 @@ Variables that configure `harnessw` and `harness`:
 | `HARNESS_NO_CONTEXT=1` | `harness hook` | Inject no [standing context](context.md) in this environment and every process started from it; `static` entries in `AGENTS.md` stay |
 | `HARNESS_WORKER=1` | `harness` | Set by the Ralph worker launcher and for `agent` actions, never by hand: selects the `worker` role for standing context, makes the binary refuse `harness lifecycle run`, and keeps every command from firing events |
 
-Set for lifecycle actions, on top of the environment of the process that fires the event. Values reach actions only
-through these variables: `run` commands read them as shell variables, and `http` and `agent` actions expand `$NAME`
-in their body or prompt ([action kinds](lifecycle.md#action-kinds)); `harness` never substitutes a value into a
-command string. A variable that does not apply is unset; see [lifecycle](lifecycle.md#environment) for when each is
-set.
+Lifecycle actions receive these variables, on top of the environment of the process that fires the event. Values reach
+actions only through these variables. `run` commands read them as shell variables, and `http` and `agent` actions expand
+`$NAME` in their body or prompt ([action kinds](lifecycle.md#action-kinds)). `harness` never substitutes a value into a
+command string. A variable that does not apply is unset; see [lifecycle](lifecycle.md#environment) for when each is set.
 
 | Variable | Value |
 | --- | --- |
@@ -222,7 +221,8 @@ set.
 An `http` action reads its URL and header values from the variables its `url_env` and `headers_env` name, so secrets
 stay out of committed files; `harness` never logs those values.
 
-Set for [notification hooks](hooks.md), the `attention` and `turn_end` actions in `.harness/hooks.yaml`:
+[Notification hooks](hooks.md), the `attention` and `turn_end` actions in `.harness/hooks.yaml`, receive these
+variables:
 
 | Variable | Value |
 | --- | --- |

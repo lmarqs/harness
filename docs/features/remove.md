@@ -42,8 +42,8 @@ differently ([ADR 0007](../adrs/0007-ownership.md)). **Owned** content is what `
 files are the ones `harness` wrote once and the repository has owned since: `.harness/config.yaml`,
 `.harness/policy.yaml` and `.harness/hooks.yaml`, from `scaffold`, and the `.agents/memory/` skeleton, from `scaffold`
 or the first `render` after the memory module was turned on. The manifest records each with the hash it was created
-with. Managed blocks are owned, and each is
-either a convention block or a tool block ([block ids](render.md#block-ids)).
+with. Managed blocks are owned, and each is either a convention block or a tool block
+([block ids](render.md#block-ids)).
 
 | What | `remove` (undo) | `remove --eject` |
 | --- | --- | --- |
@@ -67,13 +67,13 @@ Neither mode touches `settings.local.json`, user-level settings, or anything `ha
 
 ## How it works
 
-Both modes show what they will delete and rewrite, and ask before doing it; `--yes` skips the question, and without
-a terminal and without `--yes` they stop with exit 3. Both start the same way:
+Both modes show what they will delete and rewrite, and ask before doing it. `--yes` skips the question, and without a
+terminal and without `--yes` they stop with exit 3. Both start the same way:
 
 1. Read the manifest.
-2. Check each owned path's hash. A path whose content changed since the last render is refused, and the command
-   stops before deleting anything; `--force` goes ahead anyway. Seeded files belong to the repository, so an edit to
-   one is expected and never refused.
+2. Check each owned path's hash. A path whose content changed since the last render is refused, and the command stops
+   before deleting anything. `--force` goes ahead anyway. Seeded files belong to the repository, so an edit to one is
+   expected and never refused.
 
 ### Undo
 
@@ -99,9 +99,9 @@ Entries the repository added after adoption leave with `.harness/policy.yaml`; t
 3. Remove the markers of every convention block; its text, and every `.gitignore` entry, stays where it is.
 4. Remove every tool block, markers and text. These blocks describe `harness` commands, which do not exist after an
    eject.
-5. Keep the rendered native files and owned keys as hand-owned content, and remove their generated headers. Remove
-   every hook entry that runs `harnessw`, the Codex `notify` key when it does, and every permission entry that names a
-   `harness` command in any rendered spelling, and list them; `raw` hooks stay.
+5. Keep the rendered native files and owned keys as hand-owned content, and remove their generated headers. Remove every
+   hook entry that runs `harnessw`, the Codex `notify` key when it does, and every permission entry that names a
+   `harness` command in any rendered spelling, and list them. `raw` hooks stay.
 6. Delete the task shims that exec `harnessw` and list them; keep any task that does not.
 7. Delete the harness skill and its links, `harnessw`, and the owned and seeded files in `.harness/`, the manifest
    included; then `.harness/` once nothing else is in it.

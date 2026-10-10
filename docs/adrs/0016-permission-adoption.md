@@ -84,8 +84,8 @@ keeping its rules.
 
 The tool renders its rules and leaves people's native rules where they are. At its best, nothing is translated and
 nothing is lost. It loses because Claude Code's project settings hold one permission list per kind with no include
-mechanism ([0008](0008-native-configuration.md)), so two writers share one key; rules live in two places; the drift
-check cannot cover the hand-owned half; and reviewing the policy means reading several files.
+mechanism ([0008](0008-native-configuration.md)), so two writers share one key. Rules then live in two places, the drift
+check cannot cover the hand-owned half, and reviewing the policy means reading several files.
 
 ## Consequences
 

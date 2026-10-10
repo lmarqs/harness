@@ -61,10 +61,10 @@ first command works with nothing installed beforehand.
    caching anything, and then executes it with the caller's arguments. Once cached, it runs offline.
 5. Implicit entry points never download. An agent hook calls the wrapper in a mode that runs only a cached binary; when
    none is cached, the hook writes one line on stderr naming the wrapper and exits successfully, and the session-start
-   hook also tells the agent once per session that the pinned release is not cached on this machine and how to fetch
-   it. The wrapper writes both lines itself, because no binary is present to write them. An
-   explicit entry point that cannot obtain or verify the pinned binary exits non-zero, so an absent check is never
-   reported as a passing one ([0010](0010-dependence-on-the-binary.md)).
+   hook also tells the agent once per session that the pinned release is not cached on this machine and how to fetch it.
+   The wrapper writes both lines itself, because no binary is present to write them. An explicit entry point that cannot
+   obtain or verify the pinned binary exits non-zero, so an absent check is never reported as a passing one
+   ([0010](0010-dependence-on-the-binary.md)).
 6. An environment override makes the wrapper execute a binary at a given path instead, for machines without network
    access and for development of the tool itself.
 7. A global installation is optional. Inside a repository whose pin names a different release, a globally installed
@@ -100,9 +100,10 @@ first command works with nothing installed beforehand.
   per-user cache costs the network once per release per machine; every later run is offline.
 - **2.** One exact release per repository makes every machine, every pipeline and the committed artefacts agree, so the
   drift check gives the same answer everywhere. Per-platform checksums let the wrapper verify what it downloads without
-  trusting the download host alone. One place, because two pins drift apart after the first upgrade that touches only
-  one. The pin is owned, not seeded: its checksums are worth something only if an admitted release verified them
-  ([0021](0021-release-trust.md)), so a hand edit has to show as drift instead of becoming the repository's choice.
+  trusting the download host alone. The pin exists in one place because two pins drift apart after the first upgrade
+  that touches only one. The pin is owned, not seeded: its checksums are worth something only if an admitted release
+  verified them ([0021](0021-release-trust.md)), so a hand edit has to show as drift instead of becoming the
+  repository's choice.
 - **3.** A new release can change rendering and migrate schemas ([0005](0005-schema-compatibility.md)). An explicit,
   reviewed upgrade lands that change in one diff, instead of whenever a teammate's machine updates. Requiring an
   admitted release ([0021](0021-release-trust.md)) means the committed checksums are ones an already trusted binary
@@ -136,52 +137,52 @@ first command works with nothing installed beforehand.
   notice learn about a release and verify it in one request, so a compromised host cannot advertise an unsigned
   release.
 - **13.** A binary cannot carry its own checksums, so an adoption that cannot reach the release source cannot verify
-  them, and refusing it would block adoption on every machine that is offline or reaches neither the release host nor
-  a mirror, although nothing else in adoption needs the network. A pending pin defers the verification without
-  skipping it: no download happens against it, so it fails closed, and its cost is availability on machines that lack
-  the release, never an unverified binary. A release already in the cache was verified against a committed checksum
-  when it was downloaded (point 4), so running it under a pending pin trusts nothing new. Writing a pending pin only on
-  request keeps a network failure from producing, unnoticed, a pin that other machines cannot use. Completing it
-  through the upgrade operation keeps one operation that writes checksums, so every committed checksum is one a
-  trusted binary verified ([0021](0021-release-trust.md)). A global installation runs that operation itself because
-  deferring to a release nobody can obtain would leave the pin with no way to be completed; the binary that runs it is
-  one the person already trusts, and it verifies the release with its embedded keys before writing. An upgrade never
-  pends, because the repository keeps its verified pin while it waits for the network. Reporting a pending pin as a
-  finding lets a pipeline that runs the health check stop a pin that other machines cannot use.
+  them. Refusing such an adoption would block it on every machine that is offline or reaches neither the release host
+  nor a mirror, although nothing else in adoption needs the network. A pending pin defers the verification without
+  skipping it. No download happens against it, so it fails closed: its cost is availability on machines that lack the
+  release, never an unverified binary. A release already in the cache was verified against a committed checksum when it
+  was downloaded (point 4), so running it under a pending pin trusts nothing new. Writing a pending pin only on request
+  keeps a network failure from producing, unnoticed, a pin that other machines cannot use. Completing it through the
+  upgrade operation keeps one operation that writes checksums, so every committed checksum is one a trusted binary
+  verified ([0021](0021-release-trust.md)). A global installation runs that operation itself because deferring to a
+  release nobody can obtain would leave the pin with no way to be completed; the binary that runs it is one the person
+  already trusts, and it verifies the release with its embedded keys before writing. An upgrade never pends, because the
+  repository keeps its verified pin while it waits for the network. Reporting a pending pin as a finding lets a pipeline
+  that runs the health check stop a pin that other machines cannot use.
 
 ## Rejected alternatives
 
 ### Global installation only
 
 One installation per machine serves every repository. At its best, no repository carries a script or a pin, a release
-costs no change in any repository, and no first run needs the network. It loses because releases skew between
-machines, pipelines and the rendered repository, so the drift check passes on one machine and fails on another; a
-teammate with an older binary is refused by a newer schema ([0005](0005-schema-compatibility.md)) until they update;
-every CI job chooses its own release; and a newcomer installs the tool before the first command works.
+costs no change in any repository, and no first run needs the network. It loses because releases skew between machines,
+pipelines and the rendered repository, so the drift check passes on one machine and fails on another. A teammate with an
+older binary is refused by a newer schema ([0005](0005-schema-compatibility.md)) until they update, every CI job chooses
+its own release, and a newcomer installs the tool before the first command works.
 
 ### Pin through a task runner's tool list
 
 The repository lists the tool and its version in the tool list of the task runner it already uses, and the task runner
 installs and selects that version. At its best, there is no new script and no new file, and the pin sits beside the
 repository's other tool versions. It loses because the pin reaches only machines where that task runner is installed,
-which excludes the 12 of 51 surveyed repositories that do not use it ([0004](0004-runtime-dependencies.md)); agent
-hooks get the pinned version only when the task runner's activation is present in the agent's environment; and pinning
-depends on a third-party tool.
+which excludes the 12 of 51 surveyed repositories that do not use it ([0004](0004-runtime-dependencies.md)). Agent hooks
+get the pinned version only when the task runner's activation is present in the agent's environment, and pinning depends
+on a third-party tool.
 
 ### Vendored binary in the repository
 
-The repository commits the binary for each platform. At its best, a clone runs the pinned version offline from its
-first command, with no download, cache or checksum step. It loses because every release adds four platform binaries
-([0003](0003-implementation-language.md)) to the permanent history of every repository; a change to a binary cannot be
-reviewed as a diff; and the repository carries engine content ([0006](0006-repository-contract.md)).
+The repository commits the binary for each platform. At its best, a clone runs the pinned version offline from its first
+command, with no download, cache or checksum step. It loses because every release adds four platform binaries
+([0003](0003-implementation-language.md)) to the permanent history of every repository. A change to a binary cannot be
+reviewed as a diff, and the repository carries engine content ([0006](0006-repository-contract.md)).
 
 ### Container image
 
-The repository names an image that contains the pinned binary, and entry points run the tool inside it. At its best,
-the image pins the binary and its environment together, and CI systems that run jobs in images use it directly. It
-loses because every machine needs a container runtime ([0004](0004-runtime-dependencies.md)); a container start
-measured 565 to 875 ms against the 50 ms hook budget ([0003](0003-implementation-language.md)); and the tool must reach
-the working tree and the git state from inside the container.
+The repository names an image that contains the pinned binary, and entry points run the tool inside it. At its best, the
+image pins the binary and its environment together, and CI systems that run jobs in images use it directly. It loses
+because every machine needs a container runtime ([0004](0004-runtime-dependencies.md)). A container start measured 565
+to 875 ms against the 50 ms hook budget ([0003](0003-implementation-language.md)), and the tool must reach the working
+tree and the git state from inside the container.
 
 ### Refuse adoption without access to the release source
 

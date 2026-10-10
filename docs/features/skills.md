@@ -13,11 +13,11 @@ every session it covers and no other.
 
 ## Overview
 
-Skills are folders of instructions agents load on demand. `harness` handles three things about them: it installs and
-refreshes its own skill, the **harness skill**, in every adopted repository; it installs the shared skill sources a
-repository declares, by delegating to the [`skills` CLI](https://github.com/vercel-labs/skills); and it injects
-installed skills into agent sessions when the repository declares them as [standing context](context.md). It never
-writes a domain skill.
+Skills are folders of instructions agents load on demand. `harness` does three things with them. It installs and
+refreshes its own skill, the **harness skill**, in every adopted repository. It installs the shared skill sources a
+repository declares, by delegating to the [`skills` CLI](https://github.com/vercel-labs/skills). It injects installed
+skills into agent sessions when the repository declares them as [standing context](context.md). It never writes a domain
+skill.
 
 Commands are named `harness <command>` on this page. The examples run them through the repository's wrapper,
 `./harnessw <command>`, from the root of a checkout; with a global install, `harness <command>` is equivalent

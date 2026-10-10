@@ -14,9 +14,9 @@ it follows a fixed rule or needs judgement.
 
 ## Overview
 
-This page explains how `harness` divides a repository into layers and directories, how it knows which files it owns,
-how the conventions it sets up are written down, how it adapts to repositories in different starting states, and why
-a repository keeps working without it.
+`harness` divides a repository into layers and directories and records which files it owns. It writes down the
+conventions it sets up and adapts to repositories in different starting states, and an adopted repository keeps working
+without it.
 
 Examples on this page run commands as `./harnessw <command>`, through the repository's [wrapper](wrapper.md); with a
 global install, `harness <command>` is equivalent.

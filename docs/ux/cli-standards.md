@@ -14,9 +14,9 @@ the result alone.
 
 ## Overview
 
-Rules for every command, flag, output stream and exit code of `harness`. The [reference surface](#reference-surface)
-below is the command set these rules govern; a new command or flag MUST follow them, and a deviation is a change to
-this standard, with its reason ([README.md](README.md#changing-a-standard)).
+These rules apply to every command, flag, output stream and exit code of `harness`. The
+[reference surface](#reference-surface) below is the command set they govern. A new command or flag MUST follow them,
+and a deviation is a change to this standard, with its reason ([README.md](README.md#changing-a-standard)).
 
 ## Entry points
 
@@ -135,11 +135,11 @@ command lives without reading help.
 | `harness <noun> <verb>` | an operation on one kind of object the repository holds | `worktree create\|remove`, `task claim\|note\|complete\|release`, `lifecycle list\|run`, `context show`, `preset list\|show\|apply`, `ralph run\|resume\|clean`, `skills sync` |
 | `harness fleet <command>` | a repository-level command run across a declared list of repositories | `fleet render`, `fleet doctor`, `fleet scaffold`, `fleet wrapper`, … |
 
-Internal commands are called by agents or by files harness generates, not by people: `harness hook` (reads an agent
-hook payload on stdin) and `harness ralph-worker` (the agent command in a coordinator's ralph-tui configuration).
-They appear in help under a separate **Internal** heading, their interface is a contract with the adapters, and their
-I/O follows the calling agent's protocol rather than the rules in this page where the two differ, because the agent,
-not harness, defines what a hook must print and return.
+Internal commands are called by agents or by files harness generates, not by people: `harness hook` (reads an agent hook
+payload on stdin) and `harness ralph-worker` (the agent command in a coordinator's ralph-tui configuration). They appear
+in help under a separate **Internal** heading, and their interface is a contract with the adapters. Where the calling
+agent's protocol and the rules in this page differ, their I/O follows the protocol, because the agent, not harness,
+defines what a hook must print and return.
 
 Rules:
 
@@ -157,8 +157,8 @@ Rules:
   `list` and `show`); `delete`, `rm`, `destroy`, `init`, `install` and `uninstall` are not used. Why: one verb per
   meaning keeps the inverse of every command guessable.
 - `apply` writes entries into the repository's own files and has no inverse. Why: the entries it writes become the
-  repository's own, like entries it wrote itself, so they are changed or removed by editing the file, and removing
-  harness deletes them with the seeded files in `.harness/` ([ADR 0013](../adrs/0013-organization-content.md)).
+  repository's own, like entries it wrote itself. They are changed or removed by editing the file, and removing harness
+  deletes them with the seeded files in `.harness/` ([ADR 0013](../adrs/0013-organization-content.md)).
 - Checking is a flag, not a verb: `render --check`, `verify --check`. A command whose only job is to check is
   `doctor`. Why: a check and the operation it checks share their inputs, so they share a command.
 
@@ -228,9 +228,9 @@ Rules:
 
 ### Precedence
 
-When the same setting can come from several places: command-line flag, then `HARNESS_*` environment variable, then
-repository file, then built-in default. Built-in invariants sit above all of them and are not settings. Why: the
-narrower the scope of a source, the more deliberate the choice it expresses.
+When the same setting can come from several places, a command-line flag wins over a `HARNESS_*` environment variable,
+which wins over a repository file, which wins over the built-in default. Built-in invariants sit above all of them and
+are not settings. Why: the narrower the scope of a source, the more deliberate the choice it expresses.
 
 ## Output
 
@@ -334,15 +334,15 @@ Format and wording: [messages-and-docs.md](messages-and-docs.md#error-messages).
 
 ## Confirmations, `--yes` and `--force`
 
-- A command asks for confirmation only before an action that cannot be undone from the repository's own history,
-  that reaches beyond the current repository (`fleet … --deliver`), or that writes into the repository's own files
+- A command asks for confirmation only before an action that cannot be undone from the repository's own history, that
+  reaches beyond the current repository (`fleet … --deliver`), or that writes into the repository's own files
   (`scaffold`, `preset apply`, a schema migration). Why: everything else is reversible from git, and needless questions
-  train people to answer yes without reading; what harness writes into the repository's own files becomes the
+  train people to answer yes without reading. What harness writes into the repository's own files becomes the
   repository's, with nothing marking that harness wrote it, so the person accepts it while it is still shown as a
   change.
 - `harness lifecycle run` never asks for confirmation, and a lifecycle action fired automatically at its trigger point
-  (`auto: true`) never asks either. The gate for agents is the policy: scaffolded repositories seed
-  `[harness, lifecycle, run, deliver]` under `ask`, rendered for every rendered spelling; it is a seeded entry the
+  (`auto: true`) never asks either. The gate for agents is the policy. Scaffolded repositories seed
+  `[harness, lifecycle, run, deliver]` under `ask`, rendered for every rendered spelling, as a seeded entry the
   repository owns and may change ([ADR 0015](../adrs/0015-development-lifecycle.md)). Why: the declared action is the
   reviewed decision; the policy decides who may trigger it.
 - A confirmation is asked only when stdin and stderr are TTYs. Otherwise the command stops before acting and exits 3,

@@ -39,8 +39,8 @@ global install, `harness <command>` is equivalent.
    off), and rewrite the manifest.
 
 A policy entry that would weaken a built-in invariant, such as an `allow` for a force push to the default branch, is
-not a validation error: `render` leaves it out of every agent's output, renders the invariant, and prints the entry
-it dropped; [`harness doctor`](doctor.md) reports it as a finding until the entry is removed from the policy
+not a validation error. `render` leaves it out of every agent's output, renders the invariant, and prints the entry
+it dropped. [`harness doctor`](doctor.md) reports it as a finding until the entry is removed from the policy
 ([ADR 0011](../adrs/0011-safety-invariants.md)).
 
 Rendering is deterministic: the same inputs produce the same bytes on linux and macOS, and a second run changes
@@ -77,8 +77,8 @@ rendered for it, and [`harness doctor`](doctor.md) notes the gap.
 [`harness wrapper`](wrapper.md#harness-wrapper) rewrites it, each after verifying the release's signed checksum file.
 The manifest records it, so a hand edit is drift. The seeded files are never re-rendered: `scaffold` writes
 `config.yaml`, `policy.yaml` and `hooks.yaml` once, and the memory skeleton is seeded when the memory module is
-enabled, by `scaffold` or by the first `render` after the module is turned on. From then on the repository owns them;
-the manifest records each with the hash it was created with ([memory](memory.md#the-skeleton)).
+enabled, by `scaffold` or by the first `render` after the module is turned on. From then on the repository owns them.
+The manifest records each with the hash it was created with ([memory](memory.md#the-skeleton)).
 Lifecycle actions are not rendered either: `harness` reads them from `hooks.yaml` and runs them itself
 ([lifecycle](lifecycle.md)).
 
@@ -108,7 +108,7 @@ Every harness hook entry, for every agent, runs the same command with the entry'
 
 `<event>` is the neutral event the entry is for: `session-start`, `post-tool-use`, `prompt-submit`, `attention` or
 `turn-end`. The command resolves the wrapper from the root of the checkout the agent works in, primary or worktree,
-and never downloads: when the pinned release is not cached, the wrapper prints one line naming `./harnessw` on stderr
+and never downloads. When the pinned release is not cached, the wrapper prints one line naming `./harnessw` on stderr
 and exits 0, and the session continues. For `session-start` it also prints one line of agent context, so the agent
 can tell the person. The wrapper prints both lines itself, as fixed text from its template, because no binary is
 there to print them:
@@ -228,7 +228,7 @@ blocks in `AGENTS.md` stay within a budget:
 | the `context` block and every other always-on context | 120 lines per role | [`context.budget`](context.md) |
 
 Detail belongs in [`./harnessw explain <topic>`](explain.md) and the harness skill, which agents open when they need
-it. A render that exceeds a budget still writes the blocks; [`harness doctor`](doctor.md) reports a note naming each
+it. A render that exceeds a budget still writes the blocks. [`harness doctor`](doctor.md) reports a note naming each
 block and its line count, so a long lane list is visible in review.
 
 ### Rules for blocks
@@ -277,13 +277,12 @@ runs, see [wrapper](wrapper.md#ci).
 
 ## Schema migration
 
-When the repository files use an older `schema` than the running release's, they are migrated: the diff is shown
-and confirmed before anything is written (`--yes` skips the question). This happens when
+When the repository files use an older `schema` than the running release's, they are migrated. The diff is shown and
+confirmed before anything is written (`--yes` skips the question). This happens when
 [`harness wrapper --version <tag>`](wrapper.md#harness-wrapper) moves the pin to a release with a newer schema, inside
-the same change, and with `render` when a pinned release meets older files. When the files use a newer schema than
-the running binary supports, which happens only when the pin is bypassed, `render` refuses with exit 3 and a message
-naming the file's schema, the newest schema this binary supports, and the release to run, the one
-`.harness/wrapper.yaml` pins:
+the same change, and with `render` when a pinned release meets older files. When the files use a newer schema than the
+running binary supports, which happens only when the pin is bypassed, `render` refuses with exit 3. Its message names
+the file's schema, the newest schema this binary supports, and the release to run, the one `.harness/wrapper.yaml` pins:
 
 ```text
 harness: .harness/config.yaml uses schema 2; this binary (v0.8.2) supports schema 1. Run the pinned release, v0.9.0: ./harnessw render

@@ -38,7 +38,7 @@ it with the hash it was created with, and `harness` never rewrites it. Everythin
 `.agents/memory/` is knowledge, which `harness` never writes or deletes.
 
 An [undo](remove.md#undo), or `harness remove --module memory`, deletes the starter file only while it still matches
-its recorded hash; once someone edits it, it is knowledge and stays, and the output lists it. An
+its recorded hash. Once someone edits it, it is knowledge: it stays, and the output lists it. An
 [eject](remove.md#eject) keeps it.
 
 ### The convention in `AGENTS.md`
@@ -63,9 +63,10 @@ Adding, renaming or removing a memory file changes the block, so run `harness re
 A memory file that agents must read in every session, or whenever they touch certain files, can also be declared as
 [standing context](context.md) with a `file:` entry, so it is injected instead of waiting for the agent to open it.
 
-`memory` is a convention block: it states the convention as a fact and names no `harness` command, and
-`.agents/memory/` is agent content that any agent reads without `harness`. After [`harness remove --eject`](remove.md#eject) the markers go and the text stays: agents keep finding the
-files, but the list no longer follows additions and renames, so keep it current by hand.
+`memory` is a convention block. It states the convention as a fact and names no `harness` command, and `.agents/memory/`
+is agent content that any agent reads without `harness`. After [`harness remove --eject`](remove.md#eject) the markers
+go and the text stays. Agents keep finding the files, but nothing updates the list on additions and renames, so keep it
+current by hand.
 
 ## Reference
 

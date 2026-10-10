@@ -126,9 +126,10 @@ When `harness` created the Beads database and the repository does not track `.be
 An existing `.beads/` keeps whatever ignore rules the repository already has.
 
 These are convention blocks: they state the convention as a fact and name no `harness` command. After
-[`harness remove --eject`](remove.md#eject) the markers go and the text and ignore entries stay: `bd` and ralph-tui keep working with the same database and PRD files, and agents keep
-claiming before they work, but nothing checks for a receipt at completion any more. `harness remove --module tasks`
-removes the blocks and leaves the database and the PRD files in place.
+[`harness remove --eject`](remove.md#eject) the markers go and the text and ignore entries stay. `bd` and ralph-tui keep
+working with the same database and PRD files, and agents keep claiming before they work, but nothing checks for a
+receipt at completion any more. `harness remove --module tasks` removes the blocks and leaves the database and the PRD
+files in place.
 
 ## Reference
 
@@ -226,9 +227,9 @@ Leave `modules.tasks: false` and `tracker.default: none`; worktrees and `harness
 - GitHub stays the record: the binary contains no logic for any hosting platform and never writes issues, projects,
   comments, reviews or labels. Through `harness`, a pull request is opened only by a `deliver` action the
   repository declares.
-- Task state `harness` creates stays in the clone. An existing `.beads/`, including one synchronised across machines
-  or tracked in git, is used as found, so what `harness` writes into it (claims, notes, verification comments) travels
-  where that synchronisation sends it; `harness` never configures the synchronisation
+- Task state `harness` creates stays in the clone. An existing `.beads/`, including one synchronised across machines or
+  tracked in git, is used as found. What `harness` writes into it (claims, notes, verification comments) therefore
+  travels where that synchronisation sends it, and `harness` never configures the synchronisation
   ([ADR 0012](../adrs/0012-write-boundary.md)).
 - `harness` does not change `core.hooksPath` and initialises Beads without git hooks.
 

@@ -15,8 +15,8 @@ for the same commit.
 
 ## Overview
 
-What harness promises to the people, agents, CI systems and repositories that depend on it, and how those promises
-change.
+harness makes promises to the people, agents, CI systems and repositories that depend on it. The sections below state
+each promise and how it changes.
 
 ## Versioning
 
@@ -69,13 +69,13 @@ keeps in a repository.
 ### Rendered output across releases
 
 Rendered bytes depend on the repository files and the pinned release, and on nothing else. A patch release never changes
-them for unchanged inputs. A minor release may: the harness skill teaches the commands of the release that renders it,
-and a rendering fix changes bytes. When an agent's own format change forces different output, or a new invariant adds an
-entry, the release is breaking and its notes name the affected files.
+them for unchanged inputs. A minor release may change them, because the harness skill teaches the commands of the
+release that renders it and a rendering fix changes bytes. When an agent's own format change forces different output, or
+a new invariant adds an entry, the release is breaking and its notes name the affected files.
 
 Every such change reaches a repository the same way: `harness wrapper --version <tag>` renders the repository with the
 new release in the same change as the pin, `harnessw` and the harness skill included, so the pin and its effects reach
-review as one diff. The drift check is run by the pinned release, and no owned file is exempt from it. A binary other
+review as one diff. The pinned release runs the drift check, and no owned file is exempt from it. A binary other
 than the pinned release (`HARNESS_BINARY`) gets a `harness doctor` note naming both versions, because its drift
 results may differ. Why: with upgrades rendered in their own diff, the pinned release's output and the repository
 always agree, and an exemption would hide exactly the hand edits the check exists to catch
@@ -92,7 +92,7 @@ from the repository ([ADR 0013](../adrs/0013-organization-content.md)).
   applies it again: `./harnessw preset apply node --dry-run` shows what it would add, and applying adds only what the
   repository lacks.
 - Nothing records which presets a repository applied, so no command reports that a preset gained entries. Why: such a
-  report would nag a repository that removed an entry on purpose; a repository that wants a newer preset's entries
+  report would nag a repository that removed an entry on purpose. A repository that wants a newer preset's entries
   applies it again and reads the diff.
 
 ## Adoption equivalence
@@ -105,7 +105,7 @@ worse than none ([ADR 0016](../adrs/0016-permission-adoption.md)).
   before adoption. Every project-scope rule stays in effect, or adoption exits 2 naming each rule that would be lost,
   and writes nothing.
 - An entry that would weaken a built-in invariant (allowing a permission-bypass flag, or a force push to the default
-  branch) is dropped and reported; it is the only project-scope rule adoption does not carry over, because the
+  branch) is dropped and reported. It is the only project-scope rule adoption does not carry over, because the
   invariants hold in every repository.
 - Exact duplicates merge. The same pattern under allow and deny resolves to deny and becomes a to-do item, because the
   narrower reading is the safe one until a person decides.
@@ -150,7 +150,7 @@ worse than none ([ADR 0016](../adrs/0016-permission-adoption.md)).
   version, because output rendered for a format the agent no longer reads fails without a message.
 - Each adapter documents which agent events it renders for hooks, notifications (`attention`, `turn_end`) and
   standing context. Where an agent lacks an event, nothing is rendered for it and `harness doctor` reports a note, so
-  a missing notification or injection is explained, not silent.
+  a missing notification or injection is explained.
 - The supported ranges are published in the features reference and in `harness doctor --json`.
 
 ## Transparency for people and CI that do not use harness
@@ -165,9 +165,9 @@ An adopted repository behaves for non-users exactly as it did before adoption
 - On a machine without the cached binary, hook-delivered standing context and notification actions do nothing.
   Standing-context entries declared `static` are written into `AGENTS.md` and reach agents without the binary, so a
   directive that must always apply does not depend on it.
-- Explicit entry points fetch or fail: `./harnessw <command>` and the task shims that exec it download and verify
-  the pinned version on first use; when they cannot they exit non-zero naming
-  the cause, so a skipped verification never reads as a pass.
+- Explicit entry points fetch or fail: `./harnessw <command>` and the task shims that exec it download and verify the
+  pinned version on first use. When they cannot, they exit non-zero naming the cause, so a skipped verification never
+  reads as a pass.
 - Raw hooks declared in `hooks.yaml` render as native entries that run their own command, so they keep working
   without the binary.
 - Actions fire only through the binary. Without it, a person pushes, opens pull requests and cleans up by hand,
@@ -176,7 +176,7 @@ An adopted repository behaves for non-users exactly as it did before adoption
   outputs.
 - CI never needs the binary or the wrapper. A CI that opts in runs `./harnessw render --check` and `./harnessw doctor`.
   They need the network only to download the pinned version (verified against its checksum) and to re-verify its
-  signed checksum file; the release check never affects their result.
+  signed checksum file. The release check never affects their result.
 - Managed blocks are plain Markdown or comments and read correctly without harness. Convention blocks state the
   repository's conventions as fact, and `harness remove --eject` keeps them as the repository's own text
   ([principles.md](principles.md#8-conventions-outlive-the-tool)).
@@ -229,15 +229,15 @@ change of version is a reviewed diff ([ADR 0017](../adrs/0017-engine-version.md)
   per-platform release asset over HTTPS with `curl` or `wget`, verifies its sha256 against `wrapper.yaml`, and only
   then caches and execs it. Afterwards it runs offline.
 - The wrapper MUST download only over HTTPS and MUST NOT cache or execute a binary whose checksum does not match
-  `wrapper.yaml`; a mismatch exits 1 and leaves nothing cached. Why: the committed checksum is what the repository
+  `wrapper.yaml`. A mismatch exits 1 and leaves nothing cached. Why: the committed checksum is what the repository
   reviewed, and anything else is not the release it chose.
 - First-run requirements are a POSIX `sh`, `curl` or `wget`, and `sha256sum` or `shasum`. They are requirements of the
   wrapper's first run, not runtime dependencies of the binary or of the repository. Windows is not supported.
 - A global install of `harness` is optional. Inside a repository whose `wrapper.yaml` pins a different version, it
   execs the pinned version from the cache, downloading it through the same verified path when invoked explicitly and
-  never from a hook. Under a pending pin whose release is not cached, it runs `harness wrapper` itself and refuses
-  every other command with exit 3. Why: nothing can be downloaded against a pending pin, and `harness wrapper` is the
-  command that completes it. Outside such a repository it runs itself.
+  never from a hook. Outside such a repository it runs itself. Under a pending pin whose release is not cached, it runs
+  `harness wrapper` itself and refuses every other command with exit 3. Why: nothing can be downloaded against a
+  pending pin, and `harness wrapper` is the command that completes it.
 - `HARNESS_BINARY=<path>` makes the wrapper exec that binary instead of the pinned one (air-gapped machines,
   development of harness itself). It bypasses the pin and its checksum.
 - The schema rules in [configuration-standards.md](configuration-standards.md#schema-versioning) apply: a binary
@@ -253,7 +253,7 @@ change of version is a reviewed diff ([ADR 0017](../adrs/0017-engine-version.md)
 
 ### Release trust
 
-Why: a checksum copied by whoever upgrades proves only that the download matches what they saw; it does not prove the
+Why: a checksum copied by whoever upgrades proves only that the download matches what they saw. It does not prove the
 release came from its publisher. Signed checksum files, verified by a binary that is already trusted, carry that proof
 from one release to the next ([ADR 0021](../adrs/0021-release-trust.md)).
 
@@ -266,7 +266,7 @@ from one release to the next ([ADR 0021](../adrs/0021-release-trust.md)).
   release whose signature does not verify is refused (exit 1) and nothing is written.
 - `harness scaffold` pins the running binary's own version the same way, from the verified checksum file of that
   release, so the first pin is as trustworthy as every later one. With `--offline` it writes the pin with
-  `checksums: pending` instead; the wrapper downloads nothing against a pending pin, and `harness wrapper --version
+  `checksums: pending` instead. The wrapper downloads nothing against a pending pin, and `harness wrapper --version
   <tag>` completes it through the same verification, so deferring the check never skips it
   ([ADR 0017](../adrs/0017-engine-version.md)).
 - `harnessw` verifies only the sha256 of the downloaded asset against `wrapper.yaml`. Signatures are checked by

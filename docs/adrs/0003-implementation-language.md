@@ -56,9 +56,10 @@ budget, the rewrite costs the same as in Go, and no release pipeline exists for 
 
 ### Rust
 
-At its best, a native executable with the same start-up and static-linking properties as Go, and stronger compile-time
-guarantees. It loses because it adds a second toolchain and release pipeline beside the maintainer's existing Go ones
-for no property this tool needs: the work is file rendering, hashing and process supervision, which Go covers.
+At its best, it is a native executable with the same start-up and static-linking properties as Go, with stronger
+compile-time guarantees. It loses because it adds a second toolchain and release pipeline beside the maintainer's
+existing Go ones for no property this tool needs: the work is file rendering, hashing and process supervision, which Go
+covers.
 
 ## Consequences
 
