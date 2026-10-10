@@ -89,7 +89,7 @@ One ADR holds one decision. If its points serve two decisions, it is two ADRs.
 
 - Present tense, no hedges.
 - No names of the tool's commands, flags, settings, environment variables, exit codes or files. Mechanisms are named
-  generically: the wrapper, the manifest, the drift check, the health check, the repository's data. The
+  generically: the wrapper, the manifest, the drift check, the health check, the repository's data, a plugin. The
   [glossary](../features/glossary.md) and the [features](../features/) pages give the tool's own name for each. The
   directory layout ADR names directories because the layout is its decision.
 - A third-party product whose behaviour a decision depends on is named with the version that behaviour was checked
@@ -149,12 +149,12 @@ Must be maintained:
 | [0001](0001-role-of-the-tool.md) | What is the tool's role? | The tool configures agent harnesses and never acts as one |
 | [0002](0002-division-of-work.md) | Which work does the binary do? | The binary does only deterministic work |
 | [0003](0003-implementation-language.md) | In what language, and as what artefact? | The tool is one executable written in Go |
-| [0004](0004-runtime-dependencies.md) | What does the binary need at runtime? | The binary needs only the operating system and git at runtime |
+| [0004](0004-runtime-dependencies.md) | What does the binary need at runtime? | The binary needs only the operating system at runtime |
 | [0005](0005-schema-compatibility.md) | How do repository files and binaries stay compatible? | Every repository file carries a schema version the binary enforces |
 | [0006](0006-repository-contract.md) | What does a repository hold? | A repository holds declarative data, never engine code |
 | [0007](0007-ownership.md) | How is ownership of generated content known? | A committed manifest records everything the tool owns |
 | [0008](0008-native-configuration.md) | How does the tool write files that agents and people share? | The tool owns only named keys inside shared native files |
-| [0009](0009-agent-support.md) | How are several agents supported? | Adapters render agent-neutral sources into each agent's native files |
+| [0009](0009-agent-support.md) | How are several agents supported? | Harness plugins render agent-neutral sources into each agent's native files |
 | [0010](0010-dependence-on-the-binary.md) | What depends on the binary being installed? | Nothing in an adopted repository depends on the binary |
 | [0011](0011-safety-invariants.md) | Where do safety rules live? | Safety invariants are built into the binary, never configured |
 | [0012](0012-write-boundary.md) | What may the binary write? | The binary writes only content it owns |
@@ -167,4 +167,5 @@ Must be maintained:
 | [0019](0019-action-kinds.md) | What can a declared action do? | Declared actions are commands, HTTP requests or headless agent runs |
 | [0020](0020-standing-context.md) | How does known guidance reach an agent? | Guidance enters agent context through declared deterministic triggers |
 | [0021](0021-release-trust.md) | How is a new release trusted? | Only an already trusted binary admits a new release |
-| [0022](0022-tool-integration.md) | Which external programs does the binary integrate? | The binary integrates only git and the agent harnesses |
+| [0022](0022-tool-integration.md) | How does the binary reach external programs? | Every program the binary uses is described by a plugin |
+| [0023](0023-core-and-contracts.md) | How is the binary's code divided? | The binary is a core behind contracts it declares |
