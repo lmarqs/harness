@@ -25,8 +25,8 @@ to every agent session.
   permissions are in effect. Others are true only while the tool is present: which of its commands checks work, how to
   trigger delivery.
 - Instruction files are read at the start of every session; every line costs context in every session of every agent.
-- In `.gitignore`, a path stays ignored while any entry covers it; removing an entry un-ignores what only that entry
-  covered.
+- In git's `.gitignore`, a path stays ignored while any entry covers it; removing an entry un-ignores what only that
+  entry covered.
 - Managed blocks are tool output ([0007](0007-ownership.md)), rendered from templates and the repository's data
   ([0002](0002-division-of-work.md)); they are not the prose, memory or domain skills the binary never writes
   ([0011](0011-safety-invariants.md)).
@@ -34,8 +34,8 @@ to every agent session.
 ## Decision
 
 1. Every convention the tool establishes is stated in plain language in a managed block of `AGENTS.md`, and every path
-   it establishes that the repository does not track is listed in a managed block of `.gitignore`
-   ([0014](0014-directory-layout.md)).
+   it establishes that the repository does not track is listed in a managed block of the version control system's ignore
+   file ([0014](0014-directory-layout.md)).
 2. Managed blocks are of two classes. Convention blocks state facts that stay true without the tool and never name its
    commands. Tool blocks describe how to use the tool and may name its commands.
 3. Eject keeps convention blocks as plain text without markers and removes tool blocks ([0007](0007-ownership.md)).
@@ -50,19 +50,19 @@ to every agent session.
 ## Reasons
 
 - **1.** Agents act on what instruction files say, not on what the tool's configuration holds, so a convention that is
-  only in the configuration is invisible to them. `AGENTS.md` is the file both supported agents reach: Codex directly,
-  Claude Code through an import line its harness recipe renders in `CLAUDE.md`, itself a convention block. Writing every
-  untracked path into `.gitignore` keeps clone-local state untracked in every clone, including clones without the tool;
-  a path the repository chose to track stays tracked. People and third-party tools working without the tool read the
-  same text, and after a removal the remaining state is still explained.
+  only in the configuration is invisible to them. `AGENTS.md` is a file every harness in Context reaches: one reads it
+  directly, another through an import line its harness recipe renders in that harness's own instruction file, itself a
+  convention block. Writing every untracked path into the ignore file keeps clone-local state untracked in every clone,
+  including clones without the tool; a path the repository chose to track stays tracked. People and third-party tools
+  working without the tool read the same text, and after a removal the remaining state is still explained.
 - **2, 3.** A sentence that names one of the tool's commands becomes false the moment the tool is gone, and an agent
   that reads it runs a command that is not there. Splitting blocks by whether their text holds without the tool lets
   eject keep everything that stays true and remove everything that would mislead. The trade is that every block's class
   is a design decision that must be made and kept.
 - **4.** Capabilities are adopted and removed independently ([0010](0010-dependence-on-the-binary.md)), and so are
   recipes ([0013](0013-organization-content.md)), so their text must be too. With shared ignore entries, removing one
-  would un-ignore paths another still creates, and git would start listing that state as untracked. Duplicate entries
-  cost one line each and make removal local.
+  would un-ignore paths another still creates, and the version control system would start listing that state as
+  untracked. Duplicate entries cost one line each and make removal local.
 - **5.** Every line in an instruction file is read in every session, so the tool's share of that file is a recurring
   cost multiplied by every session of every agent. Bounding it keeps the cost fixed, while the full rules are read on
   demand from the shipped documentation. A report instead of a refusal leaves the choice with a repository that accepts
@@ -87,9 +87,9 @@ one capability would also rewrite text that belongs to the others.
 
 ### Conventions in a separate file linked from the instruction file
 
-At its best, the instruction file stays short and the conventions sit in one file of their own. It loses because Codex
-CLI 0.16x reads `AGENTS.md` itself and an agent follows a link only when it judges the link relevant, so whether an
-agent learns a convention becomes a matter of chance.
+At its best, the instruction file stays short and the conventions sit in one file of their own. It loses because a
+harness that reads `AGENTS.md` itself (Context) follows a link only when its agent judges the link relevant, so whether
+an agent learns a convention becomes a matter of chance.
 
 ## Consequences
 
@@ -101,7 +101,7 @@ Costs:
 - After an eject, convention blocks and native configuration have no source to render from; later changes are hand
   edits.
 - After an undo, clone-local state remains without its conventions or ignore entries until someone deletes it.
-- `.gitignore` carries entries that overlap.
+- The ignore file carries entries that overlap.
 
 Must be maintained:
 
@@ -111,10 +111,11 @@ Must be maintained:
 ## Confirmation
 
 - For each capability, a fixture asserts that every convention it establishes appears as a block in `AGENTS.md` and
-  every path it establishes in `.gitignore`; disabling the capability removes those blocks.
+  every path it establishes in the ignore file; disabling the capability removes those blocks.
 - A scan of every rendered convention block in the fixture suite finds none of the tool's commands.
 - Fixture blocks contain no statement, outside their markers, that they are managed or generated.
 - After an eject, every convention block's text and every ignore entry remain without markers, and no tool block
   remains.
-- After removing one capability from a fixture, every path the remaining capabilities create is still ignored by git.
+- After removing one capability from a fixture, every path the remaining capabilities create is still ignored by the
+  version control system.
 - The health check reports a fixture whose blocks exceed the bound.

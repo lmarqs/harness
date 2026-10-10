@@ -2,11 +2,11 @@
 
 ## Objective
 
-**Problem.** Agents, their permission systems, git worktrees and task trackers each have behaviours that surprise a
-careful developer: a rule that reads as forbidding a command lets a variant of it through, an unattended run stalls on a
-question nobody answers, a check passes without testing the change. A developer or reviewer usually meets each of these
-alone and after something has gone wrong, with the explanation spread across several vendors' documentation, or written
-nowhere.
+**Problem.** Agents, their permission systems, version-control workspaces and task trackers each have behaviours that
+surprise a careful developer: a rule that reads as forbidding a command lets a variant of it through, an unattended run
+stalls on a question nobody answers, a check passes without testing the change. A developer or reviewer usually meets
+each of these alone and after something has gone wrong, with the explanation spread across several vendors'
+documentation, or written nowhere.
 
 **Goal.** A reader who meets a surprising behaviour finds it in one place, with why it happens and what to do about it,
 and can check a setup against the known traps before relying on it.
@@ -17,11 +17,10 @@ Each entry below is a place where agents, permission systems, workspaces or trac
 reasonable person expects, with what `the-cook` does about it. Every entry has four parts: the **symptom** you see,
 **why** it happens, what **`the-cook` does** about it, and what **you do**.
 
-For the principles behind these entries, read [safety](safety.md). For the terms, see the [glossary](glossary.md). Three
-third-party tools recur below, none of which the binary has code for, each described by a builtin [recipe](recipes.md):
-ralph-tui, a loop runner that works through a list of tasks unattended and, set up by its
-[recipe](ralph.md#the-ralph-tui-recipe), starts `the-cook worker` for each one; Beads, a task tracker kept in the clone,
-and its `bd` CLI ([tasks](tasks.md#trackers)); and mise, a task runner.
+For the principles behind these entries, read [safety](safety.md). For the terms, see the [glossary](glossary.md). The
+entries below are about the core and the two contracts. A trap of one particular program, a harness, a loop runner, a
+task tracker or a task runner, is documented with the [recipe](recipes.md) that describes it, in the cookbook that
+publishes that recipe.
 
 Commands are named `the-cook <command>` on this page. Run them through the repository's wrapper,
 `./cook <command>`, from the root of a checkout; with a global install, `the-cook <command>` is equivalent
@@ -45,35 +44,26 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 
 - **Symptom.** The policy denies `[kubectl, patch]`, a [prefix list](policy.md#entry-forms) that matches commands whose
   leading words are `kubectl patch`, yet an agent runs `kubectl -n prod patch deployment api …` without a prompt, or
-  Claude Code's auto-mode classifier decides it.
+  the harness's own judgement decides it.
 - **Why.** A prefix entry matches the first words of the command. A flag before the subcommand changes the first
-  words, so the command matches no entry and falls to the agent's default.
+  words, so the command matches no entry and falls to the agent's default. A global option that changes where a
+  command acts, such as one naming another directory, slips past the same way and can reach other checkouts.
 - **What `the-cook` does.** Renders prefixes exactly; it does not parse each tool's flags.
 - **What you do.** Leave production and cloud writes unlisted for people, and deny the whole tool to workers
-  (`worker.deny: [[kubectl]]`). Where Claude Code must also stop the flag-first spelling, add a raw string such as
-  `"kubectl * patch *"`; it is Claude-only.
-
-### `git -C` and `git -c` slip past git prefixes
-
-- **Symptom.** `[git, push]` is denied to workers, yet `git -C ../other push` or `git -c core.hooksPath=/dev/null
-  commit` runs.
-- **Why.** `-C <dir>` and `-c <key=value>` come before the subcommand, so the leading words are `git -C`, not
-  `git push`. `-C` also reaches other checkouts of the clone.
-- **What `the-cook` does.** Nothing beyond rendering; the policy decides.
-- **What you do.** Put `[git, ["-C", "-c"]]` in `worker.deny`, next to the subcommands that leave the workspace
-  ([policy](policy.md)).
+  (`worker.deny: [[kubectl]]`), or deny the global options that come before the subcommand. Where a harness must also
+  stop the flag-first spelling, add a raw string such as `"kubectl * patch *"`; only harnesses whose recipe renders
+  mid-command patterns enforce it.
 
 ### A task runner runs whatever its tasks say
 
 - **Symptom.** `[npm, run, test]` is allowed, and the agent runs a test script it just edited to do something else; or
-  `mise run deliver`, a task the repository defines, runs `the-cook lifecycle run deliver` although that command is
-  under `ask`.
+  a `deliver` task the repository defines in its task runner runs `the-cook lifecycle run deliver` although that
+  command is under `ask`.
 - **Why.** A rule matches the command the agent starts, not what that command runs. A task runner, a script, a
   `Makefile` target or a wrapper runs code the agent can read and often edit.
-- **What `the-cook` does.** Renders the `mise` recipe's floor rule, which denies `:::` chaining, such as
-  `mise run test ::: deploy`, so one allowed task cannot carry an unlisted one ([policy](policy.md#the-floor)). The
-  rule holds where the recipe is in use, and `doctor` reports a repository where mise is detected and the recipe is
-  not. Replays a worker's checks from the
+- **What `the-cook` does.** Renders the floor rules of the recipes in use, such as a task-runner recipe's deny of a
+  form that chains one task onto another, so one allowed task cannot carry an unlisted one
+  ([policy](policy.md#the-floor)). Such a rule holds only where its recipe is pinned. Replays a worker's checks from the
   base commit, so a worker cannot change the checks it is measured by.
 - **What you do.** Allow tasks whose effects stay in the clone. Give a wrapper of a guarded command the same decision
   as the command it wraps. Treat "edit files" plus "run the test runner" as "run any code", and keep production
@@ -94,48 +84,39 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 - **What you do.** Write each entry for a `the-cook` command once, as `[the-cook, …]`. Treat the policy entries as
   defence in depth and the binary's refusals as the guarantee; deny in `worker.deny` what workers must never run.
 
-### Codex cannot match mid-command patterns
+### A harness cannot enforce every rule form
 
-- **Symptom.** A deny works in Claude Code and not in Codex; the `policy` block in `AGENTS.md` lists it as Claude-only.
-- **Why.** Codex rules match command prefixes. Raw strings, native rule strings other than a pure `Bash(<prefix> *)`,
-  and flag-last spellings such as `git push origin main --force` have no Codex form.
-- **What `the-cook` does.** Renders every prefix list for both agents, renders the other forms for Claude Code only,
-  and lists them in the `policy` block. The `mise` recipe's `:::` floor rule and the git recipe's flag-last
-  force-push floor rules are Claude-only for this reason.
-- **What you do.** Express every deny that both agents must enforce as a prefix list. Where only a mid-command form
-  exists, deny the whole tool to Codex workers.
+- **Symptom.** A deny works in one harness and not in another; the `policy` block in `AGENTS.md` lists it as limited to
+  some harnesses.
+- **Why.** Harnesses' rule languages differ. Some match only command prefixes, so a raw string, a mid-command pattern
+  or a flag-last spelling has no form there.
+- **What `the-cook` does.** Renders every prefix list for every harness, renders the other forms only for harnesses
+  whose recipe can express them, and lists the rest in the `policy` block. A recipe's floor rule in such a form holds
+  only in those harnesses.
+- **What you do.** Express every deny that all harnesses must enforce as a prefix list. Where only a mid-command form
+  exists, deny the whole tool to workers of the harnesses that cannot express it.
 
 ### An `ask` entry stalls unattended runs
 
-- **Symptom.** An unattended coordinating agent, or a Claude Code session in auto mode, stops and waits.
-- **Why.** A matching `ask` prompts even in auto mode, and no `allow` from any settings scope overrides it.
+- **Symptom.** An unattended coordinating agent, or a session in a harness's autonomous mode, stops and waits.
+- **Why.** A matching `ask` prompts for a person. Whether a harness's autonomous mode or another settings scope can
+  answer it instead is the harness's behaviour, which its recipe documents.
 - **What `the-cook` does.** Renders `ask` as written. No recipe's floor rule is an `ask`; `scaffold` seeds one, on
   `the-cook lifecycle run deliver`.
 - **What you do.** Keep `ask` for what must have a person every time: a merge past branch protection, delivery when
   you want to see it. Before an unattended run, list the `ask` entries it reaches and accept each stop or move the
   entry.
 
-### An `allow` entry skips the auto-mode classifier
-
-- **Symptom.** A Claude Code session in auto mode runs a command you expected it to judge, such as a push to the
-  default branch under `allow: [[git]]`.
-- **Why.** An `allow` decides before the classifier is consulted. The classifier judges only commands no entry
-  matches.
-- **What `the-cook` does.** Renders the git recipe's floor rule against a force push to the default branch; nothing
-  else.
-- **What you do.** Write each `allow` as narrow as its reason. Rely on branch protection, not on the agent, for what
-  reaches the default branch.
-
 ### Settings outside the policy widen or narrow permissions
 
 - **Symptom.** An agent runs a command the policy does not allow, or prompts for one it allows, on one person's
   machine only.
-- **Why.** Claude Code also reads `.claude/settings.local.json`, the user's `~/.claude/settings.json` and managed
-  settings; Codex reads user rules and its own approval and sandbox settings. They combine with the project's rules.
+- **Why.** A harness also reads local, user and managed settings, and its own mode, approval and sandbox settings.
+  They combine with the project's rules.
 - **What `the-cook` does.** Never writes local, user or managed settings and never reads managed settings. Local and
   user settings are read only by `the-cook scaffold --import local,user`, which copies them into the policy for review
   ([safety](safety.md#importing-personal-scopes)); after that, `the-cook` cannot see changes to them.
-  Adoption reports `defaultMode`, `approval_policy` and `sandbox_mode` as notes.
+  Adoption reports the mode, approval and sandbox settings it finds as notes.
 - **What you do.** When behaviour differs between machines, compare those files first. Before an unattended run, check
   them on the machine that runs it.
 
@@ -144,8 +125,8 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 - **Symptom.** Two clones of the same repository offer different MCP tools; an MCP rule in the policy matches nothing.
 - **Why.** Which MCP servers exist, and their credentials, live in each person's settings. The policy only decides
   how their tools are approved.
-- **What `the-cook` does.** Renders MCP tool rules (`mcp__server__tool` with globs) for Claude Code; adoption reports
-  MCP server definitions as notes and leaves them in place.
+- **What `the-cook` does.** Renders MCP tool rules for harnesses whose recipe can express them; adoption reports MCP
+  server definitions as notes and leaves them in place.
 - **What you do.** Document the servers the repository expects in `AGENTS.md`. Allow read-only tools by name pattern;
   leave write tools unlisted.
 
@@ -160,22 +141,21 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 
 ### The agents' permission systems are not the same boundary
 
-- **Symptom.** The same policy behaves differently in Claude Code and Codex: Codex runs an unlisted command without a
-  prompt; Claude Code prompts for one Codex runs.
-- **Why.** Claude Code permissions approve tool calls. Codex rules govern escalation out of its sandbox, and inside the
-  sandbox Codex runs commands on its own.
-- **What `the-cook` does.** Renders the same intent for both and pins each agent's worker mode
+- **Symptom.** The same policy behaves differently in two harnesses: one runs an unlisted command without a prompt,
+  the other prompts for a command the first runs.
+- **Why.** In one harness permissions approve each tool call; in another, rules govern only escalation out of a
+  sandbox, inside which the agent runs commands on its own.
+- **What `the-cook` does.** Renders the same intent for every harness and pins each agent's worker mode
   ([agents](agents.md#worker-launch)).
-- **What you do.** Judge a policy per agent. Rely on the sandbox for Codex and on `deny` and the classifier for Claude
-  Code.
+- **What you do.** Judge a policy per harness, with what its recipe says about its boundary.
 
 ## Agents and trust
 
-### Claude Code ignores project permissions in an untrusted folder
+### A harness ignores project settings in an untrusted folder
 
 - **Symptom.** Every command prompts in a workspace, or project hooks do not run.
-- **Why.** Claude Code applies project settings only in folders the person trusted. Workspaces nested in the primary
-  checkout inherit its trust; a workspace created as a sibling directory does not.
+- **Why.** A harness may apply project settings only in folders the person trusted. Workspaces nested in the primary
+  checkout can inherit its trust; a workspace created as a sibling directory may not.
 - **What `the-cook` does.** Creates its workspaces in the configured workspaces directory, inside the primary checkout
   (`.work/workspaces/` by default). Never changes trust ([agents](agents.md#trust)).
 - **What you do.** Trust the primary checkout once. Create workspaces with `the-cook workspace create`, not as siblings.
@@ -205,9 +185,10 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 
 - **Symptom.** A worker does something no one asked for, following text in a task description or a pasted issue.
 - **Why.** Agents act on what they read. Anyone who can write a task, an issue or a comment can address the agent.
-- **What `the-cook` does.** Bounds what a worker can do with the [worker contract](ralph.md#the-worker-contract): pinned
-  mode, `worker.deny`, tamper check, replay, no lifecycle actions inside workers.
-- **What you do.** Run workers on tasks a person wrote or read. Scope a ralph-tui run over Beads with `--epic`.
+- **What `the-cook` does.** Bounds what a worker can do with the [worker contract](worker.md#the-worker-contract):
+  pinned mode, `worker.deny`, tamper check, replay, no lifecycle actions inside workers.
+- **What you do.** Run workers on tasks a person wrote or read. Limit a loop runner's run to the tasks you mean it to
+  take.
 
 ### Hooks skip until the pinned binary is cached
 
@@ -231,8 +212,8 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 
 - **Symptom.** Lint, tests or the type checker in the primary checkout report duplicate modules, run twice or fail on
   files under the workspaces directory (`.work/workspaces/` by default).
-- **Why.** Managed workspaces are nested in the primary checkout. A glob such as `**/*.ts`, a test root or a
-  `tsconfig.json` `include` walks into them; `.gitignore` does not stop tools that do not read it.
+- **Why.** Managed workspaces are nested in the primary checkout. A glob such as `**/*.ts`, a test root or a type
+  checker's include list walks into them; `.gitignore` does not stop tools that do not read it.
 - **What `the-cook` does.** Writes the state and workspace directories into the `state` and `workspaces` blocks of
   `.gitignore`. It never edits tool configuration.
 - **What you do.** Exclude the state and workspace directories (`.work/**` with the defaults) in the linter, the test
@@ -243,7 +224,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 - **Symptom.** A build in a workspace uses the primary checkout's dependencies, a tool version from its configuration,
   or fails on a relative tool path.
 - **Why.** Tools resolve configuration and dependencies by walking up directories. A nested workspace without its own
-  finds the primary checkout's: mise configuration, `node_modules`, a virtual environment.
+  finds the primary checkout's: a tool-version file, installed dependencies, a virtual environment.
 - **What `the-cook` does.** Runs the profile's `bootstrap` in every new workspace, and once in every checkout a worker
   runs in ([workspaces](workspaces.md#nesting)).
 - **What you do.** Make `bootstrap` install everything a build needs in the workspace itself. Do not skip it with
@@ -258,8 +239,8 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 - **What `the-cook` does.** Isolates files, not services. It does not serialise or namespace them.
 - **What you do.** Give each checkout its own names and ports (derived from the workspace path, such as a database
   `api_invoice_rounding` for `.work/workspaces/invoice-rounding`), or serialise the commands with a lock in the
-  repository's own task. Deny service resets to workers, and size the loop runner's parallelism (ralph-tui's
-  `--parallel <n>`) to what the services allow.
+  repository's own task. Deny service resets to workers, and size the loop runner's parallelism to what the services
+  allow.
 
 ## Ralph, trackers and verification
 
@@ -271,60 +252,28 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
   checkout it runs in. A new workspace also contains only committed code.
 - **What `the-cook` does.** `the-cook worker` refuses to start with uncommitted changes, with exit 1.
 - **What you do.** Commit before `the-cook workspace create` and before starting the loop runner, and keep the loop
-  runner's own state files out of `git status`, as [ralph](ralph.md#troubleshooting) shows for ralph-tui.
+  runner's own state files ignored, so they never count as uncommitted changes.
 
-### ralph-tui and `bd` behaviours that shape a run
+### A loop runner's own behaviour shapes a run
 
-- **Symptom.** A ralph-tui run over Beads, with agents started through `the-cook worker`, shows the behaviours in the
-  table below.
-- **Why.** These are properties of ralph-tui 0.12 and of `bd` 1.3, the Beads CLI. `the-cook` has no code for either, so
-  it neither changes nor works around them.
-- **What `the-cook` does.** Nothing beyond the worker contract: `the-cook worker` passes the agent the arguments
-  ralph-tui gives it, after refusing any bypass flag among them.
-- **What you do.** Configure ralph-tui and shape tasks as the last column says.
+- **Symptom.** A run takes tasks you did not mean it to take, passes the agent a model or effort other than the one you
+  expected, or starts a task before work it depends on.
+- **Why.** Which tasks a run takes, in which order, and what the runner passes to its agent command are the loop
+  runner's own behaviour. `the-cook` has no code for any loop runner.
+- **What `the-cook` does.** Nothing beyond the worker contract: `the-cook worker` passes the agent the arguments the
+  runner gives it, after refusing every floor bypass argument of the agent's harness recipe among them.
+- **What you do.** Read the traps the loop-runner recipe and the tracker recipe document, and configure the runner and
+  shape the tasks accordingly.
 
-| ralph-tui or `bd` behaviour | What it means for a run | What you do |
-| --- | --- | --- |
-| ralph-tui accepts only the aliases `sonnet`, `opus`, `haiku` as a Claude model | the agent receives the alias, never a full model id | leave ralph-tui's model unset and add `"--model", "<full model id>"` to the agent entry's `defaultFlags`, after the worker's own flags, so `the-cook worker` passes it to the agent |
-| ralph-tui passes no effort to Claude | the agent runs at its default effort | add `"--effort", "<level>"` to the agent entry's `defaultFlags` in the same way |
-| Acceptance criteria are read from a `## Acceptance Criteria` section of the description, not from `bd`'s acceptance field | a task without that section has no criteria in the agent's prompt | end each task description with that section, as a `- [ ]` checklist |
-| `bd create --parent` copies the parent's labels | child tasks carry labels meant for the epic | pass `--no-inherit-labels` |
-| The parallel scheduler ignores dependencies on tasks outside its plan | a task can start before work it depends on outside the run | finish or unblock outside dependencies before the run |
-| Worker paths are force-deleted before reuse | a resumed parallel run removes the previous attempt's checkouts | repair failed tasks before resuming |
-
-### A run without `--epic` takes every ready task in the clone
-
-- **Symptom.** A Beads run picks up tasks from other work, including tasks imported from issues.
-- **Why.** Without `--epic`, ralph-tui takes every ready, unowned task in the database.
-- **What `the-cook` does.** Nothing: which tasks a run takes is ralph-tui's choice.
-- **What you do.** Always pass `--epic` with Beads: `ralph-tui run --epic acme-api-a10`.
-
-### A dependency on an epic blocks every child
-
-- **Symptom.** No task of an epic is ready, although none of them depends on anything.
-- **Why.** `bd ready` treats every descendant of a blocked task as blocked. A dependency put on the epic holds all its
-  children.
-- **What `the-cook` does.** Nothing; readiness is `bd`'s.
-- **What you do.** Put each dependency on the story that needs it, not on the epic.
-
-### A synchronised Beads database exposes claims to other machines
+### A synchronised tracker exposes claims to other machines
 
 - **Symptom.** Tasks show as assigned on a teammate's machine to an actor such as `ana:invoice-rounding:5c1e`.
-- **Why.** A `.beads/` database synchronised across machines carries assignments and comments with it, including those
-  the `beads` recipe's actions write.
-- **What `the-cook` does.** Nothing: it neither creates nor configures a Beads database, and its actions use whatever
-  database `bd` finds ([tasks](tasks.md#trackers)).
-- **What you do.** Run agents against a local database, or accept that claims are shared. Deny the tracker's remote
+- **Why.** Tracker data synchronised across machines carries assignments and comments with it, including those the
+  repository's tracker actions write.
+- **What `the-cook` does.** Nothing: it neither creates nor configures a tracker's data, and the actions use whatever
+  data the tracker's command finds ([tasks](tasks.md#trackers)).
+- **What you do.** Run agents against local tracker data, or accept that claims are shared. Deny the tracker's remote
   sync to agents in the policy when it must stay manual.
-
-### `bd init` installs git hooks and `AGENTS.md` sections
-
-- **Symptom.** After a hand-run `bd init`, commits run Beads hooks and `AGENTS.md` gains a Beads section.
-- **Why.** `bd init` installs git hooks and agent instructions unless told not to.
-- **What `the-cook` does.** Nothing: initialising a Beads database is `bd`'s job, and `the-cook` never runs `bd init`.
-  It never changes `core.hooksPath`.
-- **What you do.** Run `bd init --skip-hooks --skip-agents` when the repository keeps its own hooks and agent
-  instructions.
 
 ### The receipt lives in the worker's writable tree
 
@@ -405,17 +354,18 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 ### A squash merge hides landed work
 
 - **Symptom.** A merged branch is never reported as landed; `the-cook workspace remove` fires no `landed` for it.
-- **Why.** Landed work is detected by patch equivalence, through the version-control recipe's landed operation
-  (`git cherry` with the git recipe). A squash of several commits produces one patch that matches none of them.
+- **Why.** Landed work is detected by patch equivalence, through the version-control recipe's landed operation. A
+  squash of several commits produces one patch that matches none of them.
 - **What `the-cook` does.** Treats only matching patches as landed, so it never deletes unmerged work.
 - **What you do.** Delete such branches and their workspaces by hand once you have checked the merge.
 
 ### Actions that are not idempotent fail on retry
 
-- **Symptom.** Running `deliver` a second time fails at `gh pr create`.
+- **Symptom.** Running `deliver` a second time fails at the action that opens the pull request.
 - **Why.** The first run created the pull request; a failed event is retried by running all its actions again.
 - **What `the-cook` does.** Runs the declared actions as written.
-- **What you do.** Make each action safe to repeat: `gh pr view "$COOK_BRANCH" || gh pr create …`.
+- **What you do.** Make each action safe to repeat: look the pull request up first and create it only when it is
+  absent ([lifecycle](lifecycle.md#delivery-push-and-a-draft-pull-request)).
 
 ## Notifications and agent actions
 
@@ -433,14 +383,13 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
   developer's own shell profile. Do not rely on notifications for unattended runs; declare `completed` and `blocked`
   lifecycle actions, and have whatever drives the run fire `blocked` and the events of scope `run`.
 
-### Codex sessions never send `attention`
+### A harness without a waiting event never sends `attention`
 
-- **Symptom.** `attention` notifications arrive from Claude Code sessions and never from Codex.
-- **Why.** Codex has no hook event for an agent waiting for a person. It reports a finished turn through its `notify`
-  setting only.
-- **What `the-cook` does.** Renders `turn_end` for Codex through `notify`, renders nothing for `attention`, and reports
-  the gap as a `doctor` note ([hooks](hooks.md#agent-notifications)).
-- **What you do.** Use `turn_end` when Codex sessions must notify.
+- **Symptom.** `attention` notifications arrive from sessions of one harness and never from another.
+- **Why.** Not every harness has a hook event for an agent waiting for a person; some report only a finished turn.
+- **What `the-cook` does.** Renders `attention` and `turn_end` only on the native events the harness recipe maps them
+  to, and reports an unmapped one as a `doctor` note ([hooks](hooks.md#agent-notifications)).
+- **What you do.** Use `turn_end` for sessions of a harness without a waiting event.
 
 ### Every action sees every secret in the environment
 
@@ -481,8 +430,9 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 
 - **Symptom.** Sessions start slower and cost more, and the agent follows a long injected directive while missing a
   detail of the task.
-- **Why.** Every line of `always` content is read at the start of every session, and again after each compaction in
-  Claude Code. It competes with the task for the agent's attention.
+- **Why.** Every line of `always` content is read at the start of every session, and again whenever the harness fires
+  its session-start event, which some harnesses do after a compaction. It competes with the task for the agent's
+  attention.
 - **What `the-cook` does.** Reports a `doctor` note when a role's always-on content exceeds `context.budget`, listing
   each entry's line count ([context](context.md#budget)).
 - **What you do.** Keep `always` entries short, switch long ones to `inject: pointer`, and move guidance that applies
@@ -516,39 +466,73 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
   directive only workers or only interactive sessions must receive cannot be static: it reaches its role through the
   hook, and only where the pinned release is cached.
 
-### Codex reads files without firing `paths` entries
+### A harness that reads through shell commands fires `paths` entries only on edits
 
-- **Symptom.** A `paths` entry fires when a Codex session patches a migration, and not when it only reads one.
-- **Why.** Codex reads files through shell commands, which name no file `the-cook` can match.
-- **What `the-cook` does.** Matches the files Codex's patches touch.
-- **What you do.** Accept edit-only triggering for Codex, or make the entry `always` for a role that needs it.
+- **Symptom.** A `paths` entry fires when a session patches a migration, and not when it only reads one.
+- **Why.** A harness that reads files through shell commands names no file `the-cook` can match.
+- **What `the-cook` does.** Matches the files the harness recipe's payload names, such as the files a patch touches.
+- **What you do.** Accept edit-only triggering for that harness, or make the entry `always` for a role that needs it.
 
 ## Configuration and versions
 
 ### Hand-edited rendered files are drift
 
-- **Symptom.** `the-cook render --check` exits 2; an edit to `.claude/settings.json` permissions or inside a managed
-  block disappears after `the-cook render`.
+- **Symptom.** `the-cook render --check` exits 2; an edit to the permissions in a harness's settings file or inside a
+  managed block disappears after `the-cook render`.
 - **Why.** Rendered files and blocks are outputs of the three repository files (`.cook/config.yaml`,
-  `.cook/policy.yaml` and `.cook/hooks.yaml`) and the pinned release.
+  `.cook/policy.yaml` and `.cook/hooks.yaml`), the pinned release and the pinned recipes.
 - **What `the-cook` does.** Rewrites what it owns, preserves everything else byte for byte, and reports differences
   ([render](render.md#drift-check)).
 - **What you do.** Edit the source (`policy.yaml`, `hooks.yaml`, `config.yaml`) and render.
 
-### A newer release's recipe entries reach a repository only when the recipe is applied again
+### A newer recipe's entries reach a repository only when it is applied again
 
-- **Symptom.** After an upgrade, the new release's `node` recipe holds an entry the repository lacks, such as a lane
-  or a post-edit hook, and `the-cook render` does not add it.
+- **Symptom.** After `the-cook recipe pin` moved a recipe to a newer version, that version holds an entry the
+  repository lacks, such as a lane or a post-edit hook, and `the-cook render` does not add it.
 - **Why.** A recipe's entries are written into the repository's files when someone applies it, and from then on they
-  are the repository's own; `recipes:` records that the recipe is in use, not which entries it wrote. Its renders
-  follow the pinned release on every render, but its entries never change by themselves
+  are the repository's own; `recipes:` records which version is pinned, not which entries it wrote. Its renders follow
+  the pinned version on every render, but its entries never change by themselves
   ([ADR 0013](../adrs/0013-organization-content.md)).
 - **What `the-cook` does.** `the-cook recipe apply <name>` adds only the entries the repository lacks: every entry it
   holds stays as it is, an item it names that differs from the recipe's is kept and reported, and a second apply adds
   nothing ([recipes](recipes.md#how-apply-works)).
-- **What you do.** After an upgrade, run `./cook recipe apply node --dry-run` to see what the recipe would add,
+- **What you do.** After moving a pin, run `./cook recipe apply <name> --dry-run` to see what the recipe would add,
   then apply it, review the diff and commit. Applying again also adds back an entry the repository deleted on
   purpose, so read the diff before confirming. Across many repositories, use [fleet](fleet.md).
+
+### A command that needs a contract no recipe fills refuses
+
+- **Symptom.** `./cook workspace create` or `./cook worker` exits 3 naming `the-cook recipe pin`, while
+  `./cook doctor` works and lists the unfilled contract with the commands it makes unavailable.
+- **Why.** The binary has no code for any program. Workspaces, bases and history need a recipe that fills the
+  version-control contract, and starting an agent needs a recipe that fills its harness contract. Reading the profile
+  needs neither: the binary finds the repository root as the nearest directory upward that holds `.cook/config.yaml`.
+- **What `the-cook` does.** Refuses with exit 3 before acting, and never downloads a recipe on its own. Hooks print
+  one stderr line and exit 0.
+- **What you do.** Pin a recipe that fills the contract, from a cookbook whose `recipe show` output you have read:
+  `./cook recipe pin <name> --cookbook <source>@<version>`, then review and commit the diff.
+
+### A fresh clone has no recipes cached
+
+- **Symptom.** On a new machine or in a CI job, `./cook render` exits 3 and `./cook doctor` reports a finding, each
+  naming `./cook recipe fetch`, and agent hooks print one stderr line.
+- **Why.** Only `recipe pin`, `recipe fetch`, `recipe apply` of an uncached recipe and `scaffold --cookbook` download
+  recipes. Every other command reads them from the per-user cache, which a fresh clone or a new CI runner does not have.
+- **What `the-cook` does.** Downloads nothing implicitly; verifies every archive against its pin when it is
+  downloaded and every time it is loaded, and refuses a mismatch with exit 1.
+- **What you do.** Run `./cook recipe fetch` once per machine while online, and as the first step of a CI job that
+  renders or runs `doctor`. After that the clone works offline.
+
+### Pinning trusts the cookbook at that moment
+
+- **Symptom.** A pinned recipe runs a command, renders a rule or marks a floor nobody on the team read.
+- **Why.** `the-cook recipe pin` trusts the cookbook's `checksums.txt` as it is downloaded over HTTPS at that moment.
+  No release key vouches for a recipe. From then on the binary verifies the archive against the pin, so the pin fixes
+  its bytes, but the pin itself is only as trustworthy as the review of the diff that added it.
+- **What `the-cook` does.** Shows the `recipes:` entries as a diff and asks before writing them, and renders in the
+  same change, so the declaration and its effect are one diff.
+- **What you do.** Read the recipe with `./cook recipe show <name> --cookbook <source>@<version>` before approving the
+  pin, and review a pin move like any change to the policy.
 
 ## The wrapper
 
@@ -587,10 +571,10 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
   was written.
 - **What `the-cook` does.** Refuses to cache or run the asset. It never falls back to another version and never skips
   the check.
-- **What you do.** Retry once. If the mismatch persists, read `git log -p .cook/wrapper.yaml` and compare the pinned
+- **What you do.** Retry once. If the mismatch persists, read the history of `.cook/wrapper.yaml` and compare the pinned
   checksum with the release's published checksum file. When the pin matches the release and the download does not,
-  investigate the network path or the release; do not work around it by editing the checksum or setting
-  `COOK_BINARY` ([wrapper](wrapper.md#troubleshooting)).
+  investigate the network path or the release; do not work around it by editing the checksum or setting `COOK_BINARY`
+  ([wrapper](wrapper.md#troubleshooting)).
 
 ### Bypassing the pin runs another version
 
@@ -618,9 +602,9 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 
 ### A second pin in the task runner drifts from the wrapper
 
-- **Symptom.** `mise exec` and `./cook` run different releases of `the-cook`.
-- **Why.** The task runner's tool list, such as `mise.toml` or `.tool-versions`, also pins `the-cook`, so two files
-  answer the same question, and an upgrade moves only one of them.
+- **Symptom.** The task runner and `./cook` run different releases of `the-cook`.
+- **Why.** The task runner's tool list also pins `the-cook`, so two files answer the same question, and an upgrade
+  moves only one of them.
 - **What `the-cook` does.** Reads its version only from `.cook/wrapper.yaml`, and never reads or edits the task
   runner's file ([wrapper](wrapper.md#one-pin)).
 - **What you do.** Remove `the-cook` from the task runner's tool list.
@@ -649,11 +633,11 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 
 ### Sessions started in a monorepo subdirectory are out of scope
 
-- **Symptom.** An agent started in `services/billing/` does not apply the repository's rules, or applies a nested
-  `.claude/` directory's instead.
+- **Symptom.** An agent started in `services/billing/` does not apply the repository's rules, or applies the settings
+  of a harness directory nested there instead.
 - **Why.** `the-cook` operates at the repository root: one profile, one policy, one hooks file per repository. Whether
   an agent started in a subdirectory reads the root's settings is the agent's behaviour.
-- **What `the-cook` does.** Renders at the root and leaves nested `.claude/` directories alone
+- **What `the-cook` does.** Renders at the root and leaves nested harness directories alone
   ([compatibility](compatibility.md#monorepos)).
 - **What you do.** Start agents at the repository root.
 
@@ -666,9 +650,9 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 - **What you do.** Have the coordinating agent update the issue or the pull request, following a skill that says how the
   team records work, or let CI report.
 
-### Claude Code's own workspaces are not managed
+### A harness's own workspaces are not managed
 
-- **Symptom.** Worktrees under `.claude/worktrees/` are not listed, cleaned or bootstrapped.
-- **Why.** They belong to Claude Code.
-- **What `the-cook` does.** Never scans or touches `.claude/worktrees/`, and never cleans branches it did not record.
+- **Symptom.** Worktrees or workspaces a harness creates for itself are not listed, cleaned or bootstrapped.
+- **Why.** They belong to the harness.
+- **What `the-cook` does.** Never scans or touches them, and never cleans branches it did not record.
 - **What you do.** Use `the-cook workspace create` for work that needs a session, a receipt base or a task id.

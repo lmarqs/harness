@@ -31,7 +31,7 @@ global install, `the-cook <command>` is equivalent.
 | The adoption was a trial; the repository should go back to how it was before `the-cook` | `./cook remove` |
 | The repository should stop using `the-cook` and keep its workspace and memory conventions, its permissions and its hooks | `./cook remove --eject` |
 | The repository no longer wants one module, for example [memory](memory.md), its agent memory under `.agents/memory/` | `./cook remove --module memory` |
-| The repository no longer uses one program, such as Codex | delete its recipe from `recipes:` in the profile and run `./cook render` ([Removing one recipe](#removing-one-recipe)) |
+| The repository no longer uses one program, such as one agent's harness | delete its recipe from `recipes:` in the profile and run `./cook render` ([Removing one recipe](#removing-one-recipe)) |
 | You want to see what a mode would do | add `--dry-run` |
 
 Turning a module off in the profile and running `./cook render` has the same effect as `remove --module`, except
@@ -48,8 +48,8 @@ with. Managed blocks are owned, and each is either a convention block or a tool 
 ([block ids](render.md#block-ids)).
 
 Every owned output belongs to the binary or to one [recipe](recipes.md#renders), and the manifest records which. The
-rows below apply to every recipe's renders alike, such as the claude recipe's keys in `.claude/settings.json`, the
-codex recipe's rules file and the ralph-tui recipe's `.gitignore` block.
+rows below apply to every recipe's renders alike, such as a harness recipe's keys in the harness's settings file, its
+rules file, or a recipe's `.gitignore` block.
 
 | What | `remove` (undo) | `remove --eject` |
 | --- | --- | --- |
@@ -57,19 +57,19 @@ codex recipe's rules file and the ralph-tui recipe's `.gitignore` block.
 | Owned files in `.cook/`: `wrapper.yaml`, the manifest | deleted | deleted |
 | Other files in `.cook/`, such as a script the team keeps there | listed and left; `.cook/` is deleted once empty | listed and left; `.cook/` is deleted once empty |
 | `cook` | deleted | deleted |
-| Convention blocks: `workspaces`, `policy`, `memory`, `context` in `AGENTS.md`; `import` in `CLAUDE.md`; every `.gitignore` block | removed, text and entries included | markers removed, text and entries kept |
+| Convention blocks: `workspaces`, `policy`, `memory`, `context` in `AGENTS.md`; the `import` block a harness recipe renders in the harness's instructions file; every `.gitignore` block | removed, text and entries included | markers removed, text and entries kept |
 | Tool blocks: `commands`, `layout`, `verify`, `lifecycle` in `AGENTS.md`; `commands` in `README.md` | removed | removed |
-| Permissions in `.claude/settings.json`, and `.codex/rules/the-cook.rules` | removed; the rules adoption imported from the project's native files are written back as plain settings | kept as hand-owned content; the generated header is removed; entries that name a `the-cook` command (every rendered spelling) are removed and listed |
+| Permissions a harness recipe renders in the harness's settings or rules files | removed; the rules adoption imported from the project's native files are written back as plain settings | kept as hand-owned content; the generated header is removed; entries that name a `the-cook` command (every rendered spelling) are removed and listed |
 | `raw` hooks | removed; the hooks adoption imported from the project's native files are written back as plain hooks | kept as plain hooks |
-| Hook entries that run `cook`: modelled hooks, notification hooks, context delivery, the Codex `notify` key | removed | removed, and listed |
-| Other owned keys, such as the `.codex/config.toml` keys that enable project hooks | removed | kept as hand-owned content |
+| Hook entries that run `cook`: modelled hooks, notification hooks, context delivery, a notification key that runs it | removed | removed, and listed |
+| Other owned keys, such as keys that enable project hooks | removed | kept as hand-owned content |
 | The shipped skill and its links | deleted | deleted |
 | The `.agents/memory/` skeleton | a file whose content still matches the hash it was seeded with is deleted; an edited file is knowledge and stays, listed | kept |
 | Knowledge: `AGENTS.md` prose, edited memory, domain skills, `.agents/commands/`, `.agents/REVIEW.md` | kept | kept |
-| Templates a [recipe](recipes.md#templates) wrote, such as `.ralph-tui/config.toml`: the repository's own files | kept | kept |
+| Templates a [recipe](recipes.md#templates) wrote, such as a loop runner's configuration: the repository's own files | kept | kept |
 | State: the [state paths](profile.md#state-paths) (default under `.work/`) | left in place and listed; no longer ignored | left in place, still ignored |
 
-Neither mode touches `settings.local.json`, user-level settings, other tools' files such as `.beads/`, or anything
+Neither mode touches a harness's local or user-level settings, other tools' files such as a tracker's data, or anything
 `the-cook` did not create. The manifest records no template a recipe wrote, so removal never deletes one.
 
 ## How it works
@@ -87,13 +87,13 @@ terminal and without `--yes` they stop with exit 3. Both start the same way:
 3. List the seeded files that will be deleted: the profile, the policy, the hooks file, and the memory skeleton files
    nobody edited. Without `the-cook` they have no reader.
 4. Delete owned files and links: `cook`, `.cook/wrapper.yaml`, the shipped skill and its links, and every file a
-   recipe renders, such as `.codex/rules/the-cook.rules`.
-5. Remove every managed block, convention and tool blocks alike, from `AGENTS.md`, `README.md`, `CLAUDE.md` and
-   `.gitignore`, markers and text. A file left empty once its blocks are gone is deleted.
+   recipe renders, such as a harness recipe's rules file.
+5. Remove every managed block, convention and tool blocks alike, from `AGENTS.md`, `README.md`, a harness's
+   instructions file and `.gitignore`, markers and text. A file left empty once its blocks are gone is deleted.
 6. Remove owned keys and entries from native files. Every key no render owns keeps its bytes.
 7. Write back what adoption imported from the project's native files, as plain native settings: the permission rules
    and hooks whose provenance comment in `.cook/policy.yaml` or `.cook/hooks.yaml` names a project-scope file,
-   such as `# imported from .claude/settings.json (project)`. Entries imported from the `local` or `user` scope are
+   such as `# imported from <settings file> (project)`. Entries imported from the `local` or `user` scope are
    not written back: their source files were never changed and still hold them.
 8. Delete the seeded files and the manifest, then `.cook/` once nothing else is in it.
 9. List the state paths left in place. Their `.gitignore` blocks are gone, so they show up as untracked files until
@@ -107,7 +107,7 @@ Entries the repository added after adoption leave with `.cook/policy.yaml`; they
 4. Remove every tool block, markers and text. These blocks describe `the-cook` commands, which do not exist after an
    eject.
 5. Keep the rendered native files and owned keys as hand-owned content, and remove their generated headers. Remove every
-   hook entry that runs `cook`, the Codex `notify` key when it does, and every permission entry that names a
+   hook entry that runs `cook`, a notification key when it does, and every permission entry that names a
    `the-cook` command in any rendered spelling, and list them. `raw` hooks stay.
 6. Delete the shipped skill and its links, `cook`, and the owned and seeded files in `.cook/`, the manifest
    included; then `.cook/` once nothing else is in it.
@@ -120,7 +120,7 @@ After an eject the repository keeps working without `the-cook`:
 | `raw` hooks | modelled hooks (post-edit commands, validators, session context), notification hooks and hook-delivered context, which ran through `the-cook hook` |
 | Convention blocks in `AGENTS.md`: where workspaces live, the permissions agents work under, the memory index, `static` context | the tool blocks: the commands, the layout, the verification checks and the delivery steps |
 | `.gitignore` entries for every state path | lifecycle events and their actions; the receipt, its replay and the drift check |
-| `bd`, the Beads task tracker's CLI, with its `.beads/`; the templates a recipe wrote, such as `.ralph-tui/config.toml` | `the-cook worker`, its worker contract and tamper check; an agent command that names `./cook worker`, such as one in `.ralph-tui/config.toml`, fails until the team changes it |
+| A tracker, with its data; the templates a recipe wrote, such as a loop runner's configuration | `the-cook worker`, its worker contract and tamper check; an agent command that names `./cook worker`, such as one in a loop runner's configuration, fails until the team changes it |
 
 ### Removing one module
 
@@ -145,9 +145,8 @@ entries in the repository files and its templates, stays as the repository's own
 else. `vcs:` and `agents.<name>.recipe` must not name a recipe `recipes:` no longer lists, or `render` exits 1.
 
 ```sh
-$EDITOR .cook/config.yaml        # delete "- codex" from recipes: and the codex agent from agents:
-./cook render
-git status --short                  # .codex/rules/the-cook.rules deleted, .codex/hooks.json entries removed
+$EDITOR .cook/config.yaml        # delete the "name: codex" entry from recipes: and the codex agent from agents:
+./cook render                    # deletes the files the codex recipe rendered and removes its keys and entries
 ```
 
 ## Reference
@@ -177,6 +176,9 @@ provenance of imported entries. Files written: those paths; `.cook/config.yaml` 
 
 ## Examples
 
+The examples are of a repository whose agents use the `claude` and `codex` recipes, pinned from
+`github:acme/cookbook`.
+
 ### An undo
 
 ```sh
@@ -200,12 +202,12 @@ $ git status --short
 ```sh
 $ ./cook remove --eject --dry-run
 would delete: cook .cook/ .agents/skills/the-cook/SKILL.md .claude/skills/the-cook .codex/skills/the-cook
-would remove hook entries that run cook: .claude/settings.json (SessionStart, PostToolUse, Notification, Stop),
-                                             .codex/hooks.json (SessionStart, PostToolUse), .codex/config.toml (notify)
+would remove hook entries that run cook: .claude/settings.json .codex/hooks.json .codex/config.toml
 would remove tool blocks: AGENTS.md (commands, layout, verify, lifecycle), README.md (commands)
 would keep as plain text: AGENTS.md (workspaces, policy, memory), CLAUDE.md (import),
                           .gitignore (state, workspaces)
-would keep as hand-owned: .claude/settings.json (permissions), .codex/rules/the-cook.rules, .codex/config.toml (hook keys)
+would keep as hand-owned: .claude/settings.json (permissions), .codex/rules/the-cook.rules,
+                          .codex/config.toml (keys that enable hooks)
 $ ./cook remove --eject --yes
 $ git diff AGENTS.md
 ```
@@ -232,7 +234,7 @@ git commit -am "chore: drop the-cook memory module"
 - Do commit or stash your work first, so `git diff` shows only what `remove` did.
 - Do read the `--dry-run` output for a repository you did not set up.
 - Do eject, rather than undo, when people or agents rely on the conventions; undo when the adoption was a trial.
-- Do change every agent command that names `./cook worker`, such as those in `.ralph-tui/config.toml`, when the
+- Do change every agent command that names `./cook worker`, such as those in a loop runner's configuration, when the
   repository stops using `the-cook`: removal keeps the templates a recipe wrote as they are.
 - Do write the checks and the delivery steps into `AGENTS.md` prose after an eject, if agents should keep following
   them: the `verify` and `lifecycle` blocks are tool blocks and leave with the tool.
@@ -245,10 +247,10 @@ git commit -am "chore: drop the-cook memory module"
 | Symptom | Cause | Fix |
 | --- | --- | --- |
 | Exit 3 naming a file | The file changed since the last render | Move the meaningful change into a repository file, or rerun with `--force` |
-| `CLAUDE.md` was deleted by an undo | It held only the `import` block, so it was empty once the block was removed | Expected; recreate it if you want one. An eject keeps the `@AGENTS.md` line |
+| A harness's instructions file was deleted by an undo | It held only the `import` block, so it was empty once the block was removed | Expected; recreate it if you want one. An eject keeps the import line |
 | `.work/` shows up in `git status` after an undo | Its `.gitignore` block was removed with the rest | Delete it, or add your own ignore entry |
 | The agent lost its lint-on-edit hook | Modelled hooks run through `the-cook hook`; `--module hooks`, undo and eject all remove them | Re-enable `modules.hooks` and render, or write the command as a plain hook in the agent's settings |
 | The lanes and delivery steps are gone from `AGENTS.md` after an eject | `verify` and `lifecycle` are tool blocks, and an eject removes tool blocks | Write the checks you still want into `AGENTS.md` prose |
 | An undo kept a memory file | The file changed since it was seeded, so it is knowledge | Expected; delete it yourself if the repository no longer wants it |
 | `.cook/` is still there after a removal | It holds a file `the-cook` neither owns nor seeded, such as a script the team keeps there; the output listed it | Delete the file, or keep it, as you choose |
-| ralph-tui cannot start an agent after a removal | `.ralph-tui/config.toml`, a template the `ralph-tui` recipe wrote, names `./cook worker`, which removal deleted | Point each agent's `command` and `defaultFlags` at the agent, or at a wrapper of your own |
+| A loop runner cannot start an agent after a removal | Its configuration, a template a recipe wrote, names `./cook worker`, which removal deleted | Point each agent command at the agent, or at a wrapper of your own |

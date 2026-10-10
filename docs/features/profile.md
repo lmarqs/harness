@@ -14,10 +14,10 @@ and every agent and tool working there uses the same answer.
 
 The profile tells `the-cook` what a repository is: which [recipes](recipes.md) describe the programs it uses, which
 modules it uses, how to bootstrap a checkout, how to lint and build, which verification lanes (named families of test
-commands) exist, which agents it uses and what an unattended [worker](ralph.md) may write, and the standing context
-agents receive. It is seeded and then repository-owned. `scaffold` seeds it once, with the recipes whose detect rule
-matches and their entries. From then on people and agents edit it, `the-cook recipe apply` adds a recipe and its entries
-to it, and `the-cook render` reads it.
+commands) exist, which agents it uses and what an unattended [worker](worker.md) may write, and the standing context
+agents receive. It is seeded and then repository-owned. `scaffold` seeds it once, with the recipes of a cookbook tag
+whose detect rule matches and their entries. From then on people and agents edit it, `the-cook recipe pin` adds or
+moves a recipe's pin, `the-cook recipe apply` adds a pinned recipe's entries, and `the-cook render` reads it.
 
 Examples on this page run commands as `./cook <command>`, through the repository's [wrapper](wrapper.md); with a
 global install, `the-cook <command>` is equivalent.
@@ -26,18 +26,18 @@ global install, `the-cook <command>` is equivalent.
 
 | You want to | Edit |
 | --- | --- |
-| Use a program's recipe, or stop using it | `recipes` ([recipes](recipes.md)); `./cook recipe apply <name>` adds one with its entries |
-| Use another version control system's recipe | `vcs` |
+| Use a program's recipe, move it to a newer version, or stop using it | `recipes` ([recipes](recipes.md)); `./cook recipe pin <name> --cookbook <source>@<version>` adds or moves a pin, then `./cook recipe apply <name>` adds its entries |
+| Use another version control system's recipe | `vcs`, after pinning the recipe |
 | Turn a feature on or off | `modules` |
 | Change what a new workspace runs before use | `bootstrap` |
 | Change how a file is linted or the project is built | `commands` |
 | Add, rename or require a test lane | `verify.lanes` |
 | Run a repository check when certain files change | `verify.validators` |
-| Add Codex or another agent, make an agent a worker-only agent, give an agent a fetched harness recipe, or let a Codex worker write one more directory | `agents` |
+| Add an agent, make an agent a worker-only agent, give an agent another harness recipe, or let a worker write one more directory | `agents` |
 | Move where state or managed workspaces live | `state.dir`, `workspaces.dir` |
 | Give agents a directive or a skill without anyone invoking it: always, on certain files, or on certain words | `context` |
 | Let the managed blocks in `AGENTS.md` take more or fewer lines | `blocks.agents_md_budget` |
-| Add the starting commands, lanes and post-edit hooks of a stack | nothing by hand: run `./cook recipe apply <name>` ([recipes](recipes.md)) |
+| Add the starting commands, lanes and post-edit hooks of a stack | nothing by hand: pin the stack's recipe and run `./cook recipe apply <name>` ([recipes](recipes.md)) |
 
 Run `./cook render` after every edit, and `./cook doctor` to check globs and commands.
 
@@ -60,13 +60,13 @@ Run `./cook render` after every edit, and `./cook doctor` to check globs and com
 | --- | --- | --- | --- |
 | `schema` | integer | required | File format version. `1` for this release line |
 | `name` | string | the repository directory name | Repository name, used in messages |
-| `recipes` | list | required | The [recipes](#recipes) the repository uses |
-| `vcs` | recipe name | required | The recipe that fills the version-control contract; see [`recipes`](#recipes) |
+| `recipes` | list | `[]` | The [recipes](#recipes) the repository uses, each pinned |
+| `vcs` | recipe name | none | The recipe that fills the version-control contract; see [`recipes`](#recipes). Absent: no recipe fills it |
 | `modules` | map | every module off | Which modules are on |
-| `bootstrap` | list of commands | `[]` | Run in order in a new workspace, and once in each checkout a [worker](ralph.md#the-worker-contract) runs in |
+| `bootstrap` | list of commands | `[]` | Run in order in a new workspace, and once in each checkout a [worker](worker.md#the-worker-contract) runs in |
 | `commands` | map | | Lint and build commands |
 | `verify` | map | | Verification paths, lanes and validators |
-| `agents` | map | | Agents rendered for this repository, their roles, their harness recipes, and what a Codex worker may write |
+| `agents` | map | | Agents rendered for this repository, their roles, their harness recipes, and what a worker may write |
 | `context` | map | | [Standing context](#context): directives and skills injected by declared triggers |
 | `blocks` | map | | Limits for the managed blocks `the-cook` writes |
 | `state` | map | | Where clone-local state lives; see [State paths](#state-paths) |
@@ -75,33 +75,34 @@ Run `./cook render` after every edit, and `./cook doctor` to check globs and com
 ### `recipes`
 
 The [recipes](recipes.md) the repository uses: their renders and floor rules are rendered on every `the-cook render`,
-and their operations answer the binary's questions. An entry is a builtin recipe's name, or a
-[fetched recipe](recipes.md#fetched-recipes) as a map:
+and their operations answer the binary's questions. Every entry is a [pin](recipes.md#pinning) with four fields,
+written by `the-cook recipe pin`:
 
 | Field | Type | Meaning |
 | --- | --- | --- |
-| `name` | string | The recipe's name; never the name of a builtin recipe |
-| `source` | string | `github:<owner>/<repo>`, or an HTTPS base URL laid out like the [release source](wrapper.md#release-source) |
-| `version` | string | The version to download, `<source>/download/<version>/<name>.tar.gz` |
-| `sha256` | string | The archive's sha256, 64 hexadecimal characters, checked on download and on every load |
+| `name` | string | The recipe's name; unique within the profile |
+| `source` | string | The [cookbook](recipes.md#cookbooks): `github:<owner>/<repo>`, or an HTTPS base URL laid out like the [release source](wrapper.md#release-source) |
+| `version` | string | The cookbook tag, `<source>/download/<version>/<name>.tar.gz` |
+| `sha256` | string | The archive's sha256, 64 hexadecimal characters, from the tag's `checksums.txt`; checked on download and on every load |
 
 ```yaml
 recipes:
-  - git
-  - claude
-  - codex
-  - node
-  - name: just
+  - name: git
     source: github:acme/cookbook
     version: v1.2.0
     sha256: d2f0d562418c7d176d0393d8694cc6f6f569f2dff3f7ede3788a2075d3ff5c3f
+  - name: claude
+    source: github:acme/cookbook
+    version: v1.2.0
+    sha256: b5fd834d175eb4b74cda3763a33fc04c87b00e8b85e18f8c1c43bf912eca8816
 vcs: git
 ```
 
-`vcs` names the recipe that fills the [version-control contract](recipes.md#the-version-control-contract): `git`, which
-`scaffold` writes, or a fetched recipe. It must be in `recipes`, and so must every agent's [harness recipe](#agents);
-otherwise the profile fails validation with exit 1. Deleting a name from `recipes` and rendering removes that recipe's
-renders and its floor; its applied entries and templates stay ([recipes](recipes.md#after-applying)).
+`vcs` names the recipe that fills the [version-control contract](recipes.md#the-version-control-contract), which
+`scaffold` writes when it pins one. It must be in `recipes`, and so must every agent's [harness recipe](#agents);
+otherwise the profile fails validation with exit 1, as do two entries with the same name. Deleting an entry from
+`recipes` and rendering removes that recipe's renders and its floor; its applied entries and templates stay
+([recipes](recipes.md#after-applying)).
 
 ### `modules`
 
@@ -150,14 +151,13 @@ and in the `commands` block. The rules that use them are on the [verify](verify.
 ### `agents`
 
 A map from agent name to its settings. Only declared agents are rendered. Each agent is served by a
-[harness recipe](recipes.md#the-harness-contract): the release ships `claude` (Claude Code) and `codex` (Codex CLI),
-and a fetched recipe can serve another agent.
+[harness recipe](recipes.md#the-harness-contract) the repository pins.
 
 | Field | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `role` | `interactive` \| `worker` | | `interactive`: people use the agent in this repository; its native files carry the shared policy. `worker`: the agent runs here only as a worker, started by [`the-cook worker`](ralph.md#the-worker-contract); its native files also carry `worker.deny`. See [agents](agents.md#roles) |
+| `role` | `interactive` \| `worker` | | `interactive`: people use the agent in this repository; its native files carry the shared policy. `worker`: the agent runs here only as a worker, started by [`the-cook worker`](worker.md#the-worker-contract); its native files also carry `worker.deny`. See [agents](agents.md#roles) |
 | `recipe` | recipe name | the agent's name | The harness recipe that serves the agent; it must be in `recipes` and fill the harness contract. Example: `reviewer: { role: worker, recipe: acme-review }` |
-| `writable_roots` | list of paths | `[]` | Only for an agent whose harness recipe opens sandbox roots, such as `codex`. Directories a Codex worker may write besides its task checkout and the clone's state directory, relative to the root of the primary checkout. Example: `[.beads]`, so a worker can update the clone's Beads database; the [`beads` recipe](recipes.md#beads) adds it. No other directory is writable for a Codex worker |
+| `writable_roots` | list of paths | `[]` | Only for an agent whose harness recipe opens sandbox roots (`launch.sandbox_roots`). Directories such a worker may write besides its task checkout and the clone's state directory, relative to the root of the primary checkout. Example: a tracker's database directory in the clone, which the tracker's recipe may add as an entry. No other directory is writable for such a worker |
 
 ### `context`
 
@@ -184,7 +184,7 @@ context:
 
 | Field | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `always` | list of entries | `[]` | Injected at every session start, and again each time the agent fires its session-start event, as Claude Code does after compacting its context |
+| `always` | list of entries | `[]` | Injected at every session start, and again each time the agent fires its session-start event, as some agents do after compacting their context |
 | `when` | list of triggered entries | `[]` | Each injected at most once per session, when its trigger first fires |
 | `budget` | integer | `120` | Most lines of always-on content per session and role, `static` entries included. `doctor` notes an overrun and lists each entry with its line count |
 
@@ -201,7 +201,7 @@ An entry:
 | `prompt` | list of words and phrases | | Only in `when`: the trigger is a person's message that contains one, case-insensitive, as a whole word or phrase |
 
 Sources are repository files and skills committed under `.agents/skills/`; nothing is fetched when a hook runs. A
-[worker](ralph.md#the-worker-contract) receives the entries as they are at its base commit. Hook delivery
+[worker](worker.md#the-worker-contract) receives the entries as they are at its base commit. Hook delivery
 needs `modules.hooks`; `static` entries do not. Preview what a session would receive with
 [`the-cook context show`](context.md#the-cook-context-show). `COOK_NO_CONTEXT=1` turns injection off for one process
 tree.
@@ -214,9 +214,10 @@ tree.
 
 ### State paths
 
-State is clone-local, gitignored and disposable, and lives outside `.cook/`. Two keys say where, each relative to
-the repository root. Each path is written down as a convention in a managed block of `AGENTS.md` and a managed block of
-`.gitignore` ([block ids](render.md#block-ids)), so people, agents and other tools find it, with or without `the-cook`.
+State is clone-local, gitignored and disposable, and lives outside `.cook/`. Two keys say where, each relative to the
+repository root. Each path is written down as a convention in a managed block of `AGENTS.md` and, through the
+version-control recipe's renders, in an ignore block such as one of `.gitignore` ([block ids](render.md#block-ids)), so
+people, agents and other tools find it, with or without `the-cook`.
 
 ```yaml
 state:
@@ -244,7 +245,23 @@ Rules for the paths:
 # .cook/config.yaml
 schema: 1
 name: acme-api
-recipes: [git, claude, codex, node, beads, ralph-tui]
+recipes:
+  - name: git
+    source: github:acme/cookbook
+    version: v1.2.0
+    sha256: d2f0d562418c7d176d0393d8694cc6f6f569f2dff3f7ede3788a2075d3ff5c3f
+  - name: claude
+    source: github:acme/cookbook
+    version: v1.2.0
+    sha256: b5fd834d175eb4b74cda3763a33fc04c87b00e8b85e18f8c1c43bf912eca8816
+  - name: acme-agent
+    source: github:acme/cookbook
+    version: v1.2.0
+    sha256: 6d2f26296cf399e1f470582106e0def36fcb3979b54422ecde46767a4b996ea7
+  - name: node
+    source: github:acme/cookbook
+    version: v1.2.0
+    sha256: a2bce70041251fb8f672f9f5819969951627fdd3868497a17b525ab90a0c01d8
 vcs: git
 modules: { hooks: true, verify: true, memory: true }
 bootstrap: [npm ci]
@@ -264,7 +281,7 @@ verify:
     - { when: [openapi/**, src/**/*.dto.ts], run: npm run openapi:check }
 agents:
   claude: { role: interactive }
-  codex: { role: worker, writable_roots: [.beads] }
+  acme-agent: { role: worker, writable_roots: [.tasks] }
 context:
   always:
     - skill: coding-guidelines
@@ -273,14 +290,27 @@ context:
       skill: sql-quality-check
 ```
 
-The team tracks tasks with Beads and runs ralph-tui, so a Codex worker may write the clone's `.beads/` database.
+The team's tracker keeps its database in `.tasks/` in the clone, so the `acme-agent` worker, whose harness recipe opens
+sandbox roots, may write it there.
 
 ### A Terraform repository
 
 ```yaml
 schema: 1
 name: acme-infra
-recipes: [git, claude, terraform]
+recipes:
+  - name: git
+    source: github:acme/cookbook
+    version: v1.2.0
+    sha256: d2f0d562418c7d176d0393d8694cc6f6f569f2dff3f7ede3788a2075d3ff5c3f
+  - name: claude
+    source: github:acme/cookbook
+    version: v1.2.0
+    sha256: b5fd834d175eb4b74cda3763a33fc04c87b00e8b85e18f8c1c43bf912eca8816
+  - name: terraform
+    source: github:acme/cookbook
+    version: v1.2.0
+    sha256: 263cf543df68c48c6b032365c3207d73b4d9681807a20c3b1c050fe056d06274
 vcs: git
 modules: { hooks: true, verify: true, memory: true }
 bootstrap: [terraform -chdir=envs/staging init -backend=false]
@@ -306,7 +336,23 @@ agents: { claude: { role: interactive } }
 ```yaml
 schema: 1
 name: acme-cli
-recipes: [git, claude, codex, go]
+recipes:
+  - name: git
+    source: github:acme/cookbook
+    version: v1.2.0
+    sha256: d2f0d562418c7d176d0393d8694cc6f6f569f2dff3f7ede3788a2075d3ff5c3f
+  - name: claude
+    source: github:acme/cookbook
+    version: v1.2.0
+    sha256: b5fd834d175eb4b74cda3763a33fc04c87b00e8b85e18f8c1c43bf912eca8816
+  - name: codex
+    source: github:acme/cookbook
+    version: v1.2.0
+    sha256: 17accff1f425d5eebd1ea4dec6901b620be626fe85f8633dfe0291ab9d374fa6
+  - name: go
+    source: github:acme/cookbook
+    version: v1.2.0
+    sha256: 37f31d4b7ea8e164ba29a13a13b6aece3d8d1a9435dc7f90fdfac715d339eecc
 vcs: git
 modules: { hooks: true, verify: true, memory: true }
 bootstrap: [go mod download]
@@ -345,10 +391,11 @@ Patterns for the Go lanes are package paths:
 | Symptom | Cause | Fix |
 | --- | --- | --- |
 | `unknown key` error | A typo or a field from a newer schema | Fix the key; check `schema` |
-| `vcs` or an agent's `recipe` names a recipe not in `recipes` | The recipe was deleted from `recipes`, or never added | Add it back with `./cook recipe apply <name>`, or name a recipe in use |
-| `render` exits 3 naming `./cook recipe fetch` | A fetched recipe in `recipes` is not in this machine's cache | Run `./cook recipe fetch` |
+| `vcs` or an agent's `recipe` names a recipe not in `recipes` | The recipe was deleted from `recipes`, or never pinned | Pin it with `./cook recipe pin <name> --cookbook <source>@<version>`, or name a recipe in use |
+| Two `recipes` entries with the same name | A name is unique within the profile | Delete one; `./cook recipe pin` moves an existing pin |
+| `render` exits 3 naming `./cook recipe fetch` | A recipe in `recipes` is not in this machine's cache | Run `./cook recipe fetch` |
 | `doctor` says a program is not on PATH | A command, lane, validator or action names a program this machine lacks | Install the program, or fix the command in `.cook/config.yaml` or `.cook/hooks.yaml` |
 | `doctor` says a glob matches nothing | Wrong path or quoting | YAML needs quotes around globs that start with `*` |
 | A lane runs with the literal text `{pattern}` | The command is in `full`, which takes no placeholder | Use `{pattern}` only in `select` |
-| `state path must not be inside .cook/ or .agents/` | A state path points into a directory that holds committed files only | Choose a path outside both, such as the default `.work/…` |
+| `state path must not be inside .cook/ or .agents/` | A state path points into a directory that holds committed files only | Choose a path outside both, such as the default `.work/` |
 | `doctor` notes that always-on context exceeds `context.budget` | Too many or too long `always` entries for one role | Move entries to `when` triggers, use `inject: pointer`, or narrow them with `for` |

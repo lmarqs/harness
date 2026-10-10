@@ -47,7 +47,8 @@ no hook fails for lack of a runtime.
   turns adoption into an installation project and adds a setup step to every CI job that runs a check. A mismatched
   interpreter breaks hooks inside agent sessions. The version control program is one the tool cannot work without, but
   it is the repository's choice, described by a recipe, and every clone already has it. The trade: the binary cannot
-  do anything useful in a repository until its version control recipe's program is installed, and says so.
+  read a repository's base, history or workspaces until the repository pins a version control recipe and the program it
+  describes is installed, and says so ([0023](0023-core-and-contracts.md)).
 - **2.** A statically linked Linux binary runs on every distribution and in minimal containers, so CI can use it by
   downloading one file. On macOS the system library is the only supported way to reach the kernel, so linking it adds
   no dependency a macOS machine lacks.
@@ -77,8 +78,8 @@ interpreter start-up is paid on every hook, and two languages are maintained.
 
 ### Reimplement third-party work natively
 
-For example, reimplement the skills installer to avoid Node. At its best, nothing is ever pending for lack of a runtime.
-It loses because it duplicates a specification another project owns and changes.
+For example, reimplement a skills installer to avoid its runtime. At its best, nothing is ever pending for lack of a
+runtime. It loses because it duplicates a specification another project owns and changes.
 
 ## Consequences
 
@@ -86,8 +87,8 @@ Costs:
 
 - Work that belongs to a third-party tool, such as installing shared skills, needs that tool and its runtime on the
   machine where the team runs it.
-- Every command that reads the repository needs the version control recipe's program, which the binary does not
-  provide.
+- Every command that reads the repository's base, history or workspaces needs the program the version control recipe
+  describes, which the binary does not provide.
 - Libraries that need cgo or spawn external programs are excluded, which narrows library choice.
 
 Must be maintained:

@@ -39,11 +39,11 @@ another agent changes no repository's declarations.
    notification events, waiting for a person and turn ended ([0019](0019-action-kinds.md)), and the points where
    guidance enters the agent's context ([0020](0020-standing-context.md)). Where an agent lacks an event, the recipe
    renders nothing for it and the health check, the tool's read-only report on a repository's setup, reports the gap.
-4. The harness contract is public and documented. Adding an agent means adding a harness recipe, shipped in a release
-   or declared by a repository from an outside source; the sources and the other recipes do not change.
+4. The harness contract is public and documented. Adding an agent means a repository declaring a harness recipe from a
+   cookbook; the sources and the other recipes do not change.
 5. A construct the neutral model does not express may be written as a raw, agent-specific entry. A recipe whose agent
-   cannot express it skips it. Every native permission rule of every agent the release ships a recipe for is
-   expressible this way ([0016](0016-permission-adoption.md)).
+   cannot express it skips it. Every native permission rule of every agent a harness recipe describes is expressible
+   this way ([0016](0016-permission-adoption.md)).
 6. Which agent fills which role in a repository, interactive or unattended, is repository data, not recipe content.
 
 ## Reasons
@@ -52,9 +52,9 @@ another agent changes no repository's declarations.
   file per agent, drifts. The dedicated check of the `acme/api` example in Context shows the cost.
 - **2.** Each agent's syntax, schema and release cadence is confined to one recipe. A format change in one agent is
   fixed in one recipe, and the other agents' output is untouched. As data, the recipe can be fixed without a change to
-  the binary's code, and a team can describe an agent the project does not ship ([0022](0022-tool-integration.md)).
-  The supported-version declaration lets the health check stop an unsupported agent version before the tool renders
-  configuration that agent misreads. The trade: everything an agent needs must fit the contract's fixed operations.
+  the binary's code, and a team can describe any agent ([0022](0022-tool-integration.md)). The supported-version
+  declaration lets the health check stop an unsupported agent version before the tool renders configuration that agent
+  misreads. The trade: everything an agent needs must fit the contract's fixed operations.
 - **3.** Hook declarations, notification actions and context triggers are written once, against neutral events.
   Without normalisation, each would be declared once per agent and drift like the rest. Rendering nothing for a
   missing event, and saying so, tells a person which agent lacks a behaviour instead of letting them assume it works.
@@ -91,20 +91,22 @@ Costs:
 
 - The neutral model must follow the agents as they evolve, and translating agent-specific features can lose meaning.
 - A raw entry takes effect only for the agents that can express it.
-- A breaking agent release affects every adopting repository until a recipe update ships; the supported-version
-  declaration detects it but does not prevent it.
+- A breaking agent release affects every adopting repository until its cookbook publishes a recipe update and the
+  repository moves its pin; the supported-version declaration detects it but does not prevent it.
 - A behaviour declared once is absent for agents that lack its event.
 
 Must be maintained:
 
-- One shipped recipe per supported agent, its supported-version range, its contract tests, the harness contract and
-  the neutral event set.
+- The harness contract, its shared contract suite and the neutral event set.
+- For each harness recipe, in the cookbook that publishes it: its supported-version range and its run of the contract
+  suite against the agent versions in that range.
 
 ## Confirmation
 
-- Every shipped harness recipe passes a shared contract suite: the same policy yields the same allow, ask or deny
-  outcome for the same fixture commands in each agent's rendered output.
-- Recorded hook payloads from each agent, including notification and context-injection events, normalise to the same
-  neutral events.
+- The shared contract suite asserts that the same policy yields the same allow, ask or deny outcome for the same fixture
+  commands in each agent's rendered output. The tool's own CI runs it against stand-in harness recipes; a cookbook runs
+  it against each harness recipe it publishes.
+- Recorded hook payloads from each agent a recipe describes, including notification and context-injection events,
+  normalise to the same neutral events.
 - A fixture whose agent lacks a declared event renders nothing for it, and the health check reports the gap.
 - The health check reports agent versions outside a recipe's supported range.

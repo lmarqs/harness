@@ -22,11 +22,11 @@ the [glossary](../features/glossary.md).
 
 | Rule | Write | Not |
 | --- | --- | --- |
-| Present tense, describe what is | `render writes .claude/settings.json` | `render will write…`, `render now writes…` |
+| Present tense, describe what is | `render writes AGENTS.md` | `render will write…`, `render now writes…` |
 | Concise: one fact per sentence, no filler | `2 files drifted` | `It looks like there may be a couple of files that have drifted` |
 | Name the thing exactly | `.cook/policy.yaml:14` | `your policy file` |
 | Imperative for instructions | `run: ./cook render` | `you may want to consider running render` |
-| Neutral, no blame, no apology | `.claude/settings.json was edited by hand` | `you broke settings.json`, `sorry, …` |
+| Neutral, no blame, no apology | `AGENTS.md: block policy was edited by hand` | `you broke AGENTS.md`, `sorry, …` |
 | Plain words | `refused`, `skipped`, `drift` | `oops`, `whoops`, exclamation marks, any emoji outside the icon set ([cli-standards.md](cli-standards.md#icons)) |
 | No marketing | `renders permissions for each agent` | `seamlessly`, `powerful`, `blazing fast` |
 | Consistent terms | the terms in the [glossary](../features/glossary.md), one term per concept | alternating `profile`/`config`/`settings` for one file |
@@ -59,13 +59,13 @@ Every error has three parts, in this order, because a reader needs to know what 
 
 ```text
 the-cook: render --check: 2 files drifted from .cook/policy.yaml
-  .claude/settings.json: permissions.allow differs (edited by hand)
-  .codex/rules/the-cook.rules: content differs
+  AGENTS.md: block policy differs (edited by hand)
+  .agents/skills/the-cook/SKILL.md: content differs
   run: ./cook render
 ```
 
 ```text
-the-cook: remove: .codex/rules/the-cook.rules was edited by hand and was not removed
+the-cook: remove: .agents/skills/the-cook/SKILL.md was edited by hand and was not removed
   its content no longer matches the manifest
   review the file, then run: ./cook remove --force
 ```
@@ -132,9 +132,9 @@ because it enters an agent's session.
 
 Managed blocks hold derived facts: the conventions a module establishes, stated in plain language with their configured
 values, command tables, an index of memory files, a summary of the effective permissions, static directives (`static`
-standing-context entries), an import line (`@AGENTS.md` in `CLAUDE.md`). Blocks contain no prose that reads as a
-person's opinion, and nothing that duplicates prose outside the block, because the binary writes only what it can
-derive. Explanations of a repository's choices are written by people or agents outside the markers.
+standing-context entries), an import line that makes an agent's instruction file read `AGENTS.md`. Blocks contain no
+prose that reads as a person's opinion, and nothing that duplicates prose outside the block, because the binary writes
+only what it can derive. Explanations of a repository's choices are written by people or agents outside the markers.
 
 The two block classes ([generated-content-standards.md](generated-content-standards.md#block-classes)) are written
 differently:
@@ -218,14 +218,19 @@ A section with no content is omitted rather than left empty.
   the same word reads the same in a sentence and in a command, and it never takes a capital letter, even at the start of
   a sentence. The generic idea keeps its plain words: an agent harness, a meta-harness, a harness recipe.
 - No organization names in examples or in content `the-cook` carries; examples use `acme` for an organization and
-  `acme/api` for a repository, because `the-cook` is open source and its docs must fit any organization. Third-party
-  products (Claude Code, Codex, GitHub, ralph-tui, Beads, the `skills` CLI) are named where their behaviour matters,
-  because a reader needs to know which tool a rule is about.
-- What `the-cook` does with a program is attributed to the recipe that describes it: "the version-control recipe reports
-  the default branch", "a floor rule of the git recipe". A program's own commands appear only as examples of what its
-  recipe runs ("with the git recipe, `git worktree add`"). Why: the binary contains code for no program, so a page that
-  says `the-cook` runs git describes a binary that does not exist ([recipes](../features/recipes.md),
-  [ADR 0022](../adrs/0022-tool-integration.md)).
+  `acme/api` for a repository, and cookbooks in examples are `github:acme/cookbook`, because `the-cook` is open source
+  and its docs must fit any organization.
+- Feature and standards pages describe the core and its two contracts, and name programs by role: the version control
+  system, a harness, a loop runner, a task tracker, a task runner, a skills installer. A product appears only in a short
+  example that plainly uses a recipe from a cookbook, such as an agent `claude` declared with `recipe: claude` pinned
+  from `github:acme/cookbook`, never as a description of that program's behaviour, flags, file keys, versions or
+  pitfalls; that knowledge belongs to the page of the cookbook that describes the program. An ADR names a product only
+  in its Context, as checkable evidence of what exists. Why: the binary contains code and data for no program and ships
+  no recipe, so a page that describes a program's behaviour documents something `the-cook` does not hold and goes stale
+  with that program's releases ([recipes](../features/recipes.md), [ADR 0022](../adrs/0022-tool-integration.md)).
+- What `the-cook` does with a program is attributed to the recipe that fills its role: "the version-control recipe
+  reports the default branch", "a floor rule of the version-control recipe". Why: a page that says `the-cook` runs a
+  particular program describes a binary that does not exist.
 - Example commands are complete and run as written; example output is copied from a real run of the documented
   release, so a reader can trust what they copy.
 - Commands that run inside a repository are written as `./cook <command>`, with `the-cook <command>` shown as the

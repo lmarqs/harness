@@ -115,4 +115,4 @@ Add the pagination rule we just agreed on to .agents/memory/backend-patterns.md,
 | Symptom | Cause | Fix |
 | --- | --- | --- |
 | `render --check` fails on the `memory` block | A memory file was added or renamed without rendering | `the-cook render` |
-| Agents never read memory | `AGENTS.md` is not loaded by the agent | Check how the agent's harness recipe points it at `AGENTS.md`: the claude recipe renders an `import` block in `CLAUDE.md`; Codex reads the root `AGENTS.md` directly |
+| Agents never read memory | `AGENTS.md` is not loaded by the agent | Check how the agent's harness recipe points it at `AGENTS.md` (`the-cook recipe show <name>`), and that the recipe is in `recipes:` |

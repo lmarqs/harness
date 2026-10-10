@@ -25,7 +25,7 @@ expects of the skills around it. Terms such as standing context, pin and profile
 | Kind | Lives in | Written by | Reaches a repository by | Holds |
 | --- | --- | --- | --- | --- |
 | **shipped skill** | the binary; installed at `.agents/skills/the-cook/` | `the-cook` maintainers | `the-cook render` (tool-owned, listed in the manifest) | how to run `the-cook` (`./cook <command>`), edit the repository files in `.cook/`, finish an adoption, read `doctor` findings, when to run `the-cook lifecycle run <event>`, and why the invariants exist |
-| **Organization skill** | an organization's skills repository | the organization | installed by the team with the tool of its choice, such as the [`skills` CLI](https://github.com/vercel-labs/skills) (`npx skills add acme/agent-skills`), and committed under `.agents/skills/`; the binary has no code for the installer, which the [`skills` recipe](../features/recipes.md#skills) describes ([ADR 0022](../adrs/0022-tool-integration.md)) | conventions shared by one organization's repositories, and how to write them into one repository's files: delivery actions, policy entries (observability read patterns, deploy denies), review, domain vocabulary |
+| **Organization skill** | an organization's skills repository | the organization | installed by the team with the skills installer of its choice and committed under `.agents/skills/`; the binary has no code for the installer, which a recipe the repository pins can describe ([ADR 0022](../adrs/0022-tool-integration.md)) | conventions shared by one organization's repositories, and how to write them into one repository's files: delivery actions, policy entries (observability read patterns, deploy denies), review, domain vocabulary |
 | **Repository skill** | `.agents/skills/<name>/` in the repository | people and agents in that repository | committed directly | knowledge of one repository: its modules, risks, procedures |
 
 The binary writes only the shipped skill. Organization and repository skills are knowledge; the binary never creates,
@@ -120,9 +120,9 @@ observability service without asking. acme's skill has the agent add `"mcp__acme
 Each rule in a skill carries its reason in one sentence. An agent that knows why a rule exists applies it to cases
 the text did not foresee and does not drop it when it seems inconvenient.
 
-- Good: "Edit `.cook/policy.yaml`, never `.claude/settings.json`: the settings file is rendered from the policy and
+- Good: "Edit `.cook/policy.yaml`, never an agent's rendered settings: they are rendered from the policy and
   `render --check` fails on hand edits."
-- Not enough: "Never edit `.claude/settings.json`."
+- Not enough: "Never edit the agents' settings files."
 
 Rules phrased only as capitalised commands (ALWAYS, NEVER) without a reason SHOULD be rewritten, because emphasis
 without a reason gives the agent nothing to apply to a new case.

@@ -50,9 +50,9 @@ repository.
 - **1.** Hand-copied setups diverge in their configuration and their start-up arguments, as the acme copies in Context
   do, so owning those surfaces is what solves it. The output is committed files, which reviewers read as diffs and which
   keep working when the tool is absent ([0010](0010-dependence-on-the-binary.md)). Learning each program from a recipe,
-  not from the tool's own code, keeps that job the same for every harness and every program around it, including those
-  the project does not ship ([0022](0022-tool-integration.md)). The trade: the tool can enforce only what a harness's
-  configuration surface exposes.
+  not from the tool's own code, keeps that job the same for every harness and every program around it
+  ([0022](0022-tool-integration.md)). The trade: the tool can enforce only what a harness's configuration surface
+  exposes.
 - **2.** A harness already follows model and API changes. A second loop duplicates that work and competes with the
   harness a team chose. Credentials, provider choice and cost belong to organizations. A tool that holds none of them
   has no token cost, sends no data to a model provider and needs no data-handling review. The trade: every capability

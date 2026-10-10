@@ -10,14 +10,15 @@ repository depend on choices its team did not make, and a setup shared from outs
 unable to tell what it runs.
 
 **Goal.** A repository gets the setup and the safety rules of each program it uses in one reviewed change, everything
-it runs can be read from its own files and the recipes it names, and a team can use a program the release does not
-describe without waiting for a new release.
+it runs can be read from its own files and the recipes it pins, and a team can describe any program without waiting
+for a release of `the-cook`.
 
 ## Overview
 
 A recipe is a named, versioned bundle of data that describes one program to the `the-cook` binary. The binary contains
-code for no program, git and the agent harnesses included: everything it starts, calls or writes files for is
-described by a recipe ([ADR 0022](../adrs/0022-tool-integration.md)). A recipe holds up to five parts:
+code for no program and ships no recipe: everything it starts, calls or writes files for is described by a recipe the
+repository pins from a [cookbook](#cookbooks) ([ADR 0022](../adrs/0022-tool-integration.md)). A recipe holds up to
+five parts:
 
 | Part | What it is | When it acts |
 | --- | --- | --- |
@@ -25,40 +26,35 @@ described by a recipe ([ADR 0022](../adrs/0022-tool-integration.md)). A recipe h
 | [Templates](#templates) | whole files | once, when the recipe is applied and the file is absent; the repository's own afterwards |
 | [Renders](#renders) | owned files, keys and blocks, the recipe's [floor](#the-floor) rules among them | on every `the-cook render`, recorded in the manifest under the recipe's name |
 | [Operations](#operations) | the commands and mappings that fill one of the binary's two [contracts](#contracts) | whenever the binary needs an answer from the program or starts it |
-| [Checks](#checks) | a version command with a supported range, and a detect rule | `doctor` runs the version command; `scaffold` and `doctor` use the detect rule |
+| [Checks](#checks) | a version command with a supported range, and a detect rule | `doctor` runs the version command; `scaffold` and `recipe list --cookbook` use the detect rule |
 
-The release embeds the [builtin recipes](#builtin-recipes): `git`, `claude`, `codex`, `ralph-tui`, `beads`, `mise`,
-`skills`, and the [stack recipes](#stack-recipes) `go`, `node`, `terraform` and `python`. The project's CI tests each
-one against the program versions this documentation names. A repository may also declare a
-[fetched recipe](#fetched-recipes), pinned by version and sha256, for a program the release does not describe. A fetched
-recipe comes from a [cookbook](#fetched-recipes): a published collection of recipes at one source.
-
-The profile lists the recipes a repository uses under `recipes:` ([profile](profile.md#recipes)). `the-cook scaffold`
-writes the list from the recipes whose detect rule matches, and `the-cook recipe apply <name>` adds one: it writes the
-recipe's entries and templates once, then renders, so the additions and their rendered effect are one diff to review.
-From then on the entries and templates are the repository's own, like anything written by hand, while the renders and
-the floor come from the recipe on every render. Deleting a name from `recipes:` and rendering removes that recipe's
-renders and leaves what it applied.
+The profile lists the recipes a repository uses under `recipes:` ([profile](profile.md#recipes)), each pinned to a
+cookbook, a version and a sha256. [`the-cook recipe pin`](#pinning) writes those entries from a cookbook tag and
+renders, and `the-cook scaffold --cookbook <source>@<version>` pins every recipe of the tag whose detect rule matches.
+`the-cook recipe apply <name>` then writes a pinned recipe's entries and templates once, and renders, so the additions
+and their rendered effect are one diff to review. From then on the entries and templates are the repository's own,
+like anything written by hand, while the renders and the floor come from the pinned recipe on every render. Deleting
+an entry from `recipes:` and rendering removes that recipe's renders and leaves what it applied.
 
 Commands are named `the-cook <command>` on this page. The examples run them through the repository's wrapper,
 `./cook <command>`, from the root of a checkout; with a global install, `the-cook <command>` is equivalent
-([wrapper](wrapper.md)).
+([wrapper](wrapper.md)). The examples use a cookbook published at `github:acme/cookbook`.
 
 ## When to use it
 
 | Situation | Command |
 | --- | --- |
-| Set up a new repository with the recipes its files call for | `the-cook scaffold`: it applies every builtin recipe whose detect rule matches ([scaffold](scaffold.md#recipe-detection)) |
-| Set up a new repository with chosen recipes only | `the-cook scaffold --no-detect --recipe claude --recipe node` |
-| The repository gained a stack, such as a Node front end in a Go repository | `./cook recipe apply node` |
-| See which recipes the pinned release holds, which fit this repository and which are in use | `./cook recipe list` |
-| Run ralph-tui over the repository's tasks, each attempt under [`the-cook worker`](ralph.md) | `./cook recipe apply ralph-tui` |
-| Mark, close and comment on [Beads](tasks.md) tasks from managed workspaces | `./cook recipe apply beads` |
-| Read everything a recipe holds | `./cook recipe show <name>` |
-| See what a newer release's recipe adds, after moving the pin | `./cook recipe apply <name> --dry-run` |
-| Use a program the release has no recipe for | declare a [fetched recipe](#fetched-recipes), then `./cook recipe apply <name>` |
-| Stop using a program | delete its name from `recipes:` and run `./cook render` ([After applying](#after-applying)) |
-| Apply a recipe in many repositories, each delivered for review | `the-cook fleet recipe apply <name> --yes --deliver` ([fleet](fleet.md)) |
+| Set up a new repository with the recipes its files call for | `the-cook scaffold --cookbook github:acme/cookbook@v1.2.0`: it pins and applies every recipe of the tag whose detect rule matches ([scaffold](scaffold.md#recipe-detection)) |
+| Set up a new repository with chosen recipes only | `the-cook scaffold --cookbook github:acme/cookbook@v1.2.0 --no-detect --recipe git --recipe claude --recipe node` |
+| See which recipes a cookbook tag holds and which fit this repository | `./cook recipe list --cookbook github:acme/cookbook@v1.2.0` |
+| Read everything a recipe holds before pinning it | `./cook recipe show <name> --cookbook github:acme/cookbook@v1.2.0` |
+| The repository takes up another program, or gains a stack | `./cook recipe pin <name> --cookbook github:acme/cookbook@v1.2.0`, then `./cook recipe apply <name>` |
+| See which recipes the repository pins, and whether this machine has them | `./cook recipe list` |
+| Move a recipe to a newer tag of its cookbook | `./cook recipe pin <name> --cookbook github:acme/cookbook@v1.3.0`, then `./cook recipe apply <name> --dry-run` ([Applying again](#applying-again)) |
+| Cache every pinned recipe after cloning, or in CI | `./cook recipe fetch` ([Fetching](#fetching)) |
+| Describe a program no cookbook describes | write a recipe and publish it in a cookbook ([Cookbooks](#cookbooks)) |
+| Stop using a program | delete its entry from `recipes:` and run `./cook render` ([After applying](#after-applying)) |
+| Pin and apply a recipe in many repositories, each delivered for review | `the-cook fleet recipe pin <name> --cookbook <source>@<version> --yes --deliver`, then `the-cook fleet recipe apply <name> --yes --deliver` ([fleet](fleet.md)) |
 | Bring an organization's conventions into a repository | a reviewed change to the repository's files: see [Organization choices](#organization-choices) |
 
 ### Organization choices
@@ -70,10 +66,10 @@ A person or an agent writes them into each repository's own files, typically an 
 organization publishes, and each repository reviews the change as a diff like any other:
 
 ```sh
-npx skills add acme/agent-skills                        # the organization's skill, installed in the repository
-claude "apply the acme agent conventions to this repository"
+# install the organization's skill with the team's skills installer, then ask an agent:
+#   "apply the acme agent conventions to this repository"
 ./cook render
-git diff .cook/ .claude/settings.json .codex/ AGENTS.md
+git diff .cook/ AGENTS.md
 ```
 
 Afterwards the entries are in the repository's files, where its people and agents read them, and the repository
@@ -88,7 +84,7 @@ settings in `.cook/config.yaml`; `worker.deny` and other policy entries in `.coo
 and lifecycle actions in `.cook/hooks.yaml`. `apply` adds only what the files lack, following the
 [merge rules](#merge-rules). From then on each entry is the repository's own: people and agents change or delete it by
 editing the file, and nothing records which recipe wrote it ([ADR 0013](../adrs/0013-organization-content.md)). A newer
-release's entries reach a repository only when someone applies the recipe again ([Applying again](#applying-again)).
+version's entries reach a repository only when someone applies the recipe again ([Applying again](#applying-again)).
 
 Entries fit what a repository may reasonably change, such as a stack's lint command or a tracker's lifecycle actions. A
 rule that must hold whatever the repository edits is a [floor](#the-floor) rule instead.
@@ -104,9 +100,8 @@ it again, never overwrites it and never removes it, and [`the-cook remove`](remo
 ([scaffold](scaffold.md#greenfield)). The manifest records those as seeded files, which `the-cook remove` deletes
 ([remove](remove.md#undo-and-eject-compared)); nothing records a template a recipe wrote.
 
-A builtin recipe is the one in the running release, which in a repository set up with `the-cook scaffold` is the release
-it pins in `.cook/wrapper.yaml`. A newer release may hold more entries or templates in a recipe; they reach a
-repository only when someone applies the recipe again ([Applying again](#applying-again)).
+A recipe's templates are those of the version `recipes:` pins. A newer version may hold more entries or templates;
+they reach a repository only when someone applies the recipe again ([Applying again](#applying-again)).
 
 ### Renders
 
@@ -114,14 +109,9 @@ A render is content the binary owns and writes on every `the-cook render`, from 
 floor rules of the recipes in use: a whole file, keys of a JSON or TOML file, entries in a list such a file shares with
 others, or a [managed block](render.md#managed-blocks). The manifest records each render with the recipe's name as its
 owner; `render --check` reports a hand edit to it as drift, the next render overwrites the edit, and `the-cook remove`
-deletes it ([concepts](concepts.md#ownership-and-the-manifest)).
-
-| Recipe | Renders |
-| --- | --- |
-| `claude` | `permissions.allow`, `permissions.ask`, `permissions.deny` and the `the-cook hook` entries of `.claude/settings.json`; the `import` block of `CLAUDE.md`; the `.claude/skills/the-cook` link |
-| `codex` | `.codex/rules/the-cook.rules`; the owned keys of `.codex/config.toml`; the `the-cook hook` entries of `.codex/hooks.json`; the `.codex/skills/the-cook` link |
-| `git` | the `state` and `workspaces` blocks of `.gitignore` |
-| `ralph-tui` | the `ralph-tui` block of `.gitignore`: `/.ralph-tui/*` and `!/.ralph-tui/config.toml` |
+deletes it ([concepts](concepts.md#ownership-and-the-manifest)). A harness recipe renders its agent's native files, the
+link to the shipped skill and the import of `AGENTS.md` into the agent's own instruction file, when it needs one; a
+version-control recipe renders the ignore rules for the [state paths](profile.md#state-paths).
 
 The binary renders its own content with no recipe: `cook`, the shipped skill, the blocks of `AGENTS.md` and
 `README.md`, and the manifest ([what render writes](render.md#what-render-writes)). When a recipe leaves `recipes:`,
@@ -137,20 +127,17 @@ declares ([ADR 0023](../adrs/0023-core-and-contracts.md)):
 - the [harness contract](#the-harness-contract), filled by one recipe per declared agent, the one
   `agents.<name>.recipe` names, by default the recipe named like the agent.
 
-A recipe fills at most one contract, and most fill none: `ralph-tui`, `beads`, `mise`, `skills` and the stack recipes
-have no operations. Every operation is a command with placeholders and a declared output kind, or a mapping the binary
-reads as data. The binary never parses a program's free text: an answer is a string, a list of lines, bytes or an exit
-status.
+A recipe fills at most one contract, and most fill none: a loop runner's, a tracker's, a task runner's or a stack's
+recipe has no operations. Every operation is a command with placeholders and a declared output kind, or a mapping the
+binary reads as data. The binary never parses a program's free text: an answer is a string, a list of lines, bytes or
+an exit status.
 
 ### Checks
 
 | Check | What it is | Used by |
 | --- | --- | --- |
 | `version` | a command that prints the program's version, and the range of versions the recipe supports | [`doctor`](doctor.md): a version outside the range is a finding |
-| `detect` | file globs whose match shows the program is in use | `scaffold` applies the builtin recipes whose rule matches; `doctor` reports a program whose rule matches while its recipe is not in `recipes:` |
-
-For example, a repository with a `mise.toml` and no `mise` in `recipes:` gets the `doctor` finding
-`mise detected; its recipe and its floor are not in use; run ./cook recipe apply mise`.
+| `detect` | file globs whose match shows the program is in use | `scaffold --cookbook` pins and applies the recipes of the tag whose rule matches; `recipe list --cookbook` shows which match |
 
 Both checks are optional. A recipe without a version check supports any version of its program. Whether or not a
 recipe describes it, `doctor` reports a program that a recipe, a declared command or an action names and that is not
@@ -162,70 +149,60 @@ A recipe may mark deny rules and bypass arguments as floor. Floor rules are part
 
 - Every floor deny rule of every recipe in use is rendered into every declared agent's native permissions on every
   render. It is never written into `.cook/policy.yaml`, and the policy cannot remove or weaken it: an entry that
-  tries, such as an `allow` for a force push to the default branch, is dropped from the output and reported by `render`
+  tries, such as an `allow` for a command a floor rule denies, is dropped from the output and reported by `render`
   and `doctor` ([policy](policy.md#the-floor)).
 - A harness recipe's floor bypass arguments are refused by `the-cook worker` and by `agent` actions wherever they appear
-  among the agent's arguments, with exit 1 naming the argument ([ralph](ralph.md#the-worker-contract)).
+  among the agent's arguments, with exit 1 naming the argument ([worker](worker.md#the-worker-contract)).
 
-The builtin recipes mark this floor:
+Every floor rule of a program comes from the recipe the repository pinned. A version-control recipe typically denies a
+force push to the default branch, writing `{default_branch}` where the branch goes; a harness recipe marks the
+arguments that would turn its agent's permission checks off; a task runner's recipe may deny a way of chaining commands
+that would carry an unlisted command past every rule.
 
-| Recipe | Floor |
-| --- | --- |
-| `git` | deny rules for a force push to the default branch the git recipe reports, in the spellings below |
-| `mise` | the deny rule `"mise * ::: *"`: task chaining, which runs a second task in the same command and could carry an unlisted task past every rule. Claude Code only, because Codex cannot match mid-command |
-| `claude` | the bypass arguments `--dangerously-skip-permissions`, `--allow-dangerously-skip-permissions` and the `bypassPermissions` permission mode |
-| `codex` | the bypass arguments `--dangerously-bypass-approvals-and-sandbox`, `--yolo` and `danger-full-access` |
+The process that applies the floor is built into the binary, because it is about the binary and not about a program:
+refusing bypass arguments before a launch, rendering the deny rules into every agent's output, replaying from the base,
+withholding completion, the tamper check, and its own `worker.deny` entry `[the-cook, lifecycle]`, which names the
+binary's own command ([concepts](concepts.md#built-in-invariants), [ADR 0011](../adrs/0011-safety-invariants.md)).
+The `policy` block of `AGENTS.md` lists each floor rule with the recipe it comes from.
 
-The git recipe's deny rules, with `{default_branch}` replaced by the branch its `default_branch` operation reports:
+A floor protects only while its recipe is in use: deleting a recipe from `recipes:` removes its floor with it. Keep
+every program the repository uses pinned; `./cook recipe list --cookbook <source>@<version>` shows which recipes of a
+tag match the repository's files.
 
-```yaml
-- [git, push, ["--force", "--force-with-lease", "-f"], origin, ["{default_branch}", "HEAD:{default_branch}"]]
-- [git, push, origin, ["+{default_branch}", "+HEAD:{default_branch}"]]
-- "git push origin {default_branch} --force*"
-- "git push origin {default_branch} -f*"
-- "git push origin HEAD:{default_branch} --force*"
-- "git push origin HEAD:{default_branch} -f*"
-```
-
-The process that applies the floor is built into the binary: refusing bypass arguments before a launch, rendering the
-deny rules into every agent's output, and its own `worker.deny` entry `[the-cook, lifecycle]`, which names the binary's
-own command ([concepts](concepts.md#built-in-invariants), [ADR 0011](../adrs/0011-safety-invariants.md)). The `policy`
-block of `AGENTS.md` lists each floor rule with the recipe it comes from.
-
-A floor protects only while its recipe is in use: deleting `mise` from `recipes:` removes the `:::` deny with it, and
-`doctor` reports the gap while `mise.toml` is still there.
+Pinning a recipe is the trust decision for its floor as for everything else it runs: no release of `the-cook` vouches
+for a recipe, and its floor is what its author marked ([Trust](#trust)).
 
 ## Contracts
 
 ### The version-control contract
 
-The recipe the profile's `vcs:` names fills this contract; `scaffold` writes `vcs: git`. Everything the binary reads
-from or changes in the repository's history goes through it: the base commit of a managed workspace or of a worker's
-attempt, the files the tamper check restores from that base, the changes `verify` fingerprints, the branches `doctor`
-reports as landed, and the default branch the git recipe's floor names. The binary contains none of the commands below;
-another version control system is another recipe with the same operations.
+The recipe the profile's `vcs:` names fills this contract. Everything the binary reads from or changes in the
+repository's history goes through it: the base commit of a managed workspace or of a worker's attempt, the files the
+tamper check restores from that base, the changes `verify` fingerprints, the branches `doctor` reports as landed, and
+the default branch a floor rule names. The binary contains none of the commands that fill it; each version control
+system is a recipe with the same operations.
 
-| Operation | Placeholders | Output | The git recipe runs |
+| Operation | Placeholders | Output | Answers |
 | --- | --- | --- | --- |
-| `head` | | string | `git rev-parse HEAD` |
-| `root` | | string | `git rev-parse --show-toplevel` |
-| `primary_root` | | string | `cd "$(git rev-parse --git-common-dir)/.." && pwd`, through `sh` |
-| `branch` | | string | `git branch --show-current` |
-| `default_branch` | | string | `git symbolic-ref --short refs/remotes/origin/HEAD`, without its `origin/` prefix, through `sh` |
-| `show` | `{rev}`, `{path}` | bytes | `git show {rev}:{path}` |
-| `clean` | | status | `git status --porcelain` through `sh`, clean when it prints nothing: no change to a tracked file and no untracked file that is not ignored |
-| `tracked` | `{path}` | status | `git ls-files --error-unmatch {path}`, true when the path is tracked |
-| `changed` | `{rev}` | lines | `git diff --name-only {rev}`, then `git ls-files --others --exclude-standard`, through `sh` |
-| `patch` | `{rev}` | bytes | `git add --all --intent-to-add`, then `git diff --binary {rev}`, through `sh`, so new files are in the patch |
-| `merge_base` | `{a}`, `{b}` | string | `git merge-base {a} {b}` |
-| `landed` | `{branch}`, `{target}` | lines | `git cherry {target} {branch}`, keeping the lines that start with `+`, through `sh`: the commits of `{branch}` whose changes are not yet in `{target}`, compared by patch, so a cherry-pick, a rebase or a squash of the same changes counts as landed |
-| `reset` | `{rev}` | status | `git reset --hard {rev}`, then `git clean -fd`, through `sh` |
-| `commit` | `{message}` | status | `git add --all`, then `git commit -m {message}`, through `sh` |
-| `update` | | status | `git fetch origin` |
-| `branch_create` | `{branch}`, `{rev}` | status | `git branch {branch} {rev}` |
-| `switch` | `{branch}` | status | `git switch {branch}` |
-| `workspace_add` | `{path}`, `{branch}`, `{rev}` | status | `git worktree add -b {branch} {path} {rev}` |
-| `workspace_remove` | `{path}` | status | `git worktree remove {path}` |
+| `head` | | string | the commit the checkout is at |
+| `root` | | string | the root of the current checkout |
+| `primary_root` | | string | the root of the primary checkout, from the primary checkout or any workspace |
+| `branch` | | string | the current branch |
+| `default_branch` | | string | the repository's default branch, without a remote's prefix |
+| `show` | `{rev}`, `{path}` | bytes | the content of `{path}` at `{rev}` |
+| `clean` | | status | true when no tracked file is changed and no untracked file is present that is not ignored |
+| `tracked` | `{path}` | status | true when the path is tracked |
+| `changed` | `{rev}` | lines | the paths changed since `{rev}`, untracked files that are not ignored included |
+| `patch` | `{rev}` | bytes | a patch from `{rev}` to the checkout's current content, new files included |
+| `merge_base` | `{a}`, `{b}` | string | the merge base of `{a}` and `{b}` |
+| `landed` | `{branch}`, `{target}` | lines | the commits of `{branch}` whose changes are not yet in `{target}`, compared by patch, so a cherry-pick, a rebase or a squash of the same changes counts as landed |
+| `reset` | `{rev}` | status | the checkout returned to `{rev}`, untracked files removed except ignored ones, so the state directory and the `last-attempt.patch` saved there stay |
+| `commit` | `{message}` | status | every change recorded as one commit with `{message}` |
+| `update` | | status | the remote's branches fetched |
+| `branch_create` | `{branch}`, `{rev}` | status | `{branch}` created at `{rev}` |
+| `switch` | `{branch}` | status | the checkout switched to `{branch}` |
+| `workspace_add` | `{path}`, `{branch}`, `{rev}` | status | a new workspace at `{path}`, on a new `{branch}` starting at `{rev}` |
+| `workspace_remove` | `{path}` | status | the workspace at `{path}` removed |
 
 | Output kind | The binary reads |
 | --- | --- |
@@ -234,40 +211,16 @@ another version control system is another recipe with the same operations.
 | bytes | the output as printed |
 | status | the exit status only: 0 is true, as for `clean`, or success |
 
-An excerpt of the git recipe's `recipe.yaml` ([the recipe file](#the-recipe-file)):
-
-```yaml
-contract: vcs
-operations:
-  head: { run: [git, rev-parse, HEAD], output: string }
-  root: { run: [git, rev-parse, --show-toplevel], output: string }
-  default_branch:
-    run: [sh, -c, 'ref=$(git symbolic-ref --short refs/remotes/origin/HEAD) && echo "${ref#origin/}"']
-    output: string
-  show: { run: [git, show, "{rev}:{path}"], output: bytes }
-  clean: { run: [sh, -c, 'test -z "$(git status --porcelain)"'], output: status }
-  changed:
-    run: [sh, -c, 'git diff --name-only "$1" && git ls-files --others --exclude-standard', sh, "{rev}"]
-    output: lines
-  merge_base: { run: [git, merge-base, "{a}", "{b}"], output: string }
-  landed:
-    run: [sh, -c, 'git cherry "$1" "$2" | sed -n "s/^+ //p"', sh, "{target}", "{branch}"]
-    output: lines
-  reset:
-    run: [sh, -c, 'git reset --hard "$1" && git clean -fd', sh, "{rev}"]
-    output: status
-  workspace_add: { run: [git, worktree, add, -b, "{branch}", "{path}", "{rev}"], output: status }
-  workspace_remove: { run: [git, worktree, remove, "{path}"], output: status }
-```
-
-`git clean -fd` leaves ignored files, so a reset keeps the state directory and the `last-attempt.patch` saved there. The
-git program missing is a missing prerequisite: a command that needs the version-control recipe exits 3 and names it.
+The binary finds the repository root itself, as the nearest directory upward that holds `.cook/config.yaml`, so
+reading the profile never needs this contract; workspace, base and history operations do. A command that needs the
+contract while no recipe in `recipes:` fills it exits 3 and names `the-cook recipe pin`. The version-control recipe's
+program missing is a missing prerequisite too: the command exits 3 and names the program.
 
 ### The harness contract
 
 One recipe per declared agent fills this contract: the recipe `agents.<name>.recipe` names, by default the recipe named
-like the agent. Adding an agent means adding a harness recipe, builtin or [fetched](#fetched-recipes); the policy, the
-hooks file and the other recipes do not change ([ADR 0009](../adrs/0009-agent-support.md)). A harness recipe holds:
+like the agent. Adding an agent means pinning a harness recipe; the policy, the hooks file and the other recipes do not
+change ([ADR 0009](../adrs/0009-agent-support.md)). A harness recipe holds:
 
 | Item | Declares |
 | --- | --- |
@@ -281,269 +234,48 @@ hooks file and the other recipes do not change ([ADR 0009](../adrs/0009-agent-su
 | `payload` | the JSON paths in the agent's hook payload that give the neutral event, the session, the tool, the edited and read files, the working directory, the person's prompt text and the agent's notification message; which tools are edits and which are reads; the native event that carries each neutral event: `session-start`, `post-tool-use`, `prompt-submit`, `attention`, `turn-end` |
 | `instructions` | how the agent reaches `AGENTS.md`: it reads it directly, or through an import line in a block of its own instruction file |
 | `skills` | where the link to the shipped skill goes |
-| `native_rules` | which keys of the agent's native files hold permission rules, which [`scaffold --adopt`](scaffold.md#how-each-source-becomes-an-entry) copies into the policy |
+| `native_rules` | which files and keys hold the agent's permission rules in each [import scope](scaffold.md#import-scopes), the native rule shape that reads back as a command prefix, and the keys that change permission behaviour without being rules, which adoption reports as notes; [`scaffold --adopt`](scaffold.md#how-each-source-becomes-an-entry) imports from them |
 | renders | the agent's native files, keys and entries, rendered from the neutral model ([renders](#renders)) |
 | checks | the agent versions the recipe supports |
 
 A neutral event the agent has no native event for gets nothing rendered, and `doctor` notes the gap
-([hooks](hooks.md#rendering)). The two builtin harness recipes fill the contract this way:
+([hooks](hooks.md#rendering)). An agent declaration whose recipe is not in `recipes:` fails validation with exit 1.
+The [example recipe](#an-example-recipe) fills this contract for a harness named `acme-agent`; with its mapping, the
+policy entry `[git, push]` becomes `Run(git push *)` in `permissions.deny`, and under `the-cook worker acme-agent` a
+`worker.deny` entry `[gh]` is passed as `--deny 'Run(gh *)'`.
 
-| Item | `claude` (Claude Code 2.1.x) | `codex` (Codex CLI 0.16x) |
-| --- | --- | --- |
-| Unattended | `--permission-mode auto` | the `workspace-write` sandbox, network on |
-| Worker denies | at launch, as disallowed tools | through the rendered rules, so `role: worker` |
-| Sandbox roots | none: writes as its permissions allow | the state directory and `agents.<name>.writable_roots` |
-| Model, effort | `--model <id>`, `--effort <level>` | the model id; `model_reasoning_effort` |
-| Floor bypass | `--dangerously-skip-permissions`, `--allow-dangerously-skip-permissions`, `bypassPermissions` | `--dangerously-bypass-approvals-and-sandbox`, `--yolo`, `danger-full-access` |
-| Edit tools, read tools | `Edit`, `Write`, `MultiEdit`; `Read` | `apply_patch`; none |
-| Native events | `SessionStart`, `PostToolUse`, `UserPromptSubmit`, `Notification` for `attention`, `Stop` for `turn-end` | `SessionStart`, `PostToolUse`, `UserPromptSubmit`, the `notify` key for `turn-end`; none for `attention` |
-| Instructions | the `import` block of `CLAUDE.md`, one line: `@AGENTS.md` | reads the root `AGENTS.md` directly |
-| Skills | `.claude/skills/the-cook` | `.codex/skills/the-cook` |
-| Native rules | `permissions.allow`, `ask`, `deny` of `.claude/settings.json` | the `prefix_rule` entries of `.codex/rules/*.rules` |
+## Cookbooks
 
-An excerpt of the claude recipe's `recipe.yaml`, its launch and payload mapping:
+A cookbook is a published collection of recipes at one source: an HTTPS base URL laid out like the
+[release source](wrapper.md#release-source), or `github:<owner>/<repo>`, shorthand for
+`https://github.com/<owner>/<repo>/releases`. `the-cook` holds no default cookbook and knows none by name; any number
+of cookbooks exist, and a repository may pin recipes from several.
 
-```yaml
-contract: harness
-floor:
-  bypass: [--dangerously-skip-permissions, --allow-dangerously-skip-permissions, bypassPermissions]
-operations:
-  launch:
-    command: [claude]
-    unattended: [--permission-mode, auto]
-    worker_deny:
-      flag: --disallowedTools
-      item: &rule "{{#prefix}}Bash({{words}} *){{/prefix}}{{#native}}{{string}}{{/native}}{{#bare}}Bash({{string}}){{/bare}}"
-    model: [--model, "{model}"]
-    effort: [--effort, "{effort}"]
-    prompt: { stdin: true, args: [--print] }
-  payload:
-    event: hook_event_name
-    session: session_id
-    tool: tool_name
-    file: tool_input.file_path
-    cwd: cwd
-    prompt: prompt
-    message: message
-    edit_tools: [Edit, Write, MultiEdit]
-    read_tools: [Read]
-    events:
-      session-start: SessionStart
-      post-tool-use: PostToolUse
-      prompt-submit: UserPromptSubmit
-      attention: Notification
-      turn-end: Stop
-  instructions: { file: CLAUDE.md, block: import, line: "@AGENTS.md" }
-  skills: .claude/skills/the-cook
-  native_rules: { file: .claude/settings.json, allow: permissions.allow, ask: permissions.ask, deny: permissions.deny }
-renders:
-  - file: .claude/settings.json
-    keys:
-      permissions.allow: { each: allow, item: *rule }
-      permissions.ask: { each: ask, item: *rule }
-      permissions.deny: { each: deny, item: *rule }
-```
+Each tag of a cookbook publishes, under `<source>/download/<version>/`:
 
-With this mapping, the policy entry `[git, push]` becomes `Bash(git push *)` in `permissions.deny`, and under
-`the-cook worker claude` a `worker.deny` entry `[gh]` is passed as `--disallowedTools 'Bash(gh *)'`.
-
-## Builtin recipes
-
-| Recipe | Describes | Contract | Holds | Detected from |
-| --- | --- | --- | --- | --- |
-| [`git`](#git) | git | version control | operations, `.gitignore` blocks, the force-push floor | `.git` |
-| [`claude`](#claude) | Claude Code | harness | the agent declaration, renders, operations, the bypass floor | `.claude/`, `CLAUDE.md` |
-| [`codex`](#codex) | Codex CLI | harness | the agent declaration, renders, operations, the bypass floor | `.codex/` |
-| [`ralph-tui`](#ralph-tui) | ralph-tui | none | a template, `worker.deny` entries, a `.gitignore` block | nothing |
-| [`beads`](#beads) | Beads | none | lifecycle actions, a writable root, a `worker.deny` entry | nothing |
-| [`mise`](#mise) | mise | none | the `:::` floor | `mise.toml`, `.mise.toml` |
-| [`skills`](#skills) | the `skills` CLI | none | checks only | `skills-lock.json` |
-| [`go`, `node`, `terraform`, `python`](#stack-recipes) | a stack | none | commands, lanes, a post-edit hook | the stack's marker files |
-
-A recipe that nothing detects fits any repository, and only `the-cook recipe apply` or `scaffold --recipe` adds it. No
-recipe installs, initialises or configures its program beyond the files it lists.
-
-### `git`
-
-The git recipe fills the [version-control contract](#the-version-control-contract) with git's commands, renders the
-`state` and `workspaces` blocks of `.gitignore` (`/.work/` and `/.work/workspaces/` with the default
-[state paths](profile.md#state-paths)), and marks the force push to the default branch as [floor](#the-floor). Its
-version check runs `git --version` and supports git 2.22 and later 2.x releases, the first with
-`git branch --show-current`. Its detect rule is `.git`, a directory in a clone and a file in a git worktree.
-
-```yaml
-renders:
-  - { file: .gitignore, block: state, template: "/{{state_dir}}/" }
-  - { file: .gitignore, block: workspaces, template: "/{{workspaces_dir}}/" }
-```
-
-### `claude`
-
-The claude recipe fills the [harness contract](#the-harness-contract) for Claude Code 2.1.x. Its entry declares the
-agent, `agents: { claude: { role: interactive } }`, when the profile does not; the role is the repository's to change.
-It renders the policy into `permissions.allow`, `ask` and `deny` of `.claude/settings.json`, the `the-cook hook` entries
-and `raw` entries into its `hooks`, the `import` block into `CLAUDE.md` and the `.claude/skills/the-cook` link; every
-other key of `.claude/settings.json` is preserved byte for byte ([render](render.md#merge-rendering-native-files)).
-`.claude/settings.local.json` is never written; `scaffold --import local` reads it. The [agents](agents.md) page
-describes each rendered file.
-
-### `codex`
-
-The codex recipe fills the [harness contract](#the-harness-contract) for Codex CLI 0.16x. Its entry declares the agent,
-`agents: { codex: { role: interactive } }`, when the profile does not. It renders `.codex/rules/the-cook.rules`, whole,
-with `prefix_rule` entries whose decisions are `allow`, `prompt` and `forbidden`; the `.codex/config.toml` keys that
-enable project hooks and, for `turn_end` hooks, `notify` when the key is free; the `the-cook hook` and `raw` entries of
-`.codex/hooks.json`; and the `.codex/skills/the-cook` link. A native rule string converts only when it is
-`Bash(<words> *)` with a plain word prefix, and bare strings are skipped: the rule file cannot express them, and the
-`policy` block of `AGENTS.md` marks them as Claude Code only. `*.local.toml` files are never written.
-
-### `ralph-tui`
-
-The ralph-tui recipe wires [ralph-tui](https://github.com/subsy/ralph-tui), a loop runner that starts an agent per
-task, version 0.12.
-
-| Part | Content |
+| File | Holds |
 | --- | --- |
-| Template | `.ralph-tui/config.toml` |
-| Entries | `worker.deny`: `[git, commit]`, `[git, push]`, `[gh]` |
-| Render | the `ralph-tui` block of `.gitignore`: `/.ralph-tui/*`, then `!/.ralph-tui/config.toml` |
+| `<name>.tar.gz`, one per recipe | a gzip-compressed tar of the [recipe directory](#the-recipe-file): `recipe.yaml` at its root and `files/` beside it |
+| `checksums.txt` | the sha256 of every archive of the tag, one `<sha256>  <name>.tar.gz` line each |
 
-The template `.ralph-tui/config.toml` makes every agent ralph-tui starts a [`the-cook worker`](ralph.md): one
-`[[agents]]` entry per agent the profile declares, whose command is
-`./cook worker <agent> --commit --withhold '<promise>COMPLETE</promise>'`. ralph-tui places `defaultFlags` before
-its own arguments, so the worker reads its own flags first and hands everything from the first argument it does not
-recognise to the agent. The other settings keep ralph-tui from doing what the worker does: it skips no permission
-prompts, commits nothing itself (the worker commits a verified attempt), and stops on a non-zero exit. For a profile
-that declares Claude Code and Codex:
+Every recipe of a tag carries the tag as its `version`. A repository pins from a tag with
+[`the-cook recipe pin`](#pinning), which takes the hashes from that tag's `checksums.txt`; `scaffold --cookbook` does
+the same for every recipe it picks.
 
-```toml
-autoCommit = false
+To write a recipe, create its directory following [the recipe file](#the-recipe-file), read it back with
+`the-cook recipe show`, and test it against the programs and versions its checks name: a recipe is data, and the
+cookbook that publishes it owns those tests. To publish, tag the cookbook, upload one archive per recipe and the
+tag's `checksums.txt`. A new version is a new tag; an archive already published under a tag is never replaced, because
+every repository that pinned it would then refuse it ([Fetching](#fetching)).
 
-[errorHandling]
-continueOnNonZeroExit = false
+## Pinning
 
-[[agents]]
-name = "claude"
-plugin = "claude"
-command = "./cook"
-defaultFlags = ["worker", "claude", "--commit", "--withhold", "<promise>COMPLETE</promise>"]
-
-[agents.options]
-skipPermissions = false
-
-[[agents]]
-name = "codex"
-plugin = "codex"
-command = "./cook"
-defaultFlags = ["worker", "codex", "--commit", "--withhold", "<promise>COMPLETE</promise>"]
-
-[agents.options]
-fullAuto = false
-```
-
-The file is the same one [unattended runs](ralph.md#the-ralph-tui-recipe) explains key by key.
-
-`--withhold` keeps ralph-tui's completion signal, `<promise>COMPLETE</promise>`, out of the output of an attempt that
-failed verification, so ralph-tui sees it only from a verified one. The `worker.deny` entries leave commits, pushes and
-`gh` to the worker and to the repository's `deliver` actions. The `.gitignore` block keeps ralph-tui's session,
-progress and iteration logs out of the worker's way: without it the worker refuses the checkout as having uncommitted
-changes, and `--commit` would commit them.
-
-The recipe adds no lifecycle actions: nothing fires the events of a ralph-tui run by itself. A run goes like this:
-
-```sh
-./cook workspace create run-invoice
-cd .work/workspaces/run-invoice
-ralph-tui run --epic api-42 --headless
-./cook lifecycle run completed --scope run    # or: blocked --scope run
-```
-
-ralph-tui merges a person's `~/.config/ralph-tui/config.toml` into the project's file; `the-cook` reads neither. A
-ralph-tui setting that turns permission checks off reaches the worker as a bypass argument, and the worker refuses it
-at the first task.
-
-### `beads`
-
-The beads recipe wires [Beads](https://github.com/steveyegge/beads), a task tracker used through its `bd` CLI, version
-1.3.
-
-| Part | Content |
-| --- | --- |
-| Entries | `start`, `completed` and `blocked` actions with scope `task`; `.beads` in `agents.codex.writable_roots`; `worker.deny`: `[bd, close]` |
-
-The actions bind Beads to [task binding](tasks.md): every event fired in a workspace created with
-`./cook workspace create <name> --task <id>` carries the bead id in `COOK_TASK` and the actor in `COOK_ACTOR`.
-
-```yaml
-lifecycle:
-  start:
-    - name: bead-start
-      run: bd update "$COOK_TASK" --status in_progress --assignee "$COOK_ACTOR"
-      auto: true
-      scope: [task]
-  completed:
-    - name: bead-close
-      run: bd close "$COOK_TASK" --reason "verified"
-      auto: true
-      scope: [task]
-  blocked:
-    - name: bead-comment
-      run: bd comments add "$COOK_TASK" "$COOK_REASON"
-      auto: true
-      scope: [task]
-```
-
-`bd` treats a missing id as an error, so an action fired without `COOK_TASK` fails instead of touching another
-bead. `[bd, close]` under `worker.deny` leaves closing to the `completed` action, which runs only after a verified
-attempt. `.beads` goes into `agents.codex.writable_roots` when the profile declares Codex, so a Codex worker can write
-the database. Nothing creates, configures or localises a Beads database; that is `bd`'s own job. When ralph-tui works
-from Beads, it updates bead status itself, and these actions matter for interactive work in managed workspaces.
-
-### `mise`
-
-The mise recipe describes [mise](https://mise.jdx.dev), a tool-version manager and task runner, version 2026.6. It
-holds the `:::` deny as [floor](#the-floor), a version check and a detect rule, and nothing else: a declared command,
-lane or action that runs `mise run …` runs as written, and the recipe never reads or writes mise's own files. The whole
-recipe is the [complete example](#a-complete-recipe-mise) of the recipe file.
-
-### `skills`
-
-The skills recipe describes the `skills` CLI, version 1.7, which installs shared skills into `.agents/skills/` and
-records them in `skills-lock.json`. It holds a version check and the detect rule `skills-lock.json`, so `doctor`
-reports the CLI missing or outside its range. It has no entries, templates, renders or floor, and `the-cook` never runs
-the CLI: installing shared skills is the team's own step ([skills](skills.md)).
-
-### Stack recipes
-
-| Recipe | Stack | Detected from | Holds |
-| --- | --- | --- | --- |
-| `go` | Go | `go.mod` | lint and build commands, a `go test` lane, a format-on-edit hook for `*.go` |
-| `node` | Node.js | `package.json` | lint and build commands, test lanes, a lint-on-edit hook for source files |
-| `terraform` | Terraform | `*.tf` files | a format command, `validate` and `plan` lanes, a format-on-edit hook |
-| `python` | Python | `pyproject.toml` or `requirements.txt` | a lint command, a test lane, a lint-on-edit hook |
-
-Commands, lanes and [validators](profile.md#verify) (repository checks run when matching files change) go into
-`.cook/config.yaml`; post-edit hooks go into `.cook/hooks.yaml`. `./cook recipe show <name>` prints every
-entry a recipe holds. Policy entries, lifecycle actions and standing context are choices each repository makes in its
-own files, so stack recipes hold none, and they hold no version check: `doctor` reports `go`, `npm` or `terraform`
-missing when a declared command names it.
-
-A stack the table does not list gets no stack recipe. `the-cook scaffold` then seeds the skeleton of each repository
-file and the seeded delivery `ask` entry ([policy](policy.md#the-seeded-entry)), and the repository writes its commands
-and lanes itself.
-
-## Fetched recipes
-
-A fetched recipe describes a program the release has no recipe for, or describes one differently. The repository
-declares it in `recipes:` with its source, version and sha256:
+Every entry of `recipes:` has the same four fields:
 
 ```yaml
 # .cook/config.yaml
 recipes:
-  - git
-  - claude
-  - node
-  - name: just
+  - name: git
     source: github:acme/cookbook
     version: v1.2.0
     sha256: d2f0d562418c7d176d0393d8694cc6f6f569f2dff3f7ede3788a2075d3ff5c3f
@@ -551,59 +283,71 @@ recipes:
 
 | Field | Meaning |
 | --- | --- |
-| `name` | the recipe's name; it must equal the `name` in its `recipe.yaml` and cannot be the name of a builtin recipe |
-| `source` | an HTTPS base URL laid out like the [release source](wrapper.md#release-source), or `github:<owner>/<repo>`, shorthand for `https://github.com/<owner>/<repo>/releases` |
-| `version` | the tag to download; it must equal the `version` in its `recipe.yaml` |
-| `sha256` | the sha256 of the archive, as its publisher states it |
+| `name` | the recipe's name; it must equal the `name` in its `recipe.yaml`, and is unique within the profile |
+| `source` | the [cookbook](#cookbooks) |
+| `version` | the cookbook tag; it must equal the `version` in its `recipe.yaml` |
+| `sha256` | the sha256 of the archive, as the tag's `checksums.txt` states it |
 
-A cookbook is a published collection of recipes at one source, such as `github:acme/cookbook`, and every fetched recipe
-comes from one: its entry's `source` is the cookbook's URL. Each tag of a cookbook holds one archive per recipe, so
-several entries may name the same cookbook, each pinned by its own `version` and `sha256`. The recipes a release of
-`the-cook` ships are its builtin recipes, and no cookbook can replace them.
+`the-cook recipe pin <name>... --cookbook <source>@<version>` writes these entries. It downloads the tag's
+`checksums.txt` and the named archives over HTTPS, verifies each archive against it, checks each `recipe.yaml`, shows
+the entries to add or move as a diff, asks, writes them, caches the archives and renders, so the declaration and its
+rendered effect are one diff. Pinning a name already in `recipes:` at another version or from another cookbook moves
+its pin. Two entries with the same name are a validation error, exit 1, for every command that reads the profile.
 
-The archive is `<source>/download/<version>/<name>.tar.gz`, a gzip-compressed tar of the
-[recipe directory](#the-recipe-file): `recipe.yaml` at its root and `files/` beside it. Only `the-cook recipe fetch` and
-`the-cook recipe apply` download it, over HTTPS. The binary stores the archive in the per-user cache as
-`$COOK_HOME/recipes/<sha256>.tar.gz`, outside the repository, and checks its sha256 every time it loads it: a
-mismatch, on download or on load, stops the command with exit 1, and the archive is not used.
+Pinning declares a recipe and renders its renders and floor; it writes no entries and no templates. `the-cook recipe
+apply <name>` does that next ([How apply works](#how-apply-works)).
 
-Nothing else fetches. `render`, `doctor`, the hooks an agent fires, `the-cook worker` and `agent` actions read a fetched
-recipe only from the cache. When it is not there, `render` exits 3, an agent hook or a worker's attempt fails with
-exit 3 before any agent starts, and `doctor` reports a finding, each naming `./cook recipe fetch`. A CI job that
-renders or runs `doctor` runs `./cook recipe fetch` first. An unattended attempt resolves the
-version-control recipe and the agent's harness recipe from the release or the cache before anything else and uses that
-resolution for every read, comparison, reset and launch of the attempt ([ralph](ralph.md#the-worker-contract)).
+### Trust
 
-A fetched recipe cannot take the name of a builtin recipe: a declaration named `git` with a `source` is refused with
-exit 1 by every command that reads the profile, so a builtin recipe is never replaced under the name every page
-documents. A fetched recipe may fill either contract: `vcs:` may name it, and so may `agents.<name>.recipe`, for an
-agent the release has no harness recipe for ([agents](agents.md#the-harness-contract)).
+Pinning trusts the cookbook's `checksums.txt` as downloaded over HTTPS at that moment. The pins then enter the
+repository only through a reviewed diff, and from then on the binary verifies every archive against its pin, on
+download and on every load. No release key vouches for a recipe. A recipe is data, so a reviewer can read all of it
+with `the-cook recipe show <name> --cookbook <source>@<version>` before approving the pin: that review is the trust
+decision for everything the recipe runs, its operations, renders and floor included.
 
-The release's tests stand behind every builtin recipe, and nothing stands behind a fetched one but its author and the
-repository's review. `doctor` notes each fetched recipe as `not verified by the release`, a note that does not change
-its exit code; its operations, renders and floor are what its author wrote, and a harness recipe's bypass arguments are
-the floor its author marked. `./cook recipe show <name>` prints all of it.
+## Fetching
+
+The binary stores each archive in the per-user cache as `$COOK_HOME/recipes/<sha256>.tar.gz`, outside the repository,
+and checks its sha256 every time it loads it: a mismatch, on download or on load, stops the command with exit 1, and
+the archive is not used.
+
+Only these commands download recipes, always over HTTPS:
+
+| Command | Downloads |
+| --- | --- |
+| `the-cook recipe pin` | the tag's `checksums.txt` and the named archives |
+| `the-cook recipe fetch` | every pinned recipe that is not cached |
+| `the-cook recipe apply` | a pinned recipe it applies that is not cached |
+| `the-cook scaffold --cookbook` | the tag's `checksums.txt` and its archives |
+| `the-cook recipe list --cookbook`, `the-cook recipe show --cookbook` | the tag's `checksums.txt` and the archives they read |
+
+Nothing else fetches. `render`, `doctor`, the hooks an agent fires, `the-cook worker` and `agent` actions read a
+recipe only from the cache. When a pinned recipe is not there, `render` exits 3 naming `./cook recipe fetch`, a
+worker's attempt fails with exit 3 before any agent starts, an agent hook prints one line on stderr and exits 0, and
+`doctor` reports a finding. A fresh clone works offline once its recipes are cached, and a CI job runs
+`./cook recipe fetch` before `render --check` or `doctor`. An unattended attempt resolves the version-control recipe
+and the agent's harness recipe from the cache before anything else and uses that resolution for every read,
+comparison, reset and launch of the attempt ([worker](worker.md#the-worker-contract)).
 
 ## How apply works
 
-`the-cook recipe apply <name>...` applies one or more recipes, in the order given, to a repository already set up with
-`the-cook scaffold`:
+`the-cook recipe apply <name>...` applies one or more pinned recipes, in the order given, to a repository already set
+up with `the-cook scaffold`:
 
 1. **Check.** The repository needs `.cook/config.yaml`; without it, `apply` exits 1 and names `the-cook scaffold`.
-   Every name must be a builtin recipe of the running release or a fetched recipe declared in `recipes:`; an unknown
-   name exits 1. A fetched recipe that is not cached is downloaded and verified now; a sha256 mismatch, an unreachable
-   source or a builtin name exits 1. On any failure nothing is written.
-2. **Plan** the additions: the name in `recipes:`, when it is not there; the entries for `.cook/config.yaml`
-   (commands, lanes, validators, agent declarations and settings), `.cook/policy.yaml` (`worker.deny` entries) and
-   `.cook/hooks.yaml` (post-edit hooks, lifecycle actions); and the templates whose file is absent, rendered with
-   the profile. Each recipe is planned against the files as the recipes before it leave them, following the
-   [merge rules](#merge-rules).
+   Every name must be in `recipes:`; a name that is not exits 1 and names `the-cook recipe pin`. A pinned recipe that
+   is not cached is downloaded and verified now; a sha256 mismatch or an unreachable source exits 1. On any failure
+   nothing is written.
+2. **Plan** the additions: the entries for `.cook/config.yaml` (commands, lanes, validators, agent declarations and
+   settings), `.cook/policy.yaml` (`worker.deny` entries) and `.cook/hooks.yaml` (post-edit hooks, lifecycle
+   actions); and the templates whose file is absent, rendered with the profile. Each recipe is planned against the
+   files as the recipes before it leave them, following the [merge rules](#merge-rules).
 3. **Confirm.** Show the additions and every template to write as a diff, and every item kept with its difference or
    `exists`, then ask. `--yes` skips the question. Without a terminal and without `--yes`, nothing is written and the
    command exits 3. `--dry-run` prints the diff and writes nothing.
 4. **Write** the additions into the files, and the templates.
-5. **Render** the repository, as [`the-cook render`](render.md) does: the renders and floor of every recipe in use, the
-   new ones included, so the additions and their rendered effect are one diff and the drift check passes on it.
+5. **Render** the repository, as [`the-cook render`](render.md) does: the renders and floor of every recipe in use, so
+   the additions and their rendered effect are one diff and the drift check passes on it.
 
 When there is nothing to add, `apply` says so, writes nothing and exits 0.
 
@@ -613,10 +357,9 @@ Applying only adds. The repository's own entries and files stay authoritative.
 
 | Element | Rule |
 | --- | --- |
-| A name in `recipes:` | added at the end when the list does not hold it |
 | A list entry: a post-edit hook declaration, a validator, a `worker.deny` entry, a path in `agents.<name>.writable_roots` | added when the list holds no equal entry, one with the same fields and values |
 | A named item: a command, a lane, a lifecycle action, an agent | added when the repository has none by that name; when it has one that differs, the repository's stays and the difference is reported: `kept lanes.unit: differs from recipe node` |
-| A template | written when the file is absent; an existing file is the repository's and stays untouched, and is reported: `kept .ralph-tui/config.toml: exists` |
+| A template | written when the file is absent; an existing file is the repository's and stays untouched, and is reported: `kept <path>: exists` |
 | Everything already in the files | nothing is removed, replaced or reordered; comments, key order and blank lines are preserved |
 
 Additions go at the end of the list or map they belong to; a section the file lacks is added at its end. Two recipes
@@ -625,15 +368,16 @@ is added and the second one's is reported as kept.
 
 ### Applying again
 
-Applying is idempotent: a second `apply` of the same recipe by the same release adds nothing, because every entry and
-template is already there. Applying again is therefore the way to take a later release's improvements to a recipe's
-entries and templates. After moving the pin ([wrapper](wrapper.md#upgrading)), `./cook recipe apply node --dry-run`
-shows what the new release would add, and `./cook recipe apply node` adds it as a diff to review. A recipe's renders
-and floor need no applying: the next render after the pin moves takes the new release's.
+Applying is idempotent: a second `apply` of the same pinned version adds nothing, because every entry and template is
+already there. Applying again is therefore the way to take a newer version's improvements to a recipe's entries and
+templates. After moving the pin with `./cook recipe pin node --cookbook github:acme/cookbook@v1.3.0`,
+`./cook recipe apply node --dry-run` shows what the new version would add, and `./cook recipe apply node` adds it as
+a diff to review. A recipe's renders and floor need no applying: `recipe pin` renders with the new version in the
+same change.
 
 Applying again also adds back an entry or a template the repository deleted, because nothing records that it was
 removed on purpose. Read the diff before confirming. A template the repository kept is never updated by applying again:
-to take a newer release's version, delete the file and apply, then carry over your own changes.
+to take a newer version's, delete the file and apply, then carry over your own changes.
 
 ### After applying
 
@@ -642,18 +386,18 @@ which entries or templates a recipe wrote: each entry's one source of truth is t
 no record it could later use to change those entries by itself ([ADR 0013](../adrs/0013-organization-content.md)).
 Change or delete an applied entry or template by editing the file, then run `./cook render`.
 
-To stop using a recipe, delete its name from `recipes:` and run `./cook render`. The render removes the recipe's
+To stop using a recipe, delete its entry from `recipes:` and run `./cook render`. The render removes the recipe's
 renders, which the manifest records under its name, and its floor; its entries and templates stay as the repository's
 own, to edit or delete like anything else. A recipe that `vcs:` or an agent's `recipe` names cannot leave `recipes:`
 while it is named: the profile fails validation with exit 1. Both removal modes of [`the-cook remove`](remove.md) delete
-the seeded `.cook/` files whatever they hold, so applied entries go with them; a template a recipe wrote, such as
-`.ralph-tui/config.toml`, stays.
+the seeded `.cook/` files whatever they hold, so applied entries go with them; a template a recipe wrote stays.
 
 ## Reference
 
 ```text
-the-cook recipe list
-the-cook recipe show <name>
+the-cook recipe list [--cookbook <source>@<version>]
+the-cook recipe show <name> [--cookbook <source>@<version>]
+the-cook recipe pin <name>... --cookbook <source>@<version> [--yes] [--dry-run]
 the-cook recipe apply <name>... [--yes] [--dry-run]
 the-cook recipe fetch
 ```
@@ -664,73 +408,113 @@ become the repository's own; a recipe leaves `recipes:` by an edit ([After apply
 
 ### `the-cook recipe list`
 
-Prints the builtin recipes of the running release and the fetched recipes the profile declares, each with its version,
-its source (`release` or the declared source), the contract it fills, whether its detect rule matches in this
-repository, and whether it is in `recipes:`. A fetched recipe that is not cached is listed as `not cached`. It works in
-a repository that is not scaffolded yet, where nothing is in use, so it also helps choose `scaffold --recipe`.
+Without `--cookbook`, prints the recipes `recipes:` declares, each with its pinned version and source, the contract it
+fills, and whether it is cached on this machine. It reads only the cache: a recipe that is not cached is listed as
+`not cached`, without its contract.
+
+With `--cookbook <source>@<version>`, prints the recipes that tag publishes, each with the contract it fills, whether
+its detect rule matches in this repository, and the version `recipes:` pins it at, if any. It works in a repository
+that is not scaffolded yet, so it also helps choose `scaffold --recipe`.
+
+| Flag | Default | Meaning |
+| --- | --- | --- |
+| `--cookbook <source>@<version>` | none | List that cookbook tag's recipes instead of the declared ones |
 
 | Exit code | Meaning |
 | --- | --- |
 | 0 | Listed |
+| 1 | With `--cookbook`: the source cannot be reached, the tag has no `checksums.txt`, or an archive does not match it |
 
-Files read: the files each detect rule names, `.cook/config.yaml` when present, `$COOK_HOME/recipes/`. Files
-written: nothing.
+Files read: `.cook/config.yaml` when present, `$COOK_HOME/recipes/`; with `--cookbook`, the tag's `checksums.txt` and
+archives and the files each detect rule names. Files written: with `--cookbook`, each verified archive into
+`$COOK_HOME/recipes/`.
 
 ### `the-cook recipe show`
 
 Prints the recipe's `recipe.yaml`, its entries as the YAML they add, grouped by the file they go into, every template
 with its path and content, and every render with its target and template. Templates are rendered with the repository's
-profile when there is one. It does not compare anything with the repository; `apply --dry-run` shows what applying
-would write here, and `render --dry-run` what rendering would change.
+profile when there is one. Without `--cookbook` the recipe is a pinned one; with it, the recipe of that name in that
+tag. It does not compare anything with the repository; `apply --dry-run` shows what applying would write here, and
+`render --dry-run` what rendering would change.
+
+| Flag | Default | Meaning |
+| --- | --- | --- |
+| `<name>` | required | The recipe |
+| `--cookbook <source>@<version>` | none | Read the recipe from that cookbook tag instead of the pinned one |
 
 | Exit code | Meaning |
 | --- | --- |
 | 0 | Printed |
-| 1 | Unknown recipe name, with the valid names listed; a fetched recipe whose cached archive does not match its `sha256`; a fetched recipe declared under a builtin name |
-| 3 | A fetched recipe that is not cached: run `./cook recipe fetch` |
+| 1 | A name `recipes:` does not declare, which names `--cookbook` and `the-cook recipe pin`; a cached archive that does not match its `sha256`; with `--cookbook`, a name the tag does not publish, a source that cannot be reached, or an archive that does not match the tag's `checksums.txt` |
+| 3 | A pinned recipe that is not cached: run `./cook recipe fetch` |
 
-Files read: `.cook/config.yaml`, when present; `$COOK_HOME/recipes/<sha256>.tar.gz` for a fetched recipe. Files
-written: nothing.
+Files read: `.cook/config.yaml`, when present; `$COOK_HOME/recipes/<sha256>.tar.gz`; with `--cookbook`, the tag's
+`checksums.txt` and the archive. Files written: with `--cookbook`, the verified archive into `$COOK_HOME/recipes/`.
 
-### `the-cook recipe apply`
+### `the-cook recipe pin`
 
-Applies one or more recipes, in the order given ([How apply works](#how-apply-works)).
+Pins one or more recipes from one cookbook tag ([Pinning](#pinning)): downloads the tag's `checksums.txt` and the named
+archives over HTTPS, verifies each archive against it, checks each `recipe.yaml` (a supported schema and contract
+version, the name and the version), shows the `recipes:` entries to add or move as a diff and asks, then writes them,
+caches the archives and renders.
 
 | Flag | Default | Meaning |
 | --- | --- | --- |
-| `<name>...` | required | One or more recipes: a builtin recipe (`git`, `claude`, `codex`, `ralph-tui`, `beads`, `mise`, `skills`, `go`, `node`, `terraform`, `python`) or a fetched recipe declared in `recipes:` |
+| `<name>...` | required | One or more recipes the tag publishes |
+| `--cookbook <source>@<version>` | required | The cookbook and the tag to pin from |
+| `--yes` | off | Pin without asking; required without a terminal |
+| `--dry-run` | off | Print the entries to add or move; write nothing |
+
+With `--json`, the output lists each entry added or moved, with its previous version for a move.
+
+| Exit code | Meaning |
+| --- | --- |
+| 0 | Pinned, moved, or already pinned at that version; `--dry-run` printed |
+| 1 | Error: a repository that is not scaffolded, an invalid repository file, no network or a source that cannot be reached, a name the tag does not publish, an archive that does not match the tag's `checksums.txt`, an invalid `recipe.yaml`, one whose name or version differs from the request, or one whose schema or contract version is newer than the running release supports (the message names the release needed). Nothing is written |
+| 3 | Confirmation needed and there is no terminal: rerun with `--yes`. Nothing is written |
+
+Files read: `.cook/config.yaml`, the tag's `checksums.txt` and the named archives, and everything
+[`render`](render.md#reference) reads. Files written: `$COOK_HOME/recipes/<sha256>.tar.gz` for each verified archive;
+`recipes:` in `.cook/config.yaml`; then every file `render` writes ([what render writes](render.md#what-render-writes)).
+
+### `the-cook recipe apply`
+
+Applies one or more pinned recipes, in the order given ([How apply works](#how-apply-works)).
+
+| Flag | Default | Meaning |
+| --- | --- | --- |
+| `<name>...` | required | One or more recipes `recipes:` declares |
 | `--yes` | off | Apply without asking; required without a terminal |
 | `--dry-run` | off | Print the additions and the kept items; write nothing |
 
-With `--json`, the output lists the names added to `recipes:`, the entries added, the templates written and the items
-kept, each with its file and, for an entry, its key.
+With `--json`, the output lists the entries added, the templates written and the items kept, each with its file and,
+for an entry, its key.
 
 | Exit code | Meaning |
 | --- | --- |
 | 0 | Applied, or nothing to add; `--dry-run` printed |
-| 1 | Error: an unknown recipe, a repository that is not scaffolded, an invalid repository file, a fetched recipe whose source cannot be reached, whose archive does not match its `sha256` or that is declared under a builtin name. Nothing is written |
+| 1 | Error: a name `recipes:` does not declare (the message names `the-cook recipe pin`), a repository that is not scaffolded, an invalid repository file, a pinned recipe whose source cannot be reached or whose archive does not match its `sha256`. Nothing is written |
 | 3 | Confirmation needed and there is no terminal: rerun with `--yes`; or the repository files use a newer schema than the running release supports. Nothing is written |
 
 Files read: `.cook/config.yaml`, `.cook/policy.yaml`, `.cook/hooks.yaml`, whether each template's file
 exists, `$COOK_HOME/recipes/`, and everything [`render`](render.md#reference) reads. Files written:
-`$COOK_HOME/recipes/<sha256>.tar.gz` for a fetched recipe not cached yet; `.cook/config.yaml`,
+`$COOK_HOME/recipes/<sha256>.tar.gz` for a pinned recipe not cached yet; `.cook/config.yaml`,
 `.cook/policy.yaml` and `.cook/hooks.yaml`, additions only; each template whose file was absent; then every file
 `render` writes ([what render writes](render.md#what-render-writes)).
 
 ### `the-cook recipe fetch`
 
-Downloads every fetched recipe `recipes:` declares that is not in the cache, checks the archive's sha256 against the
-declaration, checks its `recipe.yaml` (a valid schema, the declared name and version, not a builtin name) and stores it
-in the cache. A recipe already cached is checked and left. It is one of the two commands that download recipes, with
-`apply`; run it once per machine after cloning a repository that declares fetched recipes, and after the declaration
-changes.
+Downloads every recipe `recipes:` declares that is not in the cache, checks the archive's sha256 against the
+declaration, checks its `recipe.yaml` (a supported schema and contract version, the declared name and version) and
+stores it in the cache. A recipe already cached is checked and left. Run it once per machine after cloning, after the
+declarations change, and in CI before `render --check` or `doctor`.
 
 It takes no arguments.
 
 | Exit code | Meaning |
 | --- | --- |
-| 0 | Every requested recipe is cached and verified, or there was nothing to fetch |
-| 1 | No network, or a source that cannot be reached; an archive whose sha256 differs from the declaration (both hashes are printed); an invalid `recipe.yaml`, or one whose name or version differs from the declaration; a fetched recipe declared under a builtin name. A failing recipe is not stored; the others are |
+| 0 | Every declared recipe is cached and verified, or there was nothing to fetch |
+| 1 | No network, or a source that cannot be reached; an archive whose sha256 differs from the declaration (both hashes are printed); an invalid `recipe.yaml`, one whose name or version differs from the declaration, or one whose schema or contract version is newer than the running release supports. A failing recipe is not stored; the others are |
 
 Files read: `.cook/config.yaml`, `$COOK_HOME/recipes/`. Files written: `$COOK_HOME/recipes/<sha256>.tar.gz`,
 on a verified download only.
@@ -749,22 +533,28 @@ A recipe is a directory:
 | --- | --- | --- | --- |
 | `schema` | integer | yes | Format version of the recipe file: `1` |
 | `name` | string | yes | Lowercase letters, digits and `-`: the name `recipes:`, `vcs:` and `agents.<name>.recipe` use |
-| `version` | string | yes | The recipe's version; for a fetched recipe, the `version` the profile pins |
+| `version` | string | yes | The cookbook tag the recipe is published under, which `recipes:` pins |
 | `description` | string | no | One line, printed by `recipe list` |
-| `contract` | `vcs` \| `the-cook` | no | The contract `operations` fills; absent when the recipe has no operations |
+| `contract.name` | `vcs` \| `harness` | with `operations` | The contract `operations` fills; `contract` is absent when the recipe has no operations |
+| `contract.version` | integer | with `contract.name` | The version of that contract the operations are written for: `1` for both contracts in this release line |
 | `entries` | map of file to YAML | no | [Entries](#entries), grouped by the file they go into: `.cook/config.yaml`, `.cook/policy.yaml`, `.cook/hooks.yaml`. Each value has the shape of that file |
 | `templates` | list | no | [Templates](#templates): `path`, where the file is written, relative to the repository root, and `source`, a file under `files/` |
 | `renders` | list | no | [Renders](#renders): `file`, the target relative to the repository root, and exactly one of `whole`, `keys`, `entries`, `block` (below) |
 | `floor.deny` | list of policy entries | no | Floor deny rules, in the [policy entry forms](policy.md#entry-forms); `{default_branch}` is replaced by what the version-control recipe reports |
-| `floor.bypass` | list of arguments | no | Floor bypass arguments; only with `contract: harness` |
+| `floor.bypass` | list of arguments | no | Floor bypass arguments; only with `contract.name: harness` |
 | `operations` | map | with `contract` | The operations of the [version-control contract](#the-version-control-contract) or of the [harness contract](#the-harness-contract) |
 | `checks.version` | map | no | `run`, a command that prints the version, and `range`, the supported versions, such as `">=2.1 <2.2"`. The first dotted number in the output is the version |
 | `checks.detect` | list of globs | no | Paths relative to the repository root whose match shows the program is in use; a trailing `/` matches a directory |
 
+The binary refuses a recipe whose `schema` or `contract.version` is newer than it supports, with exit 1 naming the
+release needed, and reads older ones inside its support window ([ADR 0005](../adrs/0005-schema-compatibility.md)).
+`the-cook version` prints the recipe schema and the contract versions the running release supports.
+
 Unknown keys are an error. A command, in `checks` or in an operation, is a list of arguments run without a shell from
-the root of the checkout the binary works in. A placeholder such as `{rev}` is replaced inside the argument it
-appears in, so a value never splits into more arguments or reaches a shell. An operation that needs a shell names
-`sh` and passes values as positional parameters, as the git recipe's `changed` operation does.
+the root of the checkout the binary works in. A placeholder such as `{rev}` is replaced inside the argument it appears
+in, so a value never splits into more arguments or reaches a shell. An operation that needs a shell names `sh` and
+passes values as positional parameters:
+`run: [sh, -c, 'tool diff --names "$1" && tool status --untracked', sh, "{rev}"]`.
 
 The forms of a render:
 
@@ -772,13 +562,13 @@ The forms of a render:
 | --- | --- | --- |
 | `whole` | `whole: true`, `template` | the whole file |
 | `keys` | a map from a dotted key path to `{ each, item }`, a list with one `item` per element of the model list `each`, or to `{ value }` | those keys of a JSON or TOML file; every other key is preserved byte for byte ([render](render.md#merge-rendering-native-files)) |
-| `entries` | a dotted path to a list, and `{ each, item }` | its own entries in a list the file shares with others, such as the hook entries of `.claude/settings.json` |
+| `entries` | a dotted path to a list, and `{ each, item }` | its own entries in a list the file shares with others, such as an agent's hook entries |
 | `block` | a block id, and `template` | a [managed block](render.md#managed-blocks) between the `cook:<id>` markers |
 
-A template is logic-free: `{{name}}` inserts a value of the neutral model below, `{{#name}}…{{/name}}` repeats its text
-for each element of a list, or renders it once when a value is present, and `{{^name}}…{{/name}}` renders its text when
-the value is empty or absent. There are no comparisons, functions or includes. A template's text is inline in
-`recipe.yaml` or in a file under `files/`, named by its path.
+A template is logic-free: `{{name}}` inserts a value of the neutral model below, `{{#name}}...{{/name}}` repeats its
+text for each element of a list, or renders it once when a value is present, and `{{^name}}...{{/name}}` renders its
+text when the value is empty or absent. There are no comparisons, functions or includes. A template's text is inline
+in `recipe.yaml` or in a file under `files/`, named by its path.
 
 The neutral model, the values a template reads:
 
@@ -793,226 +583,198 @@ The neutral model, the values a template reads:
 | `default_branch` | the default branch the version-control recipe reports |
 
 A hook's `command` is the [hook command](render.md#the-hook-command), which finds the wrapper through the
-version-control recipe's `root` operation: with the git recipe, `"$(git rev-parse --show-toplevel)/cook"
---no-download hook <event>`.
+version-control recipe's `root` operation.
 
-#### A complete recipe: `mise`
+#### An example recipe
 
-The mise recipe needs no `files/` directory:
+`acme-agent` is a harness published in `github:acme/cookbook`. Its recipe shows every part: an entry, a template,
+renders, the harness operations, floor arguments and both checks.
 
 ```text
-mise/
+acme-agent/
   recipe.yaml
+  files/
+    agent.toml
 ```
 
 ```yaml
 schema: 1
-name: mise
-version: 1.0.0
-description: mise, a tool-version manager and task runner
+name: acme-agent
+version: v1.2.0
+description: acme-agent, a coding agent harness
+contract: { name: harness, version: 1 }
 checks:
-  version: { run: [mise, --version], range: ">=2026.6 <2026.7" }
-  detect: [mise.toml, .mise.toml]
-floor:
-  deny:
-    - "mise * ::: *"
-```
-
-In a repository whose `recipes:` holds `mise`, `render` adds `Bash(mise * ::: *)` to `permissions.deny` in
-`.claude/settings.json` and lists the rule in the `policy` block of `AGENTS.md`, marked as a floor rule of the mise
-recipe and as Claude Code only; `doctor` reports a `mise` outside 2026.6. `the-cook scaffold` applies the recipe when it
-finds `mise.toml` or `.mise.toml`.
-
-An excerpt of the ralph-tui recipe shows a template, an entry and a block render:
-
-```yaml
-schema: 1
-name: ralph-tui
-version: 1.0.0
-description: ralph-tui, a loop runner that starts an agent per task
-templates:
-  - { path: .ralph-tui/config.toml, source: files/config.toml }
+  version: { run: [acme-agent, --version], range: ">=3.1 <3.2" }
+  detect: [.acme/, ACME.md]
 entries:
-  .cook/policy.yaml:
-    worker:
-      deny:
-        - [git, commit]
-        - [git, push]
-        - [gh]
+  .cook/config.yaml:
+    agents:
+      acme-agent: { role: interactive }
+templates:
+  - { path: .acme/agent.toml, source: files/agent.toml }
+floor:
+  bypass: [--skip-permissions, --mode=unrestricted]
+operations:
+  launch:
+    command: [acme-agent]
+    unattended: [--mode, unattended]
+    worker_deny:
+      flag: --deny
+      item: &rule "{{#prefix}}Run({{words}} *){{/prefix}}{{#native}}{{string}}{{/native}}{{#bare}}Run({{string}}){{/bare}}"
+    sandbox_roots: [--writable, "{path}"]
+    model: [--model, "{model}"]
+    effort: [--effort, "{effort}"]
+    prompt: { stdin: true, args: [--print] }
+  payload:
+    event: event
+    session: session.id
+    tool: tool.name
+    file: tool.input.path
+    cwd: cwd
+    prompt: prompt
+    message: message
+    edit_tools: [edit, write]
+    read_tools: [read]
+    events:
+      session-start: SessionStart
+      post-tool-use: AfterTool
+      prompt-submit: PromptSubmit
+      attention: WaitingForUser
+      turn-end: TurnEnd
+  instructions: { file: ACME.md, block: import, line: "@AGENTS.md" }
+  skills: .acme/skills/the-cook
+  native_rules:
+    keys: { allow: permissions.allow, ask: permissions.ask, deny: permissions.deny }
+    project: [.acme/settings.json]
+    local: [.acme/settings.local.json]
+    user: [~/.acme/settings.json]
+    prefix: "Run({{words}} *)"
+    notes: [permissions.mode]
 renders:
+  - file: .acme/settings.json
+    keys:
+      permissions.allow: { each: allow, item: *rule }
+      permissions.ask: { each: ask, item: *rule }
+      permissions.deny: { each: deny, item: *rule }
   - file: .gitignore
-    block: ralph-tui
+    block: acme-agent
     template: |
-      /.ralph-tui/*
-      !/.ralph-tui/config.toml
+      /.acme/cache/
 ```
+
+`files/agent.toml`, written once when `.acme/agent.toml` is absent:
+
+```toml
+# acme-agent settings for this repository; the repository's own file
+{{#agents}}
+[agents.{{name}}]
+role = "{{role}}"
+{{/agents}}
+```
+
+In a repository that pins `acme-agent`, `render` writes the policy into the three `permissions` keys of
+`.acme/settings.json`, the import line into the `import` block of `ACME.md`, the skill link and the `.gitignore`
+block; `the-cook worker acme-agent` refuses `--skip-permissions` wherever it appears among the agent's arguments; and
+`doctor` reports an `acme-agent` outside 3.1. `scaffold --cookbook github:acme/cookbook@v1.2.0` picks the recipe when
+it finds `.acme/` or `ACME.md`.
 
 ## Examples
 
-### Add a recipe to an adopted repository
-
-The repository was scaffolded with `--no-detect --recipe claude`, and its people already wrote their own `build`
-command:
+### Choose recipes before scaffolding
 
 ```text
+$ cd ~/src/acme-web
+$ the-cook recipe list --cookbook github:acme/cookbook@v1.2.0
+recipe      contract  detected  pinned
+acme-agent  harness   yes       -
+git         vcs       yes       -
+node        -         yes       -
+python      -         yes       -
+tracker     -         no        -
+$ the-cook scaffold --cookbook github:acme/cookbook@v1.2.0 --no-detect \
+    --recipe git --recipe acme-agent --recipe node --dry-run
+```
+
+`requirements.txt` here only pins a documentation tool, so the scaffold takes `node` and leaves `python` out.
+
+### Pin and apply a recipe
+
+The repository was scaffolded with `--no-detect`, and its people already wrote their own `build` command:
+
+```text
+$ ./cook recipe show node --cookbook github:acme/cookbook@v1.2.0
+$ ./cook recipe pin node --cookbook github:acme/cookbook@v1.2.0
+.cook/config.yaml
++  - name: node
++    source: github:acme/cookbook
++    version: v1.2.0
++    sha256: a2bce70041251fb8f672f9f5819969951627fdd3868497a17b525ab90a0c01d8
+pin these recipes? [y/N] y
+pinned node v1.2.0 from github:acme/cookbook: sha256 verified; rendered AGENTS.md
 $ ./cook recipe apply node
 .cook/config.yaml
-+  - node
 +  lint: npm run lint -- {file}
 +  unit: { select: npm test -- {pattern}, full: npm test }
 .cook/hooks.yaml
 +  - { paths: ["src/**/*.{ts,js}"], run: npx eslint --fix {file} }
 kept commands.build: differs from recipe node
 apply these additions? [y/N] y
-applied node: 3 entries added, 1 kept; rendered .claude/settings.json, AGENTS.md
-$ git add -A && git commit -m "chore: apply the node recipe"
+applied node: 3 entries added, 1 kept; rendered AGENTS.md
+$ git add -A && git commit -m "chore: pin and apply the node recipe"
 ```
 
-### Read a recipe
+Each teammate runs `./cook recipe fetch` once on their machine. Until then their `render` exits 3 naming it, their
+agent hooks skip with one line, and nothing is fetched behind their back.
 
-```text
-$ ./cook recipe show go
-# recipe.yaml
-schema: 1
-name: go
-version: 1.0.0
-description: Go
-checks:
-  detect: [go.mod]
+### Move a pin
 
-# .cook/config.yaml
-commands:
-  lint: gofmt -l {file} | (! grep .)
-  build: go build ./...
-verify:
-  lanes:
-    test: { select: go test {pattern}, full: go test ./... }
-
-# .cook/hooks.yaml
-post_edit:
-  - { paths: ["**/*.go"], run: gofmt -w {file} }
+```sh
+./cook recipe pin git acme-agent node --cookbook github:acme/cookbook@v1.3.0   # moves three pins, renders with v1.3.0
+./cook recipe apply git acme-agent node --dry-run                              # the entries v1.3.0 adds that the files lack
+./cook recipe apply git acme-agent node --yes
+git diff
 ```
-
-### Wire ralph-tui and Beads
-
-The repository already keeps a hand-written `.ralph-tui/config.toml`:
-
-```text
-$ ./cook recipe apply beads ralph-tui
-.cook/config.yaml
-+  - beads
-+  - ralph-tui
-+      writable_roots: [.beads]
-.cook/policy.yaml
-+    - [bd, close]
-+    - [git, commit]
-+    - [git, push]
-+    - [gh]
-.cook/hooks.yaml
-+  start:
-+    - { name: bead-start, run: bd update "$COOK_TASK" --status in_progress --assignee "$COOK_ACTOR", auto: true, scope: [task] }
-+  completed:
-+    - { name: bead-close, run: bd close "$COOK_TASK" --reason "verified", auto: true, scope: [task] }
-+  blocked:
-+    - { name: bead-comment, run: bd comments add "$COOK_TASK" "$COOK_REASON", auto: true, scope: [task] }
-kept .ralph-tui/config.toml: exists
-apply these additions? [y/N] y
-applied beads, ralph-tui: 8 entries added, 1 kept; rendered .codex/rules/the-cook.rules, .gitignore, AGENTS.md
-```
-
-The existing `.ralph-tui/config.toml` stays as it is. To take the recipe's, move it aside, apply `ralph-tui` again, and
-carry over what the old file needs; `./cook recipe show ralph-tui` prints the template first.
-
-### Choose recipes before scaffolding
-
-```text
-$ cd ~/src/acme-web
-$ the-cook recipe list
-recipe     version  source   contract  detected  in use
-git        1.0.0    release  vcs       yes       -
-claude     1.0.0    release  the-cook   yes       -
-codex      1.0.0    release  the-cook   no        -
-ralph-tui  1.0.0    release  -         -         -
-beads      1.0.0    release  -         -         -
-mise       1.0.0    release  -         no        -
-skills     1.0.0    release  -         no        -
-go         1.0.0    release  -         no        -
-node       1.0.0    release  -         yes       -
-terraform  1.0.0    release  -         no        -
-python     1.0.0    release  -         yes       -
-$ the-cook scaffold --no-detect --recipe claude --recipe node --dry-run
-```
-
-`requirements.txt` here only pins a documentation tool, so the scaffold takes `node` and leaves `python` out. With
-`--no-detect`, `git` is still applied, because no `--vcs` names another version-control recipe.
-
-### A fetched recipe
-
-acme publishes a recipe for [just](https://github.com/casey/just), a command runner its repositories use, with the
-sha256 of each release's archive. In `acme/api`, a person adds the declaration from the
-[fetched recipes](#fetched-recipes) example to `recipes:`, reads the recipe, and applies it:
-
-```text
-$ ./cook recipe fetch
-fetched just v1.2.0 from github:acme/cookbook: sha256 verified
-$ ./cook recipe show just
-$ ./cook recipe apply just --yes
-applied just: 2 entries added; rendered AGENTS.md
-$ ./cook doctor
-note: recipe just v1.2.0 (github:acme/cookbook): not verified by the release
-```
-
-Each teammate runs `./cook recipe fetch` once on their machine. Until then their `render` and agent hooks exit 3
-naming it, and nothing is fetched behind their back.
 
 ### Stop using a program
 
 ```sh
-# delete "- ralph-tui" from recipes: in .cook/config.yaml
-./cook render        # removes the ralph-tui block from .gitignore
-git diff                 # .ralph-tui/config.toml and the worker.deny entries stay, as the repository's own
+# delete the "name: tracker" entry from recipes: in .cook/config.yaml
+./cook render        # removes the tracker recipe's renders and floor
+git diff             # its applied entries and templates stay, as the repository's own
 ```
-
-### After an upgrade
-
-```sh
-./cook wrapper --version v0.10.0
-./cook recipe apply go --dry-run      # the entries of v0.10.0's go recipe that the files lack
-./cook recipe apply go --yes
-git diff
-```
-
-The renders and the floor of every builtin recipe in use already follow v0.10.0: `the-cook wrapper` renders the
-repository with the new release in the same change.
 
 ### Many repositories
 
 ```sh
+the-cook fleet recipe pin node --cookbook github:acme/cookbook@v1.2.0 --yes --deliver
 the-cook fleet recipe apply node --yes --deliver
 ```
 
-Each repository that lacks some of the recipe's entries gets a branch with the additions and their rendered effect,
-delivered through its own `deliver` actions. A repository that already holds every entry is reported as unchanged
-([fleet](fleet.md)). The command runs without a terminal in each repository, so it needs `--yes`.
+Each repository that lacks the pin, or some of the recipe's entries, gets a branch with the change and its rendered
+effect, delivered through its own `deliver` actions. A repository that already holds them is reported as unchanged
+([fleet](fleet.md)). The commands run without a terminal in each repository, so they need `--yes`.
 
 ## Guidelines
 
+- Do read a recipe with `the-cook recipe show <name> --cookbook <source>@<version>` before pinning it: its
+  operations, renders and floor run in every session and every unattended attempt, and the review of the pin is the
+  only thing that vouches for them.
 - Do read the diff `apply` shows before confirming: once written, the entries and templates are the repository's own
   and nothing marks where they came from.
 - Do edit applied entries to fit the repository: a recipe guesses from the stack or the program, the repository knows
   its real commands, and applying again never overwrites an item you changed.
-- Do run `./cook recipe apply <name> --dry-run` for the recipes in use after moving the pin to a newer release:
-  new entries reach the repository only when someone applies the recipe again.
-- Do commit the additions together with the files `apply` rendered, so the diff explains itself.
-- Do keep every program the repository uses in `recipes:`, `mise` above all: a recipe's floor holds only while the
-  recipe is in use, and `doctor` names a detected program whose recipe is missing.
-- Do read a fetched recipe with `./cook recipe show <name>` before pinning it, and take its `sha256` from its
-  publisher: its operations, renders and floor run in every session and every unattended attempt.
+- Do run `./cook recipe apply <name> --dry-run` after moving a pin: new entries reach the repository only when someone
+  applies the recipe again.
+- Do commit the pins and additions together with the files `recipe pin` and `apply` rendered, so the diff explains
+  itself.
+- Do keep every program the repository uses pinned: a recipe's floor holds only while the recipe is in use.
+- Do run `./cook recipe fetch` in CI before `render --check` and `doctor`.
 - Do write an organization's choices into each repository through a reviewed change, such as an agent following the
   organization's skill: they differ between repositories, and a recipe holds only what every repository using its
   program shares ([Organization choices](#organization-choices)).
 - Don't copy a floor rule into `.cook/policy.yaml` to keep it after removing its recipe: an entry there is editable,
   which is what the floor exists to avoid. Keep the recipe in use.
+- Don't change a pin's `sha256` by hand to match a download: the hash is what the review approved.
 - Don't apply a recipe again to restore an item you changed: `apply` keeps every item the repository names. Delete
   yours first if you want the recipe's.
 
@@ -1021,20 +783,19 @@ delivered through its own `deliver` actions. A repository that already holds eve
 | Symptom | Cause | Fix |
 | --- | --- | --- |
 | `kept lanes.unit: differs from recipe node` | The repository already has a `unit` lane, and `apply` never replaces an item the repository names | Nothing, if yours is right. To take the recipe's, delete yours and apply again |
-| `kept .ralph-tui/config.toml: exists` | The file is there, and `apply` writes a template only when its file is absent | Nothing, if yours is right. To take the recipe's, move yours aside, apply again, and carry over what you need |
-| ralph-tui's first task fails with the worker refusing a permission-bypass argument | A ralph-tui configuration, the project's or `~/.config/ralph-tui/config.toml`, turns permission checks off or passes a bypass argument in `defaultFlags` | Keep `skipPermissions = false` under each `[agents.options]` in `.ralph-tui/config.toml` and remove the argument; the worker refuses it whoever passes it ([ralph](ralph.md)) |
-| A Beads action fails with a missing id | The event fired in a workspace created without `--task`, so `COOK_TASK` is empty | Create the workspace with `./cook workspace create <name> --task <id>` ([tasks](tasks.md)) |
-| `recipe apply` exits 1 naming `the-cook scaffold` | The repository has no `.cook/config.yaml` | Run `the-cook scaffold`, which applies the detected recipes |
-| `recipe apply` or `recipe show` exits 1: unknown recipe | The name is neither a builtin recipe of the running release nor a fetched recipe in `recipes:` | `./cook recipe list` prints the names |
-| `recipe apply` exits 3 | No terminal to confirm, and no `--yes` | Review with `--dry-run`, then rerun with `--yes`; under `fleet`, always pass `--yes` |
-| `render`, a hook or `the-cook worker` exits 3 naming `./cook recipe fetch`, or `doctor` reports a fetched recipe not cached | A fetched recipe in `recipes:` is not in this machine's cache, and only `recipe fetch` and `recipe apply` download | Run `./cook recipe fetch` |
-| Exit 1: a fetched recipe's sha256 differs | The archive at the source is not the one the profile pins: a new upload under the same version, a different `source`, or tampering | Do not change the `sha256` to match. Ask the publisher; pin a version whose hash it states |
-| Exit 1: a fetched recipe uses a builtin name | A `recipes:` entry with a `source` is named like a builtin recipe, such as `git` | Rename the fetched recipe; a builtin recipe cannot be replaced |
-| Exit 1: `vcs` or an agent's `recipe` names a recipe not in `recipes:` | The recipe was deleted from `recipes:`, or never added | Add it back, or point `vcs:` or the agent at a recipe in use |
-| Exit 3 naming `git` | The version-control recipe's program is not installed on this machine | Install git, or the program the `vcs:` recipe names |
-| `doctor`: `mise detected; its recipe and its floor are not in use` | `mise.toml` is present and `mise` is not in `recipes:`, so the `:::` deny is not rendered | `./cook recipe apply mise` |
-| `doctor` notes `not verified by the release` | The recipe is fetched: the release's tests do not cover it | Expected. Review the recipe with `./cook recipe show <name>` |
+| `kept <path>: exists` | The file is there, and `apply` writes a template only when its file is absent | Nothing, if yours is right. To take the recipe's, move yours aside, apply again, and carry over what you need |
+| `recipe apply` exits 1 naming `the-cook scaffold` | The repository has no `.cook/config.yaml` | Run `the-cook scaffold` |
+| `recipe apply` or `recipe show` exits 1 naming `the-cook recipe pin` | The name is not in `recipes:` | `./cook recipe pin <name> --cookbook <source>@<version>` first, or `recipe show --cookbook` to read it unpinned |
+| `recipe pin` exits 1: the tag does not publish the name | The name is wrong, or the cookbook added the recipe in a later tag | `./cook recipe list --cookbook <source>@<version>` prints the tag's names |
+| `recipe pin` or `recipe apply` exits 3 | No terminal to confirm, and no `--yes` | Review with `--dry-run`, then rerun with `--yes`; under `fleet`, always pass `--yes` |
+| `render` or `the-cook worker` exits 3 naming `./cook recipe fetch`, a hook prints one line naming it, or `doctor` reports a recipe not cached | A pinned recipe is not in this machine's cache, and only the commands in [Fetching](#fetching) download | Run `./cook recipe fetch` |
+| A command exits 3 naming `the-cook recipe pin` | It needs the version-control contract or an agent's harness contract, and no pinned recipe fills it | Pin a recipe that fills it; `./cook doctor` lists each unfilled contract and the commands it blocks |
+| Exit 1: a recipe's sha256 differs | The archive at the source is not the one the profile pins: a new upload under the same version, a different `source`, or tampering | Do not change the `sha256` to match. Ask the cookbook's publisher; pin a tag whose archives match its `checksums.txt` |
+| Exit 1: two `recipes:` entries with the same name | A name is unique within a profile | Delete one; `recipe pin` moves an existing pin instead of adding a second |
+| Exit 1: a recipe's schema or contract version is newer than the running release supports | The cookbook tag was written for a newer `the-cook` | Move the release pin with `./cook wrapper --version <tag>` to the release the message names, or pin an older tag of the recipe |
+| Exit 1: `vcs` or an agent's `recipe` names a recipe not in `recipes:` | The recipe was deleted from `recipes:`, or never pinned | Pin it, or point `vcs:` or the agent at a recipe in use |
+| Exit 3 naming a program | The version-control recipe's program, or an agent's, is not installed on this machine | Install it |
 | An entry or a template you deleted is back after `recipe apply` | `apply` adds every entry the files lack and writes every absent template, and nothing records that you removed them | Delete it again, and read the diff before confirming the next apply |
-| `recipe apply` after an upgrade adds nothing | The files already hold every entry of the recipe, or equal ones | Expected |
-| Only one stack's lint command is in the profile | `commands.lint` is one named item: the first recipe applied wrote it, and the next one's was reported as kept | Write a lint command that covers both stacks, such as a script or a [mise](compatibility.md#mise) task that picks the linter by the file's extension |
-| Entries of the wrong stack after `scaffold` | Marker files of another stack are present, such as a `package.json` for tooling in a Go repository | Delete the entries that do not apply from `.cook/config.yaml` and `.cook/hooks.yaml`, delete the recipe from `recipes:`, then `./cook render`; on the next repository, `the-cook scaffold --no-detect --recipe <name>` |
+| `recipe apply` after moving a pin adds nothing | The files already hold every entry of the recipe, or equal ones | Expected |
+| Only one stack's lint command is in the profile | `commands.lint` is one named item: the first recipe applied wrote it, and the next one's was reported as kept | Write a lint command that covers both stacks, such as a script or a task-runner task that picks the linter by the file's extension |
+| Entries of the wrong stack after `scaffold` | Marker files of another stack are present, such as a `package.json` for tooling in another stack's repository | Delete the entries that do not apply from `.cook/config.yaml` and `.cook/hooks.yaml`, delete the recipe from `recipes:`, then `./cook render`; on the next repository, `the-cook scaffold --cookbook <source>@<version> --no-detect --recipe <name>` |

@@ -13,17 +13,18 @@ and can find the page for any part of it.
 ## Overview
 
 `the-cook` is a command-line tool that sets up, constrains and checks the environment coding agents work in. It writes
-the permission rules, hooks and instructions that agents such as Claude Code and Codex read. It gives people and agents
-the same commands for task [workspaces](workspaces.md), verification receipts (records that a change's checks passed on
-its exact content, [verify](verify.md)) and [task binding](tasks.md), which ties a workspace to a task id from any
-tracker. Its [`the-cook worker`](ralph.md) command runs one agent for one task, for any loop runner that names it as its
-agent command, and that agent cannot bypass permissions or be reported done without a verification that passed. It fires
+the permission rules, hooks and instructions that agents read. It gives people and agents the same commands for
+task [workspaces](workspaces.md), verification receipts (records that a change's checks passed on its exact content,
+[verify](verify.md)) and [task binding](tasks.md), which ties a workspace to a task id from any tracker. Its
+[`the-cook worker`](worker.md) command runs one agent for one task, for any loop runner that names it as its agent
+command, and that agent cannot bypass permissions or be reported done without a verification that passed. It fires
 [development lifecycle](lifecycle.md) events at fixed points, so what a repository declares (a push, a pull request, a
 tracker update, a cleanup) happens at the same moment for people and agents. It never calls a model, never writes
-knowledge such as prose, memory or domain skills, and contains code for no external program. Every program it works
-with, git and the agent harnesses included, is described by a [recipe](recipes.md): a versioned bundle of data the
-binary interprets, which the release ships for git, Claude Code, Codex, ralph-tui, Beads, mise, the `skills` CLI and
-common stacks, and which a repository can also fetch, pinned by hash ([ADR 0022](../adrs/0022-tool-integration.md)).
+knowledge such as prose, memory or domain skills, and contains code and data for no external program. Every program it
+works with, the version control system and the agent harnesses included, is described by a [recipe](recipes.md): a
+versioned bundle of data the binary interprets. Recipes come from cookbooks, published collections of recipes, and a
+repository declares each one it uses, pinned by cookbook, version and sha256; the binary ships none and names no default
+cookbook ([ADR 0022](../adrs/0022-tool-integration.md)).
 
 The name comes from the kitchen: a cook follows the recipe exactly and lets nothing leave the kitchen until it passes
 the check. The agents do the cooking, and `the-cook` holds them to that standard.
@@ -36,7 +37,7 @@ Think of a tabletop game. The game master rules the world but never plays. In `t
 | --- | --- |
 | The game master | `the-cook`: it sets the rules and enforces them, and never takes a turn |
 | The players | developers, who decide what gets built |
-| The characters | agents (Claude Code, Codex), who act inside the rules |
+| The characters | agents, each run through its harness, who act inside the rules |
 | The world | repositories, with their files, history and conventions |
 | The rulebook | the three repository files `.cook/config.yaml`, `.cook/policy.yaml` and `.cook/hooks.yaml` |
 
@@ -47,15 +48,14 @@ same documentation blocks in every repository that adopts it.
 
 | Module | What you get | Page |
 | --- | --- | --- |
-| Core (always on) | the `cook` wrapper pinned to one verified release, the `.cook/` configuration, profile, policy rendered for each agent, conventions written as managed blocks in `AGENTS.md`, `README.md` and `.gitignore`, manifest, the shipped skill, lifecycle events and actions, task workspaces with task binding, unattended runs through `the-cook worker` | [wrapper](wrapper.md), [concepts](concepts.md), [policy](policy.md), [render](render.md), [lifecycle](lifecycle.md), [workspaces](workspaces.md), [tasks](tasks.md), [ralph](ralph.md), [skills](skills.md) |
+| Core (always on) | the `cook` wrapper pinned to one verified release, the `.cook/` configuration, profile, the pinned recipes, policy rendered for each agent, conventions written as managed blocks in `AGENTS.md`, `README.md` and the files the recipes in use name, manifest, the shipped skill, lifecycle events and actions, task workspaces with task binding, unattended runs through `the-cook worker` | [wrapper](wrapper.md), [concepts](concepts.md), [policy](policy.md), [render](render.md), [lifecycle](lifecycle.md), [workspaces](workspaces.md), [tasks](tasks.md), [worker](worker.md), [skills](skills.md) |
 | `hooks` | Agent-neutral hooks: lint-on-edit, validators, session context, notifications when an agent waits for a person or ends a turn, and [standing context](context.md): directives and skills injected when a declared trigger fires | [hooks](hooks.md), [context](context.md) |
 | `verify` | Named verification lanes (families of test commands, such as `unit` and `e2e`) and a receipt bound to file contents | [verify](verify.md) |
 | `memory` | A memory skeleton under `.agents/memory/` and its index in the `memory` block of `AGENTS.md` | [memory](memory.md) |
 
-A loop runner such as [ralph-tui](https://github.com/subsy/ralph-tui) connects by naming `./cook worker <agent>`
-as its agent command, and a tracker such as Beads by lifecycle actions on `start`, `completed` and `blocked`; the
-`ralph-tui` and `beads` [recipes](recipes.md) write both. Every module is opt-in and removable on its own, and the
-whole tool can be undone or ejected, keeping its conventions ([remove](remove.md)).
+A loop runner connects by naming `./cook worker <agent>` as its agent command, and a task tracker by lifecycle actions
+on `start`, `completed` and `blocked`; a [recipe](recipes.md) for each program can write both. Every module is opt-in
+and removable on its own, and the whole tool can be undone or ejected, keeping its conventions ([remove](remove.md)).
 
 ## Five-minute quickstart
 
@@ -70,26 +70,26 @@ cd ~/src/acme-api
 Every command below runs as `./cook <command>`; with a global install, `the-cook <command>` is equivalent.
 
 A repository that has no `cook` yet needs a `the-cook` binary once, to scaffold it
-([installation](installation.md#scaffolding-a-new-repository)). The commands below get it through
-[mise](https://mise.jdx.dev), a tool-version manager and task runner;
-[installation](installation.md#global-install-optional) also covers a plain download. The scaffold pins the release that
-runs it:
+([installation](installation.md#scaffolding-a-new-repository)). The scaffold pins the release that runs it, and
+`--cookbook` names the cookbook tag whose matching recipes it pins and applies:
 
 ```sh
-mise use -g github:lmarqs/the-cook@<tag>     # or one-off: mise exec github:lmarqs/the-cook@<tag> -- the-cook scaffold
 cd ~/src/acme-api
-the-cook scaffold --dry-run      # shows every file it would write, cook and .cook/ included
-the-cook scaffold                # writes them after confirmation
+the-cook scaffold --cookbook github:acme/cookbook@v1.2.0 --dry-run   # every file it would write, cook and .cook/ included
+the-cook scaffold --cookbook github:acme/cookbook@v1.2.0             # writes them after confirmation
 git diff --stat
 ```
 
-Or adopt one that already has hand-written `.claude/settings.json`, Codex rules, hooks or `CLAUDE.md`:
+Or adopt one that already has hand-written agent permissions, hooks or instruction files:
 
 ```sh
-the-cook scaffold --adopt --dry-run   # the generated files and the equivalence report
-the-cook scaffold --adopt
+the-cook scaffold --adopt --cookbook github:acme/cookbook@v1.2.0 --dry-run   # files and the equivalence report
+the-cook scaffold --adopt --cookbook github:acme/cookbook@v1.2.0
 ./cook doctor                    # lists what an agent must finish
 ```
+
+Without `--cookbook`, the scaffold writes an empty `recipes:` and its to-do lists each contract no recipe fills; pin
+recipes later with `./cook recipe pin <name>... --cookbook <source>@<version>` ([pinning](recipes.md#pinning)).
 
 Review and edit the profile and the policy, then render and commit; a workspace starts from committed code:
 
@@ -152,8 +152,8 @@ Configuration
 - [Policy](policy.md): `.cook/policy.yaml`, the floor rules of recipes, rendering per agent
 - [Hooks](hooks.md): `.cook/hooks.yaml`, the hook runtime, notification hooks and lifecycle actions
 - [Context](context.md): standing context, directives and skills injected by declared triggers
-- [Recipes](recipes.md): how every program is described, the version-control and harness contracts, floor rules, the
-  builtin and fetched recipes, `the-cook recipe list`, `show`, `apply` and `fetch`, and where an organization's choices
+- [Recipes](recipes.md): how every program is described, the version-control and harness contracts, floor rules,
+  cookbooks and pins, `the-cook recipe pin`, `list`, `show`, `apply` and `fetch`, and where an organization's choices
   live
 
 Daily work
@@ -161,8 +161,7 @@ Daily work
 - [Workspaces](workspaces.md): `the-cook workspace`
 - [Verify](verify.md): lanes and the receipt
 - [Tasks](tasks.md): task binding with `workspace create --task`, the `completed` guard, trackers wired by actions
-- [Ralph](ralph.md): unattended runs with any loop runner through `the-cook worker`, with ralph-tui as the worked
-  example
+- [worker](worker.md): unattended runs with any loop runner through `the-cook worker`
 
 Knowledge
 
@@ -172,9 +171,9 @@ Knowledge
 Many repositories and many agents
 
 - [Fleet](fleet.md): run a command across a list of repositories, and deliver the changes
-- [Agents](agents.md): the Claude Code and Codex harness recipes, roles, and the harness contract
-- [Compatibility](compatibility.md): how GitHub, Beads, ralph-tui, mise, CI and existing files fit with `the-cook`; what
-  removal keeps
+- [Agents](agents.md): agent declarations, their harness recipes, roles, and the harness contract
+- [Compatibility](compatibility.md): how hosting platforms, loop runners, task trackers, task runners, CI and existing
+  files fit with `the-cook`; what removal keeps
 
 Reference
 

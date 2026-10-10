@@ -59,8 +59,9 @@ arguments bypass a harness's checks, come from that program's recipe, marked as 
 1. Unattended agents never run with permission bypass. Every argument the agent's harness recipe marks as bypass is
    refused when the worker command receives it, with a message that names the argument.
 2. The deny rules that a recipe in use marks as floor are rendered into every agent's output on every render, and
-   repository policy cannot remove or weaken them. The shipped recipes mark as floor a force push to the default
-   branch the version control recipe reports, and chaining several tasks in one task-runner invocation.
+   repository policy cannot remove or weaken them. Which rules a recipe marks as floor is part of the recipe the
+   repository pinned and a reviewer read; examples are a force push to the default branch the version control recipe
+   reports, and chaining several tasks in one task-runner invocation.
 3. Proof of verification, the record a verification run leaves of the checks it ran, is replayed by the binary with
    configuration read from the committed base, outside any tree the agent can write.
 4. Completion is withheld until the replay passes. A malformed proof counts as failed.
@@ -69,13 +70,13 @@ arguments bypass a harness's checks, come from that program's recipe, marked as 
    ([0012](0012-write-boundary.md)).
 7. The binary never reconfigures state it did not create ([0012](0012-write-boundary.md)).
 8. An unattended agent cannot change the rules it runs under. Before every launch of an unattended agent, the binary
-   resolves the recipes the attempt uses from the release or the verified cache, and restores the tool-owned files
-   (rendered rules, owned settings keys, hook entries, the wrapper and its pin) from the base commit of the attempt.
-   After the agent exits, it compares them with the base, together with the repository data that drives the replay
-   and the guidance injected into the agent ([0020](0020-standing-context.md)). Any difference fails the attempt,
-   withholds completion and is reported. The repository data and the guidance are read from the base commit. A base
-   that cannot be read fails the attempt. A failed attempt of the worker command leaves the working copy at its base
-   commit, with the attempt's changes kept aside for a person to read.
+   resolves the recipes the attempt uses from the verified cache, and restores the tool-owned files (rendered rules,
+   owned settings keys, hook entries, the wrapper and its pin) from the base commit of the attempt. After the agent
+   exits, it compares them with the base, together with the repository data that drives the replay and the guidance
+   injected into the agent ([0020](0020-standing-context.md)). Any difference fails the attempt, withholds completion
+   and is reported. The repository data and the guidance are read from the base commit. A base that cannot be read fails
+   the attempt. A failed attempt of the worker command leaves the working copy at its base commit, with the attempt's
+   changes kept aside for a person to read.
 9. Lifecycle actions and notification actions never run inside an unattended agent. The binary fires lifecycle
    events in its own process after the agent exits, and unattended agents are denied triggering events.
 10. Delivery is refused from the default branch and with uncommitted changes and, when verification is enabled,
@@ -91,14 +92,15 @@ arguments bypass a harness's checks, come from that program's recipe, marked as 
 
 - **All.** Every rule in this list is never a legitimate choice, so a repository loses nothing by being unable to
   configure it. Rules that are configuration get dropped by omission, as in two of the three acme copies in Context.
-  Built into the binary, the floor travels with every release and no copy of a repository's files can lower it. The line
-  between invariant and policy is exactly "never legitimate". Everything an organization may want differently stays
-  policy ([0013](0013-organization-content.md)). The floor covers what the binary renders and the agents it starts,
-  because those are what it controls: an agent or a loop runner a person starts outside the tool is beyond its reach,
-  and reading other programs' configuration to chase it is rejected in [0022](0022-tool-integration.md). The process
-  is in the binary and the program facts are in recipes, because the binary names no program
-  ([0022](0022-tool-integration.md), [0023](0023-core-and-contracts.md)); a fact a recipe marks as floor is out of
-  the repository's reach in the same way as the process, because the repository data never contains it.
+  Built into the binary, the process travels with every release, the program facts travel with the recipes a repository
+  pinned, and no copy of a repository's files can lower either. The line between invariant and policy is exactly "never
+  legitimate". Everything an organization may want differently stays policy ([0013](0013-organization-content.md)). The
+  floor covers what the binary renders and the agents it starts, because those are what it controls: an agent or a loop
+  runner a person starts outside the tool is beyond its reach, and reading other programs' configuration to chase it is
+  rejected in [0022](0022-tool-integration.md). The process is in the binary and the program facts are in recipes,
+  because the binary names no program ([0022](0022-tool-integration.md), [0023](0023-core-and-contracts.md)); a fact a
+  recipe marks as floor is out of the repository's reach in the same way as the process, because the repository data
+  never contains it.
 - **1.** Bypass removes every permission check from an agent that nobody is watching. A loop runner hands the worker
   command what its merged configuration sets as arguments (Context), so checking the arguments it receives catches a
   bypass from any of those files without reading one ([0022](0022-tool-integration.md)). Naming the argument lets the
@@ -148,11 +150,11 @@ get lost: a copy can drop any entry a repository can edit.
 
 ### Floor rules as recipe entries
 
-The floor's program facts ship as entries a recipe adds to the repository's policy when it is applied. At its best,
-the rules are visible in the repository's own files and the binary renders nothing the policy does not hold. It loses
-the same way as default entries, by omission: a repository that never applies the recipe, or edits its entries away,
-has no floor. Rendered from the recipe on every render, the same rules stay visible in every agent's output and out
-of the repository's reach.
+The floor's program facts come as entries a recipe adds to the repository's policy when it is applied. At its best, the
+rules are visible in the repository's own files and the binary renders nothing the policy does not hold. It loses the
+same way as default entries, by omission: a repository that never applies the recipe, or edits its entries away, has no
+floor. Rendered from the recipe on every render, the same rules stay visible in every agent's output and out of the
+repository's reach.
 
 ### Invariants with an override switch
 
@@ -176,6 +178,8 @@ Costs:
 - An action that starts an agent gets the unattended permissions only; work that needs more is a command action or a
   person's job.
 - Changing an invariant takes a release and applies everywhere at once.
+- A program's floor rules are only as complete as the recipe the repository pinned; a recipe that marks no floor leaves
+  its program without one.
 
 Must be maintained:
 

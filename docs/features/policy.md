@@ -14,11 +14,11 @@ carries over, and the limits that must always hold stay in force whatever anyone
 ## Overview
 
 The policy says what agents may do without asking (`allow`), only after a person confirms (`ask`), or never (`deny`),
-plus what is denied only to workers, the agents [`the-cook worker`](ralph.md#the-worker-contract) runs headless, one per
-task, and that `agent` actions start. It is written once, agent-neutrally where the agents allow it, and rendered into
-each agent's native permission format. The [floor](#the-floor) is always added and cannot be removed or weakened: the
-floor rules of the recipes in use, such as the git recipe's deny of a force push to the default branch, and the binary's
-own entries for its commands.
+plus what is denied only to workers, the agents [`the-cook worker`](worker.md#the-worker-contract) runs headless, one
+per task, and that `agent` actions start. It is written once, agent-neutrally where the agents allow it, and each
+agent's [harness recipe](agents.md#the-harness-contract) renders it into that agent's native permission format. The
+[floor](#the-floor) is always added and cannot be removed or weakened: the floor rules of the recipes in use, such as a
+version-control recipe's deny of a force push to the default branch, and the binary's own entries for its commands.
 
 Commands are named `the-cook <command>` on this page. Run them through the repository's wrapper,
 `./cook <command>`, from the root of a checkout; with a global install, `the-cook <command>` is equivalent
@@ -61,21 +61,20 @@ is taken in this order, in every agent:
 deny  >  ask  >  allow  >  (unlisted: the agent's own default)
 ```
 
-A command no entry matches falls to the agent's default behaviour: Claude Code in manual mode prompts; Claude Code in
-auto mode lets its classifier decide from the conversation, without prompting; Codex runs it inside its sandbox and
-asks to escalate when it needs to leave it.
-
-A matching `ask` prompts even in auto mode, and no `allow` from any settings scope overrides it, so every `ask` entry
-costs a prompt in every unattended run. A matching `allow` skips the auto-mode classifier entirely.
+A command no entry matches falls to the agent's default behaviour, which depends on the agent and its mode: it may
+prompt, let a classifier decide from the conversation, or run the command in a sandbox and ask to leave it. Whether a
+matching `ask` still prompts in the agent's unattended mode, and whether a matching `allow` skips the agent's own
+judgement, are properties of the agent too. The agent's harness recipe's page in its cookbook states all three, and
+[safety](safety.md#unattended-runs) explains what they mean for an unattended run.
 
 ### Entry forms
 
 | Form | Example | Matches | Rendered for |
 | --- | --- | --- | --- |
-| 1. Prefix list | `[git, push]` | every shell command whose leading words are `git push` | Claude Code and Codex |
-| 1. Prefix list with alternatives | `[gh, pr, [view, list, diff]]` | `gh pr view …`, `gh pr list …`, `gh pr diff …` | Claude Code and Codex |
-| 2. Native rule string | `"WebFetch(domain:example.com)"`, `"Read(./secrets/**)"`, `"WebSearch"`, `"mcp__acme-observability__search_*"`, `"Bash(npm run test *)"` | what the agent's own rule syntax matches, globs included | Claude Code verbatim; Codex only for `Bash(<words> *)` with a plain word prefix |
-| 3. Bare string | `"gh pr merge *--admin*"` | shorthand for `Bash(<string>)`, where `*` matches anything anywhere | Claude Code only |
+| 1. Prefix list | `[git, push]` | every shell command whose leading words are `git push` | every agent |
+| 1. Prefix list with alternatives | `[gh, pr, [view, list, diff]]` | `gh pr view …`, `gh pr list …`, `gh pr diff …` | every agent |
+| 2. Native rule string | `"Read(./secrets/**)"`, `"WebSearch"`, `"mcp__acme-observability__search_*"` | what the agent's own rule syntax matches, globs included | each agent whose harness recipe expresses it, verbatim or converted; no other agent |
+| 3. Bare string | `"gh pr merge *--admin*"` | a whole shell command, where `*` matches anything anywhere | each agent whose harness recipe matches whole shell commands by glob; no other agent |
 
 A nested list is a set of alternatives for one word, one level deep. Use quotes for words YAML would otherwise parse,
 such as `"db:restore"` or `"-f"`.
@@ -85,18 +84,18 @@ A string is a native rule string (form 2) when it has the form `Tool(specifier)`
 
 ### How entries render
 
-| Policy | Claude Code (`.claude/settings.json`) | Codex (`.codex/rules/the-cook.rules`) |
-| --- | --- | --- |
-| prefix list under `shared.allow` | `Bash(<words> *)` in `permissions.allow`, one rule per combination of alternatives | `prefix_rule(pattern=[…], decision="allow")` |
-| prefix list under `shared.ask` | `Bash(<words> *)` in `permissions.ask` | `decision="prompt"` |
-| prefix list under `shared.deny` | `Bash(<words> *)` in `permissions.deny` | `decision="forbidden"` |
-| native rule string `Bash(<words> *)` with a plain word prefix | verbatim, in the same list | the equivalent `prefix_rule` |
-| any other native rule string | verbatim, in the same list | not rendered: Claude-only |
-| bare string | `Bash(<string>)` in the same list | not rendered: Claude-only |
-| `worker.deny` | passed by `the-cook worker` to a Claude worker at launch as disallowed tools; also in `permissions.deny` when Claude's role is `worker` | `decision="forbidden"` when Codex's role is `worker` |
+Each harness recipe's [renders](recipes.md#renders) write the entries into its agent's native permission file; its
+page in its cookbook shows the exact output:
 
-Every Claude-only entry is listed as such in the [`policy` block](#the-convention-in-agentsmd) of `AGENTS.md`, so a
-reader sees which rules Codex does not enforce. See [agents](agents.md#roles) for what roles change.
+| Policy | Rendered by each harness recipe as |
+| --- | --- |
+| prefix list under `shared.allow`, `shared.ask`, `shared.deny` | a rule with the agent's allow, ask or deny decision, one per combination of alternatives |
+| native rule string | the rule verbatim, or converted into the agent's own form, when the agent's syntax expresses it; otherwise not rendered for that agent |
+| bare string | a whole-command glob rule, when the agent has one; otherwise not rendered for that agent |
+| `worker.deny` | as the recipe's launch operation passes it: as launch arguments `the-cook worker` adds, and in the deny rules when the agent's role is `worker`; or only in the rendered deny rules, when the agent's role is `worker` |
+
+Every entry an agent does not enforce is listed as such in the [`policy` block](#the-convention-in-agentsmd) of
+`AGENTS.md`, so a reader sees which rules each agent leaves out. See [agents](agents.md#roles) for what roles change.
 
 ### Entries for `the-cook` commands
 
@@ -127,27 +126,13 @@ of `AGENTS.md` with the recipe each rule comes from.
 
 | Rule | From | Entries |
 | --- | --- | --- |
-| No force push to the default branch | a floor rule of the `git` recipe | `shared.deny` entries equivalent to the list below, with `main` replaced by the default branch the version-control recipe reports (the git recipe reads it from `origin/HEAD`) |
-| No task chaining with mise's `:::`, which runs a second task in the same command and could carry an unlisted task past every rule | a floor rule of the `mise` recipe | `shared.deny`: `"mise * ::: *"` (Claude-only: Codex cannot match mid-command) |
+| Whatever a recipe marks as floor about its program, such as no force push to the default branch | the floor rules of each recipe in use, here a version-control recipe | `shared.deny` or `worker.deny` entries the recipe declares, with values the recipe's operations report, such as the default branch the version-control recipe reports |
 | Lifecycle actions never run inside a worker's agent | the binary | `worker.deny`: `[the-cook, lifecycle]`, rendered for each spelling `the-cook` renders. The binary refuses `the-cook lifecycle run` inside the agent on its own; `the-cook worker` fires `completed` and `deliver` in its own process ([lifecycle](lifecycle.md#built-in-guards)) |
-| Workers never bypass permissions | the floor bypass arguments of each harness recipe | not a policy entry: `the-cook worker` and `agent` actions refuse them among the arguments they receive; see [ralph](ralph.md#the-worker-contract) |
+| Workers never bypass permissions | the floor bypass arguments of each harness recipe | not a policy entry: `the-cook worker` and `agent` actions refuse them among the arguments they receive; see [worker](worker.md#the-worker-contract) |
 
-```yaml
-# Equivalent force-push entries for a repository whose default branch is main
-- [git, push, ["--force", "--force-with-lease", "-f"], origin, [main, "HEAD:main"]]
-- [git, push, origin, ["+main", "+HEAD:main"]]
-- "git push origin main --force*"
-- "git push origin main -f*"
-- "git push origin HEAD:main --force*"
-- "git push origin HEAD:main -f*"
-```
-
-The prefix forms catch the flag-first spellings for both agents; the bare strings catch the flag-last spellings for
-Claude Code.
-
-A floor rule exists only while its recipe is in use. A repository that runs mise without the mise recipe has no `:::`
-deny, and [`doctor`](doctor.md) reports it:
-`mise detected; its recipe and its floor are not in use; run ./cook recipe apply mise`.
+Every floor rule a recipe marks comes from the cookbook the repository pinned it from; a reviewer reads them with
+`./cook recipe show <name>` before approving the pin. A floor rule exists only while its recipe is declared in the
+profile's `recipes:`: a repository that uses a program without its recipe has none of that recipe's floor rules.
 
 Organization choices are not in the floor: denying the remote sync of a [task tracker](tasks.md), allowing deploy status
 tasks, MCP read rules. They belong in each repository's policy file, written there by a person or an agent and reviewed
@@ -172,52 +157,50 @@ configuration; review them like code ([lifecycle](lifecycle.md), [safety](safety
 
 ### Adoption
 
-`the-cook scaffold --adopt` imports existing permission rules into this file: Claude Code permissions, Codex rules and,
-with `--import local` or `--import user`, personal settings. Each imported entry keeps its decision and carries a
-provenance comment naming its source, such as `# imported from .claude/settings.json (project)`, and an equivalence
-check proves no project rule was lost. See [scaffold](scaffold.md#adopt).
+`the-cook scaffold --adopt` imports existing permission rules into this file: the native keys each declared agent's
+harness recipe names for [native rule import](agents.md#the-harness-contract) and, with `--import local` or
+`--import user`, personal settings. Each imported entry keeps its decision and carries a provenance comment naming its
+source, such as `# imported from <file> (project)`, and an equivalence check proves no project rule was lost. See
+[scaffold](scaffold.md#adopt).
 
 ### The convention in `AGENTS.md`
 
 `the-cook render` writes the effective permissions, in plain language, into the `policy` block of `AGENTS.md`: the
 decision order, then every entry grouped by decision, with each floor rule marked with the recipe it comes from and each
-Claude-only entry marked.
+entry an agent does not enforce marked with that agent's name.
 
 `policy` is a convention block ([concepts](concepts.md#conventions-outlive-the-tool)): it describes the permissions the
 agents' native settings enforce, and stays true when `the-cook` is gone. Entries for `the-cook`'s own commands are
 therefore left out of it, since those commands do not exist after an [eject](remove.md#eject)
 (`the-cook remove --eject`). `./cook explain policy` prints the complete effective policy, those entries included.
-For the [Node API](#a-node-api) below, with every module on:
+For the [Node API](#a-node-api) below, with every module on and agents `claude` and `codex` whose harness recipes
+render native rule strings and bare strings for `claude` only:
 
 ```markdown
 <!-- cook:policy -->
 Agents in this repository work under these permissions. A denied command never runs, an asked one waits for a person,
 an allowed one runs without a prompt; deny wins over ask, and ask over allow. A command no entry matches is left to
-the agent's own default. Entries marked *Claude Code only* are not enforced in Codex.
+the agent's own default. An entry marked *not enforced in* an agent is left out of that agent's rules.
 
 Denied:
 - force pushes to `main`: `git push --force origin main` and its other spellings (*floor rule of the git recipe*)
-- `mise * ::: *` (*floor rule of the mise recipe*; *Claude Code only*)
 - `npm publish`
-- `Read(./.env*)` (*Claude Code only*)
+- `Read(./.env*)` (*not enforced in codex*)
 
 Ask a person first:
-- `gh pr merge *--admin*` (*Claude Code only*)
+- `gh pr merge *--admin*` (*not enforced in codex*)
 
 Allowed:
 - `git`
 - `gh pr checkout|checks|comment|create|diff|edit|list|ready|view`
 - `gh run list|view|watch`
 - `npm run build|lint|test|test:e2e|typecheck`
-- `mise run db:reset|docker:up|docker:down`
-- `mcp__acme_observability__search_*` (*Claude Code only*)
+- `mcp__acme_observability__search_*` (*not enforced in codex*)
 
 Denied to workers, in addition:
 - `git am|cherry-pick|commit|merge|push|rebase|reset|stash|tag|update-ref|workspace`
 - `git -C`, `git -c`
 - `gh`
-- `bd close`
-- `mise run db:reset|docker:down`
 <!-- /cook:policy -->
 ```
 
@@ -253,6 +236,9 @@ worker:
 
 ### A Node API
 
+The repository pins its `git`, `claude` and `codex` recipes from `github:acme/cookbook`
+([agents](agents.md#declaring-agents)).
+
 ```yaml
 # .cook/policy.yaml
 schema: 1
@@ -265,7 +251,6 @@ shared:
     - [gh, run, [list, view, watch]]
     # Tasks whose effects stay in this clone.
     - [npm, run, [build, lint, test, "test:e2e", typecheck]]
-    - [mise, run, ["db:reset", "docker:up", "docker:down"]]
     # Read-only observability tools.
     - "mcp__acme_observability__search_*"
   ask:
@@ -284,52 +269,10 @@ worker:
     - [git, ["-C", "-c"]]
     - [gh]
     - [the-cook, workspace]
-    # The completed action of the beads recipe closes the task after the replay; the agent does not.
-    - [bd, close]
-    - [mise, run, ["db:reset", "docker:down"]]
 ```
 
-`Read(./.env*)`, the MCP rule and the bare string are Claude-only; the `policy` block lists them so.
-
-### A Terraform repository
-
-```yaml
-schema: 1
-shared:
-  allow:
-    - [git]
-    - [terraform, [fmt, validate, providers, version]]
-    - [terraform, plan]
-    - [tflint]
-  ask:
-    - [the-cook, lifecycle, run, deliver]
-  deny:
-    - [terraform, [apply, destroy, import, taint, untaint]]
-    - [terraform, state, [mv, rm, push, replace-provider]]
-worker: { deny: [[gh], [aws], [terraform, init, "-upgrade"]] }
-```
-
-### A Go repository
-
-```yaml
-schema: 1
-shared:
-  allow:
-    - [git]
-    - [go, [build, test, vet, mod, generate, run]]
-    - [golangci-lint, run]
-    - [gh, [issue, pr], [list, view]]
-    - "mcp__github__get_*"
-    - "mcp__github__list_*"
-    - "WebFetch(domain:pkg.go.dev)"
-  ask: []
-  deny:
-    - [goreleaser, release]
-worker: { deny: [[git, [commit, push, workspace]], [gh]] }
-```
-
-This repository removed the seeded delivery entry: its `deliver` actions only push a branch and open a draft pull
-request, so delivery falls to each agent's default for unlisted commands.
+`Read(./.env*)`, the MCP rule and the bare string are rendered only for the agent whose harness recipe expresses them;
+the `policy` block lists them as not enforced in the other.
 
 ## Guidelines
 
@@ -338,20 +281,20 @@ Placing an entry:
 - **allow** what is reversible, local or remote: a commit, a branch push, a pull request, a comment, tasks whose
   effects stay in the clone.
 - **ask** only before bypassing a merge gate a person must own, such as merging past branch protection, or before
-  actions that leave the clone when you want a person in the loop, such as `the-cook lifecycle run deliver`. Each
-  `ask` costs a prompt in every unattended run.
+  actions that leave the clone when you want a person in the loop, such as `the-cook lifecycle run deliver`. In an agent
+  whose `ask` prompts in its unattended mode, each `ask` costs a prompt in every unattended run.
 - **deny** only what must never run from an agent session.
 - **leave unlisted** production, cloud and repository-settings writes: whoever is present decides, an unattended
-  Claude session's classifier judges them, and workers can be denied them through `worker.deny`.
+  session's own default handles them, and workers can be denied them through `worker.deny`.
 
 More:
 
 - Do comment each group of entries with the reason; the reason is what a reviewer evaluates.
 - Do write an organization's entries into each repository's policy through a reviewed change, for example by an agent
-  following a skill the organization publishes, such as one installed with `npx skills add acme/agent-skills`: each
+  following a skill the organization publishes, such as one installed from `acme/agent-skills`: each
   repository reviews them, and they are readable where they apply
   ([organization choices](recipes.md#organization-choices)).
-- Do express a rule as a prefix list whenever Codex must also enforce it.
+- Do express a rule as a prefix list whenever every agent must enforce it.
 - Do write an entry for a `the-cook` command once, as `[the-cook, …]`; `render` writes it for each spelling it renders,
   and the binary's own guards catch the others.
 - Don't use `allow` entries broader than the reason you wrote for them.
@@ -360,7 +303,7 @@ More:
 
 ## Known gaps
 
-Prefix matching, Claude-only entries, settings outside the policy and the other permission traps are in
+Prefix matching, entries an agent does not enforce, settings outside the policy and the other permission traps are in
 [pitfalls](pitfalls.md#permissions), each with what to do about it. Hooks never decide permissions: there is no
 hook-based allow or deny.
 
@@ -368,11 +311,11 @@ hook-based allow or deny.
 
 | Symptom | Cause | Fix |
 | --- | --- | --- |
-| An allowed command still prompts in Claude Code | An `ask` or a `deny` also matches; or the folder is not trusted | Check the `policy` block in `AGENTS.md`; trust the folder |
+| An allowed command still prompts in an agent | An `ask` or a `deny` also matches; or the folder is not trusted by the agent | Check the `policy` block in `AGENTS.md`; trust the folder |
 | `/abs/path/cook lifecycle run deliver` or `sh cook lifecycle run deliver` runs without the prompt | Prefix rules match leading words; those spellings match none of the rendered ones | Expected: the `deliver` guards are enforced by the binary whatever the spelling. Keep agents on `./cook`, the form `AGENTS.md` teaches |
-| A deny works in Claude Code but not in Codex | The entry is Claude-only: a bare string or a native rule string other than a plain `Bash` prefix | Express it as a prefix list too |
+| A deny works in one agent but not in another | The entry is a bare string or a native rule string the other agent's harness recipe cannot express; the `policy` block marks it | Express it as a prefix list too |
 | `render` rejects an entry | A nested list is deeper than one level, or an entry is neither a list nor a string | Use one level of alternatives per word |
-| The force-push deny names the wrong branch | The version-control recipe reports another default branch: with the git recipe, `origin/HEAD` points elsewhere or is unset | `git remote set-head origin --auto`, then `the-cook render` |
+| The force-push deny names the wrong branch | The version-control recipe reports another default branch | Set the default branch the version control program reports, as the recipe's page explains, then `the-cook render` |
 | `render` reports a dropped entry | A policy entry tries to remove or weaken a floor rule, such as an `allow` for a force push to the default branch | Remove the entry; the floor rule stays in force whatever the policy says |
-| No `mise * ::: *` deny in the rendered output | The mise recipe is not in the profile's `recipes:` | `the-cook recipe apply mise`, then review the diff |
+| A floor rule you expect is missing from the rendered output | Its recipe is not declared in the profile's `recipes:` | `the-cook recipe pin <name> --cookbook <source>@<version>`, then review the diff |
 | An agent's `the-cook lifecycle run deliver` prompts every time | The seeded `ask` entry | Intended; move it to `allow` only if the `deliver` actions are safe to run unconfirmed |

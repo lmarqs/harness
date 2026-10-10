@@ -63,9 +63,9 @@ The actors:
 | Actor | Who |
 | --- | --- |
 | Person | a developer at the terminal |
-| Coordinating agent | an interactive agent session (Claude Code or Codex) working with a person, or one left to drive a run, guided by the [shipped skill](skills.md#the-shipped-skill) |
-| Loop runner | a third-party program, such as ralph-tui, that works through a list of tasks unattended and starts `the-cook worker` for each one; `the-cook` has no code for it ([ralph](ralph.md)) |
-| Worker | `the-cook worker <agent>`: runs one agent headless for one task under the [worker contract](ralph.md#the-worker-contract), in the checkout it is started in |
+| Coordinating agent | an interactive agent session working with a person, or one left to drive a run, guided by the [shipped skill](skills.md#the-shipped-skill) |
+| Loop runner | a third-party program that works through a list of tasks unattended and starts `the-cook worker` for each one; `the-cook` has no code for any loop runner ([worker](worker.md)) |
+| Worker | `the-cook worker <agent>`: runs one agent headless for one task under the [worker contract](worker.md#the-worker-contract), in the checkout it is started in |
 | Binary | `the-cook` itself |
 | External | the hosting platform, CI and reviewers |
 
@@ -94,7 +94,7 @@ flowchart TB
 | | |
 | --- | --- |
 | Who acts | a person, usually with a coordinating agent and a planning skill |
-| Produces | the issue or the pull-request description (the team's record); optionally tasks in a tracker, such as an epic in Beads, a task tracker kept in the clone and driven by its `bd` CLI ([tasks](tasks.md)) |
+| Produces | the issue or the pull-request description (the team's record); optionally tasks in a tracker, such as an epic and its stories ([tasks](tasks.md)) |
 | `the-cook` guarantees | it never writes the record, and has no code for any tracker |
 | Left to judgement | scope, the split into tasks, acceptance criteria, the order of dependencies |
 | Event | none |
@@ -158,7 +158,7 @@ flowchart TB
 | | |
 | --- | --- |
 | Who acts | a person or an agent runs `the-cook workspace remove`, which fires `landed` for each recorded branch that has landed; `the-cook doctor` lists landed branches and prints the command to fire `landed`; a person or a coordinating agent can also run `the-cook lifecycle run landed` |
-| `the-cook` guarantees | only branches `the-cook` recorded are considered; a branch counts as landed when the version-control recipe finds every patch on it on the default branch (the git recipe compares with `git cherry`), whether it was merged, rebased or cherry-picked |
+| `the-cook` guarantees | only branches `the-cook` recorded are considered; a branch counts as landed when the version-control recipe finds every patch on it on the default branch, whether it was merged, rebased or cherry-picked |
 | Left to judgement | branches whose patches do not match, such as a squash merge of several commits |
 | Event | `landed` |
 
@@ -208,7 +208,7 @@ reason in `COOK_REASON`.
 | Scope | The work is | Example |
 | --- | --- | --- |
 | `task` | one task: the work of a managed workspace created with `--task`, which binds it to the task | `the-cook workspace create invoice-rounding --task acme-api-7f2` |
-| `run` | a whole unattended run of a loop runner, in the workspace it runs in; only a caller fires events with this scope | `./cook lifecycle run completed --scope run` after a ralph-tui run in `.work/workspaces/run-invoice` |
+| `run` | a whole unattended run of a loop runner, in the workspace it runs in; only a caller fires events with this scope | `./cook lifecycle run completed --scope run` after a loop runner's run in `.work/workspaces/run-invoice` |
 | `change` | work not bound to a task: a managed workspace created without `--task`, a branch in the primary checkout, a branch [`the-cook fleet --deliver`](fleet.md) prepared | a hand-made fix on a branch |
 
 ### Trigger points
@@ -227,12 +227,12 @@ A trigger point is the place in a `the-cook` command where it fires an event, ru
 
 Nothing in the binary knows when an unattended run starts or ends. Events with scope `run`, and `blocked` for a task a
 loop runner gives up on, are fired by the caller with `the-cook lifecycle run`: a person, a coordinating agent, or a
-script the team writes around its loop runner. For a ralph-tui run in a managed workspace:
+script the team writes around its loop runner. For a run in a managed workspace:
 
 ```sh
 ./cook workspace create run-invoice           # fires start (change)
 cd .work/workspaces/run-invoice
-ralph-tui run --headless --epic acme-api-a10     # each task: the-cook worker; unbound, it fires no event
+# start the loop runner here; each task runs ./cook worker <agent>, which, unbound, fires no event
 ./cook lifecycle run completed --scope run    # after the run finished
 ./cook lifecycle run blocked --scope run      # instead, when it stopped unfinished
 ```
@@ -276,9 +276,9 @@ These are [built-in invariants](concepts.md#built-in-invariants). No repository 
 | `completed` for a task needs a receipt | When the verify module is enabled, `completed` with scope `task` is refused without a valid receipt for the work's base, whoever fires it: `the-cook worker`, a person or a script. A refusal exits 3 and runs no action |
 | `deliver` refuses unsafe work | Always on the default branch or with no branch checked out, and with uncommitted changes (tracked or untracked, not ignored). When the verify module is enabled (`modules.verify: true`), also without a valid receipt for the work's base (`the-cook verify --check`). A refusal exits 3 and runs no action |
 | Values only as environment variables | `the-cook` never substitutes a value into a `run` command's text, so a task title or a branch name cannot inject shell syntax. `http` and `agent` actions expand `$NAME` only as described in [Action kinds](#action-kinds) |
-| `agent` actions run under the worker contract | The agent starts with the unattended launch arguments of its harness recipe, the floor and the repository's `worker.deny`, the recipe's floor bypass arguments are refused, and the tamper check restores and compares the tool-owned files. It cannot commit, push or fire lifecycle events ([ralph](ralph.md#the-worker-contract)) |
+| `agent` actions run under the worker contract | The agent starts with the unattended launch arguments of its harness recipe, the floor and the repository's `worker.deny`, the recipe's floor bypass arguments are refused, and the tamper check restores and compares the tool-owned files. It cannot commit, push or fire lifecycle events ([worker](worker.md#the-worker-contract)) |
 | Every run is recorded | Each run, refused and skipped ones included, is appended to the [lifecycle log](#the-lifecycle-log). Dry runs are not recorded |
-| No undeclared action runs | No action runs that the repository's `.cook/hooks.yaml` does not declare. The seeded files hold none; a [recipe](recipes.md#entries)'s actions, such as those of `beads`, reach the file as entries only when a person applies it, and from then on they are the repository's own. `the-cook lifecycle list` prints them all |
+| No undeclared action runs | No action runs that the repository's `.cook/hooks.yaml` does not declare. The seeded files hold none; a [recipe](recipes.md#entries)'s actions, such as a tracker recipe's, reach the file as entries only when a person applies it, and from then on they are the repository's own. `the-cook lifecycle list` prints them all |
 
 The scaffolded repository policy seeds `[the-cook, lifecycle, run, deliver]` under `ask`, because permitting an agent to
 run an event permits everything its actions do ([safety](safety.md#lifecycle-actions-are-code)). `render` writes it for
@@ -292,7 +292,7 @@ them whoever runs the command.
 `the-cook render` writes how work is delivered into the `lifecycle` block of `AGENTS.md`: the command that fires
 delivery, the conditions work must meet, and, for each event that has actions, their names and kinds in order. A
 repository that declares no actions gets one line saying that work is pushed and pull requests are opened by hand. For
-the actions of the [GitHub example](#delivery-on-github-push-and-a-draft-pull-request), the
+the actions of the [delivery example](#delivery-push-and-a-draft-pull-request), the
 [landed example](#landed-tidy-up-after-the-merge) and the
 [chat notification](#a-chat-notification-when-work-completes-or-stops):
 
@@ -423,7 +423,6 @@ The shell expands the [environment](#environment); `the-cook` substitutes nothin
   agent:
     prompt: "Read the merged change on $COOK_BRANCH and add durable lessons to .agents/memory/."
     agent: claude
-    model: claude-sonnet-5-5
     effort: medium
 ```
 
@@ -434,7 +433,7 @@ The shell expands the [environment](#environment); `the-cook` substitutes nothin
 | `agent.model` | model id | the agent's configured model | Override for this action |
 | `agent.effort` | level | the agent's configured effort | Override for this action |
 
-- The agent runs headless under the [worker contract](ralph.md#the-worker-contract): the unattended launch arguments
+- The agent runs headless under the [worker contract](worker.md#the-worker-contract): the unattended launch arguments
   of its harness recipe, the floor and the repository's `worker.deny`, the recipe's floor bypass arguments refused, and
   the tamper check, with the checkout's head commit as base, as the version-control recipe reports it. It receives the
   `worker` role's [standing context](context.md).
@@ -468,7 +467,7 @@ actions expand them as `$NAME` ([Action kinds](#action-kinds)). A variable that 
 | `COOK_WORKSPACE_NAME` | the managed workspace's name, such as `invoice-rounding` or `run-invoice` | in a managed workspace |
 | `COOK_BRANCH` | the work's branch | always |
 | `COOK_BASE` | the base the work started from | always |
-| `COOK_DEFAULT_BRANCH` | the default branch the version-control recipe reports; with the git recipe, the branch `origin/HEAD` names | always |
+| `COOK_DEFAULT_BRANCH` | the default branch the version-control recipe reports | always |
 | `COOK_TASK` | the task id given to `the-cook workspace create --task` | in a managed workspace created with `--task` |
 | `COOK_ACTOR` | the managed workspace's actor, `<user>:<workspace>:<random>`, unique to it | in a managed workspace |
 | `COOK_RECEIPT` | path of the receipt JSON ([verify](verify.md#the-receipt)) | when the work has a valid receipt |
@@ -545,9 +544,10 @@ Dry runs are not recorded. It holds no environment values, and never a URL, a he
 
 ## Examples
 
-### Delivery on GitHub: push and a draft pull request
+### Delivery: push and a draft pull request
 
-A GitHub-hosted repository pushes the branch and opens a draft pull request:
+A repository hosted on GitHub declares these actions itself, with its own `git` and `gh` commands: they push the
+branch and open a draft pull request.
 
 ```yaml
 # .cook/hooks.yaml
@@ -577,11 +577,10 @@ deliver    open-pr  run   false  task, run, change  stop
 
 ### An organization convention: a CI-trigger commit before the pull request
 
-At acme, CI runs a pull request only when its tip commit carries `#ci`. That is a choice of the organization, not a
-fact of any stack, so each repository that follows it declares the whole chain in its own hooks file. The change is
-usually written by an agent following the skill acme publishes for its repositories
-(`npx skills add acme/agent-skills`), and each repository reviews it as a diff like any other change
-([ADR 0013](../adrs/0013-organization-content.md)):
+At acme, CI runs a pull request only when its tip commit carries `#ci`. That is a choice of the organization, not a fact
+of any stack, so each repository that follows it declares the whole chain in its own hooks file. The change is usually
+written by an agent following the skill acme publishes for its repositories, and each repository reviews it as a diff
+like any other change ([ADR 0013](../adrs/0013-organization-content.md)):
 
 ```yaml
 # .cook/hooks.yaml
@@ -745,9 +744,9 @@ not belong in `deliver`.
 
 ### Ralph: delivery per run, or delivery after judgement
 
-A Ralph run is an unattended run of a loop runner whose agent command is `the-cook worker`, here ralph-tui set up by its
-[recipe](recipes.md#ralph-tui). With `the-cook worker --commit`, each verified task is one commit on the branch of
-the workspace the run works in.
+A Ralph run is an unattended run of a loop runner whose agent command is `the-cook worker`, such as one a loop-runner
+recipe set up. With `the-cook worker --commit`, each verified task is one commit on the branch of the workspace the run
+works in.
 
 **Per run.** Each finished run becomes one draft pull request from that branch. The actions are limited to scope
 `run`, which only a caller fires:
@@ -769,7 +768,7 @@ lifecycle:
 ```sh
 ./cook workspace create run-invoice
 cd .work/workspaces/run-invoice
-ralph-tui run --headless --epic acme-api-a10
+# start the loop runner here; each task runs ./cook worker <agent> --commit
 ./cook lifecycle run completed --scope run
 ./cook lifecycle run deliver --scope run    # push-run, then open-run-pr
 ```
@@ -796,8 +795,8 @@ moved that entry out of `ask`.
 
 ## Guidelines
 
-- Do make actions idempotent. A failed event is retried by running it again; `gh pr view … || gh pr create …` succeeds
-  the second time, a bare `gh pr create` does not.
+- Do make actions idempotent. A failed event is retried by running it again; an action that looks the pull request up
+  before creating it succeeds the second time, one that only creates it does not.
 - Do run `the-cook lifecycle run <event> --dry-run` after changing an action. It shows the guards' verdict, the actions
   and their variables.
 - Do set `auto: true` only on actions you accept running every time, with nobody watching.
@@ -824,13 +823,13 @@ moved that entry out of `ask`.
 
 | Symptom | Cause | Fix |
 | --- | --- | --- |
-| `deliver` exits 3: default branch | The checkout is on the default branch, or detached | `the-cook workspace create <name>`, or `git switch -c <branch>`, then deliver |
+| `deliver` exits 3: default branch | The checkout is on the default branch, or detached | `the-cook workspace create <name>`, or switch to a new branch, then deliver |
 | `deliver` exits 3: uncommitted changes | Tracked edits or untracked, non-ignored files | Commit them, or remove them |
 | `deliver` exits 3: no valid receipt | The verify module is enabled, and there was no `the-cook verify` since the last change, or a rebase moved the content against the base | `the-cook verify …`, then deliver |
 | `completed` exits 3 for a task | The verify module is enabled and the work has no valid receipt | `the-cook verify …`, then fire `completed` again |
 | The automatic `deliver` did not fire | The work was not concluded (often: `the-cook worker` ran without `--commit`), no action has `auto: true` for the scope, or `completed` failed | Read the lifecycle log (`.work/lifecycle.jsonl` by default); commit and run `the-cook lifecycle run deliver` |
 | An action fails: `COOK_TASK` unset | The variable does not apply to the scope | Use `${COOK_TASK:-}`, or limit the action with `scope` |
-| `gh pr create` fails on the second run | The pull request exists | Make the action idempotent |
+| The action that opens a pull request fails on the second run | The pull request exists | Make the action idempotent |
 | `landed` never fires for a merged branch | Squash merge of several commits: no patch on the default branch matches | Delete the branch and remove the workspace by hand |
 | `landed` failed during `workspace remove` | An action exited non-zero; the removal went ahead | Read the lifecycle log; fix the action, then `the-cook lifecycle run landed`, with `--task` for a task's work |
 | `lifecycle run` exits 3 inside a worker's agent | The agent runs with `COOK_WORKER=1`, and an unattended agent never fires lifecycle events | Nothing to fix: in a workspace bound to a task, `the-cook worker` fires `completed` and `deliver` after the replay; whoever drives the run fires the rest |
@@ -838,6 +837,6 @@ moved that entry out of `ask`.
 | An `http` action fails before sending: variable unset | The variable named in `url_env` or `headers_env` is not in the environment that fired the event | Export it in the shell, or the CI job, that runs the work |
 | An `http` action fails with a 3xx status | The endpoint redirected to another host | Use the final URL in the variable |
 | A notification shows an empty value | A `$NAME` in `json` is unset for this scope; the output noted it | Limit the action with `scope`, or name a variable that applies |
-| A `landed-<name>-<n>` workspace is left behind | An `agent` action on `landed` ran in it; it never commits | Review its edits with `git -C <path> status`, then commit and deliver them, or `the-cook workspace remove landed-<name>-<n>` |
+| A `landed-<name>-<n>` workspace is left behind | An `agent` action on `landed` ran in it; it never commits | Review its edits in that workspace, then commit and deliver them, or `the-cook workspace remove landed-<name>-<n>` |
 | An `agent` action fails the tamper check | The agent edited a tool-owned file | Read the action's output; the tool-owned files are restored from the checkout's head commit |
 | No notification from an unattended run that stopped | Nothing fired `blocked`: a loop runner that stops fires no event, and a `the-cook` command that exits 3 runs only `blocked` actions with `auto: true` | Fire `the-cook lifecycle run blocked --scope run` from whatever drives the run; give the action `auto: true` for commands that exit 3; test it with `the-cook lifecycle run blocked` |

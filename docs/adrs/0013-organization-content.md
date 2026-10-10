@@ -26,7 +26,7 @@ choices, stack facts and the wiring of a tool still reach each repository throug
   progress when work on it starts and close it when it is verified ([0022](0022-tool-integration.md)).
 - Some starting content is a whole file rather than entries, such as a loop runner's configuration file, and the team
   edits it to its needs from then on.
-- Some programs a team uses are described by no public release, such as an organization's internal command-line
+- Some programs a team uses are run by no other organization, such as an organization's internal command-line
   programs. Example: every acme service repository deploys with acme's own `acme-deploy` program, which no other
   organization runs.
 - People reviewing a change, and agents working on one, read the files of the repository in front of them. Content
@@ -42,11 +42,12 @@ choices, stack facts and the wiring of a tool still reach each repository throug
 ## Decision
 
 1. The binary contains no organization-specific content: no organization names, hosts, services, policy entries or
-   conventions. The content the release carries is limited to the invariants ([0011](0011-safety-invariants.md)), to the
-   builtin recipes for stacks and programs (point 3), and to the templates and starting entries seeded into a newly
-   adopted repository ([0007](0007-ownership.md), [0015](0015-development-lifecycle.md)).
+   conventions. The content the release carries is limited to the invariants ([0011](0011-safety-invariants.md)), the
+   templates and starting entries of the tool's own files seeded into a newly adopted repository
+   ([0007](0007-ownership.md), [0015](0015-development-lifecycle.md)), and the documentation and skill the tool ships
+   ([0002](0002-division-of-work.md)). It carries no recipe ([0022](0022-tool-integration.md)).
 2. What the tool renders and runs in a repository is determined by that repository's own files, the release it pins
-   ([0017](0017-engine-version.md)) and the recipes from outside sources it pins (point 5), and by nothing else.
+   ([0017](0017-engine-version.md)) and the recipes it pins ([0022](0022-tool-integration.md)), and by nothing else.
    Repository data has no inheritance and no includes, and no key brings entries from outside the repository into what
    the tool renders or runs: a recipe's entries reach the repository only by being written into its files (point 3).
    Where the data names an outside location to fetch from, what it brings acts only when it matches the hash the
@@ -64,19 +65,20 @@ choices, stack facts and the wiring of a tool still reach each repository throug
 4. An organization's choices reach its repositories as changes to each repository's files, written by a person or an
    agent, for example one following a skill the organization publishes, or by applying a recipe the organization
    publishes, and reviewed in each repository as a diff.
-5. An organization ships its own recipe from an outside source, never inside the binary. A repository that uses it pins
-   it in its data by version and content hash ([0022](0022-tool-integration.md)), and the recipe acts only as the bytes
-   that pin names ([0021](0021-release-trust.md)). Its entries and templates reach the repository as point 3 describes;
-   its renders and floor rules act on every render while the repository lists the recipe as in use.
+5. An organization's recipes reach its repositories the way every recipe does: the organization publishes them in a
+   cookbook of its own, never inside the binary, and a repository that uses one pins it in its data by version and
+   content hash ([0022](0022-tool-integration.md)). Each acts only as the bytes its pin names
+   ([0021](0021-release-trust.md)). Its entries and templates reach the repository as point 3 describes; its renders and
+   floor rules act on every render while the repository lists the recipe as in use.
 
 ## Reasons
 
 - **1.** Organization content inside the binary couples releases to organizations, publishes their content in the tool,
-  and makes every other user carry entries they never use. Builtin recipes are different in kind: they follow the
-  technology and the programs a repository uses, which are facts about the repository, not choices of an organization,
-  and a recipe is how a program reaches a repository as data rather than as code in the binary
-  ([0022](0022-tool-integration.md)). Seeded templates and starting entries are generic and belong to the repository
-  from the moment they are written, so any organization changes them like its own.
+  and makes every other user carry entries they never use. Knowledge of programs and stacks inside the binary would
+  couple releases to those programs in the same way, which is why the release carries no recipe either
+  ([0022](0022-tool-integration.md)). What the release keeps is about the tool itself and the same in every repository:
+  its invariants, the skeletons of its own files and its own documentation. Seeded templates and starting entries are
+  generic and belong to the repository from the moment they are written, so any organization changes them like its own.
 - **2.** People and agents learn what a repository does from its files. A rule resolved from elsewhere acts in the
   repository while its source sits outside it: an agent working there cannot read it, a reviewer sees its effect in the
   rendered output but not why it is there, and the repository's behaviour cannot be explained from the repository. With
@@ -91,7 +93,7 @@ choices, stack facts and the wiring of a tool still reach each repository throug
   repository that uses it (Context), so a recipe can supply them deterministically ([0002](0002-division-of-work.md)).
   Applying only on request keeps every write to a repository's files something a person asked for. Adding only what is
   missing keeps the repository's own entries authoritative and makes a second application harmless, so a repository can
-  take a later release's improvements to a recipe by applying it again and reading the diff. A template is a whole file
+  take a later version's improvements to a recipe by applying it again and reading the diff. A template is a whole file
   that the team then edits, so it cannot be merged entry by entry: writing it only where the file is absent never
   replaces the repository's version, and never rendering it again keeps the team's edits. Leaving no record of origin
   keeps one source of truth for each entry and file, the file itself, and gives the tool nothing it could later use to
@@ -104,18 +106,18 @@ choices, stack facts and the wiring of a tool still reach each repository throug
   organization publishes writes the same kind of change mechanically, and the person who applies it still reviews the
   diff, together with every difference point 3 reports. Each repository reviews the change as it reviews any other, and
   afterwards the change is in its files.
-- **5.** An organization that uses a program no release describes (Context) needs a recipe of its own, and shipping it
-  in the binary loses for the reasons of point 1. Fetching it from the organization's own source keeps it out of the
-  release. Pinning it by content hash makes it an input like the release: the repository's files fix exactly which bytes
-  act, a newer version reaches a repository only through a reviewed change of the pin, and publishing a version breaks
-  no check anywhere (Context). Its entries and templates follow point 3, so the organization's choices of what agents
-  may do still land in each repository's own files. What it adds on every render is what any recipe renders: the
-  repository's own data in the program's format, and floor rules, which only deny or refuse
-  ([0022](0022-tool-integration.md)). The trade: the recipe's description sits in a per-user cache, not among the
-  repository's files (Context), so a reader sees its renders in the committed output under its name but reads the
-  description itself at its source; its floor rules bind every repository that uses it, which lets an organization make
-  its own deny rules a floor; and every machine that renders such a repository, CI included, fetches the recipe before
-  it can render.
+- **5.** An organization's own program (Context) needs a recipe like any other, and an organization's recipe inside the
+  binary loses for the reasons of point 1. Publishing it in the organization's own cookbook gives it the path every
+  recipe takes ([0022](0022-tool-integration.md)), so no recipe of one organization is special. Pinning by content hash
+  makes it an input like the release: the repository's files fix exactly which bytes act, a newer version reaches a
+  repository only through a reviewed change of the pin, and publishing a version breaks no check anywhere (Context). Its
+  entries and templates follow point 3, so the organization's choices of what agents may do still land in each
+  repository's own files. What it adds on every render is what any recipe renders: the repository's own data in the
+  program's format, and floor rules, which only deny or refuse ([0022](0022-tool-integration.md)). The trade, shared by
+  every recipe: the description sits in a per-user cache, not among the repository's files (Context), so a reader sees
+  its renders in the committed output under its name but reads the description itself at its source; an organization's
+  floor rules bind every repository that uses its recipe, which lets the organization make its own deny rules a floor;
+  and every machine that renders such a repository, CI included, fetches the recipe before it can render.
 
 ## Rejected alternatives
 
@@ -123,7 +125,7 @@ choices, stack facts and the wiring of a tool still reach each repository throug
 
 At its best, the organizations whose recipes ship in the binary need no source of their own, no pin and no fetch. It
 loses because releases become coupled to organizations, their content becomes public in the tool, and every other user
-carries recipes they do not use. A recipe from the organization's own source gives it the same content without any of
+carries recipes they do not use. A recipe in the organization's own cookbook gives it the same content without any of
 the three (point 5).
 
 ### One fork per organization
@@ -139,9 +141,9 @@ It loses because the rule never appears in the repository it governs (point 2): 
 merged at render time acts from a source no reader of the repository sees. Each repository still reviews every move, so
 only the writing is saved, and merging needs override rules that a person must learn before they can predict what a
 repository does. Without the pin, the same commit renders differently on different days, and the drift check fails in
-repositories that changed nothing. A recipe from an outside source is pinned the same way but merges no entry into a
-render: its entries are written into the repository's files once, and on every render it adds only the program's format
-and floor rules, which can only narrow what the repository allows (point 5).
+repositories that changed nothing. A recipe is pinned the same way but merges no entry into a render: its entries are
+written into the repository's files once, and on every render it adds only the program's format and floor rules, which
+can only narrow what the repository allows (point 5).
 
 ### Applied entries recorded with their recipe
 
@@ -152,41 +154,40 @@ reporting from it nags a repository that removed an entry on purpose. A reposito
 applies it again and reads the diff. The repository's data lists the recipes in use only because their renders depend on
 them.
 
-### Recipes from outside sources limited to entries and templates
+### Recipes limited to entries and templates
 
-A recipe from an outside source may write entries and templates once, but never render or fill a contract. At its best,
-nothing from outside the repository acts on a render, and point 2 needs no input beyond the repository's files and the
-release. It loses because a program is usable only through its renders and operations
-([0022](0022-tool-integration.md)), so an organization's own program, or a harness no release ships, could not be
-described at all, and a program used without its recipe's floor runs without the deny rules that protect it
-([0011](0011-safety-invariants.md)).
+A recipe may write entries and templates once, but never render or fill a contract; the binary renders every program's
+format and fills the contracts itself. At its best, nothing from outside the repository acts on a render, and point 2
+needs no input beyond the repository's files and the release. It loses because the binary would then carry knowledge of
+every program it renders for, which [0022](0022-tool-integration.md) rejects, an organization's own program or a harness
+the binary does not know could not be described at all, and a program used without its recipe's floor runs without the
+deny rules that protect it ([0011](0011-safety-invariants.md)).
 
 ## Consequences
 
 Costs:
 
 - A choice shared by many repositories is written into each of them, and changing it is a change in each.
-- A later release's improvements to a recipe's entries reach a repository only when someone applies the recipe again,
+- A later version's improvements to a recipe's entries reach a repository only when someone applies the recipe again,
   and improvements to a template never reach a repository that already has the file.
 - Two repositories of one organization can hold different entries for the same choice, because each was applied with
   judgement.
-- A recipe from an outside source is read at its source, not in the repository, and a repository that uses one renders
-  only on machines that have fetched it.
+- A recipe is read at its source, not in the repository, and a repository renders only on machines that have fetched
+  the recipes it pins.
 - An organization's recipe can make the organization's own deny rules a floor in every repository that uses it, out of
   the reach of that repository's policy.
 
 Must be maintained:
 
-- The builtin recipes for each supported stack and program, and the rule that applying a recipe only adds.
+- The rule that applying a recipe only adds, and the scan that keeps organization identifiers out of the release.
 
 ## Confirmation
 
 - CI scans the binary's embedded assets for organization identifiers and fails on a match.
 - Validation of every repository file rejects a key that brings entries from outside the repository into what the
   tool renders or runs.
-- A fixture that uses only builtin recipes renders the same bytes with no network access and an empty per-user cache as
-  on any other machine. A fixture that pins a recipe from an outside source renders the same bytes on every machine that
-  has fetched it, and without it renders nothing and fetches nothing.
+- A fixture rendered with no network access and a per-user cache pre-filled with its pinned recipes renders the same
+  bytes as on any other machine; with an empty cache it renders nothing and fetches nothing.
 - Applying a recipe to a fixture that already holds some of its entries adds only the missing ones and changes no
   existing line; applying it a second time changes nothing.
 - A fixture that names an item, or sets a value, that the recipe also has keeps its own after the recipe is applied, and

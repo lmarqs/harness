@@ -18,8 +18,7 @@ agent-content directory, one folder per skill. `the-cook` does two things with t
 skill, the **shipped skill**, in every adopted repository. It injects skills into agent sessions when the repository
 names them as [standing context](context.md). It never writes a domain skill, and it contains no code for any skills
 installer: shared skills are installed by the team with the tool of its choice and committed like any other file
-([ADR 0022](../adrs/0022-tool-integration.md)). The `skills` [recipe](recipes.md#skills) describes one such tool, the
-`skills` CLI.
+([ADR 0022](../adrs/0022-tool-integration.md)). A recipe can describe such an installer, as it describes any program.
 
 Commands are named `the-cook <command>` on this page. The examples run them through the repository's wrapper,
 `./cook <command>`, from the root of a checkout; with a global install, `the-cook <command>` is equivalent
@@ -44,7 +43,7 @@ It teaches an agent to:
 - place a policy entry in `allow`, `ask`, `deny` or `worker.deny`, and explain why;
 - finish an adoption from the `the-cook doctor --json` to-do ([doctor](doctor.md));
 - choose lanes and write skip reasons for [`the-cook verify`](verify.md);
-- run unattended work through [`the-cook worker`](ralph.md), and report blocked work;
+- run unattended work through [`the-cook worker`](worker.md), and report blocked work;
 - fire lifecycle events with `the-cook lifecycle run <event>`, including `completed` or `blocked` when a loop runner's
   run ends, and delivering the run's commits after arranging them for review;
 - declare lifecycle and notification actions of the right kind (`run`, `http` or `agent`), with secrets read from
@@ -53,19 +52,11 @@ It teaches an agent to:
   it with `./cook context show`.
 
 Agents find it where they look for skills. Each agent's [harness recipe](recipes.md#the-harness-contract) names that
-location, and `render` writes a link there:
+location, the harness's own skills directory, and `render` writes a link there to `.agents/skills/the-cook`. When that
+directory is already a link to the whole `.agents/skills` directory, the skill is reached through it and no extra link
+is written. When it is a real directory, the link is added inside it and nothing else there changes.
 
-| Harness recipe | Path | Shape |
-| --- | --- | --- |
-| claude (Claude Code) | `.claude/skills/the-cook` | a link to `../../.agents/skills/the-cook` |
-| codex (Codex) | `.codex/skills/the-cook` | a link to `../../.agents/skills/the-cook` |
-
-When `.claude/skills` (or `.codex/skills`) is already a link to the whole `.agents/skills` directory, the skill is
-reached through it and no extra link is written. When it is a real directory, the link is added inside it and nothing
-else there changes.
-
-`the-cook` lists the skill in no installer's lock file, such as `skills-lock.json` of the
-[`skills` CLI](https://github.com/vercel-labs/skills), so no installer manages it. `the-cook remove` and
+`the-cook` lists the skill in no skills installer's lock file, so no installer manages it. `the-cook remove` and
 `the-cook remove --eject` both delete it and its links: it teaches `./cook` commands that do not exist once the
 wrapper is gone ([remove](remove.md#eject)).
 
@@ -78,25 +69,15 @@ wrapper is gone ([remove](remove.md#eject)).
 
 ### How it works
 
-The team installs shared skills into `.agents/skills/` with the tool it uses for that, and commits the result. Every
-clone and every agent then has them without running anything, and a reviewer sees each skill's text in the diff that
-adds it. The binary has no code for it: no command or profile field installs, updates or removes a shared skill.
+The team installs shared skills into `.agents/skills/` with the tool it uses for that, and commits the result, with the
+installer's lock file when it keeps one. Every clone and every agent then has them without running anything, and a
+reviewer sees each skill's text in the diff that adds it. The binary has no code for it: no command or profile field
+declares a skill source, or installs, updates or removes a shared skill.
 
-The `skills` [recipe](recipes.md#skills) describes the `skills` CLI: with the recipe in the profile's `recipes:`,
-[`the-cook doctor`](doctor.md) checks the CLI's version against the range the recipe supports. Installing, updating and
-removing a skill stay the CLI's own commands, run by a person or an agent.
-
-With the [`skills` CLI](https://github.com/vercel-labs/skills), which needs Node, a team installs a source and commits
-both the skills and the CLI's lock file, `skills-lock.json`:
-
-```sh
-npx skills add acme/agent-skills
-git add .agents/skills skills-lock.json
-git commit -m "chore: install shared agent skills"
-```
-
-On a machine without Node, such as one that only builds a Terraform or Go repository, the same commands run on any
-machine that has it, and the commit carries the skills to every clone.
+A recipe that describes an installer works like any other recipe: with it in the profile's `recipes:`,
+[`the-cook doctor`](doctor.md) checks the installer's version against the range the recipe supports. Installing,
+updating and removing a skill stay the installer's own commands, run by a person or an agent. A machine without the
+installer still gets every skill, because the commit carries them to every clone.
 
 To drop a shared skill, remove it with the tool that installed it, then commit the change. A `context` entry that still
 names it is a [`the-cook doctor`](doctor.md) finding.
@@ -146,5 +127,5 @@ instructions first, so they read correctly as a pointer or as injected content.
 | Symptom | Cause | Fix |
 | --- | --- | --- |
 | `doctor`: a skill `context` names does not exist | The skill is not installed, was removed, or the entry misspells its directory name | Install and commit the skill, or fix or remove the `context` entry |
-| Claude Code does not list the shipped skill | `.claude/skills/the-cook` missing, or the folder is not trusted | `the-cook render`; trust the folder |
-| A private source fails to install | No git credentials for it on this machine | Configure access, rerun the installer |
+| An agent does not list the shipped skill | The link its harness recipe names is missing, no harness recipe is in `recipes:`, or the harness ignores project files in this folder | `the-cook render`; pin and apply the harness recipe; check the harness's own trust settings |
+| A private source fails to install | No credentials for it on this machine | Configure access, rerun the installer |

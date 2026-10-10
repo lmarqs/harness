@@ -38,11 +38,12 @@ Commands are named `the-cook <command>` on this page. The examples run `fleet` t
 | You want to | Command |
 | --- | --- |
 | Check every adopted repository | `the-cook fleet doctor` |
-| Apply a stack's recipe to every repository on that stack, delivered for review | `the-cook fleet recipe apply node --yes --deliver --repos <file>` |
+| Pin a stack's recipe, or move its pin, in every repository on that stack, delivered for review | `the-cook fleet recipe pin node --cookbook github:acme/cookbook@v1.3.0 --yes --deliver --repos <file>` |
+| Apply a pinned stack recipe's entries to every repository on that stack, delivered for review | `the-cook fleet recipe apply node --yes --deliver --repos <file>` |
 | Pick up a schema change everywhere | `the-cook fleet render --yes --deliver` |
 | Move every repository to a new `the-cook` release | `the-cook fleet wrapper --version <tag> --deliver` |
-| Wire a program, such as Beads, into every repository that uses it | `the-cook fleet recipe apply beads --yes --deliver --repos <file>` |
-| Adopt `the-cook` in a set of repositories | `the-cook fleet scaffold --adopt --yes --deliver` |
+| Wire a program, such as a task tracker, into every repository that uses it | `the-cook fleet recipe apply <name> --yes --deliver --repos <file>`, once the repositories pin the recipe |
+| Adopt `the-cook` in a set of repositories | `the-cook fleet scaffold --adopt --cookbook github:acme/cookbook@v1.2.0 --yes --deliver` |
 | Withdraw a module everywhere | `the-cook fleet remove --module memory --yes --deliver` |
 
 ## How it works
@@ -78,8 +79,8 @@ fleet runs ([lifecycle](lifecycle.md#an-organization-convention-a-ci-trigger-com
 
 1. If the working tree has uncommitted changes, refuse it: the result is **blocked**, nothing runs there.
 2. With `--deliver`: through the repository's version-control recipe, update from the remote and create a local
-   branch `<branch_prefix><command>` from the default branch the recipe reports (with the git recipe, after
-   `git fetch origin`). An existing branch with that name blocks the repository.
+   branch `<branch_prefix><command>` from the default branch the recipe reports. An existing branch with that name
+   blocks the repository.
 3. Run `the-cook <command> [command args...]` with the repository as its working directory and no terminal, so commands
    that confirm need `--yes`. In a repository with `.cook/wrapper.yaml`, the command runs the version that repository
    pins, downloaded and verified when this machine has not cached it yet. In a repository without one, such as one
@@ -158,9 +159,9 @@ branch exists only for a release the project signed. Reviewers check the version
 version. Once these branches land, `fleet render --deliver` picks up what the new release renders differently
 ([wrapper](wrapper.md#many-repositories)).
 
-A newer release's recipe entries reach a repository only when someone applies the recipe again; its renders change
-with the pin alone. With a fleet file
-that lists the Node repositories, read what each would receive, then deliver it for review:
+A newer version of a recipe reaches a repository only when its pin moves, and its entries only when someone applies the
+recipe again; its renders and floor change with the pin alone. With a fleet file that lists the Node repositories, move
+the pin, then read what each would receive and deliver it for review:
 
 ```yaml
 # ~/fleets/node.yaml
@@ -168,11 +169,12 @@ repos: [~/src/acme-api, ~/src/acme-web]
 ```
 
 ```sh
+./cook fleet recipe pin node --cookbook github:acme/cookbook@v1.3.0 --yes --deliver --repos ~/fleets/node.yaml
 ./cook fleet recipe apply node --dry-run --repos ~/fleets/node.yaml
 ./cook fleet recipe apply node --yes --deliver --continue-on-error --repos ~/fleets/node.yaml
 ```
 
-Each repository runs the release it pins, so it receives the entries of that release's `node` recipe that it lacks.
+Each repository loads the `node` recipe version it pins, so it receives the entries of that version that it lacks.
 Every entry and item it already holds stays as it is, and a repository with nothing to add ends **unchanged**
 ([recipes](recipes.md#how-apply-works)).
 
@@ -186,14 +188,14 @@ commit_message: "chore: adopt the-cook"
 ```
 
 ```sh
-./cook fleet scaffold --adopt --yes --deliver --repos ~/fleets/new-adopters.yaml
+./cook fleet scaffold --adopt --cookbook github:acme/cookbook@v1.2.0 --yes --deliver --repos ~/fleets/new-adopters.yaml
 ```
 
-Each repository gets the recipes whose detect rule matches in it, such as `git`, `claude` and its stack's recipe. No
-action runs that a repository does not declare, and no recipe `scaffold` applies holds a `deliver` action, so a freshly
-scaffolded repository declares no `deliver` actions and ends as **committed, not delivered**. Deliver those branches by
-hand, or declare `deliver` actions in each branch's `.cook/hooks.yaml`, commit them, and run
-`the-cook lifecycle run deliver` there.
+Each repository pins and applies the recipes of that cookbook tag whose detect rule matches in it, such as the recipes
+for its version control system, its agents and its stack. No action runs that a repository does not declare, and no
+recipe `scaffold` applies holds a `deliver` action, so a freshly scaffolded repository declares no `deliver` actions and
+ends as **committed, not delivered**. Deliver those branches by hand, or declare `deliver` actions in each branch's
+`.cook/hooks.yaml`, commit them, and run `the-cook lifecycle run deliver` there.
 
 Health check before a release:
 

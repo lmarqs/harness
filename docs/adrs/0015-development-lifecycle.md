@@ -126,7 +126,7 @@ run reaches a person.
 - **11.** Permitting an agent to trigger delivery permits every action declared for it, and those actions run outside
   the agent's per-command checks. Until a team has seen what its delivery actions do, a person confirms each one. The
   choice is the repository's and not an invariant, because a team that trusts its actions may let its coordinating agent
-  deliver unattended. The entry is therefore seeded instead of built in ([0011](0011-safety-invariants.md)).
+  deliver unattended. The entry is therefore seeded instead of an invariant ([0011](0011-safety-invariants.md)).
 
 ## Rejected alternatives
 

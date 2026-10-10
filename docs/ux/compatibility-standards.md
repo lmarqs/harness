@@ -25,8 +25,8 @@ each promise and how it changes.
 | The binary and its CLI | semantic versioning: `MAJOR.MINOR.PATCH` | `the-cook version`, release tags |
 | Each repository file (`config.yaml`, `policy.yaml`, `hooks.yaml`, `wrapper.yaml`) | an integer `schema`, per file | the file's first key |
 | The version a repository runs | an exact release tag, pinned per repository | `version` in `.cook/wrapper.yaml` |
-| Builtin recipes, with their entries, templates, renders, floor rules and checks | none of their own: each release holds its version of every builtin recipe | `the-cook recipe list` and `the-cook recipe show <name>` of the running release |
-| A fetched recipe | its own version, pinned exactly with the hash of its content | `version` and `sha256` of its entry under `recipes:` in `.cook/config.yaml` |
+| A recipe, with its entries, templates, renders, floor rules and checks | the tag of the cookbook that publishes it, pinned exactly with the sha256 of its archive; the binary ships none | `version` and `sha256` of its entry under `recipes:` in `.cook/config.yaml`; `the-cook recipe list` |
+| The recipe format and each contract | an integer `schema` for the format, an integer version per contract; a recipe declares both | `schema` and `contract` in the recipe's `recipe.yaml`; `the-cook version` prints the ones the running release supports |
 | Rendered files and [managed blocks](generated-content-standards.md#managed-blocks) | the schema of their sources | the [generated-file header](generated-content-standards.md#header) and the manifest (`.cook/manifest.json`) |
 
 - Rendered content carries the schema, never the binary version ([ADR 0005](../adrs/0005-schema-compatibility.md)). It
@@ -38,15 +38,16 @@ each promise and how it changes.
 - The public contract covered by semantic versioning is: command names and grammar, flags, operands, enumerated values,
   `COOK_*` environment variables (those `the-cook` and its wrapper read and those it passes to actions and to the agents
   it starts), exit-code meanings, JSON output shapes, the [worker command](cli-standards.md#the-worker-command)'s flags,
-  exit codes, output and environment, `the-cook explain` topic names, the names of the builtin recipes, the recipe
-  schema and its two contracts, the repository file schemas (`wrapper.yaml` included), the wrapper's name, location and
-  flags (`cook` at the repository root, `--no-download`), lifecycle event names and trigger points, notification event
-  names, action kinds and their keys, [standing-context](../features/context.md) triggers and roles, the profile's state
-  path keys and their defaults, managed-block ids, their markers and their class (convention or tool), the
-  generated-file header, the manifest location, and the format of the release's signed checksum file. Why: each of these
-  is read by scripts, agents, policy entries, recipes, other tools' configuration or other repositories, and changes
-  there break them. The worker command is named in files such as a loop runner's configuration, which a repository keeps
-  unchanged across upgrades of `the-cook` ([ADR 0022](../adrs/0022-tool-integration.md)).
+  exit codes, output and environment, `the-cook explain` topic names, the recipe schema and its two contracts, the
+  cookbook layout (`<source>/download/<version>/<name>.tar.gz` and `checksums.txt`), the repository file schemas
+  (`wrapper.yaml` included), the wrapper's name, location and flags (`cook` at the repository root, `--no-download`),
+  lifecycle event names and trigger points, notification event names, action kinds and their keys,
+  [standing-context](../features/context.md) triggers and roles, the profile's state path keys and their defaults,
+  managed-block ids, their markers and their class (convention or tool), the generated-file header, the manifest
+  location, and the format of the release's signed checksum file. Why: each of these is read by scripts, agents, policy
+  entries, recipes, other tools' configuration or other repositories, and changes there break them. The worker command
+  is named in files such as a loop runner's configuration, which a repository keeps unchanged across upgrades of
+  `the-cook` ([ADR 0022](../adrs/0022-tool-integration.md)).
 - Human-readable output text is not part of the contract and may change in any release, because people read it and
   JSON exists for programs.
 
@@ -63,11 +64,10 @@ each promise and how it changes.
 | Repository files | removing, renaming or redefining a key; changing a default; tightening validation of values that used to be accepted | adding an optional key whose absence keeps existing behaviour |
 | Rendered output | for unchanged inputs and schema, a change in what the rendered files make an agent do, other than a new [invariant](../features/concepts.md#built-in-invariants) or floor rule | for unchanged inputs and schema, different bytes that leave agent behaviour unchanged (the shipped skill's text, formatting), shipped in a minor release and reviewed in the upgrade diff; different bytes because the inputs changed |
 | Managed blocks and header | changing marker syntax, a block id, a block's class or the header line | adding a new block id |
-| Invariants and the floor rules of builtin recipes | weakening one (never allowed) | adding one; it changes rendered output and therefore follows the rendered-output rule |
-| Supported agents and tools | removing a builtin recipe, a harness recipe included | adding a builtin recipe or a supported version; narrowing a version range in a minor release, listed in its notes |
-| Recipe schema and contracts | removing, renaming or redefining a field or an operation; changing an operation's output kind | adding an optional field or operation whose absence keeps existing behaviour |
+| Invariants | weakening one (never allowed) | adding one; it changes rendered output and therefore follows the rendered-output rule |
+| Recipe schema and contracts | removing, renaming or redefining a field or an operation; changing an operation's output kind; dropping a recipe schema or contract version from the support window before its deprecation ends | adding an optional field or operation whose absence keeps existing behaviour; reading a new schema or contract version |
 | Release trust | removing a key a released binary trusts without a rotation release ([below](#release-trust)) | introducing the next key in a release signed by the current one |
-| Builtin recipes | renaming one | changing the entries or templates one holds, because a repository's files change only when someone applies a recipe, and applying only adds; a change to a recipe's renders follows the rendered-output rule ([below](#recipes-across-releases)) |
+
 
 Moving a block between the convention and tool [classes](generated-content-standards.md#block-classes) is breaking
 because it changes what `the-cook remove --eject` keeps in a repository.
@@ -76,9 +76,10 @@ because it changes what `the-cook remove --eject` keeps in a repository.
 
 Rendered bytes depend on the repository files, the pinned release and the recipes the repository pins by hash, and on
 nothing else. A patch release never changes them for unchanged inputs. A minor release may change them, because the
-shipped skill teaches the commands of the release that renders it and a rendering fix changes bytes. When a program's
-own format change forces different output, or a new invariant or floor rule adds an entry, the release is breaking and
-its notes name the affected files.
+shipped skill teaches the commands of the release that renders it and a rendering fix changes bytes. When a new
+invariant adds an entry, the release is breaking and its notes name the affected files. A program's own format change
+reaches a repository as a new version of the recipe that describes it, through a moved recipe pin
+([below](#recipes-across-versions)).
 
 Every such change reaches a repository the same way: `the-cook wrapper --version <tag>` renders the repository with the
 new release in the same change as the pin, `cook` and the shipped skill included, so the pin and its effects reach
@@ -88,22 +89,24 @@ because its drift results may differ. Why: with upgrades rendered in their own d
 repository always agree, and an exemption would hide exactly the hand edits the check exists to catch
 ([ADR 0007](../adrs/0007-ownership.md)).
 
-### Recipes across releases
+### Recipes across versions
 
 A recipe's entries and templates are not inputs to rendering: they take effect only once they are written into the
-repository's files, and from then on they are the repository's own. A recipe's renders and floor rules are inputs: those
-of a builtin recipe change with the release that holds it, under the rules for rendered output above, and those of a
-fetched recipe change only when the repository changes its `version` and `sha256`. Every builtin recipe is versioned
-content of the release, under the same rules. Why: a check whose result changes when someone else publishes a change
-fails pipelines that changed nothing, and an entry that changes without a change in the repository cannot be explained
-from the repository ([ADR 0013](../adrs/0013-organization-content.md), [ADR 0022](../adrs/0022-tool-integration.md)).
+repository's files, and from then on they are the repository's own. A recipe's renders and floor rules are inputs, and
+they change only when the repository moves the recipe's pin, that is, changes its `version` and `sha256`; moving the
+release pin changes none of them. Why: a check whose result changes when someone else publishes a change fails
+pipelines that changed nothing, and an entry that changes without a change in the repository cannot be explained from
+the repository ([ADR 0013](../adrs/0013-organization-content.md), [ADR 0022](../adrs/0022-tool-integration.md)).
 
-- Moving the pin never applies a recipe's entries or templates. A newer release's additions to a builtin recipe reach
-  a repository only when someone applies it again: `./cook recipe apply node --dry-run` shows what it would add,
-  and applying adds only what the repository lacks. A newer template is written only where its file is absent; where
-  the file exists, applying reports `kept <path>: exists` and leaves it, because the file is the repository's own.
-- Moving the pin re-renders every builtin recipe in use, so a newer release's renders and floor rules reach review in
-  the upgrade's diff ([above](#rendered-output-across-releases)).
+- Moving a recipe's pin with `the-cook recipe pin` renders in the same change, so the newer version's renders and floor
+  rules reach review as one diff with the pin.
+- Moving a recipe's pin never applies its entries or templates. A newer version's additions reach a repository only
+  when someone applies it again: `./cook recipe apply node --dry-run` shows what it would add, and applying adds only
+  what the repository lacks. A newer template is written only where its file is absent; where the file exists,
+  applying reports `kept <path>: exists` and leaves it, because the file is the repository's own.
+- A release reads every recipe schema and contract version in its support window and refuses a newer one, naming the
+  release needed ([ADR 0005](../adrs/0005-schema-compatibility.md)), so moving the release pin never silently changes
+  how a pinned recipe is read.
 - Nothing records which entries a recipe added, so no command reports that a recipe gained entries. Why: such a report
   would nag a repository that removed an entry on purpose. A repository that wants a newer recipe's entries applies it
   again and reads the diff.
@@ -115,22 +118,22 @@ lost deny widens what agents may do and a lost allow stalls unattended runs on p
 is worse than none ([ADR 0016](../adrs/0016-permission-adoption.md)).
 
 - After importing, the binary renders the policy and compares the effective rule set per agent with the set in effect
-  before adoption. Every project-scope rule (one in the repository's committed agent settings, such as
-  `.claude/settings.json` or `.codex/rules/*.rules`) stays in effect, or adoption exits 2 naming each rule that would be
-  lost, and writes nothing ([the equivalence check](../features/scaffold.md#the-equivalence-check)).
-- An entry that would weaken a floor rule of a recipe in use (allowing a bypass argument the claude recipe marks, or a
-  force push to the default branch, a floor rule of the git recipe) is dropped and reported. It is the only
+  before adoption. Every project-scope rule (one in the repository's committed agent settings, the files each harness
+  recipe names) stays in effect, or adoption exits 2 naming each rule that would be lost, and writes nothing
+  ([the equivalence check](../features/scaffold.md#the-equivalence-check)).
+- An entry that would weaken a floor rule of a recipe in use (allowing a bypass argument a harness recipe marks, or a
+  force push to the default branch a version-control recipe denies) is dropped and reported. It is the only
   project-scope rule adoption does not carry over, because floor rules hold in every repository that uses the recipe.
 - Exact duplicates merge. The same pattern under allow and deny resolves to deny and becomes a
   [to-do](../features/scaffold.md#the-to-do) item, because the narrower reading is the safe one until a person decides.
 - Every imported entry carries a provenance comment naming its source file and scope
-  (`# imported from .claude/settings.json (project)`), so a reviewer can trace it.
+  (`# imported from <file> (project)`), so a reviewer can trace it.
 - Importing the `local` or `user` scope (`--import local`, `--import user`) publishes personal rules: they move from
   one person's machine into a committed, shared `policy.yaml`. Each such entry is marked for review in the to-do. The
   source files are read and never written.
-- Settings that are not policy (`defaultMode`, `additionalDirectories`, Codex `approval_policy` and `sandbox_mode`, MCP
-  server definitions, enterprise or managed settings) are reported as notes and left in place, because they are not
-  permission rules and `the-cook` does not own them.
+- Settings that are not policy (a default permission mode, extra directories, approval and sandbox settings, MCP server
+  definitions, enterprise or managed settings, as each harness recipe lists them) are reported as notes and left in
+  place, because they are not permission rules and `the-cook` does not own them.
 - `--dry-run` prints the generated `policy.yaml` and `hooks.yaml` and the equivalence report, and writes nothing.
 
 ## Releases and deprecation
@@ -153,13 +156,12 @@ is worse than none ([ADR 0016](../adrs/0016-permission-adoption.md)).
 
 ## Supported agents and tools
 
-- `the-cook` supports the agents the release ships harness recipes for, `claude` (Claude Code) and `codex` (Codex CLI),
-  and any agent a repository describes with a fetched harness recipe. The
+- `the-cook` supports any agent a repository describes with a harness recipe it pins. The
   [harness contract](../features/recipes.md#the-harness-contract) such a recipe fills is public
   ([ADR 0009](../adrs/0009-agent-support.md)).
-- Every supported version range lives in the checks of the recipe that describes the program: git's in the git recipe,
-  Claude Code's in the claude recipe, mise's in the mise recipe. A program no recipe in use describes has no range,
-  because the binary contains code for no program ([ADR 0022](../adrs/0022-tool-integration.md)).
+- Every supported version range lives in the checks of the recipe that describes the program. A program no recipe in
+  use describes has no range, because the binary contains code and data for no program
+  ([ADR 0022](../adrs/0022-tool-integration.md)).
 - `the-cook doctor` runs the version command of each recipe in use and reports each program outside its recipe's range
   as a finding (exit 2), naming the version found and the range supported. `the-cook` never renders silently for an
   unsupported version, because output rendered for a format the program no longer reads fails without a message.
@@ -167,18 +169,15 @@ is worse than none ([ADR 0016](../adrs/0016-permission-adoption.md)).
   names and that is not on `PATH`, and a program whose recipe's detect rule matches the repository while the recipe is
   not in `recipes:`. Why: a declared command that names a missing program fails for everyone who runs it, which needs
   no knowledge of the program to report, and a program in use without its recipe runs without that recipe's floor.
-- Each builtin recipe is tested in the project's CI against the program versions the features reference names
-  ([compatibility](../features/compatibility.md#versions)): the git recipe's operations, the harness recipes' renders,
-  launches and hook payload mappings, the ralph-tui and Beads recipes end to end. Why: a recipe writes its program's
-  format and carries its floor, so the release stands behind both only where it tested them.
-- `the-cook doctor` reports every fetched recipe in use as not verified by the release, because no test of the project
-  stands behind it: its author owns its ranges and its floor.
+- The project's CI tests the core with stand-in recipes in its own fixtures, none named after or describing a real
+  program, and checks that the binary's source and embedded assets name no external program. Each cookbook tests its
+  recipes against the real programs and versions their checks name, and owns their ranges and floor. Why: a recipe
+  writes its program's format and carries its floor, so whoever publishes it is the one who can test both.
 - Each harness recipe documents which agent events it renders for hooks, notifications (`attention`, `turn_end`) and
   standing context. Where an agent lacks an event, nothing is rendered for it and `the-cook doctor` reports a note, so
   a missing notification or injection is explained.
-- Each release carries the ranges of its builtin recipes, and `the-cook doctor --json` lists the range of every recipe
-  in use, because a range belongs to the recipe version that was tested against it. The features reference names the
-  versions the documentation describes ([compatibility](../features/compatibility.md#versions)).
+- `the-cook doctor --json` lists the range of every recipe in use, because a range belongs to the recipe version that
+  was tested against it.
 
 ## Transparency for people and CI that do not use `the-cook`
 
@@ -202,11 +201,11 @@ An adopted repository behaves for non-users exactly as it did before adoption
   exactly as before adoption.
 - No generated file adds a runtime dependency, a required CI step, or a change to build, test, deploy or release
   outputs.
-- CI never needs the binary or the wrapper. A CI that opts in runs `./cook render --check` and `./cook doctor`.
-  They need the network only to download the pinned version (verified against its checksum) and to re-verify its signed
-  checksum file. A repository that declares a fetched recipe adds `./cook recipe fetch` before them, which downloads
-  the recipe and verifies it against its `sha256`. The check for a newer release ([update notices](#update-notices))
-  never affects their result.
+- CI never needs the binary or the wrapper. A CI that opts in runs `./cook render --check` and `./cook doctor`. They
+  need the network only to download the pinned version (verified against its checksum) and to re-verify its signed
+  checksum file. Because every recipe a repository uses is pinned, such a job runs `./cook recipe fetch` before them,
+  which downloads each uncached recipe and verifies it against its `sha256`. The check for a newer release
+  ([update notices](#update-notices)) never affects their result.
 - Managed blocks are plain Markdown or comments and read correctly without `the-cook`. Convention blocks state the
   repository's conventions as fact, and `the-cook remove --eject` keeps them as the repository's own text
   ([principles.md](principles.md#8-conventions-outlive-the-tool)).
@@ -221,24 +220,24 @@ owners depend on them as they are ([ADR 0012](../adrs/0012-write-boundary.md)).
 | A hosting platform's issues, projects, boards, comments, reviews and labels as the record of work | never written; the binary has no logic for the platform that hosts the team's work; task state `the-cook` creates stays clone-local; linking work to issues is an agent's job |
 | Pull requests, pushes, CI conventions and notification channels | produced only by actions the repository declares in `hooks.yaml`; the binary ships none |
 | MCP servers an agent is configured to use | never contacted by `the-cook`; work that needs them is an `agent` action or the job of the [coordinating agent](../features/lifecycle.md#the-lifecycle-stage-by-stage) |
-| An existing `.beads/` | never read, initialised or configured by the binary; actions the repository declares, such as those of the `beads` recipe, run `bd` on it, and what they write travels wherever the repository synchronises it ([ADR 0022](../adrs/0022-tool-integration.md)) |
-| A `.ralph-tui/config.toml` and a global ralph-tui configuration (`~/.config/ralph-tui/config.toml`) | never read; the `ralph-tui` recipe's template writes `.ralph-tui/config.toml` only when it is absent, and from then on it is the repository's file. Why: the binary reads no program's configuration; a bypass argument set there reaches `the-cook worker`, which refuses it at the first task ([ADR 0022](../adrs/0022-tool-integration.md)) |
+| A task tracker's existing data | never read, initialised or configured by the binary; actions the repository declares, such as those of a tracker's recipe, run the tracker's commands on it, and what they write travels wherever the repository synchronises it ([ADR 0022](../adrs/0022-tool-integration.md)) |
+| A loop runner's repository and global configuration | never read; a loop runner's recipe template writes the repository file only when it is absent, and from then on it is the repository's file. Why: the binary reads no program's configuration; a bypass argument set there reaches `the-cook worker`, which refuses it at the first task ([ADR 0022](../adrs/0022-tool-integration.md)) |
 | A loop runner, a tracker or a script around them that a person runs outside the binary | neither detected nor prevented; the invariants hold for what the binary renders and for every agent the binary starts (`the-cook worker`, `agent` actions) ([ADR 0022](../adrs/0022-tool-integration.md)) |
-| `.claude/worktrees/` | Claude Code's; never scanned or cleaned |
-| A task runner's tasks and tool list (`mise.toml`, `.mise/tasks/`, `.tool-versions`, a `Makefile`, `package.json` scripts) | never read or written, though a file's presence can match a recipe's detect rule (`mise.toml` for the mise recipe); a task that runs `./cook` is the repository's own; a `the-cook` a tool installs globally defers to `wrapper.yaml` inside the repository ([ADR 0022](../adrs/0022-tool-integration.md)) |
+| Workspaces an agent harness keeps in its own directories | the harness's; never scanned or cleaned |
+| A task runner's tasks and tool list (its configuration files, a `Makefile`, `package.json` scripts) | never read or written, though a file's presence can match a recipe's detect rule; a task that runs `./cook` is the repository's own; a `the-cook` a tool installs globally defers to `wrapper.yaml` inside the repository ([ADR 0022](../adrs/0022-tool-integration.md)) |
 | A `.cook/` directory another program created | never written; `the-cook scaffold` refuses with exit 3 and names the conflict |
 | Another program named `the-cook` earlier on `PATH` | `./cook` always runs its own pinned binary from its cache, so wrapper invocations are unaffected; only the optional global command can be shadowed, and `the-cook doctor` reports it as a note |
-| `core.hooksPath`, Husky and other git hooks | never changed |
-| `CLAUDE.md` with content | left as written; only the one-line `import` block is added |
-| Sections other tools write into `AGENTS.md`, and entries other tools or people write into `.gitignore` | untouched; `the-cook` writes only inside its own markers |
-| `.agents/` content from other tools and people (skills installed by the `skills` CLI, memory, commands, `REVIEW.md`) | untouched; `the-cook` owns only `.agents/skills/the-cook/` and never puts its configuration or state in `.agents/` |
-| `skills-lock.json` from the `skills` CLI | never read or written; standing context delivers a skill as the file committed under `.agents/skills/` ([ADR 0022](../adrs/0022-tool-integration.md)) |
+| The version control system's hook settings and hook managers | never changed |
+| An agent instruction file with content | left as written; only the managed block its harness recipe renders is added |
+| Sections other tools write into `AGENTS.md`, and entries other tools or people write into the version control system's ignore file | untouched; `the-cook` writes only inside its own markers |
+| `.agents/` content from other tools and people (skills a skills installer put there, memory, commands, `REVIEW.md`) | untouched; `the-cook` owns only `.agents/skills/the-cook/` and never puts its configuration or state in `.agents/` |
+| A skills installer's lock file | never read or written; standing context delivers a skill as the file committed under `.agents/skills/` ([ADR 0022](../adrs/0022-tool-integration.md)) |
 | An agent's own description-based skill loading | left as it is; a skill injected by standing context may also load by its description, so injected skills are written to read correctly twice ([skills-standards.md](skills-standards.md#skills-used-as-standing-context)) |
 | A global `the-cook` install of another version | defers to the repository's pin inside the repository; runs itself elsewhere |
-| Hand-written `.claude/settings.json` or Codex configuration | merge-rendered: the renders of the claude and codex recipes own their keys, everything else is preserved |
-| Real `.claude/skills` or `.claude/commands` directories, and whole-directory links | left as they are; `the-cook` links per entry, for example `.claude/skills/the-cook -> ../../.agents/skills/the-cook` |
-| Local override files (`settings.local.json`, `*.local.toml`) | never written; read only by `the-cook scaffold --import local` |
-| User-level agent settings (`~/.claude/settings.json`, `~/.codex/rules/`) | never written; read only by `the-cook scaffold --import user` |
+| Hand-written agent settings | merge-rendered: the renders of each agent's harness recipe own their keys, everything else is preserved |
+| Real skill or command directories in an agent's native directory, and whole-directory links | left as they are; `the-cook` links per entry, such as one link to `.agents/skills/the-cook` |
+| Local override files an agent harness reads | never written; read only by `the-cook scaffold --import local` |
+| User-level agent settings | never written; read only by `the-cook scaffold --import user` |
 
 A new feature MUST add its row to this table when it meets a file, directory, branch, setting or service another tool
 may own, because coexistence is decided per thing, not in general.

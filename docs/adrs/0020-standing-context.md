@@ -120,7 +120,7 @@ Costs:
 
 Must be maintained:
 
-- For each shipped harness recipe, the hook events that carry each trigger.
+- For each harness recipe, in the cookbook that publishes it, the hook events that carry each trigger.
 - The declaration format and the preview, as part of the public contract ([0006](0006-repository-contract.md)).
 
 ## Confirmation

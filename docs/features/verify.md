@@ -16,7 +16,7 @@ edit makes it unchecked again.
 change's base commit and to the exact content of every changed file. Any later edit invalidates it. The checks are the
 lint command, validators, build and test **lanes** the [profile](profile.md#verify) declares; a lane is a named family
 of test commands, such as `unit` or `e2e`, run with the test patterns you give it (`--lane unit=invoice`). The
-[`completed` guard](tasks.md#the-completed-guard) on a task and [`the-cook worker`](ralph.md), which runs an agent
+[`completed` guard](tasks.md#the-completed-guard) on a task and [`the-cook worker`](worker.md), which runs an agent
 unattended, require a valid receipt; `the-cook verify --check` tells you whether you have one.
 
 Commands are named `the-cook <command>` on this page. The examples run them through the repository's wrapper,
@@ -28,7 +28,7 @@ Commands are named `the-cook <command>` on this page. The examples run them thro
 - Before calling a change done: lint, build and the relevant test lanes in one command.
 - Before firing `completed` for a task, which the [`completed` guard](tasks.md#the-completed-guard) refuses without a
   valid receipt.
-- In an agent that [`the-cook worker`](ralph.md) runs, as the last step before the agent exits: the worker replays what
+- In an agent that [`the-cook worker`](worker.md) runs, as the last step before the agent exits: the worker replays what
   the receipt selects.
 - With `--full`, before merging a change that needs every suite.
 
@@ -45,7 +45,7 @@ The base is the commit the change is measured against. `the-cook verify` reads i
 | Where you run it | Base |
 | --- | --- |
 | A [managed workspace](workspaces.md) | the commit the workspace started from, recorded in its session |
-| Any other checkout | the merge-base of the head commit with the default branch the version-control recipe reports; with the git recipe, the merge-base of `HEAD` with the branch `origin/HEAD` names, or with the local default branch in a clone without a remote |
+| Any other checkout | the merge-base of the head commit with the default branch the version-control recipe reports |
 | With `--base <ref>` | that commit; in a managed workspace, only the recorded base or one of its ancestors |
 
 A base may only move earlier, never later: an earlier base adds files to the check, a later one would leave changes
@@ -118,8 +118,8 @@ A lane named twice, both selected and skipped, or not declared in the profile is
 | `skipped` | for each skipped lane, the reason given |
 | `full` | whether `--full` ran |
 
-The receipt lives in the checkout's state directory, which the git recipe's renders ignore in `.gitignore`, so it is
-local to that checkout.
+The receipt lives in the checkout's state directory, which the version-control recipe's renders ignore, so it is local
+to that checkout.
 
 ### Freshness
 
@@ -142,7 +142,7 @@ local to that checkout.
 | Consumer | Uses the receipt to |
 | --- | --- |
 | The [`completed` guard](tasks.md#the-completed-guard) | refuse `completed` with scope `task` without a valid receipt, when the verify module is enabled |
-| [`the-cook worker`](ralph.md#the-worker-contract) | read which lanes and skip reasons the agent chose, then **replay** them itself from a tree the agent cannot write. The receipt only selects the checks, and the replay is the proof |
+| [`the-cook worker`](worker.md#the-worker-contract) | read which lanes and skip reasons the agent chose, then **replay** them itself from a tree the agent cannot write. The receipt only selects the checks, and the replay is the proof |
 | The [`deliver` guard](lifecycle.md#built-in-guards) | refuse delivery of work without a valid receipt for its base, when the verify module is enabled |
 
 ### The `verify` block in `AGENTS.md`
@@ -257,5 +257,4 @@ write.
 ## Coexistence
 
 `verify` runs the repository's own commands; it adds no dependency to them and CI does not need it. A `verify` task the
-repository already has in its task runner, such as [mise](compatibility.md#mise), is the repository's own and stays as
-it is.
+repository already has in its task runner is the repository's own and stays as it is.

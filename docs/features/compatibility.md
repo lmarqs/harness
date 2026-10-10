@@ -3,10 +3,10 @@
 ## Objective
 
 **Problem.** A repository that adopts the tool already holds tools, settings and records that people depend on: an issue
-tracker, a task database, a loop runner's configuration, git hooks, CI pipelines and hand-kept agent settings. A
-developer weighing adoption, and a teammate who never chose it, need to know which of these change, because a tool that
-rewrites them breaks work in ways that are hard to undo. They also need to know what still works if the repository stops
-using the tool.
+tracker, a task database, a loop runner's configuration, version-control hooks, CI pipelines and hand-kept agent
+settings. A developer weighing adoption, and a teammate who never chose it, need to know which of these change, because
+a tool that rewrites them breaks work in ways that are hard to undo. They also need to know what still works if the
+repository stops using the tool.
 
 **Goal.** Everything people and other tools relied on before adoption works the same after it and after removal, and a
 reader can check that for each tool before adopting.
@@ -14,12 +14,16 @@ reader can check that for each tool before adopting.
 ## Overview
 
 `the-cook` shares a repository with the tools, settings and records below, and stays out of their way. It never
-reconfigures state it did not create and never writes knowledge. The binary contains code for no external program: git,
-Claude Code and Codex CLI are described by builtin [recipes](recipes.md#builtin-recipes), exactly like ralph-tui, Beads,
-mise and the `skills` CLI, and the binary has no code for any loop runner, task tracker, skills installer, task runner
-or hosting platform ([ADR 0022](../adrs/0022-tool-integration.md)). A program reaches a repository as data: a recipe's
-entries, templates and renders, a command the profile declares, or a lifecycle action. What `the-cook` sets up does not
-depend on it either: every convention is written down in plain text, and an eject keeps it.
+reconfigures state it did not create and never writes knowledge. The binary contains code for no external program and
+ships no recipe: version control, every agent harness and every other program are described by the
+[recipes](recipes.md) the repository pins from a cookbook, and the binary has no code for any loop runner, task
+tracker, skills installer, task runner or hosting platform ([ADR 0022](../adrs/0022-tool-integration.md)). A program
+reaches a repository as data: a recipe's entries, templates and renders, a command the profile declares, or a lifecycle
+action. What `the-cook` sets up does not depend on it either: every convention is written down in plain text, and an
+eject keeps it.
+
+How each program behaves next to `the-cook`, and what its recipe does about it, is documented with that recipe, in the
+cookbook that publishes it. This page states the rules every recipe and the binary follow.
 
 Commands on this page run as `./cook <command>`, through the repository's [wrapper](wrapper.md); with a global
 install, `the-cook <command>` is equivalent.
@@ -28,99 +32,89 @@ install, `the-cook <command>` is equivalent.
 
 | Already in the repository | What `the-cook` does |
 | --- | --- |
-| GitHub issues, pull requests, projects | The binary never writes them; delivery is the repository's declared `deliver` actions |
-| A `.beads/` database ([Beads](#beads), a task tracker) | Never reads or writes it; the `beads` recipe's actions run `bd` |
-| A `.ralph-tui/` and ralph-tui runs ([ralph-tui](#ralph-tui)) | Never reads ralph-tui's configuration; the `ralph-tui` recipe writes `.ralph-tui/config.toml` only when it is absent |
-| mise and other task runners ([mise](#mise)) | Never reads or writes their files; a declared command may run one; the `mise` recipe's floor rule denies agents its task chaining |
-| Shared skills from the [`skills` CLI](#the-skills-cli) | Never runs the installer; leaves `.agents/skills/` and `skills-lock.json` to it |
-| `.claude/settings.json`, `.codex/config.toml` | The claude and codex recipes' renders own only specific keys; the rest is preserved byte for byte |
-| `settings.local.json`, `*.local.toml` | Never writes them; reads them only for `scaffold --import local` |
-| `CLAUDE.md` content | Adds one import line in a managed block; leaves the rest |
-| `.claude/skills` as a real directory or a link | Leaves its shape; adds one link if needed |
-| git hooks, `core.hooksPath`, Husky | Never changes them |
+| Issues, pull requests and boards on a hosting platform | The binary never writes them; delivery is the repository's declared `deliver` actions |
+| A task tracker's data in the clone ([task trackers](#task-trackers)) | Never reads or writes it; tracker actions the repository declares, or a recipe wrote, run the tracker's own command |
+| A loop runner's configuration and runs ([loop runners](#loop-runners)) | Never reads its configuration; a recipe may write a configuration template, only when it is absent |
+| Task runners ([task runners](#task-runners)) | Never reads or writes their files; a declared command may run one; a recipe's floor may deny agents some of its forms |
+| Shared skills from a skills installer ([skills installers](#skills-installers)) | Never runs the installer; leaves `.agents/skills/` and the installer's lock file to it |
+| A harness's project settings files | The harness recipe's renders own only specific keys; the rest is preserved byte for byte ([native agent files](#native-agent-files)) |
+| A harness's local and user settings | Never writes them; reads them only for `scaffold --import local` or `--import user` |
+| A harness's own instructions file | When the harness recipe imports `AGENTS.md` through it, adds one import line in a managed block; leaves the rest |
+| A harness's skills directory, as a real directory or a link | Leaves its shape; adds one link if needed |
+| Version-control hooks and hook managers | Never installs or changes them |
 | `.gitignore` | Each recipe in use that needs it adds its own marked blocks; every other line is left |
 | Other tools' sections in `AGENTS.md` | Leaves them |
-| Other agents' files (`.cursor/`, …) | Leaves them |
+| Files of agents no recipe in use describes | Leaves them |
 | A `.cook/` directory that `the-cook` did not create | Refuses to adopt the repository and never changes the directory ([scaffold](scaffold.md#greenfield)) |
 | CI/CD | Requires nothing; `./cook render --check` is an optional step; a CI-trigger convention is a `deliver` action |
 
 What stays after `the-cook` is removed is under [After removal](#after-removal).
 
-## GitHub
+## Hosting platforms
 
-GitHub issues, pull requests and projects are the record of the team's work. The binary contains no logic for GitHub
-or any other hosting platform, and never writes issues, projects, boards, comments, reviews or labels. A task tracker
-such as Beads is the team's choice; linking a task to an issue (for example with a Beads external reference) is an
-agent's or a person's job.
+Issues, pull requests and projects on the hosting platform are the record of the team's work. The binary contains no
+logic for any hosting platform, and never writes issues, projects, boards, comments, reviews or labels. Linking a task
+of a tracker to an issue is an agent's or a person's job.
 
 Everything that leaves the clone (a push, a pull request, a CI trigger, a notification) is a
-[lifecycle action](lifecycle.md) the repository declares in its own `.cook/hooks.yaml`, such as `gh pr create`
-under `deliver`. Those actions run with the credentials of whoever fires them, through the
-platform's own CLI. A repository that declares none never has anything leave the clone through `the-cook`.
+[lifecycle action](lifecycle.md) the repository declares in its own `.cook/hooks.yaml`, such as a command that opens a
+pull request under `deliver`. Those actions run with the credentials of whoever fires them, through the platform's own
+CLI or API. A repository that declares none never has anything leave the clone through `the-cook`.
 
-## Beads
+## Task trackers
 
-Beads is a task tracker that keeps tasks in a `.beads/` database in the clone and is used through its `bd` CLI.
-The binary has no code for Beads: it never runs `bd` of its own accord, reads `.beads/` or creates a database. The
-[`beads` recipe](recipes.md#beads) wires it, with lifecycle actions that mark a bead in progress on `start`, close it on
-`completed` and comment on it on `blocked`, in a managed workspace bound to the bead ([tasks](tasks.md)). Creating and
-configuring the database, and every other use of `bd`, is the team's.
-
-| Situation | Behaviour |
-| --- | --- |
-| No `.beads/` | nothing is created; `bd init` is Beads' own step |
-| An existing `.beads/` | never read, written or moved by the binary; remotes, sync settings and hooks are Beads' own |
-| The `beads` recipe's actions | run `bd` with the credentials of whoever fires the event; what they write travels where the repository's synchronisation sends it, and `the-cook` never configures that synchronisation ([ADR 0012](../adrs/0012-write-boundary.md)) |
-| A Codex worker that writes the database | the `beads` recipe adds `.beads` to `agents.codex.writable_roots` |
-| `.beads/` tracked in git, or ignored | the team's choice; `the-cook` writes no `.gitignore` entry for it |
-| A tracker remote you want agents never to push to | add a `deny` entry to the repository's policy; the `beads` recipe has no floor rule for it |
-
-## ralph-tui
-
-[ralph-tui](https://github.com/subsy/ralph-tui) works through a list of tasks unattended, starting an agent for each.
-The binary has no code for ralph-tui and reads none of its configuration. The
-[`ralph-tui` recipe](recipes.md#ralph-tui) writes `.ralph-tui/config.toml`, when it is absent, with
-`./cook worker <agent>` as each agent's command, so every attempt runs under the worker contract and is verified
-before ralph-tui sees it complete ([ralph](ralph.md)). From then on the file is the repository's. Starting ralph-tui,
-choosing its tracker and firing the events of a run as a whole are the team's.
+The binary has no code for any task tracker: it never runs a tracker's command of its own accord, reads its data or
+creates it. A tracker is wired by lifecycle actions on `start`, `completed` and `blocked`, which the repository declares
+or a tracker recipe writes as entries, in a managed workspace bound to a task ([tasks](tasks.md)). Creating and
+configuring the tracker's data, and every other use of the tracker, is the team's.
 
 | Situation | Behaviour |
 | --- | --- |
-| A `.ralph-tui/config.toml` the repository already has | never read or written; applying the recipe reports `kept .ralph-tui/config.toml: exists` |
-| A global `~/.config/ralph-tui/config.toml` | never read or written. ralph-tui merges it into every run; a setting there that turns permission checks off reaches the worker as a bypass argument, a floor rule of the agent's harness recipe, which the worker refuses at the first task |
-| ralph-tui's branches, session state and workspaces | ralph-tui's own; `the-cook` never cleans them. The `ralph-tui` recipe's `.gitignore` block ignores `.ralph-tui/*` except `config.toml` |
-| Any tracker ralph-tui supports | the team's choice; `the-cook` sees only the worker command |
+| No tracker data in the clone | nothing is created; initialising it is the tracker's own step |
+| Existing tracker data | never read, written or moved by the binary; its remotes, sync settings and hooks are the tracker's own |
+| Tracker actions | run the tracker's command with the credentials of whoever fires the event; what they write travels where the repository's synchronisation sends it, and `the-cook` never configures that synchronisation ([ADR 0012](../adrs/0012-write-boundary.md)) |
+| A sandboxed worker that writes the tracker's data | the data directory is listed in `agents.<name>.writable_roots`, by hand or by the tracker recipe ([profile](profile.md#agents)) |
+| Tracker data tracked in version control, or ignored | the team's choice; the binary writes no `.gitignore` entry for it |
+| A tracker remote agents must never push to | a `deny` entry in the repository's policy |
+
+## Loop runners
+
+A loop runner works through a list of tasks unattended, starting an agent for each. The binary has no code for any loop
+runner and reads none of its configuration. A loop-runner recipe can write the runner's configuration as a
+[template](recipes.md#templates), only when it is absent, with `./cook worker <agent>` as each agent's command, so every
+attempt runs under the worker contract and is verified before the runner sees it complete ([worker](worker.md)). From
+then on the file is the repository's. Starting the runner, choosing its task source and firing the events of a run as a
+whole are the team's.
+
+| Situation | Behaviour |
+| --- | --- |
+| A runner configuration the repository already has | never read or written; applying a recipe whose template it is reports it as kept |
+| A per-user runner configuration | never read or written. A setting there that reaches the worker as a bypass argument of the agent's harness recipe is refused at the first task |
+| The runner's branches, session state and workspaces | the runner's own; `the-cook` never cleans them |
+| The runner's task source | the team's choice; `the-cook` sees only the worker command |
 | A run as a whole | nothing fires run-scope events by itself; whoever drives the run fires `./cook lifecycle run completed --scope run` or `blocked --scope run` |
-| ralph-tui started with an agent command other than `the-cook worker` | outside `the-cook`: the worker contract holds only for agents the binary starts |
+| A runner started with an agent command other than `the-cook worker` | outside `the-cook`: the worker contract holds only for agents the binary starts |
 
-## mise
+## Task runners
 
-[mise](https://mise.jdx.dev) is a tool-version manager and task runner. The binary has no code for mise or any other
-task runner: it writes no tasks and reads no task runner's configuration. The [`mise` recipe](recipes.md#mise) describes
-mise: its detect rule matches files such as `mise.toml`, and its floor rule denies agents `mise * ::: *`. A repository
-uses its task runner through its own commands: a declared command, lane or action may run `mise run lint`, and
-`the-cook` runs it like any other command. People and agents run `the-cook` itself as `./cook <command>`.
+The binary has no code for any task runner: it writes no tasks and reads no task runner's configuration. A repository
+uses its task runner through its own commands: a declared command, lane or action may run a task, and `the-cook` runs
+it like any other command. People and agents run `the-cook` itself as `./cook <command>`.
 
 | Situation | Behaviour |
 | --- | --- |
-| mise tasks, `mise.toml`, `.mise.toml`, `.tool-versions` | never read or written |
-| A declared command, lane or action that runs `mise run …` | runs as written; `doctor` reports it when `mise` is not on PATH |
-| `mise.toml` present and the `mise` recipe not in `recipes:` | `doctor` reports `mise detected; its recipe and its floor are not in use; run ./cook recipe apply mise` |
-| mise `:::` task chaining | denied for agents by a floor rule of the `mise` recipe, when it is in use, since it would let an allowed task carry an unlisted one |
-| `the-cook` installed with `mise use -g` | an install option ([installation](installation.md#global-install-optional)); a `the-cook` that mise puts on PATH defers to `.cook/wrapper.yaml` |
-| A pin of `the-cook` in the repository's own `mise.toml` or `.tool-versions` | never read: `.cook/wrapper.yaml` is the pin `the-cook` runs, and a second pin drifts from it, so keep `the-cook` out of the repository's task-runner files |
+| A task runner's files | never read or written |
+| A declared command, lane or action that runs the task runner | runs as written; `doctor` reports it when the program is not on PATH |
+| A task runner detected and its recipe not in `recipes:` | when a pinned cookbook's recipe for it has a detect rule, `recipe list --cookbook` shows the match; the recipe's floor is not in use until it is pinned |
+| A task-runner form that lets an allowed task carry an unlisted one | denied for agents by the recipe's floor, when the recipe is in use ([policy](policy.md#the-floor)) |
+| `the-cook` installed through a tool-version manager | an install option ([installation](installation.md#global-install-optional)); a `the-cook` it puts on PATH defers to `.cook/wrapper.yaml` |
+| A pin of `the-cook` in the task runner's own tool list | never read: `.cook/wrapper.yaml` is the pin `the-cook` runs, and a second pin drifts from it, so keep `the-cook` out of the task runner's files |
 
-## The `skills` CLI
+## Skills installers
 
-The `skills` CLI installs shared skills into `.agents/skills/` and records them in `skills-lock.json`. The binary has
-no code for it, the [`skills` recipe](recipes.md#skills) describes it, and the binary never runs it of its own accord
-([ADR 0004](../adrs/0004-runtime-dependencies.md)). Installing shared skills is the team's own step, with this tool or
-another:
-
-```sh
-npx skills add acme/agent-skills
-git add .agents/skills/ skills-lock.json && git commit -m "chore: add acme agent skills"
-```
+A skills installer puts shared skills into `.agents/skills/` and may record them in a lock file. The binary has no code
+for any installer and never runs one of its own accord ([ADR 0004](../adrs/0004-runtime-dependencies.md)). Installing
+shared skills is the team's own step, with the installer of its choice, committed with its lock file.
 
 The profile's `context` names skills by name, and `doctor` reports a skill named there that does not exist under
 `.agents/skills/` ([skills](skills.md)). The shipped skill, `.agents/skills/the-cook/SKILL.md`, is the one skill
@@ -128,43 +122,41 @@ The profile's `context` names skills by name, and `doctor` reports a skill named
 
 ## Native agent files
 
+Each harness's own files, its settings, rules, hooks and instructions, are rendered only through its harness recipe
+([the harness contract](recipes.md#the-harness-contract)), which names the keys and entries it owns.
+
 | File or shape | Behaviour |
 | --- | --- |
-| `.claude/settings.json` with `env`, `model`, `statusLine`, `$schema`, Claude Code plugins, foreign hooks | preserved byte for byte; the claude recipe's renders own `permissions.*`, the `the-cook hook` entries and the `raw` entries |
-| `notify` in `.codex/config.toml` | owned when the repository declares [`turn_end`](hooks.md) actions and the key is absent or already the hook command. A `notify` program of the repository's own is left as it is, `turn_end` is not rendered for Codex, and `doctor` notes it |
+| A project settings file with keys no render owns | preserved byte for byte; the harness recipe's renders own only the keys and entries it names |
+| A notification key the repository already sets to a program of its own | left as it is; the notification is not rendered for that harness, and `doctor` notes it |
 | Hand-written permissions and hooks | imported losslessly by [`scaffold --adopt`](scaffold.md#adopt), with an equivalence check |
-| Other `.codex/rules/*.rules` files | imported by `scaffold --adopt`; left in place and still applying |
-| `.claude/settings.local.json`, `*.local.toml` | never written; read only by `scaffold --import local`, which marks what it imports for review |
-| User-level settings (`~/.claude/settings.json`, `~/.codex/rules/`) | never written; read only by `scaffold --import user` |
-| `defaultMode`, `additionalDirectories`, Codex `approval_policy` and `sandbox_mode`, MCP server definitions, managed settings | not policy; left in place, reported as notes by adoption and `doctor` |
-| `.claude/skills` as a whole-directory link to `.agents/skills` | kept; the shipped skill is reached through it |
-| `.claude/skills` as a real directory, or with per-skill links from the `skills` CLI | kept; one per-entry link `the-cook` is added |
-| Real `.claude/commands/`, `.claude/agents/` | kept where they are |
-| `CLAUDE.md` with content, at the root or in `.claude/` | content untouched; an `import` block with `@AGENTS.md` is added |
-| `AGENTS.md` only under `.agents/` | a to-do item: Codex reads only the root `AGENTS.md` |
-| `.claude/worktrees/` | Claude Code's; never scanned or cleaned |
+| Local and user settings | never written; read only by `scaffold --import local` or `--import user`, which marks what it imports for review |
+| Mode, sandbox and approval settings, MCP server definitions, managed settings | not policy; left in place, reported as notes by adoption and `doctor` |
+| A harness skills directory that is a whole-directory link to `.agents/skills` | kept; the shipped skill is reached through it |
+| A harness skills directory that is a real directory | kept; one per-entry link `the-cook` is added |
+| A harness instructions file with content | content untouched; when the harness recipe imports `AGENTS.md` through it, an `import` block is added |
+| A harness's own worktrees or workspaces | the harness's; never scanned or cleaned |
 
 Merge-rendering rewrites only the owned keys and entries; every other key keeps its bytes, formatting included.
 
-## git
+## Version control
 
-The binary contains no code for git. The [`git` recipe](recipes.md#git) describes it, fills the
-[version-control contract](recipes.md#the-version-control-contract), and is the recipe `scaffold` names in `vcs: git`.
+The binary contains no code for any version control system. The repository's version-control recipe fills the
+[version-control contract](recipes.md#the-version-control-contract), and `vcs:` in the profile names it.
 
-- `the-cook` never changes `core.hooksPath` and never installs git hooks.
-- The git recipe's add-workspace operation runs `git worktree add` with `core.hooksPath=/dev/null` for that one
-  command, so a hook from the primary checkout does not run during workspace creation.
-- The git recipe's floor rule denies a force push to the default branch it reports, the branch `origin/HEAD` points to:
-  `main`, `master` or any other name.
-- Every `the-cook` command that reads the repository needs `git` installed, because the git recipe runs it; `doctor`
-  reports it when it is missing.
+- `the-cook` never installs or changes version-control hooks.
+- Workspace creation, the base, history and landed detection run through the recipe's operations. A command that needs
+  them while no declared recipe fills the contract exits 3 and names `the-cook recipe pin`; reading the profile does not
+  need them, because the binary finds the repository root itself.
+- The floor that protects the default branch is the recipe's.
+- Every command that reads history needs the program the recipe runs; `doctor` reports it when it is missing.
 
 ## `.gitignore`
 
-Each recipe in use that creates a path adds its own marked block: the git recipe's `state` and `workspaces`, and the
-ralph-tui recipe's `ralph-tui` ([block ids](render.md#block-ids)). A block writes its own entries even when another
-block's entry already covers them, such as `/.work/workspaces/` under `/.work/`, so removing one never un-ignores
-another's paths. Paths the repository tracks are left out of the blocks. Every other line is untouched.
+Each recipe in use that creates a path adds its own marked block, such as the version-control recipe's `state` and
+`workspaces` ([block ids](render.md#block-ids)). A block writes its own entries even when another block's entry already
+covers them, such as `/.work/workspaces/` under `/.work/`, so removing one never un-ignores another's paths. Paths the
+repository tracks are left out of the blocks. Every other line is untouched.
 
 ```gitignore
 # cook:state
@@ -174,15 +166,15 @@ another's paths. Paths the repository tracks are left out of the blocks. Every o
 
 ## Other tools in `AGENTS.md`
 
-Other tools may add their own sections to `AGENTS.md`, such as Beads through `bd init`. `the-cook` blocks are bound to
-their markers, never to headings, so the sections coexist. The two may say similar things; trim the other tool's section
-if it reads redundantly.
+Other tools may add their own sections to `AGENTS.md`, such as a tracker when it initialises its data. `the-cook`
+blocks are bound to their markers, never to headings, so the sections coexist. The two may say similar things; trim
+the other tool's section if it reads redundantly.
 
 ## Monorepos
 
 `the-cook` operates at the repository root only, as the version-control recipe reports it: one profile, one policy and
-one hooks file per repository. Nested `.claude/` directories in sub-projects are left alone. Agent sessions started in a
-subdirectory are out of scope; see [pitfalls](pitfalls.md).
+one hooks file per repository. A harness's settings directories nested in sub-projects are left alone. Agent sessions
+started in a subdirectory are out of scope; see [pitfalls](pitfalls.md).
 
 ## CI/CD
 
@@ -194,20 +186,31 @@ A repository's CI/CD is unchanged by adopting `the-cook`:
 - `./cook render --check` and `./cook doctor` are optional steps you may add ([render](render.md#drift-check));
   the wrapper downloads the pinned release over HTTPS and verifies its checksum, so CI runs exactly the release the
   pull request pins ([wrapper](wrapper.md#ci));
-- the drift check reads only the repository's files and the pinned release, so its result changes only with a
-  commit to the repository ([ADR 0013](../adrs/0013-organization-content.md)).
+- a job that runs either step runs `./cook recipe fetch` first, which downloads every declared recipe the job's cache
+  lacks and verifies it against its pin;
+- the drift check reads only the repository's files, the pinned release and the pinned recipes, so its result changes
+  only with a commit to the repository ([ADR 0013](../adrs/0013-organization-content.md)).
 
 ## Versions
 
-- Within one repository there is no version skew: `.cook/wrapper.yaml` pins one release, and both `./cook` and
-  a global install run it.
-- A pin changes only through `the-cook wrapper` or `scaffold`, which write its checksums after the running binary
-  verifies the release's signed checksum file with the release keys it embeds. `scaffold --offline` leaves them
+- Within one repository there is no version skew: `.cook/wrapper.yaml` pins one release, and both `./cook` and a global
+  install run it.
+- The release pin changes only through `the-cook wrapper` or `scaffold`, which write its checksums after the running
+  binary verifies the release's signed checksum file with the release keys it embeds. `scaffold --offline` leaves them
   [pending](wrapper.md#a-pending-pin), and nothing downloads against a pending pin. The wrapper then checks each
   download against the committed checksums. `doctor`, when online, re-verifies the pinned release's signed checksum file
   against `wrapper.yaml` ([wrapper](wrapper.md#security)).
-- Rendered output depends on the sources, on the pinned release with its builtin recipes and on the fetched recipes the
-  profile pins by hash, and never records the release; rendered files carry the `schema`.
+- Rendered output depends on the sources, on the pinned release and on the recipes the profile pins by sha256, and
+  never records the release; rendered files carry the `schema`.
+- A recipe's pin changes only through `the-cook recipe pin` or `scaffold --cookbook`, which verify each archive
+  against the cookbook's `checksums.txt`, as downloaded over HTTPS at that moment, and show the `recipes:` entries as a
+  diff for review. The binary then verifies every archive against its pin on download and on every load, and refuses a
+  mismatch with exit 1. Only those two commands, `recipe fetch` and `recipe apply` of an uncached recipe download
+  recipes; every other command reads them from the per-user cache, so a clone works offline once its recipes are cached
+  ([recipes](recipes.md)).
+- Each recipe declares the contract version it fills and the recipe schema it is written in. The binary refuses a
+  recipe whose schema is newer than it supports, naming the release needed
+  ([ADR 0005](../adrs/0005-schema-compatibility.md)).
 - `the-cook wrapper --version <tag>` renders the repository with the new release in the same change, migrating
   older-schema files, so the pin and every artefact the new release renders differently land in one diff
   ([wrapper](wrapper.md#upgrading)). A binary older than the repository's schema refuses, naming the pinned release to
@@ -224,22 +227,10 @@ A repository's CI/CD is unchanged by adopting `the-cook`:
 
 ### Supported program versions
 
-Each builtin recipe declares the versions of its program it supports, and the project's CI tests it against them. The
-documentation describes these versions:
-
-| Recipe | Program | Version the documentation describes | Contract |
-| --- | --- | --- | --- |
-| `git` | git | 2.x | version control |
-| `claude` | Claude Code | 2.1.x | harness |
-| `codex` | Codex CLI | 0.16x | harness |
-| `ralph-tui` | ralph-tui | 0.12 | none |
-| `beads` | Beads (`bd`) | 1.3.1 | none |
-| `mise` | mise | 2026.6 | none |
-| `skills` | the `skills` CLI | 1.7 | none |
-
-The stack recipes `go`, `node`, `terraform` and `python` hold commands for their stack's own toolchain
-([stack recipes](recipes.md#stack-recipes)). A [fetched recipe](recipes.md#fetched-recipes) declares its own range;
-the project's CI does not test it, and `doctor` notes it as not verified by the release.
+Each recipe declares the versions of its program it supports, and the cookbook that publishes it tests it against the
+programs and versions it names. `the-cook`'s own tests cover the core with stand-in recipes, so the range a recipe
+declares is what its cookbook stands behind. `the-cook doctor --json` and `the-cook recipe show <name>` list the range
+of each recipe in use.
 
 ## After removal
 
@@ -249,15 +240,15 @@ removing it does not strand the repository ([remove](remove.md)):
 | After `remove --eject` | Still works |
 | --- | --- |
 | `AGENTS.md` keeps the text of its convention blocks without markers: where workspaces live, the effective permissions, where memory is, static standing context | agents and people follow it as ordinary instructions |
-| `CLAUDE.md` keeps its `@AGENTS.md` line | Claude Code still reads `AGENTS.md` |
+| A harness's instructions file keeps its import of `AGENTS.md` | that harness still reads `AGENTS.md` |
 | `.gitignore` keeps every entry | state stays out of commits |
 | Native settings keep their permissions and `raw` hooks as hand-owned content | agents keep the same rules |
-| `.beads/`, which `the-cook` never touched, and the templates a recipe wrote, such as `.ralph-tui/config.toml`, stay: they are the repository's own | `bd`; ralph-tui once its agent command, `./cook worker`, is replaced |
+| A tracker's data, which `the-cook` never touched, and the templates a recipe wrote, such as a loop runner's configuration, stay: they are the repository's own | the tracker; the loop runner once its agent command, `./cook worker`, is replaced |
 
 The eject removes the tool blocks, which describe how to use `the-cook` (`commands`, `layout`, `verify` and `lifecycle`
 in `AGENTS.md`, `commands` in `README.md`), together with the shipped skill and its links, so no file `the-cook`
 rendered names a `the-cook` command afterwards. A template a recipe wrote is the repository's own and keeps what it
-says, such as the agent command in `.ralph-tui/config.toml`.
+says, such as the agent command in a loop runner's configuration.
 
 An undo, `the-cook remove` without `--eject`, instead returns the repository to the setup it had before adoption: every
 block and its text is removed, and the settings adoption imported are written back. Both modes delete `cook`, the

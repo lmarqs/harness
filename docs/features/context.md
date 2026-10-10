@@ -73,7 +73,7 @@ the-cook context: sql-quality-check (path src/migration/1700000000000-add-invoic
 
 `for` limits an entry to roles: `interactive` for every session a person starts, `worker` for
 [`agent` actions](lifecycle.md#action-kinds) and for workers, the agents
-[`the-cook worker`](ralph.md#the-worker-contract) runs headless, one per task. The default is both. A worker session is
+[`the-cook worker`](worker.md#the-worker-contract) runs headless, one per task. The default is both. A worker session is
 one started with `COOK_WORKER=1`, which `the-cook worker` and `agent` actions set for the agent they start; every
 other session is interactive.
 
@@ -86,17 +86,18 @@ cannot change its own instructions between attempts ([safety](safety.md#standing
 `the-cook render` writes one hook entry per event the declarations need; `the-cook hook` decides what to inject. Which
 native event carries each trigger, and where in the payload the file paths and the message are, comes from the agent's
 [harness recipe](recipes.md#the-harness-contract), which maps the payload onto a neutral event
-([payload normalisation](hooks.md#payload-normalisation)). The shipped recipes map the triggers so:
+([payload normalisation](hooks.md#payload-normalisation)). A harness recipe maps each trigger to the native event that
+carries it:
 
-| Trigger | claude recipe (Claude Code 2.1.x) | codex recipe (Codex CLI 0.16x) |
-| --- | --- | --- |
-| `always` | `SessionStart`, which fires on startup, resume, `/clear` and after compaction, so always-on content survives a compaction | `SessionStart` |
-| `when.paths` | `PostToolUse` after `Read`, `Edit`, `Write` and `MultiEdit`, on the file path the tool names | `PostToolUse` after `apply_patch`, on the files the patch touches |
-| `when.prompt` | `UserPromptSubmit`, on the person's message | `UserPromptSubmit`, on the person's message |
+| Trigger | Native event the harness recipe maps it to |
+| --- | --- |
+| `always` | the harness's session-start event; where the harness fires it again after a compaction, always-on content survives the compaction |
+| `when.paths` | the event after a tool reads, edits or patches files, on the file paths the payload names |
+| `when.prompt` | the event on the person's message |
 
 The text reaches the agent as additional context of that event. A trigger the harness recipe maps to no native event
-gets nothing rendered for that agent, and [`the-cook doctor`](doctor.md) reports the gap as a note. Codex reads files
-through shell commands, which name no file to match, so a Codex session fires a `paths` entry only when it patches a
+gets nothing rendered for that agent, and [`the-cook doctor`](doctor.md) reports the gap as a note. A harness that reads
+files through shell commands names no file to match, so its sessions fire a `paths` entry only when they edit a
 matching file.
 
 In a worker session, the "person's message" is the task prompt the agent receives: what the loop runner passed to
@@ -106,7 +107,7 @@ In a worker session, the "person's message" is the task prompt the agent receive
 
 An `always` entry with `static: true` is not injected by a hook. `the-cook render` writes it into the `context` block of
 `AGENTS.md`, as its content or as its pointer line. Each agent reads `AGENTS.md` as its harness recipe's instructions
-operation says: Claude Code through the `import` block the claude recipe renders in `CLAUDE.md`, Codex directly, and a
+operation says, directly or through an `import` block the recipe renders in the harness's own instructions file, and a
 machine where the pinned binary is not cached gets it like every other line of `AGENTS.md`.
 
 ```markdown
@@ -236,8 +237,8 @@ context:
     - skill: coding-guidelines
 ```
 
-Every session, interactive or worker, starts with the skill's instructions, and Claude Code receives them again after
-each compaction. Nobody types the skill's name.
+Every session, interactive or worker, starts with the skill's instructions, and receives them again whenever its
+harness fires the session-start event after a compaction. Nobody types the skill's name.
 
 ### A SQL skill when the agent touches migrations
 
@@ -341,7 +342,7 @@ always-on: 62 of 120 lines
 | --- | --- | --- |
 | A skill is never injected; `doctor` reports it missing | No `.agents/skills/<name>/SKILL.md` exists for the name in `context`, or it is not committed and the session is a worker's | Install or write the skill, commit it, or fix the name |
 | No standing context; the session shows `the-cook v0.9.0 is not cached on this machine; run ./cook version once to fetch it.` | Hooks never download, and the pinned release is not cached here | Run `./cook version` once; declare must-haves `static: true` |
-| A `paths` entry never fires in Codex | Codex read the file through a shell command, which names no file | Rely on edits for Codex, or make the entry `always` |
+| A `paths` entry never fires in one harness | The harness read the file through a shell command, which names no file | Rely on edits for that harness, or make the entry `always` |
 | A `prompt` entry fires on unrelated messages | A word that is too common | Use more specific words or phrases, or a `paths` trigger |
 | The agent loads a skill twice | The skill was injected and the agent also matched its description and loaded it | Inject it as a `pointer`, or narrow the skill's description |
 | A worker ignores a new directive | The directive is not committed; workers read from their base commit | Commit it, then start the run |

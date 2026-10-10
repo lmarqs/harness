@@ -22,16 +22,16 @@ They apply to proposals for `the-cook` itself and to the advice `the-cook` gives
 | Destination | What it is | Who maintains it |
 | --- | --- | --- |
 | **Built-in invariant** | a rule about the process, compiled into the binary and about no particular program, that no file or flag can remove | `the-cook` |
-| **Floor rule of a recipe** | a deny rule or bypass argument a recipe marks as floor: rendered on every render, never in the policy and out of its reach ([recipes](../features/recipes.md#the-floor)) | the recipe's maintainer: `the-cook` for a builtin recipe |
+| **Floor rule of a recipe** | a deny rule or bypass argument a recipe marks as floor: rendered on every render, never in the policy and out of its reach ([recipes](../features/recipes.md#the-floor)) | the maintainers of the recipe's cookbook; the repository chooses it by pinning it |
 | **New command** | a new verb or noun-verb in the binary | `the-cook` |
 | **Flag on an existing command** | a variation of an operation the binary already performs | `the-cook` |
 | **Profile field** | a per-repository value that parametrises a deterministic binary behaviour (`config.yaml`; permissions in `policy.yaml`, hooks in `hooks.yaml`, the pinned version in `wrapper.yaml`) | the repository |
 | **Declared action** | an action on a lifecycle event (`lifecycle:`) or an agent notification event (`attention:`, `turn_end:`) in `.cook/hooks.yaml`, of kind `run` (a shell command), `http` (a request `the-cook` performs) or `agent` (a headless agent run) | the repository |
 | **Standing-context entry** | a declared trigger (`always`, `when.paths`, `when.prompt`) that puts an existing skill or repository file in front of an agent, under `context:` in `config.yaml` | the repository |
 | **shipped skill or explain topic** | guidance an agent follows to do judgement work around `the-cook` | `the-cook` (embedded, shipped with the binary) |
-| **Recipe** | a named, versioned bundle of data that describes one program to the binary ([recipes](../features/recipes.md)): entries and templates that `the-cook scaffold` and `the-cook recipe apply` write into the repository's files on request, renders and floor rules written on every render, operations that fill the version-control or harness contract, and checks. A stack recipe (`go`, `node`, `terraform`, `python`) holds the starting commands, test lanes, validators, module switches and post-edit hooks of one stack; other recipes describe git, an agent harness, or a program such as ralph-tui or Beads | `the-cook` for a builtin recipe (embedded, shipped with the release); its author for a fetched recipe; once written, the entries and files are the repository's |
+| **Recipe** | a named, versioned bundle of data that describes one program to the binary ([recipes](../features/recipes.md)): entries and templates that `the-cook scaffold` and `the-cook recipe apply` write into the repository's files on request, renders and floor rules written on every render, operations that fill the version-control or harness contract, and checks. A stack recipe (`go`, `node`, `terraform`, `python`) holds the starting commands, test lanes, validators, module switches and post-edit hooks of one stack; other recipes describe the version control system, an agent harness, or a program such as a loop runner or a task tracker | the maintainers of the cookbook that publishes it; the repository pins it; once written, the entries and files are the repository's |
 | **Organization or personal skill** | guidance an agent follows for judgement work specific to an organization's conventions, including writing the organization's choices (policy entries, actions, standing-context entries) into a repository's files | the organization; the entries it leads to are the repository's |
-| **Left to the repository** | a task in the repository's own task runner (a mise task, a `Makefile` target), a repository skill, prose in `AGENTS.md`, memory | the repository |
+| **Left to the repository** | a task in the repository's own task runner (a task-runner task, a `Makefile` target), a repository skill, prose in `AGENTS.md`, memory | the repository |
 
 ## Criteria
 
@@ -67,18 +67,20 @@ When guidance already exists as a skill or a file and the only question is when 
 destination is a standing-context entry, whatever the other columns say ([below](#standing-context)). Why: the timing
 is deterministic even when the guidance is not.
 
-Support for any program, git and the agent harnesses included, is a recipe or a declared action, whatever the other
-columns say, and never a command, a flag, a profile field or code in the binary. The program calls `the-cook` through
-its commands, such as [`the-cook worker`](cli-standards.md#the-worker-command) as a loop runner's agent command, and
-`the-cook` reaches the program through the operations of its recipe and the commands the repository declares. Why: each
-team picks different programs and each program follows its own release schedule, so code in the binary for one of them
-breaks with its releases and serves no team that chose another, while a recipe or an action is data a repository can
-replace ([ADR 0022](../adrs/0022-tool-integration.md), [ADR 0023](../adrs/0023-core-and-contracts.md)).
+Support for any program, the version control system and the agent harnesses included, is a recipe or a declared action,
+whatever the other columns say, and never a command, a flag, a profile field or code in the binary. The program calls
+`the-cook` through its commands, such as [`the-cook worker`](cli-standards.md#the-worker-command) as a loop runner's
+agent command, and `the-cook` reaches the program through the operations of its recipe and the commands the repository
+declares. Why: each team picks different programs and each program follows its own release schedule, so code in the
+binary for one of them breaks with its releases and serves no team that chose another, while a recipe or an action is
+data a repository can replace ([ADR 0022](../adrs/0022-tool-integration.md),
+[ADR 0023](../adrs/0023-core-and-contracts.md)).
 
 A safety-relevant rule that is organization specific (a deploy deny, a protected branch other than the default) is an
 entry in each repository's `policy.yaml`, written there by a person or by an agent following the organization's skill.
-The rendered policy enforces it like any other entry. It is neither a built-in invariant nor a floor rule of a builtin
-recipe, because neither the binary nor the recipes it ships contain organization-specific content.
+The rendered policy enforces it like any other entry. It is neither a built-in invariant nor a floor rule of a recipe:
+the binary holds no organization-specific content, and a recipe's floor holds only what is unsafe in every repository
+that uses its program.
 
 ## Declared actions
 
@@ -114,7 +116,7 @@ flag that pushes, opens a pull request or calls a hosting platform is a design e
 | Notify a person or a service: a chat message, an incident, a status page | `http` | `the-cook` performs the request itself, reads the URL and headers from environment variables and JSON-encodes values, so no `curl`, no shell quoting and no secret on a command line |
 | Tell a person the agent is waiting for them, or has finished a turn | `http` (or `run` for a local notifier) on `attention` or `turn_end` | notification events accept `run` and `http` only, so an agent hook never starts another agent |
 | Tell a person an unattended run stopped or a task was skipped | `http` on `blocked` | `blocked` fires when a command without a terminal exits 3, and whoever drives an unattended run fires it when the run stops, with the reason in `COOK_REASON` |
-| Judgement after an event: summarise a merged change, write lessons into memory, triage a failure | `agent` | the agent does the judgement under the [worker contract](../features/ralph.md#the-worker-contract); its edits stay uncommitted for review |
+| Judgement after an event: summarise a merged change, write lessons into memory, triage a failure | `agent` | the agent does the judgement under the [worker contract](../features/worker.md#the-worker-contract); its edits stay uncommitted for review |
 | Use a tool only an MCP server provides | `agent`, or leave it to the coordinating agent | `the-cook` is never an MCP client; the agent owns the connection, its credentials and its permissions |
 
 When the behaviour needs judgement before the side effect (which commits belong together, how to word them), split
@@ -184,10 +186,10 @@ Repository content follows the same split ([ADR 0013](../adrs/0013-organization-
 
 | Request | Analysis | Destination |
 | --- | --- | --- |
-| Render permissions for Claude Code and Codex from one policy | deterministic, every repository, safety relevant | binary: `the-cook render`, through the renders of the claude and codex recipes |
-| Deny force pushes to the default branch | deterministic, every repository that uses git, safety relevant, a fact about git | floor rule of the git recipe |
-| Deny chaining a second mise task into one invocation | deterministic, every repository that uses mise, safety relevant, a fact about mise | floor rule of the mise recipe (`mise * ::: *`) |
-| Allow `mise run deploy:status` in one repository | deterministic, one repository | `policy.yaml` in that repository |
+| Render permissions for every agent from one policy | deterministic, every repository, safety relevant | binary: `the-cook render`, through the renders of each agent's harness recipe |
+| Deny force pushes to the default branch | deterministic, every repository that uses the version control system, safety relevant, a fact about that program | floor rule of the version-control recipe |
+| Deny chaining a second task-runner task into one invocation | deterministic, every repository that uses the task runner, safety relevant, a fact about that program | floor rule of the task runner's recipe |
+| Allow the task runner's `deploy:status` task in one repository | deterministic, one repository | `policy.yaml` in that repository |
 | Read-only patterns for an organization's observability MCP server | deterministic entries, organization specific, applied with judgement per repository | `shared.allow` entries in each repository's `policy.yaml`, written by an agent following the organization's skill |
 | Open a pull request when work is concluded | deterministic command, leaves the clone, hosting-platform specific, belongs at `deliver` | a `deliver` action of kind `run` in `hooks.yaml` (push, then the hosting platform's pull-request command) |
 | Add a CI trigger commit before the pull request | deterministic, leaves the clone with the push, organization convention, belongs at `deliver` | a `deliver` action in each repository's `hooks.yaml`, declared before the pull-request action and written there by an agent following the organization's skill |
@@ -197,33 +199,33 @@ Repository content follows the same split ([ADR 0013](../adrs/0013-organization-
 | Apply an organization's conventions to many repositories | judgement per repository, organization specific | an agent following the organization's skill in each repository, reviewed as a diff in each; `the-cook fleet` runs `the-cook` commands, never agents |
 | Post to the team chat when a task completes | deterministic, leaves the clone, a notification channel | a `completed` action of kind `http` with `url_env`, `auto: true` |
 | Ping me when the agent is waiting for my answer | deterministic, a notification, per person or repository | an `attention` action of kind `http` (or `run` for a desktop notifier) in `hooks.yaml` |
-| Tell me when an unattended [run of a loop runner](../features/ralph.md) stops unfinished | deterministic, a notification at the moment work stops; nothing in the binary knows when a run ends | a `blocked` action of kind `http` with scope `run`, fired by whoever drives the run: `./cook lifecycle run blocked --scope run` |
+| Tell me when an unattended [run of a loop runner](../features/worker.md) stops unfinished | deterministic, a notification at the moment work stops; nothing in the binary knows when a run ends | a `blocked` action of kind `http` with scope `run`, fired by whoever drives the run: `./cook lifecycle run blocked --scope run` |
 | Write lessons into memory after a change lands | judgement, after an event | a `landed` action of kind `agent`; it runs in a fresh workspace of the default branch, and its edits stay uncommitted there for review |
 | Look something up through an MCP-only service before delivery | needs an MCP tool | the coordinating agent before it runs `the-cook lifecycle run deliver`, or an `agent` action; never the binary |
 | Choose which commits of an unattended run go into which pull request and reword them | judgement (grouping, wording), conventions vary by organization | an agent guided by an organization or personal skill; the agent then runs `the-cook lifecycle run deliver` |
 | Remove the workspace after its branch is merged | deterministic, reacts to a merge, every repository | binary: `the-cook doctor` lists the landed branch and prints the command; `the-cook workspace remove` fires `landed`, then removes the workspace |
-| Delete the remote branch once the work has landed | deterministic, leaves the clone, repository habit, belongs at `landed` | a `landed` action in `hooks.yaml` (`git push origin --delete "$COOK_BRANCH"`), `auto: true` if it should run whenever `workspace remove` handles a landed branch |
+| Delete the remote branch once the work has landed | deterministic, leaves the clone, repository habit, belongs at `landed` | a `landed` action in `hooks.yaml` (a push that deletes `$COOK_BRANCH` on the remote), `auto: true` if it should run whenever `workspace remove` handles a landed branch |
 | Apply the team's coding guidelines in every session without invoking them | known guidance, every session | `context.always` entry naming the skill |
 | Apply the SQL review skill whenever SQL or migrations are touched | known guidance, triggered by files | `context.when.paths` entry |
 | Point the agent at the time-zone skill when the request mentions time zones | known guidance, triggered by words | `context.when.prompt` entry with `inject: pointer` |
 | Keep a must-follow directive in force even where `the-cook` is not installed | known guidance, must hold without the binary | `context.always` entry with `static: true` |
 | Pick which tests to run for a change | judgement (which code is affected) | agent; the repository declares lanes and `required_when` globs in the profile; `the-cook verify` records the choice and replays it |
 | Lint a file after every edit | deterministic, per-repository command | `hooks.yaml` `post_edit` entry |
-| Support a new agent CLI | deterministic translation of the same policy and hooks | a harness recipe that fills the [harness contract](../features/recipes.md#the-harness-contract): shipped in a release, or declared by a repository as a fetched recipe; never code in the binary |
-| Use a version control system other than git | the answers every attempt relies on: base revision, files at a revision, reset, workspaces | a recipe that fills the [version-control contract](../features/recipes.md#the-version-control-contract), named by `vcs:` in the profile |
+| Support a new agent CLI | deterministic translation of the same policy and hooks | a harness recipe that fills the [harness contract](../features/recipes.md#the-harness-contract), published in a cookbook and pinned by the repository; never code in the binary |
+| Use a different version control system | the answers every attempt relies on: base revision, files at a revision, reset, workspaces | a recipe that fills the [version-control contract](../features/recipes.md#the-version-control-contract), named by `vcs:` in the profile |
 | Finish an adoption: move a hook the importer could not model, review the rules imported from the `local` scope | judgement | shipped skill, checked by `the-cook doctor` |
 | Summarise the effective permissions in `AGENTS.md` | deterministic, derived from the policy | binary: the `policy` [convention block](generated-content-standards.md#block-classes) |
-| Tell people and agents where workspaces are created and on which branch | deterministic, derived from the profile, must hold without `the-cook` | binary: the `workspaces` convention block in `AGENTS.md`, and the git recipe's `workspaces` block in `.gitignore` ([principles.md](principles.md#8-conventions-outlive-the-tool)) |
+| Tell people and agents where workspaces are created and on which branch | deterministic, derived from the profile, must hold without `the-cook` | binary: the `workspaces` convention block in `AGENTS.md`, and the version-control recipe's `workspaces` block in its ignore file ([principles.md](principles.md#8-conventions-outlive-the-tool)) |
 | Keep workspaces and state somewhere other than `.work/` | deterministic, different values per repository | profile fields `state.dir`, `workspaces.dir`; `the-cook render` rewrites the blocks that state them |
 | Keep `the-cook` configuration beside the skills in `.agents/` | `.agents/` is the cross-tool agent-content directory | not allowed: `the-cook` configuration lives in `.cook/`, state at the profile's paths |
 | Explain in `AGENTS.md` why the team keeps e2e tests mandatory for routes | judgement, one repository | repository prose, outside [managed blocks](generated-content-standards.md#managed-blocks) |
 | Record a lesson learned during a session | judgement | agent, in the repository's memory; never the binary |
 | Open an issue for each to-do item | judgement, writes to the record of work | agent with its own tools; the binary never writes issues |
 | Report workspaces whose branch was merged | deterministic, every repository | a `doctor` check |
-| Install an organization's shared skills in a repository | a third-party installer, organization data | the team's own step with the tool of its choice (`npx skills add acme/agent-skills`), then a commit of `.agents/skills/` and `skills-lock.json`; the [`skills` recipe](../features/recipes.md#skills) describes the installer, and standing context names the skills it injects |
-| Run ralph-tui over a task list with every result verified | a third-party loop runner, deterministic wiring | the `ralph-tui` recipe: its template `.ralph-tui/config.toml` names `./cook worker <agent> --commit` as the agent command; the person runs `ralph-tui` in a managed workspace, never through a `the-cook` command |
-| Update Beads when work starts, completes or stops | a third-party tracker, deterministic, at lifecycle points | the `beads` recipe: the actions `bead-start`, `bead-close` and `bead-comment` on `start`, `completed` and `blocked`, scope `task`, `auto: true`, which run `bd` with `$COOK_TASK` |
-| Support another loop runner or task tracker | a third-party program | a recipe, builtin or fetched, or declared actions and a configuration that names `the-cook worker`; never a command, flag or profile field |
+| Install an organization's shared skills in a repository | a third-party installer, organization data | the team's own step with the skills installer of its choice, then a commit of `.agents/skills/` and the installer's lock file; a recipe for the installer describes it, and standing context names the skills it injects |
+| Run a loop runner over a task list with every result verified | a third-party loop runner, deterministic wiring | the loop runner's recipe: its template names `./cook worker <agent> --commit` as the agent command; the person runs the loop runner in a managed workspace, never through a `the-cook` command |
+| Update a task tracker when work starts, completes or stops | a third-party tracker, deterministic, at lifecycle points | the tracker's recipe: actions on `start`, `completed` and `blocked`, scope `task`, `auto: true`, which run the tracker's commands with `$COOK_TASK` |
+| Support another loop runner or task tracker | a third-party program | a recipe pinned from a cookbook, or declared actions and a configuration that names `the-cook worker`; never a command, flag or profile field |
 | Pin the version of `the-cook` a repository runs | deterministic, every repository, affects what every machine runs | binary: `.cook/wrapper.yaml`, the only pin, and the committed wrapper `cook`; `the-cook wrapper --version <tag>` changes the pin after verifying the release's signed checksum file |
 | Deliver an upgrade of `the-cook` to every repository | deterministic tool-owned changes, many repositories | `the-cook fleet wrapper --version <tag> --deliver`, then, once it lands, `the-cook fleet render --deliver`: fleet commits on a local branch and fires each repository's own `deliver` actions |
 | Stop using `the-cook` but keep its conventions, permissions and hooks | deterministic, per repository | binary: `the-cook remove --eject` |
@@ -237,13 +239,14 @@ Each of these breaks a principle, for the reason given after it.
   hold only fixed convention statements derived from the repository files.
 - A setting that turns off an invariant or a floor rule: once either is optional, it gets lost when a repository's
   configuration is copied or edited. For example, if `acme/web` copies its configuration from `acme/api`, where someone
-  switched off the git recipe's deny on force pushes to the default branch, `acme/web` allows force pushes without
-  anyone there deciding to.
+  switched off the version-control recipe's deny on force pushes to the default branch, `acme/web` allows force pushes
+  without anyone there deciding to.
 - A key that names a source outside the repository for entries `the-cook` renders or runs (an inherited file, an
   include, a remote set of entries), other than a release or a recipe pinned by hash: a rule whose source sits outside
   the repository cannot be read or reviewed where it acts ([ADR 0013](../adrs/0013-organization-content.md)).
-- Organization content in a builtin recipe: builtin recipes describe programs and stacks and ship in an open-source
-  release, and every other user would carry entries they never use.
+- A default cookbook, or any recipe, in the binary: the binary would choose for every repository which programs it
+  describes and whose review it trusts, and every user would carry recipes for programs they never use. Each
+  repository pins its own.
 - A recipe's entries applied by a command that was not asked to apply them (a render, an upgrade), or a record of which
   entries a recipe added: every write to a repository's files is one someone asked for, and a record would tie the
   repository's own entries to a definition outside its files.

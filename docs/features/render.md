@@ -19,11 +19,12 @@ wrapper `cook`, the shipped skill and its links, and the managed blocks inside
 human-written files. `the-cook render --check` reports drift without writing.
 
 Every output belongs either to the binary itself, such as `cook` and the `AGENTS.md` blocks, or to one
-[recipe](recipes.md#renders) in use: the claude recipe renders `.claude/settings.json` keys, the codex recipe its rules
-file, the git recipe its `.gitignore` blocks. The binary contains no format of any program; each recipe's renders
-describe its program's files. The manifest records every output with its owner, so deleting a recipe from `recipes:`
-in the profile and rendering removes exactly that recipe's renders. What the recipe applied once, its
-[entries](recipes.md#entries) and [templates](recipes.md#templates), stays as the repository's own.
+[recipe](recipes.md#renders) in use: a harness recipe renders keys of its agent's settings files, a version-control
+recipe its ignore-file blocks. The binary contains no format of any program; each recipe's renders describe its
+program's files, and every recipe comes from a cookbook the profile pins it from. The manifest records every output with
+its owner, so deleting a recipe from `recipes:` in the profile and rendering removes exactly that recipe's renders. What
+the recipe applied once, its [entries](recipes.md#entries) and [templates](recipes.md#templates), stays as the
+repository's own.
 
 Examples on this page run commands as `./cook <command>`, through the repository's [wrapper](wrapper.md); with a
 global install, `the-cook <command>` is equivalent.
@@ -34,17 +35,18 @@ global install, `the-cook <command>` is equivalent.
 | --- | --- |
 | You edited `.cook/config.yaml`, `.cook/policy.yaml` or `.cook/hooks.yaml` | `./cook render` |
 | You turned a module on or off, moved a state path, or changed the `context` section | `./cook render` |
-| You want a stack's starting commands, lanes and post-edit hooks | `./cook recipe apply <name>`, which adds the recipe to `recipes:`, writes its entries and renders ([recipes](recipes.md)) |
-| You stopped using a program, such as Codex | delete its recipe from `recipes:` (and the agent from `agents`), then `./cook render`, which removes that recipe's renders |
+| You want a stack's starting commands, lanes and post-edit hooks | `./cook recipe pin <name> --cookbook <source>@<version>`, then `./cook recipe apply <name>`, which writes its entries and renders ([recipes](recipes.md)) |
+| You stopped using a program, such as one agent | delete its recipe from `recipes:` (and the agent from `agents`), then `./cook render`, which removes that recipe's renders |
 | You want CI or a reviewer to confirm rendered files match their sources | `./cook render --check` |
 | You want to see what would change | `./cook render --dry-run` |
 
 ## How it works
 
-1. Read the repository files and validate them against the schema. Resolve every recipe `recipes:` lists: a builtin
-   recipe from the release, a [fetched recipe](recipes.md#fetched-recipes) from the per-user cache, verified by its
-   `sha256`. A fetched recipe that is not cached stops the render with exit 3 and the command that caches it,
-   `./cook recipe fetch`; `render` never fetches.
+1. Read the repository files and validate them against the schema. Resolve every recipe `recipes:` declares from the
+   per-user cache, `$COOK_HOME/recipes/<sha256>.tar.gz`, verified by its `sha256`. A declared recipe that is not cached
+   stops the render with exit 3 and the command that caches it, `./cook recipe fetch`; `render` never fetches. A
+   recipe's render that needs a contract no declared recipe fills, such as the [hook command](#the-hook-command)'s
+   root operation without a version-control recipe, stops the render with exit 3 and names `./cook recipe pin`.
 2. Compute every output: the binary's own and every recipe's renders, which are owned files, owned keys inside native
    files, managed blocks and links, and the [floor rules](recipes.md#the-floor) of every recipe in use.
 3. Compare with the manifest and the working tree.
@@ -54,7 +56,8 @@ global install, `the-cook <command>` is equivalent.
 
 Floor rules are part of their recipe's renders. They go into every agent's output on every render, never into
 `.cook/policy.yaml`, and the policy cannot remove or weaken them. A policy entry that would weaken one, such as an
-`allow` for a force push to the default branch, a floor rule of the git recipe, is not a validation error. `render`
+`allow` for a force push to the default branch, a floor rule of a version-control recipe, is not a validation
+error. `render`
 leaves it out of every agent's output, renders the floor rule, and prints the entry it dropped.
 [`the-cook doctor`](doctor.md) reports it as a finding until the entry is removed from the policy
 ([ADR 0011](../adrs/0011-safety-invariants.md)).
@@ -63,32 +66,30 @@ A policy entry for a `the-cook` command, such as `[the-cook, lifecycle, run, del
 an agent can type: `the-cook …`, `./cook …` and `cook …` ([policy](policy.md#entries-for-the-cook-commands)).
 
 Rendering is deterministic: the same inputs produce the same bytes on linux and macOS, and a second run changes nothing.
-Output depends on the repository's own files, the pinned release that renders them and its builtin recipes, and the
-fetched recipes the profile pins by hash, and on nothing else: `render` reads nothing from the network, and from the
-per-user cache only fetched recipes whose content matches their `sha256`
-([ADR 0013](../adrs/0013-organization-content.md), [ADR 0022](../adrs/0022-tool-integration.md)). No output records the
-release: only `.cook/wrapper.yaml` names it. A new release can render differently, so
-[`the-cook wrapper --version <tag>`](wrapper.md#upgrading) renders the repository with the new release in the same
-change, and the pin and its effect are reviewed as one diff.
+Output depends on the repository's own files, the pinned release that renders them and the recipes the profile pins by
+hash, and on nothing else: `render` reads nothing from the network, and from the per-user cache only recipes whose
+content matches their `sha256` ([ADR 0013](../adrs/0013-organization-content.md),
+[ADR 0022](../adrs/0022-tool-integration.md)). No output records the release: only `.cook/wrapper.yaml` names it. A new
+release or a moved recipe pin can render differently, so [`the-cook recipe pin`](recipes.md) and
+[`the-cook wrapper --version <tag>`](wrapper.md#upgrading) each render the repository in the same change as the pin
+they write, and the pin and its effect are reviewed as one diff.
 
 ### What render writes
 
 | Output | Kind | Owner | Produced when | Contents |
 | --- | --- | --- | --- | --- |
 | `cook` | owned file | the binary | always | the [wrapper](wrapper.md) script from the pinned release's template, mode `0755` |
-| `.claude/settings.json` `permissions.allow`, `.ask`, `.deny` | owned keys | claude recipe | an agent whose harness recipe is `claude` | the [policy](policy.md#how-entries-render) for Claude, with the floor rules of every recipe in use |
-| `.claude/settings.json` `hooks` entries that run the [hook command](#the-hook-command) | owned entries | claude recipe | that agent and `modules.hooks` | one entry per event the repository uses: `SessionStart` (session context, `always` context), `PostToolUse` (post-edit commands, validators, `when.paths` context), `UserPromptSubmit` (`when.prompt` [context](context.md)), `Notification` (`attention` hooks), `Stop` (`turn_end` hooks) |
-| `.claude/settings.json` `raw` hook entries | owned entries | claude recipe | that agent and `modules.hooks` | `raw` hooks from `hooks.yaml`, rendered as native entries that run without the binary |
-| `.codex/rules/the-cook.rules` | owned file | codex recipe | an agent whose harness recipe is `codex` | the policy for Codex, with the floor rules of every recipe in use |
-| `.codex/hooks.json` `the-cook hook` entries and `raw` entries | owned entries | codex recipe | that agent and `modules.hooks` | as for Claude, for each event Codex emits |
-| `.codex/config.toml` keys that enable project hooks, and `notify` | owned keys | codex recipe | that agent and `modules.hooks` | `notify` runs the hook command when Codex finishes a turn, for `turn_end` hooks |
+| The permission keys or rule file of each agent's native configuration | owned keys or owned file | the agent's harness recipe | the agent is declared | the [policy](policy.md#how-entries-render) for that agent, with the floor rules of every recipe in use |
+| Hook entries that run the [hook command](#the-hook-command), in the agent's native hook configuration | owned entries | the agent's harness recipe | the agent is declared and `modules.hooks` is on | one entry per neutral event the repository uses, on the native event the recipe maps it to ([hooks](hooks.md#rendering)) |
+| `raw` hook entries | owned entries | the agent's harness recipe | the agent is declared and `modules.hooks` is on | `raw` hooks from `hooks.yaml`, rendered as native entries that run without the binary |
+| The native keys that enable project hooks or name a notification program, where the agent has them | owned keys | the agent's harness recipe | the agent is declared and `modules.hooks` is on | what the recipe's renders name |
 | `.agents/skills/the-cook/SKILL.md` | owned file | the binary | always | the [shipped skill](skills.md#the-shipped-skill) |
-| `.claude/skills/the-cook`, `.codex/skills/the-cook` | owned links | claude recipe, codex recipe | the agent is declared, unless the skills directory is already a whole-directory link to `.agents/skills` | `../../.agents/skills/the-cook` |
+| The shipped skill link, at the location the harness recipe names | owned link | the agent's harness recipe | the agent is declared, unless the skills directory is already a whole-directory link to `.agents/skills` | a relative link to `.agents/skills/the-cook` |
 | Managed blocks | blocks | see [Block ids](#block-ids) | see [Block ids](#block-ids) | |
 | `.cook/manifest.json` | owned file | the binary | always | the ownership record: every output with its owner |
 
-An agent that emits no event for a declared hook or context trigger, such as Codex for `attention`, gets nothing
-rendered for it, and [`the-cook doctor`](doctor.md) notes the gap.
+An agent that emits no event for a declared hook or context trigger gets nothing rendered for it, and
+[`the-cook doctor`](doctor.md) notes the gap.
 
 `.cook/wrapper.yaml` is owned but not written by `render`: `scaffold` writes it and
 [`the-cook wrapper`](wrapper.md#the-cook-wrapper) rewrites it, each after verifying the release's signed checksum file.
@@ -105,13 +106,14 @@ Agents read their configuration from fixed paths that people also edit. A harnes
 specific keys and entries inside those files, never the whole file; which keys is part of the recipe, not of the
 binary:
 
-| File | Owned by its recipe's renders | Everything else |
+| What the recipe's renders name | Owned | Everything else |
 | --- | --- | --- |
-| `.claude/settings.json` (claude recipe) | `permissions.allow`, `permissions.ask`, `permissions.deny`; hook entries that run the hook command; hook entries rendered from `hooks.yaml` `raw` | preserved byte for byte: `env`, `model`, `statusLine`, `enabledPlugins`, `$schema`, other hooks, unknown keys |
-| `.codex/config.toml` (codex recipe) | the keys that enable the project's hooks, and `notify` | preserved byte for byte |
-| `.codex/hooks.json` (codex recipe) | `the-cook hook` entries and `raw` entries | preserved |
-| `.codex/rules/the-cook.rules` (codex recipe) | the whole file | other files in `.codex/rules/` are untouched and keep applying |
-| `.claude/settings.local.json`, `*.local.toml` | nothing | never written; read only by `the-cook scaffold --import local` |
+| keys in a settings file, such as the permission keys | those keys | preserved byte for byte: other keys, unknown keys, formatting |
+| entries in a list or map, such as hook entries that run the hook command and those rendered from `hooks.yaml` `raw` | those entries | other entries, such as hooks a person or a plugin added, preserved |
+| a whole file, such as a rules file of the-cook's own | the whole file | other files beside it are untouched and keep applying |
+| the agent's local override files | nothing | never written; read only by `the-cook scaffold --import local` |
+
+The recipe's page in its cookbook lists the exact files and keys.
 
 `render --check` compares the merged result, so a hand edit to an owned key is drift, and an edit anywhere else is
 not.
@@ -119,10 +121,11 @@ not.
 ### The hook command
 
 Every `the-cook hook` entry, for every agent, runs the same command with the entry's event as its last argument. It
-finds the wrapper at the checkout's root through the version-control recipe's root command; with the git recipe:
+finds the wrapper at the checkout's root through the version-control recipe's `root` operation, whose command the
+render substitutes for `<root operation>`:
 
 ```sh
-"$(git rev-parse --show-toplevel)/cook" --no-download hook <event>
+"$(<root operation>)/cook" --no-download hook <event>
 ```
 
 `<event>` is the neutral event the entry is for: `session-start`, `post-tool-use`, `prompt-submit`, `attention` or
@@ -156,7 +159,10 @@ More text people wrote.
 | File kind | Opening marker | Closing marker |
 | --- | --- | --- |
 | Markdown | `<!-- cook:<id> -->` | `<!-- /cook:<id> -->` |
-| Hash-comment files: `.gitignore`, YAML, TOML, shell | `# cook:<id>` | `# /cook:<id>` |
+| Hash-comment files: ignore files, YAML, TOML, shell | `# cook:<id>` | `# /cook:<id>` |
+
+For example, the `state` and `workspaces` blocks of a version-control recipe's ignore file, here the `git` recipe
+pinned from `github:acme/cookbook`:
 
 ```gitignore
 # cook:state
@@ -187,21 +193,21 @@ off, deleting the recipe from `recipes:` or [removing](remove.md) it removes the
 | `AGENTS.md` | `workspaces` | convention | where managed workspaces are created, their branch names, and that they start from committed code | core, always |
 | `AGENTS.md` | `verify` | tool | the checks a change needs: lint, build, the lanes and when each is required | `verify` |
 | `AGENTS.md` | `lifecycle` | tool | the conditions for delivery and the actions this repository declares for each event | core, always |
-| `AGENTS.md` | `policy` | convention | the effective permissions by decision, as the native files enforce them, with each floor rule marked with the recipe it comes from, such as `(*floor rule of the git recipe*)`, and Claude Code-only entries marked; entries for `the-cook` commands are left out | core, always |
+| `AGENTS.md` | `policy` | convention | the effective permissions by decision, as the native files enforce them, with each floor rule marked with the recipe it comes from, such as `(*floor rule of the git recipe*)`, and each entry an agent does not enforce marked; entries for `the-cook` commands are left out | core, always |
 | `AGENTS.md` | `memory` | convention | the files under `.agents/memory/`, linked | `memory` |
 | `AGENTS.md` | `context` | convention | the [standing context](context.md) entries declared `static`: their text, or a one-line pointer to the file | core, when the profile declares a `static` entry |
 | `README.md` | `commands` | tool | the repository's commands, as in `AGENTS.md` | core, when `README.md` exists |
-| `CLAUDE.md` (root, or `.claude/CLAUDE.md` when only that exists) | `import` | convention | one line: `@AGENTS.md` | the claude recipe, unless the file already imports `@AGENTS.md` |
-| `.gitignore` | `state` | convention | `/<state.dir>/` | the git recipe, always |
-| `.gitignore` | `workspaces` | convention | `/<workspaces.dir>/` | the git recipe, always |
-| `.gitignore` | `ralph-tui` | convention | `/.ralph-tui/*` and `!/.ralph-tui/config.toml`: ralph-tui's session files, not its configuration | the ralph-tui recipe, always |
+| the agent's own instruction file, as its harness recipe names it | `import` | convention | one line importing `AGENTS.md`, in the agent's syntax | the harness recipe, when its agent reads `AGENTS.md` through an import, unless the file already imports it |
+| the version-control recipe's ignore file | `state` | convention | `/<state.dir>/` | the version-control recipe, always |
+| the version-control recipe's ignore file | `workspaces` | convention | `/<workspaces.dir>/` | the version-control recipe, always |
+| a recipe's own file | the recipe's id | as the recipe declares | what the recipe's renders name, such as the ignore entries for a loop runner's state files | that recipe |
 
 The paths come from the profile ([state paths](profile.md#state-paths)). Every block's text is generated from the
 repository files.
 
-`.gitignore` blocks omit any path the repository tracks. Each block lists its own paths even when another block
-already covers them: `state` ignores `/.work/` and `workspaces` ignores `/.work/workspaces/`. Removing one block then
-never un-ignores a path another still uses.
+Ignore-file blocks omit any path the repository tracks, as the version-control recipe lists them. Each block lists its
+own paths even when another block already covers them: `state` ignores `/.work/` and `workspaces` ignores
+`/.work/workspaces/`. Removing one block then never un-ignores a path another still uses.
 
 ### The `AGENTS.md` budget
 
@@ -225,8 +231,8 @@ block and its line count, so a long lane list is visible in review.
 - Never edit between the markers. `render` overwrites the edit and `render --check` reports it.
 - A block's text states its content as fact; it never says it is managed by `the-cook`, beyond the marker. A
   convention block also never names a `the-cook` command, so it stays true after an eject.
-- Text from other tools' sections (for example a section that `bd init`, the Beads setup command, added) is untouched;
-  blocks are bound to their markers, not to headings.
+- Text from other tools' sections (for example a section a task tracker's setup command added) is untouched; blocks
+  are bound to their markers, not to headings.
 - Deleting a block's markers by hand is drift: `render` puts the block back. Turn the module off, or run
   [`the-cook remove`](remove.md), to remove a block.
 
@@ -236,33 +242,26 @@ block and its line count, so a long lane list is visible in review.
 
 - Exit 0: everything matches.
 - Exit 2: something differs. Each differing file, block or key is listed with the command that fixes it.
-- The check reads only the checkout, the pinned release and the fetched recipes the profile pins by hash, so its
-  result changes only when the repository's files or its pin change.
+- The check reads only the checkout, the pinned release and the recipes the profile pins by hash, so its result
+  changes only when the repository's files or its pins change.
 - The check runs as the pinned release, and no owned artefact is exempt, the shipped skill included
   ([ADR 0007](../adrs/0007-ownership.md)). An upgrade renders the repository with the new release in the same change
   ([wrapper](wrapper.md#upgrading)), so the pinned release's output and the committed files agree, and a difference is
   always a real one. A binary other than the pinned release (`COOK_BINARY`) can report differences the pinned
   release would not; `the-cook doctor` notes when it runs.
 
-Run it in CI as an optional step. The wrapper downloads and verifies the release the pull request pins:
+Run it in CI as an optional step, on every pull request. The wrapper downloads and verifies the release the pull
+request pins, and `./cook recipe fetch` downloads and verifies every recipe it declares, before the check:
 
-```yaml
-# .github/workflows/the-cook.yml
-name: the-cook
-on: [pull_request]
-jobs:
-  render-check:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: ./cook render --check
-        env:
-          COOK_NO_UPDATE_CHECK: "1"
+```sh
+# a CI job's steps, in a fresh checkout of the pull request
+export COOK_NO_UPDATE_CHECK=1
+./cook recipe fetch
+./cook render --check
 ```
 
-The check reads nothing outside the checkout, the pinned release and the fetched recipes the profile pins by hash, so
-the job needs no credentials. A repository that declares a [fetched recipe](recipes.md#fetched-recipes) adds a
-`./cook recipe fetch` step before the check. To cache the release download between runs, see
+The check reads nothing outside the checkout, the pinned release and the recipes the profile pins by hash, so the job
+needs no credentials. To cache the release download between runs, see
 [wrapper](wrapper.md#ci).
 
 ## Schema migration
@@ -295,14 +294,15 @@ Global flags `-C <dir>`, `--yes` and `--verbose` also apply; see [CLI reference]
 | Exit code | Meaning |
 | --- | --- |
 | 0 | Rendered, or `--check` found no drift |
-| 1 | Error: invalid repository file; `vcs:` or `agents.<name>.recipe` naming a recipe `recipes:` does not list; a fetched recipe whose content does not match its `sha256`, or that uses a builtin recipe's name |
+| 1 | Error: invalid repository file; `vcs:` or `agents.<name>.recipe` naming a recipe `recipes:` does not declare; two `recipes:` entries with the same name; a cached recipe whose content does not match its `sha256` |
 | 2 | `--check` found drift |
-| 3 | Repository schema is newer than the running release; a migration needs confirmation without a terminal; a fetched recipe is not cached (`./cook recipe fetch`) |
+| 3 | Repository schema is newer than the running release; a migration needs confirmation without a terminal; a declared recipe is not cached (`./cook recipe fetch`); a render needs a contract no declared recipe fills (`./cook recipe pin`) |
 
 Files read: `.cook/config.yaml`, `.cook/policy.yaml`, `.cook/hooks.yaml`, `.cook/wrapper.yaml`,
-`.cook/manifest.json`, the native files listed above, `cook`, `AGENTS.md`, `README.md`, `CLAUDE.md`,
-`.gitignore`, `.agents/memory/`, the files and skills named by `static` context entries, the recipes `recipes:` lists
-(from the release or the per-user cache), the tracked paths as the version-control recipe reports them.
+`.cook/manifest.json`, the native files listed above, `cook`, `AGENTS.md`, `README.md`, the agents' instruction files
+and ignore files the recipes name, `.agents/memory/`, the files and skills named by `static` context entries, the
+recipes `recipes:` declares (from `$COOK_HOME/recipes/`), the tracked paths as the version-control recipe reports
+them.
 Files written: the outputs listed in [What render writes](#what-render-writes).
 
 ## Examples
@@ -312,7 +312,7 @@ Allow a new command for agents and render it:
 ```sh
 $EDITOR .cook/policy.yaml        # add [npm, run, typecheck] to shared.allow
 ./cook render
-git diff .claude/settings.json .codex/rules/the-cook.rules AGENTS.md
+git diff                         # the rendered permission files and AGENTS.md
 ```
 
 Turn hooks off in a Terraform repository:
@@ -323,7 +323,7 @@ modules: { hooks: false, verify: true, memory: true }
 ```
 
 ```sh
-./cook render      # removes the hook entries the-cook owns from .claude/settings.json
+./cook render      # removes the hook entries the-cook owns from every agent's native files
 ```
 
 ## Guidelines
@@ -331,7 +331,7 @@ modules: { hooks: false, verify: true, memory: true }
 - Do commit rendered files together with the source edit that produced them, so the diff explains itself.
 - Do review rendered permission diffs in pull requests: they are the effective change.
 - Don't edit owned keys, owned files, `cook` or block contents by hand; edit the source and render.
-- Don't add `.claude/settings.json` or `cook` to `.gitignore`: teammates rely on the committed files.
+- Don't ignore rendered files or `cook` in version control: teammates rely on the committed files.
 
 ## Troubleshooting
 
@@ -340,9 +340,10 @@ modules: { hooks: false, verify: true, memory: true }
 | `--check` fails in CI but passes locally | Uncommitted rendered files or manifest | Commit the rendered files and the manifest |
 | `--check` lists `AGENTS.md` block `commands` | Someone edited inside the markers | Move the text outside the markers, run `./cook render` |
 | `--check` lists `cook` | The script was edited by hand | `./cook render` restores it |
-| A key you added to `settings.json` disappeared | It was inside an owned key (`permissions.*`) | Put the rule in `policy.yaml` |
-| The shipped skill link is missing | `.claude/skills` is a whole-directory link to `.agents/skills`, so no per-entry link is needed | Nothing to fix |
-| `render` exits 3: a fetched recipe is not cached | Nothing on this machine has fetched it; `render` never fetches | `./cook recipe fetch`, then `./cook render` |
+| A key you added to an agent's settings file disappeared | It was inside an owned key, such as the permission keys | Put the rule in `policy.yaml` |
+| The shipped skill link is missing | The agent's skills directory is a whole-directory link to `.agents/skills`, so no per-entry link is needed | Nothing to fix |
+| `render` exits 3: a declared recipe is not cached | Nothing on this machine has fetched it; `render` never fetches | `./cook recipe fetch`, then `./cook render` |
+| `render` exits 3 naming `./cook recipe pin` | A recipe's render needs a contract no declared recipe fills, such as the version-control contract | Pin a recipe that fills it, `./cook recipe pin <name> --cookbook <source>@<version>` |
 | Files of a program you stopped using are still rendered | Its recipe is still in `recipes:` | Delete it from `recipes:` and run `./cook render` |
 | `doctor` notes that `AGENTS.md` exceeds its budget | A long lane list or many modules | Remove the lanes and modules the repository does not use, or raise `blocks.agents_md_budget` in the profile if every line earns its place |
 
@@ -350,4 +351,4 @@ modules: { hooks: false, verify: true, memory: true }
 
 Merge-rendering exists so `the-cook` can share native files with people and other tools. See
 [compatibility](compatibility.md) for settings files, skill-link shapes, other tools' `AGENTS.md` sections and
-`.gitignore`.
+ignore files.

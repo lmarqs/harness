@@ -43,18 +43,19 @@ skills, and the loops that run agents unattended. Across many repositories, that
 ## What `the-cook` is
 
 `the-cook` is a meta-harness. It bridges a repository's declared intent, its permissions, hooks, instructions and
-lifecycle, to the programs that carry it out. It writes, checks and removes the configuration that agent harnesses such
-as Claude Code and Codex CLI read, and it constrains how an agent runs when `the-cook` starts it, as `the-cook worker`
-does for each task a loop runner hands it. It never calls a model and never runs an agent loop: it sets the rules and
-never plays ([the game master](features/README.md#the-game-master), [ADR 0001](adrs/0001-role-of-the-tool.md)). The name
-comes from the kitchen: a cook follows the recipe exactly and lets nothing leave the kitchen until it passes the check.
-The agents do the cooking, and `the-cook` holds them to that standard.
+lifecycle, to the programs that carry it out. It writes, checks and removes the configuration that agent harnesses read,
+and it constrains how an agent runs when `the-cook` starts it, as `the-cook worker` does for each task a loop runner
+hands it. It never calls a model and never runs an agent loop: it sets the rules and never plays
+([the game master](features/README.md#the-game-master), [ADR 0001](adrs/0001-role-of-the-tool.md)). The name comes from
+the kitchen: a cook follows the recipe exactly and lets nothing leave the kitchen until it passes the check. The agents
+do the cooking, and `the-cook` holds them to that standard.
 
-The binary contains code for no program. It learns each one, git and the agent harnesses included, from a
-[recipe](features/recipes.md): a versioned bundle of data that says which files the program reads, which of its
-commands answer the binary's questions and which of its arguments and commands are never safe
+The binary contains code and data for no program. It learns each one, the version control system and the agent harnesses
+included, from a [recipe](features/recipes.md): a versioned bundle of data that says which files the program reads,
+which of its commands answer the binary's questions and which of its arguments and commands are never safe
 ([ADR 0022](adrs/0022-tool-integration.md), [ADR 0023](adrs/0023-core-and-contracts.md)). semantic-release reaches its
-release steps through plugins in the same way, and Chef, Ansible and Terraform describe what they manage as data.
+release steps through plugins in the same way, and Chef, Ansible and Terraform describe what they manage as data. A
+repository pins each recipe it uses from a cookbook.
 
 It is not an agent, not a client of hosting platforms or agent tool servers, not a source of configuration that lives
 outside your repository, not a launcher for any loop runner, and not a replacement for your task runner, skills
@@ -146,10 +147,12 @@ releases.
 
 **Tenet.** Every program the binary starts, calls or writes files for, the version control system and the agent
 harnesses included, is described by a recipe. The binary keeps the process: ownership, rendering, events, attempts,
-proof and removal. The recipes keep the program facts: the files a program reads, the commands that answer the
-binary's questions, the arguments that start it unattended and the ones that are never safe. A team switches a program
-by switching its recipe, which changes only the repository's files, and other programs call `the-cook` through a stable
-command interface.
+proof and removal. The recipes keep the program facts: the files a program reads, the commands that answer the binary's
+questions, the arguments that start it unattended and the ones that are never safe. The binary ships no recipe and names
+no default source of one: a repository pins every recipe it uses from a cookbook, a published collection of recipes, by
+version and hash, and the reviewed pin is the trust decision for everything that recipe runs. Any number of cookbooks
+may exist, and none is official. A team switches a program by switching its recipe, which changes only the repository's
+files, and other programs call `the-cook` through a stable command interface.
 
 **Bound by.** [ADR 0022](adrs/0022-tool-integration.md), [ADR 0023](adrs/0023-core-and-contracts.md).
 
@@ -161,7 +164,7 @@ command interface.
 hold in every repository, and no repository, copy or edit can remove them. The process invariants, such as refusing
 bypass arguments before a launch, replaying proof from the base and withholding completion, are built into the binary.
 The program facts they apply, such as which arguments bypass a harness's checks or that a force push to the default
-branch is denied, are floor rules of the shipped recipes: rendered on every render and out of reach of the
+branch is denied, are floor rules of the recipes the repository pins: rendered on every render and out of reach of the
 repository's policy.
 
 **Bound by.** [ADR 0011](adrs/0011-safety-invariants.md), [ADR 0022](adrs/0022-tool-integration.md).

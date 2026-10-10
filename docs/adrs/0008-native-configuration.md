@@ -46,12 +46,12 @@ told apart.
 
 - **1.** A whole file is the clearest ownership there is: one path, one hash, and removal deletes one file. Where the
   agent reads a directory, this costs nothing, because people's files in the same directory are never opened.
-- **2.** Claude Code's project settings cannot include another file, and people keep permissions, hooks, environment,
-  model, Claude Code plugin and status-line keys in it. Owning the whole file would destroy those keys in every
-  repository that has one, and owning nothing would leave the policy without effect. The permission lists and the
-  entries that call the tool are the narrowest set that still makes the rendered policy and the declared hooks and
-  notifications ([0019](0019-action-kinds.md)) take effect. Byte-for-byte preservation keeps the tool's diff to its own
-  keys, so a reviewer sees only what the tool changed.
+- **2.** A harness whose project settings cannot include another file keeps everything in that one file, and people keep
+  permissions, hooks, environment, model, plugin and status-line keys in it (Context). Owning the whole file would
+  destroy those keys in every repository that has one, and owning nothing would leave the policy without effect. The
+  permission lists and the entries that call the tool are the narrowest set that still makes the rendered policy and the
+  declared hooks and notifications ([0019](0019-action-kinds.md)) take effect. Byte-for-byte preservation keeps the
+  tool's diff to its own keys, so a reviewer sees only what the tool changed.
 - **3.** Ownership inside a JSON file cannot be marked in the file. The manifest is where the drift check and removal
   learn which keys to compare and which to take out ([0007](0007-ownership.md)). Recording the recipe lets a repository
   stop using a harness recipe and lose exactly the keys it rendered.
@@ -76,9 +76,9 @@ and usually untracked: the team, CI and reviewers never see what the tool render
 
 ### A separate owned file that the native file includes
 
-At its best, ownership is a whole file everywhere and no key is shared. It loses as a general rule because it depends
-on the agent supporting inclusion, and Claude Code's project settings do not. Where the agent reads a directory, this
-is the rule (point 1).
+At its best, ownership is a whole file everywhere and no key is shared. It loses as a general rule because it depends on
+the agent supporting inclusion, and a harness's project settings may not support it (Context). Where the agent reads a
+directory, this is the rule (point 1).
 
 ## Consequences
 

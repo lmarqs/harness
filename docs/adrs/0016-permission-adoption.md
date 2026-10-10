@@ -21,6 +21,8 @@ anything is written.
 - Taking ownership of a native permission key replaces its content with the rendered policy
   ([0008](0008-native-configuration.md)). A rule the source cannot express is lost at that moment. A lost deny widens
   what agents may do; a lost allow stalls unattended runs on prompts.
+- Claude Code's project settings hold one permission list per kind and cannot include another file
+  ([0008](0008-native-configuration.md)).
 - Permissions also live in personal scopes: a per-clone override file and per-user settings, for Claude Code
   `.claude/settings.local.json` and `~/.claude/settings.json`. They are not shared. Committing them publishes one
   person's choices to the team.
@@ -32,11 +34,11 @@ anything is written.
 
 ## Decision
 
-1. The repository's permission source can express every native rule of every agent the release ships a harness recipe
-   for ([0009](0009-agent-support.md)). An entry is either a shell-command prefix, rendered for each agent in that
-   agent's own syntax, or a native rule string, rendered verbatim for the agent whose syntax it is. A native rule string
-   is converted for another agent only when it is a pure shell-command prefix; otherwise it takes effect for its own
-   agent alone, and the policy summary the tool renders lists it as single-agent.
+1. The repository's permission source can express every native rule of every agent a harness recipe describes
+   ([0009](0009-agent-support.md)). An entry is either a shell-command prefix, rendered for each agent in that agent's
+   own syntax, or a native rule string, rendered verbatim for the agent whose syntax it is. A native rule string is
+   converted for another agent only when it is a pure shell-command prefix; otherwise it takes effect for its own agent
+   alone, and the policy summary the tool renders lists it as single-agent.
 2. Precedence is the same in every agent: deny, then ask, then allow.
 3. Adoption imports existing permissions and hooks from the scopes the person chooses. The project scope is the default;
    personal and user scopes are imported only on request, and every entry from them is listed for review because it
@@ -91,9 +93,9 @@ keeping its rules.
 ### Native files hand-owned beside rendered ones
 
 The tool renders its rules and leaves people's native rules where they are. At its best, nothing is translated and
-nothing is lost. It loses because Claude Code's project settings hold one permission list per kind with no include
-mechanism ([0008](0008-native-configuration.md)), so two writers share one key. Rules then live in two places, the drift
-check cannot cover the hand-owned half, and reviewing the policy means reading several files.
+nothing is lost. It loses because a harness whose project settings hold one permission list per kind with no include
+mechanism (Context) makes two writers share one key. Rules then live in two places, the drift check cannot cover the
+hand-owned half, and reviewing the policy means reading several files.
 
 ## Consequences
 
@@ -108,8 +110,9 @@ Costs:
 
 Must be maintained:
 
-- Each shipped harness recipe's native rule import and its agent's full rule grammar, the per-agent equivalence
-  comparison, and the provenance format ([0009](0009-agent-support.md)).
+- The per-agent equivalence comparison and the provenance format.
+- For each harness recipe, in the cookbook that publishes it: its native rule import and its agent's full rule grammar
+  ([0009](0009-agent-support.md)).
 
 ## Confirmation
 

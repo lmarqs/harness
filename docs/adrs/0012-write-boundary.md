@@ -52,8 +52,8 @@ stays the team's.
      [0013](0013-organization-content.md), [0022](0022-tool-integration.md)), and are never read beyond the files a
      recipe renders into and the rules adoption imports ([0008](0008-native-configuration.md),
      [0016](0016-permission-adoption.md));
-   - the version control system's configuration, such as git's hooks path, is not changed; a setting an operation needs
-     is passed on that operation's own command, never written into the configuration ([0022](0022-tool-integration.md));
+   - the version control system's configuration, such as its hooks path, is not changed; a setting an operation needs is
+     passed on that operation's own command, never written into the configuration ([0022](0022-tool-integration.md));
    - content outside managed blocks is never written ([0007](0007-ownership.md));
    - directories that belong to an agent are never scanned or cleaned.
 5. A tool configuration directory the binary did not create is foreign. Adoption refuses to write into it and names
@@ -74,11 +74,11 @@ stays the team's.
   work. A tracker is updated by actions the repository declares, under the declarer's choice (point 3,
   [0022](0022-tool-integration.md)).
 - **4.** Each item protects something a person relies on. A database left as found keeps its synchronisation; an
-  unchanged hooks path keeps the task database's own git hooks, and a setting passed on one command changes nothing any
-  other program sees; content outside blocks is the repository's prose; agent directories hold the agent's working
-  state. Another tool's files belong to that tool and to the people who run it, and the binary has no code that reads
-  them ([0022](0022-tool-integration.md)): a root loop-runner configuration left alone keeps direct use working, and a
-  task runner's file keeps its pins and comments. A template is written only where its file is absent, so it never
+  unchanged hooks path keeps the task database's own hooks (Context), and a setting passed on one command changes
+  nothing any other program sees; content outside blocks is the repository's prose; agent directories hold the agent's
+  working state. Another tool's files belong to that tool and to the people who run it, and the binary has no code that
+  reads them ([0022](0022-tool-integration.md)): a root loop-runner configuration left alone keeps direct use working,
+  and a task runner's file keeps its pins and comments. A template is written only where its file is absent, so it never
   replaces a file someone already keeps, and from then on the file is the repository's own
   ([0013](0013-organization-content.md)). The trade: a setting in another tool's configuration that works against the
   tool, such as a bypass, surfaces only when the binary meets it in its own input ([0011](0011-safety-invariants.md)).
@@ -136,8 +136,8 @@ Must be maintained:
 ## Confirmation
 
 - A fixture with pre-existing third-party state (a synchronised database, a root loop-runner configuration, a task
-  runner's file that pins the tool, a branch matching a session-name pattern, a configured git hooks path) is unchanged
-  after every write operation of the tool.
+  runner's file that pins the tool, a branch matching a session-name pattern, a configured version-control hooks path)
+  is unchanged after every write operation of the tool.
 - A fixture with a foreign tool configuration directory refuses adoption, names the conflict and writes nothing.
 - A fixture whose root and per-user loop-runner configurations set a bypass runs every command of the tool without
   opening either file, and both are byte-identical afterwards.

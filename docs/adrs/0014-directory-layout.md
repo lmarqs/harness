@@ -42,16 +42,15 @@ Other forces:
 - Removal deletes what the manifest lists ([0007](0007-ownership.md)).
 - A directory name at the repository root is not reserved: any program or person may create one, so a directory the
   tool would use can already exist when it arrives.
-- The recipes a release ships are part of its binary ([0003](0003-implementation-language.md)). A recipe from an outside
-  source is fetched, verified by its content hash on every load, and is the same bytes for every repository that pins
-  that hash ([0021](0021-release-trust.md), [0022](0022-tool-integration.md)).
+- Every recipe comes from a cookbook: it is fetched, verified by its content hash on every load, and is the same bytes
+  for every repository that pins that hash ([0021](0021-release-trust.md), [0022](0022-tool-integration.md)).
 - The XDG Base Directory Specification (0.8) defines a per-user cache directory, `$XDG_CACHE_HOME`, by default
   `~/.cache`, for data a program can fetch again.
 - An agent can edit anything in the working tree it works in ([0011](0011-safety-invariants.md)).
 
 ## Decision
 
-1. Native agent directories (`.claude/`, `.codex/`) stay where agents look. They hold rendered configuration
+1. Native agent directories stay where agents look (Context). They hold rendered configuration
    ([0008](0008-native-configuration.md)) and per-entry links into `.agents/`. Existing real directories and existing
    whole-directory links stay as they are.
 2. `.agents/` holds agent content only: skills, including the skill the tool ships ([0002](0002-division-of-work.md)),
@@ -66,15 +65,15 @@ Other forces:
    walk from nested working copies; the loop runner's configuration in the fixed directory it reads.
 6. Ignore rules are managed blocks, one set per capability ([0018](0018-conventions.md)), and omit any path the
    repository tracks.
-7. A repository holds none of the recipes it uses ([0006](0006-repository-contract.md)). The recipes a release ships
-   live inside the binary. A recipe from an outside source lives in the user's cache directory, outside every
-   repository, under its content hash, and one copy serves every repository on the machine that pins that hash.
+7. A repository holds none of the recipes it uses ([0006](0006-repository-contract.md)). Every recipe lives in the
+   user's cache directory, outside every repository, under its content hash, and one copy serves every repository on the
+   machine that pins that hash.
 
 ## Reasons
 
 - **1.** Agents read only these locations, so rendered configuration must be there. Linking per entry adds the tool's
-  skill without replacing anything: where `.claude/skills` is a real directory, replacing it with a link would move
-  files people own, and a whole-directory link already exposes everything in `.agents/`.
+  skill without replacing anything: where a native skills directory is a real directory (Context), replacing it with a
+  link would move files people own, and a whole-directory link already exposes everything in `.agents/`.
 - **2.** `.agents/` is a convention shared across tools and repositories, including repositories that use it without
   this tool. Content there must stay meaningful when the tool is absent or removed. Keeping the tool's configuration out
   of it means readers of agent content never meet files only the tool reads, and removal never has to pick files out of
@@ -84,11 +83,11 @@ Other forces:
   only tracked paths keeps its meaning simple: what is in it is what the repository committed, with no ignore rules
   inside a committed tree.
 - **4.** People and third-party tools work directly in the tool's state, chiefly its working copies, and repositories
-  have their own conventions for where those go (some keep an agent's worktrees under `.claude/`). A configurable path
-  with a default lets each repository keep its convention, while the default gives one root to ignore. State inside
-  `.cook/` would put ignored paths into the committed configuration directory, contradicting point 3. State inside
-  `.agents/` would show clone-local files to every tool that reads agent content. Committed state would publish one
-  clone's uncommitted work.
+  have their own conventions for where those go (some keep an agent's working copies under that agent's native
+  directory, as Context shows). A configurable path with a default lets each repository keep its convention, while the
+  default gives one root to ignore. State inside `.cook/` would put ignored paths into the committed configuration
+  directory, contradicting point 3. State inside `.agents/` would show clone-local files to every tool that reads agent
+  content. Committed state would publish one clone's uncommitted work.
 - **5.** The loop runner's configuration location cannot be moved, so its configuration, whether a person wrote it or a
   recipe's template wrote it ([0013](0013-organization-content.md)), lives where the loop runner looks, and a committed
   file reaches every working copy through version control. Relocating the task tracker through an override would make
@@ -98,11 +97,10 @@ Other forces:
   the task tracker's directory in a repository that commits it, from being added.
 - **7.** A recipe in the working tree would be a description the agent working there can edit before the next attempt
   reads it ([0022](0022-tool-integration.md)), and a copy in every repository that uses it would be one more copy to
-  keep equal (Context). The recipes a release ships need no path, because they are part of the release that was verified
-  ([0021](0021-release-trust.md)). The user's cache directory is where data a program can fetch again belongs (Context),
-  outside every working tree, and a copy there that anyone changes, an agent included, fails the hash check on its next
-  load instead of being used. Keying by content hash lets every repository that pins the same recipe share one copy, and
-  two versions never overwrite each other. The trade: a recipe is on a machine only after someone fetched it there, and
+  keep equal (Context). The user's cache directory is where data a program can fetch again belongs (Context), outside
+  every working tree, and a copy there that anyone changes, an agent included, fails the hash check on its next load
+  instead of being used. Keying by content hash lets every repository that pins the same recipe share one copy, and two
+  versions never overwrite each other. The trade: a recipe is on a machine only after someone fetched it there, and
   clearing the cache removes it until the next fetch.
 
 ## Rejected alternatives
@@ -130,7 +128,7 @@ their own conventions put them, and people and other tools work inside those cop
 At its best, the repository root stays tidy. It loses because every invocation needs the override, and people who run
 those tools directly see different state.
 
-### Recipes from outside sources kept in the repository
+### Recipes kept in the repository
 
 The repository commits each recipe it uses beside its data. At its best, a clone carries everything it needs, renders
 with no fetch, and a reviewer reads the recipe's description in the diff that adds it. It loses for the reason
@@ -139,8 +137,8 @@ that uses a recipe would carry its own copy, which local edits make diverge ([00
 
 ### Whole-directory links from native directories
 
-At its best, each directory needs one link. It loses because where `.claude/skills` is already a real directory,
-replacing it moves files people own.
+At its best, each directory needs one link. It loses because where a native skills directory is already a real directory
+(Context), replacing it moves files people own.
 
 ## Consequences
 
@@ -149,7 +147,7 @@ Costs:
 - The repository root holds several dot-directories, `.cook/` among them.
 - The layout is set from outside; a change in a third-party tool's discovery rule forces a change here.
 - Per-entry links need a filesystem with symbolic links.
-- A recipe from an outside source is absent on a machine until someone fetches it there.
+- A recipe is absent on a machine until someone fetches it there.
 - Configurable state paths multiply the layouts the tool renders and tests.
 - A `.cook/` the tool did not create is foreign and refused ([0012](0012-write-boundary.md)), so a repository whose
   root already holds one cannot adopt this tool until it is moved.

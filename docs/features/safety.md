@@ -31,16 +31,15 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 | --- | --- | --- |
 | A person | trusted; decides | owns the repository, the credentials and the merge |
 | An interactive agent | an untrusted contributor, with a person present | acts on instructions and on everything it reads; a person sees its prompts |
-| A coordinating agent left alone | an untrusted contributor, with nobody present | the same agent, coordinating work such as an unattended [Ralph](ralph.md) run and its delivery, without the person who would catch a wrong step |
+| A coordinating agent left alone | an untrusted contributor, with nobody present | the same agent, coordinating work such as an unattended [worker](worker.md) run and its delivery, without the person who would catch a wrong step |
 | A worker: the agent `the-cook worker` starts | the least trusted | unattended, driven by task text, and the one that writes the code its own checks run |
-| A loop runner, such as ralph-tui, and its configuration | the person's tool | `the-cook` has no code for it and reads none of its configuration. When its agent command is `the-cook worker`, the worker contract holds whoever calls it; any other agent command is outside `the-cook` |
+| A loop runner and its configuration | the person's tool | `the-cook` has no code for it and reads none of its configuration. When its agent command is `the-cook worker`, the worker contract holds whoever calls it; any other agent command is outside `the-cook` |
 | Task, issue and pull-request text | untrusted input | anyone who can write it can address the agent that reads it |
 | Lifecycle actions, notification actions, raw hooks, validators, lane commands | code | they run with the person's credentials; `the-cook` runs them without judging them |
-| An `agent` action | an unattended agent | it runs headless on a prompt, often with values written by people and agents in it; it runs under the [worker contract](ralph.md#the-worker-contract) |
+| An `agent` action | an unattended agent | it runs headless on a prompt, often with values written by people and agents in it; it runs under the [worker contract](worker.md#the-worker-contract) |
 | Standing context: the skills and files `context` entries name | instructions | every matching session reads them as guidance; whoever can change them steers the agents |
 | `COOK_MESSAGE`, `COOK_REASON`, task titles and summaries | untrusted input | agents and task text shape them; they reach notifications and `agent` prompts |
-| A builtin recipe, applied with `the-cook recipe apply` or by `scaffold` | data from the pinned release, tested there against the program it describes | its entries write commands, lanes, validators and post-edit hooks into the repository's files, which run them with the credentials of whoever triggers them; `apply` shows the additions as a diff before writing, and the commit is reviewed like any other. Its renders and floor rules come from the release on every render |
-| A [fetched recipe](recipes.md#fetched-recipes) | data from an outside source, pinned in the profile by version and sha256 | fetched only by `the-cook recipe fetch` or `the-cook recipe apply`, verified by hash on every load, never fetched by a hook or a worker attempt; its operations and its floor are what its author wrote, and `doctor` reports it as not verified by the release |
+| A [recipe](recipes.md), pinned from a cookbook | data from an outside source, pinned in the profile by version and sha256 | pinning trusts the cookbook's `checksums.txt` as downloaded over HTTPS at that moment, and the pin enters the repository only through a reviewed diff; from then on every archive is verified against its pin on download and on every load, and no hook or worker attempt fetches one. Its operations, renders and floor are what its author wrote, and no release key vouches for them: reading the recipe (`the-cook recipe show`) before approving the pin is the trust decision for everything it runs. Its entries write commands, lanes, validators and post-edit hooks into the repository's files, which run them with the credentials of whoever triggers them; `apply` shows the additions as a diff before writing |
 | The pinned release: `cook` and `.cook/wrapper.yaml` | code fetched from the network | the wrapper downloads the release the pin names and runs it with your credentials; the checksums committed next to the pin are what make the download trustworthy |
 
 What must stay safe:
@@ -56,9 +55,9 @@ What must stay safe:
 
 Outside the model: a person with commit access who means harm, a compromised agent binary, anything the operating system
 lets a process reach beyond what the agent's own permission system or sandbox controls, and whatever a person runs
-outside `the-cook`. A loop runner configured with another agent command, a team's own wrapper around ralph-tui, or an
-agent started directly runs without the worker contract; that is the person's choice, and `the-cook` neither detects nor
-prevents it. The guarantees on this page hold for what `the-cook` renders and for every agent `the-cook` starts.
+outside `the-cook`. A loop runner configured with another agent command, a team's own wrapper around a loop runner, or
+an agent started directly runs without the worker contract; that is the person's choice, and `the-cook` neither detects
+nor prevents it. The guarantees on this page hold for what `the-cook` renders and for every agent `the-cook` starts.
 Permissions constrain the commands an agent starts, not the code those commands run: an agent that can edit a test and
 run the test runner runs code it wrote ([pitfalls](pitfalls.md#a-task-runner-runs-whatever-its-tasks-say)).
 
@@ -68,9 +67,9 @@ run the test runner runs code it wrote ([pitfalls](pitfalls.md#a-task-runner-run
 | --- | --- | --- |
 | Native permissions rendered from the [policy](policy.md) | commands the policy denies or asks about, in every agent that renders them | commands no entry matches (the agent's default decides), spellings a prefix does not match, settings outside the policy |
 | Invariants in the binary ([concepts](concepts.md#built-in-invariants)) | completion without a replayed proof, delivery of unsafe work, lifecycle actions inside workers, `agent` actions outside the worker contract, a worker started on recipes resolved from its own checkout | anything a repository allows on purpose |
-| Floor rules of the recipes in use ([policy](policy.md#the-floor)) | permission bypass in workers (each harness recipe's bypass arguments), force push to the default branch (the git recipe), task-runner chaining such as mise's `:::` (the mise recipe), whatever a policy entry tries to weaken them with | a program whose recipe is not in the profile's `recipes:`; `doctor` reports one it detects |
+| Floor rules of the recipes in use ([policy](policy.md#the-floor)) | permission bypass in workers (each harness recipe's bypass arguments), force push to the default branch (a version-control recipe), command chaining a task runner offers (a task-runner recipe), whatever a policy entry tries to weaken them with | a program whose recipe is not in the profile's `recipes:`; `doctor` reports one it detects |
 | Guards in the binary ([spellings](#guards-live-in-the-binary)) | `the-cook lifecycle run` inside a worker, unsafe `deliver`, whatever spelling of the command an agent uses | a command `the-cook` does not run |
-| The worker contract ([Ralph](ralph.md#the-worker-contract)) | the floor bypass arguments of the agent's harness recipe among the arguments `the-cook worker` receives, whoever calls it; `worker.deny` commands; a worker committing or integrating its own work; a loop runner reading a failed attempt as done | commands `worker.deny` does not list; an agent started without `the-cook worker` |
+| The worker contract ([worker](worker.md#the-worker-contract)) | the floor bypass arguments of the agent's harness recipe among the arguments `the-cook worker` receives, whoever calls it; `worker.deny` commands; a worker committing or integrating its own work; a loop runner reading a failed attempt as done | commands `worker.deny` does not list; an agent started without `the-cook worker` |
 | The tamper check ([below](#the-worker-contract-and-the-tamper-check)) | a worker editing rendered rules, owned settings keys, hook entries, `cook`, `.cook/wrapper.yaml`, any file under `.cook/` or a file or skill `context` names, to widen its next attempt or rewrite its rules | edits to other files, which the replay and review judge |
 | Receipt replay ([verify](verify.md#who-relies-on-it)) | a worker claiming checks it did not run, or weakening the checks it is measured by | tests that pass without exercising the change |
 | Lifecycle guards ([lifecycle](lifecycle.md#built-in-guards)) | delivery from the default branch or of uncommitted work and, when the verify module is enabled, of work without a valid receipt; completion of a task without a valid receipt; actions run by a worker's agent | what a declared action does once it runs |
@@ -99,16 +98,17 @@ flowchart TD
 
 | Decision | Put here | Examples |
 | --- | --- | --- |
-| `allow` | what is reversible, local or remote | `git` on branches, a branch push, a draft pull request, tasks whose effects stay in the clone, read-only MCP tools |
+| `allow` | what is reversible, local or remote | version control on branches, a branch push, a draft pull request, tasks whose effects stay in the clone, read-only MCP tools |
 | `ask` | only what bypasses a gate a person must own, or what leaves the clone when you want a person in the loop | merging past branch protection; `the-cook lifecycle run deliver` (seeded by `scaffold`) |
-| `deny` | what must never run from an agent session | publishing a package, `terraform apply`, a tracker's remote sync |
-| unlisted | production, cloud and repository-settings writes | `kubectl apply`, `aws …`, `gh repo edit` |
-| `worker.deny` | everything that leaves the worker's workspace before `the-cook worker` verifies it | commits, pushes, refs and workspaces, `git -C`/`git -c`, the hosting platform's CLI, a tracker command an action runs after the replay (`bd close`), shared local services, production and cloud |
+| `deny` | what must never run from an agent session | publishing a package, applying infrastructure changes, a tracker's remote sync |
+| unlisted | production, cloud and repository-settings writes | a cluster deploy, a cloud CLI write, a repository-settings change through the hosting platform's CLI |
+| `worker.deny` | everything that leaves the worker's workspace before `the-cook worker` verifies it | commits, pushes, refs and workspaces, version-control options that act on another checkout or override its configuration, the hosting platform's CLI, a tracker command an action runs after the replay (closing a task), shared local services, production and cloud |
 
 Production stays unlisted rather than denied because a `deny` would also stop the person who means it, such as a
-developer who asks the agent to run a planned `kubectl apply`. Each kind of session handles it in its own way. A person
-at the terminal decides case by case. An unattended Claude Code session in auto mode (`--permission-mode auto`) leaves
-it to its classifier, which judges it from the conversation. Workers are denied it through `worker.deny`.
+developer who asks the agent to run a planned deploy. Each kind of session handles it in its own way. A person at the
+terminal decides case by case. An unattended session falls to its agent's own default for unlisted commands, which its
+harness recipe's page describes, such as a classifier that judges the command from the conversation. Workers are
+denied it through `worker.deny`.
 
 Write the reason above each group of entries. The reason is what a reviewer evaluates, and an entry broader than its
 reason is a finding.
@@ -131,22 +131,25 @@ entries are defence in depth: they make an agent stop or ask before it runs the 
 | Session | Runs as | What to give it |
 | --- | --- | --- |
 | Interactive | the mode the person chooses | the shared policy |
-| Coordinating agent left alone | Claude Code with `--permission-mode auto`, or Codex in its sandbox | `allow` entries for everything the agreed delivery needs; the boundary of delivery stated by the person at the start (branch, pull request, CI trigger, auto-merge) |
+| Coordinating agent left alone | its agent's unattended mode, as its harness recipe's page describes it | `allow` entries for everything the agreed delivery needs; the boundary of delivery stated by the person at the start (branch, pull request, CI trigger, auto-merge) |
 | Worker | pinned by `the-cook worker` ([agents](agents.md#worker-launch)) | the shared policy plus `worker.deny` |
-| Loop runner | its own process, started by a person, a coordinating agent or a script | a configuration whose agent command is `./cook worker` for every agent, as the [ralph-tui recipe](ralph.md#the-ralph-tui-recipe) writes |
+| Loop runner | its own process, started by a person, a coordinating agent or a script | a configuration whose agent command is `./cook worker` for every agent ([how a loop runner calls it](worker.md#how-a-loop-runner-calls-it)) |
 
-Two rules decide how an unattended session behaves:
+Two properties of the agent decide how an unattended session behaves; its harness recipe's page in its cookbook states
+both:
 
-- **An `ask` entry prompts even in auto mode**, and no `allow` from any settings scope overrides it. Every `ask` the
-  run reaches stalls it until a person answers.
-- **An `allow` entry skips the auto-mode classifier.** The command runs without judgement. A broad `allow`, such as
-  `[git]`, lets a push to the default branch run directly: branch protection, not the agent, is then the gate.
+- **Whether an `ask` entry still prompts in its unattended mode.** Where it does, every `ask` the run reaches stalls it
+  until a person answers.
+- **Whether an `allow` entry skips the agent's own judgement.** Where it does, the command runs without judgement. A
+  broad `allow` for the version control program lets a push to the default branch run directly: branch protection,
+  not the agent, is then the gate.
 
 Before leaving a session alone, check that every `ask` it reaches is either acceptable as a stop or moved, and that
 every `allow` is one you accept with no judgement applied.
 
-For example, a coordinating session told to open a pull request when the run ends reaches the seeded `ask` on
-`[the-cook, lifecycle, run, deliver]` and waits there until someone answers. Either that stop is what you want, or the
+For example, a coordinating session told to open a pull request when the run ends, in an agent whose `ask` entries
+prompt in its unattended mode, reaches the seeded `ask` on `[the-cook, lifecycle, run, deliver]` and waits there until
+someone answers. Either that stop is what you want, or the
 entry moves to `allow` once you accept every `deliver` action running unasked
 ([lifecycle actions are code](#lifecycle-actions-are-code)).
 
@@ -156,16 +159,15 @@ A worker is the least trusted actor, so `the-cook` does not rely on its permissi
 inside `the-cook worker`, so it holds whoever calls it: a loop runner, a script or a person.
 
 1. Before anything else runs, `the-cook worker` resolves the version-control recipe and the agent's harness recipe
-   from the release or the verified cache, never from the checkout, and uses them for every read, comparison, reset
-   and launch of the attempt. It never fetches: a fetched recipe that is not cached exits 3.
+   from the verified cache, never from the checkout, and uses them for every read, comparison, reset and launch of the
+   attempt. It never fetches: a declared recipe that is not cached exits 3.
 2. It refuses to start with uncommitted changes, and records the base: the head commit of the checkout, as the
    version-control recipe reports it. A base that cannot be read fails the attempt before the agent starts.
 3. It refuses the bypass arguments the agent's harness recipe marks as floor among the arguments it receives, with
    exit 1, naming the argument. It reads no loop runner's configuration: a bypass setting there surfaces as a refused
    argument at the first task.
-4. It pins the permission mode with the harness recipe's launch arguments: the claude recipe starts Claude Code in
-   `auto` with `worker.deny` as disallowed tools; the codex recipe starts Codex in the `workspace-write` sandbox with
-   `worker.deny` in the rendered rules.
+4. It pins the permission mode with the harness recipe's launch arguments, and applies `worker.deny` as the recipe
+   passes it: as launch arguments, or in the rendered rules the tamper check keeps intact.
 5. Before the agent starts it restores the tool-owned files (rendered rules, owned settings keys, hook entries, the
    wrapper `cook` and its pin `.cook/wrapper.yaml`) from the base commit. After the agent exits it compares
    with the base those files, every file under `.cook/` and every file and skill a `context` entry names; any
@@ -200,8 +202,8 @@ that fired them, outside the agent's per-command permission checks.
   `the-cook workspace create`, `the-cook workspace remove` and `the-cook fleet --deliver`. `the-cook doctor` never fires
   events ([lifecycle](lifecycle.md#trigger-points)).
 - **The hooks file is the complete list.** Every action is declared in the repository's own `.cook/hooks.yaml`, and
-  nothing outside the repository adds one ([ADR 0013](../adrs/0013-organization-content.md)). A recipe such as `beads`
-  writes its actions there as entries only when a person applies it, and the diff shows them. Reviewing that file
+  nothing outside the repository adds one ([ADR 0013](../adrs/0013-organization-content.md)). A recipe that declares
+  actions writes them there as entries only when a person applies it, and the diff shows them. Reviewing that file
   reviews everything an event can run.
 - **Every action sees the whole environment.** A webhook URL exported for one `http` action is visible to every `run`
   and `agent` action of every event fired from that shell.
@@ -209,7 +211,7 @@ that fired them, outside the agent's per-command permission checks.
 In practice:
 
 - Review `lifecycle` changes in `.cook/hooks.yaml` like code, including those an agent wrote while following a
-  skill an organization publishes, such as one installed with `npx skills add acme/agent-skills`.
+  skill an organization publishes, such as one installed from `acme/agent-skills` with a skills installer.
 - Keep the seeded `ask` on `[the-cook, lifecycle, run, deliver]` until the actions are ones you accept an agent running
   unasked. Moving it to `allow` is a decision about the actions, not about the command.
 - Check `the-cook lifecycle list` for `auto: true` before granting an agent a command with a trigger point.
@@ -252,8 +254,8 @@ prompt.
 Every session that [standing context](context.md) reaches reads it as instructions, so its sources are controlled:
 
 - Entries name only repository files and skills under `.agents/skills/`. Nothing is fetched when a hook runs.
-- A skill is delivered as the file committed under `.agents/skills/`. Whether a person wrote it or a tool such as the
-  `skills` CLI installed it, the commit is what a reviewer reads ([shared skills](skills.md#shared-skills)).
+- A skill is delivered as the file committed under `.agents/skills/`. Whether a person wrote it or a skills installer
+  added it, the commit is what a reviewer reads ([skills](skills.md)).
 - For a worker, the declarations and every file they name are read from its base commit, so a worker cannot rewrite its
   own instructions between attempts.
 - A change to an injected file or skill is a change to every agent session's instructions. Review it like policy.
@@ -266,9 +268,9 @@ Every clone runs the release of `the-cook` that `.cook/wrapper.yaml` pins, throu
 
 - **Downloads are verified.** The wrapper fetches the release over HTTPS and checks its sha256 against the checksum
   for the platform in `wrapper.yaml`. A mismatch exits 1 and caches nothing.
-- **Implicit entry points never download.** Rendered hooks run the wrapper from the checkout's root with
-  `--no-download`; with the git recipe, `"$(git rev-parse --show-toplevel)/cook" --no-download hook <event>`. An
-  agent starting a session or editing a file runs a binary already in the cache, or skips the hook, and never fetches
+- **Implicit entry points never download.** Rendered hooks run the wrapper from the checkout's root, found through
+  the version-control recipe's `root` operation, with `--no-download` ([the hook command](render.md#the-hook-command)).
+  An agent starting a session or editing a file runs a binary already in the cache, or skips the hook, and never fetches
   code. Hooks never fetch a recipe either. A download happens only when a person or an agent runs an explicit command,
   such as `./cook verify`.
 - **Pins are signed.** `./cook wrapper --version <tag>` and `the-cook scaffold` write a pin's checksums only after
@@ -282,10 +284,12 @@ Every clone runs the release of `the-cook` that `.cook/wrapper.yaml` pins, throu
   so two files never answer the same question.
 - **`COOK_BINARY` bypasses the pin.** It makes the wrapper run any binary, unverified. Keep it for air-gapped
   machines and for development of `the-cook` itself; never set it in a shared shell profile or in CI.
-- **Fetched recipes are pinned by hash.** A [fetched recipe](recipes.md#fetched-recipes) is downloaded only by an
-  explicit `./cook recipe fetch` or `recipe apply`, cached outside the repository and verified against the `sha256`
-  in the profile on every load; a mismatch exits 1. Review a change to its `source`, `version` or `sha256` like a
-  dependency bump. A fetched recipe cannot take a builtin recipe's name.
+- **Recipes are pinned by hash.** Every [recipe](recipes.md) comes from a cookbook and is downloaded only by an
+  explicit `./cook recipe pin`, `recipe fetch`, `recipe apply` or `scaffold --cookbook`, cached outside the repository
+  and verified against the `sha256` in the profile on download and on every load; a mismatch exits 1 and the archive
+  is unused. Review a change to a recipe's `source`, `version` or `sha256` like a dependency bump, and read the recipe
+  with `./cook recipe show <name>` before approving it. Two `recipes:` entries with the same name are a validation
+  error.
 - **Workers cannot swap the binary.** The tamper check restores `cook` and `wrapper.yaml` before the agent starts
   and fails an attempt that changed them, and a failed attempt returns the checkout to the base commit, so the next
   worker a loop runner starts through `./cook` runs the pinned release.
@@ -308,8 +312,8 @@ Every clone runs the release of `the-cook` that `.cook/wrapper.yaml` pins, throu
 
 ## Importing personal scopes
 
-`the-cook scaffold --adopt --import local,user` reads `.claude/settings.local.json`, `.codex/*.local.toml`,
-`~/.claude/settings.json` and `~/.codex/rules/` ([scaffold](scaffold.md#adopt)). What it imports becomes committed
+`the-cook scaffold --adopt --import local,user` reads each declared agent's local override files and user-scope
+permission files, as its harness recipe names them ([scaffold](scaffold.md#adopt)). What it imports becomes committed
 and shared with everyone who clones the repository.
 
 Personal settings accumulate entries nobody chose for a team:
@@ -329,16 +333,14 @@ or an upgrade, read:
 
 | File | Look for |
 | --- | --- |
-| `.claude/settings.json` (`permissions`, hook entries) | new `allow` entries and their breadth; entries that left `deny` or `ask`; new hook commands |
-| `.codex/rules/the-cook.rules` | the same decisions as Claude Code; a deny present for Claude Code but missing here is Claude-only |
-| `.codex/hooks.json`, `.codex/config.toml` | hook entries and the keys that enable them |
-| The `policy` block in `AGENTS.md` | Claude-only entries; the floor rules, each with the recipe it comes from |
-| `recipes` and `vcs` in `.cook/config.yaml` | a recipe added or removed: removing one removes its renders and its floor rules; a fetched recipe's `source`, `version` or `sha256` changing |
+| Each agent's rendered permissions and hook entries, as its harness recipe's [renders](recipes.md#renders) name them | new `allow` entries and their breadth; entries that left `deny` or `ask`; new hook commands and the keys that enable them; a deny present in one agent's file and missing in another's is an entry that agent cannot express |
+| The `policy` block in `AGENTS.md` | entries marked as not enforced in an agent; the floor rules, each with the recipe it comes from |
+| `recipes` and `vcs` in `.cook/config.yaml` | a recipe added or removed: removing one removes its renders and its floor rules; a recipe's `source`, `version` or `sha256` changing, read with `./cook recipe show <name>` before approving |
 | `.cook/hooks.yaml` | new or changed `post_edit` hooks and `lifecycle`, `attention` and `turn_end` actions, especially `auto: true`, `agent` actions and their prompts, and the variables `http` actions read |
 | `commands`, `verify.lanes` and `verify.validators` in `.cook/config.yaml` | new or changed lint and build commands, lanes and validators, such as those `the-cook recipe apply` adds: `the-cook verify` and the agent hooks run them with the credentials of the person or agent at work |
 | `context` in `.cook/config.yaml`, the `context` block in `AGENTS.md` | new or changed entries, the files and skills they inject, and which roles they reach |
 | `.agents/skills/` | a skill's content changing, from the source you expect |
-| A file a recipe's template seeded, such as `.ralph-tui/config.toml` | every agent's command still runs `./cook worker`, and no setting turns permission checks off. `the-cook` reads none of it, so this review is the check before the first task |
+| A file a recipe's template seeded, such as a loop runner's configuration | every agent's command still runs `./cook worker`, and no setting turns permission checks off. `the-cook` reads none of it, so this review is the check before the first task |
 | `.cook/wrapper.yaml` | a version change you intended, with checksums that match the release's published checksum file; a `source` that moved |
 | `cook` | changes only together with an upgrade whose release brings a new wrapper |
 
@@ -350,28 +352,28 @@ instead of shipping.
 - [ ] Everything is committed, `.cook/` and `.agents/` changes included; `./cook render --check` exits 0.
 - [ ] `./cook version` succeeds on the machine that runs, so hooks find the pinned binary in the cache;
       `COOK_BINARY` is unset.
-- [ ] `the-cook doctor` reports no finding: the versions of the programs the recipes in use describe, git and the
-      agents included; programs the declared commands and actions name; a program detected while its recipe, and so
-      its floor, is not in use; drift.
-- [ ] Every fetched recipe the run uses is in the cache (`./cook recipe fetch`); a worker never fetches.
+- [ ] `the-cook doctor` reports no finding: the versions of the programs the recipes in use describe, the version
+      control program and the agents included; a contract no declared recipe fills; programs the declared commands
+      and actions name; a program detected while its recipe, and so its floor, is not in use; drift.
+- [ ] Every recipe the run uses is in the cache (`./cook recipe fetch`); a worker never fetches.
 - [ ] The loop runner's configuration names `./cook worker` as every agent's command and adds no bypass flag.
       What runs outside `the-cook worker` is yours to check; `the-cook` does not.
 - [ ] The folder is trusted by the agent; the run's workspaces are nested in the primary checkout.
-- [ ] Settings outside the policy are known: `settings.local.json`, user and managed settings neither widen nor
+- [ ] Settings outside the policy are known: local override files, user and managed settings neither widen nor
       narrow what the run needs.
 - [ ] Every `ask` entry the run reaches is a stop you want.
 - [ ] Every `allow` entry is one you accept with no judgement applied.
-- [ ] `worker.deny` lists commits, pushes, refs and workspaces, `git -C`/`git -c`, the hosting platform's CLI, shared
-      local services, production and cloud.
+- [ ] `worker.deny` lists commits, pushes, refs and workspaces, version-control options that act on another checkout
+      or override its configuration, the hosting platform's CLI, shared local services, production and cloud.
 - [ ] `the-cook lifecycle list` shows only automatic actions you accept, for the scopes the run reaches, and no
       automatic `agent` action you have not chosen.
 - [ ] A `blocked` action tells a person when the run stops, whatever drives the run fires it
       (`./cook lifecycle run blocked --scope run`), and the variables it reads are set in that shell.
 - [ ] `./cook context show --role worker` shows the standing context you expect the workers to receive.
 - [ ] The shell holds no production or administrator credentials; environment files point at local services.
-- [ ] Tasks are scoped (with ralph-tui and Beads, `ralph-tui run --epic <id>`), self-contained, and their text was
-      written or read by a person.
+- [ ] Tasks are scoped to one set the loop runner takes, self-contained, and their text was written or read by a
+      person.
 - [ ] Parallel workers do not share ports, databases or containers they would collide on.
 - [ ] Delivery is decided before launch: per task, per run, or after judgement by a coordinating agent, and the
       boundary is stated (branch, pull request, CI trigger, auto-merge).
-- [ ] The loop runner's iteration budget is set, such as ralph-tui's `--iterations`.
+- [ ] The loop runner's iteration budget is set.

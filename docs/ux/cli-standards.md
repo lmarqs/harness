@@ -70,13 +70,14 @@ binary also enforces the [`deliver` guards](../features/lifecycle.md#built-in-gu
 ## Reference surface
 
 ```text
-the-cook scaffold [--adopt] [--import <scope>[,<scope>]...] [--recipe <name>]... [--no-detect] [--vcs <name>]
-                 [--offline] [--yes] [--dry-run]
+the-cook scaffold [--adopt] [--import <scope>[,<scope>]...] [--cookbook <source>@<version>] [--recipe <name>]...
+                 [--no-detect] [--vcs <name>] [--offline] [--yes] [--dry-run]
 the-cook remove [--module <name>]... [--force] [--dry-run]
 the-cook remove --eject [--force] [--dry-run]
 the-cook render [--check] [--dry-run]
-the-cook recipe list
-the-cook recipe show <name>
+the-cook recipe list [--cookbook <source>@<version>]
+the-cook recipe show <name> [--cookbook <source>@<version>]
+the-cook recipe pin <name>... --cookbook <source>@<version> [--yes] [--dry-run]
 the-cook recipe apply <name>... [--yes] [--dry-run]
 the-cook recipe fetch
 the-cook doctor [--json]
@@ -101,18 +102,19 @@ the-cook hook
 
 | Command or flag | Behaviour governed by these standards |
 | --- | --- |
-| `scaffold` | refuses, exit 3, where a `.cook/` directory exists without a `config.yaml` or `manifest.json` of `the-cook` (a directory another program created), naming the conflict, because `the-cook` never writes into a directory it did not create. Pins the running binary's own version: it fetches that release's signed checksum file over HTTPS, verifies the signature with the keys embedded in the running binary, and writes `wrapper.yaml` only then; it exits 1 when the file is unreachable or the signature does not verify, and writes nothing. With `--offline` it makes no network request and writes the pin with `checksums: pending`, which admits no download until `the-cook wrapper --version <tag>` completes it; a pending pin is opt-in so that a network failure never produces one unnoticed. Applies the recipes whose detect rule matches the repository (`.git`: git; `.claude/`: claude; `.codex/`: codex; a stack's marker files: its stack recipe) to the files it seeds, as `recipe apply` does, and names the version-control recipe in the profile (`vcs: git`). `--recipe <name>`, repeatable, adds a recipe to the detected set; `--no-detect` applies only the recipes `--recipe` names, plus git unless `--vcs <name>` names another version-control recipe |
-| `scaffold --adopt --import <scope>[,<scope>]...` | imports existing permission and hook configuration into `policy.yaml` and `hooks.yaml`. `--import` takes a comma-separated set from the closed enumeration `project`, `local`, `user`, `none`; the default is `project` with `--adopt` and `none` without it. Imports from `local` and `user` are marked for review in the to-do ([compatibility-standards.md](compatibility-standards.md#adoption-equivalence)). Besides the native settings its harness recipes name for import, it reads no program's configuration, and it never reads or moves `.ralph-tui/` or `.beads/` |
+| `scaffold` | refuses, exit 3, where a `.cook/` directory exists without a `config.yaml` or `manifest.json` of `the-cook` (a directory another program created), naming the conflict, because `the-cook` never writes into a directory it did not create. Pins the running binary's own version: it fetches that release's signed checksum file over HTTPS, verifies the signature with the keys embedded in the running binary, and writes `wrapper.yaml` only then; it exits 1 when the file is unreachable or the signature does not verify, and writes nothing. With `--offline` it makes no network request and writes the pin with `checksums: pending`, which admits no download until `the-cook wrapper --version <tag>` completes it; a pending pin is opt-in so that a network failure never produces one unnoticed. With `--cookbook <source>@<version>`, it pins and applies, in one plan and one confirmation, every recipe of that tag whose detect rule matches the repository, as `recipe pin` and `recipe apply` do, and names the version-control recipe among them in the profile (`vcs:`); `--recipe <name>`, repeatable, adds a recipe of the tag to the detected set, and `--no-detect` pins and applies only the recipes `--recipe` names. Without `--cookbook` it writes an empty `recipes:`, and its to-do lists each contract no recipe fills and the commands that need it |
+| `scaffold --adopt --import <scope>[,<scope>]...` | imports existing permission and hook configuration into `policy.yaml` and `hooks.yaml`. `--import` takes a comma-separated set from the closed enumeration `project`, `local`, `user`, `none`; the default is `project` with `--adopt` and `none` without it. Imports from `local` and `user` are marked for review in the to-do ([compatibility-standards.md](compatibility-standards.md#adoption-equivalence)). Besides the native settings its harness recipes name for import, it reads no program's configuration, and it never reads or moves a loop runner's or a tracker's files |
 | `remove` | undo: deletes owned content (without `--module`, `cook`, `wrapper.yaml` and the manifest included) and the seeded repository files in `.cook/` (listed first in its output); deletes a seeded file outside `.cook/`, such as a memory skeleton file, only while it matches its recorded hash; lists and leaves any file the manifest does not record, and deletes `.cook/` once nothing else is in it; removes every managed block and owned native key and entry; writes imported project-scope settings back as plain native settings; leaves the state directories in place and lists them ([generated-content-standards.md](generated-content-standards.md#removal)) |
 | `remove --eject` | eject: stops managing and keeps the result. Convention blocks lose their markers and stay; tool blocks are removed; `.gitignore` entries stay; rendered native files and keys stay as hand-owned content without their headers; `raw` hooks stay; hooks that call `the-cook` and permission entries that name a `the-cook` command are removed and listed; the shipped skill and its links, `cook`, and the owned and seeded files in `.cook/` are removed; a file the manifest does not record is listed and left, and `.cook/` is deleted once nothing else is in it. Not combined with `--module`; accepts `--force` |
 | `wrapper` | without flags, prints the pin, whether it is cached and the newest release, and writes nothing |
 | `wrapper --version <tag>`, `wrapper --latest` | the running binary fetches the target release's signed checksum file and verifies the signature with its embedded keys; only then does it download this platform's asset, verify its sha256, and have the new release write `version` and `checksums` into `.cook/wrapper.yaml` and render the repository: `cook`, the shipped skill and every other artefact the new release renders differently. Any failure exits 1 and writes nothing. The pin and its rendered effects reach review as one diff ([ADR 0017](../adrs/0017-engine-version.md)). `the-cook fleet wrapper --version <tag> --deliver` does the same across repositories |
 | `explain <topic>` | prints the built-in documentation for one topic: `layout`, `profile`, `policy`, `hooks`, `lifecycle`, `context`, `adoption`, `verify`, `worker`, `invariants`, `blocks`, `recipes`, `wrapper`, `safety`, `pitfalls` |
 | `context show` | prints, without writing anything, the standing context that would be injected for a role (`interactive` or `worker`, default `interactive`), given the files read or edited (`--path`) and a prompt (`--prompt`), with the entry and trigger behind each item. It is a deterministic preview of what the hooks inject |
-| `recipe list` | prints the builtin recipes of the running release and the fetched recipes the profile declares, each with whether its detect rule matches the repository and whether it is in `recipes:`; writes nothing |
-| `recipe show <name>` | prints what the recipe holds: its entries, as the YAML it would add, grouped by file; its templates; its renders and floor rules; the contract it fills; its checks; writes nothing; an unknown name exits 1 |
-| `recipe apply <name>...` | applies the named recipes, in order, to an adopted repository: needs `.cook/config.yaml` (otherwise exit 1, naming `the-cook scaffold`); adds each name to `recipes:`; adds to `.cook/config.yaml`, `.cook/policy.yaml` and `.cook/hooks.yaml` only what they lack, never replacing an item the repository names and reporting each item it kept, and writes each template whose file is absent ([configuration-standards.md](configuration-standards.md#recipes)); shows the additions as a diff and asks; then writes them and renders the repository as `render` does. A fetched recipe is applied only once the profile declares it with its `source`, `version` and `sha256`, and is fetched first when it is not in the cache. Nothing to add exits 0; `--json` lists the entries added and the items kept |
-| `recipe fetch` | downloads every fetched recipe the profile declares that is not in the per-user cache, verifies each against its `sha256` and stores it under its hash; a mismatch exits 1 and stores nothing. It writes nothing in the repository. It is the only command besides `recipe apply` that fetches a recipe |
+| `recipe list` | prints the recipes `recipes:` declares, with their pins and whether each is cached; with `--cookbook <source>@<version>`, prints that tag's recipes and which detect rules match the repository; writes nothing |
+| `recipe show <name>` | prints what a declared recipe holds, or with `--cookbook <source>@<version>` one from that tag: its entries, as the YAML it would add, grouped by file; its templates; its renders and floor rules; the contract it fills, with its schema and contract version; its checks; writes nothing; an unknown name exits 1 |
+| `recipe pin <name>... --cookbook <source>@<version>` | downloads the tag's `checksums.txt` and the named archives over HTTPS, verifies each archive against it, shows the `recipes:` entries to add or move as a diff and asks; then writes them, caches the archives and renders, so the declaration and its rendered effect are one diff. A newer version moves a pin. It writes no entries and no templates. `--yes` and `--dry-run` as elsewhere; without a terminal and without `--yes`, exit 3 |
+| `recipe apply <name>...` | applies the named recipes, in order, to an adopted repository: needs `.cook/config.yaml` (otherwise exit 1, naming `the-cook scaffold`) and every name declared in `recipes:` (otherwise exit 1, naming `the-cook recipe pin`); adds to `.cook/config.yaml`, `.cook/policy.yaml` and `.cook/hooks.yaml` only what they lack, never replacing an item the repository names and reporting each item it kept, and writes each template whose file is absent ([configuration-standards.md](configuration-standards.md#recipes)); shows the additions as a diff and asks; then writes them and renders the repository as `render` does. A declared recipe that is not in the cache is fetched first. Nothing to add exits 0; `--json` lists the entries added and the items kept |
+| `recipe fetch` | downloads every recipe `recipes:` declares that is not in the per-user cache, verifies each against its `sha256` and stores it under its hash; a mismatch exits 1 and stores nothing. It writes nothing in the repository. Besides it, only `recipe pin`, `recipe apply` for an uncached recipe, `scaffold --cookbook` and `--cookbook` reads of `recipe list` and `recipe show` download recipes |
 | `lifecycle list` | prints every lifecycle event (the out-of-band `blocked` included), its actions, their kinds, `auto` flags and scopes |
 | `lifecycle run <event>` | runs the event's declared actions, in declaration order, for one scope; never asks for confirmation; refuses, exit 3, inside a worker or an `agent` action, and for `completed` with scope `task` without a valid receipt when the verify module is enabled, whoever fires it |
 | `workspace create <name> --task <id>` | records the free-form task id with the workspace; every event fired in that workspace carries it as `COOK_TASK`, beside the `COOK_ACTOR` every managed workspace has, and `start` fires with scope `task` (without `--task`, with scope `change`) |
@@ -135,22 +137,22 @@ releases while serving no team that picked another.
 
 `the-cook worker` is the command another tool's configuration names when it starts an agent for one task, such as the
 agent command of a loop runner. It runs the agent under the
-[worker contract](../features/ralph.md#the-worker-contract) and reports the outcome through its exit code, its output
+[worker contract](../features/worker.md#the-worker-contract) and reports the outcome through its exit code, its output
 and the lifecycle events it fires.
 
 | Part | Contract |
 | --- | --- |
-| `<agent>` | an agent the profile declares, such as `claude` or `codex`; its harness recipe (`agents.<name>.recipe`, default: the agent's name) says how to start it |
+| `<agent>` | an agent the profile declares; its harness recipe (`agents.<name>.recipe`, default: the agent's name) says how to start it |
 | `--commit` | on a verified attempt, commit the work in the checkout with the verification summary in the commit body |
-| `--withhold <text>` | remove every occurrence of the text from the output of an attempt that failed, so a completion signal the caller expects reaches it only from a verified attempt; for example the agent command the `ralph-tui` recipe writes passes `--withhold '<promise>COMPLETE</promise>'` |
+| `--withhold <text>` | remove every occurrence of the text from the output of an attempt that failed, so a completion signal the caller expects reaches it only from a verified attempt; for example the agent command a loop runner's recipe writes passes `--withhold` with that loop runner's completion marker |
 | agent arguments | the first argument the worker does not recognise, and everything after it, or everything after `--`, goes to the agent; an argument the agent's harness recipe marks as a floor bypass argument is refused |
-| exit code | 0 verified; 1 refused (uncommitted changes, a floor bypass argument, a recipe whose content does not match its `sha256`) or a failed attempt (tamper check, a base that cannot be read, missing, malformed or failing receipt); 3 a prerequisite is missing (the agent's program, the version-control recipe's program, or a fetched recipe that is not in the cache: run `./cook recipe fetch`) |
+| exit code | 0 verified; 1 refused (uncommitted changes, a floor bypass argument, a recipe whose content does not match its `sha256`) or a failed attempt (tamper check, a base that cannot be read, missing, malformed or failing receipt); 3 a prerequisite is missing (the agent's program, the version-control recipe's program, a pinned recipe that is not in the cache: run `./cook recipe fetch`, or a contract no declared recipe fills: run `./cook recipe pin`) |
 | output | the agent's output, buffered and printed after the attempt; on failure the full output is kept in `last-worker-output` and the attempt's changes in `last-attempt.patch`, in the checkout's state directory, and the checkout returns to its base |
 | environment given to the agent | `COOK_WORKER=1`; `COOK_TASK` when the checkout is a managed workspace created with `--task`, otherwise unset |
 | events | after a verified attempt in a checkout bound to a task (`COOK_TASK` set), `completed` with scope `task`, then `deliver` with scope `task` when the work is concluded, both fired in the worker's own process; in an unbound checkout, such as a loop runner's workspace, none |
 
 - Before anything else, the worker command resolves the version-control recipe and the agent's harness recipe from the
-  release or the per-user cache, and uses that resolution for every read, comparison, reset and launch of the attempt.
+  per-user cache, and uses that resolution for every read, comparison, reset and launch of the attempt.
   It never fetches. Why: a recipe fetched during an attempt would hand the attempt to whoever controls its source, and
   one read from the working tree would hand it to the agent ([ADR 0022](../adrs/0022-tool-integration.md)).
 - The worker command's flags, exit codes, output and environment are a stable interface: changing one is a breaking
@@ -172,7 +174,7 @@ command lives without reading help.
 | Shape | Used for | Commands |
 | --- | --- | --- |
 | `the-cook <verb>` | an operation on the repository as a whole | `scaffold`, `remove`, `render`, `doctor`, `verify`, `explain`, `version`, `wrapper` |
-| `the-cook <noun> <verb>` | an operation on one kind of object the repository holds | `workspace create\|remove`, `lifecycle list\|run`, `context show`, `recipe list\|show\|apply\|fetch` |
+| `the-cook <noun> <verb>` | an operation on one kind of object the repository holds | `workspace create\|remove`, `lifecycle list\|run`, `context show`, `recipe list\|show\|pin\|apply\|fetch` |
 | `the-cook fleet <command>` | a repository-level command run across a declared list of repositories | `fleet render`, `fleet doctor`, `fleet scaffold`, `fleet wrapper`, … |
 | `the-cook worker <agent>` | one agent run that `the-cook` performs in place of the agent binary, for another tool that starts agents | `worker claude`, `worker codex` |
 
@@ -199,11 +201,12 @@ Rules:
   before introducing new ones (`recipe list` and `recipe show` reuse `list` and `show`); `delete`, `rm`, `destroy`,
   `init`, `install` and `uninstall` are not used. Why: one verb per meaning keeps the inverse of every command
   guessable.
-- `apply` adds a recipe's name to `recipes:` and writes its entries and template files into the repository's own
-  files, and has no inverse. Why: what it writes becomes the repository's own, like anything it wrote itself. It is
-  changed or removed by editing the files, and removing `the-cook` deletes the entries with the seeded files in
-  `.cook/` and leaves the template files ([ADR 0013](../adrs/0013-organization-content.md)). Deleting the name from
-  `recipes:` and rendering removes only the recipe's renders, which the manifest records under its name.
+- `pin` declares a recipe in `recipes:`, or moves its pin, and renders; deleting the entry and rendering is its inverse.
+  `apply` writes a declared recipe's entries and template files into the repository's own files, and has no inverse.
+  Why: what it writes becomes the repository's own, like anything it wrote itself. It is changed or removed by editing
+  the files, and removing `the-cook` deletes the entries with the seeded files in `.cook/` and leaves the template files
+  ([ADR 0013](../adrs/0013-organization-content.md)). Deleting the name from `recipes:` and rendering removes only the
+  recipe's renders, which the manifest records under its name.
 - Checking is a flag, not a verb: `render --check`, `verify --check`. A command whose only job is to check is
   `doctor`. Why: a check and the operation it checks share their inputs, so they share a command.
 
@@ -377,9 +380,9 @@ who learns the set reads a terminal at a glance, and a message never carries two
 | Code | Meaning | Examples |
 | --- | --- | --- |
 | 0 | success; nothing to report or nothing left to do | `render` wrote or found everything up to date; `doctor` found nothing beyond notes; every action of a `lifecycle run` passed, or the event declares no actions |
-| 1 | error: the command could not do its job | invalid usage, unknown key in a repository file, a state path inside `.cook/` or `.agents/`, I/O failure; `vcs` or an `agents.<name>.recipe` naming a recipe that is not in `recipes:`; an unknown recipe, or `recipe apply` in a repository without `.cook/config.yaml`; a fetched recipe whose content does not match its `sha256`, or that uses a builtin recipe's name; an explicit entry point that cannot obtain the pinned binary (download failure, checksum mismatch); `wrapper --version`, or `scaffold` without `--offline`, meeting a release whose signed checksum file is unreachable or does not verify; `worker` refused its start (uncommitted changes, a floor bypass argument) or its attempt failed (tamper check, a base that cannot be read, missing, malformed or failing receipt) |
+| 1 | error: the command could not do its job | invalid usage, unknown key in a repository file, a state path inside `.cook/` or `.agents/`, I/O failure; `vcs` or an `agents.<name>.recipe` naming a recipe that is not in `recipes:`; an unknown recipe, or `recipe apply` in a repository without `.cook/config.yaml`; a recipe whose archive does not match its `sha256`; two `recipes:` entries with the same name; `recipe apply` naming a recipe `recipes:` does not declare; a recipe whose schema or contract version is newer than the binary supports; an explicit entry point that cannot obtain the pinned binary (download failure, checksum mismatch); `wrapper --version`, or `scaffold` without `--offline`, meeting a release whose signed checksum file is unreachable or does not verify; `worker` refused its start (uncommitted changes, a floor bypass argument) or its attempt failed (tamper check, a base that cannot be read, missing, malformed or failing receipt) |
 | 2 | a check ran and failed | `render --check` found drift, `doctor` reported a finding (a program a recipe or a declared command names that is not on `PATH`, a program whose version is outside its recipe's supported range, a program a recipe's detect rule finds while the recipe is not in use, a skill named in `context` that does not exist under `.agents/skills/`, a pinned release whose signed checksum file no longer matches `wrapper.yaml`), `verify --check` met an invalid receipt; a lifecycle action exited non-zero; `scaffold --adopt` found a project-scope rule no longer in effect |
-| 3 | blocked: the next step is a person's decision | confirmation needed with no TTY and no `--yes`; a prerequisite tool a person must install is missing (a program that a recipe, a declared command or an action names, the agent's program for `the-cook worker`, the version-control recipe's program, the wrapper's downloader or sha256 tool); a fetched recipe is not in the cache when `render` or a `the-cook worker` attempt needs it (run `./cook recipe fetch`; a hook in the same case skips with one stderr line and exits 0); an explicit entry point meets a pending pin whose release is not cached; `remove` refused a hand-edited file without `--force`; `scaffold` found a `.cook/` directory harness did not create; the repository schema is newer than the binary (only when the pin is bypassed); a lifecycle guard refused (`deliver` on the default branch, with uncommitted changes, or, when the verify module is enabled, without a valid receipt; `completed` with scope `task` without a valid receipt when the verify module is enabled; any event inside a worker or an `agent` action) |
+| 3 | blocked: the next step is a person's decision | confirmation needed with no TTY and no `--yes`; a prerequisite tool a person must install is missing (a program that a recipe, a declared command or an action names, the agent's program for `the-cook worker`, the version-control recipe's program, the wrapper's downloader or sha256 tool); a pinned recipe is not in the cache when `render` or a `the-cook worker` attempt needs it (run `./cook recipe fetch`; a hook in the same case skips with one stderr line and exits 0); a command needs the version-control contract or an agent's harness contract and no declared recipe fills it (run `./cook recipe pin`; a hook skips the same way); an explicit entry point meets a pending pin whose release is not cached; `remove` refused a hand-edited file without `--force`; `scaffold` found a `.cook/` directory `the-cook` did not create; the repository schema is newer than the binary (only when the pin is bypassed); a lifecycle guard refused (`deliver` on the default branch, with uncommitted changes, or, when the verify module is enabled, without a valid receipt; `completed` with scope `task` without a valid receipt when the verify module is enabled; any event inside a worker or an `agent` action) |
 
 - Codes 2 and 3 tell an agent what to do next: 2 means "fix the finding and run again"; 3 means "stop and ask a
   person". A new failure mode MUST map to one of the four codes; no other code is used. Why: an agent acts on the
@@ -427,10 +430,10 @@ Format and wording: [messages-and-docs.md](messages-and-docs.md#error-messages).
 
 - A command asks for confirmation only before an action that cannot be undone from the repository's own history, that
   reaches beyond the current repository (`fleet … --deliver`), or that writes into the repository's own files
-  (`scaffold`, `recipe apply`, a schema migration). Why: everything else is reversible from version control, and
-  needless questions train people to answer yes without reading. What `the-cook` writes into the repository's own files
-  becomes the repository's, with nothing marking that `the-cook` wrote it, so the person accepts it while it is still
-  shown as a change.
+  (`scaffold`, `recipe pin`, `recipe apply`, a schema migration). Why: everything else is reversible from version
+  control, and needless questions train people to answer yes without reading. What `the-cook` writes into the
+  repository's own files becomes the repository's, with nothing marking that `the-cook` wrote it, so the person accepts
+  it while it is still shown as a change.
 - `the-cook lifecycle run` never asks for confirmation, and a lifecycle action fired automatically at its trigger point
   (`auto: true`) never asks either. The gate for agents is the policy. Scaffolded repositories seed
   `[the-cook, lifecycle, run, deliver]` under `ask`, rendered for every rendered spelling, as a seeded entry the
@@ -487,7 +490,7 @@ reference, so the prefix alone tells a reader the variable belongs to `the-cook`
 
 | Variable | Read by | Effect |
 | --- | --- | --- |
-| `COOK_HOME` | the wrapper, a global `the-cook` deferring to a pin, and the binary for fetched recipes | cache directory for downloaded releases, fetched recipes (each stored under its sha256), the update-check result and the result of `the-cook doctor`'s signed-checksum check, and nothing else; default `$XDG_CACHE_HOME/the-cook`, falling back to `~/.cache/the-cook`; each release at `<home>/versions/<version>/the-cook` |
+| `COOK_HOME` | the wrapper, a global `the-cook` deferring to a pin, and the binary for recipes | cache directory for downloaded releases, recipe archives (each stored under its sha256), the update-check result and the result of `the-cook doctor`'s signed-checksum check, and nothing else; default `$XDG_CACHE_HOME/the-cook`, falling back to `~/.cache/the-cook`; each release at `<home>/versions/<version>/the-cook` |
 | `COOK_BINARY` | the wrapper | path of a binary to exec instead of the pinned version (air-gapped machines, development of `the-cook` itself); bypasses the pin and its checksum |
 | `COOK_NO_UPDATE_CHECK` | the binary | when on, disables the daily release check |
 | `COOK_NO_CONTEXT` | the binary | when on, disables standing-context injection for the process tree it is set in, for debugging what an agent sees without it |
@@ -528,7 +531,7 @@ Variables set for lifecycle actions:
 | `COOK_WORKSPACE_NAME` | the workspace's name |
 | `COOK_BRANCH` | the work's branch |
 | `COOK_BASE` | the base ref the work started from |
-| `COOK_DEFAULT_BRANCH` | the default branch the version-control recipe reports (`origin/HEAD` with the git recipe) |
+| `COOK_DEFAULT_BRANCH` | the default branch the version-control recipe reports |
 | `COOK_TASK` | the task id, for scope `task`: the id recorded with `workspace create --task`, or given with `--task`; unset in a workspace created without `--task` |
 | `COOK_ACTOR` | the actor of the managed workspace, `<user>:<workspace>:<random>`, recorded when it was created; set in every managed workspace |
 | `COOK_RECEIPT` | path to the receipt JSON |
@@ -579,8 +582,8 @@ caller sees the correct form and where to read more.
   version found and the recipe's supported range, so an unsupported version is found before it renders wrong output.
   A program no recipe in use describes has no version check. `the-cook doctor` also reports a program that a recipe, a
   declared command, lane, validator or action names and that is not on `PATH`, a program whose recipe's detect rule
-  matches while the recipe is not in use, and a fetched recipe as not verified by the release
-  ([ADR 0022](../adrs/0022-tool-integration.md)).
+  matches while the recipe is not in use, and each contract no declared recipe fills, with the commands unavailable
+  because of it ([ADR 0022](../adrs/0022-tool-integration.md)).
 - Rules for what a version promises: [compatibility-standards.md](compatibility-standards.md).
 
 ## Deprecation

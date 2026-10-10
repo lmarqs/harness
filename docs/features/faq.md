@@ -23,9 +23,9 @@ install, `the-cook <command>` is equivalent.
 
 ### Does `the-cook` call a model or host agents?
 
-No. It configures and constrains the tools that do (Claude Code and Codex CLI) and never calls a model. When a loop
-runner, such as ralph-tui, needs an agent for a task, it calls `./cook worker <agent>`, which starts the agent's own
-CLI under the [worker contract](ralph.md#the-worker-contract); an [`agent` action](lifecycle.md) does the same.
+No. It configures and constrains the agent harnesses that do and never calls a model. When a loop runner needs an agent
+for a task, it calls `./cook worker <agent>`, which starts the agent's own CLI under the
+[worker contract](worker.md#the-worker-contract); an [`agent` action](lifecycle.md) does the same.
 
 ### Does it use MCP servers?
 
@@ -68,30 +68,37 @@ No. Nothing in a repository's build, test, deploy or release depends on it. `./c
 
 ### Does it work offline?
 
-Yes, once the pinned release is cached: the wrapper makes no network request after the first download. A machine that
-never has network access uses `COOK_BINARY` or a pre-filled cache
+Yes, once the pinned release and the pinned recipes are cached: the wrapper makes no network request after the first
+download, and only the commands that pin, fetch, apply an uncached recipe or read a cookbook tag download recipes
+([fetching](recipes.md#fetching)). A machine that never has network access uses `COOK_BINARY` or a pre-filled cache
 ([wrapper](wrapper.md#air-gapped-machines)). Adoption works offline too: `the-cook scaffold --offline` writes everything
 and leaves the pin [pending](wrapper.md#a-pending-pin) until a later `the-cook wrapper --version <tag>` with network
 access verifies the release and records its checksums. Complete it before you push.
 
 ### Which agents are supported?
 
-Claude Code and Codex CLI, through the builtin `claude` and `codex` harness recipes, which the project tests against
-those agents. Another agent needs a harness recipe that fills the [harness contract](agents.md#the-harness-contract):
-one a release ships, or one a team writes and the repository declares as a
-[fetched recipe](recipes.md#fetched-recipes). The binary itself has no code for any agent.
+Any agent whose harness a recipe the repository pins describes. The binary has no code or data for any agent: a
+harness recipe fills the [harness contract](agents.md#the-harness-contract), and an agent declaration names it, for
+example an agent `claude` declared with `recipe: claude` pinned from `github:acme/cookbook`. Which agents and versions a
+cookbook covers, and how it tests them, is that cookbook's to say.
 
-### Why git, Claude Code and Codex, and not my version control system or agent?
+### Where do the recipes come from?
 
-Nothing in the binary sets them apart: it contains code for no external program, and git, Claude Code and Codex are
-described by builtin [recipes](recipes.md) exactly like ralph-tui, Beads and mise
-([ADR 0022](../adrs/0022-tool-integration.md)). They are the programs the release ships recipes for. Another
-version control system needs a recipe that fills the
-[version-control contract](recipes.md#the-version-control-contract), named with `vcs:` in the profile; another agent
-needs a harness recipe. A team writes the recipe as data, publishes it, and each repository declares it under
-`recipes:` with its `source`, `version` and `sha256`, then caches it with `./cook recipe fetch`. `the-cook doctor`
-notes such a recipe as not verified by the release: the project's tests do not stand behind it, and its author owns
-its floor rules.
+From cookbooks. A cookbook is a published collection of recipes, and each of its tags publishes one archive per recipe
+and a `checksums.txt` listing their sha256. A repository pins every recipe it uses in `recipes:` with its `name`,
+`source` (the cookbook), `version` (the tag) and `sha256`; `./cook recipe pin <name>... --cookbook <source>@<version>`
+verifies the archives against that tag's checksums and writes the entries as a diff to review. `the-cook` ships no
+recipe and names no default cookbook, so a repository may pin from any number of cookbooks, its own included
+([cookbooks](recipes.md#cookbooks), [pinning](recipes.md#pinning)).
+
+### Can I use my own version control system or agent?
+
+Yes. Nothing in the binary sets any program apart: it contains code and data for no external program
+([ADR 0022](../adrs/0022-tool-integration.md)). A version control system needs a recipe that fills the
+[version-control contract](recipes.md#the-version-control-contract), named with `vcs:` in the profile; an agent needs a
+harness recipe. A team writes the recipe as data, publishes it in a cookbook, and each repository pins it with
+`./cook recipe pin`. Reviewing the pin is the trust decision: `./cook recipe show <name>` prints everything the recipe
+runs and renders, its floor rules included.
 
 ### Does `the-cook` work with my loop runner or tracker?
 
@@ -99,22 +106,21 @@ Yes, with any that runs a command. The binary contains code for no external prog
 as data: a recipe's entries, templates and renders, a declared command or a lifecycle action
 ([ADR 0022](../adrs/0022-tool-integration.md)). A loop runner names `./cook worker <agent>` as its agent command. A
 tracker is updated by lifecycle actions on `start`, `completed` and `blocked` that read `COOK_TASK` and
-`COOK_ACTOR` in a workspace created with `--task`. Two builtin recipes write those entries for you,
-`./cook recipe apply ralph-tui` and `./cook recipe apply beads` ([recipes](recipes.md)). For any other tool,
-declare the action yourself, for example a `completed` action that runs `gh issue close "$COOK_TASK"`, or write a
-recipe that holds it.
+`COOK_ACTOR` in a workspace created with `--task`. A recipe for the program can write those entries for you: pin it
+from a cookbook and apply it with `./cook recipe apply <name>` ([recipes](recipes.md)). Otherwise declare the action
+yourself, for example a `completed` action that runs `./scripts/close-task "$COOK_TASK"`, or write a recipe that holds
+it.
 
-### Does it work without mise?
+### Does it depend on a task runner or a tool-version manager?
 
-Yes. The binary has no code for mise, a tool-version manager and task runner; the `mise` recipe describes it, and its
-floor rule denies agents mise's `:::` task chaining in a repository that uses the recipe. mise is also one way to
-install `the-cook` globally (`mise use -g github:lmarqs/the-cook@<tag>`); nothing else depends on it. Commands run as
-`./cook <command>`, and the wrapper needs no mise ([compatibility](compatibility.md#mise)).
+No. The binary has code for neither; a repository that uses one may pin a recipe that describes it, whose floor rules
+then apply to agents there. Commands run as `./cook <command>`, and the wrapper needs only the shell, download and
+checksum tools named above ([compatibility](compatibility.md)).
 
 ### Does it support monorepos?
 
-It operates at the repository root, as the version-control recipe reports it: one profile, policy and hooks file per
-repository ([compatibility](compatibility.md#monorepos)).
+It operates at the repository root, the nearest directory upward that holds `.cook/config.yaml`: one profile, policy
+and hooks file per repository ([compatibility](compatibility.md#monorepos)).
 
 ### Does it run on Windows?
 
@@ -136,10 +142,11 @@ pin, the manifest. `.agents/` is the cross-tool home of agent content (skills, m
 guide) that other tools read too and that stays meaningful without `the-cook`. State lives in neither
 ([concepts](concepts.md#two-directories-two-owners)).
 
-### Can I edit `.claude/settings.json` by hand?
+### Can I edit an agent's native settings by hand?
 
-Yes, outside the keys `the-cook` owns (`permissions.*` and its hook entries). Everything else is preserved byte for
-byte. Personal settings belong in `.claude/settings.local.json`, which `the-cook` never writes.
+Yes, outside the keys and entries `the-cook` owns there, which the agent's harness recipe renders and the manifest
+records. Everything else is preserved byte for byte. Personal settings belong in the file the harness keeps for local
+settings, which `the-cook` never writes.
 
 ### I edited inside a managed block and my text disappeared.
 
@@ -153,28 +160,27 @@ review.
 ### How do I stop using it?
 
 Two ways ([remove](remove.md)). `./cook remove` undoes the adoption: it deletes what `the-cook` added and writes back
-the permission rules and hooks adoption imported. `./cook remove --eject` stops `the-cook` managing the repository
-and keeps the result: the conventions in `AGENTS.md` and `.gitignore`, the permissions and the `raw` hooks stay as
-hand-owned files. Both delete `cook` and the files in `.cook/` that `the-cook` owns or seeded, then `.cook/`
-once it is empty. A file the manifest does not record, such as a `README.md` a person added to `.cook/`, is listed
-and left.
+the permission rules and hooks adoption imported. `./cook remove --eject` stops `the-cook` managing the repository and
+keeps the result: the conventions in `AGENTS.md` and the ignore file, the permissions and the `raw` hooks stay as
+hand-owned files. Both delete `cook` and the files in `.cook/` that `the-cook` owns or seeded, then `.cook/` once it is
+empty. A file the manifest does not record, such as a `README.md` a person added to `.cook/`, is listed and left.
 
 ### Does anything keep working after an eject?
 
 Yes. Agents keep their permissions and `raw` hooks from the native files, and the convention blocks stay in `AGENTS.md`
-and `.gitignore` as plain text, so people and agents still find workspaces and state where they were. The tool blocks,
-which describe how to use `the-cook`, are removed, so nothing left names a command that is gone. What stops is
+and the ignore file as plain text, so people and agents still find workspaces and state where they were. The tool
+blocks, which describe how to use `the-cook`, are removed, so nothing left names a command that is gone. What stops is
 everything `the-cook` runs: the wrapper, verification receipts, lifecycle events, `the-cook worker` and its contract,
-injected standing context and the hooks that called `the-cook`. Templates a recipe wrote stay as they are, so a
-`.ralph-tui/config.toml` whose agent command is `./cook worker` needs a new agent command.
+injected standing context and the hooks that called `the-cook`. Templates a recipe wrote stay as they are, so a loop
+runner's configuration whose agent command is `./cook worker` needs a new agent command.
 
 ## Policy
 
 ### Can a repository remove the force-push deny?
 
-No. It is a [floor rule](recipes.md#the-floor) of the git recipe: rendered into every agent's output on every render,
-never written into `.cook/policy.yaml`, and out of reach of every repository file. Floor rules are deliberately
-few: only what is unsafe in every repository that uses the program.
+No. It is a [floor rule](recipes.md#the-floor) of the version-control recipe that marks it: rendered into every agent's
+output on every render, never written into `.cook/policy.yaml`, and out of reach of every repository file. Floor rules
+are deliberately few: only what is unsafe in every repository that uses the program.
 
 ### Why is my organization's deny list not built in?
 
@@ -186,31 +192,33 @@ they never use ([ADR 0013](../adrs/0013-organization-content.md)). Write the den
 ### How do we share our organization's choices across repositories?
 
 Write them into each repository. What `the-cook` renders and runs in a repository comes only from that repository's
-files, the release it pins and the fetched recipes it pins by hash, so a reviewer and an agent working there can read
+files, the release it pins and the recipes it pins by hash, so a reviewer and an agent working there can read
 every rule that applies, and the same commit renders the same bytes on every machine
 ([ADR 0013](../adrs/0013-organization-content.md)).
 
 - **Choices that take judgement**, such as which MCP tools agents may read without asking, a deny on each repository's
   deploy command, a CI trigger in delivery or the task tracker its repositories use: publish a skill that describes
-  them, install it with `npx skills add acme/agent-skills`, and have an agent following it change each repository's
+  them, install it with the team's skills installer, and have an agent following it change each repository's
   `.cook/policy.yaml`, `.cook/hooks.yaml` or profile. Each repository reviews the change as a diff, so two
   repositories can hold different entries for the same choice when they need to.
-- **`the-cook` commands**, such as applying a stack recipe or moving to a new release: run them across repositories
-  with [`the-cook fleet`](fleet.md), for example `the-cook fleet recipe apply node --yes --deliver` with a fleet file
-  of Node repositories.
-- **Stack facts**, such as how to lint, test and build a Node project: these are the builtin
-  [stack recipes](recipes.md#stack-recipes), which `scaffold` applies when their detect rule matches and
-  `the-cook recipe apply` applies on request.
+- **`the-cook` commands**, such as pinning a stack recipe or moving to a new release: run them across repositories
+  with [`the-cook fleet`](fleet.md), for example
+  `the-cook fleet recipe pin node --cookbook github:acme/cookbook@v1.2.0 --yes --deliver` with a fleet file of Node
+  repositories.
+- **Stack facts**, such as how to lint, test and build a Node project: these come from a stack recipe in a cookbook,
+  which `scaffold --cookbook` pins and applies when its detect rule matches and `the-cook recipe pin` and
+  `the-cook recipe apply` add on request ([recipes](recipes.md)).
 
 ### An allowed command still prompts. Why?
 
 An `ask` or `deny` entry also matches (deny > ask > allow), or the agent does not trust the folder. The
 `policy` block in `AGENTS.md` shows the effective policy and where each entry comes from.
 
-### Why does Codex not enforce one of my denies?
+### Why does one agent not enforce one of my denies?
 
-Bare strings and native rule strings other than a plain `Bash(<words> *)` prefix are Claude-only; Codex cannot match
-them. The `policy` block in `AGENTS.md` lists them as Claude-only. Express the rule as a prefix list
+A bare string or a native rule string renders only for the agents whose harness recipe can express it; an agent whose
+harness matches only command prefixes cannot enforce it. The `policy` block in `AGENTS.md` lists, for each such entry,
+the agents it does not reach. Express the rule as a prefix list, which every harness recipe renders
 ([policy](policy.md#entry-forms)).
 
 ### Does adoption lose any of our permission rules?
@@ -222,8 +230,8 @@ floor rule of a recipe in use, such as allowing a force push to the default bran
 
 ### How do I let agents use a read-only MCP tool without a prompt?
 
-Add a native rule string under `shared.allow`, such as `"mcp__github__get_*"`. It renders verbatim for Claude Code;
-Codex has no equivalent, and the `policy` block lists it as Claude-only.
+Add a native rule string under `shared.allow`, in the syntax of the agent's harness. It renders verbatim for the agents
+whose harness recipe accepts it, and the `policy` block lists the agents it does not reach.
 
 ## Verification and tasks
 
@@ -239,24 +247,25 @@ evidence ([verify](verify.md#lane-rules)).
 Committing does not invalidate it. Editing, adding, deleting or `chmod`-ing a changed file does, and so does rebasing
 onto new commits ([verify](verify.md#freshness)).
 
-### Are tasks the same as GitHub issues?
+### Are tasks the same as issues on the hosting platform?
 
-A task is whatever the team's tracker holds, named by the free-form id given to `the-cook workspace create --task`: a
-bead, a story in a JSON list, or an issue. The binary never writes GitHub issues or projects. A repository that wants an
-issue closed when its task completes declares an action that does it ([tasks](tasks.md)).
+A task is whatever the team's tracker holds, named by the free-form id given to `the-cook workspace create --task`: an
+entry in a tracker's database, a story in a JSON list, or an issue. The binary never writes issues or projects on any
+hosting platform. A repository that wants an issue closed when its task completes declares an action that does it
+([tasks](tasks.md)).
 
-### I already sync Beads across machines. Will `the-cook` break that?
+### I already sync my tracker across machines. Will `the-cook` break that?
 
-No. Beads keeps its tasks in a `.beads/` database in the clone, and `the-cook` has no code for it: it never initialises,
-configures or reads a Beads database. The `beads` recipe adds only lifecycle actions that run `bd update`, `bd close`
-and `bd comments add` on the task a workspace is bound to ([compatibility](compatibility.md#beads)).
+No. `the-cook` has no code for any tracker: it never initialises, configures or reads a tracker's data. A tracker's
+recipe adds only lifecycle actions that run the tracker's own commands on the task a workspace is bound to
+([tasks](tasks.md)).
 
 ## Lifecycle and delivery
 
 ### Does `the-cook` push or open pull requests?
 
 Not by itself. Everything that leaves the clone is a lifecycle action the repository declares in its own
-`.cook/hooks.yaml`, such as `git push` and `gh pr create` under `deliver`. No action runs that the repository does
+`.cook/hooks.yaml`, such as a push and a pull request under `deliver`. No action runs that the repository does
 not declare, and the binary contains no hosting-platform logic ([lifecycle](lifecycle.md)).
 
 ### Can it notify a chat channel when work finishes or an agent needs me?
@@ -272,7 +281,7 @@ Allowing it allows everything the `deliver` actions do: they run as child proces
 per-command permission checks. That is why scaffolded policies start with the command under `ask`. Review the actions
 like code before moving it to `allow` ([safety](safety.md)).
 
-### Can a Ralph worker deliver its own work?
+### Can a worker deliver its own work?
 
 No. The binary refuses `the-cook lifecycle run` while `COOK_WORKER=1` is set, whatever spelling the agent uses, and
 the binary also renders `[the-cook, lifecycle]` into every worker's denies, for each spelling `the-cook` renders. When
@@ -280,15 +289,14 @@ the checkout is bound to a task, `the-cook worker` fires `completed` and then `d
 process, after the agent has exited and the replayed checks have passed. In a workspace not bound to a task, such as a
 loop runner's, it fires no event.
 
-## Ralph
+## Unattended runs
 
-### Can Ralph workers run with `--dangerously-skip-permissions`?
+### Can a worker run its agent with permission checks bypassed?
 
-Not under `the-cook worker`. It refuses every argument the agent's harness recipe marks as a floor bypass argument, such
-as `--dangerously-skip-permissions` for Claude Code or `--yolo` for Codex, with exit 1 naming the argument, so a loop
-runner configured to pass one fails at its first task. An agent a person starts some other way, for example from their
-own ralph-tui configuration, is outside `the-cook`, which neither detects nor prevents it
-([ADR 0022](../adrs/0022-tool-integration.md)).
+Not under `the-cook worker`. It refuses every argument the agent's harness recipe marks as a floor bypass argument with
+exit 1 naming the argument, so a loop runner configured to pass one fails at its first task. An agent a person starts
+some other way, for example from their own loop-runner configuration, is outside `the-cook`, which neither detects nor
+prevents it ([ADR 0022](../adrs/0022-tool-integration.md)).
 
 ### Why does the worker replay verification instead of trusting the receipt?
 
@@ -303,25 +311,25 @@ a task, `the-cook worker` fires no event, and the run ends with its verified com
 drives the run fires its events. Most runs need judgement first (which task commits go together, how to word them), so
 a person or a coordinating agent arranges the commits with a skill, then runs
 `./cook lifecycle run completed --scope run` and `./cook lifecycle run deliver --scope run`; the `deliver`
-actions do the rest, for example `git push` and `gh pr create` declared in `.cook/hooks.yaml`
-([ralph](ralph.md#delivery)). In a workspace created with `--task`, `the-cook worker` fires `completed` and, when the
+actions do the rest, for example a push and a pull request declared in `.cook/hooks.yaml`
+([worker](worker.md#delivery)). In a workspace created with `--task`, `the-cook worker` fires `completed` and, when the
 work is concluded, `deliver` itself, both with scope `task`.
 
-### I run ralph-tui directly with my own config. Does `the-cook` interfere?
+### I run my loop runner directly with my own configuration. Does `the-cook` interfere?
 
-No. `the-cook` has no code for ralph-tui and reads no ralph-tui configuration. The `ralph-tui` recipe writes
-`.ralph-tui/config.toml` only when you apply it and the file is absent; an existing file is reported as
-`kept .ralph-tui/config.toml: exists` and left as it is. Agents your configuration starts without `the-cook worker` get
-no worker contract.
+No. `the-cook` has no code for any loop runner and reads no loop runner's configuration. A loop runner's recipe writes
+its configuration template only when you apply it and the file is absent; an existing file is reported as
+`kept <path>: exists` and left as it is. Agents your configuration starts without `the-cook worker` get no worker
+contract.
 
 ## Versions and updates
 
 ### Should we pin the version per repository?
 
-Every repository set up with `the-cook scaffold` is pinned: `.cook/wrapper.yaml` names one release and the checksums
-of its binaries, and both `./cook` and a global install run that release. Within one repository, every machine and
-CI job runs the same version ([wrapper](wrapper.md)). `wrapper.yaml` is the only pin: a global install, through mise or
-a download, defers to it.
+Every repository set up with `the-cook scaffold` is pinned: `.cook/wrapper.yaml` names one release and the checksums of
+its binaries, and both `./cook` and a global install run that release. Within one repository, every machine and CI job
+runs the same version ([wrapper](wrapper.md)). `wrapper.yaml` is the only pin of the release: a global install, however
+it was installed, defers to it. Each recipe has its own pin in `recipes:`.
 
 ### How do I upgrade?
 
@@ -330,12 +338,13 @@ the same change, so the pin and everything the new release renders differently a
 it. `the-cook fleet wrapper --version <tag> --deliver` does the same across many repositories
 ([wrapper](wrapper.md#upgrading)).
 
-### We upgraded, but the new release's recipe entries are not in the repository.
+### We moved a recipe's pin, but its new entries are not in the repository.
 
-A recipe's entries reach a repository only when someone applies it. The upgrade renders the repository's files with the
-new release, so every recipe's renders and floor rules follow the new release, and leaves the entries as they are. Run
-`./cook recipe apply node --dry-run` to see what the newer `node` recipe would add. Without `--dry-run` it shows
-the same diff, asks, adds only what the repository lacks, and renders ([recipes](recipes.md#how-apply-works)).
+A recipe's entries reach a repository only when someone applies it.
+`./cook recipe pin <name> --cookbook <source>@<version>` with a newer version moves the pin and renders, so the recipe's
+renders and floor rules follow the new version, and leaves the entries as they are. Upgrading the release moves no
+recipe pin. Run `./cook recipe apply node --dry-run` to see what the newer `node` recipe would add. Without `--dry-run`
+it shows the same diff, asks, adds only what the repository lacks, and renders ([recipes](recipes.md#how-apply-works)).
 
 ### A teammate's `the-cook` refuses our repository.
 

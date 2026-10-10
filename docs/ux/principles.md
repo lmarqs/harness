@@ -55,9 +55,9 @@ guess made by code is wrong in the first repository nobody anticipated
 
 - Every binary command produces the same result for the same inputs on every supported machine, so a user can read
   the repository files in `.cook/` and know what `the-cook render` will write.
-- When the binary meets something it cannot decide without judgement (an unrecognised hook, a `CLAUDE.md` with
-  content), it MUST NOT guess, because a wrong guess silently rewrites a team's configuration. It
-  leaves the item untouched and lists it as a to-do (`the-cook doctor --json`) that an agent or a person resolves.
+- When the binary meets something it cannot decide without judgement (an unrecognised hook, an agent instruction file
+  with content), it MUST NOT guess, because a wrong guess silently rewrites a team's configuration. It leaves the item
+  untouched and lists it as a to-do (`the-cook doctor --json`) that an agent or a person resolves.
 - Every judgement step an agent performs ends in a deterministic check the binary owns (`the-cook render --check`,
   `the-cook doctor`, `the-cook verify --check`), so the outcome of judgement is still verified.
 
@@ -73,7 +73,7 @@ every model change. A tool that competed with them would carry credentials, cost
 - The binary never calls a model and is never a client of an agent tool server (MCP). Work that needs a model or an MCP
   tool is done by an agent: the [coordinating agent](../features/lifecycle.md#the-lifecycle-stage-by-stage), or an
   `agent` action that `the-cook` starts as a child process under the
-  [worker contract](../features/ralph.md#the-worker-contract). Why: the agent owns those connections, their credentials
+  [worker contract](../features/worker.md#the-worker-contract). Why: the agent owns those connections, their credentials
   and their permissions.
 - The binary never writes knowledge: no free prose, no memory entries, no domain skills, no policy entries invented on
   the user's behalf, because knowledge needs judgement. It writes rendered files, managed blocks whose text is derived
@@ -90,9 +90,9 @@ every model change. A tool that competed with them would carry credentials, cost
   beside the commands the profile declares and the actions lifecycle events fire. Why: each team picks different
   programs, and code for one would follow every release of a program the project does not own while serving no team
   that chose another ([ADR 0022](../adrs/0022-tool-integration.md), [ADR 0023](../adrs/0023-core-and-contracts.md)).
-- The binary never reconfigures state it did not create (an existing `.beads/`, the database of the Beads task tracker;
-  `core.hooksPath`; a task runner's tasks and tool list; `CLAUDE.md` content; a `.cook/` directory that another
-  product created), because its owners depend on it as it is.
+- The binary never reconfigures state it did not create (a task tracker's existing database; the version control
+  system's hook settings; a task runner's tasks and tool list; an agent instruction file's content; a `.cook/` directory
+  that another product created), because its owners depend on it as it is.
 
 ## 4. Least surprise
 
@@ -102,22 +102,24 @@ every model change. A tool that competed with them would carry credentials, cost
   without anyone deciding it.
 - The same invocation in the same state gives the same result. Running a mutation twice changes nothing the second
   time and says so, because agents retry and a retry must be safe.
-- Environment and machine affect presentation (color, notices, verbosity), never the bytes written into a
-  repository, because two teammates rendering the same commit must produce the same diff. A binary upgrade changes
-  those bytes only under the rules in
-  [compatibility-standards.md](compatibility-standards.md#rendered-output-across-releases).
+- Environment and machine affect presentation (color, notices, verbosity), never the bytes written into a repository,
+  because two teammates rendering the same commit must produce the same diff. A binary upgrade changes those bytes only
+  under the rules in [compatibility-standards.md](compatibility-standards.md#rendered-output-across-releases), and a
+  recipe's renders change only when its pin moves
+  ([recipes across versions](compatibility-standards.md#recipes-across-versions)).
 - No hidden network access, because a user must be able to say what a command contacted. The network calls `the-cook`
   makes on its own are: the wrapper's download of the version pinned in `.cook/wrapper.yaml` (on an explicit invocation
   only, over HTTPS, verified against the pinned checksum); the release's signed checksum file, fetched by
   `the-cook scaffold` (not with `--offline`) and `the-cook wrapper` before they write a pin and re-verified by
-  `the-cook doctor` at most daily; the download of a fetched recipe by `the-cook recipe fetch` or
-  `the-cook recipe apply` (over HTTPS, verified against the `sha256` the profile pins); and the daily release check
-  ([update notices](compatibility-standards.md#update-notices)). Each is documented and the release check can be
-  disabled. Rendering needs none of them, and neither does applying a builtin recipe, because their only inputs are the
-  repository's files, the pinned release and the recipes it pins by hash
-  ([principle 9](#9-everything-a-repository-does-is-in-its-own-files)). Any other network access is a declared action
-  (an `http` action, or a `run` or `agent` action whose command reaches the network), visible in
-  `the-cook lifecycle list` and in `.cook/hooks.yaml`.
+  `the-cook doctor` at most daily; the download of a cookbook tag's `checksums.txt` and recipe archives by
+  `the-cook recipe pin`, `the-cook recipe fetch`, `the-cook recipe apply` for an uncached recipe, `scaffold --cookbook`
+  and the `--cookbook` reads of `recipe list` and `recipe show` (over HTTPS, each archive verified against its
+  `sha256`); and the daily release check ([update notices](compatibility-standards.md#update-notices)). Each is
+  documented and the release check can be disabled. Rendering needs none of them once the pinned recipes are cached, and
+  neither does applying a cached recipe, because their only inputs are the repository's files, the pinned release and
+  the recipes it pins by hash ([principle 9](#9-everything-a-repository-does-is-in-its-own-files)). Any other network
+  access is a declared action (an `http` action, or a `run` or `agent` action whose command reaches the network),
+  visible in `the-cook lifecycle list` and in `.cook/hooks.yaml`.
 - Names, flags and output look the same across commands ([cli-standards.md](cli-standards.md)), so what a user learns
   on one command holds on the next.
 
@@ -218,17 +220,18 @@ would leave state that follows rules nobody wrote down ([ADR 0018](../adrs/0018-
   ([generated-content-standards.md](generated-content-standards.md#block-classes)):
   - **Convention blocks** state facts that stay true without `the-cook`: where workspaces are created and on which
     branch, the effective permissions, the memory index, standing
-    directives declared `static`, and the `CLAUDE.md` import. They never name a `the-cook` command.
+    directives declared `static`, and the block a harness recipe renders to make an agent's instruction file import
+    `AGENTS.md`. They never name a `the-cook` command.
   - **Tool blocks** describe how to use `the-cook`: its commands, what `.cook/` holds, how to verify through it, how
     work is delivered through its lifecycle. They MAY name `./cook` commands.
-- Each path a module establishes is also listed in a managed block of `.gitignore`, which the git recipe renders and
-  which is a convention block.
+- Each path a module establishes is also listed in a managed block of the version control system's ignore file, which
+  the version-control recipe renders and which is a convention block.
 - State lives at paths the profile sets (`state.dir`, `workspaces.dir`), never inside `.cook/` or `.agents/`. The
   block text names the configured path, so people, agents and other tools find it by reading the repository, not by
   asking `the-cook`.
 - A block states its convention as fact. It never says it is managed by `the-cook` beyond its marker, so it reads as the
   repository's own text.
-- `the-cook remove --eject` keeps convention blocks and `.gitignore` entries as the repository's own content and removes
+- `the-cook remove --eject` keeps convention blocks and ignore-file entries as the repository's own content and removes
   tool blocks, so the conventions remain in force after `the-cook` leaves and no instruction names a command that no
   longer exists ([generated-content-standards.md](generated-content-standards.md#removal)).
 
@@ -241,7 +244,8 @@ read by an agent working there, and a reviewer sees its effect without its reaso
 ([ADR 0013](../adrs/0013-organization-content.md)).
 
 - The same commit renders the same bytes on every machine and every day, with no network, because no input can change
-  without a commit in the repository: the release and every fetched recipe are pinned by hash in its files.
+  without a commit in the repository: the release and every recipe are pinned by hash in its files, and the binary ships
+  no recipe of its own.
 - No repository file has a key that names a source outside the repository for what `the-cook` renders or runs, except a
   release or a recipe pinned by hash ([configuration-standards.md](configuration-standards.md#inputs)), so reading the
   repository is enough to predict what it does.

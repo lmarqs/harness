@@ -36,13 +36,13 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 | You want | Declare |
 | --- | --- |
 | The edited file formatted or linted right after every agent edit | a `post_edit` entry |
-| The stack's usual format-on-edit or lint-on-edit hook | `./cook recipe apply <name>` with the stack's recipe, which adds it as a `post_edit` entry ([recipes](recipes.md#stack-recipes)) |
+| The stack's usual format-on-edit or lint-on-edit hook | `./cook recipe apply <name>` with a recipe for the stack, pinned from a cookbook, whose [entries](recipes.md#entries) add it as a `post_edit` entry |
 | A repository check run when certain files are edited | `validators` |
 | A session in a [managed workspace](workspaces.md) to know its task | `session_start.context: true` |
 | A message when an agent waits for you: a permission prompt, a question, idle input | an `attention` action |
 | A message when an agent finishes a turn | a `turn_end` action |
 | A skill or directive in the agent's context without invoking it | a `context` entry in the profile ([context](context.md)) |
-| A hook `the-cook` does not model, such as a `PreToolUse` path guard | a `raw` entry |
+| A hook `the-cook` does not model, such as a path guard before a tool runs | a `raw` entry |
 | Something to happen when work starts, is verified, completed, delivered, lands or stops for a person, such as a push, a pull request or a chat message | a `lifecycle` action |
 
 Agent hooks, notification hooks and hook-delivered standing context need `modules.hooks: true` in the
@@ -60,25 +60,26 @@ For each declared agent, `render` writes two kinds of hook entries through the a
 | `the-cook hook` entries | the events in the table below that the declarations need | the wrapper command below |
 | raw entries | the event named in `raw`, with its matcher | the `run` command as written |
 
-Each harness recipe maps the neutral events onto its agent's native events. The shipped recipes map them so:
+Each harness recipe maps the neutral events onto its agent's native events, and its page in its cookbook lists the
+mapping:
 
-| Purpose | claude recipe (Claude Code 2.1.x) | codex recipe (Codex CLI 0.16x) | Rendered when |
-| --- | --- | --- | --- |
-| Session context, `always` context | `SessionStart` | `SessionStart` | always, with `modules.hooks` |
-| `post_edit`, validators, `when.paths` context | `PostToolUse` (matcher `Edit\|Write\|MultiEdit`, and `Read` when `when.paths` entries exist) | `PostToolUse` (every tool, filtered by `the-cook hook`) | `post_edit`, validators or `when.paths` entries exist |
-| `when.prompt` context | `UserPromptSubmit` | `UserPromptSubmit` | `when.prompt` entries exist |
-| `attention` | `Notification` | none | `attention` actions exist |
-| `turn_end` | `Stop` | the `notify` key in `.codex/config.toml` | `turn_end` actions exist |
+| Purpose | Neutral event | Rendered when |
+| --- | --- | --- |
+| Session context, `always` context | `session-start` | always, with `modules.hooks` |
+| `post_edit`, validators, `when.paths` context | `post-tool-use`, for the tools the recipe names as edits and reads | `post_edit`, validators or `when.paths` entries exist |
+| `when.prompt` context | `prompt-submit` | `when.prompt` entries exist |
+| `attention` | `attention` | `attention` actions exist |
+| `turn_end` | `turn-end` | `turn_end` actions exist |
 
 A neutral event the harness recipe maps to no native event gets nothing rendered for that agent, and
-[`the-cook doctor`](doctor.md) reports the gap as a note: Codex has no event for an agent waiting for a person, so the
-codex recipe maps none to `attention`, and `attention` never reaches a Codex session.
+[`the-cook doctor`](doctor.md) reports the gap as a note. For example, an agent with no event for waiting for a person
+gets no `attention` entry, and `attention` never reaches its sessions.
 
 The command of a `the-cook hook` entry starts the wrapper from the root of the checkout, which the version-control
-recipe's root operation finds. With the git recipe it is:
+recipe's `root` operation finds ([the hook command](render.md#the-hook-command)):
 
 ```sh
-"$(git rev-parse --show-toplevel)/cook" --no-download hook <event>
+"$(<root operation>)/cook" --no-download hook <event>
 ```
 
 `<event>` is the neutral event the entry is for: `session-start`, `post-tool-use`, `prompt-submit`, `attention` or
@@ -131,7 +132,7 @@ edits and which are reads, and which native events are `attention`, `turn_end` a
 | --- | --- |
 | event | the payload's hook event name: session start, post tool use, prompt submission, waiting for a person (`attention`) or turn end (`turn_end`) |
 | session | the payload's session id, for the once-per-session [context](context.md) entries |
-| tool | the tool name. Edit tools: `Edit`, `Write`, `MultiEdit` in the claude recipe; `apply_patch` in the codex recipe. Read tool: `Read` in the claude recipe |
+| tool | the tool name, and whether the recipe lists it as an edit tool or a read tool |
 | read and edited files | the tool input's file path, made relative to the checkout; for a patch tool that names no single file, the checkout's uncommitted changes against its head commit, as the version-control recipe lists them |
 | prompt | the person's message, on prompt submission |
 | message | the agent's own notification text, on `attention` and `turn_end` |
@@ -164,9 +165,9 @@ For each edited file:
 4. The first time in the session a read or edited file matches a `when.paths` [context](context.md) entry, the entry
    is added to the agent's context.
 
-If a command or validator fails, `the-cook hook` exits 2 with the command's output on stderr. Claude Code shows that
-output to the model as feedback, so the agent fixes the problem in its next step. The edit itself is never undone, and
-no tool call is blocked.
+If a command or validator fails, `the-cook hook` exits 2 with the command's output on stderr. An agent that shows a
+hook's stderr to the model as feedback, as its harness recipe's page states, fixes the problem in its next step. The
+edit itself is never undone, and no tool call is blocked.
 
 ### Prompt submission
 
@@ -190,10 +191,8 @@ turn_end:         # the agent finished a turn
     run: notify-send "agent finished in $COOK_WORKSPACE"
 ```
 
-| Event | claude recipe (Claude Code) | codex recipe (Codex) |
-| --- | --- | --- |
-| `attention` | `Notification`: a permission prompt, or input idle | not rendered: Codex has no such event |
-| `turn_end` | `Stop` | `notify`, called after each turn |
+Each harness recipe names the native events that carry `attention` and `turn_end` for its agent; an agent with no
+such event gets nothing rendered for it, and `the-cook doctor` notes the gap.
 
 Values reach the actions as environment variables, with the same rules as [lifecycle actions](#lifecycle-actions):
 
@@ -216,9 +215,9 @@ Values reach the actions as environment variables, with the same rules as [lifec
   `blocked` and the events of scope `run`.
 - Like every agent hook, they do nothing on a machine where the pinned release is not cached
   ([the missing-binary guard](#the-missing-binary-guard)).
-- The `notify` key of `.codex/config.toml` holds one program. The codex recipe's renders own it only when they wrote it.
-  When the file already sets `notify` to a program of its own, `render` keeps that program, renders no `turn_end` for
-  Codex, and `the-cook doctor` notes it.
+- A native setting that holds a single notification program is owned by the harness recipe's renders only when they
+  wrote it. When the file already sets it to a program of its own, `render` keeps that program, renders no `turn_end`
+  for that agent, and `the-cook doctor` notes it.
 
 ### Lifecycle actions
 
@@ -230,15 +229,15 @@ points, scopes, guards, action kinds, the environment variables actions receive,
 lifecycle:
   deliver:
     - name: push
-      run: git push -u origin "$COOK_BRANCH"
+      run: ./scripts/push-branch.sh "$COOK_BRANCH"
     - name: open-pr
-      run: gh pr create --draft --fill --base "$COOK_DEFAULT_BRANCH" --head "$COOK_BRANCH"
+      run: ./scripts/open-draft-pr.sh "$COOK_DEFAULT_BRANCH" "$COOK_BRANCH"
       auto: false
       scope: [task, change]        # default: all scopes of the event
       on_failure: stop             # stop (default) | continue
   landed:
     - name: delete-remote-branch
-      run: git push origin --delete "$COOK_BRANCH"
+      run: ./scripts/delete-remote-branch.sh "$COOK_BRANCH"
       auto: true
   blocked:
     - name: notify
@@ -249,7 +248,7 @@ lifecycle:
 In short:
 
 - an action is a shell command (`run`), an HTTP request `the-cook` makes (`http`), or a headless agent run under the
-  [worker contract](ralph.md#the-worker-contract) (`agent`) ([action kinds](lifecycle.md#action-kinds));
+  [worker contract](worker.md#the-worker-contract) (`agent`) ([action kinds](lifecycle.md#action-kinds));
 - actions run in the work's checkout, in declaration order, and the first failure stops the event with exit 2 unless
   the action says `on_failure: continue`, in which case the remaining actions run and the event still exits 2;
 - values reach an action only as environment variables, never substituted into `run`, so a task title or a branch
@@ -259,7 +258,7 @@ In short:
   coordinating agent fires the event with `the-cook lifecycle run <event>`;
 - lifecycle actions never run inside the agent `the-cook worker` or an `agent` action starts;
 - every action is one the repository declares in this file: the seeded files hold none, and a
-  [recipe](recipes.md#entries) such as `beads` writes its actions here, as entries, only when a person applies it.
+  [recipe](recipes.md#entries) that declares actions writes them here, as entries, only when a person applies it.
 
 An action runs with the permissions of the process that fired it, outside any agent's permission checks. Review
 lifecycle actions like code; see [safety](safety.md).
@@ -292,8 +291,8 @@ lifecycle actions like code; see [safety](safety.md).
 | `lifecycle.<event>[].scope` | list of `task`, `run`, `change` | every scope of the event | Scopes the action applies to |
 | `lifecycle.<event>[].on_failure` | `stop` \| `continue` | `stop` | `stop`: the first failure stops the event with exit 2. `continue`: the remaining actions run, and the event still exits 2 |
 
-Event names in `raw` are the agents' native names, for example `SessionStart`, `PreToolUse`, `PostToolUse`, `Stop`.
-An event an agent does not support is not rendered for that agent.
+Event names in `raw` are the agents' native event names, as each harness recipe's page lists them. An event an agent
+does not support is not rendered for that agent.
 
 `the-cook hook` exit codes:
 
@@ -302,29 +301,30 @@ An event an agent does not support is not rendered for that agent.
 | 0 | Nothing to do, every command passed, or the event is `attention` or `turn_end`, whatever their actions returned |
 | 2 | A post-edit command or validator failed; its output is on stderr for the agent |
 
-When the pinned binary is not cached, the wrapper exits 0 and `the-cook hook` does not run. When a
-[fetched recipe](recipes.md#fetched-recipes) the hook needs is not cached, `the-cook hook` prints one line on stderr
-naming `./cook recipe fetch` and exits 0; hooks never fetch. `COOK_NO_CONTEXT=1`
+When the pinned binary is not cached, the wrapper exits 0 and `the-cook hook` does not run. When a declared
+[recipe](recipes.md) the hook needs is not cached, `the-cook hook` prints one line on stderr naming
+`./cook recipe fetch` and exits 0; when no declared recipe fills a contract the hook needs, it prints one line naming
+`./cook recipe pin` and exits 0. Hooks never fetch and never fail. `COOK_NO_CONTEXT=1`
 turns off standing-context injection only ([context](context.md#environment)).
 
 Files read: stdin (the payload), `.cook/wrapper.yaml` (by the wrapper), `.cook/hooks.yaml`,
 `.cook/config.yaml`, `session.json` and `hook-checks.json` in the checkout's state directory, the read and edited
 files, the skills and files `context` entries name, the cache directory (`$COOK_HOME`, default
-`$XDG_CACHE_HOME/the-cook`, otherwise `~/.cache/the-cook`) for the binary.
+`$XDG_CACHE_HOME/the-cook`, otherwise `~/.cache/the-cook`) for the binary and the declared recipes.
 Files written: `hook-checks.json`, `context/<session-id>.json` in the state directory, whatever the declared commands
 write (for example a formatter fixing the file).
 
 ## Examples
 
-### A Node API
+### Repository scripts on edit, and a ping when the agent waits
 
 ```yaml
 # .cook/hooks.yaml
 schema: 1
 post_edit:
-  - paths: [src/**/*.ts, test/**/*.ts]
+  - paths: [src/**, test/**]
     exclude: [src/migrations/**]
-    run: npx eslint --fix {file}
+    run: ./scripts/lint-file.sh {file}
 validators: { from: verify.validators }
 session_start: { context: true }
 attention:
@@ -332,14 +332,10 @@ attention:
     http:
       url_env: CHAT_WEBHOOK_URL
       json: { text: "$COOK_AGENT needs you in $COOK_REPO ($COOK_BRANCH): $COOK_MESSAGE" }
-raw:
-  SessionStart: [{ run: bd prime --hook-json }]
 ```
 
 `CHAT_WEBHOOK_URL` is set in each developer's own shell profile; a developer who does not set it gets an `attention`
-failure on stderr, and the session continues. The `raw` entry is the repository's own hook: it runs `bd prime`, from the
-[Beads](tasks.md) task tracker's `bd` command line, as a native hook at session start, so it runs whether or not the
-pinned release is cached.
+failure on stderr, and the session continues.
 
 ### A desktop notification when the agent finishes
 
@@ -350,12 +346,15 @@ turn_end:
     run: notify-send --app-name=agent "Turn finished" "$COOK_AGENT in $COOK_WORKSPACE"
 ```
 
-### A Terraform repository
+### A path guard as a raw entry
+
+With a harness recipe named `claude`, pinned from `github:acme/cookbook`, whose page lists `PreToolUse` as the native
+event before a tool runs:
 
 ```yaml
 schema: 1
 post_edit:
-  - { paths: ["**/*.tf"], run: terraform fmt {file} }
+  - { paths: ["**/*.tf"], run: ./scripts/format-file.sh {file} }
 validators:
   - { when: [modules/**/variables.tf], run: ./scripts/check-variable-docs.sh }
 session_start: { context: true }
@@ -363,23 +362,15 @@ raw:
   PreToolUse: [{ matcher: Edit|Write, run: ./scripts/protect-state-files.sh }]
 ```
 
-### A Go repository
-
-```yaml
-schema: 1
-post_edit:
-  - { paths: ["**/*.go"], exclude: ["**/*_gen.go"], run: gofmt -w {file} }
-validators: { from: verify.validators }
-session_start: { context: true }
-raw: {}
-```
+The `raw` entry runs as a native hook, whether or not the pinned release is cached, and is rendered only for agents
+that have that event.
 
 ## Guidelines
 
 - Do keep post-edit commands fast and single-file. They run after every edit; slow checks belong in a
   [verify lane](verify.md).
 - Do make post-edit commands fix what they can (`--fix`, `-w`) so the agent sees only what needs judgement.
-- Do use `raw` for path guards (`PreToolUse`) and keep them small and declared in this file, not hidden in scripts
+- Do use `raw` for path guards before a tool runs, and keep them small and declared in this file, not hidden in scripts
   wired by hand.
 - Don't use hooks to allow or deny commands; put that in the [policy](policy.md).
 - Don't depend on hooks for correctness: they skip on any machine where the pinned binary is not cached yet.
@@ -399,19 +390,19 @@ raw: {}
 | `the-cook: v0.9.0 not downloaded, hook skipped; run: ./cook version` in the session | The pinned version is not cached on this machine, and hooks never download | Run `./cook version` once in the repository |
 | Hooks never run | `modules.hooks` is off, the folder is not trusted by the agent, or the agent's hook feature is disabled | Turn the module on and render; trust the folder |
 | Lint runs on every edit even when nothing changed | The command rewrites the file each time | Make the command idempotent |
-| A Codex session ignores hooks | Codex reads project hooks only when its hooks feature is enabled; `the-cook` renders that key in `.codex/config.toml` | `the-cook render`, then `the-cook doctor` |
+| One agent's sessions ignore hooks | The agent reads project hooks only when a setting enables them, which its harness recipe renders | `the-cook render`, then `the-cook doctor` |
 | A raw hook stopped running | It was removed from `hooks.yaml`, or its command is not executable | Restore the entry; `chmod +x` the script |
 | A lifecycle action never runs on its own | It has no `auto: true`, or the event's guard did not let it fire | `the-cook lifecycle list`; read the [lifecycle log](lifecycle.md#the-lifecycle-log) |
 | The session starts with `the-cook v0.9.0 is not cached on this machine; run ./cook version once to fetch it.` | The pinned release is not cached; the session has no standing context and no notifications | Run `./cook version` once |
-| No `attention` notification from Codex | Codex has no event for an agent waiting for a person; `doctor` notes it | Use `turn_end`, which Codex reports through `notify` |
-| No `turn_end` from Codex; `doctor` notes a `notify` program of the repository's own | `.codex/config.toml` already sets `notify` to another program | Move that program into a `turn_end` `run` action, remove the key, then `the-cook render` |
+| No `attention` notification from one agent | Its harness has no event for an agent waiting for a person; `doctor` notes it | Use `turn_end`, where the agent reports it |
+| No `turn_end` from one agent; `doctor` notes a notification program of the repository's own | The agent's single-program notification setting already names another program | Move that program into a `turn_end` `run` action, remove the setting, then `the-cook render` |
 | No notification on one machine | The variable in `url_env` is not set there, or the pinned release is not cached there | Set the variable in that shell; run `./cook version` once |
 | A notification arrives for every turn of a worker run | It cannot: notification hooks do nothing in a worker's session (`COOK_WORKER=1`) | Declare `completed` and `blocked` lifecycle actions for unattended runs, and have whatever drives the run fire `blocked` and the events of scope `run` |
 
 ## Coexistence
 
-Hook entries `the-cook` did not render (for example one a Claude Code plugin or a person added to
-`.claude/settings.json`) are preserved. `settings.local.json` hooks are never touched. See
+Hook entries `the-cook` did not render (for example one an agent's plugin or a person added to the agent's settings
+file) are preserved. Hooks in an agent's local override files are never touched. See
 [compatibility](compatibility.md).
 
 After [`the-cook remove --eject`](remove.md#eject), raw entries stay in the native files as the repository's own hooks

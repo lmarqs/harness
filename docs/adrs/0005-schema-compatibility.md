@@ -21,9 +21,11 @@ upgrade by itself never shows as drift.
   file and the files rendered from it with outdated rules. A dropped field can be a deny rule or a guard.
 - Generated artefacts are committed and drift-checked ([0007](0007-ownership.md)). Any value in them that changes with
   the binary's release shows as drift after every upgrade.
-- A recipe is data the binary interprets, written by the project or by others, and it can mark deny rules as floor
-  ([0022](0022-tool-integration.md)). A recipe from an outside source is pinned by its content hash, so its bytes cannot
+- A recipe is data the binary interprets, published in a cookbook and never shipped with the binary, and it can mark
+  deny rules as floor ([0022](0022-tool-integration.md)). A recipe is pinned by its content hash, so its bytes cannot
   change without a new pin ([0021](0021-release-trust.md)).
+- A recipe that fills a contract relies on that contract's operations and output kinds
+  ([0023](0023-core-and-contracts.md)). A contract can gain an operation while the recipe format stays the same.
 - Most releases change behaviour without changing the shape of any file. For example, a release that fixes a bug in a
   check reads and writes the same files, with the same fields, as the release before it.
 
@@ -35,8 +37,9 @@ upgrade by itself never shows as drift.
 3. The binary migrates a file with an older schema and shows the diff.
 4. Generated artefacts record the schema version and never the binary version.
 5. Schema changes are rare. Migrations exist from every schema inside a documented support window.
-6. Every recipe carries the schema version of the recipe format it is written in. The binary refuses a recipe whose
-   schema is newer than it supports, naming the release needed, and reads a recipe of an older schema inside the support
+6. Every recipe carries the schema version of the recipe format it is written in and, when it fills a contract, the
+   version of that contract it fills. The binary refuses a recipe whose schema or contract version is newer than it
+   supports, naming the release needed, and reads a recipe of an older schema or contract version inside the support
    window without rewriting it.
 
 ## Reasons
@@ -56,10 +59,12 @@ upgrade by itself never shows as drift.
 - **5.** Each schema change costs one migration in every adopting repository and one more code path in the binary.
   Keeping changes rare bounds the first cost, and a support window bounds the second.
 - **6.** A binary that misread a newer recipe could drop a floor rule the way it could drop a deny rule from a
-  repository file, so the same refusal applies (point 2). A recipe from an outside source cannot be migrated in place,
-  because the hash its repository pins fixes its bytes (Context); reading older schemas keeps it usable across releases
-  until its author publishes a newer version. The trade: the binary keeps a reader for every recipe schema in the
-  support window.
+  repository file, so the same refusal applies (point 2). A contract carries a version of its own because a contract can
+  change while the format does not (Context): a recipe written against a newer contract could rely on an operation the
+  binary lacks, and refusing it names the release instead of failing in the middle of a use case. A recipe cannot be
+  migrated in place, because the hash its repository pins fixes its bytes (Context); reading older schemas and contract
+  versions keeps it usable across releases until its cookbook publishes a newer version. The trade: the binary keeps a
+  reader for every recipe schema and contract version in the support window.
 
 ## Rejected alternatives
 
@@ -96,5 +101,6 @@ Must be maintained:
 - Fixtures at the previous schema migrate and print a diff; fixtures at a newer schema are refused with a message that
   names the release.
 - A test asserts that no generated artefact contains the binary version.
-- A fixture recipe at a newer recipe schema is refused with a message that names the release; a fixture recipe at the
-  oldest schema in the support window loads and stays byte-identical.
+- A fixture recipe at a newer recipe schema, and one that declares a newer contract version, are each refused with a
+  message that names the release; a fixture recipe at the oldest schema and contract version in the support window loads
+  and stays byte-identical.

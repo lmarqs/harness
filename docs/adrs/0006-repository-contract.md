@@ -44,8 +44,8 @@ controls the facts only it knows.
    entries that call it.
 5. Commands a repository declares are its own data.
 6. Recipes are data the binary interprets, never engine code in the repository ([0022](0022-tool-integration.md),
-   [0023](0023-core-and-contracts.md)). The repository's data names the recipes it uses and pins each one from an
-   outside source by version and content hash; the recipe itself is not stored in the repository
+   [0023](0023-core-and-contracts.md)). The repository's data names every recipe it uses and pins each one from the
+   cookbook that publishes it, by version and content hash; the recipe itself is not stored in the repository
    ([0014](0014-directory-layout.md)).
 
 ## Reasons
@@ -66,14 +66,13 @@ controls the facts only it knows.
   the repository and would diverge like the copied renderer in Context.
 - **5.** The repository's build, test and lint commands belong to its stack. The binary runs them as declared and never
   interprets them, so they are data even though they execute.
-- **6.** A recipe describes a program as data the binary interprets, so the engine stays in the binary even for a
-  program the project does not ship ([0022](0022-tool-integration.md)). Executable recipes would be engine code beside
-  the binary, with the divergence of point 4 and a runtime the binary does not have
-  ([0004](0004-runtime-dependencies.md)). Which recipes a repository uses, and at which version and hash, is a fact only
-  that repository knows, so it lives in its data and changes by a reviewed diff. The description itself is shared by
-  every repository that uses the program (Context) and fixed by its hash, so a copy in each repository would be one more
-  copy to edit locally, the way the `acme/web` renderer in Context forks. The trade: a reader of the repository sees
-  which recipe is pinned, not its description.
+- **6.** A recipe describes a program as data the binary interprets, so the engine stays in the binary for every program
+  a repository uses ([0022](0022-tool-integration.md)). Executable recipes would be engine code beside the binary, with
+  the divergence of point 4 and a runtime the binary does not have ([0004](0004-runtime-dependencies.md)). Which recipes
+  a repository uses, and at which version and hash, is a fact only that repository knows, so it lives in its data and
+  changes by a reviewed diff. The description itself is shared by every repository that uses the program (Context) and
+  fixed by its hash, so a copy in each repository would be one more copy to edit locally, the way the `acme/web`
+  renderer in Context forks. The trade: a reader of the repository sees which recipe is pinned, not its description.
 
 ## Rejected alternatives
 
@@ -115,7 +114,7 @@ Must be maintained:
 ## Confirmation
 
 - Validation fixtures cover each file, including invalid content and an unknown schema.
-- A fixture that uses a recipe from an outside source holds its name, version and hash in the repository's data and no
-  copy of the recipe.
+- A fixture that uses a recipe holds its name, cookbook, version and hash in the repository's data and no copy of the
+  recipe.
 - A test asserts that the manifest of an adopted fixture lists no executable file other than the wrapper, and that every
   owned hook entry is one command that calls it.

@@ -24,9 +24,8 @@ Three pieces make this work:
   workspace has.
 - **The `completed` guard.** `completed` with scope `task` is refused (exit 3) without a valid
   [verification receipt](verify.md) when the verify module is on, whoever fires it.
-- **Trackers wired by actions.** The `beads` [recipe](recipes.md#beads) writes the actions for Beads, a task tracker
-  that keeps its database in `.beads/` and is used through its `bd` command. Any other tracker is wired the same way
-  with its own command line, such as GitHub issues through `gh`.
+- **Trackers wired by actions.** The repository declares the actions with the tracker's own command line, or applies
+  a [recipe](recipes.md#entries) that holds them as entries. Every tracker is wired the same way.
 
 Commands are named `the-cook <command>` on this page. The examples run them through the repository's wrapper,
 `./cook <command>`, from the root of a checkout; with a global install, `the-cook <command>` is equivalent
@@ -36,7 +35,7 @@ Commands are named `the-cook <command>` on this page. The examples run them thro
 
 - You work on tasks of a tracker in managed workspaces and want the tracker updated when work starts, finishes or stops.
 - You want a task to count as finished only after `the-cook verify` passed on its final content.
-- You run an unattended loop through [`the-cook worker`](ralph.md), which fires `completed` for each verified attempt.
+- You run an unattended loop through [`the-cook worker`](worker.md), which fires `completed` for each verified attempt.
 
 Without a tracker, leave out `--task`: workspaces and `the-cook verify` work without tasks.
 
@@ -46,8 +45,8 @@ Without a tracker, leave out `--task`: workspaces and `the-cook verify` work wit
 
 `the-cook workspace create <name> --task <id>` records the id in the workspace's session (`session.json` in the
 workspace's state directory) next to its base commit and its actor, `<user>:<name>:<random>`. The id is free-form: a
-bead id such as `acme-api-7f2`, an issue number such as `412`, or any string the team's tracker understands. `the-cook`
-does not interpret it.
+tracker's task id such as `acme-api-7f2`, an issue number such as `412`, or any string the team's tracker understands.
+`the-cook` does not interpret it.
 
 | In a workspace bound to a task | Value |
 | --- | --- |
@@ -59,7 +58,7 @@ does not interpret it.
 | --- | --- |
 | `start` | by `the-cook workspace create --task`, in the new workspace |
 | `verified` | by every `the-cook verify` that passes there |
-| `completed` | by [`the-cook worker`](ralph.md) after a verified attempt in a workspace bound to a task, or by a person or agent with `the-cook lifecycle run completed` |
+| `completed` | by [`the-cook worker`](worker.md) after a verified attempt in a workspace bound to a task, or by a person or agent with `the-cook lifecycle run completed` |
 | `deliver` | by `the-cook worker` after `completed` when the work is concluded, or by `the-cook lifecycle run deliver` |
 | `blocked` | by a `the-cook` command run without a terminal that exits 3, with `COOK_REASON` set to its one-line refusal |
 
@@ -95,56 +94,23 @@ The actions are the repository's own entries in `.cook/hooks.yaml`, reviewed lik
 trackers changes those entries and nothing else. A program an action names that is not on `PATH` is a
 [`the-cook doctor`](doctor.md) finding.
 
-#### The Beads recipe
+#### A tracker recipe
 
-`the-cook recipe apply beads` writes these entries for Beads 1.3.1, after showing them as a diff
-([recipes](recipes.md#how-apply-works)):
+A recipe that describes a tracker can hold these actions as [entries](recipes.md#entries). Once the recipe is pinned in
+`recipes:`, `the-cook recipe apply <name>` shows them as a diff and writes them into `.cook/hooks.yaml`
+([recipes](recipes.md#how-apply-works)); from then on they are the repository's own. Such a recipe usually also holds:
 
-```yaml
-# .cook/hooks.yaml
-lifecycle:
-  start:
-    - name: bead-start
-      run: bd update "$COOK_TASK" --status in_progress --assignee "$COOK_ACTOR"
-      auto: true
-      scope: [task]
-  completed:
-    - name: bead-close
-      run: bd close "$COOK_TASK" --reason "verified"
-      auto: true
-      scope: [task]
-  blocked:
-    - name: bead-comment
-      run: bd comments add "$COOK_TASK" "$COOK_REASON"
-      auto: true
-      scope: [task]
-```
+- a `worker.deny` entry for the tracker's close command, so a task closes only through the guarded `completed` event,
+  never from a worker's agent;
+- an `agents.<name>.writable_roots` entry for each agent whose harness recipe opens sandbox roots, naming the
+  tracker's data directory, so the tracker commands a sandboxed agent runs can update it
+  ([profile](profile.md#agents)).
 
-```yaml
-# .cook/config.yaml
-agents:
-  codex:
-    writable_roots: [.beads]
-```
-
-```yaml
-# .cook/policy.yaml
-worker:
-  deny:
-    - [bd, close]
-```
-
-- The `completed` action closes the bead from the process that fired the event, and a worker's agent is denied
-  `bd close`, so a bead closes only through the guarded event.
-- Codex workers get `.beads/` as a writable root, so `bd` commands the agent runs can update the database.
-- `bd` refuses a missing id, so an action that runs with `COOK_TASK` unset fails instead of touching another bead.
-- Nothing initialises, configures or localises a Beads database. Creating one is `bd`'s own job (`bd init`).
-- When ralph-tui runs with its Beads tracker, ralph-tui updates bead status itself ([ralph](ralph.md)). The recipe's
-  actions matter for interactive work in managed workspaces.
+Nothing in the binary initialises, configures or reads a tracker's data. Creating it is the tracker's own job.
 
 #### GitHub issues with `gh`
 
-No builtin recipe holds these; a repository declares them itself. The task id is the issue number:
+A repository on GitHub declares these actions itself, with GitHub's `gh` command. The task id is the issue number:
 
 ```yaml
 # .cook/hooks.yaml
@@ -166,8 +132,8 @@ lifecycle:
       scope: [task]
 ```
 
-The issue stays open until the team closes it, for example through a pull request that says `Closes #412`. These
-actions write to the team's record, so declare them only where the team wants that record written from the work.
+The issue stays open until the team closes it. These actions write to the team's record, so declare them only where the
+team wants that record written from the work.
 
 ## Reference
 
@@ -194,19 +160,20 @@ Files written: the lifecycle log; whatever the actions write.
 
 ## Examples
 
-### A Node API with Beads
+### A Node API with a tracker recipe
+
+The repository pins the tracker recipe `beads` from the cookbook `github:acme/cookbook` and applies it:
 
 ```sh
+./cook recipe pin beads --cookbook github:acme/cookbook@v1.2.0
 ./cook recipe apply beads
-./cook workspace create invoice-rounding --task acme-api-7f2   # bead-start marks acme-api-7f2 in progress
+./cook workspace create invoice-rounding --task acme-api-7f2   # the recipe's start action marks the task in progress
 cd .work/workspaces/invoice-rounding
 # edit, test
 ./cook verify --lane unit=invoice --skip e2e="no route, controller or guard changed"
-./cook lifecycle run completed                                # bead-close closes acme-api-7f2
+./cook lifecycle run completed                                # the recipe's completed action closes acme-api-7f2
 ./cook lifecycle run deliver
 ```
-
-`bd ready`, `bd show`, `bd search` and the rest of `bd` keep working as usual.
 
 ### A Go repository with GitHub issues
 
@@ -228,10 +195,8 @@ Create workspaces without `--task` and declare no tracker actions; workspaces an
 - Do bind a workspace to one task with `--task`, so every event fired there names it.
 - Do run `the-cook verify` before firing `completed`; the guard refuses it otherwise.
 - Do keep tracker actions scoped to `task`, so a workspace without a task never runs them.
-- Don't let a worker's agent close tasks itself; deny the tracker's close command in `worker.deny`, as the Beads recipe
-  does.
-- Don't share task ids across clones of a clone-local tracker such as Beads: they mean something only where the
-  tracker's data is.
+- Don't let a worker's agent close tasks itself; deny the tracker's close command in `worker.deny`.
+- Don't share task ids across clones of a clone-local tracker: they mean something only where the tracker's data is.
 
 ## Troubleshooting
 
@@ -239,17 +204,18 @@ Create workspaces without `--task` and declare no tracker actions; workspaces an
 | --- | --- | --- |
 | `lifecycle run completed` exits 3 and runs no action | No valid receipt, or a file changed after `verify` | `the-cook verify …`, then fire `completed` again |
 | The tracker did not change when the workspace was created | The `start` action is not `auto: true`, is not scoped to `task`, or failed | `the-cook lifecycle list`; the lifecycle log shows the failure; `the-cook lifecycle run start` retries it |
-| A Beads action fails with a missing id | `completed` or `blocked` was fired by hand, with scope `task`, in a workspace created without `--task` | Bind the workspace with `--task`; under ralph-tui's Beads tracker, ralph-tui updates the bead itself |
-| `doctor` reports `bd` or `gh` not on `PATH` | A declared action names a program this machine lacks | Install it, or remove the action |
-| A bead is assigned to `<user>:<workspace>:<random>` | That is the workspace's actor, from `COOK_ACTOR` | Nothing to do; the actor names the workspace that holds the task |
+| A tracker action fails with a missing id | `completed` or `blocked` was fired by hand, with scope `task`, in a workspace created without `--task` | Bind the workspace with `--task` |
+| `doctor` reports a program not on `PATH` | A declared action names a program this machine lacks | Install it, or remove the action |
+| A task is assigned to `<user>:<workspace>:<random>` | That is the workspace's actor, from `COOK_ACTOR` | Nothing to do; the actor names the workspace that holds the task |
 
 ## Coexistence
 
-- The binary contains no code for any task tracker or hosting platform. What reaches a tracker or GitHub is what the
-  repository's own actions write, and a pull request is opened only by a `deliver` action the repository declares.
-- An existing `.beads/`, including one synchronised across machines or tracked in git, is the tracker's own data:
-  `the-cook` neither reads nor configures it, and what the actions write into it travels where its synchronisation
-  sends it ([ADR 0012](../adrs/0012-write-boundary.md)).
-- `the-cook` does not change `core.hooksPath`.
+- The binary contains no code for any task tracker or hosting platform. What reaches a tracker or a hosting platform is
+  what the repository's own actions write, and a pull request is opened only by a `deliver` action the repository
+  declares.
+- A tracker's data in the clone, including data synchronised across machines or tracked in version control, is the
+  tracker's own: `the-cook` neither reads nor configures it, and what the actions write into it travels where its
+  synchronisation sends it ([ADR 0012](../adrs/0012-write-boundary.md)).
+- `the-cook` installs and changes no version-control hooks.
 
-See [compatibility](compatibility.md#beads).
+See [compatibility](compatibility.md#task-trackers).

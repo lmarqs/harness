@@ -26,7 +26,7 @@ global install, `the-cook <command>` is equivalent.
 - After `the-cook scaffold` or `the-cook scaffold --adopt`, to see what is left.
 - After editing the profile, policy or hooks file, as a broader check than `render --check`.
 - When something does not behave as expected: a hook does not fire, a [lane](verify.md) selects nothing, an unattended
-  [worker](ralph.md) refuses every task.
+  [worker](worker.md) refuses every task.
 - In CI, optionally, next to `the-cook render --check`.
 - Across many repositories with [`the-cook fleet doctor`](fleet.md).
 
@@ -45,13 +45,13 @@ global install, `the-cook <command>` is equivalent.
 | Rendered files | the same drift `the-cook render --check` reports |
 | Manifest | owned paths missing, modified by hand, or present but no longer produced |
 | Links | skill links that do not resolve |
-| Recipes | `recipes:` declares a fetched [recipe](recipes.md#fetched-recipes) that is not in the user's cache on this machine, so hooks and worker attempts that need it exit 3 until `./cook recipe fetch` runs; or a cached fetched recipe whose content does not match its `sha256` |
-| Programs | a program that a recipe in use, a declared command or an action names and that is not on `PATH`: the version-control recipe's program (`git` for the git recipe), each agent's program, `commands`, lane `select`/`full`, `bootstrap`, validator and post-edit commands, and lifecycle `run` actions. The check needs no knowledge of the program ([ADR 0022](../adrs/0022-tool-integration.md)) |
-| Detected programs | a program a recipe's detect rule finds in the repository while the recipe is not in `recipes:`, so the program runs without the recipe's entries and [floor rules](recipes.md#the-floor). Example: `mise.toml` is present and the mise recipe is not in use |
+| Contracts | a [contract](recipes.md#contracts) no pinned recipe fills, with the commands unavailable because of it: without a version-control recipe, workspaces, `verify`, `worker`, `lifecycle run` and landed branches exit 3; without a declared agent, and so without a harness recipe, `worker`, `agent` actions and agent hooks are unavailable. Reported as the [unfilled contract](scaffold.md#the-to-do) to-do item, with `the-cook recipe pin` as the fix |
+| Recipes | `recipes:` declares a [recipe](recipes.md#fetching) that is not in the user's cache on this machine, so `render` and worker attempts exit 3 and hooks skip until `./cook recipe fetch` runs; or a cached recipe whose content does not match its `sha256` |
+| Programs | a program that a recipe in use, a declared command or an action names and that is not on `PATH`: the version-control recipe's program, each agent's program, `commands`, lane `select`/`full`, `bootstrap`, validator and post-edit commands, and lifecycle `run` actions. The check needs no knowledge of the program ([ADR 0022](../adrs/0022-tool-integration.md)) |
 | Globs | `verify.app_paths`, `verify.lint_paths`, lane `required_when`, validator `when` and post-edit `paths` that match no tracked file |
-| Default branch | the version-control recipe reports no default branch (with the git recipe: `origin/HEAD` cannot be resolved), so the git recipe's floor rule against a force push to the default branch cannot name the branch |
-| Program versions | a program whose version, read with its recipe's version command, is outside the range the recipe's checks declare. Every recipe in use is checked the same way: `git` by the git recipe, Claude Code by the claude recipe, Codex by the codex recipe, mise by the mise recipe. A program no recipe in use describes has no version check |
-| Policy | an entry that would weaken a [floor rule](recipes.md#the-floor) of a recipe in use, such as an `allow` for a force push to the default branch, a floor rule of the git recipe; `render` leaves it out and renders the floor rule, and the entry stays a finding until it is removed ([ADR 0011](../adrs/0011-safety-invariants.md)) |
+| Default branch | the version-control recipe reports no default branch, so a floor rule that names the default branch, such as a deny of a force push to it, cannot name the branch |
+| Program versions | a program whose version, read with its recipe's version command, is outside the range the recipe's checks declare. Every recipe in use is checked the same way. A program no recipe in use describes has no version check |
+| Policy | an entry that would weaken a [floor rule](recipes.md#the-floor) of a recipe in use, such as an `allow` for a force push to the default branch that the version-control recipe denies; `render` leaves it out and renders the floor rule, and the entry stays a finding until it is removed ([ADR 0011](../adrs/0011-safety-invariants.md)) |
 | Context | invalid `context` declarations, a skill an entry names that does not exist under `.agents/skills/`, and a file an entry names that does not exist ([context](context.md#sources-and-trust)) |
 | Adoption to-do | the open items described in [scaffold](scaffold.md#the-to-do) |
 
@@ -65,24 +65,22 @@ Notes never change the exit code:
 | Settings that are not policy | adoption left `defaultMode`, `additionalDirectories`, `approval_policy`, `sandbox_mode` or MCP server definitions in place |
 | `AGENTS.md` over budget | the managed blocks in `AGENTS.md`, the `context` block excepted, take more than `blocks.agents_md_budget` lines (default 40), or one of them more than 8; the note lists each block with its line count ([render](render.md#the-agentsmd-budget)) |
 | Context over budget | the always-on context one role receives, `static` entries included, exceeds `context.budget`; the note lists every entry with its line count |
-| Event an agent lacks | a declared hook or context trigger has no event in one of the repository's agents, such as `attention` in Codex, or Codex's `notify` key already runs a program of the repository's own, so nothing was rendered for that agent |
+| Event an agent lacks | a declared hook or context trigger has no event in one of the repository's agents, because its harness recipe maps no native event to it, or the native setting the recipe renders the event into already runs a program of the repository's own, so nothing was rendered for that agent |
 | Automatic agent actions | an `agent` action is declared with `auto: true`; each automatic run starts an agent, which costs tokens and does not give the same result twice |
-| Recipe not verified by the release | `recipes:` declares a fetched recipe: the project's tests do not stand behind it, and its author owns its floor rules and supported versions: `recipe acme-deploy 1.2.0 is not verified by the release` |
 | Another `the-cook` on `PATH` | the `the-cook` command on `PATH` is a different program with the same name; `./cook` is unaffected, only the global command is shadowed ([wrapper](wrapper.md#a-global-install-defers-to-the-pin)) |
 
 ### Landed branches
 
 `doctor` looks at every branch `the-cook` recorded in `.work/`: managed workspaces and fleet deliveries. A branch whose
-patches are all on the default branch (compared by patch equivalence through the version-control recipe's landed
-operation, `git cherry` with the git recipe, so a cherry-pick, a rebase or a squash of the same patches counts) has
+patches are all on the default branch (compared by patch equivalence through the version-control recipe's `landed`
+operation, so a cherry-pick, a rebase or a squash of the same patches counts) has
 **landed**. `doctor` lists each landed branch with the command that fires the `landed` event for it, such as
 `the-cook workspace remove <name>`. It fires nothing itself: `landed` fires from `the-cook workspace remove` and
 `the-cook lifecycle run landed` ([lifecycle](lifecycle.md#events)). A landed branch is not a finding and does not change
 the exit code. A CI clone has no recorded branches, so `doctor` in CI lists none.
 
-Supported versions come from each recipe's checks. A builtin recipe's range is the one the release tested
-([compatibility](compatibility.md#supported-program-versions)); a fetched recipe's range is what its author declares.
-When an agent release changes a file format, `doctor` is where it shows first.
+Supported versions come from each recipe's checks: the range the cookbook that publishes the recipe declares and
+tests. When an agent release changes a file format, `doctor` is where it shows first.
 
 ### JSON output
 
@@ -103,12 +101,12 @@ the-cook doctor [--json]
 | Exit code | Meaning |
 | --- | --- |
 | 0 | No findings (notes may be present) |
-| 1 | `doctor` itself could not run, for example outside a repository the version-control recipe recognises |
+| 1 | `doctor` itself could not run, for example outside a repository: no `.cook/config.yaml` in the directory or above it |
 | 2 | At least one finding or open to-do item |
 
 Files read: the three repository files, `.cook/wrapper.yaml`, the manifest and every owned path (`cook`
-included), native agent files, `PATH`, the version command of every recipe in use, the files each recipe's detect rule
-names, the recipe cache, the index and branches as the version-control recipe reports them, `.agents/skills/`, the files
+included), native agent files, `PATH`, the version command of every recipe in use, the recipe cache, the
+index and branches as the version-control recipe reports them, `.agents/skills/`, the files
 `context` entries name, the session records and `lifecycle.jsonl` under the state directory (default `.work/`),
 `$COOK_HOME` (default `$XDG_CACHE_HOME/the-cook`, or `~/.cache/the-cook`), and online the pinned release's signed
 checksum file. Files written: nothing in the clone; only the update-check and signature-check results under
@@ -121,13 +119,13 @@ $ ./cook doctor
 programs
   .cook/hooks.yaml lifecycle.deliver open-pr names gh, which is not on PATH: install it, or remove the action
 recipes
-  mise detected; its recipe and its floor are not in use; run ./cook recipe apply mise
+  tracker v1.2.0 (github:acme/cookbook) is not cached on this machine: run ./cook recipe fetch
 globs
   verify.lanes.e2e.required_when: src/**/routes/** matches no tracked file
 context
   context.when skill timezone-handling does not exist under .agents/skills/: install it, or remove the entry
 to-do
-  instructions are in .agents/AGENTS.md: move them to the root AGENTS.md, which Codex reads
+  instructions are in .agents/AGENTS.md: move them to the root AGENTS.md, which every agent reaches
 landed
   work/fix-invoice-rounding has landed: run ./cook workspace remove fix-invoice-rounding to fire landed
 note
@@ -146,7 +144,7 @@ Agent loop to finish an adoption:
 ./cook doctor             # repeat until exit 0
 ```
 
-CI step, after `render --check`:
+CI step, after `./cook recipe fetch` and `render --check`:
 
 ```yaml
       - run: ./cook doctor
@@ -158,7 +156,7 @@ CI step, after `render --check`:
 
 - Do fix findings at their source: the repository files, the globs, the programs installed on the machine. `doctor`
   only reports.
-- Do run `doctor` before starting an unattended run ([ralph](ralph.md)) in a repository you have not used it in.
+- Do run `doctor` before starting an unattended run ([worker](worker.md)) in a repository you have not used it in.
 - Do read the `landed` actions with `./cook lifecycle list` before running the command `doctor` prints for a landed
   branch, because that command runs their automatic actions.
 - Don't gate CI on `doctor` until the adoption to-do is empty, or every pull request fails for an unrelated reason.
@@ -169,16 +167,16 @@ CI step, after `render --check`:
 | --- | --- | --- |
 | a glob matches no tracked file | a typo, or the directory moved | correct the glob in `.cook/config.yaml` |
 | a program is not on `PATH` | a command, lane, validator or action names a program this machine lacks, or a typo in its name | install the program, or fix the command in `.cook/config.yaml` or `.cook/hooks.yaml` |
-| no default branch | with the git recipe, `origin/HEAD` is not set because the clone was created without it | `git remote set-head origin --auto` |
-| program version unsupported | the installed program, such as `git`, `claude` or `codex`, is older or newer than its recipe supports | install a supported version, or, for a builtin recipe, move the pin with `./cook wrapper` to a release whose recipe supports it |
-| a program is detected without its recipe | a detect rule matches, such as `mise.toml` for mise, and the recipe is not in `recipes:` | `./cook recipe apply mise` and review the diff |
-| a fetched recipe is not cached | nothing on this machine has fetched it since `recipes:` declared it, or the cache was cleared | `./cook recipe fetch` |
-| a fetched recipe's hash does not match | the content at its `source` differs from the `sha256` the profile pins | do not use it; check the source and the pinned hash with the recipe's author |
+| no default branch | the version control system has no default branch recorded for this clone | record it with the version control system's own command; the cookbook's page for the recipe names it |
+| program version unsupported | the installed program is older or newer than its recipe supports | install a supported version, or move the pin with `./cook recipe pin <name> --cookbook <source>@<version>` to a version of the recipe that supports it |
+| an unfilled contract | no pinned recipe fills the version-control contract, or no agent is declared | `./cook recipe pin <name> --cookbook <source>@<version>`, then `./cook recipe apply <name>` |
+| a recipe is not cached | nothing on this machine has fetched it since `recipes:` declared it, or the cache was cleared | `./cook recipe fetch` |
+| a recipe's hash does not match | the content at its `source` differs from the `sha256` the profile pins | do not use it; check the source and the pinned hash with the cookbook's publisher |
 | `wrapper.yaml` invalid | hand-edited, or a `version` without matching `checksums` | re-pin with `./cook wrapper --version <tag>` and review the diff |
 | `cook` differs from the template | the script was edited by hand | `./cook render` |
-| `cook` is not executable | the executable bit was lost | `chmod +x cook`, then `git add --chmod=+x cook` |
+| `cook` is not executable | the executable bit was lost | `chmod +x cook`, then commit the mode change |
 | pinned release not cached | nothing has run `./cook` on this machine since the pin changed | `./cook version` |
 | pin pending | the repository was scaffolded with `--offline` | with network access, `the-cook wrapper --version <the pinned tag>`, then commit `.cook/wrapper.yaml` and the manifest |
 | release signature does not verify, or checksums differ | `wrapper.yaml` was edited by hand, or the release was replaced after it was pinned | do not run the release; re-pin with `./cook wrapper --version <tag>` and review the diff, and report a replaced release to the project |
 | a policy entry weakens a floor rule | `.cook/policy.yaml` allows or asks for something a floor rule of a recipe in use denies; `render` already leaves it out | delete the entry from the policy |
-| a context skill does not exist | the entry names a skill that was never installed under `.agents/skills/`, or was renamed | install it with the team's skills tool, such as `npx skills add acme/agent-skills`, and commit `.agents/skills/`; or fix the name in `context` |
+| a context skill does not exist | the entry names a skill that was never installed under `.agents/skills/`, or was renamed | install it with the team's skills installer and commit `.agents/skills/`; or fix the name in `context` |

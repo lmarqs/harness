@@ -15,12 +15,10 @@ repository's declarations.
 
 Each agent is served by a [harness recipe](recipes.md#the-harness-contract): a recipe that says where the agent reads
 its configuration, how its permissions and hooks are expressed, what its hook payloads look like and how to start it
-safely as a worker, the agent [`the-cook worker`](ralph.md#the-worker-contract) runs headless for one task, the command
-a loop runner such as ralph-tui names as its agent command. The binary contains code for no agent. The release ships
-harness recipes for two, Claude Code (the [`claude`](recipes.md#claude) recipe) and Codex CLI (the
-[`codex`](recipes.md#codex) recipe), and a repository may declare a [fetched](recipes.md#fetched-recipes) harness recipe
-for another. A repository declares which agents it uses, in which role and with which recipe, in the
-[profile](profile.md#agents).
+safely as a worker, the agent [`the-cook worker`](worker.md#the-worker-contract) runs headless for one task, the command
+a loop runner names as its agent command. The binary contains code and data for no agent. Every harness recipe comes
+from a cookbook and is declared, pinned by version and sha256, in the profile's `recipes:` ([recipes](recipes.md)). A
+repository declares which agents it uses, in which role and with which recipe, in the [profile](profile.md#agents).
 
 Commands are named `the-cook <command>` on this page. Run them through the repository's wrapper,
 `./cook <command>`, from the root of a checkout; with a global install, `the-cook <command>` is equivalent
@@ -30,101 +28,115 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 
 ```yaml
 # .cook/config.yaml
-recipes: [git, claude, codex]
+recipes:
+  - name: git
+    source: github:acme/cookbook
+    version: v1.2.0
+    sha256: 9f258251faccf596a0780da3215a96c9d69f04f244a05b71f179008e4e9b2a36
+  - name: claude
+    source: github:acme/cookbook
+    version: v1.2.0
+    sha256: a90f021dd04c28e28172aa28048fccbe2b818e04dc2a3e179e21c792b6e3f65b
+  - name: codex
+    source: github:acme/cookbook
+    version: v1.2.0
+    sha256: 9e0c6a176f7724248e9c29096af6ed0b6b0d267274522a6245becfd7f034146d
 vcs: git
 agents:
   claude: { role: interactive }
   codex: { role: worker }
 ```
 
-Each agent's harness recipe is the one its `recipe` field names, by default the recipe named like the agent, and it
-must be in `recipes:`. Applying the `claude` or `codex` recipe declares its agent with `role: interactive` when the
-profile does not ([recipes](recipes.md#claude)). Only declared agents get native files. Removing an agent from `agents`
-and running `the-cook render` removes what was rendered for it.
+`the-cook recipe pin claude codex --cookbook github:acme/cookbook@v1.2.0` writes the `recipes:` entries above after
+showing them as a diff. Each agent's harness recipe is the one its `recipe` field names, by default the recipe named
+like the agent, and it must be declared in `recipes:`: an agent whose recipe is not declared is a validation error,
+exit 1. A harness recipe's [entries](recipes.md#entries) may declare its agent, with `role: interactive`, when the
+profile does not. Only declared agents get native files. Removing an agent from `agents` and running `the-cook render`
+removes what was rendered for it.
 
 ## Roles
 
 A role decides which parts of the [policy](policy.md) an agent's native files carry. `shared` holds the `allow`, `ask`
-and `deny` entries for every session; `worker.deny` holds what workers alone must never run, such as
-`[git, push]`. `worker.deny` always holds `[the-cook, lifecycle]`, which the binary renders itself for its own command,
-once for each spelling, such as `the-cook lifecycle` and `./cook lifecycle`
-([policy](policy.md#entries-for-the-cook-commands)).
+and `deny` entries for every session; `worker.deny` holds what workers alone must never run, such as a push.
+`worker.deny` always holds `[the-cook, lifecycle]`, which the binary renders itself for its own command, once for each
+spelling, such as `the-cook lifecycle` and `./cook lifecycle` ([policy](policy.md#entries-for-the-cook-commands)).
 
 | Role | Meaning | Native files carry | Under `the-cook worker` |
 | --- | --- | --- | --- |
-| `interactive` | people use this agent in the repository | the shared policy (`shared.*`) and the floor rules of every recipe in use | Claude Code: `worker.deny`, including `[the-cook, lifecycle]` in each spelling `the-cook` renders, is added at launch. Codex: refused, because its denies can only come from rendered rules |
+| `interactive` | people use this agent in the repository | the shared policy (`shared.*`) and the floor rules of every recipe in use | allowed when the harness recipe passes `worker.deny` as launch arguments, which add it, `[the-cook, lifecycle]` in each spelling included, at launch; refused when the recipe passes `worker.deny` only through rendered rules |
 | `worker` | the agent runs here only unattended, under `the-cook worker` or an `agent` action | the shared policy, the floor rules of every recipe in use, and `worker.deny`, including `[the-cook, lifecycle]` in each spelling `the-cook` renders | allowed |
 
-A repository where people use Codex interactively and also want Codex workers chooses one: interactive Codex, or Codex
-workers. Claude Code can be both, since its worker denies are passed at launch. Which of the two a harness recipe does
-is part of its [launch](recipes.md#the-harness-contract).
+Which of the two ways a harness recipe passes `worker.deny` is part of its
+[launch](recipes.md#the-harness-contract). An agent whose recipe passes it as launch arguments can be both interactive
+and a worker. An agent whose recipe passes it only through rendered rules is one or the other: a repository where
+people use it interactively and also want it as a worker chooses one.
 
-A Codex worker's denies live in files inside its own task checkout, which the agent can write. The worker's
-[tamper check](ralph.md#the-worker-contract) closes that gap. Before every launch it restores
-`.codex/rules/the-cook.rules`, the owned `.codex/config.toml` keys and the `the-cook hook` entries of
-`.codex/hooks.json` from the base commit, the `HEAD` of the checkout when `the-cook worker` started, and after the agent
-exits it compares them again. Those are the codex recipe's [renders](recipes.md#renders); for any agent, the tamper
-check covers every render of every recipe in use. An attempt whose agent changed any of them fails, whatever its
-[receipt](verify.md#the-receipt) (the record of a passing `the-cook verify`) says. The same check covers Claude Code's
-owned keys in `.claude/settings.json` and, for every agent, the wrapper `cook` and its pin `.cook/wrapper.yaml`, so an
-agent cannot change the binary its hooks and its next attempt run. After the agent exits, the comparison also covers
-every file under `.cook/` and every file and skill a `context` entry names, and a failed attempt returns the checkout to
-the base commit, keeping its changes as `last-attempt.patch` in the state directory.
+An agent whose worker denies live in rendered rules reads them from files inside its own task checkout, which the agent
+can write. The worker's [tamper check](worker.md#the-worker-contract) closes that gap. Before every launch it restores
+the [renders](recipes.md#renders) of every recipe in use (rendered rule files, owned keys of native settings files,
+`the-cook hook` entries), the wrapper `cook` and its pin `.cook/wrapper.yaml` from the base commit, the head commit of
+the checkout when `the-cook worker` started, and after the agent exits it compares them again, so an agent cannot change
+the rules it runs under or the binary its hooks and its next attempt run. After the agent exits, the comparison also
+covers every file under `.cook/` and every file and skill a `context` entry names. An attempt whose agent changed any
+of them fails, whatever its [receipt](verify.md#the-receipt) (the record of a passing `the-cook verify`) says, and a
+failed attempt returns the checkout to the base commit, keeping its changes as `last-attempt.patch` in the state
+directory.
 
-## What each harness recipe renders
+## What a harness recipe renders
 
-| | Claude Code | Codex |
-| --- | --- | --- |
-| Instructions | `CLAUDE.md` gets the `import` block (`@AGENTS.md`); Claude Code reads `AGENTS.md` through it | reads the root `AGENTS.md` directly |
-| Permissions | `.claude/settings.json`: `permissions.allow`, `ask`, `deny` | `.codex/rules/the-cook.rules`: `prefix_rule` entries with `allow`, `prompt`, `forbidden` |
-| Prefix lists | `Bash(<words> *)` | `prefix_rule` |
-| Native rule strings (`WebFetch(...)`, `Read(...)`, `mcp__...`) | rendered verbatim | only `Bash(<words> *)` with a plain word prefix converts; the rest are Claude-only |
-| Bare strings | rendered as `Bash(<string>)` | skipped: Claude-only |
-| Hooks | `.claude/settings.json` `hooks`: `SessionStart`; `PostToolUse` with matcher `Edit\|Write\|MultiEdit`, plus `Read` when `when.paths` context exists; `UserPromptSubmit` when `when.prompt` context exists | `.codex/hooks.json`: `SessionStart`, `PostToolUse` (every tool; `the-cook hook` filters edits) and, when `when.prompt` context exists, `UserPromptSubmit`; `.codex/config.toml`: the keys that enable project hooks |
-| Notification hooks | `Notification` for `attention`, `Stop` for `turn_end` | `notify` in `.codex/config.toml` for `turn_end`, when the key is free ([compatibility](compatibility.md#native-agent-files)); Codex has no event for `attention`, so nothing is rendered for it and `doctor` notes it |
-| [Standing context](context.md) | `always` at `SessionStart`, which Claude Code fires again after compaction; `when.paths` at `PostToolUse` after `Read`, `Edit`, `Write` or `MultiEdit`; `when.prompt` at `UserPromptSubmit` | `always` at `SessionStart`; `when.paths` at `PostToolUse` after `apply_patch` only, because Codex reads files through shell commands `the-cook hook` cannot attribute; `when.prompt` at `UserPromptSubmit` |
-| Edit tools recognised by `the-cook hook` | `Edit`, `Write`, `MultiEdit` | `apply_patch` |
-| shipped skill | `.claude/skills/the-cook` | `.codex/skills/the-cook` |
-| Never written | `.claude/settings.local.json` (read only by `scaffold --import local`), `.claude/worktrees/` (never scanned) | `*.local.toml` (read only by `scaffold --import local`) |
+A harness recipe's [renders](recipes.md#renders) turn the repository's declarations into its agent's native files. The
+recipe's page in its cookbook names the exact files and keys. Every harness recipe renders the same kinds of output:
 
-Both recipes render the same [hook command](render.md#the-hook-command), which finds the checkout's root through the
-version-control recipe's `root` operation; with the git recipe it is
-`"$(git rev-parse --show-toplevel)/cook" --no-download hook <event>`. It runs the pinned binary of the checkout the
-agent works in, from the cache, and never downloads. When the binary is not cached, it prints one line naming
-`./cook` and exits 0 ([hooks](hooks.md#the-missing-binary-guard)).
+| Output | What the harness recipe decides |
+| --- | --- |
+| Instructions | whether its agent reads `AGENTS.md` directly, or through an `import` block in its own instruction file |
+| Permissions | the native file and keys that hold `allow`, `ask` and `deny`, and how each [entry form](policy.md#entry-forms) renders: prefix lists in every agent; native rule strings and bare strings only in an agent whose syntax expresses them, otherwise skipped and marked in the `policy` block as not enforced in that agent |
+| Hooks | the native events that carry session start, post-edit, prompt submission and the [notification](hooks.md#agent-notifications) events, and the key that enables project hooks where its agent needs one |
+| [Standing context](context.md) | which native events deliver `always`, `when.paths` and `when.prompt` entries, and which tools count as reads and edits for `when.paths` |
+| Shipped skill | the location of the link to `.agents/skills/the-cook` |
+| Never written | the agent's local override files, read only by `scaffold --import local` |
+
+A neutral event a harness recipe maps to no native event gets nothing rendered for that agent, and `the-cook doctor`
+notes the gap.
+
+Every harness recipe renders the same [hook command](render.md#the-hook-command), which finds the checkout's root
+through the version-control recipe's `root` operation. It runs the pinned binary of the checkout the agent works in,
+from the cache, and never downloads. When the binary is not cached, it prints one line naming `./cook` and exits 0
+([hooks](hooks.md#the-missing-binary-guard)).
 
 See [render](render.md#merge-rendering-native-files) for the merge rules: every key and entry the recipe does not own
 is preserved byte for byte, because a recipe's renders own only the keys and entries they name.
 
 ## Worker launch
 
-| | Claude Code | Codex |
-| --- | --- | --- |
-| Started as | `the-cook worker claude [--commit] [--withhold <text>] [-- <agent args>]` | `the-cook worker codex [--commit] [--withhold <text>] [-- <agent args>]` |
-| Permission mode | `--permission-mode auto` | `workspace-write` sandbox |
-| Worker denies | `worker.deny` as disallowed tools | `worker.deny` in the rendered rules (`role: worker`) |
-| Tamper check restores | the owned `permissions.*` keys and `the-cook hook` entries of `.claude/settings.json`; `cook`; `.cook/wrapper.yaml` | `.codex/rules/the-cook.rules`, owned `.codex/config.toml` keys, `the-cook hook` entries of `.codex/hooks.json`; `cook`; `.cook/wrapper.yaml` |
-| Environment | `COOK_WORKER=1`: `the-cook` refuses lifecycle events, and notification hooks do nothing | the same |
-| Standing context | entries for `role: worker`, read from the base commit | the same |
-| Writable outside the task checkout | as permitted by its permissions | only the clone's state directory (`state.dir`, default `.work/`) and the directories the profile lists in `agents.codex.writable_roots`, such as `.beads` ([profile](profile.md#agents)) |
-| Network | as permitted by its permissions | on |
-| Refused arguments, among those `the-cook worker` receives: the recipe's [floor](recipes.md#the-floor) bypass arguments | `--dangerously-skip-permissions`, `--allow-dangerously-skip-permissions`, the `bypassPermissions` permission mode | `--dangerously-bypass-approvals-and-sandbox`, `--yolo`, the `danger-full-access` sandbox |
-| Model and effort of an `agent` action | `agent.model` as the full model id; `agent.effort` as `--effort <level>` | `agent.model` as the model id; `agent.effort` as `model_reasoning_effort` |
+`the-cook worker <agent> [--commit] [--withhold <text>] [-- <agent args>]` starts the agent with the launch operation
+of its harness recipe:
+
+| | What the worker does |
+| --- | --- |
+| Permission mode | the recipe's unattended arguments, which start the agent with its permission checks on |
+| Worker denies | `worker.deny` as the recipe passes it: as launch arguments, or in the rendered rules, which then require `role: worker` |
+| Tamper check restores | the renders of every recipe in use; `cook`; `.cook/wrapper.yaml` |
+| Environment | `COOK_WORKER=1`: `the-cook` refuses lifecycle events, and notification hooks do nothing |
+| Standing context | entries for `role: worker`, read from the base commit |
+| Writable outside the task checkout | for an agent with a sandbox, only what the recipe's sandbox-root arguments name: the clone's state directory (`state.dir`, default `.work/`) and the directories the profile lists in `agents.<name>.writable_roots` ([profile](profile.md#agents)); otherwise what its permissions permit |
+| Refused arguments, among those `the-cook worker` receives | the recipe's [floor](recipes.md#the-floor) bypass arguments |
+| Model and effort of an `agent` action | `agent.model` and `agent.effort`, passed as the recipe's launch operation says |
 
 `the-cook worker` passes the agent the arguments it does not recognise itself, so a loop runner's model and effort flags
 reach the agent as the loop runner wrote them. It reads no loop runner's configuration: a bypass flag a loop runner adds
 to the arguments is refused when the worker starts, at the first task, with exit 1 naming the flag. Before it starts the
-agent, the worker resolves the version-control recipe and the agent's harness recipe from the release or the cache and
-uses them for the whole attempt; a fetched recipe that is not cached fails the attempt with exit 3. The full worker
-contract is on the [Ralph](ralph.md#the-worker-contract) page.
+agent, the worker resolves the version-control recipe and the agent's harness recipe from the verified cache and uses
+them for the whole attempt; a declared recipe that is not cached fails the attempt with exit 3. The full worker contract
+is on the [worker](worker.md#the-worker-contract) page.
 
 ## Trust
 
-Both agents load project configuration only for folders the person has trusted, and global or managed settings may
-restrict project settings. `the-cook` never changes trust, global settings or credentials. Workspaces nested inside the
-primary checkout inherit its trust; sibling workspaces outside it do not. For example, with `~/src/api` trusted, the
-managed workspace `~/src/api/.work/workspaces/fix-login` is trusted too, and a sibling checkout `~/src/api-fix-login` is
-not ([pitfalls](pitfalls.md#claude-code-ignores-project-permissions-in-an-untrusted-folder)).
+An agent may load project configuration only for folders the person has trusted, and its global or managed settings
+may restrict project settings. `the-cook` never changes trust, global settings or credentials. Whether a folder inside
+a trusted one is trusted too is the agent's behaviour, which its harness recipe's page in its cookbook describes.
+Managed workspaces are nested in the primary checkout by default, under [`workspaces.dir`](profile.md#state-paths), so
+an agent that extends trust to nested folders trusts them with the primary checkout.
 
 ## The harness contract
 
@@ -144,48 +156,53 @@ invariant.
 | Renders | the exact files, keys and entries it owns, rendered from the policy, the floor rules of every recipe in use and the hooks file; everything else is preserved; local override files are never written, and read only by `scaffold --import local` |
 | Checks | the agent versions it supports, which `the-cook doctor` checks |
 
-The release's CI tests the `claude` and `codex` recipes against the agent versions this page names, proving each
-invariant for each agent: bypass refused, floor rules rendered, worker denies applied, tampered renders (`cook` and
-`.cook/wrapper.yaml` included) failing the attempt, and a hook exiting 0 without downloading when the pinned binary
-is not cached. A repository may use a fetched harness recipe for another agent, declared in `recipes:` and named by
-`agents.<name>.recipe`; its author owns those proofs, and `the-cook doctor` notes it as `not verified by the release`
-([fetched recipes](recipes.md#fetched-recipes)).
+A harness recipe declares the contract version it fills and the recipe schema it is written in; the binary refuses a
+recipe whose schema is newer than it supports ([recipes](recipes.md#the-recipe-file)). `the-cook`'s own tests prove
+the core's side of every invariant with stand-in recipes that describe no real agent: bypass refused, floor rules
+rendered, worker denies applied, tampered renders (`cook` and `.cook/wrapper.yaml` included) failing the attempt, and
+a hook exiting 0 without downloading when the pinned binary is not cached. The cookbook that publishes a harness recipe
+tests it against the agent versions its checks name. Pinning the recipe trusts that cookbook: a reviewer reads the
+recipe with `the-cook recipe show <name>` before approving the diff that pins it.
 
 ## Examples
 
-A Node API where the team uses Claude Code and runs Codex workers on tasks it tracks in Beads:
+The examples use harness recipes named `claude` and `codex` from `github:acme/cookbook`, declared as in
+[Declaring agents](#declaring-agents).
+
+A repository where the team uses one agent interactively and runs the other as workers:
 
 ```yaml
-agents: { claude: { role: interactive }, codex: { role: worker, writable_roots: [.beads] } }
+agents: { claude: { role: interactive }, codex: { role: worker, writable_roots: [.tasks] } }
 ```
 
 ```sh
-echo "Fix the invoice rounding described in acme-api-7f2." | ./cook worker codex --commit -- --model gpt-5-codex
+echo "Fix the invoice rounding described in task 7f2." | ./cook worker codex --commit
 ```
 
-A Go repository where people use both agents interactively, and unattended runs use Claude workers, whose worker denies
-are passed at launch:
+A repository where people use both agents interactively, and unattended runs use the agent whose recipe passes
+`worker.deny` at launch:
 
 ```yaml
 agents: { claude: { role: interactive }, codex: { role: interactive } }
 ```
 
-A Terraform repository where only Claude Code is used:
-
-```yaml
-agents: { claude: { role: interactive } }
-```
-
-A repository where acme's own review agent runs as a worker through a fetched harness recipe, beside Claude Code:
+A repository where acme's own review agent runs as a worker through its own harness recipe, beside one interactive
+agent:
 
 ```yaml
 recipes:
-  - git
-  - claude
-  - name: acme-review
+  - name: git
     source: github:acme/cookbook
+    version: v1.2.0
+    sha256: 9f258251faccf596a0780da3215a96c9d69f04f244a05b71f179008e4e9b2a36
+  - name: claude
+    source: github:acme/cookbook
+    version: v1.2.0
+    sha256: a90f021dd04c28e28172aa28048fccbe2b818e04dc2a3e179e21c792b6e3f65b
+  - name: acme-review
+    source: https://recipes.acme.example/review
     version: v0.3.0
-    sha256: 00656e7d94b5b56f73085a7aa1877dac25fee6f230f5117eb99e5cd66e168843
+    sha256: 2631021b8b679d990f51f13655f7286c4111a2cb963a801764f3c9d9c887591b
 vcs: git
 agents:
   claude: { role: interactive }
@@ -196,11 +213,11 @@ agents:
 
 | Symptom | Cause | Fix |
 | --- | --- | --- |
-| Codex ignores the project rules | The folder is not trusted, or Codex is not declared in `agents` | Trust the folder; declare it and render |
-| Claude Code does not read `AGENTS.md` | `CLAUDE.md` lacks the import | `the-cook render` restores the `import` block |
-| `the-cook worker codex` refused | Codex has `role: interactive` | Use `role: worker`, or Claude workers |
-| `the-cook worker` exits 1 naming `--dangerously-skip-permissions`, `--yolo` or another bypass flag | The loop runner's configuration adds the flag to the agent's arguments | Remove it there; for ralph-tui, keep `skipPermissions = false` in `.ralph-tui/config.toml` |
-| A Codex worker cannot write a directory outside its checkout | Only the state directory and `agents.codex.writable_roots` are writable | Add the directory to `writable_roots`, relative to the primary checkout's root |
-| `doctor` reports an unsupported agent version | The agent's version is outside the range its harness recipe's check supports | Update `the-cook`, whose release ships newer builtin recipes, or use a supported agent version |
-| Exit 1: an agent's `recipe` is not in `recipes:` | The harness recipe was never applied, or was deleted from `recipes:` | `./cook recipe apply <name>`, or add the fetched recipe's declaration |
-| `the-cook worker` or a hook exits 3 naming `./cook recipe fetch` | The agent's harness recipe is fetched and not in this machine's cache | Run `./cook recipe fetch` |
+| An agent ignores the project rules | The folder is not trusted by the agent, or the agent is not declared in `agents` | Trust the folder; declare the agent and render |
+| An agent does not read `AGENTS.md` | Its instruction file lacks the import its harness recipe renders | `the-cook render` restores the `import` block |
+| `the-cook worker <agent>` refused | The agent has `role: interactive`, and its harness recipe passes `worker.deny` only through rendered rules | Use `role: worker`, or an agent whose recipe passes `worker.deny` at launch |
+| `the-cook worker` exits 1 naming a bypass flag | The loop runner's configuration adds the flag to the agent's arguments | Remove it from the loop runner's configuration |
+| A sandboxed worker cannot write a directory outside its checkout | Only the state directory and `agents.<name>.writable_roots` are writable | Add the directory to `writable_roots`, relative to the primary checkout's root |
+| `doctor` reports an unsupported agent version | The agent's version is outside the range its harness recipe's check supports | Pin a cookbook version whose recipe supports it, `./cook recipe pin <name> --cookbook <source>@<version>`, or use a supported agent version |
+| Exit 1: an agent's `recipe` is not in `recipes:` | The harness recipe was never pinned, or was deleted from `recipes:` | `./cook recipe pin <name> --cookbook <source>@<version>` |
+| `the-cook worker` or a hook names `./cook recipe fetch` | The agent's harness recipe is declared and not in this machine's cache | Run `./cook recipe fetch` |

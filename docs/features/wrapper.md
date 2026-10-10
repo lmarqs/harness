@@ -17,7 +17,7 @@ nothing installed beforehand, and a release runs only if its publisher signed it
 repository pins in `.cook/wrapper.yaml`. The first time a machine needs that release, the wrapper downloads it over
 HTTPS, checks its sha256 against the pinned checksum, caches it and runs it. Afterwards it runs it from the cache,
 offline. People, agents, agent hooks and other tools, such as a loop runner whose agent command is
-`./cook worker claude`, all reach `the-cook` through it, so every machine runs the same release in a given
+`./cook worker <agent>`, all reach `the-cook` through it, so every machine runs the same release in a given
 repository, and nobody installs anything to work in one.
 
 `.cook/wrapper.yaml` is the only place a repository pins `the-cook`. It is
@@ -88,9 +88,9 @@ only through a commit, so a cached release never needs a network check.
 | Entry point | When the pinned release is not cached |
 | --- | --- |
 | `./cook <command>`, typed by a person or an agent | downloads, verifies, runs |
-| another tool's command, such as a loop runner's `./cook worker claude` or a team's own task | the same: it is `./cook <command>` |
+| another tool's command, such as a loop runner's `./cook worker <agent>` or a team's own task | the same: it is `./cook <command>` |
 | A global `the-cook` typed in a pinned repository | the same verified download, then runs the pinned release |
-| Agent hooks | never download: they run the [hook command](render.md#the-hook-command), with the git recipe `"$(git rev-parse --show-toplevel)/cook" --no-download hook <event>`, print one line on stderr and exit 0 |
+| Agent hooks | never download: they run the [hook command](render.md#the-hook-command), `cook --no-download hook <event>` at the repository root, print one line on stderr and exit 0 |
 
 The line an agent hook prints on stderr when the pinned release is not cached:
 
@@ -132,8 +132,8 @@ is not this tool ([doctor](doctor.md#how-it-works)).
 
 The version a repository runs is pinned in `.cook/wrapper.yaml`, the only pin `the-cook` reads
 ([ADR 0017](../adrs/0017-engine-version.md)). `the-cook` reads no other tool's files
-([ADR 0022](../adrs/0022-tool-integration.md)), so it neither reads nor edits a task runner's tool list, such as
-`mise.toml` or `.tool-versions`. A `the-cook` that such a tool installs is a
+([ADR 0022](../adrs/0022-tool-integration.md)), so it neither reads nor edits a tool-version manager's list of
+tools. A `the-cook` that such a tool installs is a
 [global install](#a-global-install-defers-to-the-pin): in a pinned repository it runs the pinned release.
 
 ### The trust chain
@@ -288,8 +288,8 @@ Every other argument is passed to `the-cook` unchanged.
 | HTTPS access to `source` | first run of a pinned release on a machine |
 
 These are the wrapper's own requirements. The binary it runs needs only the operating system; the programs the
-repository's [recipes](recipes.md) name, such as `git` for the git recipe, are the repository's requirements, and
-`the-cook doctor` reports each one that is missing ([ADR 0004](../adrs/0004-runtime-dependencies.md)).
+repository's [recipes](recipes.md) name are the repository's requirements, and `the-cook doctor` reports each one that
+is missing ([ADR 0004](../adrs/0004-runtime-dependencies.md)).
 
 Files read: `.cook/wrapper.yaml`, `$COOK_HOME/versions/<version>/the-cook`. Files written:
 `$COOK_HOME/versions/<version>/the-cook`, on a verified download only.
@@ -298,7 +298,7 @@ Files read: `.cook/wrapper.yaml`, `$COOK_HOME/versions/<version>/the-cook`. File
 
 | Variable | Read by | Effect |
 | --- | --- | --- |
-| `COOK_HOME` | `cook`, `the-cook` | The per-user cache directory, default `$XDG_CACHE_HOME/the-cook`, or `~/.cache/the-cook` when `XDG_CACHE_HOME` is unset. It holds pinned releases at `<COOK_HOME>/versions/<version>/the-cook`, [fetched recipes](recipes.md#fetched-recipes) under their hash, the update-check result and the signed-checksum check of `doctor`, nothing else |
+| `COOK_HOME` | `cook`, `the-cook` | The per-user cache directory, default `$XDG_CACHE_HOME/the-cook`, or `~/.cache/the-cook` when `XDG_CACHE_HOME` is unset. It holds pinned releases at `<COOK_HOME>/versions/<version>/the-cook`, [recipes](recipes.md#fetching) under their hash, the update-check result and the signed-checksum check of `doctor`, nothing else |
 | `COOK_BINARY` | `cook` | A path to a `the-cook` binary to exec instead of the pinned release. No download and no checksum check: it bypasses the pin, and `the-cook doctor` notes that the running release is not the pinned one |
 | `COOK_NO_UPDATE_CHECK=1` | `the-cook` | Turns off the daily newer-release check on explicit commands and in `doctor` |
 
@@ -356,7 +356,7 @@ differently (`cook` included), and the repository files when they are migrated.
 
 ```sh
 ./cook wrapper --version v0.9.0        # pins, and renders the repository with v0.9.0
-git diff                                   # the pin, cook, the shipped skill, builtin recipes' renders, migrations
+git diff                                   # the pin, cook, the shipped skill, migrations
 ./cook render --check                  # run by v0.9.0: passes
 git add -A && git commit -m "chore: run the-cook v0.9.0"
 ```
@@ -402,15 +402,16 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: ~/.cache/the-cook
-          key: the-cook-${{ hashFiles('.cook/wrapper.yaml') }}
+          key: the-cook-${{ hashFiles('.cook/wrapper.yaml', '.cook/config.yaml') }}
+      - run: ./cook recipe fetch
       - run: ./cook render --check
         env:
           COOK_NO_UPDATE_CHECK: "1"
 ```
 
 The cache step is optional; it saves the download on later runs. CI runs the release the pull request pins, so an
-upgrade and the files it re-rendered are checked together. A repository that declares a
-[fetched recipe](recipes.md#fetched-recipes) adds a `./cook recipe fetch` step before the check.
+upgrade and the files it re-rendered are checked together. `./cook recipe fetch` caches the
+[recipes](recipes.md#fetching) the profile pins, which `render` reads only from the cache.
 
 ## Air-gapped machines
 
@@ -467,8 +468,8 @@ install -m 0755 ./the-cook "$dir/the-cook"
 - Don't set `COOK_BINARY` in shared configuration, such as CI or a team's shell profile: it removes the pin for
   everyone it reaches.
 - Don't add `cook` or `.cook/` to `.gitignore`.
-- Don't pin `the-cook` in `mise.toml`, `.mise.toml` or `.tool-versions` as well: `the-cook` ignores that pin, and a
-  reader of the repository sees two versions.
+- Don't pin `the-cook` in a tool-version manager's file as well: `the-cook` ignores that pin, and a reader of the
+  repository sees two versions.
 
 ## Troubleshooting
 

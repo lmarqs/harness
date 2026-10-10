@@ -17,8 +17,8 @@ An adopted repository carries its own entry point: [`cook`](wrapper.md), a commi
 installed beyond a POSIX `sh`, `curl` or `wget`, and `sha256sum` or `shasum`, and the last two only for the first run of
 a pinned release. `the-cook` itself is a single binary that needs only the operating system at runtime
 ([ADR 0004](../adrs/0004-runtime-dependencies.md)). Every program it starts is named by one of the repository's
-[recipes](recipes.md), a declared command or an action, and is that repository's requirement: `git`, which the git
-recipe runs and every clone already has, and the agents the profile declares. A global install is optional: it puts
+[recipes](recipes.md), a declared command or an action, and is that repository's requirement: the version control
+program its version-control recipe runs, and the agents the profile declares. A global install is optional: it puts
 `the-cook` on your PATH and, inside a pinned repository, defers to the pinned release.
 
 Examples on this page run commands as `./cook <command>`; with a global install, `the-cook <command>` is
@@ -56,7 +56,7 @@ release.
 | `sha256sum` or `shasum` | the first run of a pinned release on a machine |
 | HTTPS access to the release source | the first run of a pinned release on a machine |
 
-The wrapper needs nothing else. The programs the repository's recipes name, such as `git` for the git recipe, are
+The wrapper needs nothing else. The programs the repository's recipes name are
 needed when a command uses them, and `./cook doctor` reports each one that is missing.
 
 Run `./cook version` once after cloning: agent hooks never download, so they skip with one line until the pinned
@@ -100,8 +100,8 @@ the-cook version
 ```
 
 `mise use -g` records the tool in your global mise configuration and puts `the-cook` on your PATH in every directory.
-Keep it out of a repository's own `mise.toml`, `.mise.toml` or `.tool-versions`: `.cook/wrapper.yaml` is the pin
-`the-cook` runs, and a second pin drifts from it ([compatibility](compatibility.md#mise)).
+Keep it out of a repository's own tool-version files: `.cook/wrapper.yaml` is the pin `the-cook` runs, and a second
+pin drifts from it ([compatibility](compatibility.md#task-runners)).
 
 Without mise, download the archive for your operating system and architecture from the project's GitHub releases
 page, extract it, and move the `the-cook` binary to a directory on your PATH:
@@ -131,10 +131,10 @@ git add -A && git commit -m "chore: upgrade the-cook"
 
 `wrapper` writes nothing until the running release has verified the target release's signed checksum file with its
 embedded release keys, downloaded the binary for this platform and matched it against that file. The new release then
-renders the repository: `cook`, `wrapper.yaml`, every file it renders differently, and a migration of the
-repository files when it reads a newer `schema`. The release carries its builtin [recipes](recipes.md#builtin-recipes),
-so their changed renders are part of that diff. A step that fails leaves everything untouched. The pin and its effect
-are one diff ([upgrading](wrapper.md#upgrading)).
+renders the repository: `cook`, `wrapper.yaml`, every file it renders differently, and a migration of the repository
+files when it reads a newer `schema`. The release carries no recipe: the [recipes](recipes.md#pinning) keep their own
+pins, and `./cook recipe pin` moves them. A step that fails leaves everything untouched. The pin and its effect are one
+diff ([upgrading](wrapper.md#upgrading)).
 
 Many repositories at once: `the-cook fleet wrapper --version <tag> --deliver`
 ([wrapper](wrapper.md#many-repositories)).
@@ -209,9 +209,9 @@ A clone of an adopted repository works before its pinned release is cached on a 
 
 An explicit entry point never succeeds without running, so no verification command claims work that did not happen.
 
-A [fetched recipe](recipes.md#fetched-recipes) the profile declares is a second download, and only
-`./cook recipe fetch` or `./cook recipe apply` makes it. Until it is cached on the machine, hooks and worker
-attempts that need it exit 3 naming `./cook recipe fetch`; nothing fetches it implicitly.
+Each [recipe](recipes.md#fetching) the profile pins is a second download, and only the commands that pin, fetch or
+apply recipes make it. Until it is cached on the machine, `render` and worker attempts exit 3 and hooks skip, each
+naming `./cook recipe fetch`; nothing fetches it implicitly.
 
 ## Uninstall
 
@@ -236,7 +236,7 @@ rm -rf "${COOK_HOME:-${XDG_CACHE_HOME:-$HOME/.cache}/the-cook}" ~/.config/the-co
 
 | Path | Holds |
 | --- | --- |
-| `$COOK_HOME` (default `$XDG_CACHE_HOME/the-cook`, else `~/.cache/the-cook`) | `versions/<version>/the-cook` for each downloaded release, each fetched recipe under its hash, the update-check result, the signature-check result of `doctor` |
+| `$COOK_HOME` (default `$XDG_CACHE_HOME/the-cook`, else `~/.cache/the-cook`) | `versions/<version>/the-cook` for each downloaded release, each recipe under its hash, the update-check result, the signature-check result of `doctor` |
 | `~/.config/the-cook/fleet.yaml` | your default [fleet](fleet.md) file |
 
 ## Troubleshooting
