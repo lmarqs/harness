@@ -17,8 +17,8 @@ repository grants it.
 checkout it is started in, under the [worker contract](#the-worker-contract). It resolves the recipes the attempt uses,
 pins the agent's permission mode, refuses permission bypass, restores and checks the tool-owned files around the agent,
 replays the agent's verification with rules read from the base commit, and reports the outcome through its exit status
-and, in a worktree bound to a task, [lifecycle events](lifecycle.md). A completion signal the caller expects is text the
-caller hands to `the-cook worker`, which prints it only for a verified attempt.
+and, in a workspace bound to a task, [lifecycle events](lifecycle.md). A completion signal the caller expects is text
+the caller hands to `the-cook worker`, which prints it only for a verified attempt.
 
 `the-cook worker` is the command a **loop runner** names as its agent command. A loop runner is a third-party program
 that works through a list of tasks and starts an agent for each. `the-cook` has no code for any loop runner: it does
@@ -139,16 +139,16 @@ prints its output without the signal, exits 1, and ralph-tui counts the attempt 
 
 ### Lifecycle events
 
-`the-cook worker` fires events only for a task bound to its checkout: a managed worktree created with
-`the-cook worktree create <name> --task <id>`, where `COOK_TASK` is set ([tasks](tasks.md)). It fires them in its
-own process, after the agent has exited. A loop runner's worktree holds a whole run and is bound to no task, so there
+`the-cook worker` fires events only for a task bound to its checkout: a managed workspace created with
+`the-cook workspace create <name> --task <id>`, where `COOK_TASK` is set ([tasks](tasks.md)). It fires them in its
+own process, after the agent has exited. A loop runner's workspace holds a whole run and is bound to no task, so there
 the worker fires no event, and ralph-tui's own tracker records each task's status. Every event of a run is fired by
 whoever drives it, with [`the-cook lifecycle run`](lifecycle.md#the-cook-lifecycle-run): a person, a
 [coordinating agent](#running-it-from-an-agent-session) or a script around the loop runner.
 
 | When | Event | Scope | Fired by |
 | --- | --- | --- | --- |
-| an attempt in a worktree bound to a task passes its replay | `completed` | `task` | `the-cook worker` |
+| an attempt in a workspace bound to a task passes its replay | `completed` | `task` | `the-cook worker` |
 | right after, when the work is [concluded](lifecycle.md#scopes) | `deliver` | `task` | `the-cook worker` |
 | the run finished every task | `completed` | `run` | the caller: `./cook lifecycle run completed --scope run` |
 | the run stopped with tasks left open | `blocked` | `run` | the caller: `./cook lifecycle run blocked --scope run` |
@@ -166,7 +166,7 @@ The loop runner decides whether tasks run one after another or in parallel, and 
 
 | Mode | Where each task runs | How the result lands |
 | --- | --- | --- |
-| Sequential (the default) | the checkout ralph-tui runs in, such as a managed worktree | with `--commit`, the worker commits each verified task there, so the next task starts from it |
+| Sequential (the default) | the checkout ralph-tui runs in, such as a managed workspace | with `--commit`, the worker commits each verified task there, so the next task starts from it |
 | Parallel (`ralph-tui run --parallel <n>`) | ralph-tui's own worker checkouts, by default under `.ralph-tui/worktrees` | the worker commits each verified task in its checkout; ralph-tui merges the commits onto its session branch |
 
 In both modes the worker runs `bootstrap` once in each checkout it starts in. Parallel scheduling, merging and conflict
@@ -178,19 +178,19 @@ A failed attempt leaves the checkout at its base, so ralph-tui's retry starts th
 
 ### Delivery
 
-The result of a ralph-tui run is a local branch with one commit per task: the worktree's branch, such as
+The result of a ralph-tui run is a local branch with one commit per task: the workspace's branch, such as
 `work/run-invoice`, in sequential mode, or ralph-tui's session branch in parallel mode. The binary contains no delivery
 logic of its own; the repository's `deliver` actions define what delivery means ([lifecycle](lifecycle.md)).
 
 | Delivery | How |
 | --- | --- |
-| Per task | in a worktree bound to a task, `deliver` actions with `auto: true` and scope `task` run from the worker after its verified attempt |
+| Per task | in a workspace bound to a task, `deliver` actions with `auto: true` and scope `task` run from the worker after its verified attempt |
 | Per run | the caller runs `./cook lifecycle run deliver --scope run` once the run is done |
 | After judgement | choosing which task commits go together, splitting them across branches, rewording messages: a coordinating agent does this with the [shipped skill](skills.md#the-shipped-skill), or a person by hand, then runs `./cook lifecycle run deliver` on each resulting branch |
 
 Most runs need judgement: the task commits are small and numerous, and a reviewer reads a pull request, not a run.
-Once the delivered work is merged, `./cook worktree remove <name>` fires `landed` and removes the run's worktree
-([worktrees](worktrees.md#remove)).
+Once the delivered work is merged, `./cook workspace remove <name>` fires `landed` and removes the run's workspace
+([workspaces](workspaces.md#remove)).
 
 ### The ralph-tui recipe
 
@@ -313,8 +313,8 @@ of the [worker contract](#the-worker-contract)).
 | Variable | Set for | Value |
 | --- | --- | --- |
 | `COOK_WORKER` | the agent and every process it starts | `1`: `the-cook lifecycle run` refuses, and `attention` and `turn_end` hooks do nothing |
-| `COOK_TASK` | the actions of the events the worker fires | the task id the worktree was created with (`--task`) |
-| `COOK_ACTOR` | the actions of the events the worker fires | the managed worktree's actor, `<user>:<worktree>:<random>` |
+| `COOK_TASK` | the actions of the events the worker fires | the task id the workspace was created with (`--task`) |
+| `COOK_ACTOR` | the actions of the events the worker fires | the managed workspace's actor, `<user>:<workspace>:<random>` |
 
 The other `COOK_*` variables those actions receive are listed under
 [lifecycle environment](lifecycle.md#environment).
@@ -358,11 +358,11 @@ bd create --parent acme-api-a10 --title "US-002: Show rounded totals in the API"
 bd dep add acme-api-a10.2 acme-api-a10.1
 ```
 
-Run it in its own worktree, then fire the run's event:
+Run it in its own workspace, then fire the run's event:
 
 ```sh
-./cook worktree create run-invoice
-cd .work/worktrees/run-invoice
+./cook workspace create run-invoice
+cd .work/workspaces/run-invoice
 ralph-tui run --agent claude --tracker beads --epic acme-api-a10 --headless
 ./cook lifecycle run completed --scope run    # every task finished
 ./cook lifecycle run blocked --scope run      # instead, when tasks were left open
@@ -376,9 +376,9 @@ The stories are a JSON file in the primary checkout's ignored state directory; r
 parallel:
 
 ```sh
-./cook worktree create run-export
+./cook workspace create run-export
 prd="$PWD/.work/prds/export-csv.json"
-cd .work/worktrees/run-export
+cd .work/workspaces/run-export
 ralph-tui run --agent codex --prd "$prd" --parallel 3 --headless
 ./cook lifecycle run completed --scope run
 ```
@@ -386,7 +386,7 @@ ralph-tui run --agent codex --prd "$prd" --parallel 3 --headless
 ### A team's own loop script
 
 `acme/api` also runs one-off batches without ralph-tui: a directory of prompt files, one task each, worked through in
-a managed worktree. The script reads the worker's exit code and fires the run's event itself:
+a managed workspace. The script reads the worker's exit code and fires the run's event itself:
 
 ```sh
 #!/bin/sh
@@ -403,8 +403,8 @@ done
 ```
 
 ```sh
-./cook worktree create batch-docs
-cd .work/worktrees/batch-docs
+./cook workspace create batch-docs
+cd .work/workspaces/batch-docs
 ../../../scripts/run-batch.sh ../../../batches/docs
 ```
 
@@ -419,7 +419,7 @@ must not hold.
 ### Running it from an agent session
 
 A coordinating Claude Code session started with `claude --permission-mode auto` can run the steps of the
-[Node API example](#a-node-api-a-beads-epic-with-ralph-tui): create the worktree, start ralph-tui headless, watch it,
+[Node API example](#a-node-api-a-beads-epic-with-ralph-tui): create the workspace, start ralph-tui headless, watch it,
 and fire `completed` or `blocked` with scope `run` when it ends. Its own policy must permit `ralph-tui run`. For
 delivery it arranges the task commits on branches, guided by the [shipped skill](skills.md#the-shipped-skill), then
 runs `./cook lifecycle run deliver` on each; the seeded `ask` entry for that command asks a person first
@@ -439,8 +439,8 @@ Preparing a Beads epic for ralph-tui:
 
 Running:
 
-- Do commit before creating the run's worktree, including any change to `.cook/`, `.agents/` and
-  `.ralph-tui/config.toml`: the worktree starts from committed code, and the worker reads the rules from the base
+- Do commit before creating the run's workspace, including any change to `.cook/`, `.agents/` and
+  `.ralph-tui/config.toml`: the workspace starts from committed code, and the worker reads the rules from the base
   commit.
 - Do keep `--commit` in a sequential run: without it, the second task's worker refuses the first task's uncommitted
   work.
@@ -467,9 +467,9 @@ Running:
 | Codex worker refused | Codex is declared with `role: interactive` | Set `agents.codex.role: worker` and render, or use Claude workers |
 | Exit 3 | The agent binary or the version-control program is not installed, or a fetched recipe is not in the cache | Install the program, or run `./cook recipe fetch`; `./cook doctor` names what is missing |
 | An attempt fails before the agent starts: the base cannot be read | The version-control recipe could not read the checkout's head commit | Check the checkout with its version-control program, such as `git status` with the git recipe, then start the worker again |
-| No `completed` or `deliver` action runs after a verified task in a ralph-tui run | The run's worktree is bound to no task, so the worker fires no event | Expected: ralph-tui's tracker records the task's status; fire run-scope events after the run ([lifecycle events](#lifecycle-events)) |
+| No `completed` or `deliver` action runs after a verified task in a ralph-tui run | The run's workspace is bound to no task, so the worker fires no event | Expected: ralph-tui's tracker records the task's status; fire run-scope events after the run ([lifecycle events](#lifecycle-events)) |
 | `the-cook lifecycle run` refused during a run | It ran under `COOK_WORKER=1`, inside the agent | Fire it from the session that started the loop runner |
-| One pull request per task, too many to review | A task-scope `deliver` action with `auto: true`, fired by workers in worktrees bound to a task | Remove `auto` from that action and deliver after judgement |
+| One pull request per task, too many to review | A task-scope `deliver` action with `auto: true`, fired by workers in workspaces bound to a task | Remove `auto` from that action and deliver after judgement |
 
 ## Coexistence with direct ralph-tui use
 

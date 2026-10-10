@@ -63,7 +63,7 @@ platform's own CLI. A repository that declares none never has anything leave the
 Beads is a task tracker that keeps tasks in a `.beads/` database in the clone and is used through its `bd` CLI.
 The binary has no code for Beads: it never runs `bd` of its own accord, reads `.beads/` or creates a database. The
 [`beads` recipe](recipes.md#beads) wires it, with lifecycle actions that mark a bead in progress on `start`, close it on
-`completed` and comment on it on `blocked`, in a managed worktree bound to the bead ([tasks](tasks.md)). Creating and
+`completed` and comment on it on `blocked`, in a managed workspace bound to the bead ([tasks](tasks.md)). Creating and
 configuring the database, and every other use of `bd`, is the team's.
 
 | Situation | Behaviour |
@@ -88,7 +88,7 @@ choosing its tracker and firing the events of a run as a whole are the team's.
 | --- | --- |
 | A `.ralph-tui/config.toml` the repository already has | never read or written; applying the recipe reports `kept .ralph-tui/config.toml: exists` |
 | A global `~/.config/ralph-tui/config.toml` | never read or written. ralph-tui merges it into every run; a setting there that turns permission checks off reaches the worker as a bypass argument, a floor rule of the agent's harness recipe, which the worker refuses at the first task |
-| ralph-tui's branches, session state and worktrees | ralph-tui's own; `the-cook` never cleans them. The `ralph-tui` recipe's `.gitignore` block ignores `.ralph-tui/*` except `config.toml` |
+| ralph-tui's branches, session state and workspaces | ralph-tui's own; `the-cook` never cleans them. The `ralph-tui` recipe's `.gitignore` block ignores `.ralph-tui/*` except `config.toml` |
 | Any tracker ralph-tui supports | the team's choice; `the-cook` sees only the worker command |
 | A run as a whole | nothing fires run-scope events by itself; whoever drives the run fires `./cook lifecycle run completed --scope run` or `blocked --scope run` |
 | ralph-tui started with an agent command other than `the-cook worker` | outside `the-cook`: the worker contract holds only for agents the binary starts |
@@ -152,8 +152,8 @@ The binary contains no code for git. The [`git` recipe](recipes.md#git) describe
 [version-control contract](recipes.md#the-version-control-contract), and is the recipe `scaffold` names in `vcs: git`.
 
 - `the-cook` never changes `core.hooksPath` and never installs git hooks.
-- The git recipe's add-worktree operation runs `git worktree add` with `core.hooksPath=/dev/null` for that one
-  command, so a hook from the primary checkout does not run during worktree creation.
+- The git recipe's add-workspace operation runs `git worktree add` with `core.hooksPath=/dev/null` for that one
+  command, so a hook from the primary checkout does not run during workspace creation.
 - The git recipe's floor rule denies a force push to the default branch it reports, the branch `origin/HEAD` points to:
   `main`, `master` or any other name.
 - Every `the-cook` command that reads the repository needs `git` installed, because the git recipe runs it; `doctor`
@@ -161,9 +161,9 @@ The binary contains no code for git. The [`git` recipe](recipes.md#git) describe
 
 ## `.gitignore`
 
-Each recipe in use that creates a path adds its own marked block: the git recipe's `state` and `worktrees`, and the
+Each recipe in use that creates a path adds its own marked block: the git recipe's `state` and `workspaces`, and the
 ralph-tui recipe's `ralph-tui` ([block ids](render.md#block-ids)). A block writes its own entries even when another
-block's entry already covers them, such as `/.work/worktrees/` under `/.work/`, so removing one never un-ignores
+block's entry already covers them, such as `/.work/workspaces/` under `/.work/`, so removing one never un-ignores
 another's paths. Paths the repository tracks are left out of the blocks. Every other line is untouched.
 
 ```gitignore
@@ -248,7 +248,7 @@ removing it does not strand the repository ([remove](remove.md)):
 
 | After `remove --eject` | Still works |
 | --- | --- |
-| `AGENTS.md` keeps the text of its convention blocks without markers: where worktrees live, the effective permissions, where memory is, static standing context | agents and people follow it as ordinary instructions |
+| `AGENTS.md` keeps the text of its convention blocks without markers: where workspaces live, the effective permissions, where memory is, static standing context | agents and people follow it as ordinary instructions |
 | `CLAUDE.md` keeps its `@AGENTS.md` line | Claude Code still reads `AGENTS.md` |
 | `.gitignore` keeps every entry | state stays out of commits |
 | Native settings keep their permissions and `raw` hooks as hand-owned content | agents keep the same rules |

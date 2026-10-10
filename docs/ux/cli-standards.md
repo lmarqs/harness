@@ -84,8 +84,8 @@ the-cook explain <topic>
 the-cook context show [--role interactive|worker] [--path <file>]... [--prompt <text>] [--json]
 the-cook lifecycle list [--json]
 the-cook lifecycle run <event> [--action <name>]... [--scope task|run|change] [--task <id>] [--dry-run]
-the-cook worktree create <name> [--base <ref>] [--task <id>] [--no-bootstrap]
-the-cook worktree remove <name>
+the-cook workspace create <name> [--base <ref>] [--task <id>] [--no-bootstrap]
+the-cook workspace remove <name>
 the-cook verify [--lane <name>=<pattern>]... [--skip <name>=<reason>]... [--full] [--base <ref>] [--check]
 the-cook worker <agent> [--commit] [--withhold <text>] [-- <agent args>]
 the-cook fleet <command> [command args...] [--repos <file>] [--deliver] [--continue-on-error]
@@ -115,7 +115,7 @@ the-cook hook
 | `recipe fetch` | downloads every fetched recipe the profile declares that is not in the per-user cache, verifies each against its `sha256` and stores it under its hash; a mismatch exits 1 and stores nothing. It writes nothing in the repository. It is the only command besides `recipe apply` that fetches a recipe |
 | `lifecycle list` | prints every lifecycle event (the out-of-band `blocked` included), its actions, their kinds, `auto` flags and scopes |
 | `lifecycle run <event>` | runs the event's declared actions, in declaration order, for one scope; never asks for confirmation; refuses, exit 3, inside a worker or an `agent` action, and for `completed` with scope `task` without a valid receipt when the verify module is enabled, whoever fires it |
-| `worktree create <name> --task <id>` | records the free-form task id with the worktree; every event fired in that worktree carries it as `COOK_TASK`, beside the `COOK_ACTOR` every managed worktree has, and `start` fires with scope `task` (without `--task`, with scope `change`) |
+| `workspace create <name> --task <id>` | records the free-form task id with the workspace; every event fired in that workspace carries it as `COOK_TASK`, beside the `COOK_ACTOR` every managed workspace has, and `start` fires with scope `task` (without `--task`, with scope `change`) |
 | `worker <agent>` | runs one agent headless for one task under the worker contract, in the checkout it starts in; the stable interface other tools call ([below](#the-worker-command)) |
 | `fleet <command> --deliver` | after the command, commits the tool-owned changes on a new local branch `<branch_prefix><command>` cut from the fetched default branch, runs `the-cook verify` (no lanes are needed for a change outside `verify.app_paths`), then fires `deliver` (scope `change`) in that repository, running every declared `deliver` action for that scope |
 
@@ -146,8 +146,8 @@ and the lifecycle events it fires.
 | agent arguments | the first argument the worker does not recognise, and everything after it, or everything after `--`, goes to the agent; an argument the agent's harness recipe marks as a floor bypass argument is refused |
 | exit code | 0 verified; 1 refused (uncommitted changes, a floor bypass argument, a recipe whose content does not match its `sha256`) or a failed attempt (tamper check, a base that cannot be read, missing, malformed or failing receipt); 3 a prerequisite is missing (the agent's program, the version-control recipe's program, or a fetched recipe that is not in the cache: run `./cook recipe fetch`) |
 | output | the agent's output, buffered and printed after the attempt; on failure the full output is kept in `last-worker-output` and the attempt's changes in `last-attempt.patch`, in the checkout's state directory, and the checkout returns to its base |
-| environment given to the agent | `COOK_WORKER=1`; `COOK_TASK` when the checkout is a managed worktree created with `--task`, otherwise unset |
-| events | after a verified attempt in a checkout bound to a task (`COOK_TASK` set), `completed` with scope `task`, then `deliver` with scope `task` when the work is concluded, both fired in the worker's own process; in an unbound checkout, such as a loop runner's worktree, none |
+| environment given to the agent | `COOK_WORKER=1`; `COOK_TASK` when the checkout is a managed workspace created with `--task`, otherwise unset |
+| events | after a verified attempt in a checkout bound to a task (`COOK_TASK` set), `completed` with scope `task`, then `deliver` with scope `task` when the work is concluded, both fired in the worker's own process; in an unbound checkout, such as a loop runner's workspace, none |
 
 - Before anything else, the worker command resolves the version-control recipe and the agent's harness recipe from the
   release or the per-user cache, and uses that resolution for every read, comparison, reset and launch of the attempt.
@@ -172,7 +172,7 @@ command lives without reading help.
 | Shape | Used for | Commands |
 | --- | --- | --- |
 | `the-cook <verb>` | an operation on the repository as a whole | `scaffold`, `remove`, `render`, `doctor`, `verify`, `explain`, `version`, `wrapper` |
-| `the-cook <noun> <verb>` | an operation on one kind of object the repository holds | `worktree create\|remove`, `lifecycle list\|run`, `context show`, `recipe list\|show\|apply\|fetch` |
+| `the-cook <noun> <verb>` | an operation on one kind of object the repository holds | `workspace create\|remove`, `lifecycle list\|run`, `context show`, `recipe list\|show\|apply\|fetch` |
 | `the-cook fleet <command>` | a repository-level command run across a declared list of repositories | `fleet render`, `fleet doctor`, `fleet scaffold`, `fleet wrapper`, … |
 | `the-cook worker <agent>` | one agent run that `the-cook` performs in place of the agent binary, for another tool that starts agents | `worker claude`, `worker codex` |
 
@@ -189,7 +189,7 @@ Rules:
 
 - A verb that applies to the whole repository goes at the top level. A verb that applies to one object goes under
   that object's noun, so related operations are listed together in help.
-- A noun is singular when it is a kind of object whose instances commands pick by name (`worktree <name>`,
+- A noun is singular when it is a kind of object whose instances commands pick by name (`workspace <name>`,
   `recipe <name>`, a `lifecycle` event, the `context` of one session) and plural only when the operation always covers
   the whole set, so the name says whether a command can pick what it touches.
 - Operands identify the target (`<name>`, `<event>`, `<topic>`, `<agent>`); flags modify how the operation runs.
@@ -447,7 +447,8 @@ Format and wording: [messages-and-docs.md](messages-and-docs.md#error-messages).
 ## Dry run
 
 - Every command that writes to the repository, its state directories or another repository MUST accept `--dry-run`,
-  because every write must be inspectable before it happens ([principles.md](principles.md#5-never-destroy-always-show-what-will-change)).
+  because every write must be inspectable before it happens
+  ([principles.md](principles.md#5-never-destroy-always-show-what-will-change)).
 - A dry run performs every read and validation the real run would, writes nothing, and prints the complete change
   set: paths created, updated and removed; blocks and native keys changed; unified diffs on request with `--verbose`.
   Why: a preview that skips validation can promise a change the real run refuses.
@@ -463,7 +464,7 @@ Format and wording: [messages-and-docs.md](messages-and-docs.md#error-messages).
 - Running a mutation again after it succeeded changes nothing and exits 0, because agents and scripts retry.
 - A command interrupted part way leaves the repository in a state the same command can complete by running again, so
   an interruption never needs a manual repair.
-- Operations on objects follow the same rule: creating a worktree that already exists with the same base succeeds
+- Operations on objects follow the same rule: creating a workspace that already exists with the same base succeeds
   without change; a conflicting state (a different base) is an error naming the conflict.
 
 ## Non-interactive operation
@@ -512,7 +513,7 @@ How each action kind receives them ([configuration-standards.md](configuration-s
 
 | Kind | Receives values |
 | --- | --- |
-| `run` | runs with `sh -c` in the worktree and inherits the environment of the process that fired it, plus the variables below; the shell expands them, `the-cook` substitutes nothing |
+| `run` | runs with `sh -c` in the workspace and inherits the environment of the process that fired it, plus the variables below; the shell expands them, `the-cook` substitutes nothing |
 | `http` | in `json`, every `$NAME` inside a string is replaced by the JSON-encoded value of the environment variable `NAME` (an unset variable becomes an empty string and a note); the URL and header values come only from the variables named by `url_env` and `headers_env` |
 | `agent` | in `prompt`, every `$NAME` is replaced by the variable's value as plain text |
 
@@ -523,13 +524,13 @@ Variables set for lifecycle actions:
 | `COOK_EVENT` | the lifecycle event (`start`, `verified`, `completed`, `deliver`, `landed`, `blocked`) |
 | `COOK_SCOPE` | `task`, `run` or `change` |
 | `COOK_REPO` | absolute path of the primary checkout |
-| `COOK_WORKTREE` | absolute path of the worktree the action runs in |
-| `COOK_WORKTREE_NAME` | the worktree's name |
+| `COOK_WORKSPACE` | absolute path of the workspace the action runs in |
+| `COOK_WORKSPACE_NAME` | the workspace's name |
 | `COOK_BRANCH` | the work's branch |
 | `COOK_BASE` | the base ref the work started from |
 | `COOK_DEFAULT_BRANCH` | the default branch the version-control recipe reports (`origin/HEAD` with the git recipe) |
-| `COOK_TASK` | the task id, for scope `task`: the id recorded with `worktree create --task`, or given with `--task`; unset in a worktree created without `--task` |
-| `COOK_ACTOR` | the actor of the managed worktree, `<user>:<worktree>:<random>`, recorded when it was created; set in every managed worktree |
+| `COOK_TASK` | the task id, for scope `task`: the id recorded with `workspace create --task`, or given with `--task`; unset in a workspace created without `--task` |
+| `COOK_ACTOR` | the actor of the managed workspace, `<user>:<workspace>:<random>`, recorded when it was created; set in every managed workspace |
 | `COOK_RECEIPT` | path to the receipt JSON |
 | `COOK_SUMMARY` | one-line verification summary |
 | `COOK_REASON` | the one-line refusal or stop reason, for `blocked` |
@@ -542,7 +543,7 @@ Variables set for notification actions (`attention`, `turn_end` in `hooks.yaml`)
 | `COOK_AGENT` | the agent that fired the event (`claude`, `codex`) |
 | `COOK_MESSAGE` | the agent's own notification text; untrusted, because the agent writes it |
 | `COOK_REPO` | absolute path of the primary checkout |
-| `COOK_WORKTREE` | absolute path of the checkout the agent runs in |
+| `COOK_WORKSPACE` | absolute path of the checkout the agent runs in |
 | `COOK_BRANCH` | that checkout's branch |
 
 A variable that does not apply to the scope or event is unset, not empty, so an action can tell "not applicable" from

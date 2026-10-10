@@ -13,7 +13,7 @@ and can check a setup against the known traps before relying on it.
 
 ## Overview
 
-Each entry below is a place where agents, permission systems, worktrees or trackers behave differently from what a
+Each entry below is a place where agents, permission systems, workspaces or trackers behave differently from what a
 reasonable person expects, with what `the-cook` does about it. Every entry has four parts: the **symptom** you see,
 **why** it happens, what **`the-cook` does** about it, and what **you do**.
 
@@ -29,7 +29,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 
 - [Permissions](#permissions)
 - [Agents and trust](#agents-and-trust)
-- [Worktrees and environment](#worktrees-and-environment)
+- [Workspaces and environment](#workspaces-and-environment)
 - [Ralph, trackers and verification](#ralph-trackers-and-verification)
 - [Delivery](#delivery)
 - [Notifications and agent actions](#notifications-and-agent-actions)
@@ -60,7 +60,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 - **Why.** `-C <dir>` and `-c <key=value>` come before the subcommand, so the leading words are `git -C`, not
   `git push`. `-C` also reaches other checkouts of the clone.
 - **What `the-cook` does.** Nothing beyond rendering; the policy decides.
-- **What you do.** Put `[git, ["-C", "-c"]]` in `worker.deny`, next to the subcommands that leave the worktree
+- **What you do.** Put `[git, ["-C", "-c"]]` in `worker.deny`, next to the subcommands that leave the workspace
   ([policy](policy.md)).
 
 ### A task runner runs whatever its tasks say
@@ -156,7 +156,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
   anywhere.
 - **What `the-cook` does.** Nothing: it does not read environment files.
 - **What you do.** Allow such tasks only when every environment file the clone uses points at local services. Deny
-  them to workers when that cannot be guaranteed. Keep remote credentials out of the files a worktree inherits.
+  them to workers when that cannot be guaranteed. Keep remote credentials out of the files a workspace inherits.
 
 ### The agents' permission systems are not the same boundary
 
@@ -173,12 +173,12 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 
 ### Claude Code ignores project permissions in an untrusted folder
 
-- **Symptom.** Every command prompts in a worktree, or project hooks do not run.
-- **Why.** Claude Code applies project settings only in folders the person trusted. Worktrees nested in the primary
-  checkout inherit its trust; a worktree created as a sibling directory does not.
-- **What `the-cook` does.** Creates its worktrees in the configured worktrees directory, inside the primary checkout
-  (`.work/worktrees/` by default). Never changes trust ([agents](agents.md#trust)).
-- **What you do.** Trust the primary checkout once. Create worktrees with `the-cook worktree create`, not as siblings.
+- **Symptom.** Every command prompts in a workspace, or project hooks do not run.
+- **Why.** Claude Code applies project settings only in folders the person trusted. Workspaces nested in the primary
+  checkout inherit its trust; a workspace created as a sibling directory does not.
+- **What `the-cook` does.** Creates its workspaces in the configured workspaces directory, inside the primary checkout
+  (`.work/workspaces/` by default). Never changes trust ([agents](agents.md#trust)).
+- **What you do.** Trust the primary checkout once. Create workspaces with `the-cook workspace create`, not as siblings.
 
 ### Permitting `the-cook lifecycle run` permits its actions
 
@@ -194,7 +194,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 
 ### Permitting a command with a trigger point permits its automatic actions
 
-- **Symptom.** An agent allowed to run `the-cook worker` in a worktree bound to a task also pushes a branch and opens a
+- **Symptom.** An agent allowed to run `the-cook worker` in a workspace bound to a task also pushes a branch and opens a
   pull request.
 - **Why.** After a verified attempt, `the-cook worker` fires `completed`, then `deliver`; every action with
   `auto: true` runs. The same holds for every command with a [trigger point](lifecycle.md#trigger-points).
@@ -225,39 +225,39 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
   feedback; `the-cook verify` and CI are the proof. Declare directives every session must have as
   [static context](context.md#static-entries).
 
-## Worktrees and environment
+## Workspaces and environment
 
-### The repository's own globs pick up nested worktrees
+### The repository's own globs pick up nested workspaces
 
 - **Symptom.** Lint, tests or the type checker in the primary checkout report duplicate modules, run twice or fail on
-  files under the worktrees directory (`.work/worktrees/` by default).
-- **Why.** Managed worktrees are nested in the primary checkout. A glob such as `**/*.ts`, a test root or a
+  files under the workspaces directory (`.work/workspaces/` by default).
+- **Why.** Managed workspaces are nested in the primary checkout. A glob such as `**/*.ts`, a test root or a
   `tsconfig.json` `include` walks into them; `.gitignore` does not stop tools that do not read it.
-- **What `the-cook` does.** Writes the state and worktree directories into the `state` and `worktrees` blocks of
+- **What `the-cook` does.** Writes the state and workspace directories into the `state` and `workspaces` blocks of
   `.gitignore`. It never edits tool configuration.
-- **What you do.** Exclude the state and worktree directories (`.work/**` with the defaults) in the linter, the test
+- **What you do.** Exclude the state and workspace directories (`.work/**` with the defaults) in the linter, the test
   runner, the type checker and the editor's file watcher.
 
-### Worktrees inherit the parent's tool configuration and dependencies
+### Workspaces inherit the parent's tool configuration and dependencies
 
-- **Symptom.** A build in a worktree uses the primary checkout's dependencies, a tool version from its configuration,
+- **Symptom.** A build in a workspace uses the primary checkout's dependencies, a tool version from its configuration,
   or fails on a relative tool path.
-- **Why.** Tools resolve configuration and dependencies by walking up directories. A nested worktree without its own
+- **Why.** Tools resolve configuration and dependencies by walking up directories. A nested workspace without its own
   finds the primary checkout's: mise configuration, `node_modules`, a virtual environment.
-- **What `the-cook` does.** Runs the profile's `bootstrap` in every new worktree, and once in every checkout a worker
-  runs in ([worktrees](worktrees.md#nesting)).
-- **What you do.** Make `bootstrap` install everything a build needs in the worktree itself. Do not skip it with
-  `--no-bootstrap` for a worktree that builds.
+- **What `the-cook` does.** Runs the profile's `bootstrap` in every new workspace, and once in every checkout a worker
+  runs in ([workspaces](workspaces.md#nesting)).
+- **What you do.** Make `bootstrap` install everything a build needs in the workspace itself. Do not skip it with
+  `--no-bootstrap` for a workspace that builds.
 
-### Shared local services collide across worktrees
+### Shared local services collide across workspaces
 
-- **Symptom.** End-to-end tests fail at random while two worktrees or two parallel workers run them; a database reset
-  in one worktree breaks another.
-- **Why.** Worktrees share the machine: fixed ports, database names, container names and volumes are the same in
+- **Symptom.** End-to-end tests fail at random while two workspaces or two parallel workers run them; a database reset
+  in one workspace breaks another.
+- **Why.** Workspaces share the machine: fixed ports, database names, container names and volumes are the same in
   every checkout of the clone.
 - **What `the-cook` does.** Isolates files, not services. It does not serialise or namespace them.
-- **What you do.** Give each checkout its own names and ports (derived from the worktree path, such as a database
-  `api_invoice_rounding` for `.work/worktrees/invoice-rounding`), or serialise the commands with a lock in the
+- **What you do.** Give each checkout its own names and ports (derived from the workspace path, such as a database
+  `api_invoice_rounding` for `.work/workspaces/invoice-rounding`), or serialise the commands with a lock in the
   repository's own task. Deny service resets to workers, and size the loop runner's parallelism (ralph-tui's
   `--parallel <n>`) to what the services allow.
 
@@ -268,9 +268,9 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 - **Symptom.** A run ignores a change you just made, including a change to `.cook/`, and workers check against the
   old rules; or `the-cook worker` refuses to start, naming uncommitted changes.
 - **Why.** `the-cook worker` reads the profile, the policy and the hooks file from its base commit, the `HEAD` of the
-  checkout it runs in. A new worktree also contains only committed code.
+  checkout it runs in. A new workspace also contains only committed code.
 - **What `the-cook` does.** `the-cook worker` refuses to start with uncommitted changes, with exit 1.
-- **What you do.** Commit before `the-cook worktree create` and before starting the loop runner, and keep the loop
+- **What you do.** Commit before `the-cook workspace create` and before starting the loop runner, and keep the loop
   runner's own state files out of `git status`, as [ralph](ralph.md#troubleshooting) shows for ralph-tui.
 
 ### ralph-tui and `bd` behaviours that shape a run
@@ -388,7 +388,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 
 ### The automatic deliver skips uncommitted work
 
-- **Symptom.** `the-cook worker` reports a verified attempt in a worktree bound to a task, and nothing is pushed.
+- **Symptom.** `the-cook worker` reports a verified attempt in a workspace bound to a task, and nothing is pushed.
 - **Why.** The automatic `deliver` fires only for concluded work: committed, clean, off the default branch and, when
   the verify module is enabled, with a valid receipt.
 - **What `the-cook` does.** Skips the event, names the unmet condition, and records it in the
@@ -404,11 +404,11 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 
 ### A squash merge hides landed work
 
-- **Symptom.** A merged branch is never reported as landed; `the-cook worktree remove` fires no `landed` for it.
+- **Symptom.** A merged branch is never reported as landed; `the-cook workspace remove` fires no `landed` for it.
 - **Why.** Landed work is detected by patch equivalence, through the version-control recipe's landed operation
   (`git cherry` with the git recipe). A squash of several commits produces one patch that matches none of them.
 - **What `the-cook` does.** Treats only matching patches as landed, so it never deletes unmerged work.
-- **What you do.** Delete such branches and their worktrees by hand once you have checked the merge.
+- **What you do.** Delete such branches and their workspaces by hand once you have checked the merge.
 
 ### Actions that are not idempotent fail on retry
 
@@ -452,17 +452,17 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 - **What you do.** Export only the variables the declared actions need, in the shell or CI job that fires them. Review
   every action as code that can read them ([safety](safety.md#secrets)).
 
-### A landed `agent` action leaves a worktree with uncommitted edits
+### A landed `agent` action leaves a workspace with uncommitted edits
 
-- **Symptom.** After `landed`, a worktree `.work/worktrees/landed-<name>-<n>`, named after the landed work's worktree,
-  holds changes nobody committed, and more of them appear with every landed branch.
-- **Why.** An `agent` action cannot commit. On `landed`, the work's own worktree is about to be removed and the primary
-  checkout holds whatever you are doing, so `the-cook` gives the agent a fresh worktree of the default branch, on branch
-  `work/landed-<name>-<n>`, and leaves the agent's edits there ([lifecycle](lifecycle.md#agent)).
-- **What `the-cook` does.** Records the worktree like any managed worktree, never touches the primary checkout, and
-  lists the worktree and its changed paths in the action's output and in the lifecycle log.
-- **What you do.** Review each such worktree: commit its edits and deliver them as a change, or remove it with
-  `./cook worktree remove landed-<name>-<n>`. Keep such actions manual if nobody reviews them promptly.
+- **Symptom.** After `landed`, a workspace `.work/workspaces/landed-<name>-<n>`, named after the landed work's
+  workspace, holds changes nobody committed, and more of them appear with every landed branch.
+- **Why.** An `agent` action cannot commit. On `landed`, the work's own workspace is about to be removed and the primary
+  checkout holds whatever you are doing, so `the-cook` gives the agent a fresh workspace of the default branch, on
+  branch `work/landed-<name>-<n>`, and leaves the agent's edits there ([lifecycle](lifecycle.md#agent)).
+- **What `the-cook` does.** Records the workspace like any managed workspace, never touches the primary checkout, and
+  lists the workspace and its changed paths in the action's output and in the lifecycle log.
+- **What you do.** Review each such workspace: commit its edits and deliver them as a change, or remove it with
+  `./cook workspace remove landed-<name>-<n>`. Keep such actions manual if nobody reviews them promptly.
 
 ### Values in an `agent` prompt address the agent
 
@@ -629,10 +629,10 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 
 ### After eject, nothing enforces the conventions
 
-- **Symptom.** After `the-cook remove --eject`, `AGENTS.md` still describes where worktrees go and what agents may run,
+- **Symptom.** After `the-cook remove --eject`, `AGENTS.md` still describes where workspaces go and what agents may run,
   yet a worker commits its own work, delivery has no guard, and lint-on-edit,
   notifications and hook-delivered standing context have stopped.
-- **Why.** Eject stops managing and keeps the result. Convention blocks (`worktrees`, `policy`, `memory`, `context`)
+- **Why.** Eject stops managing and keeps the result. Convention blocks (`workspaces`, `policy`, `memory`, `context`)
   keep their text without markers, and the `.gitignore` entries, the rendered permissions and the
   raw hooks stay as the repository's own. Tool blocks (`commands`, `layout`, `verify`, `lifecycle`) are removed, because
   they describe `the-cook` commands that do not exist after the eject, and so are the hooks that called `the-cook`.
@@ -666,9 +666,9 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 - **What you do.** Have the coordinating agent update the issue or the pull request, following a skill that says how the
   team records work, or let CI report.
 
-### Claude Code's own worktrees are not managed
+### Claude Code's own workspaces are not managed
 
 - **Symptom.** Worktrees under `.claude/worktrees/` are not listed, cleaned or bootstrapped.
 - **Why.** They belong to Claude Code.
 - **What `the-cook` does.** Never scans or touches `.claude/worktrees/`, and never cleans branches it did not record.
-- **What you do.** Use `the-cook worktree create` for work that needs a session, a receipt base or a task id.
+- **What you do.** Use `the-cook workspace create` for work that needs a session, a receipt base or a task id.

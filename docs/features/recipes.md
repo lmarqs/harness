@@ -53,7 +53,7 @@ Commands are named `the-cook <command>` on this page. The examples run them thro
 | The repository gained a stack, such as a Node front end in a Go repository | `./cook recipe apply node` |
 | See which recipes the pinned release holds, which fit this repository and which are in use | `./cook recipe list` |
 | Run ralph-tui over the repository's tasks, each attempt under [`the-cook worker`](ralph.md) | `./cook recipe apply ralph-tui` |
-| Mark, close and comment on [Beads](tasks.md) tasks from managed worktrees | `./cook recipe apply beads` |
+| Mark, close and comment on [Beads](tasks.md) tasks from managed workspaces | `./cook recipe apply beads` |
 | Read everything a recipe holds | `./cook recipe show <name>` |
 | See what a newer release's recipe adds, after moving the pin | `./cook recipe apply <name> --dry-run` |
 | Use a program the release has no recipe for | declare a [fetched recipe](#fetched-recipes), then `./cook recipe apply <name>` |
@@ -120,7 +120,7 @@ deletes it ([concepts](concepts.md#ownership-and-the-manifest)).
 | --- | --- |
 | `claude` | `permissions.allow`, `permissions.ask`, `permissions.deny` and the `the-cook hook` entries of `.claude/settings.json`; the `import` block of `CLAUDE.md`; the `.claude/skills/the-cook` link |
 | `codex` | `.codex/rules/the-cook.rules`; the owned keys of `.codex/config.toml`; the `the-cook hook` entries of `.codex/hooks.json`; the `.codex/skills/the-cook` link |
-| `git` | the `state` and `worktrees` blocks of `.gitignore` |
+| `git` | the `state` and `workspaces` blocks of `.gitignore` |
 | `ralph-tui` | the `ralph-tui` block of `.gitignore`: `/.ralph-tui/*` and `!/.ralph-tui/config.toml` |
 
 The binary renders its own content with no recipe: `cook`, the shipped skill, the blocks of `AGENTS.md` and
@@ -200,7 +200,7 @@ A floor protects only while its recipe is in use: deleting `mise` from `recipes:
 ### The version-control contract
 
 The recipe the profile's `vcs:` names fills this contract; `scaffold` writes `vcs: git`. Everything the binary reads
-from or changes in the repository's history goes through it: the base commit of a managed worktree or of a worker's
+from or changes in the repository's history goes through it: the base commit of a managed workspace or of a worker's
 attempt, the files the tamper check restores from that base, the changes `verify` fingerprints, the branches `doctor`
 reports as landed, and the default branch the git recipe's floor names. The binary contains none of the commands below;
 another version control system is another recipe with the same operations.
@@ -224,8 +224,8 @@ another version control system is another recipe with the same operations.
 | `update` | | status | `git fetch origin` |
 | `branch_create` | `{branch}`, `{rev}` | status | `git branch {branch} {rev}` |
 | `switch` | `{branch}` | status | `git switch {branch}` |
-| `worktree_add` | `{path}`, `{branch}`, `{rev}` | status | `git worktree add -b {branch} {path} {rev}` |
-| `worktree_remove` | `{path}` | status | `git worktree remove {path}` |
+| `workspace_add` | `{path}`, `{branch}`, `{rev}` | status | `git worktree add -b {branch} {path} {rev}` |
+| `workspace_remove` | `{path}` | status | `git worktree remove {path}` |
 
 | Output kind | The binary reads |
 | --- | --- |
@@ -256,8 +256,8 @@ operations:
   reset:
     run: [sh, -c, 'git reset --hard "$1" && git clean -fd', sh, "{rev}"]
     output: status
-  worktree_add: { run: [git, worktree, add, -b, "{branch}", "{path}", "{rev}"], output: status }
-  worktree_remove: { run: [git, worktree, remove, "{path}"], output: status }
+  workspace_add: { run: [git, worktree, add, -b, "{branch}", "{path}", "{rev}"], output: status }
+  workspace_remove: { run: [git, worktree, remove, "{path}"], output: status }
 ```
 
 `git clean -fd` leaves ignored files, so a reset keeps the state directory and the `last-attempt.patch` saved there. The
@@ -366,15 +366,15 @@ recipe installs, initialises or configures its program beyond the files it lists
 ### `git`
 
 The git recipe fills the [version-control contract](#the-version-control-contract) with git's commands, renders the
-`state` and `worktrees` blocks of `.gitignore` (`/.work/` and `/.work/worktrees/` with the default
+`state` and `workspaces` blocks of `.gitignore` (`/.work/` and `/.work/workspaces/` with the default
 [state paths](profile.md#state-paths)), and marks the force push to the default branch as [floor](#the-floor). Its
 version check runs `git --version` and supports git 2.22 and later 2.x releases, the first with
-`git branch --show-current`. Its detect rule is `.git`, a directory in a clone and a file in a worktree.
+`git branch --show-current`. Its detect rule is `.git`, a directory in a clone and a file in a git worktree.
 
 ```yaml
 renders:
   - { file: .gitignore, block: state, template: "/{{state_dir}}/" }
-  - { file: .gitignore, block: worktrees, template: "/{{worktrees_dir}}/" }
+  - { file: .gitignore, block: workspaces, template: "/{{workspaces_dir}}/" }
 ```
 
 ### `claude`
@@ -452,8 +452,8 @@ changes, and `--commit` would commit them.
 The recipe adds no lifecycle actions: nothing fires the events of a ralph-tui run by itself. A run goes like this:
 
 ```sh
-./cook worktree create run-invoice
-cd .work/worktrees/run-invoice
+./cook workspace create run-invoice
+cd .work/workspaces/run-invoice
 ralph-tui run --epic api-42 --headless
 ./cook lifecycle run completed --scope run    # or: blocked --scope run
 ```
@@ -471,8 +471,8 @@ The beads recipe wires [Beads](https://github.com/steveyegge/beads), a task trac
 | --- | --- |
 | Entries | `start`, `completed` and `blocked` actions with scope `task`; `.beads` in `agents.codex.writable_roots`; `worker.deny`: `[bd, close]` |
 
-The actions bind Beads to [task binding](tasks.md): every event fired in a worktree created with
-`./cook worktree create <name> --task <id>` carries the bead id in `COOK_TASK` and the actor in `COOK_ACTOR`.
+The actions bind Beads to [task binding](tasks.md): every event fired in a workspace created with
+`./cook workspace create <name> --task <id>` carries the bead id in `COOK_TASK` and the actor in `COOK_ACTOR`.
 
 ```yaml
 lifecycle:
@@ -497,7 +497,7 @@ lifecycle:
 bead. `[bd, close]` under `worker.deny` leaves closing to the `completed` action, which runs only after a verified
 attempt. `.beads` goes into `agents.codex.writable_roots` when the profile declares Codex, so a Codex worker can write
 the database. Nothing creates, configures or localises a Beads database; that is `bd`'s own job. When ralph-tui works
-from Beads, it updates bead status itself, and these actions matter for interactive work in managed worktrees.
+from Beads, it updates bead status itself, and these actions matter for interactive work in managed workspaces.
 
 ### `mise`
 
@@ -789,7 +789,7 @@ The neutral model, the values a template reads:
 | `allow`, `ask`, `deny` | the policy entries for `agent`'s role, alternatives expanded, each with exactly one of `prefix` (with `words`, the words joined by spaces, and `argv`, the words as a quoted list), `native` or `bare` (with `string`). `deny` holds every floor rule of every recipe in use and, for `role: worker`, `worker.deny` |
 | `hooks` | the neutral hook events the declarations need, each with `event` (the native event the recipe's payload mapping names), `matcher` (its edit tools, and its read tools when `when.paths` context exists, joined with `\|`) and `command` |
 | `raw` | the `raw` hook entries, each with `event`, `matcher` and `run` |
-| `state_dir`, `worktrees_dir` | `state.dir` and `worktrees.dir` from the profile |
+| `state_dir`, `workspaces_dir` | `state.dir` and `workspaces.dir` from the profile |
 | `default_branch` | the default branch the version-control recipe reports |
 
 A hook's `command` is the [hook command](render.md#the-hook-command), which finds the wrapper through the
@@ -1023,7 +1023,7 @@ delivered through its own `deliver` actions. A repository that already holds eve
 | `kept lanes.unit: differs from recipe node` | The repository already has a `unit` lane, and `apply` never replaces an item the repository names | Nothing, if yours is right. To take the recipe's, delete yours and apply again |
 | `kept .ralph-tui/config.toml: exists` | The file is there, and `apply` writes a template only when its file is absent | Nothing, if yours is right. To take the recipe's, move yours aside, apply again, and carry over what you need |
 | ralph-tui's first task fails with the worker refusing a permission-bypass argument | A ralph-tui configuration, the project's or `~/.config/ralph-tui/config.toml`, turns permission checks off or passes a bypass argument in `defaultFlags` | Keep `skipPermissions = false` under each `[agents.options]` in `.ralph-tui/config.toml` and remove the argument; the worker refuses it whoever passes it ([ralph](ralph.md)) |
-| A Beads action fails with a missing id | The event fired in a worktree created without `--task`, so `COOK_TASK` is empty | Create the worktree with `./cook worktree create <name> --task <id>` ([tasks](tasks.md)) |
+| A Beads action fails with a missing id | The event fired in a workspace created without `--task`, so `COOK_TASK` is empty | Create the workspace with `./cook workspace create <name> --task <id>` ([tasks](tasks.md)) |
 | `recipe apply` exits 1 naming `the-cook scaffold` | The repository has no `.cook/config.yaml` | Run `the-cook scaffold`, which applies the detected recipes |
 | `recipe apply` or `recipe show` exits 1: unknown recipe | The name is neither a builtin recipe of the running release nor a fetched recipe in `recipes:` | `./cook recipe list` prints the names |
 | `recipe apply` exits 3 | No terminal to confirm, and no `--yes` | Review with `--dry-run`, then rerun with `--yes`; under `fleet`, always pass `--yes` |

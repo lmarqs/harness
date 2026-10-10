@@ -46,8 +46,8 @@ context becomes a wrong action.
   script.
 - A message about a file names it relative to the repository root, with `:line:column` when known, so an editor or
   agent can open it directly.
-- Messages contain no ANSI escapes when the stream is not a TTY ([cli-standards.md](cli-standards.md#color-emoji-and-terminal-control)),
-  so logs and transcripts stay readable.
+- Messages contain no ANSI escapes when the stream is not a TTY
+  ([cli-standards.md](cli-standards.md#color-emoji-and-terminal-control)), so logs and transcripts stay readable.
 
 ## Error messages
 
@@ -139,8 +139,8 @@ derive. Explanations of a repository's choices are written by people or agents o
 The two block classes ([generated-content-standards.md](generated-content-standards.md#block-classes)) are written
 differently:
 
-- **Convention blocks** state facts that hold without `the-cook`, in the voice of the repository: "Worktrees in this
-  project are created in `.work/worktrees/<name>`, on branch `work/<name>`, from committed code." They never name a
+- **Convention blocks** state facts that hold without `the-cook`, in the voice of the repository: "Workspaces in this
+  project are created in `.work/workspaces/<name>`, on branch `work/<name>`, from committed code." They never name a
   `the-cook` command, the wrapper or `.cook/`, and never say they are managed beyond their marker. Why:
   `the-cook remove --eject` keeps their text, which must still be true and usable afterwards.
 - **Tool blocks** explain how to use `the-cook` and name its commands in the documented form, `./cook <command>`.

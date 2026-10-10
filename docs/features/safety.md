@@ -49,7 +49,7 @@ What must stay safe:
 - production, cloud and repository settings;
 - credentials in the environment;
 - the team's record: issues, pull requests, reviews;
-- the clone's shared state: other worktrees, the task tracker, local databases and containers;
+- the clone's shared state: other workspaces, the task tracker, local databases and containers;
 - the rules themselves: the rendered permissions and hooks an agent runs under, the standing context it is given, and
   the pinned binary that enforces them;
 - secrets used by actions, such as webhook URLs and tokens.
@@ -103,7 +103,7 @@ flowchart TD
 | `ask` | only what bypasses a gate a person must own, or what leaves the clone when you want a person in the loop | merging past branch protection; `the-cook lifecycle run deliver` (seeded by `scaffold`) |
 | `deny` | what must never run from an agent session | publishing a package, `terraform apply`, a tracker's remote sync |
 | unlisted | production, cloud and repository-settings writes | `kubectl apply`, `aws …`, `gh repo edit` |
-| `worker.deny` | everything that leaves the worker's worktree before `the-cook worker` verifies it | commits, pushes, refs and worktrees, `git -C`/`git -c`, the hosting platform's CLI, a tracker command an action runs after the replay (`bd close`), shared local services, production and cloud |
+| `worker.deny` | everything that leaves the worker's workspace before `the-cook worker` verifies it | commits, pushes, refs and workspaces, `git -C`/`git -c`, the hosting platform's CLI, a tracker command an action runs after the replay (`bd close`), shared local services, production and cloud |
 
 Production stays unlisted rather than denied because a `deny` would also stop the person who means it, such as a
 developer who asks the agent to run a planned `kubectl apply`. Each kind of session handles it in its own way. A person
@@ -175,7 +175,7 @@ inside `the-cook worker`, so it holds whoever calls it: a loop runner, a script 
 7. It replays the lanes and skip reasons the agent's receipt selected. The receipt lives in the worker's writable
    tree, so it only selects; the replay is the proof.
 8. The agent never commits or integrates its own work: `the-cook worker --commit` commits a verified attempt in its
-   checkout, and a loop runner that runs tasks in parallel merges those commits itself. In a worktree bound to a task,
+   checkout, and a loop runner that runs tasks in parallel merges those commits itself. In a workspace bound to a task,
    `the-cook worker` fires `completed` and `deliver` in its own process after the agent exited, with the actions read
    from the base commit.
 9. On a failed attempt it saves the attempt's changes as `last-attempt.patch` and its output as `last-worker-output`
@@ -183,10 +183,10 @@ inside `the-cook worker`, so it holds whoever calls it: a loop runner, a script 
    was given with `--withhold` from the output. A loop runner never reads a failed attempt as done, and the next
    attempt starts from files the worker checked, `./cook` included.
 
-What remains yours: `worker.deny` must list what leaves the worktree, and the tasks must not ask for anything the worker
-cannot be trusted with. A change to the rules reaches a run only through a commit a person made: the tamper check fails
-an attempt that changed them. And what runs outside `the-cook worker` is yours: an agent a loop runner, a script or a
-person starts any other way runs without this contract, and `the-cook` does not look for it.
+What remains yours: `worker.deny` must list what leaves the workspace, and the tasks must not ask for anything the
+worker cannot be trusted with. A change to the rules reaches a run only through a commit a person made: the tamper check
+fails an attempt that changed them. And what runs outside `the-cook worker` is yours: an agent a loop runner, a script
+or a person starts any other way runs without this contract, and `the-cook` does not look for it.
 
 ## Lifecycle actions are code
 
@@ -195,9 +195,9 @@ that fired them, outside the agent's per-command permission checks.
 
 - **Permitting an event permits its actions.** An agent allowed to run `the-cook lifecycle run deliver` runs every
   `deliver` action, including commands the policy denies to the agent itself.
-- **Permitting a trigger point permits its automatic actions.** An agent allowed to run `the-cook worker` in a worktree
+- **Permitting a trigger point permits its automatic actions.** An agent allowed to run `the-cook worker` in a workspace
   bound to a task fires every `completed` and `deliver` action with `auto: true`; the same holds for `the-cook verify`,
-  `the-cook worktree create`, `the-cook worktree remove` and `the-cook fleet --deliver`. `the-cook doctor` never fires
+  `the-cook workspace create`, `the-cook workspace remove` and `the-cook fleet --deliver`. `the-cook doctor` never fires
   events ([lifecycle](lifecycle.md#trigger-points)).
 - **The hooks file is the complete list.** Every action is declared in the repository's own `.cook/hooks.yaml`, and
   nothing outside the repository adds one ([ADR 0013](../adrs/0013-organization-content.md)). A recipe such as `beads`
@@ -356,12 +356,12 @@ instead of shipping.
 - [ ] Every fetched recipe the run uses is in the cache (`./cook recipe fetch`); a worker never fetches.
 - [ ] The loop runner's configuration names `./cook worker` as every agent's command and adds no bypass flag.
       What runs outside `the-cook worker` is yours to check; `the-cook` does not.
-- [ ] The folder is trusted by the agent; the run's worktrees are nested in the primary checkout.
+- [ ] The folder is trusted by the agent; the run's workspaces are nested in the primary checkout.
 - [ ] Settings outside the policy are known: `settings.local.json`, user and managed settings neither widen nor
       narrow what the run needs.
 - [ ] Every `ask` entry the run reaches is a stop you want.
 - [ ] Every `allow` entry is one you accept with no judgement applied.
-- [ ] `worker.deny` lists commits, pushes, refs and worktrees, `git -C`/`git -c`, the hosting platform's CLI, shared
+- [ ] `worker.deny` lists commits, pushes, refs and workspaces, `git -C`/`git -c`, the hosting platform's CLI, shared
       local services, production and cloud.
 - [ ] `the-cook lifecycle list` shows only automatic actions you accept, for the scopes the run reaches, and no
       automatic `agent` action you have not chosen.

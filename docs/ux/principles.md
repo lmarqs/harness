@@ -211,19 +211,19 @@ an absolute path to the binary, match no prefix rule, and the binary enforces th
 
 Every convention `the-cook` establishes is written down as plain-language text where people and other tools already
 look, and stays valid after `the-cook` is removed. Why: people, agents and the other tools in a repository rely on where
-worktrees and state live. If those conventions existed only in the configuration of `the-cook`, removing `the-cook`
+workspaces and state live. If those conventions existed only in the configuration of `the-cook`, removing `the-cook`
 would leave state that follows rules nobody wrote down ([ADR 0018](../adrs/0018-conventions.md)).
 
 - Two classes of managed block carry the text `the-cook` writes into `AGENTS.md`
   ([generated-content-standards.md](generated-content-standards.md#block-classes)):
-  - **Convention blocks** state facts that stay true without `the-cook`: where worktrees are created and on which
+  - **Convention blocks** state facts that stay true without `the-cook`: where workspaces are created and on which
     branch, the effective permissions, the memory index, standing
     directives declared `static`, and the `CLAUDE.md` import. They never name a `the-cook` command.
   - **Tool blocks** describe how to use `the-cook`: its commands, what `.cook/` holds, how to verify through it, how
     work is delivered through its lifecycle. They MAY name `./cook` commands.
 - Each path a module establishes is also listed in a managed block of `.gitignore`, which the git recipe renders and
   which is a convention block.
-- State lives at paths the profile sets (`state.dir`, `worktrees.dir`), never inside `.cook/` or `.agents/`. The
+- State lives at paths the profile sets (`state.dir`, `workspaces.dir`), never inside `.cook/` or `.agents/`. The
   block text names the configured path, so people, agents and other tools find it by reading the repository, not by
   asking `the-cook`.
 - A block states its convention as fact. It never says it is managed by `the-cook` beyond its marker, so it reads as the

@@ -113,7 +113,7 @@ cook                    the wrapper: runs the pinned release (owned)
   skills/the-cook -> ../../.agents/skills/the-cook
 AGENTS.md  README.md  CLAUDE.md  .gitignore   managed blocks, one or more per module
 .work/                      state.dir: receipts, sessions, locks, lifecycle log, hook cache (gitignored)
-  worktrees/                worktrees.dir: managed worktrees
+  workspaces/                workspaces.dir: managed workspaces
 ```
 
 A repository that applies a [recipe](recipes.md) with templates also holds them as its own files, such as
@@ -162,22 +162,22 @@ Text outside markers, and keys `the-cook` does not own, are preserved byte for b
 Every convention a module establishes is written down where people and other tools already look, in plain language
 ([ADR 0018](../adrs/0018-conventions.md)):
 
-- in a managed block of `AGENTS.md`: where managed worktrees live and how their branches are named, the permissions
+- in a managed block of `AGENTS.md`: where managed workspaces live and how their branches are named, the permissions
   agents work under, the memory index, and the [standing context](context.md) entries declared `static`;
 - for every path it creates, in a managed block of `.gitignore`, rendered by the version-control recipe, `git`.
 
-The worktrees module, for example, renders:
+The workspaces module, for example, renders:
 
 ```markdown
-<!-- cook:worktrees -->
-Worktrees in this project are created in `.work/worktrees/<name>`, on branch `work/<name>`, from committed code.
-<!-- /cook:worktrees -->
+<!-- cook:workspaces -->
+Workspaces in this project are created in `.work/workspaces/<name>`, on branch `work/<name>`, from committed code.
+<!-- /cook:workspaces -->
 ```
 
 ```gitignore
-# cook:worktrees
-/.work/worktrees/
-# /cook:worktrees
+# cook:workspaces
+/.work/workspaces/
+# /cook:workspaces
 ```
 
 Agents read these conventions from `AGENTS.md` like any other instruction, and git ignores what they say to ignore.
@@ -188,7 +188,7 @@ Managed blocks come in two classes:
 
 | Class | States | Ids | After [`remove --eject`](remove.md#eject) |
 | --- | --- | --- | --- |
-| Convention block | a fact that stays true without `the-cook`; it never names a `the-cook` command | `AGENTS.md`: `worktrees`, `policy`, `memory`, `context`; `CLAUDE.md`: `import`; every `.gitignore` block | markers removed, text kept |
+| Convention block | a fact that stays true without `the-cook`; it never names a `the-cook` command | `AGENTS.md`: `workspaces`, `policy`, `memory`, `context`; `CLAUDE.md`: `import`; every `.gitignore` block | markers removed, text kept |
 | Tool block | how to use `the-cook` in this repository; it may name `./cook` commands | `AGENTS.md`: `commands`, `layout`, `verify`, `lifecycle`; `README.md`: `commands` | removed |
 
 So after an eject, what is left in `AGENTS.md` and `.gitignore` is true and usable without the tool, and nothing in
@@ -196,8 +196,8 @@ them points at a command that no longer exists.
 
 Block ids are per module and per recipe, so a module or a recipe owns its blocks and removing it removes them
 ([block ids](render.md#block-ids)). A block's text states its content as fact; nothing but its marker says `the-cook`
-wrote it. Each block lists its own `.gitignore` entries even when another block's entry already covers the path: the
-git recipe's `state` block ignores `/.work/` and its `worktrees` block `/.work/worktrees/`. Removing one block therefore
+wrote it. Each block lists its own `.gitignore` entries even when another block's entry already covers the path: the git
+recipe's `state` block ignores `/.work/` and its `workspaces` block `/.work/workspaces/`. Removing one block therefore
 never un-ignores a path another still uses.
 
 `AGENTS.md` is read at the start of every agent session, so the blocks `the-cook` writes there stay short: by default
@@ -215,9 +215,9 @@ The profile's `modules:` map turns features on and off. Each module is opt-in an
 | `memory` | the `.agents/memory/` skeleton (seeded when the module is enabled, never re-rendered) and the `memory` block in `AGENTS.md` |
 
 Always present, whatever the modules: the `.cook/` files, `cook`, the rendered policy, the shipped skill and its links,
-the manifest, the [`the-cook worktree`](worktrees.md) commands with task binding, the [`the-cook worker`](ralph.md)
-command, and these blocks: `commands`, `layout`, `worktrees`, `lifecycle` and `policy` in `AGENTS.md`; `commands` in
-`README.md`; `import` in `CLAUDE.md` with the claude recipe; `state` and `worktrees` in `.gitignore` with the git
+the manifest, the [`the-cook workspace`](workspaces.md) commands with task binding, the [`the-cook worker`](ralph.md)
+command, and these blocks: `commands`, `layout`, `workspaces`, `lifecycle` and `policy` in `AGENTS.md`; `commands` in
+`README.md`; `import` in `CLAUDE.md` with the claude recipe; `state` and `workspaces` in `.gitignore` with the git
 recipe.
 
 [Standing context](context.md) is declared in the profile's `context` section. Entries delivered by hook need the
@@ -230,9 +230,9 @@ lives at paths the [profile](profile.md#state-paths) sets, outside `.cook/`; the
 
 | Path (profile key) | Owner | Holds |
 | --- | --- | --- |
-| `.work/` (`state.dir`), in the primary checkout | `the-cook` | `lifecycle.jsonl` (every lifecycle run of the clone), locks shared by every worktree of the clone |
-| `.work/` (`state.dir`), in each checkout | `the-cook` | `session.json` (managed worktree session: base, task, actor), `verified.json` (the [receipt](verify.md) of a passing `the-cook verify`), `hook-checks.json` (post-edit cache), `context/<session-id>.json` (which triggered context entries a session has received), `last-worker-output` and `last-attempt.patch` (the full output and the changes of the last failed `the-cook worker` attempt), the record that `bootstrap` ran for a worker |
-| `.work/worktrees/` (`worktrees.dir`) | `the-cook` | each managed worktree, at `<dir>/<name>` |
+| `.work/` (`state.dir`), in the primary checkout | `the-cook` | `lifecycle.jsonl` (every lifecycle run of the clone), locks shared by every workspace of the clone |
+| `.work/` (`state.dir`), in each checkout | `the-cook` | `session.json` (managed workspace session: base, task, actor), `verified.json` (the [receipt](verify.md) of a passing `the-cook verify`), `hook-checks.json` (post-edit cache), `context/<session-id>.json` (which triggered context entries a session has received), `last-worker-output` and `last-attempt.patch` (the full output and the changes of the last failed `the-cook worker` attempt), the record that `bootstrap` ran for a worker |
+| `.work/workspaces/` (`workspaces.dir`) | `the-cook` | each managed workspace, at `<dir>/<name>` |
 
 Other tools keep their own state where they choose, such as Beads in `.beads/`; `the-cook` neither reads nor writes it,
 and ignores it only through a recipe's `.gitignore` block, as the `ralph-tui` recipe does for `.ralph-tui/`. The
@@ -315,8 +315,8 @@ own loop-runner configuration, is outside them: `the-cook` neither detects nor p
 3. Verification proofs are replayed outside the tree the agent can write: `the-cook worker` reruns the lanes the agent's
    [receipt](verify.md) selected, with the profile read from the base commit.
 4. Completion is withheld until the replayed proof passes: only then does `the-cook worker` exit 0, release a loop
-   runner's completion signal and, in a worktree bound to a task, fire `completed`. Whoever fires `completed` with scope
-   `task`, it is refused without a valid receipt when the verify module is enabled.
+   runner's completion signal and, in a workspace bound to a task, fire `completed`. Whoever fires `completed` with
+   scope `task`, it is refused without a valid receipt when the verify module is enabled.
 5. Hooks never decide permissions.
 6. The binary never writes knowledge (prose, memory, domain skills), contains no logic for the platform that hosts the
    team's work, such as GitHub, and never writes issues, projects, boards, comments, reviews or labels.

@@ -18,9 +18,9 @@ reached through an interface the rules declare.
 - What the rules need from outside is small and regular. From version control: the base revision, a file at a revision,
   whether the tree is clean, whether a path is tracked, what changed since a revision, the common ancestor of two
   revisions, whether a branch's changes already reached another, a reset, a commit, a branch, an update from the remote,
-  a worktree. From a harness: the files it owns and their content, the arguments that start it unattended, the arguments
-  that would bypass its checks, and the fields of its hook payload. From any other program: run this and tell me the
-  exit status.
+  a workspace. From a harness: the files it owns and their content, the arguments that start it unattended, the
+  arguments that would bypass its checks, and the fields of its hook payload. From any other program: run this and tell
+  me the exit status.
 - A program's answers arrive as a string, lines, bytes or an exit status (Context of
   [0022](0022-tool-integration.md)). Writing in a program's format and reading structured output can be described as
   data; parsing a program's free text in general cannot.
@@ -36,7 +36,9 @@ reached through an interface the rules declare.
    outside. The connections: the implementations of those interfaces. The entry point: the command line, which reads
    the repository's declared data, resolves the recipes, wires the connections and runs one use case.
 2. The core depends on nothing outside itself. The connections depend on the core; the entry point depends on both.
-   No name of a program, a file format of a program, or an argument of a program appears in the core.
+   No name of a program, a file format of a program, or an argument of a program appears in the core, and the core
+   names what it needs by its role, never by one program's term for it: a separate working copy for a task is a
+   workspace, whatever the version control calls it.
 3. The core declares two contracts that recipes fill with data: the version control contract, a fixed set of
    operations, each with a declared output kind, and the harness contract, the renders, launch arguments, bypass
    arguments, hook payload mapping, instructions location, skill location and native rule import for one agent
@@ -52,9 +54,11 @@ reached through an interface the rules declare.
 
 ## Reasons
 
-- **1, 2.** Context shows the rules are about no program and need little from any. Keeping program names and formats
-  out of the core is what makes the rules the same for every program and lets a program change without a change to a
-  rule. The trade: every outside need passes through an interface, which is one more indirection to read.
+- **1, 2.** Context shows the rules are about no program and need little from any. Keeping program names and formats out
+  of the core is what makes the rules the same for every program and lets a program change without a change to a rule. A
+  program's term in the core would also leak into commands, settings and pages, which would then read wrong for every
+  other program that fills the same contract. The trade: every outside need passes through an interface, which is one
+  more indirection to read.
 - **3.** The two things the rules rely on answers from, version control and the harness, get named contracts so that a
   recipe can fill them with data (Context) and a test can fill them with a stand-in. A fixed operation set with
   declared output kinds is what keeps a description possible: the binary never has to parse free text.

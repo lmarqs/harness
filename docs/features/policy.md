@@ -213,7 +213,7 @@ Allowed:
 - `mcp__acme_observability__search_*` (*Claude Code only*)
 
 Denied to workers, in addition:
-- `git am|cherry-pick|commit|merge|push|rebase|reset|stash|tag|update-ref|worktree`
+- `git am|cherry-pick|commit|merge|push|rebase|reset|stash|tag|update-ref|workspace`
 - `git -C`, `git -c`
 - `gh`
 - `bd close`
@@ -279,11 +279,11 @@ shared:
 worker:
   deny:
     # A worker's result is verified after it exits, then committed by the-cook worker --commit.
-    # Anything that leaves the worker's worktree before that cannot be checked or undone.
-    - [git, [am, cherry-pick, commit, merge, push, rebase, reset, stash, tag, update-ref, worktree]]
+    # Anything that leaves the worker's workspace before that cannot be checked or undone.
+    - [git, [am, cherry-pick, commit, merge, push, rebase, reset, stash, tag, update-ref, workspace]]
     - [git, ["-C", "-c"]]
     - [gh]
-    - [the-cook, worktree]
+    - [the-cook, workspace]
     # The completed action of the beads recipe closes the task after the replay; the agent does not.
     - [bd, close]
     - [mise, run, ["db:reset", "docker:down"]]
@@ -325,7 +325,7 @@ shared:
   ask: []
   deny:
     - [goreleaser, release]
-worker: { deny: [[git, [commit, push, worktree]], [gh]] }
+worker: { deny: [[git, [commit, push, workspace]], [gh]] }
 ```
 
 This repository removed the seeded delivery entry: its `deliver` actions only push a branch and open a draft pull

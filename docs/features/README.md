@@ -14,8 +14,8 @@ and can find the page for any part of it.
 
 `the-cook` is a command-line tool that sets up, constrains and checks the environment coding agents work in. It writes
 the permission rules, hooks and instructions that agents such as Claude Code and Codex read. It gives people and agents
-the same commands for task [worktrees](worktrees.md), verification receipts (records that a change's checks passed on
-its exact content, [verify](verify.md)) and [task binding](tasks.md), which ties a worktree to a task id from any
+the same commands for task [workspaces](workspaces.md), verification receipts (records that a change's checks passed on
+its exact content, [verify](verify.md)) and [task binding](tasks.md), which ties a workspace to a task id from any
 tracker. Its [`the-cook worker`](ralph.md) command runs one agent for one task, for any loop runner that names it as its
 agent command, and that agent cannot bypass permissions or be reported done without a verification that passed. It fires
 [development lifecycle](lifecycle.md) events at fixed points, so what a repository declares (a push, a pull request, a
@@ -47,7 +47,7 @@ same documentation blocks in every repository that adopts it.
 
 | Module | What you get | Page |
 | --- | --- | --- |
-| Core (always on) | the `cook` wrapper pinned to one verified release, the `.cook/` configuration, profile, policy rendered for each agent, conventions written as managed blocks in `AGENTS.md`, `README.md` and `.gitignore`, manifest, the shipped skill, lifecycle events and actions, task worktrees with task binding, unattended runs through `the-cook worker` | [wrapper](wrapper.md), [concepts](concepts.md), [policy](policy.md), [render](render.md), [lifecycle](lifecycle.md), [worktrees](worktrees.md), [tasks](tasks.md), [ralph](ralph.md), [skills](skills.md) |
+| Core (always on) | the `cook` wrapper pinned to one verified release, the `.cook/` configuration, profile, policy rendered for each agent, conventions written as managed blocks in `AGENTS.md`, `README.md` and `.gitignore`, manifest, the shipped skill, lifecycle events and actions, task workspaces with task binding, unattended runs through `the-cook worker` | [wrapper](wrapper.md), [concepts](concepts.md), [policy](policy.md), [render](render.md), [lifecycle](lifecycle.md), [workspaces](workspaces.md), [tasks](tasks.md), [ralph](ralph.md), [skills](skills.md) |
 | `hooks` | Agent-neutral hooks: lint-on-edit, validators, session context, notifications when an agent waits for a person or ends a turn, and [standing context](context.md): directives and skills injected when a declared trigger fires | [hooks](hooks.md), [context](context.md) |
 | `verify` | Named verification lanes (families of test commands, such as `unit` and `e2e`) and a receipt bound to file contents | [verify](verify.md) |
 | `memory` | A memory skeleton under `.agents/memory/` and its index in the `memory` block of `AGENTS.md` | [memory](memory.md) |
@@ -91,7 +91,7 @@ the-cook scaffold --adopt
 ./cook doctor                    # lists what an agent must finish
 ```
 
-Review and edit the profile and the policy, then render and commit; a worktree starts from committed code:
+Review and edit the profile and the policy, then render and commit; a workspace starts from committed code:
 
 ```sh
 $EDITOR .cook/config.yaml .cook/policy.yaml
@@ -100,11 +100,11 @@ $EDITOR .cook/config.yaml .cook/policy.yaml
 git add -A && git commit -m "chore: adopt the-cook"
 ```
 
-Work on a change with a task worktree and a verification receipt:
+Work on a change with a task workspace and a verification receipt:
 
 ```sh
-./cook worktree create fix-login
-cd .work/worktrees/fix-login
+./cook workspace create fix-login
+cd .work/workspaces/fix-login
 # ... edit ...
 ./cook verify --lane unit=login --skip e2e="no route or controller changed"
 ./cook verify --check
@@ -158,9 +158,9 @@ Configuration
 
 Daily work
 
-- [Worktrees](worktrees.md): `the-cook worktree`
+- [Workspaces](workspaces.md): `the-cook workspace`
 - [Verify](verify.md): lanes and the receipt
-- [Tasks](tasks.md): task binding with `worktree create --task`, the `completed` guard, trackers wired by actions
+- [Tasks](tasks.md): task binding with `workspace create --task`, the `completed` guard, trackers wired by actions
 - [Ralph](ralph.md): unattended runs with any loop runner through `the-cook worker`, with ralph-tui as the worked
   example
 

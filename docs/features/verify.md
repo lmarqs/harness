@@ -44,9 +44,9 @@ The base is the commit the change is measured against. `the-cook verify` reads i
 
 | Where you run it | Base |
 | --- | --- |
-| A [managed worktree](worktrees.md) | the commit the worktree started from, recorded in its session |
+| A [managed workspace](workspaces.md) | the commit the workspace started from, recorded in its session |
 | Any other checkout | the merge-base of the head commit with the default branch the version-control recipe reports; with the git recipe, the merge-base of `HEAD` with the branch `origin/HEAD` names, or with the local default branch in a clone without a remote |
-| With `--base <ref>` | that commit; in a managed worktree, only the recorded base or one of its ancestors |
+| With `--base <ref>` | that commit; in a managed workspace, only the recorded base or one of its ancestors |
 
 A base may only move earlier, never later: an earlier base adds files to the check, a later one would leave changes
 out.
@@ -66,9 +66,9 @@ the version-control recipe lists them.
 7. Run the lanes: `select` once per pattern, or `full` with `--full`.
 8. Fingerprint again. If any file changed while the checks ran, fail: the checks did not see the final content.
 9. Write the receipt to `verified.json` in the checkout's state directory (`state.dir`, default `.work`).
-10. Fire the `verified` [lifecycle event](lifecycle.md): scope `task` in a worktree bound to a task, `change` otherwise.
-    Actions declared with `auto: true` run; `COOK_RECEIPT` and `COOK_SUMMARY` carry the receipt's path and its
-    one-line summary. A failing automatic event is reported on stderr and recorded in the
+10. Fire the `verified` [lifecycle event](lifecycle.md): scope `task` in a workspace bound to a task, `change`
+    otherwise. Actions declared with `auto: true` run; `COOK_RECEIPT` and `COOK_SUMMARY` carry the receipt's path and
+    its one-line summary. A failing automatic event is reported on stderr and recorded in the
     [lifecycle log](lifecycle.md#the-lifecycle-log). The receipt stays written and the exit code is the verification's.
 
 `the-cook verify --check` never fires `verified`.
@@ -126,7 +126,7 @@ local to that checkout.
 `the-cook verify --check` accepts the receipt only if:
 
 - it exists and is well formed;
-- in a managed worktree, its base is the recorded base or an ancestor of it;
+- in a managed workspace, its base is the recorded base or an ancestor of it;
 - the fingerprint recomputed now, against the receipt's base, equals the recorded one.
 
 | After verifying, you… | Receipt |
@@ -250,7 +250,7 @@ write.
 | Refused before running: a lane has no selection | An application change with neither `--lane` nor `--skip` for that lane | Add one for every lane |
 | Refused before running: a lane cannot be skipped | A changed file matches that lane's `required_when` | Select patterns for it |
 | `--check` fails right after a pass | A formatter or the editor touched a file after verification | Run `verify` again |
-| `--base` refused in a worktree | The ref is later than the worktree's recorded start | Use the start commit or an earlier one |
+| `--base` refused in a workspace | The ref is later than the workspace's recorded start | Use the start commit or an earlier one |
 | A lane passes with zero tests | The test runner exits 0 when nothing matches | Configure the runner to fail on no tests, or fix the pattern |
 | The build runs for a docs change | A doc path matches `verify.app_paths` | Narrow `app_paths` |
 

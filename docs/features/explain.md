@@ -51,7 +51,7 @@ Markdown on stdout.
 | `profile` | `.cook/config.yaml` fields and how to choose values |
 | `policy` | `.cook/policy.yaml`, the three entry forms, rendering per agent and per spelling of a `the-cook` command, precedence, the floor rules of the recipes in use, how to place an entry |
 | `hooks` | `.cook/hooks.yaml`, the hook runtime, the `{file}` placeholder, notification hooks (`attention`, `turn_end`), the hook command and why it never downloads |
-| `lifecycle` | lifecycle events including `blocked`, trigger points, scopes, task binding with `worktree create --task`, the action kinds `run`, `http` and `agent`, the built-in guards, the `COOK_*` environment, `lifecycle.jsonl` in the state directory |
+| `lifecycle` | lifecycle events including `blocked`, trigger points, scopes, task binding with `workspace create --task`, the action kinds `run`, `http` and `agent`, the built-in guards, the `COOK_*` environment, `lifecycle.jsonl` in the state directory |
 | `context` | standing context: `always` and `when` entries, triggers per agent, `content` and `pointer`, roles, `static` entries, trusted sources, the budget, `the-cook context show` |
 | `adoption` | adoption classes, import scopes, the equivalence check, the to-do, how an agent finishes an adoption |
 | `verify` | lanes, skip reasons, the receipt and its freshness rules |

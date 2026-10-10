@@ -126,7 +126,7 @@ finds the wrapper at the checkout's root through the version-control recipe's ro
 ```
 
 `<event>` is the neutral event the entry is for: `session-start`, `post-tool-use`, `prompt-submit`, `attention` or
-`turn-end`. The command resolves the wrapper from the root of the checkout the agent works in, primary or worktree,
+`turn-end`. The command resolves the wrapper from the root of the checkout the agent works in, primary or workspace,
 and never downloads. When the pinned release is not cached, the wrapper prints one line naming `./cook` on stderr
 and exits 0, and the session continues. For `session-start` it also prints one line of agent context, so the agent
 can tell the person. The wrapper prints both lines itself, as fixed text from its template, because no binary is
@@ -163,9 +163,9 @@ More text people wrote.
 /.work/
 # /cook:state
 
-# cook:worktrees
-/.work/worktrees/
-# /cook:worktrees
+# cook:workspaces
+/.work/workspaces/
+# /cook:workspaces
 ```
 
 ### Block ids
@@ -174,7 +174,7 @@ Block ids are per module, per recipe and per convention: a module or a recipe ow
 off, deleting the recipe from `recipes:` or [removing](remove.md) it removes them. The column below names the owner;
 "core" is the binary. Every block is one of two classes ([ADR 0018](../adrs/0018-conventions.md)):
 
-- A **convention block** states a fact that stays true without `the-cook`, such as where worktrees live or which
+- A **convention block** states a fact that stays true without `the-cook`, such as where workspaces live or which
   permissions agents work under. It never names a `the-cook` command. An [eject](remove.md#eject) removes its markers
   and keeps its text.
 - A **tool block** says how to use `the-cook` in this repository and may name `./cook` commands. An eject removes
@@ -182,9 +182,9 @@ off, deleting the recipe from `recipes:` or [removing](remove.md) it removes the
 
 | File | Id | Class | Content | Module, produced when |
 | --- | --- | --- | --- | --- |
-| `AGENTS.md` | `commands` | tool | how to run things, as `./cook` commands: lint, build, verify with its lanes, worktree | core, always |
+| `AGENTS.md` | `commands` | tool | how to run things, as `./cook` commands: lint, build, verify with its lanes, workspace | core, always |
 | `AGENTS.md` | `layout` | tool | what `.cook/`, `.agents/` and the state paths are, and who writes each | core, always |
-| `AGENTS.md` | `worktrees` | convention | where managed worktrees are created, their branch names, and that they start from committed code | core, always |
+| `AGENTS.md` | `workspaces` | convention | where managed workspaces are created, their branch names, and that they start from committed code | core, always |
 | `AGENTS.md` | `verify` | tool | the checks a change needs: lint, build, the lanes and when each is required | `verify` |
 | `AGENTS.md` | `lifecycle` | tool | the conditions for delivery and the actions this repository declares for each event | core, always |
 | `AGENTS.md` | `policy` | convention | the effective permissions by decision, as the native files enforce them, with each floor rule marked with the recipe it comes from, such as `(*floor rule of the git recipe*)`, and Claude Code-only entries marked; entries for `the-cook` commands are left out | core, always |
@@ -193,14 +193,14 @@ off, deleting the recipe from `recipes:` or [removing](remove.md) it removes the
 | `README.md` | `commands` | tool | the repository's commands, as in `AGENTS.md` | core, when `README.md` exists |
 | `CLAUDE.md` (root, or `.claude/CLAUDE.md` when only that exists) | `import` | convention | one line: `@AGENTS.md` | the claude recipe, unless the file already imports `@AGENTS.md` |
 | `.gitignore` | `state` | convention | `/<state.dir>/` | the git recipe, always |
-| `.gitignore` | `worktrees` | convention | `/<worktrees.dir>/` | the git recipe, always |
+| `.gitignore` | `workspaces` | convention | `/<workspaces.dir>/` | the git recipe, always |
 | `.gitignore` | `ralph-tui` | convention | `/.ralph-tui/*` and `!/.ralph-tui/config.toml`: ralph-tui's session files, not its configuration | the ralph-tui recipe, always |
 
 The paths come from the profile ([state paths](profile.md#state-paths)). Every block's text is generated from the
 repository files.
 
 `.gitignore` blocks omit any path the repository tracks. Each block lists its own paths even when another block
-already covers them: `state` ignores `/.work/` and `worktrees` ignores `/.work/worktrees/`. Removing one block then
+already covers them: `state` ignores `/.work/` and `workspaces` ignores `/.work/workspaces/`. Removing one block then
 never un-ignores a path another still uses.
 
 ### The `AGENTS.md` budget

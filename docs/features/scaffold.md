@@ -81,7 +81,7 @@ table, with the same rules as [`the-cook recipe apply`](recipes.md#how-apply-wor
 
 | Recipe | Detected from | Adds |
 | --- | --- | --- |
-| `git` | `.git` | the version-control operations, the `state` and `worktrees` blocks of `.gitignore`, the force-push floor |
+| `git` | `.git` | the version-control operations, the `state` and `workspaces` blocks of `.gitignore`, the force-push floor |
 | `claude` | `.claude/`, `CLAUDE.md` | `agents.claude` with `role: interactive`, Claude Code's native files, its bypass floor |
 | `codex` | `.codex/` | `agents.codex` with `role: interactive`, Codex's native files, its bypass floor |
 | `mise` | `mise.toml`, `.mise.toml` | the `:::` floor |
@@ -119,7 +119,7 @@ scaffolding, never by `scaffold`.
 | --- | --- |
 | `AGENTS.md` | only the managed blocks; the prose is for people and agents to write |
 | `CLAUDE.md` | only the `import` block, a single `@AGENTS.md` line |
-| `.gitignore` | only the blocks of the chosen recipes: `state` and `worktrees` from the git recipe |
+| `.gitignore` | only the blocks of the chosen recipes: `state` and `workspaces` from the git recipe |
 
 When these files exist, `scaffold` appends its blocks at the end and touches nothing else. `README.md` is never
 created; when it exists, it receives the `commands` block. The [block ids](render.md#block-ids) table lists every

@@ -31,7 +31,7 @@ makes removal pick files out of a tree others write, and state inside a committe
 | `.cook/` | the versioned configuration of `the-cook` | `config.yaml` (the profile), `policy.yaml`, `hooks.yaml`, `wrapper.yaml` and the manifest `manifest.json`. Everything in it is committed; nothing in it is state and nothing in it is ignored |
 | `.agents/` | agent content, the cross-tool convention other tools (the `skills` CLI, the `AGENTS.md` ecosystem) share | `skills/` (including the tool-owned `skills/the-cook/`), `memory/`, `commands/`, `REVIEW.md`, and repository files that standing context points to. It stays meaningful without `the-cook` |
 | repository root | the repository, with managed blocks | `cook` (the wrapper, tool-owned), `AGENTS.md`, `CLAUDE.md`, `README.md`, `.gitignore` |
-| state paths ([below](#state-paths)) | `the-cook`, clone-local | receipts, sessions, locks, the lifecycle log, the hook cache, standing-context session records, the last failed worker output, managed worktrees |
+| state paths ([below](#state-paths)) | `the-cook`, clone-local | receipts, sessions, locks, the lifecycle log, the hook cache, standing-context session records, the last failed worker output, managed workspaces |
 
 - The configuration of `the-cook` never goes in `.agents/`, and agent content never goes in `.cook/`, so each directory
   can be read, reviewed and removed on its own terms.
@@ -102,19 +102,19 @@ local state goes, and a tool that fixes one location fights them:
 ```yaml
 state:
   dir: .work
-worktrees:
-  dir: .work/worktrees
+workspaces:
+  dir: .work/workspaces
 ```
 
 | Key | Default | Holds |
 | --- | --- | --- |
 | `state.dir` | `.work` | receipts, sessions, locks, the lifecycle log, the hook cache, standing-context session records; in each checkout a worker runs in, the record of its bootstrap, `last-worker-output` and `last-attempt.patch` |
-| `worktrees.dir` | `.work/worktrees` | each managed worktree, at `<dir>/<name>` |
+| `workspaces.dir` | `.work/workspaces` | each managed workspace, at `<dir>/<name>` |
 
 - Paths are repository-relative. A path inside `.cook/` or `.agents/` is a validation error (exit 1), because both
   trees are committed.
 - Defaults are literal paths. Changing one re-renders the blocks that state it and does not move existing state,
-  because moving a worktree with uncommitted work is a person's decision.
+  because moving a workspace with uncommitted work is a person's decision.
 - Each path is a convention: the module that uses it states it in a managed block of `AGENTS.md`, and the git recipe
   ignores it in a managed block of `.gitignore`, naming the configured value
   ([generated-content-standards.md](generated-content-standards.md#conventions-in-blocks)).
@@ -255,7 +255,7 @@ the-cook: .cook/config.yaml:14:5: unknown key "verify.lanes.e2e.requried_when"
 
 - Paths and globs are relative to the repository root, use forward slashes, and support `**`, so one file works on
   every machine.
-- Commands are strings run with `sh -c` from the root of the checkout they apply to (the primary clone or a worktree).
+- Commands are strings run with `sh -c` from the root of the checkout they apply to (the primary clone or a workspace).
 - The placeholders `{file}` (one repository-relative path) and `{pattern}` (one lane pattern) in profile and hook
   commands are the only substitutions in command text; `the-cook` shell-quotes each value. Each field documents which
   placeholder it accepts; any other placeholder is a validation error, and a new value is added as an environment
@@ -355,7 +355,7 @@ single meaning.
 | `lifecycle.<event>` | list | none | actions for one event: `start`, `verified`, `completed`, `deliver`, `landed` or `blocked`; any other key is a validation error |
 | `attention`, `turn_end` | list | none | notification actions: the agent is waiting for a person; the agent finished a turn. Kinds `run` and `http` only |
 | `name` | string | required | the action's name, unique within its event; `the-cook lifecycle run --action <name>` selects a lifecycle action |
-| `run` | command | one kind required | run with `sh -c` in the worktree; receives values only as environment variables |
+| `run` | command | one kind required | run with `sh -c` in the workspace; receives values only as environment variables |
 | `http` | map | one kind required | a request `the-cook` performs itself, keys below |
 | `agent` | map | one kind required | a headless agent run under the worker contract, keys below; lifecycle actions only |
 | `auto` | boolean | `false` | lifecycle actions: when true, `the-cook` fires the action at the event's trigger point; when false, it runs only through `the-cook lifecycle run` |
@@ -390,11 +390,11 @@ single meaning.
   repository's worker denies, floor bypass arguments refused, the tamper check. It cannot commit, push or fire lifecycle
   events; its file changes stay uncommitted and are listed in the lifecycle log and the output. Why: an agent started by
   an event is as unattended as one `the-cook worker` starts, so it gets the same bounds.
-- Actions run in the worktree of the work the event concerns. On `landed`, `run` and `http` actions run in the primary
-  checkout. An `agent` action runs in a fresh worktree of the default branch, which `the-cook` creates under
-  `worktrees.dir` as `landed-<name>-<n>` and records. `the-cook` leaves that worktree with the agent's uncommitted edits
-  for a person to review, commit or remove with `the-cook worktree remove`. Why: once work has landed its worktree is
-  about to go, and the primary checkout holds whatever a person is doing there
+- Actions run in the workspace of the work the event concerns. On `landed`, `run` and `http` actions run in the primary
+  checkout. An `agent` action runs in a fresh workspace of the default branch, which `the-cook` creates under
+  `workspaces.dir` as `landed-<name>-<n>` and records. `the-cook` leaves that workspace with the agent's uncommitted
+  edits for a person to review, commit or remove with `the-cook workspace remove`. Why: once work has landed its
+  workspace is about to go, and the primary checkout holds whatever a person is doing there
   ([ADR 0019](../adrs/0019-action-kinds.md)).
 - Prompts that include untrusted values (task titles, agent messages) are a prompt-injection surface; the worker
   contract bounds what an injected instruction can do.

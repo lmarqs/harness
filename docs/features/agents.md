@@ -121,9 +121,9 @@ contract is on the [Ralph](ralph.md#the-worker-contract) page.
 ## Trust
 
 Both agents load project configuration only for folders the person has trusted, and global or managed settings may
-restrict project settings. `the-cook` never changes trust, global settings or credentials. Worktrees nested inside the
-primary checkout inherit its trust; sibling worktrees outside it do not. For example, with `~/src/api` trusted, the
-managed worktree `~/src/api/.work/worktrees/fix-login` is trusted too, and a sibling checkout `~/src/api-fix-login` is
+restrict project settings. `the-cook` never changes trust, global settings or credentials. Workspaces nested inside the
+primary checkout inherit its trust; sibling workspaces outside it do not. For example, with `~/src/api` trusted, the
+managed workspace `~/src/api/.work/workspaces/fix-login` is trusted too, and a sibling checkout `~/src/api-fix-login` is
 not ([pitfalls](pitfalls.md#claude-code-ignores-project-permissions-in-an-untrusted-folder)).
 
 ## The harness contract

@@ -72,11 +72,11 @@ Notes never change the exit code:
 
 ### Landed branches
 
-`doctor` looks at every branch `the-cook` recorded in `.work/`: managed worktrees and fleet deliveries. A branch whose
+`doctor` looks at every branch `the-cook` recorded in `.work/`: managed workspaces and fleet deliveries. A branch whose
 patches are all on the default branch (compared by patch equivalence through the version-control recipe's landed
 operation, `git cherry` with the git recipe, so a cherry-pick, a rebase or a squash of the same patches counts) has
 **landed**. `doctor` lists each landed branch with the command that fires the `landed` event for it, such as
-`the-cook worktree remove <name>`. It fires nothing itself: `landed` fires from `the-cook worktree remove` and
+`the-cook workspace remove <name>`. It fires nothing itself: `landed` fires from `the-cook workspace remove` and
 `the-cook lifecycle run landed` ([lifecycle](lifecycle.md#events)). A landed branch is not a finding and does not change
 the exit code. A CI clone has no recorded branches, so `doctor` in CI lists none.
 
@@ -129,7 +129,7 @@ context
 to-do
   instructions are in .agents/AGENTS.md: move them to the root AGENTS.md, which Codex reads
 landed
-  work/fix-invoice-rounding has landed: run ./cook worktree remove fix-invoice-rounding to fire landed
+  work/fix-invoice-rounding has landed: run ./cook workspace remove fix-invoice-rounding to fire landed
 note
   the-cook v0.9.0 is available (this repository pins v0.8.2): run ./cook wrapper --version v0.9.0
   context for interactive sessions is 134 lines, over the budget of 120: coding-guidelines 96, house-rules 38

@@ -147,7 +147,7 @@ For deterministic, repeated, organization-neutral behaviour:
    lint command, the bootstrap commands). The default MUST preserve existing behaviour, so adding the field changes
    nothing for repositories that do not set it.
 2. **Flag** when the same repository needs the behaviour sometimes, per invocation (`verify --full`,
-   `verify --base <ref>`, `worktree create --no-bootstrap`). A flag that every invocation in a repository would pass is
+   `verify --base <ref>`, `workspace create --no-bootstrap`). A flag that every invocation in a repository would pass is
    a profile field instead, because a flag repeated on every call is a setting written in the wrong place.
 3. **New command** when the operation has a different object or a different effect from every existing command. A
    behaviour that changes what an existing command writes is a flag or a field, not a new command, because two
@@ -198,11 +198,11 @@ Repository content follows the same split ([ADR 0013](../adrs/0013-organization-
 | Post to the team chat when a task completes | deterministic, leaves the clone, a notification channel | a `completed` action of kind `http` with `url_env`, `auto: true` |
 | Ping me when the agent is waiting for my answer | deterministic, a notification, per person or repository | an `attention` action of kind `http` (or `run` for a desktop notifier) in `hooks.yaml` |
 | Tell me when an unattended [run of a loop runner](../features/ralph.md) stops unfinished | deterministic, a notification at the moment work stops; nothing in the binary knows when a run ends | a `blocked` action of kind `http` with scope `run`, fired by whoever drives the run: `./cook lifecycle run blocked --scope run` |
-| Write lessons into memory after a change lands | judgement, after an event | a `landed` action of kind `agent`; it runs in a fresh worktree of the default branch, and its edits stay uncommitted there for review |
+| Write lessons into memory after a change lands | judgement, after an event | a `landed` action of kind `agent`; it runs in a fresh workspace of the default branch, and its edits stay uncommitted there for review |
 | Look something up through an MCP-only service before delivery | needs an MCP tool | the coordinating agent before it runs `the-cook lifecycle run deliver`, or an `agent` action; never the binary |
 | Choose which commits of an unattended run go into which pull request and reword them | judgement (grouping, wording), conventions vary by organization | an agent guided by an organization or personal skill; the agent then runs `the-cook lifecycle run deliver` |
-| Remove the worktree after its branch is merged | deterministic, reacts to a merge, every repository | binary: `the-cook doctor` lists the landed branch and prints the command; `the-cook worktree remove` fires `landed`, then removes the worktree |
-| Delete the remote branch once the work has landed | deterministic, leaves the clone, repository habit, belongs at `landed` | a `landed` action in `hooks.yaml` (`git push origin --delete "$COOK_BRANCH"`), `auto: true` if it should run whenever `worktree remove` handles a landed branch |
+| Remove the workspace after its branch is merged | deterministic, reacts to a merge, every repository | binary: `the-cook doctor` lists the landed branch and prints the command; `the-cook workspace remove` fires `landed`, then removes the workspace |
+| Delete the remote branch once the work has landed | deterministic, leaves the clone, repository habit, belongs at `landed` | a `landed` action in `hooks.yaml` (`git push origin --delete "$COOK_BRANCH"`), `auto: true` if it should run whenever `workspace remove` handles a landed branch |
 | Apply the team's coding guidelines in every session without invoking them | known guidance, every session | `context.always` entry naming the skill |
 | Apply the SQL review skill whenever SQL or migrations are touched | known guidance, triggered by files | `context.when.paths` entry |
 | Point the agent at the time-zone skill when the request mentions time zones | known guidance, triggered by words | `context.when.prompt` entry with `inject: pointer` |
@@ -210,18 +210,18 @@ Repository content follows the same split ([ADR 0013](../adrs/0013-organization-
 | Pick which tests to run for a change | judgement (which code is affected) | agent; the repository declares lanes and `required_when` globs in the profile; `the-cook verify` records the choice and replays it |
 | Lint a file after every edit | deterministic, per-repository command | `hooks.yaml` `post_edit` entry |
 | Support a new agent CLI | deterministic translation of the same policy and hooks | a harness recipe that fills the [harness contract](../features/recipes.md#the-harness-contract): shipped in a release, or declared by a repository as a fetched recipe; never code in the binary |
-| Use a version control system other than git | the answers every attempt relies on: base revision, files at a revision, reset, worktrees | a recipe that fills the [version-control contract](../features/recipes.md#the-version-control-contract), named by `vcs:` in the profile |
+| Use a version control system other than git | the answers every attempt relies on: base revision, files at a revision, reset, workspaces | a recipe that fills the [version-control contract](../features/recipes.md#the-version-control-contract), named by `vcs:` in the profile |
 | Finish an adoption: move a hook the importer could not model, review the rules imported from the `local` scope | judgement | shipped skill, checked by `the-cook doctor` |
 | Summarise the effective permissions in `AGENTS.md` | deterministic, derived from the policy | binary: the `policy` [convention block](generated-content-standards.md#block-classes) |
-| Tell people and agents where worktrees are created and on which branch | deterministic, derived from the profile, must hold without `the-cook` | binary: the `worktrees` convention block in `AGENTS.md`, and the git recipe's `worktrees` block in `.gitignore` ([principles.md](principles.md#8-conventions-outlive-the-tool)) |
-| Keep worktrees and state somewhere other than `.work/` | deterministic, different values per repository | profile fields `state.dir`, `worktrees.dir`; `the-cook render` rewrites the blocks that state them |
+| Tell people and agents where workspaces are created and on which branch | deterministic, derived from the profile, must hold without `the-cook` | binary: the `workspaces` convention block in `AGENTS.md`, and the git recipe's `workspaces` block in `.gitignore` ([principles.md](principles.md#8-conventions-outlive-the-tool)) |
+| Keep workspaces and state somewhere other than `.work/` | deterministic, different values per repository | profile fields `state.dir`, `workspaces.dir`; `the-cook render` rewrites the blocks that state them |
 | Keep `the-cook` configuration beside the skills in `.agents/` | `.agents/` is the cross-tool agent-content directory | not allowed: `the-cook` configuration lives in `.cook/`, state at the profile's paths |
 | Explain in `AGENTS.md` why the team keeps e2e tests mandatory for routes | judgement, one repository | repository prose, outside [managed blocks](generated-content-standards.md#managed-blocks) |
 | Record a lesson learned during a session | judgement | agent, in the repository's memory; never the binary |
 | Open an issue for each to-do item | judgement, writes to the record of work | agent with its own tools; the binary never writes issues |
-| Report worktrees whose branch was merged | deterministic, every repository | a `doctor` check |
+| Report workspaces whose branch was merged | deterministic, every repository | a `doctor` check |
 | Install an organization's shared skills in a repository | a third-party installer, organization data | the team's own step with the tool of its choice (`npx skills add acme/agent-skills`), then a commit of `.agents/skills/` and `skills-lock.json`; the [`skills` recipe](../features/recipes.md#skills) describes the installer, and standing context names the skills it injects |
-| Run ralph-tui over a task list with every result verified | a third-party loop runner, deterministic wiring | the `ralph-tui` recipe: its template `.ralph-tui/config.toml` names `./cook worker <agent> --commit` as the agent command; the person runs `ralph-tui` in a managed worktree, never through a `the-cook` command |
+| Run ralph-tui over a task list with every result verified | a third-party loop runner, deterministic wiring | the `ralph-tui` recipe: its template `.ralph-tui/config.toml` names `./cook worker <agent> --commit` as the agent command; the person runs `ralph-tui` in a managed workspace, never through a `the-cook` command |
 | Update Beads when work starts, completes or stops | a third-party tracker, deterministic, at lifecycle points | the `beads` recipe: the actions `bead-start`, `bead-close` and `bead-comment` on `start`, `completed` and `blocked`, scope `task`, `auto: true`, which run `bd` with `$COOK_TASK` |
 | Support another loop runner or task tracker | a third-party program | a recipe, builtin or fetched, or declared actions and a configuration that names `the-cook worker`; never a command, flag or profile field |
 | Pin the version of `the-cook` a repository runs | deterministic, every repository, affects what every machine runs | binary: `.cook/wrapper.yaml`, the only pin, and the committed wrapper `cook`; `the-cook wrapper --version <tag>` changes the pin after verifying the release's signed checksum file |

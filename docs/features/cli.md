@@ -38,8 +38,8 @@ the-cook context show [--role interactive|worker] [--path <file>]... [--prompt <
 the-cook hook <session-start|post-tool-use|prompt-submit|attention|turn-end>
 the-cook lifecycle list [--json]
 the-cook lifecycle run <event> [--action <name>]... [--scope task|run|change] [--task <id>] [--dry-run]
-the-cook worktree create <name> [--base <ref>] [--task <id>] [--no-bootstrap]
-the-cook worktree remove <name>
+the-cook workspace create <name> [--base <ref>] [--task <id>] [--no-bootstrap]
+the-cook workspace remove <name>
 the-cook verify [--lane <name>=<pattern>]... [--skip <name>=<reason>]... [--full] [--base <ref>] [--check]
 the-cook worker <agent> [--commit] [--withhold <text>] [-- <agent args>]
 the-cook fleet <command> [command args...] [--repos <file>] [--deliver] [--continue-on-error]
@@ -74,7 +74,7 @@ release, downloading it through the same verified path only when the command was
 | --- | --- | --- |
 | `-C <dir>` | every command | Run as if started in `<dir>` |
 | `--json` | commands whose output is data: `doctor`, `context show`, `lifecycle list`, `recipe apply` (entries added and items kept), `fleet`, `scaffold` (the to-do), `version` | Print one JSON document instead of text |
-| `--dry-run` | commands that change files or run actions: `scaffold`, `remove`, `render`, `wrapper`, `recipe apply`, `worktree`, `lifecycle run`, `fleet` (passed to each repository's command; no branch, commit or delivery) | Print what would change or run; change nothing |
+| `--dry-run` | commands that change files or run actions: `scaffold`, `remove`, `render`, `wrapper`, `recipe apply`, `workspace`, `lifecycle run`, `fleet` (passed to each repository's command; no branch, commit or delivery) | Print what would change or run; change nothing |
 | `--yes` | commands that ask for confirmation: `scaffold`, `remove` (with or without `--eject`), `render` and `wrapper` (schema migration), `recipe apply`, `fleet` (passed through) | Answer yes; required without a terminal |
 | `--verbose` | every command | Print each command `the-cook` runs and why |
 
@@ -90,7 +90,7 @@ by `the-cook worker` or by an `agent` action, the binary refuses it whatever the
 | 0 | Success | |
 | 1 | Error | invalid flags or files, a failed external command, a failed download or checksum check, a release whose signed checksum file does not verify; a fetched [recipe](recipes.md#fetched-recipes) whose content does not match its `sha256`, or that uses a builtin recipe's name; `vcs:` or `agents.<name>.recipe` naming a recipe that `recipes:` does not list |
 | 2 | A check or an action failed | `render --check` drift; a `doctor` finding; `verify` lint, validator, build or lane failure; `verify --check` without a valid [receipt](verify.md); a failing post-edit hook; the adoption equivalence check; a failing action in `lifecycle run` or `fleet --deliver` |
-| 3 | Blocked: a person must act | a confirmation without a terminal; a prerequisite a person must install, such as a program a recipe, a declared command or an action names, the version-control recipe's program, `curl` or `wget` for the wrapper, or the agent binary `the-cook worker` starts; a fetched recipe missing from the cache at `render` or a worker attempt (`./cook recipe fetch` caches it); uncommitted changes where committed state is required; a locked worktree; a repository schema newer than the running release; a lifecycle guard refusing an event, such as `completed` with scope `task` without a valid [receipt](verify.md); an owned path edited by hand before `remove`; a `.cook/` directory another tool owns, at `scaffold` |
+| 3 | Blocked: a person must act | a confirmation without a terminal; a prerequisite a person must install, such as a program a recipe, a declared command or an action names, the version-control recipe's program, `curl` or `wget` for the wrapper, or the agent binary `the-cook worker` starts; a fetched recipe missing from the cache at `render` or a worker attempt (`./cook recipe fetch` caches it); uncommitted changes where committed state is required; a locked workspace; a repository schema newer than the running release; a lifecycle guard refusing an event, such as `completed` with scope `task` without a valid [receipt](verify.md); an owned path edited by hand before `remove`; a `.cook/` directory another tool owns, at `scaffold` |
 
 A command run without a terminal that exits 3 fires the [`blocked`](lifecycle.md#events) lifecycle event for the
 scope of its work, with the refusal in `COOK_REASON`, so a declared notification reaches the person who must act.
@@ -107,10 +107,10 @@ module is enabled), the automatic `deliver` does not fire, and the command says 
 
 | Command | Fires |
 | --- | --- |
-| `worktree create` | `start`: scope `task` with `--task`, otherwise `change` |
+| `workspace create` | `start`: scope `task` with `--task`, otherwise `change` |
 | `verify` (never with `--check`) | `verified` |
-| `worker` | after a verified attempt in a worktree bound to a task: `completed` (scope `task`), then `deliver` (scope `task`) when the work is concluded; both run in the `the-cook worker` process, never inside the agent |
-| `worktree remove` | `landed` once per recorded branch whose patches are on the default branch, before its worktree is removed |
+| `worker` | after a verified attempt in a workspace bound to a task: `completed` (scope `task`), then `deliver` (scope `task`) when the work is concluded; both run in the `the-cook worker` process, never inside the agent |
+| `workspace remove` | `landed` once per recorded branch whose patches are on the default branch, before its workspace is removed |
 | `fleet --deliver` | `deliver` (scope `change`) in each repository with a committed change, after `the-cook verify`; every declared `deliver` action for scope `change` runs |
 | any command run without a terminal that exits 3 | `blocked`, for the scope of the command's work, otherwise `change` |
 
@@ -138,16 +138,16 @@ No command fires an event of scope `run`. When a loop runner skips a task or sto
 | `hook <event>` | Handle an agent event read from stdin, a payload the agent's [harness recipe](recipes.md#the-harness-contract) maps to a neutral event: run post-edit commands and validators, add session context, inject standing context, run `attention` and `turn_end` hooks. Called by rendered hook entries through `cook --no-download`, with the entry's event as argument | 0 nothing to do, passed, or skipped because a fetched recipe it needs is not cached (one stderr line names `./cook recipe fetch`); 2 a post-edit command or validator failed | [hooks](hooks.md) |
 | `lifecycle list` | List events, their actions, `auto` flags and scopes | 0 listed; 1 invalid hooks file | [lifecycle](lifecycle.md) |
 | `lifecycle run` | Run an event's actions by hand, or as a coordinating agent, `blocked` included; never asks for confirmation | 0 every action passed, or none declared; 1 error; 2 an action failed; 3 a guard refused (`completed` with scope `task` without a valid receipt while the verify module is on, `deliver` refused, any event inside a worker) | [lifecycle](lifecycle.md) |
-| `worktree create` | Create a managed task worktree; `--task` records a free-form task id that every event fired in it carries; fires `start` | 0 created; 1 error | [worktrees](worktrees.md) |
-| `worktree remove` | Remove a clean managed worktree, keeping its branch; fires `landed` | 0 removed; 1 error; 3 uncommitted changes or a locked worktree | [worktrees](worktrees.md) |
+| `workspace create` | Create a managed task workspace; `--task` records a free-form task id that every event fired in it carries; fires `start` | 0 created; 1 error | [workspaces](workspaces.md) |
+| `workspace remove` | Remove a clean managed workspace, keeping its branch; fires `landed` | 0 removed; 1 error; 3 uncommitted changes or a locked workspace | [workspaces](workspaces.md) |
 | `verify` | Run checks and write the receipt; `--check` validates it; fires `verified` | 0 passed, or valid receipt; 1 lane rule not met, files changed during verification; 2 a check failed, or no valid receipt | [verify](verify.md) |
-| `worker <agent>` | Run one agent the profile declares, such as `claude` or `codex`, headless for one task in the current checkout under the worker contract: resolve the version-control recipe and the agent's harness recipe from the release or the cache, refuse the bypass arguments the harness recipe marks as floor, restore and then compare the tool-owned files, replay the lanes of the receipt the agent wrote; with `--commit`, commit a verified attempt; remove every occurrence of the `--withhold` text from a failed attempt's output. The first argument it does not recognise and every argument after it, or everything after `--`, goes to the agent; `COOK_TASK` reaches the agent when the checkout is a managed worktree created with `--task`. The command a loop runner's configuration names as its agent command; fires `completed` and `deliver` after a verified attempt in a worktree bound to a task | 0 verified; 1 refused (uncommitted changes, a bypass argument) or a failed attempt; 3 the agent binary or the version-control recipe's program is missing, or a recipe the attempt needs is not cached | [ralph](ralph.md#the-worker-contract) |
+| `worker <agent>` | Run one agent the profile declares, such as `claude` or `codex`, headless for one task in the current checkout under the worker contract: resolve the version-control recipe and the agent's harness recipe from the release or the cache, refuse the bypass arguments the harness recipe marks as floor, restore and then compare the tool-owned files, replay the lanes of the receipt the agent wrote; with `--commit`, commit a verified attempt; remove every occurrence of the `--withhold` text from a failed attempt's output. The first argument it does not recognise and every argument after it, or everything after `--`, goes to the agent; `COOK_TASK` reaches the agent when the checkout is a managed workspace created with `--task`. The command a loop runner's configuration names as its agent command; fires `completed` and `deliver` after a verified attempt in a workspace bound to a task | 0 verified; 1 refused (uncommitted changes, a bypass argument) or a failed attempt; 3 the agent binary or the version-control recipe's program is missing, or a recipe the attempt needs is not cached | [ralph](ralph.md#the-worker-contract) |
 | `fleet` | Run a command across a list of repositories; `--deliver` commits and delivers. `fleet wrapper --version <tag> --deliver` moves every repository's pin | the highest per-repository code; a refused dirty repository counts as 3, a failing `deliver` action as 2, a `deliver` guard refusal as 3 | [fleet](fleet.md) |
 | `version` | Print the version and the supported schema; `--check-update` checks for a newer release now | 0 printed; 1 error | [installation](installation.md#update-notice) |
 
 ## Files read and written
 
-Paths under `.work/` are shown at their defaults; the profile moves them with `state.dir` and `worktrees.dir`
+Paths under `.work/` are shown at their defaults; the profile moves them with `state.dir` and `workspaces.dir`
 ([profile](profile.md#state-paths)).
 
 | Command | Reads | Writes |
@@ -167,8 +167,8 @@ Paths under `.work/` are shown at their defaults; the profile moves them with `s
 | `hook` | stdin, the profile, the hooks file, the skills and files `context` entries name, `.work/session.json`, `.work/hook-checks.json`, `.work/context/<session-id>.json` | `.work/hook-checks.json`, `.work/context/<session-id>.json`; whatever declared commands and `attention` or `turn_end` actions write |
 | `lifecycle list` | the hooks file | nothing |
 | `lifecycle run` | the hooks file, `.work/session.json`, `.work/verified.json`, the version-control recipe | `.work/lifecycle.jsonl`; whatever the actions write |
-| `worktree create` | the profile, the version-control recipe | `.work/worktrees/<name>/`, branch `work/<name>`, its `.work/session.json` (base, task, actor); `.work/lifecycle.jsonl` |
-| `worktree remove` | the version-control recipe, the hooks file | removes `.work/worktrees/<name>/`; `.work/lifecycle.jsonl`; whatever `landed` actions write; for a `landed` `agent` action, a recorded worktree `.work/worktrees/landed-<name>-<n>` on branch `work/landed-<name>-<n>` |
+| `workspace create` | the profile, the version-control recipe | `.work/workspaces/<name>/`, branch `work/<name>`, its `.work/session.json` (base, task, actor); `.work/lifecycle.jsonl` |
+| `workspace remove` | the version-control recipe, the hooks file | removes `.work/workspaces/<name>/`; `.work/lifecycle.jsonl`; whatever `landed` actions write; for a `landed` `agent` action, a recorded workspace `.work/workspaces/landed-<name>-<n>` on branch `work/landed-<name>-<n>` |
 | `verify` | the profile, the version-control recipe, changed files, `.work/session.json` | `.work/verified.json`; `.work/lifecycle.jsonl` |
 | `worker` | the version-control recipe and the agent's harness recipe, from the release or the cache; the profile, policy, hooks file and the files and skills `context` entries name, from the base commit; `.work/session.json`; the receipt `.work/verified.json` the agent wrote | the tool-owned files it restores from the base commit; in the checkout's `.work/`, the record that `bootstrap` ran and, after a failed attempt, `last-worker-output` and `last-attempt.patch`, and the checkout returned to its base; with `--commit`, a commit on the checkout's branch; `.work/lifecycle.jsonl`; whatever the agent and the `completed` and `deliver` actions write |
 | `fleet` | the fleet file | whatever the command writes; with `--deliver`, a local branch, a commit and a receipt per changed repository, `.work/lifecycle.jsonl`, and whatever its `deliver` actions write |
@@ -196,13 +196,13 @@ command string. A variable that does not apply is unset; see [lifecycle](lifecyc
 | `COOK_EVENT` | the event: `start`, `verified`, `completed`, `deliver`, `landed`, `blocked` |
 | `COOK_SCOPE` | the scope: `task`, `run` or `change` |
 | `COOK_REPO` | the primary checkout's root |
-| `COOK_WORKTREE` | the path of the checkout the actions run in |
-| `COOK_WORKTREE_NAME` | the managed worktree's name |
+| `COOK_WORKSPACE` | the path of the checkout the actions run in |
+| `COOK_WORKSPACE_NAME` | the managed workspace's name |
 | `COOK_BRANCH` | the work's branch |
 | `COOK_BASE` | the work's base commit |
 | `COOK_DEFAULT_BRANCH` | the default branch the version-control recipe reports |
-| `COOK_TASK` | the task id the managed worktree was created with (`worktree create --task`) |
-| `COOK_ACTOR` | the managed worktree's actor, `<user>:<worktree>:<random>` |
+| `COOK_TASK` | the task id the managed workspace was created with (`workspace create --task`) |
+| `COOK_ACTOR` | the managed workspace's actor, `<user>:<workspace>:<random>` |
 | `COOK_RECEIPT` | the path of the receipt JSON |
 | `COOK_SUMMARY` | the one-line verification summary |
 | `COOK_REASON` | `blocked` only: the one-line refusal or stop reason |
@@ -219,7 +219,7 @@ variables:
 | `COOK_AGENT` | the agent's name as the profile declares it, such as `claude` or `codex` |
 | `COOK_MESSAGE` | the agent's own notification text; untrusted |
 | `COOK_REPO` | the primary checkout's root |
-| `COOK_WORKTREE` | the path of the checkout the agent works in |
+| `COOK_WORKSPACE` | the path of the checkout the agent works in |
 | `COOK_BRANCH` | that checkout's branch |
 
 ## User-level paths

@@ -29,12 +29,12 @@ global install, `the-cook <command>` is equivalent.
 | Use a program's recipe, or stop using it | `recipes` ([recipes](recipes.md)); `./cook recipe apply <name>` adds one with its entries |
 | Use another version control system's recipe | `vcs` |
 | Turn a feature on or off | `modules` |
-| Change what a new worktree runs before use | `bootstrap` |
+| Change what a new workspace runs before use | `bootstrap` |
 | Change how a file is linted or the project is built | `commands` |
 | Add, rename or require a test lane | `verify.lanes` |
 | Run a repository check when certain files change | `verify.validators` |
 | Add Codex or another agent, make an agent a worker-only agent, give an agent a fetched harness recipe, or let a Codex worker write one more directory | `agents` |
-| Move where state or managed worktrees live | `state.dir`, `worktrees.dir` |
+| Move where state or managed workspaces live | `state.dir`, `workspaces.dir` |
 | Give agents a directive or a skill without anyone invoking it: always, on certain files, or on certain words | `context` |
 | Let the managed blocks in `AGENTS.md` take more or fewer lines | `blocks.agents_md_budget` |
 | Add the starting commands, lanes and post-edit hooks of a stack | nothing by hand: run `./cook recipe apply <name>` ([recipes](recipes.md)) |
@@ -46,7 +46,7 @@ Run `./cook render` after every edit, and `./cook doctor` to check globs and com
 - **Globs** are matched against paths relative to the repository root. `*` matches within one path segment, `**`
   across segments, `{a,b}` either alternative. Example: `src/**/*.{ts,js}`.
 - **Commands** are strings run with `sh -c` from the root of the checkout they apply to (the primary checkout or a
-  worktree).
+  workspace).
 - **Placeholders**: `{file}` is replaced by one repository-relative path, `{pattern}` by one lane pattern; `the-cook`
   shell-quotes each value. These placeholders in profile and hook commands are the only substitutions `the-cook`
   performs. Lifecycle actions get values only through environment variables.
@@ -63,14 +63,14 @@ Run `./cook render` after every edit, and `./cook doctor` to check globs and com
 | `recipes` | list | required | The [recipes](#recipes) the repository uses |
 | `vcs` | recipe name | required | The recipe that fills the version-control contract; see [`recipes`](#recipes) |
 | `modules` | map | every module off | Which modules are on |
-| `bootstrap` | list of commands | `[]` | Run in order in a new worktree, and once in each checkout a [worker](ralph.md#the-worker-contract) runs in |
+| `bootstrap` | list of commands | `[]` | Run in order in a new workspace, and once in each checkout a [worker](ralph.md#the-worker-contract) runs in |
 | `commands` | map | | Lint and build commands |
 | `verify` | map | | Verification paths, lanes and validators |
 | `agents` | map | | Agents rendered for this repository, their roles, their harness recipes, and what a Codex worker may write |
 | `context` | map | | [Standing context](#context): directives and skills injected by declared triggers |
 | `blocks` | map | | Limits for the managed blocks `the-cook` writes |
 | `state` | map | | Where clone-local state lives; see [State paths](#state-paths) |
-| `worktrees` | map | | Where managed worktrees live; see [State paths](#state-paths) |
+| `workspaces` | map | | Where managed workspaces live; see [State paths](#state-paths) |
 
 ### `recipes`
 
@@ -221,14 +221,14 @@ the repository root. Each path is written down as a convention in a managed bloc
 ```yaml
 state:
   dir: .work                      # receipts, sessions, locks, lifecycle log, hook cache
-worktrees:
-  dir: .work/worktrees            # each managed worktree at <dir>/<name>
+workspaces:
+  dir: .work/workspaces            # each managed workspace at <dir>/<name>
 ```
 
 | Field | Type | Default | Holds | Blocks it produces |
 | --- | --- | --- | --- | --- |
-| `state.dir` | path | `.work` | in the primary checkout: `lifecycle.jsonl` and the locks shared by every worktree; in each checkout: `session.json`, `verified.json` (the [receipt](verify.md) of a passing `the-cook verify`), `hook-checks.json`, and in a checkout a worker runs in, the record that `bootstrap` ran, `last-worker-output` and `last-attempt.patch` | `.gitignore` `state` (`/.work/`); named in the `AGENTS.md` `layout` block |
-| `worktrees.dir` | path | `.work/worktrees` | each managed worktree, at `<dir>/<name>` | `AGENTS.md` `worktrees` (where worktrees are created, their `work/<name>` branch, that they start from committed code); `.gitignore` `worktrees` (`/.work/worktrees/`) |
+| `state.dir` | path | `.work` | in the primary checkout: `lifecycle.jsonl` and the locks shared by every workspace; in each checkout: `session.json`, `verified.json` (the [receipt](verify.md) of a passing `the-cook verify`), `hook-checks.json`, and in a checkout a worker runs in, the record that `bootstrap` ran, `last-worker-output` and `last-attempt.patch` | `.gitignore` `state` (`/.work/`); named in the `AGENTS.md` `layout` block |
+| `workspaces.dir` | path | `.work/workspaces` | each managed workspace, at `<dir>/<name>` | `AGENTS.md` `workspaces` (where workspaces are created, their `work/<name>` branch, that they start from committed code); `.gitignore` `workspaces` (`/.work/workspaces/`) |
 
 Rules for the paths:
 
@@ -333,11 +333,11 @@ Patterns for the Go lanes are package paths:
 - Do use the repository's own task runner in commands when it has one (`npm run build`, `make test`), so people and
   agents run the same thing.
 - Do keep the state paths out of what your linters, test runners and compilers scan (exclude `.work/**`, or the
-  `state.dir` you chose): worktrees nested there hold full copies of the source.
-- Do choose the state paths before work starts: moving one later leaves existing worktrees, sessions and receipts under
+  `state.dir` you chose): workspaces nested there hold full copies of the source.
+- Do choose the state paths before work starts: moving one later leaves existing workspaces, sessions and receipts under
   the old path.
 - Don't put secrets or machine-specific paths in commands; the profile is committed and runs on every machine.
-- Don't use `bootstrap` for slow, optional setup; every new worktree runs it, and so does every checkout a worker runs
+- Don't use `bootstrap` for slow, optional setup; every new workspace runs it, and so does every checkout a worker runs
   in.
 
 ## Troubleshooting

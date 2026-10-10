@@ -25,8 +25,8 @@ output is detected.
 - JSON allows no comments, so ownership of a key inside a JSON file cannot be marked in the file itself.
 - A team that stops using the tool wants one of two outcomes: the repository as it was before adoption, or the setup the
   tool produced, kept and maintained by hand.
-- Clone-local state, the ignored files one clone keeps for its own work such as worktrees and local task lists, can hold
-  uncommitted work, and cleanup acts only on what the tool recorded creating ([0012](0012-write-boundary.md)).
+- Clone-local state, the ignored files one clone keeps for its own work such as workspaces and local task lists, can
+  hold uncommitted work, and cleanup acts only on what the tool recorded creating ([0012](0012-write-boundary.md)).
 
 ## Decision
 

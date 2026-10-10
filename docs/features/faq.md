@@ -99,7 +99,7 @@ Yes, with any that runs a command. The binary contains code for no external prog
 as data: a recipe's entries, templates and renders, a declared command or a lifecycle action
 ([ADR 0022](../adrs/0022-tool-integration.md)). A loop runner names `./cook worker <agent>` as its agent command. A
 tracker is updated by lifecycle actions on `start`, `completed` and `blocked` that read `COOK_TASK` and
-`COOK_ACTOR` in a worktree created with `--task`. Two builtin recipes write those entries for you,
+`COOK_ACTOR` in a workspace created with `--task`. Two builtin recipes write those entries for you,
 `./cook recipe apply ralph-tui` and `./cook recipe apply beads` ([recipes](recipes.md)). For any other tool,
 declare the action yourself, for example a `completed` action that runs `gh issue close "$COOK_TASK"`, or write a
 recipe that holds it.
@@ -162,7 +162,7 @@ and left.
 ### Does anything keep working after an eject?
 
 Yes. Agents keep their permissions and `raw` hooks from the native files, and the convention blocks stay in `AGENTS.md`
-and `.gitignore` as plain text, so people and agents still find worktrees and state where they were. The tool blocks,
+and `.gitignore` as plain text, so people and agents still find workspaces and state where they were. The tool blocks,
 which describe how to use `the-cook`, are removed, so nothing left names a command that is gone. What stops is
 everything `the-cook` runs: the wrapper, verification receipts, lifecycle events, `the-cook worker` and its contract,
 injected standing context and the hooks that called `the-cook`. Templates a recipe wrote stay as they are, so a
@@ -241,7 +241,7 @@ onto new commits ([verify](verify.md#freshness)).
 
 ### Are tasks the same as GitHub issues?
 
-A task is whatever the team's tracker holds, named by the free-form id given to `the-cook worktree create --task`: a
+A task is whatever the team's tracker holds, named by the free-form id given to `the-cook workspace create --task`: a
 bead, a story in a JSON list, or an issue. The binary never writes GitHub issues or projects. A repository that wants an
 issue closed when its task completes declares an action that does it ([tasks](tasks.md)).
 
@@ -249,7 +249,7 @@ issue closed when its task completes declares an action that does it ([tasks](ta
 
 No. Beads keeps its tasks in a `.beads/` database in the clone, and `the-cook` has no code for it: it never initialises,
 configures or reads a Beads database. The `beads` recipe adds only lifecycle actions that run `bd update`, `bd close`
-and `bd comments add` on the task a worktree is bound to ([compatibility](compatibility.md#beads)).
+and `bd comments add` on the task a workspace is bound to ([compatibility](compatibility.md#beads)).
 
 ## Lifecycle and delivery
 
@@ -277,7 +277,7 @@ like code before moving it to `allow` ([safety](safety.md)).
 No. The binary refuses `the-cook lifecycle run` while `COOK_WORKER=1` is set, whatever spelling the agent uses, and
 the binary also renders `[the-cook, lifecycle]` into every worker's denies, for each spelling `the-cook` renders. When
 the checkout is bound to a task, `the-cook worker` fires `completed` and then `deliver`, with scope `task`, in its own
-process, after the agent has exited and the replayed checks have passed. In a worktree not bound to a task, such as a
+process, after the agent has exited and the replayed checks have passed. In a workspace not bound to a task, such as a
 loop runner's, it fires no event.
 
 ## Ralph
@@ -298,13 +298,13 @@ commit, before it exits 0 and releases a loop runner's completion signal.
 
 ### Does `the-cook` open the pull request after a run?
 
-The binary has no logic for pull requests or any hosting platform. In a loop runner's worktree, which is not bound to
-a task, `the-cook worker` fires no event, and the run ends with its verified commits on the worktree's branch. Whoever
+The binary has no logic for pull requests or any hosting platform. In a loop runner's workspace, which is not bound to
+a task, `the-cook worker` fires no event, and the run ends with its verified commits on the workspace's branch. Whoever
 drives the run fires its events. Most runs need judgement first (which task commits go together, how to word them), so
 a person or a coordinating agent arranges the commits with a skill, then runs
 `./cook lifecycle run completed --scope run` and `./cook lifecycle run deliver --scope run`; the `deliver`
 actions do the rest, for example `git push` and `gh pr create` declared in `.cook/hooks.yaml`
-([ralph](ralph.md#delivery)). In a worktree created with `--task`, `the-cook worker` fires `completed` and, when the
+([ralph](ralph.md#delivery)). In a workspace created with `--task`, `the-cook worker` fires `completed` and, when the
 work is concluded, `deliver` itself, both with scope `task`.
 
 ### I run ralph-tui directly with my own config. Does `the-cook` interfere?

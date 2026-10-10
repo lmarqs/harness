@@ -38,7 +38,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 | The edited file formatted or linted right after every agent edit | a `post_edit` entry |
 | The stack's usual format-on-edit or lint-on-edit hook | `./cook recipe apply <name>` with the stack's recipe, which adds it as a `post_edit` entry ([recipes](recipes.md#stack-recipes)) |
 | A repository check run when certain files are edited | `validators` |
-| A session in a [managed worktree](worktrees.md) to know its task | `session_start.context: true` |
+| A session in a [managed workspace](workspaces.md) to know its task | `session_start.context: true` |
 | A message when an agent waits for you: a permission prompt, a question, idle input | an `attention` action |
 | A message when an agent finishes a turn | a `turn_end` action |
 | A skill or directive in the agent's context without invoking it | a `context` entry in the profile ([context](context.md)) |
@@ -83,7 +83,7 @@ recipe's root operation finds. With the git recipe it is:
 
 `<event>` is the neutral event the entry is for: `session-start`, `post-tool-use`, `prompt-submit`, `attention` or
 `turn-end`. The command runs the wrapper committed in the checkout the agent works in, the primary checkout or a
-worktree, so the hook runs the version that checkout pins. It never depends on `the-cook` being on the agent's
+workspace, so the hook runs the version that checkout pins. It never depends on `the-cook` being on the agent's
 `PATH`.
 
 ### The missing-binary guard
@@ -135,7 +135,7 @@ edits and which are reads, and which native events are `attention`, `turn_end` a
 | read and edited files | the tool input's file path, made relative to the checkout; for a patch tool that names no single file, the checkout's uncommitted changes against its head commit, as the version-control recipe lists them |
 | prompt | the person's message, on prompt submission |
 | message | the agent's own notification text, on `attention` and `turn_end` |
-| checkout | the payload's working directory, resolved to the primary checkout or the managed worktree it is in |
+| checkout | the payload's working directory, resolved to the primary checkout or the managed workspace it is in |
 
 Files outside the checkout are ignored.
 
@@ -143,7 +143,7 @@ Files outside the checkout are ignored.
 
 | Setting | Output, as additional context for the agent |
 | --- | --- |
-| `context: true` | In a [managed worktree](worktrees.md), one line: the task id given with `--task`, when there is one, and the command to verify. Outside managed worktrees, nothing |
+| `context: true` | In a [managed workspace](workspaces.md), one line: the task id given with `--task`, when there is one, and the command to verify. Outside managed workspaces, nothing |
 | `context.always` in the profile | The `always` entries for the session's role, each headed by one line naming it ([context](context.md)) |
 
 Agent sessions never receive an update notice: moving the pin is a reviewed supply-chain decision, so the notice goes
@@ -187,7 +187,7 @@ attention:        # the agent is waiting for a person: a permission prompt, a qu
       json: { text: "$COOK_AGENT needs you in $COOK_REPO ($COOK_BRANCH): $COOK_MESSAGE" }
 turn_end:         # the agent finished a turn
   - name: done
-    run: notify-send "agent finished in $COOK_WORKTREE"
+    run: notify-send "agent finished in $COOK_WORKSPACE"
 ```
 
 | Event | claude recipe (Claude Code) | codex recipe (Codex) |
@@ -203,7 +203,7 @@ Values reach the actions as environment variables, with the same rules as [lifec
 | `COOK_AGENT` | the agent's name, such as `claude` or `codex` |
 | `COOK_MESSAGE` | the agent's own notification text, when it sends one. Untrusted: the agent writes it, and its input reaches it |
 | `COOK_REPO` | absolute path of the primary checkout |
-| `COOK_WORKTREE` | absolute path of the checkout the agent works in |
+| `COOK_WORKSPACE` | absolute path of the checkout the agent works in |
 | `COOK_BRANCH` | the checkout's branch |
 
 - Actions are of kind `run` or `http` ([action kinds](lifecycle.md#action-kinds)); an `agent` action here is an
@@ -211,7 +211,7 @@ Values reach the actions as environment variables, with the same rules as [lifec
 - `the-cook hook` exits 0 on these events whatever the actions return, so a failed notification never keeps an agent
   working or interrupts it. A failure is printed on stderr.
 - They do nothing in a worker's session: `the-cook worker` and `agent` actions set `COOK_WORKER=1` for the agent
-  they start. An unattended run reports through [lifecycle events](lifecycle.md#trigger-points) instead: in a worktree
+  they start. An unattended run reports through [lifecycle events](lifecycle.md#trigger-points) instead: in a workspace
   bound to a task, `the-cook worker` fires `completed` after a verified attempt, and whatever drives the run fires
   `blocked` and the events of scope `run`.
 - Like every agent hook, they do nothing on a machine where the pinned release is not cached
@@ -276,7 +276,7 @@ lifecycle actions like code; see [safety](safety.md).
 | `validators` | `{ from: verify.validators }` or a list | none | `from: verify.validators` reuses the profile's validators; a list declares hook-only validators |
 | `validators[].when` | list of globs | required | Run when an edited file matches |
 | `validators[].run` | command | required | The check |
-| `session_start.context` | boolean | `true` | Add the managed-worktree context line |
+| `session_start.context` | boolean | `true` | Add the managed-workspace context line |
 | `raw` | map of event name to list | `{}` | Hooks `the-cook` does not model, rendered as written |
 | `raw.<Event>[].matcher` | string | none | The agent's matcher for the event (for example a tool-name pattern) |
 | `raw.<Event>[].run` | command | required | The hook command |
@@ -347,7 +347,7 @@ pinned release is cached.
 schema: 1
 turn_end:
   - name: done
-    run: notify-send --app-name=agent "Turn finished" "$COOK_AGENT in $COOK_WORKTREE"
+    run: notify-send --app-name=agent "Turn finished" "$COOK_AGENT in $COOK_WORKSPACE"
 ```
 
 ### A Terraform repository

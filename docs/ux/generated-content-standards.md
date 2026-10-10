@@ -27,7 +27,7 @@ These rules apply to anything `the-cook` writes into a repository.
 | Managed block inside a human file | the [block ids](#block-ids) in `AGENTS.md`, `README.md`, `CLAUDE.md` and `.gitignore` | opening and closing markers, plus the manifest |
 | Owned keys inside a native file | `permissions.{allow,ask,deny}`, `the-cook hook` entries (agent hooks, notification and context hooks) and rendered raw hook entries in `.claude/settings.json`; the equivalent keys and entries in `.codex/config.toml` (its `notify` key when `the-cook` renders it) and `.codex/hooks.json` | the manifest |
 | Link | `.claude/skills/the-cook -> ../../.agents/skills/the-cook` | the manifest |
-| State | the paths the profile sets (`state.dir`, `worktrees.dir`; under `.work/` by default), including the lifecycle log `lifecycle.jsonl` in `state.dir` | gitignored by managed blocks; never committed, never listed as content, never inside `.cook/` or `.agents/` |
+| State | the paths the profile sets (`state.dir`, `workspaces.dir`; under `.work/` by default), including the lifecycle log `lifecycle.jsonl` in `state.dir` | gitignored by managed blocks; never committed, never listed as content, never inside `.cook/` or `.agents/` |
 
 The manifest (`.cook/manifest.json`) is the record of ownership. Content not listed in it does not belong to `the-cook`,
 whatever it looks like. Why: a header or a marker can be copied into a file `the-cook` never wrote, and only the record
@@ -91,15 +91,15 @@ The pin `.cook/wrapper.yaml`, which no source renders, carries the operation tha
 A block opens with `cook:<id>` and closes with `/cook:<id>`, in the comment syntax of the file:
 
 ```markdown
-<!-- cook:worktrees -->
-Worktrees in this project are created in `.work/worktrees/<name>`, on branch `work/<name>`, from committed code.
-<!-- /cook:worktrees -->
+<!-- cook:workspaces -->
+Workspaces in this project are created in `.work/workspaces/<name>`, on branch `work/<name>`, from committed code.
+<!-- /cook:workspaces -->
 ```
 
 ```gitignore
-# cook:worktrees
-/.work/worktrees/
-# /cook:worktrees
+# cook:workspaces
+/.work/workspaces/
+# /cook:workspaces
 ```
 
 - Markdown uses HTML comments (`<!-- cook:<id> -->` … `<!-- /cook:<id> -->`); `.gitignore`, YAML, TOML and
@@ -120,7 +120,7 @@ Worktrees in this project are created in `.work/worktrees/<name>`, on branch `wo
   where nobody working in the repository reads it ([ADR 0013](../adrs/0013-organization-content.md)).
 - A `.gitignore` block omits any path the repository tracks, so ignoring never hides a committed file.
 - Each module writes its own `.gitignore` entries, even when another module's entry already covers them (for example
-  `/.work/` and `/.work/worktrees/`). Why: removing one module must never un-ignore another module's paths.
+  `/.work/` and `/.work/workspaces/`). Why: removing one module must never un-ignore another module's paths.
 
 ### Block classes
 
@@ -154,9 +154,9 @@ length is the repository's own choice of directives.
 Block ids are per module, per recipe or per convention. A module or a recipe owns its blocks: turning the module off,
 deleting the recipe from `recipes:` and rendering, or removing the module with `the-cook remove --module <name>`,
 removes them, because a block that states a convention nobody follows any more is wrong. These blocks belong to every
-adopted repository, whatever the modules: `commands`, `layout`, `worktrees`, `lifecycle` and `policy` in `AGENTS.md`;
-`commands` in `README.md` when it exists; `state` and `worktrees` in `.gitignore`, which the git recipe renders. Why:
-worktrees and lifecycle events exist in every adopted repository, so their conventions and conditions are stated in
+adopted repository, whatever the modules: `commands`, `layout`, `workspaces`, `lifecycle` and `policy` in `AGENTS.md`;
+`commands` in `README.md` when it exists; `state` and `workspaces` in `.gitignore`, which the git recipe renders. Why:
+workspaces and lifecycle events exist in every adopted repository, so their conventions and conditions are stated in
 every one.
 
 | File | Block id | Class | Owner | States |
@@ -165,14 +165,14 @@ every one.
 | `AGENTS.md` | `layout` | tool | the binary | what `.cook/`, `.agents/` and the state directories hold |
 | `AGENTS.md` | `verify` | tool | the binary | the repository's checks: lint, build, the test lanes and when each is required |
 | `AGENTS.md` | `lifecycle` | tool | the binary | the conditions work meets before it leaves the clone, and each event's actions in order |
-| `AGENTS.md` | `worktrees` | convention | the binary | where managed worktrees are created, on which branch, from which base |
+| `AGENTS.md` | `workspaces` | convention | the binary | where managed workspaces are created, on which branch, from which base |
 | `AGENTS.md` | `policy` | convention | the binary | the effective permissions by decision, with each floor rule marked with the recipe it comes from (`(*floor rule of the git recipe*)`) and the entries only Claude enforces |
 | `AGENTS.md` | `memory` | convention | the binary | the index of `.agents/memory/` |
 | `AGENTS.md` | `context` | convention | the binary | the standing directives declared `static`, inline or as pointer lines |
 | `README.md` | `commands` | tool | the binary | how to run things, as in `AGENTS.md` |
 | `CLAUDE.md` | `import` | convention | the claude recipe, unless the file already imports `@AGENTS.md` | one line: `@AGENTS.md` |
 | `.gitignore` | `state` | convention | the git recipe | `/<state.dir>/` |
-| `.gitignore` | `worktrees` | convention | the git recipe | `/<worktrees.dir>/` |
+| `.gitignore` | `workspaces` | convention | the git recipe | `/<workspaces.dir>/` |
 | `.gitignore` | `ralph-tui` | convention | the ralph-tui recipe | `/.ralph-tui/*` and `!/.ralph-tui/config.toml`: ralph-tui's session files, not its configuration |
 
 ### Conventions in blocks
@@ -180,7 +180,7 @@ every one.
 Every convention a module establishes is written where people and other tools read it, so it remains true without
 `the-cook` ([principles.md](principles.md#8-conventions-outlive-the-tool)):
 
-- In `AGENTS.md`, as a convention block of plain-language statements: where worktrees are created, what is permitted,
+- In `AGENTS.md`, as a convention block of plain-language statements: where workspaces are created, what is permitted,
   which directives always apply.
 - For each path, in a managed block of `.gitignore`, which the git recipe renders.
 - The text names the configured value of each path, never a default the profile overrode, because a reader acts on
@@ -303,7 +303,7 @@ without `the-cook`:
 - Permission entries and hooks that adoption imported from project-scope native files are written back as plain
   native settings, so the agents keep behaving as before. Entries imported from the `local` or `user` scope are not
   written back, because their source files were never changed and still hold them.
-- State directories are left in place and listed in the output, for a person to delete, because worktrees can hold
+- State directories are left in place and listed in the output, for a person to delete, because workspaces can hold
   uncommitted work. Their `.gitignore` blocks are gone, so they show as untracked until deleted.
 
 ### Eject: `the-cook remove --eject`
