@@ -12,24 +12,24 @@ reached through an interface the rules declare.
 
 ## Context
 
-- The binary's rules are about ownership, rendering, events, guards, attempts, proof and removal
-  ([0007](0007-ownership.md), [0011](0011-safety-invariants.md), [0015](0015-development-lifecycle.md)). None of
+- The binary's rules are the development lifecycle's ([0015](0015-development-lifecycle.md)): ownership, rendering,
+  events, guards, attempts, proof and removal ([0007](0007-ownership.md), [0011](0011-safety-invariants.md)). None of
   them is about any program in particular.
 - What the rules need from outside is small and regular. From version control: the base revision, a file at a revision,
   whether the tree is clean, whether a path is tracked, what changed since a revision, the common ancestor of two
   revisions, whether a branch's changes already reached another, a reset, a commit, a branch, an update from the remote,
-  a workspace. From a harness: the files it owns and their content, the arguments that start it unattended, the
-  arguments that would bypass its checks, and the fields of its hook payload. From any other program: run this and tell
-  me the exit status.
+  a workspace. From a worker: how to launch it and, where it has them, the files it owns and their content, the
+  arguments that start it unattended, the arguments that would bypass its checks, and the fields of its hook payload.
+  From any other program: run this and tell me the exit status.
 - A program's answers arrive as a string, lines, bytes or an exit status (Context of
   [0022](0022-tool-integration.md)). Writing in a program's format and reading structured output can be described as
   data; parsing a program's free text in general cannot.
 - Ports-and-adapters is the established name for this shape: the core declares the interfaces it needs, the
   connections implement them, and the entry point wires the two. Its known payoffs are technology independence,
   testing with stand-ins and reuse of the core by several entry points.
-- Every recipe is data the binary interprets, never code it loads ([0022](0022-tool-integration.md),
-  [0006](0006-repository-contract.md)).
-- The binary ships no recipe, and a repository has the recipes its data pins and nothing else
+- Every ingredient and every recipe is data the binary interprets, never code it loads
+  ([0022](0022-tool-integration.md), [0024](0024-ingredients-and-recipes.md), [0006](0006-repository-contract.md)).
+- The binary ships no ingredient, and a repository has the ingredients its data pins and nothing else
   ([0022](0022-tool-integration.md)). A newly adopted repository can have pinned none.
 - The repository's declared data sits in the tool's configuration directory at the repository root
   ([0014](0014-directory-layout.md)), so finding it takes only the files of a checkout. The base revision, a file's
@@ -39,29 +39,31 @@ reached through an interface the rules declare.
 
 1. The binary has three kinds of code. The core: the rules, the data models and the interfaces the rules need from
    outside. The connections: the implementations of those interfaces. The entry point: the command line, which reads
-   the repository's declared data, resolves the recipes, wires the connections and runs one use case.
+   the repository's declared data, resolves the ingredients, wires the connections and runs one use case.
 2. The core depends on nothing outside itself. The connections depend on the core; the entry point depends on both.
    No name of a program, a file format of a program, or an argument of a program appears in the core, and the core
    names what it needs by its role, never by one program's term for it: a separate working copy for a task is a
    workspace, whatever the version control calls it.
-3. The core declares two contracts that recipes fill with data: the version control contract, a fixed set of
-   operations, each with a declared output kind, and the harness contract, the renders, launch arguments, bypass
-   arguments, hook payload mapping, instructions location, skill location and native rule import for one agent
-   ([0009](0009-agent-support.md)). One connection interprets a recipe's operations for each contract.
+3. The core declares two contracts that ingredients fill with data. The version control contract is a fixed set of
+   operations, each with a declared output kind. The worker contract is the launch of one worker, its one required
+   part, and, where the worker has them, its unattended arguments, its bypass arguments, its renders, its hook payload
+   mapping, its instructions location, its skill location and its native rule import ([0009](0009-agent-support.md)).
+   One connection interprets an ingredient's operations for each contract.
 4. The core declares, besides those, only generic interfaces: the files of a checkout, running a command and reading
    its exit status and output, an HTTP request, the release source, the clock, and presenting a plan, a diff, a
    finding or a question to a person. Each has one connection and an in-memory stand-in for tests.
-5. The entry point resolves every recipe the use case needs from the verified cache before the use case runs, and
-   hands the use case the connections configured with them. Repository data chooses parameters and names recipes; it
-   never supplies a connection.
-6. The entry point is the only way in. People, hooks fired by a harness and loop runners all call the command line
+5. The entry point resolves every ingredient the use case needs, and the recipe a use case applies, from the verified
+   cache before the use case runs, and hands the use case the connections configured with them. Repository data
+   chooses parameters and names ingredients; it never supplies a connection.
+6. The entry point is the only way in. People, hooks fired by a worker and loop runners all call the command line
    ([0022](0022-tool-integration.md)); the committed wrapper is such a caller ([0017](0017-engine-version.md)).
 7. The core finds the repository root itself, through the files interface: the nearest directory upward that holds the
    tool's configuration directory with its data ([0014](0014-directory-layout.md)). Reading and validating the
-   repository's data needs no recipe; workspace, base and history operations go through the version control contract.
-8. A contract that no recipe in use fills makes every use case that needs it unavailable. An explicit call of such a use
-   case stops before it acts and reports a missing prerequisite that names the contract and the step that fills it; an
-   implicit call follows [0010](0010-dependence-on-the-binary.md). The binary never substitutes a fallback for an
+   repository's data needs no ingredient; workspace, base and history operations go through the version control
+   contract.
+8. A contract that no ingredient in use fills makes every use case that needs it unavailable. An explicit call of such a
+   use case stops before it acts and reports a missing prerequisite that names the contract and the step that fills it;
+   an implicit call follows [0010](0010-dependence-on-the-binary.md). The binary never substitutes a fallback for an
    unfilled contract. The health check reports each unfilled contract with the use cases it makes unavailable.
 
 ## Reasons
@@ -71,21 +73,24 @@ reached through an interface the rules declare.
   program's term in the core would also leak into commands, settings and pages, which would then read wrong for every
   other program that fills the same contract. The trade: every outside need passes through an interface, which is one
   more indirection to read.
-- **3.** The two things the rules rely on answers from, version control and the harness, get named contracts so that a
-  recipe can fill them with data (Context) and a test can fill them with a stand-in. A fixed operation set with
-  declared output kinds is what keeps a description possible: the binary never has to parse free text.
+- **3.** The two things the rules rely on answers from, version control and the worker, get named contracts so that
+  an ingredient can fill them with data (Context) and a test can fill them with a stand-in. A fixed operation set with
+  declared output kinds is what keeps a description possible: the binary never has to parse free text. The worker
+  contract requires only the launch because a worker can have no configuration of its own
+  ([0009](0009-agent-support.md)).
 - **4.** The remaining needs are not about any program. One generic connection for each keeps the list of connections
   short, and the in-memory stand-ins are what let every contract test for an invariant run without a disk, a
-  network, a version control program or an agent on the machine.
-- **5.** Resolving before the use case runs is what [0022](0022-tool-integration.md) requires of unattended attempts,
-  and doing it in the entry point keeps resolution, caching and verification out of the rules. Data that could supply
-  a connection would let the repository, and an agent working in it, choose how the repository is read
+  network, a version control program or a worker on the machine.
+- **5.** Resolving before the use case runs is what [0022](0022-tool-integration.md) requires of attempts, and doing
+  it in the entry point keeps resolution, caching and verification out of the rules. Data that could supply a
+  connection would let the repository, and a worker running in it, choose how the repository is read
   ([0011](0011-safety-invariants.md)).
-- **6.** One entry means one place where arguments are checked, recipes are resolved and exit statuses are mapped, and
-  it is what lets any program drive the binary without code on either side.
-- **7.** A repository can have pinned no recipe (Context), and it is exactly then that a person needs the binary to read
-  its data and say what is missing. If finding the root went through version control, every use case, validation and the
-  health check included, would need the version control recipe before it could report that the recipe is absent. The
+- **6.** One entry means one place where arguments are checked, ingredients are resolved and exit statuses are mapped,
+  and it is what lets any program drive the binary without code on either side.
+- **7.** A repository can have pinned no ingredient (Context), and it is exactly then that a person needs the binary
+  to read its data and say what is missing. If finding the root went through version control, every use case,
+  validation and the health check included, would need the version control ingredient before it could report that the
+  ingredient is absent. The
   data's location is a fact of the tool's own layout, not of any program (Context), so the core finds it with the files
   interface alone, and only the answers version control alone has go through its contract. The trade: the root is where
   the tool's configuration directory is, which a person can place below the top of a version control checkout, and the
@@ -95,47 +100,45 @@ reached through an interface the rules declare.
   every repository that uses another program. Running the use case without the contract, or reporting success, would
   report as done work that did not happen ([0010](0010-dependence-on-the-binary.md)). Stopping with the contract's name
   turns the gap into one step a person can take, and the health check shows the whole gap at once. The trade: a
-  repository that has pinned no recipe can do little beyond reading, validating and reporting until it pins one.
+  repository that has pinned no ingredient can do little beyond reading, validating and reporting until it pins one.
 
 ## Rejected alternatives
 
 ### Rules and program details written together
 
-Each command of the binary calls the version control program and the harness directly where it needs them. At its best,
-the code is shortest
-and every call is visible where it happens. It loses because a program's change reaches into the rules, the rules
-cannot be tested without the programs installed, and the binary's source names programs, which
+Each command of the binary calls the version control program and the worker directly where it needs them. At its best,
+the code is shortest and every call is visible where it happens. It loses because a program's change reaches into the
+rules, the rules cannot be tested without the programs installed, and the binary's source names programs, which
 [0022](0022-tool-integration.md) forbids.
 
 ### A connection per program, compiled in
 
-The core declares the contracts, and the binary ships one hand-written connection for the version control system, one
-for each harness. At
-its best, each connection is ordinary code with no description format to interpret. It loses to
-[0022](0022-tool-integration.md): a program's description then lives in code only the project can change, and the
-mechanism differs from every other program's.
+The core declares the contracts, and the binary ships one hand-written connection for the version control system and one
+for each common coding agent. At its best, each connection is ordinary code with no description format to interpret. It
+loses to [0022](0022-tool-integration.md): a program's description then lives in code only the project can change, and
+the mechanism differs from every other program's.
 
 ### Loadable connections
 
 Connections are loaded at run time from outside the binary. At its best, anyone adds a program without a release. It
 loses because loadable code is engine code outside the binary ([0006](0006-repository-contract.md)), needs a runtime
-or a recipe protocol ([0004](0004-runtime-dependencies.md)), and a data recipe already lets anyone add a program.
+or a loading protocol ([0004](0004-runtime-dependencies.md)), and a data ingredient already lets anyone add a program.
 
-### A fallback when no recipe fills a contract
+### A fallback when no ingredient fills a contract
 
-When a repository pins no version control recipe, the binary assumes the commands of the version control system nearly
-every repository uses, and when an agent has no harness recipe, it renders nothing for it and starts it with no
+When a repository pins no version control ingredient, the binary assumes the commands of the version control system
+nearly every repository uses, and when a worker has no ingredient, it renders nothing for it and starts it with no
 arguments. At its best, a repository works the moment it is adopted, before anyone picks a cookbook. It loses because
-the assumed commands are a recipe shipped under another name ([0022](0022-tool-integration.md)), unpinned and
-unreviewed, they fail in a different way in every repository that uses another program, and an agent started without its
-harness recipe runs without that recipe's floor ([0011](0011-safety-invariants.md)).
+the assumed commands are an ingredient shipped under another name ([0022](0022-tool-integration.md)), unpinned and
+unreviewed, they fail in a different way in every repository that uses another program, and a worker started without
+its ingredient runs without that ingredient's floor ([0011](0011-safety-invariants.md)).
 
 ### The repository root found through version control
 
 The version control contract answers where the repository's top is, and the core reads the data from there. At its best,
-the root is always the one version control reports, and the core has one fewer rule of its own. It loses because reading
-the data would then need the version control recipe, so a repository without one could not be told that it lacks it, and
-the data's location is the tool's own layout, which needs no program to find.
+the root is always the one version control reports, and the core has one fewer rule of its own. It loses because
+reading the data would then need the version control ingredient, so a repository without one could not be told that it
+lacks it, and the data's location is the tool's own layout, which needs no program to find.
 
 ## Consequences
 
@@ -143,8 +146,8 @@ Costs:
 
 - Every outside need is an interface plus a connection plus a stand-in, which is more code than a direct call.
 - A need the contracts do not cover, such as an operation a new version control system lacks, is a change to the
-  contract and therefore to the recipe schema.
-- Until a repository pins a recipe for a contract, every use case that needs that contract is unavailable in it.
+  contract and therefore to the ingredient schema.
+- Until a repository pins an ingredient for a contract, every use case that needs that contract is unavailable in it.
 - A configuration directory placed below the top of a version control checkout makes that directory the repository's
   root for the tool.
 
@@ -159,9 +162,9 @@ Must be maintained:
 - A CI check fails when a core package imports a connection or the entry point, or when the core's source contains the
   name of an external program.
 - Every contract test for an invariant in [0011](0011-safety-invariants.md) runs with the in-memory stand-ins only,
-  in a job with no version control program and no agent installed.
+  in a job with no version control program and no worker installed.
 - Each connection and its stand-in pass the same behavioural suite.
-- In a fixture repository that pins no recipe, with no version control program installed, validation and the health
+- In a fixture repository that pins no ingredient, with no version control program installed, validation and the health
   check run from any directory below the root, and the health check names each unfilled contract with the use cases it
   makes unavailable.
 - In the same fixture, every use case that needs a contract stops as a missing prerequisite that names the contract,

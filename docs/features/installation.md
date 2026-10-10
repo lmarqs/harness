@@ -17,9 +17,9 @@ An adopted repository carries its own entry point: [`cook`](wrapper.md), a commi
 installed beyond a POSIX `sh`, `curl` or `wget`, and `sha256sum` or `shasum`, and the last two only for the first run of
 a pinned release. `the-cook` itself is a single binary that needs only the operating system at runtime
 ([ADR 0004](../adrs/0004-runtime-dependencies.md)). Every program it starts is named by one of the repository's
-[recipes](recipes.md), a declared command or an action, and is that repository's requirement: the version control
-program its version-control recipe runs, and the agents the profile declares. A global install is optional: it puts
-`the-cook` on your PATH and, inside a pinned repository, defers to the pinned release.
+[ingredients](ingredients.md), a declared command or an action, and is that repository's requirement: the version
+control program its version-control ingredient runs, and the workers the profile declares. A global install is optional:
+it puts `the-cook` on your PATH and, inside a pinned repository, defers to the pinned release.
 
 Examples on this page run commands as `./cook <command>`; with a global install, `the-cook <command>` is
 equivalent.
@@ -56,11 +56,11 @@ release.
 | `sha256sum` or `shasum` | the first run of a pinned release on a machine |
 | HTTPS access to the release source | the first run of a pinned release on a machine |
 
-The wrapper needs nothing else. The programs the repository's recipes name are
-needed when a command uses them, and `./cook doctor` reports each one that is missing.
+The wrapper needs nothing else. The programs the repository's ingredients name are needed when a command uses them,
+and `./cook doctor` reports each one that is missing.
 
-Run `./cook version` once after cloning: agent hooks never download, so they skip with one line until the pinned
-release is cached. An agent session on such a machine also gets one line in its session context, so the agent can
+Run `./cook version` once after cloning: worker hooks never download, so they skip with one line until the pinned
+release is cached. A worker session on such a machine also gets one line in its session context, so a coding agent can
 fetch it for you:
 
 ```text
@@ -132,9 +132,9 @@ git add -A && git commit -m "chore: upgrade the-cook"
 `wrapper` writes nothing until the running release has verified the target release's signed checksum file with its
 embedded release keys, downloaded the binary for this platform and matched it against that file. The new release then
 renders the repository: `cook`, `wrapper.yaml`, every file it renders differently, and a migration of the repository
-files when it reads a newer `schema`. The release carries no recipe: the [recipes](recipes.md#pinning) keep their own
-pins, and `./cook recipe pin` moves them. A step that fails leaves everything untouched. The pin and its effect are one
-diff ([upgrading](wrapper.md#upgrading)).
+files when it reads a newer `schema`. The release carries no ingredient or recipe: the [ingredients](ingredients.md)
+keep their own pins, and `./cook ingredient pin` or `./cook recipe apply` moves them. A step that fails leaves
+everything untouched. The pin and its effect are one diff ([upgrading](wrapper.md#upgrading)).
 
 Many repositories at once: `the-cook fleet wrapper --version <tag> --deliver`
 ([wrapper](wrapper.md#many-repositories)).
@@ -172,8 +172,8 @@ pinned and the newer version and the exact command that moves the pin:
 the-cook v0.10.0 is available (this repository pins v0.9.0): run ./cook wrapper --version v0.10.0
 ```
 
-Agent sessions never get the notice, and hooks never check: moving the pin is a supply-chain decision a person
-reviews, not a step an agent takes on its own.
+Worker sessions never get the notice, and hooks never check: moving the pin is a supply-chain decision a person
+reviews, not a step a worker takes on its own.
 
 `./cook version --check-update` checks immediately, ignoring the daily cache.
 
@@ -201,17 +201,17 @@ A clone of an adopted repository works before its pinned release is cached on a 
 
 | Entry point | Before the pinned release is cached |
 | --- | --- |
-| `./cook <command>` (explicit: a person or an agent calls it) | downloads, verifies and runs; without network it exits 1, and without a downloader or a sha256 tool, or under a [pending pin](wrapper.md#a-pending-pin), it exits 3; either way it runs nothing |
-| Agent hooks (implicit: the agent calls them) | print `the-cook: v0.9.0 not downloaded, hook skipped; run: ./cook version` on stderr and exit 0; the session-start hook also adds the `the-cook v0.9.0 is not cached on this machine` line ([the wrapper](#the-wrapper-default)) to the agent's session context |
+| `./cook <command>` (explicit: a person or a worker calls it) | downloads, verifies and runs; without network it exits 1, and without a downloader or a sha256 tool, or under a [pending pin](wrapper.md#a-pending-pin), it exits 3; either way it runs nothing |
+| Worker hooks (implicit: the worker calls them) | print `the-cook: v0.9.0 not downloaded, hook skipped; run: ./cook version` on stderr and exit 0; the session-start hook also adds the `the-cook v0.9.0 is not cached on this machine` line ([the wrapper](#the-wrapper-default)) to the worker's session context |
 | `raw` hooks | keep running; they are rendered as their own commands |
 | Lifecycle events | do not fire: they fire from `the-cook` commands |
 | Rendered permissions and instructions | apply as committed |
 
 An explicit entry point never succeeds without running, so no verification command claims work that did not happen.
 
-Each [recipe](recipes.md#fetching) the profile pins is a second download, and only the commands that pin, fetch or
-apply recipes make it. Until it is cached on the machine, `render` and worker attempts exit 3 and hooks skip, each
-naming `./cook recipe fetch`; nothing fetches it implicitly.
+Each [ingredient](ingredients.md#fetching) the profile pins is a second download, and only the commands that pin,
+apply or fetch make it. Until it is cached on the machine, `render` and attempts exit 3 and hooks skip, each naming
+`./cook fetch`; nothing fetches it implicitly.
 
 ## Uninstall
 
@@ -236,7 +236,7 @@ rm -rf "${COOK_HOME:-${XDG_CACHE_HOME:-$HOME/.cache}/the-cook}" ~/.config/the-co
 
 | Path | Holds |
 | --- | --- |
-| `$COOK_HOME` (default `$XDG_CACHE_HOME/the-cook`, else `~/.cache/the-cook`) | `versions/<version>/the-cook` for each downloaded release, each recipe under its hash, the update-check result, the signature-check result of `doctor` |
+| `$COOK_HOME` (default `$XDG_CACHE_HOME/the-cook`, else `~/.cache/the-cook`) | `versions/<version>/the-cook` for each downloaded release, each ingredient and recipe at `cookbook/<sha256>.tar.gz`, the update-check result, the signature-check result of `doctor` |
 | `~/.config/the-cook/fleet.yaml` | your default [fleet](fleet.md) file |
 
 ## Troubleshooting
@@ -247,7 +247,7 @@ rm -rf "${COOK_HOME:-${XDG_CACHE_HOME:-$HOME/.cache}/the-cook}" ~/.config/the-co
 | The first run exits 1 naming `curl`, `wget`, `sha256sum` or `shasum` | No downloader or no checksum tool on PATH | Install one; see [wrapper](wrapper.md#troubleshooting) |
 | `the-cook: checksum mismatch`, exit 1 | The download is not the pinned binary | Do not bypass it; see [wrapper](wrapper.md#troubleshooting) |
 | `the-cook wrapper` or `scaffold` exits 1: the checksum file's signature does not verify | The release is not signed by a key the running binary trusts | Do not pin it; reinstall `the-cook` from the project's releases and report it ([safety](safety.md#the-pinned-binary)) |
-| Agent session shows `the-cook: v0.9.0 not downloaded, hook skipped; run: ./cook version` | Hooks never download, and the pinned release is not cached on this machine | Run `./cook version` once |
+| Worker session shows `the-cook: v0.9.0 not downloaded, hook skipped; run: ./cook version` | Hooks never download, and the pinned release is not cached on this machine | Run `./cook version` once |
 | `the-cook: command not found` after `mise use -g` | mise shims or activation are not on PATH in this shell | Activate mise in your shell profile (`mise activate`), or add mise's shims directory to PATH; inside an adopted repository, `./cook` needs neither |
 | A command refuses because the repository schema is newer than the binary supports | The pin is bypassed: `COOK_BINARY` names an older release, or a global binary is too old to defer to the pin | Unset `COOK_BINARY`, or run `./cook <command>`; update the global install |
-| The update notice never appears | `COOK_NO_UPDATE_CHECK=1` is set, the machine is offline, or the release source is unreachable; agent sessions never show it | Run `./cook version --check-update` |
+| The update notice never appears | `COOK_NO_UPDATE_CHECK=1` is set, the machine is offline, or the release source is unreachable; worker sessions never show it | Run `./cook version --check-update` |

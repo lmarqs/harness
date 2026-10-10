@@ -2,16 +2,17 @@
 
 ## Objective
 
-**Problem.** Setting up agents in a repository mixes work that has one right answer with work that needs judgement. Done
-by hand or by an agent, the mechanical part comes out different every time, so repositories diverge and nothing can
-check them. Done by a program, the judgement part breaks on the first input nobody foresaw.
+**Problem.** Setting up how a repository's changes are made, for people and for the coding agents that work in it, mixes
+work that has one right answer with work that needs judgement. Done by hand or by a coding agent, the mechanical part
+comes out different every time, so repositories diverge and nothing can check them. Done by a program, the judgement
+part breaks on the first input nobody foresaw.
 
 **Goal.** Mechanical setup work gives the same checkable result in every repository, and judgement stays with the people
-and agents who can exercise it.
+and coding agents who can exercise it.
 
 ## Context
 
-Giving a repository a consistent agent setup involves two kinds of work:
+Giving a repository a consistent setup for its coding agents involves two kinds of work:
 
 - work with one correct output for given inputs: rendering configuration from data, detecting drift, recording
   ownership, removing what was written, enforcing invariants;
@@ -22,24 +23,24 @@ Facts:
 
 - Propagation that nothing fixes produces different output for the same input. Example: acme copies one agent workflow
   by hand from `acme/api` into `acme/web` and `acme/infra`; each copy becomes its own dialect, and two of them start
-  unattended agents with permission checks turned off. An agent following a scaffolding skill has the same property,
-  because nothing fixes its output: run twice on one repository, it can write two different setups.
+  unattended agents with permission checks turned off. A coding agent following a scaffolding skill has the same
+  property, because nothing fixes its output: run twice on one repository, it can write two different setups.
 - Input shapes are unbounded. Example: at acme, `.claude/skills` is a directory of the team's own skills in `acme/api`,
   a symbolic link to a shared directory in `acme/web` and absent in `acme/infra`; `AGENTS.md` runs from a few lines to
   tens of kilobytes of hand-written prose; and some repositories hook events that no shared model covers.
 - A drift check compares a repository with a fresh render; it is meaningful only if the render is reproducible.
-- Agents working inside a repository change its setup correctly only when they know the rules, the reasons and which
-  files are generated.
+- Coding agents working inside a repository change its setup correctly only when they know the rules, the reasons and
+  which files are generated.
 
 ## Decision
 
 1. The binary performs only work whose output is fully determined by its inputs. The same input bytes produce the same
    output bytes on every machine, and a second run changes nothing.
-2. The binary never writes prose, memory, domain skills or policy choices. Work that needs judgement belongs to an agent
-   or a person, who edits the declarative sources ([0006](0006-repository-contract.md)); the binary renders and checks
-   the result.
-3. The binary embeds the documentation an agent needs (the rules, their reasons and the file contracts) and ships it
-   both as a skill written into the repository and as printable documentation.
+2. The binary never writes prose, memory, domain skills or policy choices. Work that needs judgement belongs to a person
+   or a coding agent, who edits the declarative sources ([0006](0006-repository-contract.md)); the binary renders and
+   checks the result.
+3. The binary embeds the documentation a coding agent needs (the rules, their reasons and the file contracts) and ships
+   it both as a skill written into the repository and as printable documentation.
 4. When the binary meets input it cannot map deterministically, it leaves the input untouched and lists it as
    unresolved in a machine-readable list. It never guesses.
 
@@ -52,41 +53,41 @@ Facts:
   silently rewrites a team's configuration. Prose, memory and policy choices are specific to a repository; generated
   prose is generic where a repository needs specifics. Because judgement lands in the declarative sources, the binary
   still renders and checks it, so judgement never bypasses the deterministic path.
-- **3.** An agent acts correctly only when the rules and their reasons are present in the repository it works in.
+- **3.** A coding agent acts correctly only when the rules and their reasons are present in the repository it works in.
   Embedding them in the binary keeps them in step with the release that enforces them, which is the release the
   repository pins ([0017](0017-engine-version.md)). The trade: the documentation becomes part of the product, and an
-  error in it misleads agents.
+  error in it misleads coding agents.
 - **4.** Listing instead of guessing turns the boundary into a hand-off: the binary does the mechanical part and hands
-  the remainder over as data that an agent or a script consumes. Leaving the input untouched preserves it for whoever
-  resolves it.
+  the remainder over as data that a coding agent or a script consumes. Leaving the input untouched preserves it for
+  whoever resolves it.
 
 ## Rejected alternatives
 
 ### Everything in the binary
 
-At its best, one command completes every adoption with no agent and no person. It loses because it needs heuristics
-over unbounded input shapes, a wrong guess silently rewrites a team's configuration, and generated prose is generic
-where a repository needs specific prose.
+At its best, one command completes every adoption with no coding agent and no person. It loses because it needs
+heuristics over unbounded input shapes, a wrong guess silently rewrites a team's configuration, and generated prose is
+generic where a repository needs specific prose.
 
-### Everything by agents, with no engine
+### Everything by coding agents, with no engine
 
-A skill describes the target setup and an agent ports it to each repository. At its best, there is no code to maintain
-and every repository gets a tailored result. It loses because output differs per run, nothing enforces the invariants
-and no drift check exists. Hand propagation has the same properties: it turns the acme workflow in Context into three
-dialects, two of which lose their safety settings.
+A skill describes the target setup and a coding agent ports it to each repository. At its best, there is no code to
+maintain and every repository gets a tailored result. It loses because output differs per run, nothing enforces the
+invariants and no drift check exists. Hand propagation has the same properties: it turns the acme workflow in Context
+into three dialects, two of which lose their safety settings.
 
 ## Consequences
 
 Costs:
 
-- Adopting a repository with hand-written configuration takes two steps: a deterministic pass, then an agent or a person
-  resolving the listed items.
-- When the embedded documentation disagrees with the binary, agents act on wrong rules.
+- Adopting a repository with hand-written configuration takes two steps: a deterministic pass, then a coding agent or a
+  person resolving the listed items.
+- When the embedded documentation disagrees with the binary, coding agents act on wrong rules.
 
 Must be maintained:
 
 - The boundary itself: each new capability is classified as deterministic or judgement before it is built.
-- The format of the unresolved-items list, which agents and scripts consume.
+- The format of the unresolved-items list, which coding agents and scripts consume.
 
 ## Confirmation
 

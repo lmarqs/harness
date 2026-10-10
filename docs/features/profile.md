@@ -3,21 +3,24 @@
 ## Objective
 
 **Problem.** Every repository has facts only it knows: how to prepare a fresh checkout, how to lint a file and build,
-which tests show a change works, which agents the team uses. Agents and the developers directing them
-need those facts at every step. When the facts live in someone's memory, in prose an agent may misread, or in a copy of
-another repository's setup, each agent guesses, and the same step runs differently from one session to the next.
+which tests show a change works, which programs serve the stages of its lifecycle and which workers, such as coding
+agents, change its code. Workers and the developers directing them need those facts at every step. When the facts live
+in someone's memory, in prose a worker may misread, or in a copy of another repository's setup, each worker guesses,
+and the same step runs differently from one session to the next.
 
-**Goal.** Every fact a repository's agent workflow depends on is written once in that repository and reviewed like code,
-and every agent and tool working there uses the same answer.
+**Goal.** Every fact a repository's lifecycle depends on is written once in that repository and reviewed like code,
+and every worker and tool working there uses the same answer.
 
 ## Overview
 
-The profile tells `the-cook` what a repository is: which [recipes](recipes.md) describe the programs it uses, which
-modules it uses, how to bootstrap a checkout, how to lint and build, which verification lanes (named families of test
-commands) exist, which agents it uses and what an unattended [worker](worker.md) may write, and the standing context
-agents receive. It is seeded and then repository-owned. `scaffold` seeds it once, with the recipes of a cookbook tag
-whose detect rule matches and their entries. From then on people and agents edit it, `the-cook recipe pin` adds or
-moves a recipe's pin, `the-cook recipe apply` adds a pinned recipe's entries, and `the-cook render` reads it.
+The profile tells `the-cook` what a repository is and how its [lifecycle](lifecycle.md) runs: which
+[ingredients](ingredients.md) describe the programs it uses and which one fills version control, which
+[recipes](recipes.md) it applied, which modules it uses, how to bootstrap a checkout, how to lint and build, which
+verification lanes (named families of test commands) exist, which workers it declares, in which role, and what an
+[attempt](attempts.md) may write, and the standing context workers receive. It is seeded and then repository-owned.
+`scaffold` seeds it once, with the recipes of a cookbook tag it applies. From then on people and workers edit it,
+`the-cook recipe apply` adds a recipe's pins, stages and entries, `the-cook ingredient pin` adds or moves an
+ingredient's pin, and `the-cook render` reads it.
 
 Examples on this page run commands as `./cook <command>`, through the repository's [wrapper](wrapper.md); with a
 global install, `the-cook <command>` is equivalent.
@@ -26,18 +29,18 @@ global install, `the-cook <command>` is equivalent.
 
 | You want to | Edit |
 | --- | --- |
-| Use a program's recipe, move it to a newer version, or stop using it | `recipes` ([recipes](recipes.md)); `./cook recipe pin <name> --cookbook <source>@<version>` adds or moves a pin, then `./cook recipe apply <name>` adds its entries |
-| Use another version control system's recipe | `vcs`, after pinning the recipe |
+| Take up a way of working or a stack's starting entries | nothing by hand: `./cook recipe apply <name> --cookbook <source>@<version>` writes `ingredients`, `recipes`, `vcs`, `workers` and the entries ([recipes](recipes.md)) |
+| Use a program, move it to a newer version, or stop using it | `ingredients` ([ingredients](ingredients.md)); `./cook ingredient pin <name> --cookbook <source>@<version>` adds or moves a pin; deleting the pin stops it |
+| Use another version control system | `vcs`, after pinning its ingredient |
 | Turn a feature on or off | `modules` |
 | Change what a new workspace runs before use | `bootstrap` |
 | Change how a file is linted or the project is built | `commands` |
 | Add, rename or require a test lane | `verify.lanes` |
 | Run a repository check when certain files change | `verify.validators` |
-| Add an agent, make an agent a worker-only agent, give an agent another harness recipe, or let a worker write one more directory | `agents` |
+| Add a worker, run a worker only unattended, give a worker another ingredient, model or effort, or let it write one more directory | `workers` |
 | Move where state or managed workspaces live | `state.dir`, `workspaces.dir` |
-| Give agents a directive or a skill without anyone invoking it: always, on certain files, or on certain words | `context` |
+| Give workers a directive or a skill without anyone invoking it: always, on certain files, or on certain words | `context` |
 | Let the managed blocks in `AGENTS.md` take more or fewer lines | `blocks.agents_md_budget` |
-| Add the starting commands, lanes and post-edit hooks of a stack | nothing by hand: pin the stack's recipe and run `./cook recipe apply <name>` ([recipes](recipes.md)) |
 
 Run `./cook render` after every edit, and `./cook doctor` to check globs and commands.
 
@@ -60,33 +63,35 @@ Run `./cook render` after every edit, and `./cook doctor` to check globs and com
 | --- | --- | --- | --- |
 | `schema` | integer | required | File format version. `1` for this release line |
 | `name` | string | the repository directory name | Repository name, used in messages |
-| `recipes` | list | `[]` | The [recipes](#recipes) the repository uses, each pinned |
-| `vcs` | recipe name | none | The recipe that fills the version-control contract; see [`recipes`](#recipes). Absent: no recipe fills it |
+| `ingredients` | list | `[]` | The [ingredients](#ingredients) the repository uses, each pinned |
+| `recipes` | list | `[]` | The [recipes](#recipes) the repository applied, each with its pin |
+| `vcs` | ingredient name | none | The ingredient that fills the version-control contract; see [`ingredients`](#ingredients). Absent: no ingredient fills it |
 | `modules` | map | every module off | Which modules are on |
-| `bootstrap` | list of commands | `[]` | Run in order in a new workspace, and once in each checkout a [worker](worker.md#the-worker-contract) runs in |
+| `bootstrap` | list of commands | `[]` | Run in order in a new workspace, and once in each checkout an [attempt](attempts.md#the-attempt-contract) runs in |
 | `commands` | map | | Lint and build commands |
 | `verify` | map | | Verification paths, lanes and validators |
-| `agents` | map | | Agents rendered for this repository, their roles, their harness recipes, and what a worker may write |
+| `workers` | map | | The [workers](#workers) rendered for this repository, their ingredients and roles, and what an attempt may write |
 | `context` | map | | [Standing context](#context): directives and skills injected by declared triggers |
 | `blocks` | map | | Limits for the managed blocks `the-cook` writes |
 | `state` | map | | Where clone-local state lives; see [State paths](#state-paths) |
 | `workspaces` | map | | Where managed workspaces live; see [State paths](#state-paths) |
 
-### `recipes`
+### `ingredients`
 
-The [recipes](recipes.md) the repository uses: their renders and floor rules are rendered on every `the-cook render`,
-and their operations answer the binary's questions. Every entry is a [pin](recipes.md#pinning) with four fields,
-written by `the-cook recipe pin`:
+The [ingredients](ingredients.md) the repository uses: their renders and floor rules are rendered on every
+`the-cook render`, and their operations answer the binary's questions and start its workers. Every entry is a
+[pin](ingredients.md#pinning) with four fields, written by `the-cook recipe apply` for the ingredients a recipe lists
+and by `the-cook ingredient pin`:
 
 | Field | Type | Meaning |
 | --- | --- | --- |
-| `name` | string | The recipe's name; unique within the profile |
+| `name` | string | The ingredient's name; unique within `ingredients` |
 | `source` | string | The [cookbook](recipes.md#cookbooks): `github:<owner>/<repo>`, or an HTTPS base URL laid out like the [release source](wrapper.md#release-source) |
 | `version` | string | The cookbook tag, `<source>/download/<version>/<name>.tar.gz` |
-| `sha256` | string | The archive's sha256, 64 hexadecimal characters, from the tag's `checksums.txt`; checked on download and on every load |
+| `sha256` | string | The archive's sha256, 64 hexadecimal characters, from the tag's `checksums.txt` or the recipe that lists the ingredient; checked on download and on every load |
 
 ```yaml
-recipes:
+ingredients:
   - name: git
     source: github:acme/cookbook
     version: v1.2.0
@@ -98,17 +103,34 @@ recipes:
 vcs: git
 ```
 
-`vcs` names the recipe that fills the [version-control contract](recipes.md#the-version-control-contract), which
-`scaffold` writes when it pins one. It must be in `recipes`, and so must every agent's [harness recipe](#agents);
-otherwise the profile fails validation with exit 1, as do two entries with the same name. Deleting an entry from
-`recipes` and rendering removes that recipe's renders and its floor; its applied entries and templates stay
-([recipes](recipes.md#after-applying)).
+`vcs` names the ingredient that fills the [version-control contract](ingredients.md#the-version-control-contract),
+which a recipe's stages write when it is applied. It must be in `ingredients` and fill that contract, and every
+worker's [ingredient](#workers) must be in `ingredients` and fill the worker contract; otherwise the profile fails
+validation with exit 1, as do two entries with the same name. Deleting an entry from `ingredients` and rendering
+removes that ingredient's renders and its floor.
+
+### `recipes`
+
+The [recipes](recipes.md) the repository applied, each with the pin it was applied at: the same four fields as an
+entry of `ingredients`, written by `the-cook recipe apply` and `scaffold --cookbook`. `recipes` is a record, so a
+person can tell where the repository started from and apply a newer version later
+([applying again](recipes.md#applying-again)). Nothing rendered or run depends on it: deleting an entry changes
+nothing rendered, and the recipe's applied entries and templates stay ([recipes](recipes.md#after-applying)). Names
+are unique within `recipes`; an ingredient and a recipe may share a name.
+
+```yaml
+recipes:
+  - name: node
+    source: github:acme/cookbook
+    version: v1.2.0
+    sha256: a2bce70041251fb8f672f9f5819969951627fdd3868497a17b525ab90a0c01d8
+```
 
 ### `modules`
 
 | Field | Type | Effect when `true` |
 | --- | --- | --- |
-| `hooks` | boolean | [hooks](hooks.md) are rendered into agent files |
+| `hooks` | boolean | [hooks](hooks.md) are rendered into the workers' native files |
 | `verify` | boolean | [`the-cook verify`](verify.md), its `verify` block, and the receipt that `completed` with scope `task` requires ([tasks](tasks.md)) |
 | `memory` | boolean | [memory](memory.md) skeleton and `memory` block |
 
@@ -148,33 +170,38 @@ A validator:
 Lane names are free: `unit`, `e2e`, `validate`, `plan`, `glue`. They appear in the receipt, in `--lane` and `--skip`,
 and in the `commands` block. The rules that use them are on the [verify](verify.md#lane-rules) page.
 
-### `agents`
+### `workers`
 
-A map from agent name to its settings. Only declared agents are rendered. Each agent is served by a
-[harness recipe](recipes.md#the-harness-contract) the repository pins.
+A map from worker name to its declaration. A worker is a program that changes the repository for someone, such as a
+coding agent, a bot or a codemod; the [workers](workers.md) page covers them. Only declared workers are rendered. Each
+worker is served by an ingredient the repository pins that fills the
+[worker contract](ingredients.md#the-worker-contract). A recipe's stages declare the workers it uses when it is
+applied ([recipes](recipes.md#stages)).
 
 | Field | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `role` | `interactive` \| `worker` | | `interactive`: people use the agent in this repository; its native files carry the shared policy. `worker`: the agent runs here only as a worker, started by [`the-cook worker`](worker.md#the-worker-contract); its native files also carry `worker.deny`. See [agents](agents.md#roles) |
-| `recipe` | recipe name | the agent's name | The harness recipe that serves the agent; it must be in `recipes` and fill the harness contract. Example: `reviewer: { role: worker, recipe: acme-review }` |
-| `writable_roots` | list of paths | `[]` | Only for an agent whose harness recipe opens sandbox roots (`launch.sandbox_roots`). Directories such a worker may write besides its task checkout and the clone's state directory, relative to the root of the primary checkout. Example: a tracker's database directory in the clone, which the tracker's recipe may add as an entry. No other directory is writable for such a worker |
+| `ingredient` | ingredient name | the worker's name | The ingredient that serves the worker; it must be in `ingredients` and fill the worker contract. Example: `reviewer: { ingredient: claude, role: interactive }` |
+| `role` | `interactive` \| `unattended` | required | `interactive`: people use the worker in this repository; its native files carry the shared policy. `unattended`: the worker runs here only in attempts, started by [`the-cook attempt`](attempts.md#the-attempt-contract) or an `attempt` action; its native files also carry `unattended.deny`. See [workers](workers.md#roles) |
+| `writable_roots` | list of paths | `[]` | Only for a worker whose ingredient opens sandbox roots (`launch.sandbox_roots`). Directories its attempts may write besides the task checkout and the clone's state directory, relative to the root of the primary checkout. Example: a tracker's database directory in the clone. No other directory is writable in its attempts |
+| `model` | string | none | The model the binary starts the worker with, in attempts and `attempt` actions, passed as its ingredient's `launch.model` says; an action's `attempt.model` overrides it. A worker whose ingredient maps no model ignores it, and `doctor` notes it |
+| `effort` | string | none | The effort level, passed and overridden like `model`, through `launch.effort` and `attempt.effort` |
 
 ### `context`
 
-Standing context is guidance `the-cook` puts into agent sessions when a declared trigger fires, so nobody has to invoke
-a directive or a skill by name. The [context](context.md) page covers behaviour per agent, the hook events used, and
-more examples.
+Standing context is guidance `the-cook` puts into worker sessions when a declared trigger fires, so nobody has to
+invoke a directive or a skill by name. The [context](context.md) page covers behaviour per worker, the worker events
+used, and more examples.
 
 ```yaml
 context:
   always:                                   # every session start, and again after compaction
     - skill: coding-guidelines
-    - file: .agents/directives/worker-rules.md
-      for: [worker]
+    - file: .agents/directives/unattended.md
+      for: [unattended]
     - file: .agents/directives/house-rules.md
       static: true                          # written into AGENTS.md; holds without the binary
   when:
-    - paths: ["**/*.sql", "src/migration/**"]   # after the agent first reads or edits a matching file
+    - paths: ["**/*.sql", "src/migration/**"]   # after the worker first reads or edits a matching file
       skill: sql-quality-check
     - prompt: [timezone, DST, "time zone"]       # when the person's message contains one
       skill: timezone-handling
@@ -184,7 +211,7 @@ context:
 
 | Field | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `always` | list of entries | `[]` | Injected at every session start, and again each time the agent fires its session-start event, as some agents do after compacting their context |
+| `always` | list of entries | `[]` | Injected at every session start, and again each time the worker fires its session-start event, as some coding agents do after compacting their context |
 | `when` | list of triggered entries | `[]` | Each injected at most once per session, when its trigger first fires |
 | `budget` | integer | `120` | Most lines of always-on content per session and role, `static` entries included. `doctor` notes an overrun and lists each entry with its line count |
 
@@ -194,14 +221,14 @@ An entry:
 | --- | --- | --- | --- |
 | `skill` | skill name | | An installed skill, `.agents/skills/<name>/SKILL.md`, without its front matter. Exactly one of `skill` and `file` |
 | `file` | path | | A file in the repository, relative to its root, outside the state directories |
-| `for` | list of `interactive`, `worker` | both | The agent [roles](#agents) that receive the entry |
+| `for` | list of `interactive`, `unattended` | both | The worker [roles](#workers) that receive the entry |
 | `inject` | `content` \| `pointer` | `content` in `always`, `pointer` in `when` | `content`: the text itself. `pointer`: one line naming what to read, such as `Apply the timezone-handling skill now: read .agents/skills/timezone-handling/SKILL.md` |
 | `static` | boolean | `false` | Only in `always`, and only with `for` covering both roles. The entry is written into the `context` block of `AGENTS.md` instead of injected by hook, so it applies without the binary and survives an eject |
-| `paths` | list of globs | | Only in `when`: the trigger is the agent's first read or edit of a matching file in the session. Exactly one of `paths` and `prompt` |
+| `paths` | list of globs | | Only in `when`: the trigger is the worker's first read or edit of a matching file in the session. Exactly one of `paths` and `prompt` |
 | `prompt` | list of words and phrases | | Only in `when`: the trigger is a person's message that contains one, case-insensitive, as a whole word or phrase |
 
-Sources are repository files and skills committed under `.agents/skills/`; nothing is fetched when a hook runs. A
-[worker](worker.md#the-worker-contract) receives the entries as they are at its base commit. Hook delivery
+Sources are repository files and skills committed under `.agents/skills/`; nothing is fetched when a hook runs. An
+[attempt](attempts.md#the-attempt-contract) receives the entries as they are at its base commit. Hook delivery
 needs `modules.hooks`; `static` entries do not. Preview what a session would receive with
 [`the-cook context show`](context.md#the-cook-context-show). `COOK_NO_CONTEXT=1` turns injection off for one process
 tree.
@@ -216,8 +243,8 @@ tree.
 
 State is clone-local, gitignored and disposable, and lives outside `.cook/`. Two keys say where, each relative to the
 repository root. Each path is written down as a convention in a managed block of `AGENTS.md` and, through the
-version-control recipe's renders, in an ignore block such as one of `.gitignore` ([block ids](render.md#block-ids)), so
-people, agents and other tools find it, with or without `the-cook`.
+version-control ingredient's renders, in an ignore block such as one of `.gitignore` ([block ids](render.md#block-ids)),
+so people, workers and other tools find it, with or without `the-cook`.
 
 ```yaml
 state:
@@ -228,7 +255,7 @@ workspaces:
 
 | Field | Type | Default | Holds | Blocks it produces |
 | --- | --- | --- | --- | --- |
-| `state.dir` | path | `.work` | in the primary checkout: `lifecycle.jsonl` and the locks shared by every workspace; in each checkout: `session.json`, `verified.json` (the [receipt](verify.md) of a passing `the-cook verify`), `hook-checks.json`, and in a checkout a worker runs in, the record that `bootstrap` ran, `last-worker-output` and `last-attempt.patch` | `.gitignore` `state` (`/.work/`); named in the `AGENTS.md` `layout` block |
+| `state.dir` | path | `.work` | in the primary checkout: `lifecycle.jsonl` and the locks shared by every workspace; in each checkout: `session.json`, `verified.json` (the [receipt](verify.md) of a passing `the-cook verify`), `hook-checks.json`, and in a checkout an attempt runs in, the record that `bootstrap` ran, `last-attempt-output` and `last-attempt.patch` | `.gitignore` `state` (`/.work/`); named in the `AGENTS.md` `layout` block |
 | `workspaces.dir` | path | `.work/workspaces` | each managed workspace, at `<dir>/<name>` | `AGENTS.md` `workspaces` (where workspaces are created, their `work/<name>` branch, that they start from committed code); `.gitignore` `workspaces` (`/.work/workspaces/`) |
 
 Rules for the paths:
@@ -245,7 +272,7 @@ Rules for the paths:
 # .cook/config.yaml
 schema: 1
 name: acme-api
-recipes:
+ingredients:
   - name: git
     source: github:acme/cookbook
     version: v1.2.0
@@ -258,6 +285,7 @@ recipes:
     source: github:acme/cookbook
     version: v1.2.0
     sha256: 6d2f26296cf399e1f470582106e0def36fcb3979b54422ecde46767a4b996ea7
+recipes:
   - name: node
     source: github:acme/cookbook
     version: v1.2.0
@@ -279,9 +307,9 @@ verify:
       required_when: [src/**/*.controller.ts, src/**/routes/**, src/**/guards/**]
   validators:
     - { when: [openapi/**, src/**/*.dto.ts], run: npm run openapi:check }
-agents:
+workers:
   claude: { role: interactive }
-  acme-agent: { role: worker, writable_roots: [.tasks] }
+  acme-agent: { role: unattended, writable_roots: [.tasks], model: acme-large, effort: high }
 context:
   always:
     - skill: coding-guidelines
@@ -290,15 +318,16 @@ context:
       skill: sql-quality-check
 ```
 
-The team's tracker keeps its database in `.tasks/` in the clone, so the `acme-agent` worker, whose harness recipe opens
-sandbox roots, may write it there.
+The repository applied the `node` recipe and edited its entries to the project's real commands. The team's tracker
+keeps its database in `.tasks/` in the clone, so the `acme-agent` worker, whose ingredient opens sandbox roots, may
+write it in its attempts, which start it with the model and effort given here.
 
 ### A Terraform repository
 
 ```yaml
 schema: 1
 name: acme-infra
-recipes:
+ingredients:
   - name: git
     source: github:acme/cookbook
     version: v1.2.0
@@ -307,6 +336,7 @@ recipes:
     source: github:acme/cookbook
     version: v1.2.0
     sha256: b5fd834d175eb4b74cda3763a33fc04c87b00e8b85e18f8c1c43bf912eca8816
+recipes:
   - name: terraform
     source: github:acme/cookbook
     version: v1.2.0
@@ -325,7 +355,7 @@ verify:
     plan:
       select: "terraform -chdir={pattern} plan -input=false -lock=false"
       required_when: [modules/**]
-agents: { claude: { role: interactive } }
+workers: { claude: { role: interactive } }
 ```
 
 `plan` has no `full`: there is no meaningful "plan everything", so `--full` still asks for `--lane plan=<dir>` or a
@@ -336,7 +366,7 @@ agents: { claude: { role: interactive } }
 ```yaml
 schema: 1
 name: acme-cli
-recipes:
+ingredients:
   - name: git
     source: github:acme/cookbook
     version: v1.2.0
@@ -349,6 +379,7 @@ recipes:
     source: github:acme/cookbook
     version: v1.2.0
     sha256: 17accff1f425d5eebd1ea4dec6901b620be626fe85f8633dfe0291ab9d374fa6
+recipes:
   - name: go
     source: github:acme/cookbook
     version: v1.2.0
@@ -365,7 +396,7 @@ verify:
   lanes:
     test: { select: go test {pattern}, full: go test ./... }
     vet: { select: go vet {pattern}, full: go vet ./... }
-agents: { claude: { role: interactive }, codex: { role: interactive } }
+workers: { claude: { role: interactive }, codex: { role: interactive } }
 ```
 
 Patterns for the Go lanes are package paths:
@@ -377,23 +408,25 @@ Patterns for the Go lanes are package paths:
   no tests proves nothing.
 - Do keep `required_when` narrow and meaningful: the files whose change the lane is the only real evidence for.
 - Do use the repository's own task runner in commands when it has one (`npm run build`, `make test`), so people and
-  agents run the same thing.
+  workers run the same thing.
 - Do keep the state paths out of what your linters, test runners and compilers scan (exclude `.work/**`, or the
   `state.dir` you chose): workspaces nested there hold full copies of the source.
 - Do choose the state paths before work starts: moving one later leaves existing workspaces, sessions and receipts under
   the old path.
 - Don't put secrets or machine-specific paths in commands; the profile is committed and runs on every machine.
-- Don't use `bootstrap` for slow, optional setup; every new workspace runs it, and so does every checkout a worker runs
-  in.
+- Don't use `bootstrap` for slow, optional setup; every new workspace runs it, and so does every checkout an attempt
+  runs in.
 
 ## Troubleshooting
 
 | Symptom | Cause | Fix |
 | --- | --- | --- |
 | `unknown key` error | A typo or a field from a newer schema | Fix the key; check `schema` |
-| `vcs` or an agent's `recipe` names a recipe not in `recipes` | The recipe was deleted from `recipes`, or never pinned | Pin it with `./cook recipe pin <name> --cookbook <source>@<version>`, or name a recipe in use |
-| Two `recipes` entries with the same name | A name is unique within the profile | Delete one; `./cook recipe pin` moves an existing pin |
-| `render` exits 3 naming `./cook recipe fetch` | A recipe in `recipes` is not in this machine's cache | Run `./cook recipe fetch` |
+| `vcs` or a worker's `ingredient` names an ingredient not in `ingredients` | The pin was deleted, or never written | Pin it with `./cook ingredient pin <name> --cookbook <source>@<version>`, or name a pinned ingredient |
+| `vcs` or a worker's `ingredient` names an ingredient that fills another contract | `vcs` needs a version-control ingredient, a worker a worker ingredient | Name an ingredient that fills the contract; `./cook ingredient list` shows each one's contract |
+| Two `ingredients` entries, or two `recipes` entries, with the same name | A name is unique within each list | Delete one; `./cook ingredient pin` moves an existing pin |
+| `writable_roots` is rejected for a worker | Its ingredient opens no sandbox roots | Remove the field, or use an ingredient that fills `launch.sandbox_roots` |
+| `render` exits 3 naming `./cook fetch` | An ingredient in `ingredients` is not in this machine's cache | Run `./cook fetch` |
 | `doctor` says a program is not on PATH | A command, lane, validator or action names a program this machine lacks | Install the program, or fix the command in `.cook/config.yaml` or `.cook/hooks.yaml` |
 | `doctor` says a glob matches nothing | Wrong path or quoting | YAML needs quotes around globs that start with `*` |
 | A lane runs with the literal text `{pattern}` | The command is in `full`, which takes no placeholder | Use `{pattern}` only in `select` |

@@ -2,15 +2,18 @@
 
 ## Objective
 
-**Problem.** A developer who works on one task of a tracker in its own checkout, by hand or through an agent, needs
-the tracker to show who holds the task and to mark it finished only once its checks pass. Updated by hand, the tracker
-falls behind the work, and a task is closed before its checks ran. Teams use different trackers, or none, so a tool
-built around one tracker serves only the teams that chose it.
+**Problem.** A developer who works on one task of a tracker in its own checkout, by hand or through a coding agent,
+needs the tracker to show who holds the task and to mark it finished only once its checks pass. Updated by hand, the
+tracker falls behind the work, and a task is closed before its checks ran. Teams use different trackers, or none, so a
+tool built around one tracker serves only the teams that chose it.
 
 **Goal.** Whatever tracker a team uses, a task in it shows who works on it and counts as finished only after its checks
 pass.
 
 ## Overview
+
+Tasks serve two stages of the [development lifecycle](lifecycle.md): Plan, where a task id is all `the-cook` takes from
+a tracker, and Complete, where the `completed` guard decides when a task counts as finished.
 
 `the-cook` binds a [managed workspace](workspaces.md) to a task and fires [lifecycle events](lifecycle.md) around the
 work on it. It contains no code for any task tracker: it never reads or writes a tracker's data and never checks that a
@@ -35,7 +38,8 @@ Commands are named `the-cook <command>` on this page. The examples run them thro
 
 - You work on tasks of a tracker in managed workspaces and want the tracker updated when work starts, finishes or stops.
 - You want a task to count as finished only after `the-cook verify` passed on its final content.
-- You run an unattended loop through [`the-cook worker`](worker.md), which fires `completed` for each verified attempt.
+- You run an unattended loop through [`the-cook attempt`](attempts.md), which fires `completed` for each verified
+  attempt.
 
 Without a tracker, leave out `--task`: workspaces and `the-cook verify` work without tasks.
 
@@ -58,8 +62,8 @@ tracker's task id such as `acme-api-7f2`, an issue number such as `412`, or any 
 | --- | --- |
 | `start` | by `the-cook workspace create --task`, in the new workspace |
 | `verified` | by every `the-cook verify` that passes there |
-| `completed` | by [`the-cook worker`](worker.md) after a verified attempt in a workspace bound to a task, or by a person or agent with `the-cook lifecycle run completed` |
-| `deliver` | by `the-cook worker` after `completed` when the work is concluded, or by `the-cook lifecycle run deliver` |
+| `completed` | by [`the-cook attempt`](attempts.md) after a verified attempt in a workspace bound to a task, or by a person or a coordinating worker with `the-cook lifecycle run completed` |
+| `deliver` | by `the-cook attempt` after `completed` when the work is concluded, or by `the-cook lifecycle run deliver` |
 | `blocked` | by a `the-cook` command run without a terminal that exits 3, with `COOK_REASON` set to its one-line refusal |
 
 At an automatic trigger point only actions declared with `auto: true` run. A failing automatic event is reported on
@@ -72,12 +76,12 @@ manual `completed`, delivery is its own `the-cook lifecycle run deliver`.
 `completed` with scope `task` is refused with exit 3 when the verify module is on (`modules.verify: true`) and the
 checkout has no valid receipt (`the-cook verify --check` fails). No action runs, and the refusal is recorded in the
 lifecycle log. The guard is a [built-in guard](lifecycle.md#built-in-guards): it applies whoever fires the event, a
-person, an agent or `the-cook worker`, and no repository file removes it. A tracker action on `completed` therefore
+person, a worker or `the-cook attempt`, and no repository file removes it. A tracker action on `completed` therefore
 closes a task only after its checks passed on its final content.
 
-`the-cook worker` fires `completed` only after it replayed the agent's verification itself, so in a worker the guard and
-the replay agree. It fires `completed` and `deliver` only in a workspace bound to a task; in a workspace without one,
-such as a loop runner's, it fires no event, and whoever drives the run fires the run-scope events.
+`the-cook attempt` fires `completed` only after it replayed the worker's verification itself, so in an attempt the
+guard and the replay agree. It fires `completed` and `deliver` only in a workspace bound to a task; in a workspace
+without one, such as a loop runner's, it fires no event, and whoever drives the run fires the run-scope events.
 
 ### Trackers
 
@@ -94,19 +98,22 @@ The actions are the repository's own entries in `.cook/hooks.yaml`, reviewed lik
 trackers changes those entries and nothing else. A program an action names that is not on `PATH` is a
 [`the-cook doctor`](doctor.md) finding.
 
-#### A tracker recipe
+#### Tracker actions from a recipe
 
-A recipe that describes a tracker can hold these actions as [entries](recipes.md#entries). Once the recipe is pinned in
-`recipes:`, `the-cook recipe apply <name>` shows them as a diff and writes them into `.cook/hooks.yaml`
-([recipes](recipes.md#how-apply-works)); from then on they are the repository's own. Such a recipe usually also holds:
+A [recipe](recipes.md), one way of running the lifecycle such as `agentic-coding`, can hold these actions as
+[entries](recipes.md#entries). `the-cook recipe apply <name> --cookbook <source>@<version>` shows them in one diff with
+the rest of the recipe and writes them into `.cook/hooks.yaml` ([recipes](recipes.md#how-apply-works)); from then on
+they are the repository's own. Such a recipe usually also holds:
 
-- a `worker.deny` entry for the tracker's close command, so a task closes only through the guarded `completed` event,
-  never from a worker's agent;
-- an `agents.<name>.writable_roots` entry for each agent whose harness recipe opens sandbox roots, naming the
-  tracker's data directory, so the tracker commands a sandboxed agent runs can update it
-  ([profile](profile.md#agents)).
+- an `unattended.deny` entry for the tracker's close command, so a task closes only through the guarded `completed`
+  event, never from inside an attempt;
+- a `writable_roots` value on each worker its [stages](recipes.md#stages) declare whose ingredient opens sandbox
+  roots, naming the tracker's data directory, so the tracker commands a sandboxed worker runs can update it
+  ([profile](profile.md#workers)).
 
-Nothing in the binary initialises, configures or reads a tracker's data. Creating it is the tracker's own job.
+It may also list the tracker's [ingredient](ingredients.md), which applying the recipe pins, so `the-cook doctor`
+checks the tracker's version against the range that ingredient supports. Nothing in the binary initialises, configures
+or reads a tracker's data. Creating it is the tracker's own job.
 
 #### GitHub issues with `gh`
 
@@ -160,18 +167,18 @@ Files written: the lifecycle log; whatever the actions write.
 
 ## Examples
 
-### A Node API with a tracker recipe
+### A Node API with tracker actions from a recipe
 
-The repository pins the tracker recipe `beads` from the cookbook `github:acme/cookbook` and applies it:
+The repository applies the recipe `agentic-coding` from the cookbook `github:acme/cookbook`, whose entries include the
+actions for its tracker:
 
 ```sh
-./cook recipe pin beads --cookbook github:acme/cookbook@v1.2.0
-./cook recipe apply beads
-./cook workspace create invoice-rounding --task acme-api-7f2   # the recipe's start action marks the task in progress
+./cook recipe apply agentic-coding --cookbook github:acme/cookbook@v1.2.0
+./cook workspace create invoice-rounding --task acme-api-7f2   # the start action marks the task in progress
 cd .work/workspaces/invoice-rounding
 # edit, test
 ./cook verify --lane unit=invoice --skip e2e="no route, controller or guard changed"
-./cook lifecycle run completed                                # the recipe's completed action closes acme-api-7f2
+./cook lifecycle run completed                                # the completed action closes acme-api-7f2
 ./cook lifecycle run deliver
 ```
 
@@ -195,7 +202,7 @@ Create workspaces without `--task` and declare no tracker actions; workspaces an
 - Do bind a workspace to one task with `--task`, so every event fired there names it.
 - Do run `the-cook verify` before firing `completed`; the guard refuses it otherwise.
 - Do keep tracker actions scoped to `task`, so a workspace without a task never runs them.
-- Don't let a worker's agent close tasks itself; deny the tracker's close command in `worker.deny`.
+- Don't let a worker close tasks from inside an attempt; deny the tracker's close command in `unattended.deny`.
 - Don't share task ids across clones of a clone-local tracker: they mean something only where the tracker's data is.
 
 ## Troubleshooting

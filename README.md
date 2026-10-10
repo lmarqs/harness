@@ -4,41 +4,53 @@
 
 ## Objective
 
-**Problem.** Teams that work with coding agents keep each repository's agent setup by hand: permissions, hooks,
-instructions, skills and the loops that run agents unattended. A practice learned in one repository reaches the others
-only by copying, the copies drift into dialects that lose their safety settings, and nobody can tell from a repository
-what its agents may do or why.
+**Problem.** Teams work with programs that change their repositories for them: coding agents above all today, and bots,
+codemods, trackers and task runners beside them. How a team works with those programs is kept by hand in each
+repository: what each program may do, which checks a change must pass, when work counts as done and how it leaves the
+clone. A practice learned in one repository reaches the others only by copying, the copies drift into dialects that lose
+their safety settings, and nobody can tell from a repository what its programs may do or why.
 
-**Goal.** A practice learned once reaches every repository through one reviewed change in each and is withdrawn the
-same way; agents everywhere run inside the same explicit, verified rules; and people who do not use the tool never
-notice it.
+**Goal.** A way of working learned once reaches every repository through one reviewed change in each and is withdrawn
+the same way; every change, whoever or whatever makes it, passes the same declared stages and guards; and people who do
+not use the tool never notice it.
 
 ## What it is
 
-`the-cook` is a single command-line binary that bridges a repository's declared agent setup to the programs that carry
-it out: it writes, checks and removes the configuration that agent harnesses read.
+`the-cook` is a single command-line binary that enforces the software development lifecycle a repository declares. Every
+change goes through the same stages: plan, start, implement, verify, complete, deliver, review and merge, and landed.
+Between them the binary fires events, at which the actions the repository declares run; it holds the guards between
+stages, so delivery never runs for uncommitted work, work on the default branch or, with verification on, unverified
+work; and it binds the proof a change carries, a verification receipt, to the change's base and exact content. An
+unattended attempt is reported done only after that proof is replayed from the base
+([development lifecycle](docs/features/lifecycle.md), [ADR 0015](docs/adrs/0015-development-lifecycle.md)).
+
 Everything it does in a repository is written in that repository's own files and pinned to one verified release. It
-never calls a model, and it never plays: like a game master, it sets the rules of the world and leaves the turns to the
-players, who are the developers, and their characters, the agents.
+does no stage's work itself and never calls a model: like a game master, it sets the rules of the world and leaves the
+turns to the players, who are the developers, and their characters, the workers.
 
 The name comes from the kitchen: a cook follows the recipe exactly and lets nothing leave the kitchen until it passes
-the check. The agents do the cooking, and `the-cook` holds them to that standard.
+the check. The workers do the cooking, and `the-cook` holds them to that standard.
 
-The binary contains no code and no data for any program. Each program it starts, calls or writes files for, version
-control and the agent harnesses included, is described by a [recipe](docs/features/recipes.md): a versioned bundle of
-data with entries and templates applied once, renders written on every render, operations that answer the binary's
-questions, and checks. Recipes come from cookbooks, published collections of recipes, and a repository pins each one it
-uses by version and sha256 in a reviewed change. `the-cook` ships no recipe and names no default cookbook
-([ADR 0022](docs/adrs/0022-tool-integration.md)). Safety facts about a program, such as the arguments that bypass a
-harness's permission checks, are floor rules of its recipe that no repository policy can remove
-([ADR 0011](docs/adrs/0011-safety-invariants.md)).
+The lifecycle knows no program. The programs that do the work at its stages, version control, workers such as coding
+agents or bots, trackers and task runners, are described by ingredients and combined by recipes, both published in
+cookbooks ([ADR 0022](docs/adrs/0022-tool-integration.md)). An [ingredient](docs/features/ingredients.md) describes one
+program: the files rendered for it on every render, the operations that fill one of the lifecycle's contracts, and its
+floor, the rules about that program that no repository policy can remove, such as the arguments that bypass a coding
+agent's permission checks ([ADR 0011](docs/adrs/0011-safety-invariants.md)). A [recipe](docs/features/recipes.md) is one
+way of running the lifecycle: the ingredients it uses, which of them fills version control and which are its workers,
+and the entries and templates it writes into the repository once, which are the repository's own from then on. A
+repository pins every ingredient and recipe it uses by version and sha256 in a reviewed change; `the-cook` ships none
+and names no default cookbook ([ADR 0024](docs/adrs/0024-ingredients-and-recipes.md)).
 
-It is not a launcher for any loop runner. A loop runner names `./cook worker <agent>` as its agent command, which runs
-the agent for each task under rules the agent cannot bypass, and a task tracker is updated by lifecycle actions the
-repository declares. `./cook recipe apply <name>` writes that wiring into the repository's files on request.
+Agentic coding is the first recipe and the main example. It declares an interactive coding agent and an unattended one,
+the lanes they verify with, what unattended runs must never do, and lifecycle actions that keep a tracker up to date.
+`the-cook` is not a launcher for any loop runner: a loop runner names `./cook attempt <worker>` as the command it runs
+for each task, and that command runs the unattended coding agent under rules it cannot bypass and reports the task done
+only after the replay passes. `./cook recipe apply agentic-coding --cookbook github:acme/cookbook@v1.2.0` writes that
+wiring into the repository's files on request.
 
 For a cookbook to read or start from, see [lmarqs/the-cookbook](https://github.com/lmarqs/the-cookbook), the author's
-personal recipes for git, Claude Code, Codex CLI, ralph-tui, Beads, mise, the skills CLI and a few stacks.
+personal cookbook, starting with an `agentic-coding` recipe and the ingredients it uses.
 
 ## Read next
 
@@ -46,7 +58,8 @@ personal recipes for git, Claude Code, Codex CLI, ralph-tui, Beads, mise, the sk
 | --- | --- |
 | Why the project exists, what it is trying to achieve, and the tenets behind every decision | [Philosophy](docs/philosophy.md) |
 | What each feature does and how to use it, starting with a five-minute quickstart | [Features](docs/features/README.md) |
-| What a recipe holds, how a repository pins one from a cookbook, and how to write one | [Recipes](docs/features/recipes.md) |
+| The stages every change goes through, the events and guards between them, and how each stage reaches its programs | [Development lifecycle](docs/features/lifecycle.md) |
+| What an ingredient and a recipe hold, how a repository pins them from a cookbook, and how to write them | [Ingredients](docs/features/ingredients.md), [recipes](docs/features/recipes.md) |
 | The decisions that shape the tool, and their reasons; the authority over everything else | [Architecture decisions](docs/adrs/README.md) |
 | The rules for everything a user sees: commands, files, messages, generated content | [User-experience standards](docs/ux/README.md) |
 

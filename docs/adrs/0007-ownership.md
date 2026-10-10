@@ -16,10 +16,10 @@ output is detected.
   such as `AGENTS.md`, `README.md` and `.gitignore`; and keys inside native configuration files it shares with people
   ([0008](0008-native-configuration.md)).
 - Adoption also creates files that the repository then edits as its own: its data files
-  ([0006](0006-repository-contract.md)) and skeletons for agent content. They mean nothing without the tool, but after
-  creation they are not generated.
-- A clone without the binary must work ([0010](0010-dependence-on-the-binary.md)): harnesses read their configuration
-  from the clone when a session starts. Reviewers must see permission changes as diffs.
+  ([0006](0006-repository-contract.md)) and skeletons for the agent content under `.agents/`. They mean nothing without
+  the tool, but after creation they are not generated.
+- A clone without the binary must work ([0010](0010-dependence-on-the-binary.md)): worker programs read their
+  configuration from the clone when a session starts. Reviewers must see permission changes as diffs.
 - A hand edit to generated output has to be detected. Otherwise the next render discards it silently, or a check passes
   over it.
 - JSON allows no comments, so ownership of a key inside a JSON file cannot be marked in the file itself.
@@ -31,7 +31,7 @@ output is detected.
 ## Decision
 
 1. Ownership is recorded, not inferred. A manifest committed in the repository lists every owned path, managed block and
-   owned key set, each with a content hash and, for a recipe's renders, the recipe's name
+   owned key set, each with a content hash and, for an ingredient's renders, the ingredient's name
    ([0022](0022-tool-integration.md)); every seeded file, created once by adoption and owned by the repository from then
    on, with the hash it was created with; and the schema version ([0005](0005-schema-compatibility.md)).
 2. Generated artefacts are committed.
@@ -60,12 +60,12 @@ output is detected.
 - **1.** Removal and the drift check both need the exact set of things the tool wrote. Markers cannot mark keys inside
   JSON, and without a recorded hash a hand-edited output cannot be told from a generated one. Recording seeded files
   separately lets undo remove them while the drift check leaves them alone, since the repository edits them. Their
-  creation hash tells an untouched skeleton from content someone wrote. Recording the recipe that renders each owned
-  item lets a repository stop using one recipe and lose exactly that recipe's renders, while the entries the recipe
-  applied stay the repository's own ([0013](0013-organization-content.md)).
-- **2.** Harnesses read configuration from the clone when a session starts, so it has to exist in every clone, including
-  clones without the binary ([0010](0010-dependence-on-the-binary.md)). Committed artefacts also show every permission
-  change to reviewers as a diff.
+  creation hash tells an untouched skeleton from content someone wrote. Recording the ingredient that renders each owned
+  item lets a repository stop using one ingredient and lose exactly that ingredient's renders, while the entries a
+  recipe applied stay the repository's own ([0024](0024-ingredients-and-recipes.md)).
+- **2.** Worker programs read configuration from the clone when a session starts, so it has to exist in every clone,
+  including clones without the binary ([0010](0010-dependence-on-the-binary.md)). Committed artefacts also show every
+  permission change to reviewers as a diff.
 - **3.** Markers let the tool share a file with people without owning the file, and block ids let each capability own
   its own block ([0018](0018-conventions.md)). Comment syntax keeps markers invisible in rendered Markdown and inert in
   ignore files. A header tells a person who opens an owned file where to make the change instead. The header goes at the
@@ -96,13 +96,13 @@ content cannot be told apart, and removal has to guess.
 ### Generate on demand without committing
 
 The tool renders at session start or in CI. At its best, generated files never appear in diffs and cannot drift. It
-loses because a clone without the binary has no agent configuration, reviewers lose permission diffs, and harnesses read
-their configuration when a session starts.
+loses because a clone without the binary has no worker configuration, reviewers lose permission diffs, and worker
+programs read their configuration when a session starts.
 
 ### Own whole directories
 
-At its best, the ownership rule is one line. It loses because the directories agents read are shared with people and
-other tools ([0014](0014-directory-layout.md)).
+At its best, the ownership rule is one line. It loses because the directories worker programs read are shared with
+people and other tools ([0014](0014-directory-layout.md)).
 
 ### One removal mode
 

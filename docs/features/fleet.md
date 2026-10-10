@@ -12,6 +12,9 @@ repository reviews on its own, and the maintainer sees which repositories passed
 
 ## Overview
 
+`fleet` serves no single stage of the [development lifecycle](lifecycle.md): it runs one `the-cook` command in many
+repositories, and with `--deliver` it takes each repository's change through that repository's Deliver stage.
+
 `the-cook fleet` runs one `the-cook` command across an explicit list of repositories and prints a pass/fail summary.
 With `--deliver`, it also commits each repository's changes on a new local branch and fires that repository's
 [`deliver` event](lifecycle.md), so the change leaves the clone through the actions the repository declares. It is how
@@ -21,13 +24,13 @@ a `the-cook` change reaches many repositories at once, and how it is withdrawn.
 repository (a push, a pull request, a CI trigger) is the `deliver` actions that repository declares in its own
 `.cook/hooks.yaml`.
 
-`fleet` runs the same `the-cook` command in every repository it lists. A choice that takes judgement in each repository,
-such as which services an organization lets agents read through MCP, which deploy commands it denies or how its changes
-are delivered, is written into each repository by a person or an agent, typically one following a skill the organization
-publishes. It is reviewed there as a diff, and `fleet` does not run that agent
-([ADR 0013](../adrs/0013-organization-content.md)). For example, acme denies deploys to agents everywhere, but
-`acme/api` deploys with `npm run deploy` and `acme/infra` with `terraform apply`, so an agent following acme's skill
-writes a different `deny` entry into each repository's `.cook/policy.yaml`.
+`fleet` runs the same `the-cook` command in every repository it lists. A choice that takes judgement in each
+repository, such as which services an organization lets coding agents read through MCP, which deploy commands it denies
+or how its changes are delivered, is written into each repository by a person or a worker, typically one following a
+skill the organization publishes. It is reviewed there as a diff, and `fleet` does not run that worker
+([ADR 0013](../adrs/0013-organization-content.md)). For example, acme denies deploys to workers everywhere, but
+`acme/api` deploys with `npm run deploy` and `acme/infra` with `terraform apply`, so a coding agent following acme's
+skill writes a different `deny` entry into each repository's `.cook/policy.yaml`.
 
 Commands are named `the-cook <command>` on this page. The examples run `fleet` through an adopted repository's wrapper,
 `./cook fleet …`; with a global install, `the-cook fleet …` is equivalent and runs from any directory
@@ -38,11 +41,11 @@ Commands are named `the-cook <command>` on this page. The examples run `fleet` t
 | You want to | Command |
 | --- | --- |
 | Check every adopted repository | `the-cook fleet doctor` |
-| Pin a stack's recipe, or move its pin, in every repository on that stack, delivered for review | `the-cook fleet recipe pin node --cookbook github:acme/cookbook@v1.3.0 --yes --deliver --repos <file>` |
-| Apply a pinned stack recipe's entries to every repository on that stack, delivered for review | `the-cook fleet recipe apply node --yes --deliver --repos <file>` |
+| Apply a stack recipe, or a newer version of it, to every repository on that stack, delivered for review | `the-cook fleet recipe apply node --cookbook github:acme/cookbook@v1.3.0 --yes --deliver --repos <file>` |
+| Move an ingredient's pin, such as a newer git ingredient, in every repository that uses it, delivered for review | `the-cook fleet ingredient pin git --cookbook github:acme/cookbook@v1.3.0 --yes --deliver --repos <file>` |
 | Pick up a schema change everywhere | `the-cook fleet render --yes --deliver` |
 | Move every repository to a new `the-cook` release | `the-cook fleet wrapper --version <tag> --deliver` |
-| Wire a program, such as a task tracker, into every repository that uses it | `the-cook fleet recipe apply <name> --yes --deliver --repos <file>`, once the repositories pin the recipe |
+| Bring a way of working, such as `agentic-coding`, to a set of repositories | `the-cook fleet recipe apply agentic-coding --cookbook github:acme/cookbook@v1.2.0 --yes --deliver --repos <file>` |
 | Adopt `the-cook` in a set of repositories | `the-cook fleet scaffold --adopt --cookbook github:acme/cookbook@v1.2.0 --yes --deliver` |
 | Withdraw a module everywhere | `the-cook fleet remove --module memory --yes --deliver` |
 
@@ -78,9 +81,9 @@ fleet runs ([lifecycle](lifecycle.md#an-organization-convention-a-ci-trigger-com
 ### For each repository
 
 1. If the working tree has uncommitted changes, refuse it: the result is **blocked**, nothing runs there.
-2. With `--deliver`: through the repository's version-control recipe, update from the remote and create a local
-   branch `<branch_prefix><command>` from the default branch the recipe reports. An existing branch with that name
-   blocks the repository.
+2. With `--deliver`: through the version-control contract, which the repository's version-control ingredient fills,
+   update from the remote and create a local branch `<branch_prefix><command>` from the default branch the ingredient
+   reports. An existing branch with that name blocks the repository.
 3. Run `the-cook <command> [command args...]` with the repository as its working directory and no terminal, so commands
    that confirm need `--yes`. In a repository with `.cook/wrapper.yaml`, the command runs the version that repository
    pins, downloaded and verified when this machine has not cached it yet. In a repository without one, such as one
@@ -127,7 +130,7 @@ the-cook fleet <command> [command args...] [--repos <file>] [--deliver] [--conti
 
 | Flag | Default | Meaning |
 | --- | --- | --- |
-| `<command> [command args...]` | required | Any repository-level `the-cook` command and its arguments: `scaffold`, `render`, `recipe`, `remove`, `doctor`, `wrapper`, `explain`, `version` |
+| `<command> [command args...]` | required | Any repository-level `the-cook` command and its arguments: `scaffold`, `render`, `recipe`, `ingredient`, `fetch`, `remove`, `doctor`, `wrapper`, `explain`, `version` |
 | `--repos <file>` | `~/.config/the-cook/fleet.yaml` | Fleet file |
 | `--deliver` | off | Commit each changed repository on a new local branch and fire its `deliver` event (scope `change`) |
 | `--continue-on-error` | off | Keep going after a repository fails or is blocked |
@@ -159,9 +162,10 @@ branch exists only for a release the project signed. Reviewers check the version
 version. Once these branches land, `fleet render --deliver` picks up what the new release renders differently
 ([wrapper](wrapper.md#many-repositories)).
 
-A newer version of a recipe reaches a repository only when its pin moves, and its entries only when someone applies the
-recipe again; its renders and floor change with the pin alone. With a fleet file that lists the Node repositories, move
-the pin, then read what each would receive and deliver it for review:
+A newer cookbook tag reaches a repository in two ways. What an ingredient renders, and its floor, change when its pin
+moves. A recipe's entries and templates reach a repository only when someone applies that recipe, and applying a newer
+version adds what the repository lacks. With a fleet file that lists the Node repositories, read what each would
+receive from `node` v1.3.0, then deliver it for review:
 
 ```yaml
 # ~/fleets/node.yaml
@@ -169,14 +173,25 @@ repos: [~/src/acme-api, ~/src/acme-web]
 ```
 
 ```sh
-./cook fleet recipe pin node --cookbook github:acme/cookbook@v1.3.0 --yes --deliver --repos ~/fleets/node.yaml
-./cook fleet recipe apply node --dry-run --repos ~/fleets/node.yaml
-./cook fleet recipe apply node --yes --deliver --continue-on-error --repos ~/fleets/node.yaml
+./cook fleet recipe apply node --cookbook github:acme/cookbook@v1.3.0 --dry-run --repos ~/fleets/node.yaml
+./cook fleet recipe apply node --cookbook github:acme/cookbook@v1.3.0 --yes --deliver --continue-on-error \
+  --repos ~/fleets/node.yaml
 ```
 
-Each repository loads the `node` recipe version it pins, so it receives the entries of that version that it lacks.
-Every entry and item it already holds stays as it is, and a repository with nothing to add ends **unchanged**
-([recipes](recipes.md#how-apply-works)).
+Each repository receives the entries and templates of that version that it lacks, and its `recipes:` entry for `node`
+moves to v1.3.0. Every ingredient the recipe lists is pinned; an ingredient the repository already pins at another
+sha256 keeps the repository's pin, and the command reports the difference. Every entry and item the repository already
+holds stays as it is ([recipes](recipes.md#how-apply-works)).
+
+To move only what renders, such as a newer `git` ingredient, move its pin:
+
+```sh
+./cook fleet ingredient pin git --cookbook github:acme/cookbook@v1.3.0 --yes --deliver --continue-on-error
+```
+
+Each repository's branch holds the moved pin and what the new version renders differently. In a repository that does
+not pin the ingredient yet, the same command adds the pin, so run it only with a fleet file whose repositories all use
+the program.
 
 Adopt three new repositories, Node, Go and Terraform, with a separate fleet file:
 
@@ -191,11 +206,11 @@ commit_message: "chore: adopt the-cook"
 ./cook fleet scaffold --adopt --cookbook github:acme/cookbook@v1.2.0 --yes --deliver --repos ~/fleets/new-adopters.yaml
 ```
 
-Each repository pins and applies the recipes of that cookbook tag whose detect rule matches in it, such as the recipes
-for its version control system, its agents and its stack. No action runs that a repository does not declare, and no
-recipe `scaffold` applies holds a `deliver` action, so a freshly scaffolded repository declares no `deliver` actions and
-ends as **committed, not delivered**. Deliver those branches by hand, or declare `deliver` actions in each branch's
-`.cook/hooks.yaml`, commit them, and run `the-cook lifecycle run deliver` there.
+Each repository applies the recipes of that cookbook tag whose detect rule matches in it, such as `agentic-coding` and
+the recipe for its stack, and pins the ingredients they list. No action runs that a repository does not declare: a
+repository whose applied recipes hold no `deliver` action declares none, and ends as **committed, not delivered**.
+Deliver those branches by hand, or declare `deliver` actions in each branch's `.cook/hooks.yaml`, commit them, and run
+`the-cook lifecycle run deliver` there.
 
 Health check before a release:
 
@@ -208,15 +223,15 @@ Health check before a release:
 - Do keep the fleet file to repositories you are responsible for.
 - Do run a command once by hand in one repository before running it across the fleet.
 - Do keep one fleet file per stack for a stack recipe: it holds one stack's commands, lanes and hooks, and in a
-  repository on another stack its entries do not fit. Any other recipe fits a repository that uses its program, so its
-  fleet file lists those repositories.
-- Do give a change that takes judgement in each repository, such as an organization's convention, to a person or an
-  agent working in that repository: `fleet` runs the same command everywhere and cannot adapt it.
+  repository on another stack its entries do not fit. Any other recipe fits a repository that works the way it
+  describes, and an ingredient fits a repository that uses its program, so their fleet files list those repositories.
+- Do give a change that takes judgement in each repository, such as an organization's convention, to a person or a
+  worker in that repository: `fleet` runs the same command everywhere and cannot adapt it.
 - Do use `--deliver` for anything that changes files, and declare `deliver` actions that put the change where each
   repository's owners review it, such as a pull request.
 - Do read `the-cook lifecycle list` in one repository before a fleet delivery: `--deliver` runs every `deliver` action
-  declared for scope `change`, not only the automatic ones. An [`agent` action](lifecycle.md#agent) among them starts
-  one agent per repository.
+  declared for scope `change`, not only the automatic ones. An [`attempt` action](lifecycle.md#attempt) among them
+  starts one worker per repository.
 - Don't run `fleet` with uncommitted work in the fleet's repositories; `fleet` refuses them by design.
 - Don't declare a `deliver` action that pushes to the default branch: a review is where each repository's owners
   accept the change.
@@ -227,6 +242,7 @@ Health check before a release:
 | --- | --- | --- |
 | A repository is blocked | Uncommitted changes, or the branch already exists | Commit or stash; delete or merge the old branch |
 | `scaffold` or `recipe apply` exits 3 in every repository | It needs confirmation and the fleet runs without a terminal | Add `--yes`, after reading the `--dry-run` output |
+| `render` or `doctor` exits 3 in a repository | An ingredient it pins is not cached on this machine | `the-cook fleet fetch`, then run the command again |
 | A repository ends **committed, not delivered** | It declares no `deliver` actions | Declare them in its `.cook/hooks.yaml`, then `the-cook lifecycle run deliver` on that branch |
 | A `deliver` action fails | The action's own tool failed, for example an unauthenticated CLI | Read the action's output in the summary or the lifecycle log; fix it, then `the-cook lifecycle run deliver` on that branch |
 | A repository fails right after `fleet wrapper` | The new release cannot be downloaded or fails its checksum on this machine | See [pitfalls](pitfalls.md#the-first-run-needs-the-network) and [the checksum entry](pitfalls.md#a-checksum-mismatch-refuses-the-download) |

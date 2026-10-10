@@ -3,23 +3,23 @@
 ## Objective
 
 **Problem.** Repositories already hold state and records that people and other tools depend on: synchronised task
-databases, the configuration of a loop runner (a program that runs agents unattended, one task after another), an issue
-tracker, a code-review platform. A tool that writes or normalises what it did not create breaks their work, often in
-ways that are hard to undo.
+databases, the configuration of a loop runner (a program that runs coding agents or other workers unattended, one task
+after another), an issue tracker, a code-review platform. A tool that writes or normalises what it did not create breaks
+their work, often in ways that are hard to undo.
 
 **Goal.** Everything people and other tools kept before adoption works the same after it, and the team's record of work
 stays the team's.
 
 ## Context
 
-- Teams record their work in an issue tracker and a code-review platform. People and agents already write there, under
-  the team's permissions and conventions. Clone-local task tracking is a working aid, not a record.
+- Teams record their work in an issue tracker and a code-review platform. People and coding agents already write there,
+  under the team's permissions and conventions. Clone-local task tracking is a working aid, not a record.
 - Delivery conventions differ between organizations and hosting platforms: draft or ready pull requests, a commit that
   triggers CI, a notification, or a platform other than the common ones. Logic for one platform serves that
   platform's users and depends on its API and credentials.
 - Repositories already contain third-party state that its owners depend on: clone-local task databases synchronised to
   remotes, sometimes committed to git with their own git hooks path; a loop runner's configuration at the repository
-  root; a task runner's files, with their tool-version lists; instruction files with hand-written content; and an
+  root; a task runner's files, with their tool-version lists; instruction files with hand-written content; and a coding
   agent's own worktree directory. For example, `acme/api` commits its task database to git and points git's hooks path
   at the database's own hooks, and keeps a loop-runner configuration at the root for people who start runs by hand.
 - Normalising state a person created breaks them: disconnecting the remotes of a task database ends a synchronisation
@@ -30,8 +30,8 @@ stays the team's.
   the name of the tool's configuration directory ([0014](0014-directory-layout.md)).
 - The loop runner merges its per-user configuration into every run it starts, and anyone can start it without the tool
   ([0022](0022-tool-integration.md)).
-- Some starting files are another tool's configuration, such as a loop runner's agent entries that name the tool's
-  worker command; a recipe can supply one as a template ([0013](0013-organization-content.md)).
+- Some starting files are another tool's configuration, such as a loop runner's entries that start each task through the
+  tool's attempt command; a recipe can supply one as a template ([0013](0013-organization-content.md)).
 - The tool's own releases must be fetched from somewhere; some networks reach only an internal mirror.
 
 ## Decision
@@ -47,15 +47,15 @@ stays the team's.
    writes them into those files only when a person applies it.
 4. The binary never reconfigures state it did not create:
    - an existing third-party database is left as found;
-   - another program's configuration and files are written only as a template a person applies, where the file is
-     absent, or as content a recipe renders and the manifest records ([0007](0007-ownership.md),
-     [0013](0013-organization-content.md), [0022](0022-tool-integration.md)), and are never read beyond the files a
-     recipe renders into and the rules adoption imports ([0008](0008-native-configuration.md),
+   - another program's configuration and files are written only as a template of a recipe a person applies, where the
+     file is absent, or as content an ingredient renders and the manifest records ([0007](0007-ownership.md),
+     [0013](0013-organization-content.md), [0022](0022-tool-integration.md)), and are never read beyond the files an
+     ingredient renders into and the rules adoption imports ([0008](0008-native-configuration.md),
      [0016](0016-permission-adoption.md));
    - the version control system's configuration, such as its hooks path, is not changed; a setting an operation needs is
      passed on that operation's own command, never written into the configuration ([0022](0022-tool-integration.md));
    - content outside managed blocks is never written ([0007](0007-ownership.md));
-   - directories that belong to an agent are never scanned or cleaned.
+   - directories that belong to a worker program are never scanned or cleaned.
 5. A tool configuration directory the binary did not create is foreign. Adoption refuses to write into it and names
    the conflict.
 6. Cleanup acts only on what the binary recorded creating, never on name patterns.
@@ -75,11 +75,11 @@ stays the team's.
   [0022](0022-tool-integration.md)).
 - **4.** Each item protects something a person relies on. A database left as found keeps its synchronisation; an
   unchanged hooks path keeps the task database's own hooks (Context), and a setting passed on one command changes
-  nothing any other program sees; content outside blocks is the repository's prose; agent directories hold the agent's
-  working state. Another tool's files belong to that tool and to the people who run it, and the binary has no code that
-  reads them ([0022](0022-tool-integration.md)): a root loop-runner configuration left alone keeps direct use working,
-  and a task runner's file keeps its pins and comments. A template is written only where its file is absent, so it never
-  replaces a file someone already keeps, and from then on the file is the repository's own
+  nothing any other program sees; content outside blocks is the repository's prose; a worker program's directories hold
+  its working state. Another tool's files belong to that tool and to the people who run it, and the binary has no code
+  that reads them ([0022](0022-tool-integration.md)): a root loop-runner configuration left alone keeps direct use
+  working, and a task runner's file keeps its pins and comments. A template is written only where its file is absent, so
+  it never replaces a file someone already keeps, and from then on the file is the repository's own
   ([0013](0013-organization-content.md)). The trade: a setting in another tool's configuration that works against the
   tool, such as a bypass, surfaces only when the binary meets it in its own input ([0011](0011-safety-invariants.md)).
 - **5.** A directory of the same name that the binary did not create holds files the binary does not own, and another
@@ -95,7 +95,8 @@ stays the team's.
 ### Integrate with the issue tracker
 
 The tool synchronises tasks and posts progress. At its best, the team gets one view of all work. It loses because it
-makes the tool a second writer to the team's record, which people and agents already write under the team's permissions.
+makes the tool a second writer to the team's record, which people and coding agents already write under the team's
+permissions.
 
 ### Built-in pull-request creation on a person's request
 
@@ -121,8 +122,8 @@ At its best, no records are needed. It loses because names collide with those ot
 
 Costs:
 
-- A repository that declares no delivery actions delivers by hand or through an agent; the binary leaves committed
-  work in the clone.
+- A repository that declares no delivery actions delivers by hand or through a worker; the binary leaves committed work
+  in the clone.
 - The guarantee covers the binary's own behaviour. A declared action can write anywhere its credentials reach,
   including the team's record; that choice belongs to whoever declares and reviews it.
 - A repository whose root already holds a directory of the configuration directory's name, created by something

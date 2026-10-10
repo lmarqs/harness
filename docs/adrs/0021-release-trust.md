@@ -3,13 +3,14 @@
 ## Objective
 
 **Problem.** The tool runs content it downloads with the person's credentials, on every machine and in every repository
-that pins it: the release the wrapper script committed in each repository downloads, and the recipes the repository
-pins, whose commands the binary starts. A release compromised before anyone recorded its checksum, or replaced on the
-download host, would run everywhere, and checksums alone cannot tell. A recipe replaced at its source, or fetched while
-nobody watches, would change what an agent runs without any change to the repository.
+that pins it: the release the wrapper script committed in each repository downloads, the ingredients the repository
+pins, whose commands the binary starts, and the recipes it applies, whose entries become its own commands and rules. A
+release compromised before anyone recorded its checksum, or replaced on the download host, would run everywhere, and
+checksums alone cannot tell. An ingredient or a recipe replaced at its source, or fetched while nobody watches, would
+change what a worker runs without any change to the repository.
 
-**Goal.** Only releases their publisher signed run, on every machine, whoever recorded the pin, and a recipe acts only
-as the exact bytes a reviewed change to the repository pinned.
+**Goal.** Only releases their publisher signed run, on every machine, whoever recorded the pin, and an ingredient or a
+recipe acts only as the exact bytes a reviewed change to the repository pinned.
 
 ## Context
 
@@ -28,14 +29,17 @@ as the exact bytes a reviewed change to the repository pinned.
   [0004](0004-runtime-dependencies.md)).
 - Every change to a pin is a committed diff that the repository reviews ([0017](0017-engine-version.md)).
 - Signing keys are rotated, and can be lost or compromised.
-- A recipe describes commands the binary starts, such as the launch of an agent and the version control operations
+- An ingredient describes commands the binary starts, such as the launch of a worker and the version control operations
   ([0022](0022-tool-integration.md)), so its content decides what runs with the person's credentials, as a release's
-  does.
-- The binary ships no recipe ([0022](0022-tool-integration.md)). Recipes are published in cookbooks by organizations
-  and people other than the tool's publisher, and a binary can embed only the keys known when it is built.
-- A recipe is data: a reviewer can read all of it before pinning it, which a compiled binary does not allow.
+  does. A recipe's entries, lifecycle actions and deny rules among them, become the repository's own data when it is
+  applied, and a recipe lists the ingredients it uses, each with its content hash
+  ([0024](0024-ingredients-and-recipes.md)).
+- The binary ships no ingredient and no recipe ([0022](0022-tool-integration.md)). Both are published in cookbooks by
+  organizations and people other than the tool's publisher, and a binary can embed only the keys known when it is built.
+- Ingredients and recipes are data: a reviewer can read all of one before pinning it, which a compiled binary does not
+  allow.
 - A per-user cache can be written by every process the person runs.
-- A hook runs on every matching agent event, and an unattended attempt runs with nobody watching
+- A hook runs on every matching worker event, and an attempt runs with nobody watching
   ([0011](0011-safety-invariants.md)).
 
 ## Decision
@@ -51,13 +55,16 @@ as the exact bytes a reviewed change to the repository pinned.
 5. The trust root is the first binary a person installs.
 6. The health check, when online, re-verifies the pinned release's signed checksum file against the committed
    checksums.
-7. A recipe is admitted when a person pins it. The binary downloads, over HTTPS, the cookbook's checksum file for the
-   pinned version and each recipe being pinned, verifies each recipe against that file, and presents the pins as a diff
-   that enters the repository only through review ([0022](0022-tool-integration.md)). From then on the binary verifies
-   every recipe against the content hash the repository's data pins, on every download and every load, and refuses
-   content that does not match before anything the recipe describes runs. It fetches a recipe only on a person's
-   explicit command, never during a hook or an unattended attempt. No release key vouches for any recipe, and the
-   wrapper never fetches or loads one.
+7. An ingredient or a recipe is admitted when a person pins it. The binary downloads, over HTTPS, the cookbook's
+   checksum file for the pinned version and each ingredient or recipe the person names, verifies each against that file,
+   and presents the pins as a diff that enters the repository only through review ([0022](0022-tool-integration.md)). An
+   ingredient that a recipe lists is pinned in the same diff, at the content hash the recipe gives, unless the
+   repository already pins that ingredient, whose pin is kept and the difference reported, and it is verified against
+   its pinned hash when it is fetched ([0024](0024-ingredients-and-recipes.md)). From then on the binary verifies every
+   ingredient and recipe against the content hash the repository's data pins, on every download and every load, and
+   refuses content that does not match before anything it describes runs or is written. It fetches one only on a
+   person's explicit command, never during a hook or an attempt. No release key vouches for any ingredient or recipe,
+   and the wrapper never fetches or loads one.
 
 ## Reasons
 
@@ -78,20 +85,22 @@ as the exact bytes a reviewed change to the repository pinned.
   a verified binary.
 - **6.** A checksum edited by hand in the pin, or a checksum file replaced on the host after the pin was written, is
   found. Running online only, and as part of the health check, costs nothing to a machine without network access.
-- **7.** A recipe's commands run with the person's credentials, as a release's do (Context), so its bytes need the same
-  guarantee: what acts is exactly what someone pinned. A release key vouches only for the release's publisher, and a
-  recipe's author is someone else, whose key no binary can carry (Context), so trust in a recipe is built in three
-  steps. At pin time, the cookbook's checksum file over HTTPS is what ties the downloaded bytes to what the cookbook
-  published; HTTPS authenticates only the host (Context), so this step alone is the model rejected below for releases as
-  checksums recorded by whoever upgrades. The second step closes most of that gap: the pins enter the repository only
-  through a reviewed diff, and a recipe is data a reviewer can read in full before approving it (Context), which a
-  compiled release does not allow. After that, the hash the reviewed change committed is the root, and verifying it on
-  every load catches a cached copy changed after it was fetched (Context). Fetching only on a person's command makes the
-  moment of trust a moment a person acts: a fetch during a hook or an unattended attempt would let whoever controls the
-  source change what an agent runs while nobody watches. The wrapper stays a shell script that knows only the release
-  (point 4). The trade: a recipe compromised at its source before someone pinned it passes every check, and because no
-  recipe comes from the release ([0022](0022-tool-integration.md)), the floor of every program is only as good as the
-  review of its pin.
+- **7.** An ingredient's commands run with the person's credentials, as a release's do, and a recipe's entries become
+  the repository's own commands and rules (Context), so the bytes of both need the same guarantee: what acts is exactly
+  what someone pinned. A release key vouches only for the release's publisher, and the author of an ingredient or a
+  recipe is someone else, whose key no binary can carry (Context), so trust in them is built in three steps. At pin
+  time, the cookbook's checksum file over HTTPS is what ties the downloaded bytes to what the cookbook published; HTTPS
+  authenticates only the host (Context), so this step alone is the model rejected below for releases as checksums
+  recorded by whoever upgrades. The second step closes most of that gap: the pins enter the repository only through a
+  reviewed diff, and an ingredient or a recipe is data a reviewer can read in full before approving it (Context), which
+  a compiled release does not allow. An ingredient a recipe lists takes its hash from a recipe the checksum file
+  verified, and its pin appears in the same diff for the same review. After that, the hash the reviewed change committed
+  is the root, and verifying it on every load catches a cached copy changed after it was fetched (Context). Fetching
+  only on a person's command makes the moment of trust a moment a person acts: a fetch during a hook or an attempt would
+  let whoever controls the source change what a worker runs while nobody watches. The wrapper stays a shell script that
+  knows only the release (point 4). The trade: an ingredient or a recipe compromised at its source before someone pinned
+  it passes every check, and because none comes from the release ([0022](0022-tool-integration.md)), the floor of every
+  program is only as good as the review of its pin.
 
 ## Rejected alternatives
 
@@ -117,12 +126,13 @@ for no gain over a plain signature with embedded keys.
 
 At its best, nothing beyond the download is needed. It loses because a release replaced on the host passes.
 
-### Signed recipes
+### Signed ingredients and recipes
 
-Each recipe's author signs it, and the binary verifies the signature as it verifies a release's. At its best, a recipe
-compromised at its source before someone pinned it is caught. It loses because the binary would need every author's key:
-embedding them couples each release to those authors, the coupling [0013](0013-organization-content.md) rejects for
-organization content, and fetching them trusts the host the signature exists to distrust (point 2).
+The author of each ingredient and recipe signs it, and the binary verifies the signature as it verifies a release's. At
+its best, an ingredient or a recipe compromised at its source before someone pinned it is caught. It loses because the
+binary would need every author's key: embedding them couples each release to those authors, the coupling
+[0013](0013-organization-content.md) rejects for organization content, and fetching them trusts the host the signature
+exists to distrust (point 2).
 
 ### Signature verification in the wrapper
 
@@ -141,15 +151,16 @@ Costs:
 - The wrapper checks the downloaded asset against the committed checksum, not the signature. A checksum edited by hand
   in the pin passes the wrapper and is caught by the drift check ([0007](0007-ownership.md)) and the health check.
 - The release process holds a signing key that must be protected.
-- Every recipe, and with it the floor of every program, is only as good as the review of its pin: one compromised at
-  its source before it was pinned passes every check.
-- Every machine, CI included, fetches each pinned recipe in an explicit step before a hook or an attempt can use it.
+- Every ingredient and recipe, and with them the floor of every program, is only as good as the review of its pin: one
+  compromised at its source before it was pinned passes every check.
+- Every machine, CI included, fetches each pinned ingredient in an explicit step before a hook or an attempt can use it.
 
 Must be maintained:
 
 - A signed checksum file for every release, custody of the signing key, rotation releases, and the embedded key list.
-- Verification of every recipe against the cookbook's checksum file when it is pinned, and against its pin on every
-  download and every load.
+- Verification of every ingredient and recipe a person names against the cookbook's checksum file when it is pinned, of
+  every ingredient a recipe lists against the hash the recipe gives, and of each against its pin on every download and
+  every load.
 
 ## Confirmation
 
@@ -160,9 +171,10 @@ Must be maintained:
 - The wrapper refuses a tampered asset fixture ([0017](0017-engine-version.md)).
 - A fixture whose committed checksum differs from the signed checksum file is reported by the health check.
 - A test asserts that signature verification runs inside the binary and starts no external program.
-- A pin fixture whose downloaded recipe differs from the cookbook's checksum file is refused, and the repository's
-  files stay byte-identical.
+- A pin fixture whose downloaded ingredient or recipe differs from the cookbook's checksum file is refused, and the
+  repository's files stay byte-identical.
 - A pin fixture against a cookbook source that is not HTTPS is refused before any download.
-- A fixture recipe whose cached bytes differ from the hash its repository pins is refused on load, and no command it
-  describes starts.
-- A fixture hook and a fixture unattended attempt that need an uncached recipe make no network request.
+- A fixture ingredient whose cached bytes differ from the hash its repository pins is refused on load, and no command it
+  describes starts; a fixture recipe whose cached bytes differ from its pin is refused, and applying it writes nothing.
+- A pin fixture of a recipe pins the ingredients it lists at the hashes it gives, in the same diff.
+- A fixture hook and a fixture attempt that need an uncached ingredient make no network request.

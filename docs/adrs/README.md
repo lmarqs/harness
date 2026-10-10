@@ -22,8 +22,8 @@ it is checked in that pull request. Git history holds the earlier versions.
 A decision that stops applying is deleted, together with every reference to it. Its number is not reused.
 
 Reasons: a corpus that accumulates superseded records forces every reader to reconstruct the current state from a
-chain of partial replacements, and a reader who stops early acts on a decision that no longer holds. An agent that
-reads the corpus before making a change is that reader on every run.
+chain of partial replacements, and a reader who stops early acts on a decision that no longer holds. A coding agent
+that reads the corpus before making a change is that reader on every run.
 
 ## The objective comes first
 
@@ -89,9 +89,9 @@ One ADR holds one decision. If its points serve two decisions, it is two ADRs.
 
 - Present tense, no hedges.
 - No names of the tool's commands, flags, settings, environment variables, exit codes or files. Mechanisms are named
-  generically: the wrapper, the manifest, the drift check, the health check, the repository's data, a recipe. The
-  [glossary](../features/glossary.md) and the [features](../features/) pages give the tool's own name for each. The
-  directory layout ADR names directories because the layout is its decision.
+  generically: the wrapper, the manifest, the drift check, the health check, the repository's data, an ingredient, a
+  recipe. The [glossary](../features/glossary.md) and the [features](../features/) pages give the tool's own name for
+  each. The directory layout ADR names directories because the layout is its decision.
 - A third-party product whose behaviour a decision depends on is named with the version that behaviour was checked
   against. Prior art and rejected tools are named without a version, because nothing depends on their behaviour.
 - Organizations appear only as the makers of third-party products whose behaviour matters; examples use `acme`.
@@ -146,26 +146,27 @@ Must be maintained:
 
 | ADR | Question | Decision |
 | --- | --- | --- |
-| [0001](0001-role-of-the-tool.md) | What is the tool's role? | The tool configures agent harnesses and never acts as one |
+| [0001](0001-role-of-the-tool.md) | What is the tool's role? | The tool is a software development lifecycle, never a worker |
 | [0002](0002-division-of-work.md) | Which work does the binary do? | The binary does only deterministic work |
 | [0003](0003-implementation-language.md) | In what language, and as what artefact? | The tool is one executable written in Go |
 | [0004](0004-runtime-dependencies.md) | What does the binary need at runtime? | The binary needs only the operating system at runtime |
-| [0005](0005-schema-compatibility.md) | How do repository files, recipes and binaries stay compatible? | Every repository file and recipe carries a schema version the binary enforces |
+| [0005](0005-schema-compatibility.md) | How do repository files, ingredients, recipes and binaries stay compatible? | Repository files, ingredients and recipes carry a schema version the binary enforces |
 | [0006](0006-repository-contract.md) | What does a repository hold? | A repository holds declarative data, never engine code |
 | [0007](0007-ownership.md) | How is ownership of generated content known? | A committed manifest records everything the tool owns |
-| [0008](0008-native-configuration.md) | How does the tool write files that agents and people share? | The tool owns only named keys inside shared native files |
-| [0009](0009-agent-support.md) | How are several agents supported? | Harness recipes render agent-neutral sources into each agent's native files |
+| [0008](0008-native-configuration.md) | How does the tool write files that workers and people share? | The tool owns only named keys inside shared native files |
+| [0009](0009-agent-support.md) | How are several workers supported? | Worker ingredients render worker-neutral sources into each worker's native files |
 | [0010](0010-dependence-on-the-binary.md) | What depends on the binary being installed? | Nothing in an adopted repository depends on the binary |
 | [0011](0011-safety-invariants.md) | Where do safety rules live? | Safety invariants are built into the binary, never configured |
 | [0012](0012-write-boundary.md) | What may the binary write? | The binary writes only content it owns |
 | [0013](0013-organization-content.md) | Where does organization-specific content live? | Organization-specific content lives in each repository's own files |
 | [0014](0014-directory-layout.md) | Where does each kind of file live? | Tool configuration, agent content and state have separate homes |
-| [0015](0015-development-lifecycle.md) | How are the steps of a change automated? | The development lifecycle is a fixed set of events the binary fires |
+| [0015](0015-development-lifecycle.md) | What abstraction is the binary built around? | The binary's core is a fixed software development lifecycle |
 | [0016](0016-permission-adoption.md) | What happens to existing permission rules at adoption? | Adoption keeps every native permission rule in effect |
 | [0017](0017-engine-version.md) | Which release runs in a repository? | Each repository pins its engine release through a committed wrapper |
 | [0018](0018-conventions.md) | What remains when the tool is gone? | Conventions the tool establishes are written to outlive it |
-| [0019](0019-action-kinds.md) | What can a declared action do? | Declared actions are commands, HTTP requests or headless agent runs |
-| [0020](0020-standing-context.md) | How does known guidance reach an agent? | Guidance enters agent context through declared deterministic triggers |
+| [0019](0019-action-kinds.md) | What can a declared action do? | Declared actions are commands, HTTP requests or worker attempts |
+| [0020](0020-standing-context.md) | How does known guidance reach a worker? | Guidance enters worker context through declared deterministic triggers |
 | [0021](0021-release-trust.md) | How is downloaded content trusted? | Only an already trusted binary admits downloaded content |
-| [0022](0022-tool-integration.md) | How does the binary reach external programs? | Every program the binary uses is described by a recipe |
+| [0022](0022-tool-integration.md) | How does the binary reach external programs? | Every program the binary uses is described by an ingredient |
 | [0023](0023-core-and-contracts.md) | How is the binary's code divided? | The binary is a core behind contracts it declares |
+| [0024](0024-ingredients-and-recipes.md) | What does a cookbook publish? | An ingredient describes one program, a recipe one way of working |

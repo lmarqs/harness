@@ -2,17 +2,18 @@
 
 ## Objective
 
-**Problem.** The tool runs on every developer machine and CI runner that adopts it, and inside agent hooks that fire on
-every file edit. A language whose programs start slowly, or need a runtime a machine lacks, makes every agent action
-slower or makes hooks fail. The language is also the hardest part of the tool to change later.
+**Problem.** The tool runs on every developer machine and CI runner that adopts it, and inside the hooks a coding agent
+fires on every file edit. A language whose programs start slowly, or need a runtime a machine lacks, makes every action
+of that coding agent slower or makes hooks fail. The language is also the hardest part of the tool to change later.
 
 **Goal.** A hook call stays within 50 ms at p95, and the tool runs on every supported machine with nothing else
 installed, for the life of the project.
 
 ## Context
 
-- The tool runs on developer machines, on CI runners, and inside hook calls that harnesses fire on agent events such as
-  every file edit. Hook latency adds to every agent action, and a session can make hundreds of edits.
+- The tool runs on developer machines, on CI runners, and inside hook calls that coding agents fire on their events,
+  such as every file edit. Hook latency adds to every action of a coding agent, and a session can make hundreds of
+  edits.
 - Repositories carry the runtimes of their own stack, so a runtime one repository has, another lacks. Example: at acme,
   `acme/api` is a Node service with no Python, two Python services pin Python 3.9 and 3.13, and `acme/infra` holds
   Terraform code and has neither Python nor Node.
@@ -30,9 +31,9 @@ installed, for the life of the project.
 
 1. The tool is one executable written in Go, cross-compiled for Linux and macOS on amd64 and arm64.
 2. The tool's own documentation, the shipped skill's text, the templates of the tool's own files and the release public
-   keys are embedded at build time, and nothing that names an external program is among them: no recipe is embedded
-   ([0022](0022-tool-integration.md)). Nothing executable ships beside the binary: no helper scripts, loadable modules
-   or sidecar processes.
+   keys are embedded at build time, and nothing that names an external program is among them: no ingredient or recipe is
+   embedded ([0022](0022-tool-integration.md)). Nothing executable ships beside the binary: no helper scripts, loadable
+   modules or sidecar processes.
 3. A hook invocation adds at most 50 ms at p95 on a developer workstation, excluding the repository's own commands. A
    change that exceeds this budget is not released.
 
@@ -47,10 +48,11 @@ installed, for the life of the project.
 - **2.** One file is one thing to pin, download, verify and cache ([0017](0017-engine-version.md),
   [0021](0021-release-trust.md)). Embedded documentation and templates describe the tool itself, so they ship with the
   release that enforces them ([0002](0002-division-of-work.md)), and embedded keys need no fetch to verify a release
-  ([0021](0021-release-trust.md)). Recipes describe other programs and change with them, so they come from cookbooks
-  instead ([0022](0022-tool-integration.md)). Helper scripts or loadable modules beside the binary would be engine code
+  ([0021](0021-release-trust.md)). Ingredients describe other programs and change with them, so they come from cookbooks
+  instead ([0022](0022-tool-integration.md)), and so do the recipes built from them
+  ([0024](0024-ingredients-and-recipes.md)). Helper scripts or loadable modules beside the binary would be engine code
   that can drift or be edited, which [0006](0006-repository-contract.md) excludes.
-- **3.** Hook overhead multiplies by the number of agent events in a session. A fixed budget measured in CI makes
+- **3.** Hook overhead multiplies by the number of worker events in a session. A fixed budget measured in CI makes
   latency a release criterion instead of a regression that people discover in their sessions.
 
 ## Rejected alternatives

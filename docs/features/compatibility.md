@@ -3,27 +3,27 @@
 ## Objective
 
 **Problem.** A repository that adopts the tool already holds tools, settings and records that people depend on: an issue
-tracker, a task database, a loop runner's configuration, version-control hooks, CI pipelines and hand-kept agent
-settings. A developer weighing adoption, and a teammate who never chose it, need to know which of these change, because
-a tool that rewrites them breaks work in ways that are hard to undo. They also need to know what still works if the
-repository stops using the tool.
+tracker, a task database, a loop runner's configuration, version-control hooks, CI pipelines and hand-kept settings of
+its coding agents. A developer weighing adoption, and a teammate who never chose it, need to know which of these change,
+because a tool that rewrites them breaks work in ways that are hard to undo. They also need to know what still works if
+the repository stops using the tool.
 
 **Goal.** Everything people and other tools relied on before adoption works the same after it and after removal, and a
 reader can check that for each tool before adopting.
 
 ## Overview
 
-`the-cook` shares a repository with the tools, settings and records below, and stays out of their way. It never
-reconfigures state it did not create and never writes knowledge. The binary contains code for no external program and
-ships no recipe: version control, every agent harness and every other program are described by the
-[recipes](recipes.md) the repository pins from a cookbook, and the binary has no code for any loop runner, task
-tracker, skills installer, task runner or hosting platform ([ADR 0022](../adrs/0022-tool-integration.md)). A program
-reaches a repository as data: a recipe's entries, templates and renders, a command the profile declares, or a lifecycle
-action. What `the-cook` sets up does not depend on it either: every convention is written down in plain text, and an
-eject keeps it.
+`the-cook` enforces the lifecycle a repository declares, and shares the repository with the tools, settings and records
+below while staying out of their way. It never reconfigures state it did not create and never writes knowledge. The
+binary contains code for no external program and ships no ingredient or recipe: version control, every worker and
+every other program are described by the [ingredients](ingredients.md) the repository pins from a cookbook, and the
+binary has no code for any loop runner, task tracker, skills installer, task runner or hosting platform
+([ADR 0022](../adrs/0022-tool-integration.md)). A program reaches a repository as data: an ingredient's renders, a
+recipe's entries and templates, a command the profile declares, or a lifecycle action. What `the-cook` sets up does not
+depend on it either: every convention is written down in plain text, and an eject keeps it.
 
-How each program behaves next to `the-cook`, and what its recipe does about it, is documented with that recipe, in the
-cookbook that publishes it. This page states the rules every recipe and the binary follow.
+How each program behaves next to `the-cook`, and what its ingredient does about it, is documented with that ingredient,
+in the cookbook that publishes it. This page states the rules every ingredient, every recipe and the binary follow.
 
 Commands on this page run as `./cook <command>`, through the repository's [wrapper](wrapper.md); with a global
 install, `the-cook <command>` is equivalent.
@@ -35,16 +35,16 @@ install, `the-cook <command>` is equivalent.
 | Issues, pull requests and boards on a hosting platform | The binary never writes them; delivery is the repository's declared `deliver` actions |
 | A task tracker's data in the clone ([task trackers](#task-trackers)) | Never reads or writes it; tracker actions the repository declares, or a recipe wrote, run the tracker's own command |
 | A loop runner's configuration and runs ([loop runners](#loop-runners)) | Never reads its configuration; a recipe may write a configuration template, only when it is absent |
-| Task runners ([task runners](#task-runners)) | Never reads or writes their files; a declared command may run one; a recipe's floor may deny agents some of its forms |
+| Task runners ([task runners](#task-runners)) | Never reads or writes their files; a declared command may run one; an ingredient's floor may deny workers some of its forms |
 | Shared skills from a skills installer ([skills installers](#skills-installers)) | Never runs the installer; leaves `.agents/skills/` and the installer's lock file to it |
-| A harness's project settings files | The harness recipe's renders own only specific keys; the rest is preserved byte for byte ([native agent files](#native-agent-files)) |
-| A harness's local and user settings | Never writes them; reads them only for `scaffold --import local` or `--import user` |
-| A harness's own instructions file | When the harness recipe imports `AGENTS.md` through it, adds one import line in a managed block; leaves the rest |
-| A harness's skills directory, as a real directory or a link | Leaves its shape; adds one link if needed |
+| A worker's project settings files | The worker ingredient's renders own only specific keys; the rest is preserved byte for byte ([native worker files](#native-worker-files)) |
+| A worker's local and user settings | Never writes them; reads them only for `scaffold --import local` or `--import user` |
+| A worker's own instructions file | When the worker ingredient imports `AGENTS.md` through it, adds one import line in a managed block; leaves the rest |
+| A worker's skills directory, as a real directory or a link | Leaves its shape; adds one link if needed |
 | Version-control hooks and hook managers | Never installs or changes them |
-| `.gitignore` | Each recipe in use that needs it adds its own marked blocks; every other line is left |
+| `.gitignore` | Each ingredient in use that needs it adds its own marked blocks; every other line is left |
 | Other tools' sections in `AGENTS.md` | Leaves them |
-| Files of agents no recipe in use describes | Leaves them |
+| Files of programs no ingredient in use describes | Leaves them |
 | A `.cook/` directory that `the-cook` did not create | Refuses to adopt the repository and never changes the directory ([scaffold](scaffold.md#greenfield)) |
 | CI/CD | Requires nothing; `./cook render --check` is an optional step; a CI-trigger convention is a `deliver` action |
 
@@ -54,7 +54,7 @@ What stays after `the-cook` is removed is under [After removal](#after-removal).
 
 Issues, pull requests and projects on the hosting platform are the record of the team's work. The binary contains no
 logic for any hosting platform, and never writes issues, projects, boards, comments, reviews or labels. Linking a task
-of a tracker to an issue is an agent's or a person's job.
+of a tracker to an issue is a person's or a coding agent's job.
 
 Everything that leaves the clone (a push, a pull request, a CI trigger, a notification) is a
 [lifecycle action](lifecycle.md) the repository declares in its own `.cook/hooks.yaml`, such as a command that opens a
@@ -65,48 +65,48 @@ CLI or API. A repository that declares none never has anything leave the clone t
 
 The binary has no code for any task tracker: it never runs a tracker's command of its own accord, reads its data or
 creates it. A tracker is wired by lifecycle actions on `start`, `completed` and `blocked`, which the repository declares
-or a tracker recipe writes as entries, in a managed workspace bound to a task ([tasks](tasks.md)). Creating and
-configuring the tracker's data, and every other use of the tracker, is the team's.
+or a recipe such as `agentic-coding` writes as entries, in a managed workspace bound to a task ([tasks](tasks.md)).
+Creating and configuring the tracker's data, and every other use of the tracker, is the team's.
 
 | Situation | Behaviour |
 | --- | --- |
 | No tracker data in the clone | nothing is created; initialising it is the tracker's own step |
 | Existing tracker data | never read, written or moved by the binary; its remotes, sync settings and hooks are the tracker's own |
 | Tracker actions | run the tracker's command with the credentials of whoever fires the event; what they write travels where the repository's synchronisation sends it, and `the-cook` never configures that synchronisation ([ADR 0012](../adrs/0012-write-boundary.md)) |
-| A sandboxed worker that writes the tracker's data | the data directory is listed in `agents.<name>.writable_roots`, by hand or by the tracker recipe ([profile](profile.md#agents)) |
+| A sandboxed worker that writes the tracker's data | the data directory is listed in `workers.<name>.writable_roots`, by hand or by the recipe that wires the tracker ([profile](profile.md#workers)) |
 | Tracker data tracked in version control, or ignored | the team's choice; the binary writes no `.gitignore` entry for it |
-| A tracker remote agents must never push to | a `deny` entry in the repository's policy |
+| A tracker remote workers must never push to | a `deny` entry in the repository's policy |
 
 ## Loop runners
 
-A loop runner works through a list of tasks unattended, starting an agent for each. The binary has no code for any loop
-runner and reads none of its configuration. A loop-runner recipe can write the runner's configuration as a
-[template](recipes.md#templates), only when it is absent, with `./cook worker <agent>` as each agent's command, so every
-attempt runs under the worker contract and is verified before the runner sees it complete ([worker](worker.md)). From
-then on the file is the repository's. Starting the runner, choosing its task source and firing the events of a run as a
-whole are the team's.
+A loop runner works through a list of tasks unattended, starting a worker for each. The binary has no code for any loop
+runner and reads none of its configuration. A recipe such as `agentic-coding` can write the runner's configuration as a
+[template](recipes.md#templates), only when it is absent, with `./cook attempt <worker>` as the command it runs for each
+task, so every attempt runs under the attempt contract and is verified before the runner sees it complete
+([attempts](attempts.md)). From then on the file is the repository's. Starting the runner, choosing its task source and
+firing the events of a run as a whole are the team's.
 
 | Situation | Behaviour |
 | --- | --- |
 | A runner configuration the repository already has | never read or written; applying a recipe whose template it is reports it as kept |
-| A per-user runner configuration | never read or written. A setting there that reaches the worker as a bypass argument of the agent's harness recipe is refused at the first task |
+| A per-user runner configuration | never read or written. A setting there that reaches the attempt as a bypass argument of the worker's ingredient is refused at the first task |
 | The runner's branches, session state and workspaces | the runner's own; `the-cook` never cleans them |
-| The runner's task source | the team's choice; `the-cook` sees only the worker command |
+| The runner's task source | the team's choice; `the-cook` sees only the command the runner runs for each task |
 | A run as a whole | nothing fires run-scope events by itself; whoever drives the run fires `./cook lifecycle run completed --scope run` or `blocked --scope run` |
-| A runner started with an agent command other than `the-cook worker` | outside `the-cook`: the worker contract holds only for agents the binary starts |
+| A runner whose command for each task is not `the-cook attempt` | outside `the-cook`: the attempt contract holds only for workers the binary starts |
 
 ## Task runners
 
 The binary has no code for any task runner: it writes no tasks and reads no task runner's configuration. A repository
 uses its task runner through its own commands: a declared command, lane or action may run a task, and `the-cook` runs
-it like any other command. People and agents run `the-cook` itself as `./cook <command>`.
+it like any other command. People and workers run `the-cook` itself as `./cook <command>`.
 
 | Situation | Behaviour |
 | --- | --- |
 | A task runner's files | never read or written |
 | A declared command, lane or action that runs the task runner | runs as written; `doctor` reports it when the program is not on PATH |
-| A task runner detected and its recipe not in `recipes:` | when a pinned cookbook's recipe for it has a detect rule, `recipe list --cookbook` shows the match; the recipe's floor is not in use until it is pinned |
-| A task-runner form that lets an allowed task carry an unlisted one | denied for agents by the recipe's floor, when the recipe is in use ([policy](policy.md#the-floor)) |
+| A task runner whose ingredient is not in `ingredients:` | when a cookbook's ingredient for it has a detect rule, `ingredient list --cookbook` shows the match; the ingredient's floor is not in use until it is pinned |
+| A task-runner form that lets an allowed task carry an unlisted one | denied for workers by the ingredient's floor, when the ingredient is in use ([policy](policy.md#the-floor)) |
 | `the-cook` installed through a tool-version manager | an install option ([installation](installation.md#global-install-optional)); a `the-cook` it puts on PATH defers to `.cook/wrapper.yaml` |
 | A pin of `the-cook` in the task runner's own tool list | never read: `.cook/wrapper.yaml` is the pin `the-cook` runs, and a second pin drifts from it, so keep `the-cook` out of the task runner's files |
 
@@ -120,43 +120,45 @@ The profile's `context` names skills by name, and `doctor` reports a skill named
 `.agents/skills/` ([skills](skills.md)). The shipped skill, `.agents/skills/the-cook/SKILL.md`, is the one skill
 `the-cook` writes.
 
-## Native agent files
+## Native worker files
 
-Each harness's own files, its settings, rules, hooks and instructions, are rendered only through its harness recipe
-([the harness contract](recipes.md#the-harness-contract)), which names the keys and entries it owns.
+Each worker's own files, its settings, rules, hooks and instructions, are rendered only through its ingredient
+([the worker contract](ingredients.md#the-worker-contract)), which names the keys and entries it owns.
 
 | File or shape | Behaviour |
 | --- | --- |
-| A project settings file with keys no render owns | preserved byte for byte; the harness recipe's renders own only the keys and entries it names |
-| A notification key the repository already sets to a program of its own | left as it is; the notification is not rendered for that harness, and `doctor` notes it |
+| A project settings file with keys no render owns | preserved byte for byte; the worker ingredient's renders own only the keys and entries it names |
+| A notification key the repository already sets to a program of its own | left as it is; the notification is not rendered for that worker, and `doctor` notes it |
 | Hand-written permissions and hooks | imported losslessly by [`scaffold --adopt`](scaffold.md#adopt), with an equivalence check |
 | Local and user settings | never written; read only by `scaffold --import local` or `--import user`, which marks what it imports for review |
 | Mode, sandbox and approval settings, MCP server definitions, managed settings | not policy; left in place, reported as notes by adoption and `doctor` |
-| A harness skills directory that is a whole-directory link to `.agents/skills` | kept; the shipped skill is reached through it |
-| A harness skills directory that is a real directory | kept; one per-entry link `the-cook` is added |
-| A harness instructions file with content | content untouched; when the harness recipe imports `AGENTS.md` through it, an `import` block is added |
-| A harness's own worktrees or workspaces | the harness's; never scanned or cleaned |
+| A worker's skills directory that is a whole-directory link to `.agents/skills` | kept; the shipped skill is reached through it |
+| A worker's skills directory that is a real directory | kept; one per-entry link `the-cook` is added |
+| A worker's instructions file with content | content untouched; when the worker ingredient imports `AGENTS.md` through it, an `import` block is added |
+| A worker's own worktrees or workspaces | the worker's; never scanned or cleaned |
 
 Merge-rendering rewrites only the owned keys and entries; every other key keeps its bytes, formatting included.
 
 ## Version control
 
-The binary contains no code for any version control system. The repository's version-control recipe fills the
-[version-control contract](recipes.md#the-version-control-contract), and `vcs:` in the profile names it.
+The binary contains no code for any version control system. The repository's version-control ingredient fills the
+[version-control contract](ingredients.md#the-version-control-contract), and `vcs:` in the profile names it. The start,
+complete and landed stages of the lifecycle reach version control only through it.
 
 - `the-cook` never installs or changes version-control hooks.
-- Workspace creation, the base, history and landed detection run through the recipe's operations. A command that needs
-  them while no declared recipe fills the contract exits 3 and names `the-cook recipe pin`; reading the profile does not
-  need them, because the binary finds the repository root itself.
-- The floor that protects the default branch is the recipe's.
-- Every command that reads history needs the program the recipe runs; `doctor` reports it when it is missing.
+- Workspace creation, the base, history and landed detection run through the ingredient's operations. A command that
+  needs them while no pinned ingredient fills the contract exits 3 and names `the-cook recipe apply` and
+  `the-cook ingredient pin`; reading the profile does not need them, because the binary finds the repository root
+  itself.
+- The floor that protects the default branch is the ingredient's.
+- Every command that reads history needs the program the ingredient runs; `doctor` reports it when it is missing.
 
 ## `.gitignore`
 
-Each recipe in use that creates a path adds its own marked block, such as the version-control recipe's `state` and
-`workspaces` ([block ids](render.md#block-ids)). A block writes its own entries even when another block's entry already
-covers them, such as `/.work/workspaces/` under `/.work/`, so removing one never un-ignores another's paths. Paths the
-repository tracks are left out of the blocks. Every other line is untouched.
+Each ingredient in use that creates a path adds its own marked block, such as the version-control ingredient's `state`
+and `workspaces` ([block ids](render.md#block-ids)). A block writes its own entries even when another block's entry
+already covers them, such as `/.work/workspaces/` under `/.work/`, so removing one never un-ignores another's paths.
+Paths the repository tracks are left out of the blocks. Every other line is untouched.
 
 ```gitignore
 # cook:state
@@ -172,9 +174,9 @@ the other tool's section if it reads redundantly.
 
 ## Monorepos
 
-`the-cook` operates at the repository root only, as the version-control recipe reports it: one profile, one policy and
-one hooks file per repository. A harness's settings directories nested in sub-projects are left alone. Agent sessions
-started in a subdirectory are out of scope; see [pitfalls](pitfalls.md).
+`the-cook` operates at the repository root only, as the version-control ingredient reports it: one profile, one policy
+and one hooks file per repository. A worker's settings directories nested in sub-projects are left alone. Worker
+sessions started in a subdirectory are out of scope; see [pitfalls](pitfalls.md).
 
 ## CI/CD
 
@@ -186,10 +188,10 @@ A repository's CI/CD is unchanged by adopting `the-cook`:
 - `./cook render --check` and `./cook doctor` are optional steps you may add ([render](render.md#drift-check));
   the wrapper downloads the pinned release over HTTPS and verifies its checksum, so CI runs exactly the release the
   pull request pins ([wrapper](wrapper.md#ci));
-- a job that runs either step runs `./cook recipe fetch` first, which downloads every declared recipe the job's cache
-  lacks and verifies it against its pin;
-- the drift check reads only the repository's files, the pinned release and the pinned recipes, so its result changes
-  only with a commit to the repository ([ADR 0013](../adrs/0013-organization-content.md)).
+- a job that runs either step runs `./cook fetch` first, which downloads every pinned ingredient and recipe the job's
+  cache lacks and verifies it against its pin;
+- the drift check reads only the repository's files, the pinned release and the pinned ingredients, so its result
+  changes only with a commit to the repository ([ADR 0013](../adrs/0013-organization-content.md)).
 
 ## Versions
 
@@ -200,37 +202,37 @@ A repository's CI/CD is unchanged by adopting `the-cook`:
   [pending](wrapper.md#a-pending-pin), and nothing downloads against a pending pin. The wrapper then checks each
   download against the committed checksums. `doctor`, when online, re-verifies the pinned release's signed checksum file
   against `wrapper.yaml` ([wrapper](wrapper.md#security)).
-- Rendered output depends on the sources, on the pinned release and on the recipes the profile pins by sha256, and
+- Rendered output depends on the sources, on the pinned release and on the ingredients the profile pins by sha256, and
   never records the release; rendered files carry the `schema`.
-- A recipe's pin changes only through `the-cook recipe pin` or `scaffold --cookbook`, which verify each archive
-  against the cookbook's `checksums.txt`, as downloaded over HTTPS at that moment, and show the `recipes:` entries as a
-  diff for review. The binary then verifies every archive against its pin on download and on every load, and refuses a
-  mismatch with exit 1. Only those two commands, `recipe fetch` and `recipe apply` of an uncached recipe download
-  recipes; every other command reads them from the per-user cache, so a clone works offline once its recipes are cached
-  ([recipes](recipes.md)).
-- Each recipe declares the contract version it fills and the recipe schema it is written in. The binary refuses a
-  recipe whose schema is newer than it supports, naming the release needed
-  ([ADR 0005](../adrs/0005-schema-compatibility.md)).
+- An ingredient's pin changes only through `the-cook ingredient pin`, `the-cook recipe apply` or `scaffold --cookbook`,
+  which verify each archive against the cookbook's `checksums.txt`, as downloaded over HTTPS at that moment, and show
+  the pins as a diff for review. The binary then verifies every archive against its pin on download and on every load,
+  and refuses a mismatch with exit 1. Only those commands and `fetch` download ingredients and recipes; every other
+  command reads them from the per-user cache, so a clone works offline once its ingredients are cached
+  ([ingredients](ingredients.md)).
+- Each ingredient declares its schema and, when it fills a contract, the contract version it is written for; each
+  recipe declares its schema. The binary refuses an ingredient or a recipe whose schema is newer than it supports,
+  naming the release needed ([ADR 0005](../adrs/0005-schema-compatibility.md)).
 - `the-cook wrapper --version <tag>` renders the repository with the new release in the same change, migrating
   older-schema files, so the pin and every artefact the new release renders differently land in one diff
   ([wrapper](wrapper.md#upgrading)). A binary older than the repository's schema refuses, naming the pinned release to
   run. That happens only when the pin is bypassed, through `COOK_BINARY` or a global binary too old to defer to the
   pin ([installation](installation.md#version-skew)).
-- `the-cook doctor` runs the version check of every recipe in use against the range that recipe declares, which
-  `the-cook doctor --json` and `the-cook recipe show <name>` list, and reports a version outside its range as a finding
-  ([Supported program versions](#supported-program-versions)). A program no recipe in use describes gets no version
-  check; `doctor` still reports a program that a recipe, a declared command, a lane, a validator or an action names and
-  that is not on PATH.
+- `the-cook doctor` runs the version check of every ingredient in use against the range that ingredient declares,
+  which `the-cook doctor --json` and `the-cook ingredient show <name>` list, and reports a version outside its range as
+  a finding ([Supported program versions](#supported-program-versions)). A program no ingredient in use describes gets
+  no version check; `doctor` still reports a program that an ingredient, a declared command, a lane, a validator or an
+  action names and that is not on PATH.
 - The pinned release runs the drift check, which fails on any difference, the shipped skill included
   ([ADR 0007](../adrs/0007-ownership.md)). A binary other than the pinned release, run through `COOK_BINARY`, gets a
   `doctor` note, because its drift results may differ.
 
 ### Supported program versions
 
-Each recipe declares the versions of its program it supports, and the cookbook that publishes it tests it against the
-programs and versions it names. `the-cook`'s own tests cover the core with stand-in recipes, so the range a recipe
-declares is what its cookbook stands behind. `the-cook doctor --json` and `the-cook recipe show <name>` list the range
-of each recipe in use.
+Each ingredient declares the versions of its program it supports, and the cookbook that publishes it tests it against
+the programs and versions it names. `the-cook`'s own tests cover the core with stand-in ingredients and recipes, so the
+range an ingredient declares is what its cookbook stands behind. `the-cook doctor --json` and
+`the-cook ingredient show <name>` list the range of each ingredient in use.
 
 ## After removal
 
@@ -239,16 +241,16 @@ removing it does not strand the repository ([remove](remove.md)):
 
 | After `remove --eject` | Still works |
 | --- | --- |
-| `AGENTS.md` keeps the text of its convention blocks without markers: where workspaces live, the effective permissions, where memory is, static standing context | agents and people follow it as ordinary instructions |
-| A harness's instructions file keeps its import of `AGENTS.md` | that harness still reads `AGENTS.md` |
+| `AGENTS.md` keeps the text of its convention blocks without markers: where workspaces live, the effective permissions, where memory is, static standing context | workers and people follow it as ordinary instructions |
+| A worker's instructions file keeps its import of `AGENTS.md` | that worker still reads `AGENTS.md` |
 | `.gitignore` keeps every entry | state stays out of commits |
-| Native settings keep their permissions and `raw` hooks as hand-owned content | agents keep the same rules |
-| A tracker's data, which `the-cook` never touched, and the templates a recipe wrote, such as a loop runner's configuration, stay: they are the repository's own | the tracker; the loop runner once its agent command, `./cook worker`, is replaced |
+| Native settings keep their permissions and `raw` hooks as hand-owned content | workers keep the same rules |
+| A tracker's data, which `the-cook` never touched, and the templates a recipe wrote, such as a loop runner's configuration, stay: they are the repository's own | the tracker; the loop runner once its command for each task, `./cook attempt`, is replaced |
 
 The eject removes the tool blocks, which describe how to use `the-cook` (`commands`, `layout`, `verify` and `lifecycle`
 in `AGENTS.md`, `commands` in `README.md`), together with the shipped skill and its links, so no file `the-cook`
 rendered names a `the-cook` command afterwards. A template a recipe wrote is the repository's own and keeps what it
-says, such as the agent command in a loop runner's configuration.
+says, such as the command for each task in a loop runner's configuration.
 
 An undo, `the-cook remove` without `--eject`, instead returns the repository to the setup it had before adoption: every
 block and its text is removed, and the settings adoption imported are written back. Both modes delete `cook`, the
@@ -259,4 +261,4 @@ is.
 ## Not supported
 
 - Windows: the wrapper is a POSIX `sh` script, and releases are built for linux and macOS only.
-- Projects that are not at the repository root, and agent sessions started in a subdirectory.
+- Projects that are not at the repository root, and worker sessions started in a subdirectory.

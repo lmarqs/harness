@@ -2,21 +2,21 @@
 
 ## Objective
 
-**Problem.** Developers, reviewers and agents act on the text the tool prints, puts into agent sessions and ships as
-documentation. When a message is vague, blames its reader, names the wrong thing or leaves out what to do next, a person
-has to search for the next step, and an agent, which reads literally, takes a wrong action. When documentation pages
-each take their own shape, or describe how things used to be, a reader looks in the wrong place or acts on what is no
-longer true.
+**Problem.** Developers, reviewers and coding agents act on the text the tool prints, puts into coding agents' sessions
+and ships as documentation. When a message is vague, blames its reader, names the wrong thing or leaves out what to do
+next, a person has to search for the next step, and a coding agent, which reads literally, takes a wrong action. When
+documentation pages each take their own shape, or describe how things used to be, a reader looks in the wrong place or
+acts on what is no longer true.
 
-**Goal.** A person or an agent reading any message knows what to do next without searching, and both understand it the
-same way. A reader of any documentation page finds what is true now, in the place they expect to find it.
+**Goal.** A person or a coding agent reading any message knows what to do next without searching, and both understand
+it the same way. A reader of any documentation page finds what is true now, in the place they expect to find it.
 
 ## Overview
 
 These rules set the voice, tone and structure of every text `the-cook` produces or ships: CLI messages, hook output,
 `doctor` findings, injected standing context, the shipped skill, `the-cook explain`, managed-block content and the
-documentation in this repository. Terms such as standing context, managed block, module and shipped skill are defined in
-the [glossary](../features/glossary.md).
+documentation in this repository, and the names the documentation gives the parts of the lifecycle. Terms such as
+standing context, managed block, module and shipped skill are defined in the [glossary](../features/glossary.md).
 
 ## Voice
 
@@ -28,24 +28,24 @@ the [glossary](../features/glossary.md).
 | Imperative for instructions | `run: ./cook render` | `you may want to consider running render` |
 | Neutral, no blame, no apology | `AGENTS.md: block policy was edited by hand` | `you broke AGENTS.md`, `sorry, …` |
 | Plain words | `refused`, `skipped`, `drift` | `oops`, `whoops`, exclamation marks, any emoji outside the icon set ([cli-standards.md](cli-standards.md#icons)) |
-| No marketing | `renders permissions for each agent` | `seamlessly`, `powerful`, `blazing fast` |
-| Consistent terms | the terms in the [glossary](../features/glossary.md), one term per concept | alternating `profile`/`config`/`settings` for one file |
+| No marketing | `renders permissions for each worker` | `seamlessly`, `powerful`, `blazing fast` |
+| Consistent terms | the terms in the [glossary](../features/glossary.md), one term per concept ([names](#names-for-the-parts-of-the-lifecycle)) | alternating `profile`/`config`/`settings` for one file |
 
-The same rules apply to text written for agents. Agents read it literally: an ambiguity a person would resolve from
-context becomes a wrong action.
+The same rules apply to text written for workers. A coding agent reads it literally: an ambiguity a person would resolve
+from context becomes a wrong action.
 
 ## CLI messages
 
 - The first line of every message on stderr starts with `the-cook: `, so it can be told apart from the output of
   commands `the-cook` runs; a result on stdout written to a pipe or file carries no prefix. On a TTY, under the
   conditions that allow color, a message written for a person starts with the icon of its kind and one space instead;
-  text for an agent, a parser or a loop runner never does
+  text for a worker, a parser or a loop runner never does
   ([cli-standards.md](cli-standards.md#color-emoji-and-terminal-control)). A message that needs detail continues on
   indented lines below it.
 - Warnings start with `warning: `; they never change the exit code, because a warning informs and must not fail a
   script.
 - A message about a file names it relative to the repository root, with `:line:column` when known, so an editor or
-  agent can open it directly.
+  a worker can open it directly.
 - Messages contain no ANSI escapes when the stream is not a TTY
   ([cli-standards.md](cli-standards.md#color-emoji-and-terminal-control)), so logs and transcripts stay readable.
 
@@ -99,42 +99,42 @@ the-cook: render --check: 2 files drifted from .cook/policy.yaml
 ```
 
 The status word (`drifted`) is in both, because the emoji only decorates. The hook message never carries the emoji,
-because it enters an agent's session.
+because it enters a worker's session.
 
 - The next step names a command when one exists, in the documented invocation `./cook <command>`
   ([cli-standards.md](cli-standards.md#entry-points)). It never says only "check your configuration", because that
   leaves the reader where they started.
-- When the next step is a person's decision (exit 3), the message says so and names the choices, so an agent stops and
+- When the next step is a person's decision (exit 3), the message says so and names the choices, so a worker stops and
   asks instead of guessing. For example, when `scaffold` needs a confirmation and no terminal is attached, its message
   names both ways forward: run it again with `--yes`, or run it from a terminal.
 - Errors never print stack traces, internal type names or file paths inside the binary unless `--verbose` is given,
   because they mean nothing to the person who must act.
 
-## Agent-readable output
+## Output for workers and scripts
 
-- `--json` is the interface for agents and scripts. Human text may change wording between releases, but JSON fields may
+- `--json` is the interface for workers and scripts. Human text may change wording between releases, but JSON fields may
   not ([cli-standards.md](cli-standards.md#json)). Why: a program that parses prose breaks on the next rewording.
 - Each to-do item and `doctor` finding names the file, the problem and the next action, and is stable across runs for
-  the same state, so an agent can track it.
-- Hook output that reaches an agent's context is short: what ran, what failed, the command to reproduce it, because
-  every line of it is paid in the agent's context.
-- Session-start context lists commands and rules, not explanations an agent can load from the skill on demand, for
+  the same state, so a worker can track it.
+- Hook output that reaches a worker's context is short: what ran, what failed, the command to reproduce it, because
+  every line of it is paid in the worker's context.
+- Session-start context lists commands and rules, not explanations a worker can load from the skill on demand, for
   the same reason.
 - When the pinned binary is not cached, the session-start hook prints its stderr skip line and also adds exactly one
-  line to the agent's context:
+  line to the worker's context:
   `the-cook <version> is not cached on this machine; run ./cook version once to fetch it.` One line per session
   explains every missing hook, notification and injection without repeating on each tool call. The wrapper prints it
   from its template, because no binary is present.
-- An injected standing-context pointer is exactly one line: `Apply the <name> skill now: read <path>`, so the agent
+- An injected standing-context pointer is exactly one line: `Apply the <name> skill now: read <path>`, so the worker
   learns what applies and where to read it, at the cost of one line.
 
 ## Generated text in human files
 
 Managed blocks hold derived facts: the conventions a module establishes, stated in plain language with their configured
 values, command tables, an index of memory files, a summary of the effective permissions, static directives (`static`
-standing-context entries), an import line that makes an agent's instruction file read `AGENTS.md`. Blocks contain no
+standing-context entries), an import line that makes a worker's instructions file read `AGENTS.md`. Blocks contain no
 prose that reads as a person's opinion, and nothing that duplicates prose outside the block, because the binary writes
-only what it can derive. Explanations of a repository's choices are written by people or agents outside the markers.
+only what it can derive. Explanations of a repository's choices are written by people or workers outside the markers.
 
 The two block classes ([generated-content-standards.md](generated-content-standards.md#block-classes)) are written
 differently:
@@ -146,7 +146,7 @@ differently:
 - **Tool blocks** explain how to use `the-cook` and name its commands in the documented form, `./cook <command>`.
   Why: eject removes them, so they may depend on the tool.
 - Every block stays within the [`AGENTS.md` budget](../features/render.md#the-agentsmd-budget): one fact per line,
-  detail left to `the-cook explain` and the skill, because agents read `AGENTS.md` in every session.
+  detail left to `the-cook explain` and the skill, because workers read `AGENTS.md` in every session.
 
 ## Documentation structure
 
@@ -177,7 +177,7 @@ handled, or they judge it against a purpose they assumed. Something whose object
 
 The Objective section holds only those two parts. What the document is and what it covers follows under its own
 heading: `## Overview` on a features page or a standard, `## Context` in an ADR. Why: a reader scanning the outline,
-or an agent handed one section, takes everything under a heading as part of it, so an introduction left under the
+or a coding agent handed one section, takes everything under a heading as part of it, so an introduction left under the
 objective reads as part of the problem or the goal.
 
 ### Features pages
@@ -216,24 +216,54 @@ A section with no content is omitted rather than left empty.
   where a reader looks up a value, and a tagged block renders and copies exactly as written.
 - Prose names the tool `the-cook`, code-formatted, wherever it means the tool, because that is the name a reader types:
   the same word reads the same in a sentence and in a command, and it never takes a capital letter, even at the start of
-  a sentence. The generic idea keeps its plain words: an agent harness, a meta-harness, a harness recipe.
+  a sentence. Its other parts take the names [below](#names-for-the-parts-of-the-lifecycle).
 - No organization names in examples or in content `the-cook` carries; examples use `acme` for an organization and
   `acme/api` for a repository, and cookbooks in examples are `github:acme/cookbook`, because `the-cook` is open source
   and its docs must fit any organization.
-- Feature and standards pages describe the core and its two contracts, and name programs by role: the version control
-  system, a harness, a loop runner, a task tracker, a task runner, a skills installer. A product appears only in a short
-  example that plainly uses a recipe from a cookbook, such as an agent `claude` declared with `recipe: claude` pinned
-  from `github:acme/cookbook`, never as a description of that program's behaviour, flags, file keys, versions or
-  pitfalls; that knowledge belongs to the page of the cookbook that describes the program. An ADR names a product only
-  in its Context, as checkable evidence of what exists. Why: the binary contains code and data for no program and ships
-  no recipe, so a page that describes a program's behaviour documents something `the-cook` does not hold and goes stale
-  with that program's releases ([recipes](../features/recipes.md), [ADR 0022](../adrs/0022-tool-integration.md)).
-- What `the-cook` does with a program is attributed to the recipe that fills its role: "the version-control recipe
-  reports the default branch", "a floor rule of the version-control recipe". Why: a page that says `the-cook` runs a
-  particular program describes a binary that does not exist.
+- Feature and standards pages describe the lifecycle, its core and its two contracts, and name programs by role: the
+  version control system, a worker, a loop runner, a task tracker, a task runner, a skills installer. A product appears
+  only in a short example that plainly uses an ingredient from a cookbook, such as a worker `claude` declared with
+  `ingredient: claude` pinned from `github:acme/cookbook`, never as a description of that program's behaviour, flags,
+  file keys, versions or pitfalls; that knowledge belongs to the page of the cookbook that describes the program. An ADR
+  names a product only in its Context, as checkable evidence of what exists. Why: the binary contains code and data for
+  no program and ships no ingredient and no recipe, so a page that describes a program's behaviour documents something
+  `the-cook` does not hold and goes stale with that program's releases ([ingredients](../features/ingredients.md),
+  [ADR 0022](../adrs/0022-tool-integration.md)).
+- What `the-cook` does with a program is attributed to the ingredient that fills its role: "the version-control
+  ingredient reports the default branch", "a floor rule of the version-control ingredient". Why: a page that says
+  `the-cook` runs a particular program describes a binary that does not exist.
 - Example commands are complete and run as written; example output is copied from a real run of the documented
   release, so a reader can trust what they copy.
 - Commands that run inside a repository are written as `./cook <command>`, with `the-cook <command>` shown as the
   equivalent when `the-cook` is installed globally ([cli-standards.md](cli-standards.md#entry-points)). The standards in
   `docs/ux/` name commands `the-cook <command>`, the program's name.
 - `the-cook explain <topic>` and the shipped skill follow the same rules; they are documentation shipped in the binary.
+
+### Names for the parts of the lifecycle
+
+Every page and message uses these names, one per concept, so that a reader who learns them on one page reads every
+other page the same way:
+
+| Concept | Name |
+| --- | --- |
+| what `the-cook` is | a declared software development lifecycle: the stages a change goes through, the events it fires between them, the guards that hold between stages and the proof a change carries |
+| a program that changes the repository for someone, such as a coding agent, a bot or a codemod | a **worker**, declared under `workers:` with the role `interactive` (a session with a person) or `unattended` (an attempt) |
+| one unattended run of a worker on one task, under the guards | an **attempt**, run by `the-cook attempt <worker>`; the rules it runs under are the **attempt contract** |
+| the interface a worker's ingredient fills: renders, launch, unattended arguments, bypass arguments, hook payload mapping, instructions file, skill location, native rule import | the **worker contract** |
+| a worker session that drives `the-cook` commands for a person | a **coordinating worker** |
+| the events a worker fires in a session: session start, post edit, prompt submit, attention, turn end | **worker events** |
+| a named, versioned description of one program | an **ingredient**: a worker ingredient, the version-control ingredient, a loop runner's ingredient |
+| a named, versioned description of one way of running the lifecycle, built from ingredients | a **recipe**, which a repository applies once |
+| a source that publishes ingredients and recipes by tag | a **cookbook** |
+
+- The concept is a worker whatever kind of program fills it, because the core treats a coding agent, a bot and a
+  codemod the same way. "Coding agent" names the main example, and a product name appears only in a short example of a
+  worker declared with an ingredient pinned from `github:acme/cookbook`.
+- An ingredient renders and runs; a recipe is applied. A page never says that a recipe renders, denies or runs
+  anything, because a recipe has no renders and no floor: what it wrote is the repository's own, and the ingredients it
+  pinned do the rendering.
+- `AGENTS.md`, `.agents/`, model and effort keep their names. `AGENTS.md` and `.agents/` are file conventions of the
+  agent ecosystem that a worker ingredient names; model and effort are settings a worker ingredient maps, and a worker
+  whose program has no model ignores them. Why: a reader looks for these names where other tools already use them.
+- Agentic coding is described as the main example of a recipe, never as the definition of `the-cook`. Why: a page
+  that defines `the-cook` by one recipe makes every other way of running the lifecycle look like a misuse.

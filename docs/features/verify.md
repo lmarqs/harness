@@ -3,20 +3,23 @@
 ## Objective
 
 **Problem.** A developer, a reviewer, or an automated step that delivers a change needs to know whether the change was
-checked. An agent's word that the tests pass does not say which checks ran, whether they were the ones the change needs,
-or whether the code changed after they passed. Agents skip checks, run unrelated ones and keep editing after a passing
-run, and nobody downstream can tell.
+checked. A coding agent's word that the tests pass does not say which checks ran, whether they were the ones the
+change needs, or whether the code changed after they passed. Coding agents skip checks, run unrelated ones and keep
+editing after a passing run, and nobody downstream can tell.
 
 **Goal.** A change counts as checked only when the checks it needs passed on exactly its current content, and any later
 edit makes it unchecked again.
 
 ## Overview
 
+`the-cook verify` serves the Verify stage of the [development lifecycle](lifecycle.md): it writes the proof a change
+carries into the stages after it.
+
 `the-cook verify` runs the checks a change needs and, when they pass, writes a receipt: a small record bound to the
 change's base commit and to the exact content of every changed file. Any later edit invalidates it. The checks are the
 lint command, validators, build and test **lanes** the [profile](profile.md#verify) declares; a lane is a named family
 of test commands, such as `unit` or `e2e`, run with the test patterns you give it (`--lane unit=invoice`). The
-[`completed` guard](tasks.md#the-completed-guard) on a task and [`the-cook worker`](worker.md), which runs an agent
+[`completed` guard](tasks.md#the-completed-guard) on a task and [`the-cook attempt`](attempts.md), which runs a worker
 unattended, require a valid receipt; `the-cook verify --check` tells you whether you have one.
 
 Commands are named `the-cook <command>` on this page. The examples run them through the repository's wrapper,
@@ -28,8 +31,8 @@ Commands are named `the-cook <command>` on this page. The examples run them thro
 - Before calling a change done: lint, build and the relevant test lanes in one command.
 - Before firing `completed` for a task, which the [`completed` guard](tasks.md#the-completed-guard) refuses without a
   valid receipt.
-- In an agent that [`the-cook worker`](worker.md) runs, as the last step before the agent exits: the worker replays what
-  the receipt selects.
+- In a worker that [`the-cook attempt`](attempts.md) runs, as the last step before the worker exits: the attempt
+  replays what the receipt selects.
 - With `--full`, before merging a change that needs every suite.
 
 While you iterate, run single tests with the repository's own commands, and run `the-cook verify` once the change is
@@ -40,19 +43,19 @@ ready.
 ### Base and changed files
 
 The base is the commit the change is measured against. `the-cook verify` reads it, and the changed files, through the
-[version-control recipe](recipes.md#the-version-control-contract):
+[version-control contract](ingredients.md#the-version-control-contract), which an ingredient fills:
 
 | Where you run it | Base |
 | --- | --- |
 | A [managed workspace](workspaces.md) | the commit the workspace started from, recorded in its session |
-| Any other checkout | the merge-base of the head commit with the default branch the version-control recipe reports |
+| Any other checkout | the merge-base of the head commit with the default branch the version-control ingredient reports |
 | With `--base <ref>` | that commit; in a managed workspace, only the recorded base or one of its ancestors |
 
 A base may only move earlier, never later: an earlier base adds files to the check, a later one would leave changes
 out.
 
 Changed files are the files that differ from the base (committed or not) plus untracked files that are not ignored, as
-the version-control recipe lists them.
+the version-control ingredient lists them.
 
 ### The run
 
@@ -118,8 +121,8 @@ A lane named twice, both selected and skipped, or not declared in the profile is
 | `skipped` | for each skipped lane, the reason given |
 | `full` | whether `--full` ran |
 
-The receipt lives in the checkout's state directory, which the version-control recipe's renders ignore, so it is local
-to that checkout.
+The receipt lives in the checkout's state directory, which the version-control ingredient's renders ignore, so it is
+local to that checkout.
 
 ### Freshness
 
@@ -142,7 +145,7 @@ to that checkout.
 | Consumer | Uses the receipt to |
 | --- | --- |
 | The [`completed` guard](tasks.md#the-completed-guard) | refuse `completed` with scope `task` without a valid receipt, when the verify module is enabled |
-| [`the-cook worker`](worker.md#the-worker-contract) | read which lanes and skip reasons the agent chose, then **replay** them itself from a tree the agent cannot write. The receipt only selects the checks, and the replay is the proof |
+| [`the-cook attempt`](attempts.md#the-attempt-contract) | read which lanes and skip reasons the worker chose, then **replay** them itself from a tree the worker cannot write. The receipt only selects the checks, and the replay is the proof |
 | The [`deliver` guard](lifecycle.md#built-in-guards) | refuse delivery of work without a valid receipt for its base, when the verify module is enabled |
 
 ### The `verify` block in `AGENTS.md`
@@ -196,7 +199,7 @@ the-cook verify [--lane <name>=<pattern>]... [--skip <name>=<reason>]... [--full
 | 1 | Error: a lane rule is not met, unknown lane, invalid `--base`, files changed during verification |
 | 2 | A check failed (lint, validator, build or lane), so no receipt was written; or, with `--check`, no valid receipt |
 
-Files read: the profile, the hooks file, the history and the changed files through the version-control recipe,
+Files read: the profile, the hooks file, the history and the changed files through the version-control ingredient,
 `session.json` in the checkout's state directory. Files written: `verified.json` in the checkout's state directory,
 `lifecycle.jsonl` in the primary checkout's state directory; whatever the repository's commands and `verified` actions
 write.

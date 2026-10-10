@@ -27,10 +27,10 @@ first command works with nothing installed beforehand.
   for each tool. Repositories differ in their task runners, and some use none ([0004](0004-runtime-dependencies.md)). A
   pin kept in one task runner's tool list does not reach a repository, machine or pipeline without that task runner.
 - A version pinned in two places drifts: after the first upgrade that touches only one of them, the two disagree.
-- Agent hooks must not fail or stall a session because the binary is missing
+- A worker's hooks must not fail or stall a session because the binary is missing
   ([0010](0010-dependence-on-the-binary.md)), and a hook invocation adds at most 50 ms at p95
   ([0003](0003-implementation-language.md)). A download inside a hook breaks both.
-- A fresh clone whose hooks find no binary runs agent sessions without the tool's hooks, and the agent has no way to
+- A fresh clone whose hooks find no binary runs worker sessions without the tool's hooks, and the worker has no way to
   know why.
 - The tool is one executable with its own templates and documentation embedded
   ([0003](0003-implementation-language.md)); it needs only the operating system at runtime
@@ -61,12 +61,12 @@ first command works with nothing installed beforehand.
 4. The wrapper resolves the pinned release in a per-user cache. When the release is absent and the call is explicit,
    the wrapper downloads it over HTTPS, verifies it against the committed checksum, refuses on a mismatch without
    caching anything, and then executes it with the caller's arguments. Once cached, it runs offline.
-5. Implicit entry points never download. An agent hook calls the wrapper in a mode that runs only a cached binary; when
-   none is cached, the hook writes one line on stderr naming the wrapper and exits successfully, and the session-start
-   hook also tells the agent once per session that the pinned release is not cached on this machine and how to fetch it.
-   The wrapper writes both lines itself, because no binary is present to write them. An explicit entry point that cannot
-   obtain or verify the pinned binary exits non-zero, so an absent check is never reported as a passing one
-   ([0010](0010-dependence-on-the-binary.md)).
+5. Implicit entry points never download. A worker's hook calls the wrapper in a mode that runs only a cached binary;
+   when none is cached, the hook writes one line on stderr naming the wrapper and exits successfully, and the
+   session-start hook also tells the worker once per session that the pinned release is not cached on this machine and
+   how to fetch it. The wrapper writes both lines itself, because no binary is present to write them. An explicit entry
+   point that cannot obtain or verify the pinned binary exits non-zero, so an absent check is never reported as a
+   passing one ([0010](0010-dependence-on-the-binary.md)).
 6. An environment override makes the wrapper execute a binary at a given path instead, for machines without network
    access and for development of the tool itself.
 7. A global installation is optional. Inside a repository whose pin names a different release, a globally installed
@@ -103,11 +103,11 @@ first command works with nothing installed beforehand.
 - **2.** One exact release per repository makes every machine, every pipeline and the committed artefacts agree, so the
   drift check gives the same answer everywhere. Per-platform checksums let the wrapper verify what it downloads without
   trusting the download host alone. The pin exists in one place because two pins drift apart after the first upgrade
-  that touches only one. The pin fixes the engine only: the recipes a repository uses are pinned separately, by content
-  hash, in its data ([0022](0022-tool-integration.md)), so a recipe's new version and a new release of the binary each
-  reach a repository in a change of its own. The pin is owned, not seeded: its checksums are worth something only if an
-  admitted release verified them ([0021](0021-release-trust.md)), so a hand edit has to show as drift instead of
-  becoming the repository's choice.
+  that touches only one. The pin fixes the engine only: the ingredients and recipes a repository uses are pinned
+  separately, by content hash, in its data ([0022](0022-tool-integration.md)), so a new version of either and a new
+  release of the binary each reach a repository in a change of its own. The pin is owned, not seeded: its checksums are
+  worth something only if an admitted release verified them ([0021](0021-release-trust.md)), so a hand edit has to show
+  as drift instead of becoming the repository's choice.
 - **3.** A new release can change rendering and migrate schemas ([0005](0005-schema-compatibility.md)). An explicit,
   reviewed upgrade lands that change in one diff, instead of whenever a teammate's machine updates. Requiring an
   admitted release ([0021](0021-release-trust.md)) means the committed checksums are ones an already trusted binary
@@ -115,10 +115,9 @@ first command works with nothing installed beforehand.
   keeps the drift check exact: the pinned release's output and the committed artefacts always agree, so a difference
   is always a real one.
 - **5.** A download inside a hook breaks both the no-failure rule of [0010](0010-dependence-on-the-binary.md) and the
-  50 ms budget of [0003](0003-implementation-language.md). Without a hint, a fresh clone's agent works without the
+  50 ms budget of [0003](0003-implementation-language.md). Without a hint, a fresh clone's worker works without the
   tool's hooks and cannot tell why; one line in its context per session tells it the fix, and limiting it to one line
-  keeps the cost in tokens and noise fixed. Only the wrapper is present at that moment, so only the wrapper can say
-  it.
+  keeps the cost in tokens and noise fixed. Only the wrapper is present at that moment, so only the wrapper can say it.
 - **6.** A machine without network access, or a person developing the tool, needs to run a binary that no pin names.
   An environment override is explicit for one environment and leaves the committed pin unchanged.
 - **7.** People who install globally keep using the short command. Deferring to the pin keeps the one-release guarantee
@@ -171,9 +170,9 @@ its own release, and a newcomer installs the tool before the first command works
 The repository lists the tool and its version in the tool list of the task runner it already uses, and the task runner
 installs and selects that version. At its best, there is no new script and no new file, and the pin sits beside the
 repository's other tool versions. It loses because the pin reaches only machines where that task runner is installed,
-which excludes repositories that use another task runner or none ([0004](0004-runtime-dependencies.md)). Agent hooks
-get the pinned version only when the task runner's activation is present in the agent's environment, and pinning depends
-on a third-party tool.
+which excludes repositories that use another task runner or none ([0004](0004-runtime-dependencies.md)). A worker's
+hooks get the pinned version only when the task runner's activation is present in the worker's environment, and pinning
+depends on a third-party tool.
 
 ### Vendored binary in the repository
 

@@ -5,29 +5,44 @@
 **Problem.** A developer meeting the tool for the first time, in a repository they cloned or as a maintainer weighing it
 for their own repositories, needs to know what it does, what it leaves alone and what it asks of them and their
 teammates. Without one starting point that answers this and points onward, they piece it together from pages written for
-readers who already know the tool, or judge it by what its name suggests.
+readers who already know the tool, or judge it by its most visible use, coding agents, instead of by the lifecycle every
+change goes through.
 
 **Goal.** After one read, a newcomer can say what the tool is for and what it never does, can try it on a repository,
 and can find the page for any part of it.
 
 ## Overview
 
-`the-cook` is a command-line tool that sets up, constrains and checks the environment coding agents work in. It writes
-the permission rules, hooks and instructions that agents read. It gives people and agents the same commands for
-task [workspaces](workspaces.md), verification receipts (records that a change's checks passed on its exact content,
-[verify](verify.md)) and [task binding](tasks.md), which ties a workspace to a task id from any tracker. Its
-[`the-cook worker`](worker.md) command runs one agent for one task, for any loop runner that names it as its agent
-command, and that agent cannot bypass permissions or be reported done without a verification that passed. It fires
-[development lifecycle](lifecycle.md) events at fixed points, so what a repository declares (a push, a pull request, a
-tracker update, a cleanup) happens at the same moment for people and agents. It never calls a model, never writes
-knowledge such as prose, memory or domain skills, and contains code and data for no external program. Every program it
-works with, the version control system and the agent harnesses included, is described by a [recipe](recipes.md): a
-versioned bundle of data the binary interprets. Recipes come from cookbooks, published collections of recipes, and a
-repository declares each one it uses, pinned by cookbook, version and sha256; the binary ships none and names no default
-cookbook ([ADR 0022](../adrs/0022-tool-integration.md)).
+`the-cook` is a command-line tool that enforces the software development lifecycle a repository declares. Every change
+goes through the same stages: plan, start, implement, verify, complete, deliver, review and merge, and landed, with
+`blocked` out of band for work that stops. At fixed points between them the binary fires
+[lifecycle events](lifecycle.md), at which the actions the repository declares run (a push, a pull request, a tracker
+update, a cleanup), and it holds the guards between stages: delivery runs only for committed work off the default branch
+and, with verification on, verified work. The proof a change carries is a receipt bound to its base and its exact
+content ([verify](verify.md)), and an unattended attempt is reported done only after that proof is replayed from the
+base ([ADR 0015](../adrs/0015-development-lifecycle.md)). People and workers move work through the stages with the same
+commands: task [workspaces](workspaces.md), [task binding](tasks.md), which ties a workspace to a task id from any
+tracker, and [`the-cook attempt`](attempts.md), which runs one worker for one task under rules it cannot bypass, for any
+loop runner that names it as the command it runs for each task.
+
+The lifecycle knows no program. Each stage that needs one reaches it through a contract or a declared action: the
+version-control contract for workspaces, bases, history and landed work, the worker contract for the programs that
+change the repository for someone, such as coding agents, bots and codemods, and lifecycle actions for everything else.
+The binary contains code and data for no external program. An [ingredient](ingredients.md) describes one program: the
+configuration rendered for it on every render, such as a coding agent's permission rules, hooks and instructions, the
+operations that fill a contract, and its floor, the rules about it no repository can remove. A [recipe](recipes.md) is
+one way of running the lifecycle, built from ingredients and applied once: the repository's own entries and templates
+start from it. Both come from cookbooks, and a repository pins each one it uses by cookbook, version and sha256; the
+binary ships none and names no default cookbook ([ADR 0022](../adrs/0022-tool-integration.md),
+[ADR 0024](../adrs/0024-ingredients-and-recipes.md)).
+
+Agentic coding is the first recipe and the main example on these pages: an interactive coding agent, an unattended one
+that a loop runner starts through `the-cook attempt`, and a tracker updated by lifecycle actions. Whatever the recipe,
+`the-cook` never calls a model, never writes knowledge such as prose, memory or domain skills, and never writes the
+team's record of work.
 
 The name comes from the kitchen: a cook follows the recipe exactly and lets nothing leave the kitchen until it passes
-the check. The agents do the cooking, and `the-cook` holds them to that standard.
+the check. The workers do the cooking, and `the-cook` holds them to that standard.
 
 ## The game master
 
@@ -37,25 +52,27 @@ Think of a tabletop game. The game master rules the world but never plays. In `t
 | --- | --- |
 | The game master | `the-cook`: it sets the rules and enforces them, and never takes a turn |
 | The players | developers, who decide what gets built |
-| The characters | agents, each run through its harness, who act inside the rules |
+| The characters | workers, such as coding agents, each reached through its ingredient, who act inside the rules |
+| The order of play | the lifecycle: the stages every change goes through and the guards between them |
 | The world | repositories, with their files, history and conventions |
 | The rulebook | the three repository files `.cook/config.yaml`, `.cook/policy.yaml` and `.cook/hooks.yaml` |
 
-The game master keeps the rules consistent across every table it runs: the same commands, the same guardrails and the
-same documentation blocks in every repository that adopts it.
+The game master keeps the rules consistent across every table it runs: the same stages, the same guards, the same
+commands and the same documentation blocks in every repository that adopts it.
 
 ## What it does
 
 | Module | What you get | Page |
 | --- | --- | --- |
-| Core (always on) | the `cook` wrapper pinned to one verified release, the `.cook/` configuration, profile, the pinned recipes, policy rendered for each agent, conventions written as managed blocks in `AGENTS.md`, `README.md` and the files the recipes in use name, manifest, the shipped skill, lifecycle events and actions, task workspaces with task binding, unattended runs through `the-cook worker` | [wrapper](wrapper.md), [concepts](concepts.md), [policy](policy.md), [render](render.md), [lifecycle](lifecycle.md), [workspaces](workspaces.md), [tasks](tasks.md), [worker](worker.md), [skills](skills.md) |
-| `hooks` | Agent-neutral hooks: lint-on-edit, validators, session context, notifications when an agent waits for a person or ends a turn, and [standing context](context.md): directives and skills injected when a declared trigger fires | [hooks](hooks.md), [context](context.md) |
-| `verify` | Named verification lanes (families of test commands, such as `unit` and `e2e`) and a receipt bound to file contents | [verify](verify.md) |
+| Core (always on) | the lifecycle: its events, guards and declared actions; task workspaces with task binding; unattended attempts through `the-cook attempt`; the `cook` wrapper pinned to one verified release; the `.cook/` configuration with the profile and its pinned ingredients; policy rendered for each worker; conventions written as managed blocks in `AGENTS.md`, `README.md` and the files the ingredients in use name; the manifest; the shipped skill | [lifecycle](lifecycle.md), [workspaces](workspaces.md), [tasks](tasks.md), [attempts](attempts.md), [wrapper](wrapper.md), [concepts](concepts.md), [ingredients](ingredients.md), [policy](policy.md), [render](render.md), [skills](skills.md) |
+| `hooks` | Worker-neutral hooks: lint-on-edit, validators, session context, notifications when a worker waits for a person or ends a turn, and [standing context](context.md): directives and skills injected when a declared trigger fires | [hooks](hooks.md), [context](context.md) |
+| `verify` | Named verification lanes (families of test commands, such as `unit` and `e2e`) and a receipt bound to file contents: the proof the verify stage writes and the complete and deliver guards check | [verify](verify.md) |
 | `memory` | A memory skeleton under `.agents/memory/` and its index in the `memory` block of `AGENTS.md` | [memory](memory.md) |
 
-A loop runner connects by naming `./cook worker <agent>` as its agent command, and a task tracker by lifecycle actions
-on `start`, `completed` and `blocked`; a [recipe](recipes.md) for each program can write both. Every module is opt-in
-and removable on its own, and the whole tool can be undone or ejected, keeping its conventions ([remove](remove.md)).
+A loop runner connects by naming `./cook attempt <worker>` as the command it runs for each task, and a task tracker by
+lifecycle actions on `start`, `completed` and `blocked`; a [recipe](recipes.md) such as `agentic-coding` writes both.
+Every module is opt-in and removable on its own, and the whole tool can be undone or ejected, keeping its conventions
+([remove](remove.md)).
 
 ## Five-minute quickstart
 
@@ -71,25 +88,28 @@ Every command below runs as `./cook <command>`; with a global install, `the-cook
 
 A repository that has no `cook` yet needs a `the-cook` binary once, to scaffold it
 ([installation](installation.md#scaffolding-a-new-repository)). The scaffold pins the release that runs it, and
-`--cookbook` names the cookbook tag whose matching recipes it pins and applies:
+`--cookbook` names the cookbook tag whose recipes it applies: each one named with `--recipe`, and every one whose detect
+rule matches the repository, such as a stack recipe for its language:
 
 ```sh
 cd ~/src/acme-api
-the-cook scaffold --cookbook github:acme/cookbook@v1.2.0 --dry-run   # every file it would write, cook and .cook/ included
-the-cook scaffold --cookbook github:acme/cookbook@v1.2.0             # writes them after confirmation
+the-cook scaffold --cookbook github:acme/cookbook@v1.2.0 --recipe agentic-coding --dry-run   # every file it would write
+the-cook scaffold --cookbook github:acme/cookbook@v1.2.0 --recipe agentic-coding             # writes after confirmation
 git diff --stat
 ```
 
-Or adopt one that already has hand-written agent permissions, hooks or instruction files:
+Or adopt one that already has hand-written coding-agent permissions, hooks or instruction files:
 
 ```sh
-the-cook scaffold --adopt --cookbook github:acme/cookbook@v1.2.0 --dry-run   # files and the equivalence report
-the-cook scaffold --adopt --cookbook github:acme/cookbook@v1.2.0
-./cook doctor                    # lists what an agent must finish
+# --dry-run also prints the equivalence report
+the-cook scaffold --adopt --cookbook github:acme/cookbook@v1.2.0 --recipe agentic-coding --dry-run
+the-cook scaffold --adopt --cookbook github:acme/cookbook@v1.2.0 --recipe agentic-coding
+./cook doctor                    # lists what is left for a person or a coding agent to finish
 ```
 
-Without `--cookbook`, the scaffold writes an empty `recipes:` and its to-do lists each contract no recipe fills; pin
-recipes later with `./cook recipe pin <name>... --cookbook <source>@<version>` ([pinning](recipes.md#pinning)).
+Without `--cookbook`, the scaffold writes the skeleton, and its to-do lists each contract no pinned ingredient fills.
+Apply recipes later with `./cook recipe apply <name>... --cookbook <source>@<version>` ([recipes](recipes.md)), or pin
+one ingredient with `./cook ingredient pin <name>... --cookbook <source>@<version>` ([ingredients](ingredients.md)).
 
 Review and edit the profile and the policy, then render and commit; a workspace starts from committed code:
 
@@ -100,17 +120,17 @@ $EDITOR .cook/config.yaml .cook/policy.yaml
 git add -A && git commit -m "chore: adopt the-cook"
 ```
 
-Work on a change with a task workspace and a verification receipt:
+Take a change through the lifecycle: start it in a task workspace, implement it, verify it and deliver it:
 
 ```sh
-./cook workspace create fix-login
+./cook workspace create fix-login        # start: a workspace from committed code; fires start
 cd .work/workspaces/fix-login
-# ... edit ...
-./cook verify --lane unit=login --skip e2e="no route or controller changed"
+# ... implement ...
+./cook verify --lane unit=login --skip e2e="no route or controller changed"   # verify: writes the receipt
 ./cook verify --check
 git commit -am "fix: login redirect"
-./cook lifecycle list            # what deliver does in this repository
-./cook lifecycle run deliver     # push and open a pull request, if the repository declares it
+./cook lifecycle list                    # what deliver does in this repository
+./cook lifecycle run deliver             # deliver: push and open a pull request, if the repository declares it
 ```
 
 Move the repository to a newer release in a reviewable commit:
@@ -121,18 +141,22 @@ Move the repository to a newer release in a reviewable commit:
 git add -A && git commit -m "chore: upgrade the-cook"
 ```
 
-Teammates install nothing: the committed rendered files give their agents the same permissions and instructions, and
-their first `./cook` command downloads the pinned release. Until then, agent hooks print one line and continue.
+Teammates install nothing: the committed rendered files give their workers the same permissions and instructions, and
+their first `./cook` command downloads the pinned release. Until then, worker hooks print one line and continue.
 
 ## Pages
+
+Start here
+
+- [Development lifecycle](lifecycle.md): the abstraction every other page serves: the stages from plan to landed, who
+  acts at each, the events, guards and proof between them, and how each stage reaches its programs
 
 Getting started
 
 - [Installation](installation.md): the wrapper, scaffolding a new repository, global install, upgrades, uninstall
 - [Wrapper](wrapper.md): `cook`, the pinned release, its checksums, upgrades, CI and air-gapped machines
-- [Concepts](concepts.md): layers, the `.cook/` and `.agents/` directories, ownership, conventions, adoption
-  classes, optional and transparent behaviour
-- [Development lifecycle](lifecycle.md): from plan to landed, events, actions and guards
+- [Concepts](concepts.md): the lifecycle and the programs around it, layers, the `.cook/` and `.agents/` directories,
+  ownership, conventions, adoption classes, optional and transparent behaviour
 - [Safety guidelines](safety.md): the threat model, layers of defence, placing policy entries
 - [Pitfalls, gaps and traps](pitfalls.md): what goes wrong and what to do about it
 - [Glossary](glossary.md)
@@ -144,34 +168,37 @@ Setting up a repository
 - [remove](remove.md): undo the adoption, eject and keep the conventions, or remove one module
 - [render](render.md): rendered files, managed blocks and their ids, merge-rendering, drift checks
 - [doctor](doctor.md): health checks and the adoption to-do
-- [explain](explain.md): built-in documentation for people and agents
+- [explain](explain.md): built-in documentation for people and workers
 
 Configuration
 
 - [Profile](profile.md): `.cook/config.yaml`, state paths
-- [Policy](policy.md): `.cook/policy.yaml`, the floor rules of recipes, rendering per agent
+- [Policy](policy.md): `.cook/policy.yaml`, the floor rules of ingredients, rendering per worker
 - [Hooks](hooks.md): `.cook/hooks.yaml`, the hook runtime, notification hooks and lifecycle actions
 - [Context](context.md): standing context, directives and skills injected by declared triggers
-- [Recipes](recipes.md): how every program is described, the version-control and harness contracts, floor rules,
-  cookbooks and pins, `the-cook recipe pin`, `list`, `show`, `apply` and `fetch`, and where an organization's choices
-  live
+- [Ingredients](ingredients.md): how each program is described, its renders, floor and checks, the version-control
+  and worker contracts, pins, trust, fetching and the cache, `the-cook ingredient pin`, `list` and `show`, and
+  `the-cook fetch`
+- [Recipes](recipes.md): ways of running the lifecycle built from ingredients, their stages, entries and templates,
+  applying once and again, the merge rules, `the-cook recipe apply`, `list` and `show`, cookbooks, and where an
+  organization's choices live
 
 Daily work
 
 - [Workspaces](workspaces.md): `the-cook workspace`
 - [Verify](verify.md): lanes and the receipt
 - [Tasks](tasks.md): task binding with `workspace create --task`, the `completed` guard, trackers wired by actions
-- [worker](worker.md): unattended runs with any loop runner through `the-cook worker`
+- [Attempts](attempts.md): unattended runs with any loop runner through `the-cook attempt`, and the attempt contract
 
 Knowledge
 
 - [Skills](skills.md): the shipped skill, `.agents/skills/` and skills referenced from standing context
 - [Memory](memory.md): the memory skeleton and its index
 
-Many repositories and many agents
+Many repositories and many workers
 
 - [Fleet](fleet.md): run a command across a list of repositories, and deliver the changes
-- [Agents](agents.md): agent declarations, their harness recipes, roles, and the harness contract
+- [Workers](workers.md): worker declarations, their ingredients, roles, and the worker contract
 - [Compatibility](compatibility.md): how hosting platforms, loop runners, task trackers, task runners, CI and existing
   files fit with `the-cook`; what removal keeps
 

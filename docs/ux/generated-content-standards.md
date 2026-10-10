@@ -20,13 +20,13 @@ These rules apply to anything `the-cook` writes into a repository.
 
 | Kind | Example | How ownership is marked |
 | --- | --- | --- |
-| Owned whole file that allows comments | the wrapper `cook` (after its `#!` line), `.cook/wrapper.yaml`, a whole rules file a harness recipe renders, the shipped skill `.agents/skills/the-cook/SKILL.md` (as a YAML comment right after the opening `---` of its front matter) | header line, plus the manifest |
+| Owned whole file that allows comments | the wrapper `cook` (after its `#!` line), `.cook/wrapper.yaml`, a whole rules file a worker ingredient renders, the shipped skill `.agents/skills/the-cook/SKILL.md` (as a YAML comment right after the opening `---` of its front matter) | header line, plus the manifest |
 | Owned whole file that allows no comments | `.cook/manifest.json` and other JSON files | the manifest |
 | Seeded file | `.cook/config.yaml`, `.cook/policy.yaml`, `.cook/hooks.yaml`, the `.agents/memory/` skeleton | the manifest records it as seeded, with the hash it was created with: written once, then the repository's |
-| Template file | a file a recipe's template wrote, such as a loop runner's configuration file from its recipe | nothing: seeded content the manifest does not record, written once and only where the file was absent, then the repository's |
-| Managed block inside a human file | the [block ids](#block-ids) in `AGENTS.md`, `README.md`, and the files recipes render blocks into, such as an agent's instruction file and the version control system's ignore file | opening and closing markers, plus the manifest |
-| Owned keys inside a native file | the permission keys, `the-cook hook` entries (agent hooks, notification and context hooks) and rendered raw hook entries in an agent's settings files, as its harness recipe names them | the manifest |
-| Link | a link from an agent's native skill directory to `.agents/skills/the-cook`, as its harness recipe names it | the manifest |
+| Template file | a file a recipe's template wrote, such as a loop runner's configuration file from a recipe that uses the loop runner | nothing: seeded content the manifest does not record, written once and only where the file was absent, then the repository's |
+| Managed block inside a human file | the [block ids](#block-ids) in `AGENTS.md`, `README.md`, and the files ingredients render blocks into, such as a worker's instructions file and the version control system's ignore file | opening and closing markers, plus the manifest |
+| Owned keys inside a native file | the permission keys, `the-cook hook` entries (hooks on worker events, notification and context hooks) and rendered raw hook entries in a worker's settings files, as its ingredient names them | the manifest |
+| Link | a link from a worker's native skill directory to `.agents/skills/the-cook`, as its ingredient names it | the manifest |
 | State | the paths the profile sets (`state.dir`, `workspaces.dir`; under `.work/` by default), including the lifecycle log `lifecycle.jsonl` in `state.dir` | gitignored by managed blocks; never committed, never listed as content, never inside `.cook/` or `.agents/` |
 
 The manifest (`.cook/manifest.json`) is the record of ownership. Content not listed in it does not belong to `the-cook`,
@@ -35,30 +35,32 @@ says what `the-cook` created.
 
 The manifest also records the owner of each piece of owned content: the binary, for what it renders from the neutral
 model alone (`cook`, `wrapper.yaml`, the shipped skill, the manifest, the `AGENTS.md` and `README.md` blocks), or the
-[recipe](../features/recipes.md#renders) whose renders produce it (a harness recipe's keys in its agent's settings file
-and its instruction-file import, a whole rules file, the version-control recipe's ignore-file blocks). Deleting a recipe
-from `recipes:` and rendering removes exactly the content the manifest records under that recipe. Why: the binary
-contains no program's format, so what a program's files hold is the recipe's, and only an owner in the record tells a
-render which content leaves with the recipe ([ADR 0007](../adrs/0007-ownership.md),
+[ingredient](../features/ingredients.md#renders) whose renders produce it (a worker ingredient's keys in its worker's
+settings file and its instructions-file import, a whole rules file, the version-control ingredient's ignore-file
+blocks). Renders come only from ingredients: a recipe has none, so no owned content belongs to a recipe. Deleting an
+ingredient from `ingredients:` and rendering removes exactly the content the manifest records under that ingredient.
+Why: the binary contains no program's format, so what a program's files hold is the ingredient's, and only an owner in
+the record tells a render which content leaves with the ingredient ([ADR 0007](../adrs/0007-ownership.md),
 [ADR 0022](../adrs/0022-tool-integration.md)).
 
 Owned content is rendered and replaced on every render, and a hand edit to it is drift. Seeded content is written once
-and then edited by people and agents. `the-cook` never re-renders it, and adds to the repository files only when a
-person applies a recipe (`the-cook recipe apply`), and then only what they lack. Why: the seeded files hold the
-repository's choices and knowledge, which `the-cook` cannot recompute.
+and then edited by people and workers. `the-cook` never re-renders it. It writes to the repository files again only when
+a person pins an ingredient (`the-cook ingredient pin`), which adds or moves that pin, or applies a recipe
+(`the-cook recipe apply`), which adds only what they lack. Why: the seeded files hold the repository's choices and
+knowledge, which `the-cook` cannot recompute.
 
 A template is seeded content of its own kind: a whole file in a recipe or in `scaffold`, rendered once with values from
 the profile, written only when the file is absent, and from then on the repository's own file. `the-cook` never renders
 it again and never removes it, and the manifest does not record it. Why: a template is usually a file another program
 reads, such as a loop runner's configuration, which the team then edits for that program. A record would make it look
-owned, and deleting its recipe from `recipes:` would then remove a file the team edited
+owned, and removing it with the recipe's record would then delete a file the team edited
 ([configuration-standards.md](configuration-standards.md#what-each-part-writes)).
 
-`the-cook scaffold` seeds the repository files and applies the recipes whose detect rule matches the repository as it
-seeds them ([configuration-standards.md](configuration-standards.md#applying-a-recipe)). The `.agents/memory/` skeleton
-is seeded when the memory module is enabled, by `the-cook scaffold` or by the first `the-cook render` after the module
-is enabled, and is never re-rendered. The recorded creation hash is what lets undo (`the-cook remove`) tell an untouched
-skeleton from content someone wrote ([ADR 0007](../adrs/0007-ownership.md)).
+`the-cook scaffold` seeds the repository files and, with `--cookbook`, applies the recipes whose detect rule matches the
+repository as it seeds them ([configuration-standards.md](configuration-standards.md#applying-a-recipe)). The
+`.agents/memory/` skeleton is seeded when the memory module is enabled, by `the-cook scaffold` or by the first
+`the-cook render` after the module is enabled, and is never re-rendered. The recorded creation hash is what lets undo
+(`the-cook remove`) tell an untouched skeleton from content someone wrote ([ADR 0007](../adrs/0007-ownership.md)).
 
 ## Header
 
@@ -142,7 +144,7 @@ second behind ([ADR 0018](../adrs/0018-conventions.md)).
 All the blocks `the-cook` writes in `AGENTS.md` together stay within 40 lines by default (`blocks.agents_md_budget` in
 the profile), and each block within 8 lines. Detail lives in `the-cook explain <topic>` and the shipped skill.
 `the-cook doctor` reports a note when the budget is exceeded, for example by a `lifecycle` block listing many actions.
-Why: agents read `AGENTS.md` at the start of every session, so every line `the-cook` adds is paid in every session and
+Why: workers read `AGENTS.md` at the start of every session, so every line `the-cook` adds is paid in every session and
 dilutes the repository's own instructions.
 
 Static standing-context entries in the `context` block count against `context.budget`
@@ -151,13 +153,13 @@ length is the repository's own choice of directives.
 
 ### Block ids
 
-Block ids are per module, per recipe or per convention. A module or a recipe owns its blocks: turning the module off,
-deleting the recipe from `recipes:` and rendering, or removing the module with `the-cook remove --module <name>`,
-removes them, because a block that states a convention nobody follows any more is wrong. These blocks belong to every
-adopted repository, whatever the modules: `commands`, `layout`, `workspaces`, `lifecycle` and `policy` in `AGENTS.md`;
-`commands` in `README.md` when it exists; `state` and `workspaces` in the ignore file the version-control recipe
-renders. Why: workspaces and lifecycle events exist in every adopted repository, so their conventions and conditions are
-stated in every one.
+Block ids are per module, per ingredient or per convention. A module or an ingredient owns its blocks: turning the
+module off, deleting the ingredient from `ingredients:` and rendering, or removing the module with
+`the-cook remove --module <name>`, removes them, because a block that states a convention nobody follows any more is
+wrong. These blocks belong to every adopted repository, whatever the modules: `commands`, `layout`, `workspaces`,
+`lifecycle` and `policy` in `AGENTS.md`; `commands` in `README.md` when it exists; `state` and `workspaces` in the
+ignore file the version-control ingredient renders. Why: workspaces and lifecycle events exist in every adopted
+repository, so their conventions and conditions are stated in every one.
 
 | File | Block id | Class | Owner | States |
 | --- | --- | --- | --- | --- |
@@ -166,14 +168,14 @@ stated in every one.
 | `AGENTS.md` | `verify` | tool | the binary | the repository's checks: lint, build, the test lanes and when each is required |
 | `AGENTS.md` | `lifecycle` | tool | the binary | the conditions work meets before it leaves the clone, and each event's actions in order |
 | `AGENTS.md` | `workspaces` | convention | the binary | where managed workspaces are created, on which branch, from which base |
-| `AGENTS.md` | `policy` | convention | the binary | the effective permissions by decision, with each floor rule marked with the recipe it comes from (`(*floor rule of the git recipe*)` for a recipe named `git`) and each entry some agent does not enforce, with those agents |
+| `AGENTS.md` | `policy` | convention | the binary | the effective permissions by decision, with each floor rule marked with the ingredient it comes from (`(*floor rule of the git ingredient*)` for an ingredient named `git`) and each entry some worker does not enforce, with those workers |
 | `AGENTS.md` | `memory` | convention | the binary | the index of `.agents/memory/` |
 | `AGENTS.md` | `context` | convention | the binary | the standing directives declared `static`, inline or as pointer lines |
 | `README.md` | `commands` | tool | the binary | how to run things, as in `AGENTS.md` |
-| the version control system's ignore file | `state` | convention | the version-control recipe | `/<state.dir>/` |
-| the version control system's ignore file | `workspaces` | convention | the version-control recipe | `/<workspaces.dir>/` |
-| an agent's instruction file | an id its harness recipe declares | convention | the harness recipe, unless the file already imports `AGENTS.md` | one line importing `AGENTS.md`, in the syntax the agent reads |
-| any file a recipe names | an id the recipe declares | as the recipe declares | that recipe | what the recipe states, such as the ignore entries for a program's session files |
+| the version control system's ignore file | `state` | convention | the version-control ingredient | `/<state.dir>/` |
+| the version control system's ignore file | `workspaces` | convention | the version-control ingredient | `/<workspaces.dir>/` |
+| a worker's instructions file | an id its ingredient declares | convention | the worker ingredient, unless the file already imports `AGENTS.md` | one line importing `AGENTS.md`, in the syntax the worker reads |
+| any file an ingredient names | an id the ingredient declares | as the ingredient declares | that ingredient | what the ingredient states, such as the ignore entries for a program's session files |
 
 ### Conventions in blocks
 
@@ -182,52 +184,52 @@ Every convention a module establishes is written where people and other tools re
 
 - In `AGENTS.md`, as a convention block of plain-language statements: where workspaces are created, what is permitted,
   which directives always apply.
-- For each path, in a managed block of the version control system's ignore file, which the version-control recipe
-  renders.
+- For each path, in a managed block of the version control system's ignore file, which the version-control
+  ingredient renders.
 - The text names the configured value of each path, never a default the profile overrode, because a reader acts on
   what the text says.
 - A block's text describes the convention as fact. It never says it is managed by `the-cook` beyond the marker, and it
-  never depends on the binary to be true, so people, agents and the other tools in the repository can rely on it after
+  never depends on the binary to be true, so people, workers and the other tools in the repository can rely on it after
   `the-cook` is ejected.
 
 ## Owned keys in native files
 
 Why: native files are shared with people and other tools, so `the-cook` owns only the keys and entries the renders of
-the agent's harness recipe name, and nothing else ([ADR 0008](../adrs/0008-native-configuration.md),
+the worker's ingredient name, and nothing else ([ADR 0008](../adrs/0008-native-configuration.md),
 [ADR 0022](../adrs/0022-tool-integration.md)).
 
 - `the-cook` changes only the keys it owns. Every other key, its value, its order and its formatting are preserved byte
   for byte.
 - Owned permission lists belong to `the-cook` entirely: an entry added there by hand is drift. To keep it, add it to
   `policy.yaml`. Adoption does this for entries that existed before `the-cook`. Why: two writers of one list cannot both
-  be right after the next render. For example, a rule typed by hand into an agent's owned permission list is drift,
-  while `[make, lint]` under `shared.allow` in `policy.yaml` renders as that same rule for every agent, in the form each
-  harness recipe writes.
-- Hook entries are owned one by one. `the-cook` owns the `the-cook hook` entries (agent hooks, notification hooks and
-  the hooks that inject standing context) and the native entries it renders from `raw` declarations in `hooks.yaml`.
-  Hooks added by other tools or by hand are preserved where they are. A native setting that holds a single program,
-  such as a notification command, is owned only when it is absent or already runs `the-cook hook`; when a repository
-  has its own program there, `the-cook` leaves it in place and does not render that event for the agent, and
-  `the-cook doctor` notes it. The harness recipe names such settings.
+  be right after the next render. For example, a rule typed by hand into a worker's owned permission list is drift,
+  while `[make, lint]` under `shared.allow` in `policy.yaml` renders as that same rule for every worker, in the form
+  each worker ingredient writes.
+- Hook entries are owned one by one. `the-cook` owns the `the-cook hook` entries (hooks on worker events, notification
+  hooks and the hooks that inject standing context) and the native entries it renders from `raw` declarations in
+  `hooks.yaml`. Hooks added by other tools or by hand are preserved where they are. A native setting that holds a single
+  program, such as a notification command, is owned only when it is absent or already runs `the-cook hook`; when a
+  repository has its own program there, `the-cook` leaves it in place and does not render that event for the worker, and
+  `the-cook doctor` notes it. The worker ingredient names such settings.
 - A raw hook renders as a native entry that runs its own command, not `the-cook hook`, so it keeps working
   without the binary. It is recorded in the manifest as owned: a hand edit to it is drift, `the-cook remove` removes
   it, and `the-cook remove --eject` keeps it as hand-owned.
 - A `the-cook hook` entry calls the wrapper at the repository root with `--no-download`
   (`cook --no-download hook <event>`), so it never downloads.
-- Local override files an agent harness reads are never written or listed. They are read only by
+- Local override files a worker reads are never written or listed. They are read only by
   `the-cook scaffold --import local`, because they are personal and usually untracked.
 
 ## Determinism
 
 Why: two teammates rendering the same commit must produce the same diff, or every render is noise in review.
 
-- The same repository files, pinned release and recipes pinned by hash produce the same bytes on every supported
+- The same repository files, pinned release and ingredients pinned by hash produce the same bytes on every supported
   operating system, with no network access, because nothing else is an input
   ([ADR 0013](../adrs/0013-organization-content.md), [ADR 0022](../adrs/0022-tool-integration.md)). The per-user cache
-  supplies only recipes whose archive matches their `sha256`. A new release may render differently, the shipped skill
-  and `cook` included; a new version of a recipe may render differently, its floor rules included. Moving either pin
-  (`the-cook wrapper --version <tag>`, `the-cook recipe pin`) renders the repository in the same change, so every such
-  difference reaches review in that diff
+  supplies only ingredients whose archive matches their `sha256`, and a recipe is not an input to rendering. A new
+  release may render differently, the shipped skill and `cook` included; a new version of an ingredient may render
+  differently, its floor included. Moving either pin (`the-cook wrapper --version <tag>`, `the-cook ingredient pin`)
+  renders the repository in the same change, so every such difference reaches review in that diff
   ([compatibility-standards.md](compatibility-standards.md#rendered-output-across-releases),
   [ADR 0017](../adrs/0017-engine-version.md)). Rendered content never records the release that rendered it
   ([ADR 0005](../adrs/0005-schema-compatibility.md)).
@@ -254,17 +256,18 @@ Why: two teammates rendering the same commit must produce the same diff, or ever
 - Generated content is committed so that every change reaches review as a diff and a clone works without the binary.
 - A change to one repository file produces the smallest rendered diff that expresses it; unrelated lines do not move,
   so a reviewer reads only the effect of the change.
-- The binary commits in a repository in two cases only: `the-cook worker --commit` commits a task's verified work in the
-  checkout it ran in, and `the-cook fleet <command> --deliver`, which runs a command across a listed set of
+- The binary commits in a repository in two cases only: `the-cook attempt --commit` commits a task's verified work in
+  the checkout it ran in, and `the-cook fleet <command> --deliver`, which runs a command across a listed set of
   repositories, commits the tool-owned changes on a new local branch `<branch_prefix><command>`, cut from the fetched
   default branch, then fires that repository's `deliver` actions. Any other commit, push or pull request is a declared
   action. Why: a commit is the start of delivery, and delivery is the repository's decision. The two exceptions commit
   only work the binary itself verified or rendered, in a checkout its caller chose for that work or on a branch it
   created.
 - Reviewers judge the source change (`policy.yaml`, `hooks.yaml`, `config.yaml`); the rendered diff shows its effect
-  on each agent.
-- `the-cook recipe apply` writes its additions and renders them in the same change, so the entries, the files its
-  templates wrote and their rendered effect reach review as one diff, and the drift check passes on it.
+  on each worker.
+- `the-cook recipe apply` writes its additions and renders them in the same change, so the recipe and ingredient pins,
+  the entries, the files its templates wrote and their rendered effect reach review as one diff, and the drift check
+  passes on it. `the-cook ingredient pin` does the same for the pins it writes.
 - A version upgrade reaches review as one diff: `wrapper.yaml` (the version and its checksums) and every artefact the
   new release renders differently, `cook` and the shipped skill included. The checksums were written only after
   the running binary verified the release's signed checksum file, so reviewers confirm that the version is the one
@@ -303,7 +306,7 @@ without `the-cook`:
   output, while a file someone wrote into is the repository's knowledge, which `the-cook` never removes
   ([ADR 0007](../adrs/0007-ownership.md)).
 - Permission entries and hooks that adoption imported from project-scope native files are written back as plain
-  native settings, so the agents keep behaving as before. Entries imported from the `local` or `user` scope are not
+  native settings, so the workers keep behaving as before. Entries imported from the `local` or `user` scope are not
   written back, because their source files were never changed and still hold them.
 - State directories are left in place and listed in the output, for a person to delete, because workspaces can hold
   uncommitted work. Their `.gitignore` blocks are gone, so they show as untracked until deleted.
@@ -325,5 +328,5 @@ without `the-cook`:
 - It keeps the `.agents/memory/` skeleton and whatever people wrote into it, because it is the repository's knowledge.
 
 After eject, the repository keeps its conventions, permissions, hooks and static standing directives, and every file a
-template wrote. A program a recipe wired keeps its own configuration; an entry in it that runs `./cook` is the
-repository's to change.
+template wrote. A program whose configuration a recipe's template wrote keeps that configuration; an entry in it that
+runs `./cook` is the repository's to change.

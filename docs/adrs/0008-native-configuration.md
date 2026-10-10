@@ -2,19 +2,19 @@
 
 ## Objective
 
-**Problem.** The files agents read their permissions and hooks from are shared with people, who keep their own settings
-there. Rewriting such a file as a whole destroys those settings. Editing it without clear ownership leaves nobody able
-to tell the tool's content from a person's.
+**Problem.** The files coding agents read their permissions and hooks from are shared with people, who keep their own
+settings there. Rewriting such a file as a whole destroys those settings. Editing it without clear ownership leaves
+nobody able to tell the tool's content from a person's.
 
 **Goal.** People keep every setting they put in a shared native file, and the tool's content in that file can always be
 told apart.
 
 ## Context
 
-- Agents read permissions and hooks from native files at fixed locations. Claude Code (2.1.x) reads
+- Coding agents read permissions and hooks from native files at fixed locations. Claude Code (2.1.x) reads
   `.claude/settings.json`. Codex CLI (0.16x) reads `.codex/config.toml`, `.codex/hooks.json` and every file in
   `.codex/rules/`.
-- Where an agent reads a whole directory of rule files, a file can be added to it without touching the others.
+- Where a coding agent reads a whole directory of rule files, a file can be added to it without touching the others.
   Claude Code's project settings file has no include mechanism: everything it holds lives in one file.
 - These files are shared with people. Claude Code's project settings file holds permissions, hooks and keys for the
   environment, the model, Claude Code's own plugins, the status line and a schema reference, and people write any of
@@ -30,11 +30,12 @@ told apart.
 
 ## Decision
 
-1. Where an agent reads a directory of configuration files, the tool owns one separate whole file in that directory.
-2. Where an agent reads one shared file, the tool owns only named keys and entries: the permission lists, and the hook
-   and notification entries whose command is the tool's own entry point. Every other key and entry is preserved byte
-   for byte.
-3. The owned set of every native file is recorded in the manifest, under the name of the recipe that renders it
+1. Where a worker program reads a directory of configuration files, the tool owns one separate whole file in that
+   directory.
+2. Where a worker program reads one shared file, the tool owns only named keys and entries: the permission lists, and
+   the hook and notification entries whose command is the tool's own entry point. Every other key and entry is preserved
+   byte for byte.
+3. The owned set of every native file is recorded in the manifest, under the name of the ingredient that renders it
    ([0007](0007-ownership.md), [0022](0022-tool-integration.md)).
 4. Personal override files are never written and never recorded. They are read only during adoption, and only when a
    person chooses to import them ([0016](0016-permission-adoption.md)).
@@ -45,22 +46,22 @@ told apart.
 ## Reasons
 
 - **1.** A whole file is the clearest ownership there is: one path, one hash, and removal deletes one file. Where the
-  agent reads a directory, this costs nothing, because people's files in the same directory are never opened.
-- **2.** A harness whose project settings cannot include another file keeps everything in that one file, and people keep
-  permissions, hooks, environment, model, plugin and status-line keys in it (Context). Owning the whole file would
-  destroy those keys in every repository that has one, and owning nothing would leave the policy without effect. The
-  permission lists and the entries that call the tool are the narrowest set that still makes the rendered policy and the
-  declared hooks and notifications ([0019](0019-action-kinds.md)) take effect. Byte-for-byte preservation keeps the
+  program reads a directory, this costs nothing, because people's files in the same directory are never opened.
+- **2.** A worker program whose project settings cannot include another file keeps everything in that one file, and
+  people keep permissions, hooks, environment, model, plugin and status-line keys in it (Context). Owning the whole file
+  would destroy those keys in every repository that has one, and owning nothing would leave the policy without effect.
+  The permission lists and the entries that call the tool are the narrowest set that still makes the rendered policy and
+  the declared hooks and notifications ([0019](0019-action-kinds.md)) take effect. Byte-for-byte preservation keeps the
   tool's diff to its own keys, so a reviewer sees only what the tool changed.
 - **3.** Ownership inside a JSON file cannot be marked in the file. The manifest is where the drift check and removal
-  learn which keys to compare and which to take out ([0007](0007-ownership.md)). Recording the recipe lets a repository
-  stop using a harness recipe and lose exactly the keys it rendered.
+  learn which keys to compare and which to take out ([0007](0007-ownership.md)). Recording the ingredient lets a
+  repository stop using a worker ingredient and lose exactly the keys it rendered.
 - **4.** Writing an override file changes one person's setup through a change meant for the team, and recording it
   puts a personal, usually untracked file into a committed manifest. Importing it is a choice because it publishes one
   person's rules to the team ([0016](0016-permission-adoption.md)).
 - **5.** Rendering an owned key overwrites its content with what the data holds. A hand-written rule that is not
-  imported first vanishes at that moment: a lost deny widens what agents may do, and a lost allow stalls unattended
-  runs on prompts. Importing before owning keeps every rule in effect.
+  imported first vanishes at that moment: a lost deny widens what workers may do, and a lost allow stalls attempts on
+  prompts. Importing before owning keeps every rule in effect.
 
 ## Rejected alternatives
 
@@ -77,8 +78,8 @@ and usually untracked: the team, CI and reviewers never see what the tool render
 ### A separate owned file that the native file includes
 
 At its best, ownership is a whole file everywhere and no key is shared. It loses as a general rule because it depends on
-the agent supporting inclusion, and a harness's project settings may not support it (Context). Where the agent reads a
-directory, this is the rule (point 1).
+the worker program supporting inclusion, and a program's project settings may not support it (Context). Where the
+program reads a directory, this is the rule (point 1).
 
 ## Consequences
 
@@ -92,14 +93,14 @@ Costs:
 
 Must be maintained:
 
-- Round-trip tests for every native format, and the owned key set of every harness recipe
+- Round-trip tests for every native format, and the owned key set of every worker ingredient
   ([0009](0009-agent-support.md)).
 
 ## Confirmation
 
 - Fixtures carry foreign keys, unusual key order and TOML comments; after rendering, every byte outside the owned keys
   is unchanged.
-- In a directory the agent reads, rendering creates or changes only the tool's own file.
+- In a directory the worker program reads, rendering creates or changes only the tool's own file.
 - Fixtures with personal override files assert that the files are never written, never recorded in the manifest, and
   are opened only when an adoption imports them.
 - A fixture whose owned key holds hand-written entries renders those entries after adoption.
