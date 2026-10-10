@@ -15,15 +15,15 @@ reader can check that for each tool before adopting.
 
 `the-cook` enforces the lifecycle a repository declares, and shares the repository with the tools, settings and records
 below while staying out of their way. It never reconfigures state it did not create and never writes knowledge. The
-binary contains code for no external program and ships no ingredient or recipe: version control, every worker and
+binary contains code for no external program and ships no ingredient or station: version control, every worker and
 every other program are described by the [ingredients](ingredients.md) the repository pins from a cookbook, and the
 binary has no code for any loop runner, task tracker, skills installer, task runner or hosting platform
 ([ADR 0022](../adrs/0022-tool-integration.md)). A program reaches a repository as data: an ingredient's renders, a
-recipe's entries and templates, a command the profile declares, or a lifecycle action. What `the-cook` sets up does not
+station's entries and templates, a command the profile declares, or a lifecycle action. What `the-cook` sets up does not
 depend on it either: every convention is written down in plain text, and an eject keeps it.
 
 How each program behaves next to `the-cook`, and what its ingredient does about it, is documented with that ingredient,
-in the cookbook that publishes it. This page states the rules every ingredient, every recipe and the binary follow.
+in the cookbook that publishes it. This page states the rules every ingredient, every station and the binary follow.
 
 Commands on this page run as `./cook <command>`, through the repository's [wrapper](wrapper.md); with a global
 install, `the-cook <command>` is equivalent.
@@ -33,8 +33,8 @@ install, `the-cook <command>` is equivalent.
 | Already in the repository | What `the-cook` does |
 | --- | --- |
 | Issues, pull requests and boards on a hosting platform | The binary never writes them; delivery is the repository's declared `deliver` actions |
-| A task tracker's data in the clone ([task trackers](#task-trackers)) | Never reads or writes it; tracker actions the repository declares, or a recipe wrote, run the tracker's own command |
-| A loop runner's configuration and runs ([loop runners](#loop-runners)) | Never reads its configuration; a recipe may write a configuration template, only when it is absent |
+| A task tracker's data in the clone ([task trackers](#task-trackers)) | Never reads or writes it; tracker actions the repository declares, or a station wrote, run the tracker's own command |
+| A loop runner's configuration and runs ([loop runners](#loop-runners)) | Never reads its configuration; a station may write a configuration template, only when it is absent |
 | Task runners ([task runners](#task-runners)) | Never reads or writes their files; a declared command may run one; an ingredient's floor may deny workers some of its forms |
 | Shared skills from a skills installer ([skills installers](#skills-installers)) | Never runs the installer; leaves `.agents/skills/` and the installer's lock file to it |
 | A worker's project settings files | The worker ingredient's renders own only specific keys; the rest is preserved byte for byte ([native worker files](#native-worker-files)) |
@@ -65,7 +65,7 @@ CLI or API. A repository that declares none never has anything leave the clone t
 
 The binary has no code for any task tracker: it never runs a tracker's command of its own accord, reads its data or
 creates it. A tracker is wired by lifecycle actions on `start`, `completed` and `blocked`, which the repository declares
-or a recipe such as `agentic-coding` writes as entries, in a managed workspace bound to a task ([tasks](tasks.md)).
+or a station such as `agentic-coding` writes as entries, in a managed workspace bound to a task ([tasks](tasks.md)).
 Creating and configuring the tracker's data, and every other use of the tracker, is the team's.
 
 | Situation | Behaviour |
@@ -73,22 +73,22 @@ Creating and configuring the tracker's data, and every other use of the tracker,
 | No tracker data in the clone | nothing is created; initialising it is the tracker's own step |
 | Existing tracker data | never read, written or moved by the binary; its remotes, sync settings and hooks are the tracker's own |
 | Tracker actions | run the tracker's command with the credentials of whoever fires the event; what they write travels where the repository's synchronisation sends it, and `the-cook` never configures that synchronisation ([ADR 0012](../adrs/0012-write-boundary.md)) |
-| A sandboxed worker that writes the tracker's data | the data directory is listed in `workers.<name>.writable_roots`, by hand or by the recipe that wires the tracker ([profile](profile.md#workers)) |
+| A sandboxed worker that writes the tracker's data | the data directory is listed in `workers.<name>.writable_roots`, by hand or by the station that wires the tracker ([profile](profile.md#workers)) |
 | Tracker data tracked in version control, or ignored | the team's choice; the binary writes no `.gitignore` entry for it |
 | A tracker remote workers must never push to | a `deny` entry in the repository's policy |
 
 ## Loop runners
 
 A loop runner works through a list of tasks unattended, starting a worker for each. The binary has no code for any loop
-runner and reads none of its configuration. A recipe such as `agentic-coding` can write the runner's configuration as a
-[template](recipes.md#templates), only when it is absent, with `./cook attempt <worker>` as the command it runs for each
-task, so every attempt runs under the attempt contract and is verified before the runner sees it complete
+runner and reads none of its configuration. A station such as `agentic-coding` can write the runner's configuration as a
+[template](stations.md#templates), only when it is absent, with `./cook attempt <worker>` as the command it runs for
+each task, so every attempt runs under the attempt contract and is verified before the runner sees it complete
 ([attempts](attempts.md)). From then on the file is the repository's. Starting the runner, choosing its task source and
 firing the events of a run as a whole are the team's.
 
 | Situation | Behaviour |
 | --- | --- |
-| A runner configuration the repository already has | never read or written; applying a recipe whose template it is reports it as kept |
+| A runner configuration the repository already has | never read or written; applying a station whose template it is reports it as kept |
 | A per-user runner configuration | never read or written. A setting there that reaches the attempt as a bypass argument of the worker's ingredient is refused at the first task |
 | The runner's branches, session state and workspaces | the runner's own; `the-cook` never cleans them |
 | The runner's task source | the team's choice; `the-cook` sees only the command the runner runs for each task |
@@ -147,7 +147,7 @@ complete and landed stages of the lifecycle reach version control only through i
 
 - `the-cook` never installs or changes version-control hooks.
 - Workspace creation, the base, history and landed detection run through the ingredient's operations. A command that
-  needs them while no pinned ingredient fills the contract exits 3 and names `the-cook recipe apply` and
+  needs them while no pinned ingredient fills the contract exits 3 and names `the-cook station apply` and
   `the-cook ingredient pin`; reading the profile does not need them, because the binary finds the repository root
   itself.
 - The floor that protects the default branch is the ingredient's.
@@ -188,7 +188,7 @@ A repository's CI/CD is unchanged by adopting `the-cook`:
 - `./cook render --check` and `./cook doctor` are optional steps you may add ([render](render.md#drift-check));
   the wrapper downloads the pinned release over HTTPS and verifies its checksum, so CI runs exactly the release the
   pull request pins ([wrapper](wrapper.md#ci));
-- a job that runs either step runs `./cook fetch` first, which downloads every pinned ingredient and recipe the job's
+- a job that runs either step runs `./cook fetch` first, which downloads every pinned ingredient and station the job's
   cache lacks and verifies it against its pin;
 - the drift check reads only the repository's files, the pinned release and the pinned ingredients, so its result
   changes only with a commit to the repository ([ADR 0013](../adrs/0013-organization-content.md)).
@@ -204,14 +204,14 @@ A repository's CI/CD is unchanged by adopting `the-cook`:
   against `wrapper.yaml` ([wrapper](wrapper.md#security)).
 - Rendered output depends on the sources, on the pinned release and on the ingredients the profile pins by sha256, and
   never records the release; rendered files carry the `schema`.
-- An ingredient's pin changes only through `the-cook ingredient pin`, `the-cook recipe apply` or `scaffold --cookbook`,
+- An ingredient's pin changes only through `the-cook ingredient pin`, `the-cook station apply` or `scaffold --cookbook`,
   which verify each archive against the cookbook's `checksums.txt`, as downloaded over HTTPS at that moment, and show
   the pins as a diff for review. The binary then verifies every archive against its pin on download and on every load,
-  and refuses a mismatch with exit 1. Only those commands and `fetch` download ingredients and recipes; every other
+  and refuses a mismatch with exit 1. Only those commands and `fetch` download ingredients and stations; every other
   command reads them from the per-user cache, so a clone works offline once its ingredients are cached
   ([ingredients](ingredients.md)).
 - Each ingredient declares its schema and, when it fills a contract, the contract version it is written for; each
-  recipe declares its schema. The binary refuses an ingredient or a recipe whose schema is newer than it supports,
+  station declares its schema. The binary refuses an ingredient or a station whose schema is newer than it supports,
   naming the release needed ([ADR 0005](../adrs/0005-schema-compatibility.md)).
 - `the-cook wrapper --version <tag>` renders the repository with the new release in the same change, migrating
   older-schema files, so the pin and every artefact the new release renders differently land in one diff
@@ -230,7 +230,7 @@ A repository's CI/CD is unchanged by adopting `the-cook`:
 ### Supported program versions
 
 Each ingredient declares the versions of its program it supports, and the cookbook that publishes it tests it against
-the programs and versions it names. `the-cook`'s own tests cover the core with stand-in ingredients and recipes, so the
+the programs and versions it names. `the-cook`'s own tests cover the core with stand-in ingredients and stations, so the
 range an ingredient declares is what its cookbook stands behind. `the-cook doctor --json` and
 `the-cook ingredient show <name>` list the range of each ingredient in use.
 
@@ -245,11 +245,11 @@ removing it does not strand the repository ([remove](remove.md)):
 | A worker's instructions file keeps its import of `AGENTS.md` | that worker still reads `AGENTS.md` |
 | `.gitignore` keeps every entry | state stays out of commits |
 | Native settings keep their permissions and `raw` hooks as hand-owned content | workers keep the same rules |
-| A tracker's data, which `the-cook` never touched, and the templates a recipe wrote, such as a loop runner's configuration, stay: they are the repository's own | the tracker; the loop runner once its command for each task, `./cook attempt`, is replaced |
+| A tracker's data, which `the-cook` never touched, and the templates a station wrote, such as a loop runner's configuration, stay: they are the repository's own | the tracker; the loop runner once its command for each task, `./cook attempt`, is replaced |
 
 The eject removes the tool blocks, which describe how to use `the-cook` (`commands`, `layout`, `verify` and `lifecycle`
 in `AGENTS.md`, `commands` in `README.md`), together with the shipped skill and its links, so no file `the-cook`
-rendered names a `the-cook` command afterwards. A template a recipe wrote is the repository's own and keeps what it
+rendered names a `the-cook` command afterwards. A template a station wrote is the repository's own and keeps what it
 says, such as the command for each task in a loop runner's configuration.
 
 An undo, `the-cook remove` without `--eject`, instead returns the repository to the setup it had before adoption: every

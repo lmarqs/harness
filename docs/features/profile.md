@@ -15,11 +15,11 @@ and every worker and tool working there uses the same answer.
 
 The profile tells `the-cook` what a repository is and how its [lifecycle](lifecycle.md) runs: which
 [ingredients](ingredients.md) describe the programs it uses and which one fills version control, which
-[recipes](recipes.md) it applied, which modules it uses, how to bootstrap a checkout, how to lint and build, which
+[stations](stations.md) it applied, which modules it uses, how to bootstrap a checkout, how to lint and build, which
 verification lanes (named families of test commands) exist, which workers it declares, in which role, and what an
 [attempt](attempts.md) may write, and the standing context workers receive. It is seeded and then repository-owned.
-`scaffold` seeds it once, with the recipes of a cookbook tag it applies. From then on people and workers edit it,
-`the-cook recipe apply` adds a recipe's pins, stages and entries, `the-cook ingredient pin` adds or moves an
+`scaffold` seeds it once, with the stations of a cookbook tag it applies. From then on people and workers edit it,
+`the-cook station apply` adds a station's pins, stages and entries, `the-cook ingredient pin` adds or moves an
 ingredient's pin, and `the-cook render` reads it.
 
 Examples on this page run commands as `./cook <command>`, through the repository's [wrapper](wrapper.md); with a
@@ -29,7 +29,7 @@ global install, `the-cook <command>` is equivalent.
 
 | You want to | Edit |
 | --- | --- |
-| Take up a way of working or a stack's starting entries | nothing by hand: `./cook recipe apply <name> --cookbook <source>@<version>` writes `ingredients`, `recipes`, `vcs`, `workers` and the entries ([recipes](recipes.md)) |
+| Take up a way of working or a stack's starting entries | nothing by hand: `./cook station apply <name> --cookbook <source>@<version>` writes `ingredients`, `stations`, `vcs`, `workers` and the entries ([stations](stations.md)) |
 | Use a program, move it to a newer version, or stop using it | `ingredients` ([ingredients](ingredients.md)); `./cook ingredient pin <name> --cookbook <source>@<version>` adds or moves a pin; deleting the pin stops it |
 | Use another version control system | `vcs`, after pinning its ingredient |
 | Turn a feature on or off | `modules` |
@@ -64,7 +64,7 @@ Run `./cook render` after every edit, and `./cook doctor` to check globs and com
 | `schema` | integer | required | File format version. `1` for this release line |
 | `name` | string | the repository directory name | Repository name, used in messages |
 | `ingredients` | list | `[]` | The [ingredients](#ingredients) the repository uses, each pinned |
-| `recipes` | list | `[]` | The [recipes](#recipes) the repository applied, each with its pin |
+| `stations` | list | `[]` | The [stations](#stations) the repository applied, each with its pin |
 | `vcs` | ingredient name | none | The ingredient that fills the version-control contract; see [`ingredients`](#ingredients). Absent: no ingredient fills it |
 | `modules` | map | every module off | Which modules are on |
 | `bootstrap` | list of commands | `[]` | Run in order in a new workspace, and once in each checkout an [attempt](attempts.md#the-attempt-contract) runs in |
@@ -80,15 +80,15 @@ Run `./cook render` after every edit, and `./cook doctor` to check globs and com
 
 The [ingredients](ingredients.md) the repository uses: their renders and floor rules are rendered on every
 `the-cook render`, and their operations answer the binary's questions and start its workers. Every entry is a
-[pin](ingredients.md#pinning) with four fields, written by `the-cook recipe apply` for the ingredients a recipe lists
+[pin](ingredients.md#pinning) with four fields, written by `the-cook station apply` for the ingredients a station lists
 and by `the-cook ingredient pin`:
 
 | Field | Type | Meaning |
 | --- | --- | --- |
 | `name` | string | The ingredient's name; unique within `ingredients` |
-| `source` | string | The [cookbook](recipes.md#cookbooks): `github:<owner>/<repo>`, or an HTTPS base URL laid out like the [release source](wrapper.md#release-source) |
+| `source` | string | The [cookbook](stations.md#cookbooks): `github:<owner>/<repo>`, or an HTTPS base URL laid out like the [release source](wrapper.md#release-source) |
 | `version` | string | The cookbook tag, `<source>/download/<version>/<name>.tar.gz` |
-| `sha256` | string | The archive's sha256, 64 hexadecimal characters, from the tag's `checksums.txt` or the recipe that lists the ingredient; checked on download and on every load |
+| `sha256` | string | The archive's sha256, 64 hexadecimal characters, from the tag's `checksums.txt` or the station that lists the ingredient; checked on download and on every load |
 
 ```yaml
 ingredients:
@@ -104,22 +104,22 @@ vcs: git
 ```
 
 `vcs` names the ingredient that fills the [version-control contract](ingredients.md#the-version-control-contract),
-which a recipe's stages write when it is applied. It must be in `ingredients` and fill that contract, and every
+which a station's stages write when it is applied. It must be in `ingredients` and fill that contract, and every
 worker's [ingredient](#workers) must be in `ingredients` and fill the worker contract; otherwise the profile fails
 validation with exit 1, as do two entries with the same name. Deleting an entry from `ingredients` and rendering
 removes that ingredient's renders and its floor.
 
-### `recipes`
+### `stations`
 
-The [recipes](recipes.md) the repository applied, each with the pin it was applied at: the same four fields as an
-entry of `ingredients`, written by `the-cook recipe apply` and `scaffold --cookbook`. `recipes` is a record, so a
+The [stations](stations.md) the repository applied, each with the pin it was applied at: the same four fields as an
+entry of `ingredients`, written by `the-cook station apply` and `scaffold --cookbook`. `stations` is a record, so a
 person can tell where the repository started from and apply a newer version later
-([applying again](recipes.md#applying-again)). Nothing rendered or run depends on it: deleting an entry changes
-nothing rendered, and the recipe's applied entries and templates stay ([recipes](recipes.md#after-applying)). Names
-are unique within `recipes`; an ingredient and a recipe may share a name.
+([applying again](stations.md#applying-again)). Nothing rendered or run depends on it: deleting an entry changes
+nothing rendered, and the station's applied entries and templates stay ([stations](stations.md#after-applying)). Names
+are unique within `stations`; an ingredient and a station may share a name.
 
 ```yaml
-recipes:
+stations:
   - name: node
     source: github:acme/cookbook
     version: v1.2.0
@@ -175,8 +175,8 @@ and in the `commands` block. The rules that use them are on the [verify](verify.
 A map from worker name to its declaration. A worker is a program that changes the repository for someone, such as a
 coding agent, a bot or a codemod; the [workers](workers.md) page covers them. Only declared workers are rendered. Each
 worker is served by an ingredient the repository pins that fills the
-[worker contract](ingredients.md#the-worker-contract). A recipe's stages declare the workers it uses when it is
-applied ([recipes](recipes.md#stages)).
+[worker contract](ingredients.md#the-worker-contract). A station's stages declare the workers it uses when it is
+applied ([stations](stations.md#stages)).
 
 | Field | Type | Default | Meaning |
 | --- | --- | --- | --- |
@@ -285,7 +285,7 @@ ingredients:
     source: github:acme/cookbook
     version: v1.2.0
     sha256: 6d2f26296cf399e1f470582106e0def36fcb3979b54422ecde46767a4b996ea7
-recipes:
+stations:
   - name: node
     source: github:acme/cookbook
     version: v1.2.0
@@ -318,7 +318,7 @@ context:
       skill: sql-quality-check
 ```
 
-The repository applied the `node` recipe and edited its entries to the project's real commands. The team's tracker
+The repository applied the `node` station and edited its entries to the project's real commands. The team's tracker
 keeps its database in `.tasks/` in the clone, so the `acme-agent` worker, whose ingredient opens sandbox roots, may
 write it in its attempts, which start it with the model and effort given here.
 
@@ -336,7 +336,7 @@ ingredients:
     source: github:acme/cookbook
     version: v1.2.0
     sha256: b5fd834d175eb4b74cda3763a33fc04c87b00e8b85e18f8c1c43bf912eca8816
-recipes:
+stations:
   - name: terraform
     source: github:acme/cookbook
     version: v1.2.0
@@ -379,7 +379,7 @@ ingredients:
     source: github:acme/cookbook
     version: v1.2.0
     sha256: 17accff1f425d5eebd1ea4dec6901b620be626fe85f8633dfe0291ab9d374fa6
-recipes:
+stations:
   - name: go
     source: github:acme/cookbook
     version: v1.2.0
@@ -424,7 +424,7 @@ Patterns for the Go lanes are package paths:
 | `unknown key` error | A typo or a field from a newer schema | Fix the key; check `schema` |
 | `vcs` or a worker's `ingredient` names an ingredient not in `ingredients` | The pin was deleted, or never written | Pin it with `./cook ingredient pin <name> --cookbook <source>@<version>`, or name a pinned ingredient |
 | `vcs` or a worker's `ingredient` names an ingredient that fills another contract | `vcs` needs a version-control ingredient, a worker a worker ingredient | Name an ingredient that fills the contract; `./cook ingredient list` shows each one's contract |
-| Two `ingredients` entries, or two `recipes` entries, with the same name | A name is unique within each list | Delete one; `./cook ingredient pin` moves an existing pin |
+| Two `ingredients` entries, or two `stations` entries, with the same name | A name is unique within each list | Delete one; `./cook ingredient pin` moves an existing pin |
 | `writable_roots` is rejected for a worker | Its ingredient opens no sandbox roots | Remove the field, or use an ingredient that fills `launch.sandbox_roots` |
 | `render` exits 3 naming `./cook fetch` | An ingredient in `ingredients` is not in this machine's cache | Run `./cook fetch` |
 | `doctor` says a program is not on PATH | A command, lane, validator or action names a program this machine lacks | Install the program, or fix the command in `.cook/config.yaml` or `.cook/hooks.yaml` |

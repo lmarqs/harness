@@ -132,8 +132,8 @@ git add -A && git commit -m "chore: upgrade the-cook"
 `wrapper` writes nothing until the running release has verified the target release's signed checksum file with its
 embedded release keys, downloaded the binary for this platform and matched it against that file. The new release then
 renders the repository: `cook`, `wrapper.yaml`, every file it renders differently, and a migration of the repository
-files when it reads a newer `schema`. The release carries no ingredient or recipe: the [ingredients](ingredients.md)
-keep their own pins, and `./cook ingredient pin` or `./cook recipe apply` moves them. A step that fails leaves
+files when it reads a newer `schema`. The release carries no ingredient or station: the [ingredients](ingredients.md)
+keep their own pins, and `./cook ingredient pin` or `./cook station apply` moves them. A step that fails leaves
 everything untouched. The pin and its effect are one diff ([upgrading](wrapper.md#upgrading)).
 
 Many repositories at once: `the-cook fleet wrapper --version <tag> --deliver`
@@ -236,7 +236,7 @@ rm -rf "${COOK_HOME:-${XDG_CACHE_HOME:-$HOME/.cache}/the-cook}" ~/.config/the-co
 
 | Path | Holds |
 | --- | --- |
-| `$COOK_HOME` (default `$XDG_CACHE_HOME/the-cook`, else `~/.cache/the-cook`) | `versions/<version>/the-cook` for each downloaded release, each ingredient and recipe at `cookbook/<sha256>.tar.gz`, the update-check result, the signature-check result of `doctor` |
+| `$COOK_HOME` (default `$XDG_CACHE_HOME/the-cook`, else `~/.cache/the-cook`) | `versions/<version>/the-cook` for each downloaded release, each ingredient and station at `cookbook/<sha256>.tar.gz`, the update-check result, the signature-check result of `doctor` |
 | `~/.config/the-cook/fleet.yaml` | your default [fleet](fleet.md) file |
 
 ## Troubleshooting

@@ -30,14 +30,14 @@ version-control contract for workspaces, bases, history and landed work, the wor
 change the repository for someone, such as coding agents, bots and codemods, and lifecycle actions for everything else.
 The binary contains code and data for no external program. An [ingredient](ingredients.md) describes one program: the
 configuration rendered for it on every render, such as a coding agent's permission rules, hooks and instructions, the
-operations that fill a contract, and its floor, the rules about it no repository can remove. A [recipe](recipes.md) is
+operations that fill a contract, and its floor, the rules about it no repository can remove. A [station](stations.md) is
 one way of running the lifecycle, built from ingredients and applied once: the repository's own entries and templates
 start from it. Both come from cookbooks, and a repository pins each one it uses by cookbook, version and sha256; the
 binary ships none and names no default cookbook ([ADR 0022](../adrs/0022-tool-integration.md),
-[ADR 0024](../adrs/0024-ingredients-and-recipes.md)).
+[ADR 0024](../adrs/0024-ingredients-and-stations.md)).
 
-Agentic coding is the first recipe and the main example on these pages: an interactive coding agent, an unattended one
-that a loop runner starts through `the-cook attempt`, and a tracker updated by lifecycle actions. Whatever the recipe,
+Agentic coding is the first station and the main example on these pages: an interactive coding agent, an unattended one
+that a loop runner starts through `the-cook attempt`, and a tracker updated by lifecycle actions. Whatever the station,
 `the-cook` never calls a model, never writes knowledge such as prose, memory or domain skills, and never writes the
 team's record of work.
 
@@ -70,7 +70,7 @@ commands and the same documentation blocks in every repository that adopts it.
 | `memory` | A memory skeleton under `.agents/memory/` and its index in the `memory` block of `AGENTS.md` | [memory](memory.md) |
 
 A loop runner connects by naming `./cook attempt <worker>` as the command it runs for each task, and a task tracker by
-lifecycle actions on `start`, `completed` and `blocked`; a [recipe](recipes.md) such as `agentic-coding` writes both.
+lifecycle actions on `start`, `completed` and `blocked`; a [station](stations.md) such as `agentic-coding` writes both.
 Every module is opt-in and removable on its own, and the whole tool can be undone or ejected, keeping its conventions
 ([remove](remove.md)).
 
@@ -88,13 +88,13 @@ Every command below runs as `./cook <command>`; with a global install, `the-cook
 
 A repository that has no `cook` yet needs a `the-cook` binary once, to scaffold it
 ([installation](installation.md#scaffolding-a-new-repository)). The scaffold pins the release that runs it, and
-`--cookbook` names the cookbook tag whose recipes it applies: each one named with `--recipe`, and every one whose detect
-rule matches the repository, such as a stack recipe for its language:
+`--cookbook` names the cookbook tag whose stations it applies: each one named with `--station`, and every one whose
+detect rule matches the repository, such as a stack station for its language:
 
 ```sh
 cd ~/src/acme-api
-the-cook scaffold --cookbook github:acme/cookbook@v1.2.0 --recipe agentic-coding --dry-run   # every file it would write
-the-cook scaffold --cookbook github:acme/cookbook@v1.2.0 --recipe agentic-coding             # writes after confirmation
+the-cook scaffold --cookbook github:acme/cookbook@v1.2.0 --station agentic-coding --dry-run   # every file it would write
+the-cook scaffold --cookbook github:acme/cookbook@v1.2.0 --station agentic-coding             # writes after confirmation
 git diff --stat
 ```
 
@@ -102,14 +102,14 @@ Or adopt one that already has hand-written coding-agent permissions, hooks or in
 
 ```sh
 # --dry-run also prints the equivalence report
-the-cook scaffold --adopt --cookbook github:acme/cookbook@v1.2.0 --recipe agentic-coding --dry-run
-the-cook scaffold --adopt --cookbook github:acme/cookbook@v1.2.0 --recipe agentic-coding
+the-cook scaffold --adopt --cookbook github:acme/cookbook@v1.2.0 --station agentic-coding --dry-run
+the-cook scaffold --adopt --cookbook github:acme/cookbook@v1.2.0 --station agentic-coding
 ./cook doctor                    # lists what is left for a person or a coding agent to finish
 ```
 
 Without `--cookbook`, the scaffold writes the skeleton, and its to-do lists each contract no pinned ingredient fills.
-Apply recipes later with `./cook recipe apply <name>... --cookbook <source>@<version>` ([recipes](recipes.md)), or pin
-one ingredient with `./cook ingredient pin <name>... --cookbook <source>@<version>` ([ingredients](ingredients.md)).
+Apply stations later with `./cook station apply <name>... --cookbook <source>@<version>` ([stations](stations.md)), or
+pin one ingredient with `./cook ingredient pin <name>... --cookbook <source>@<version>` ([ingredients](ingredients.md)).
 
 Review and edit the profile and the policy, then render and commit; a workspace starts from committed code:
 
@@ -179,8 +179,8 @@ Configuration
 - [Ingredients](ingredients.md): how each program is described, its renders, floor and checks, the version-control
   and worker contracts, pins, trust, fetching and the cache, `the-cook ingredient pin`, `list` and `show`, and
   `the-cook fetch`
-- [Recipes](recipes.md): ways of running the lifecycle built from ingredients, their stages, entries and templates,
-  applying once and again, the merge rules, `the-cook recipe apply`, `list` and `show`, cookbooks, and where an
+- [Stations](stations.md): ways of running the lifecycle built from ingredients, their stages, entries and templates,
+  applying once and again, the merge rules, `the-cook station apply`, `list` and `show`, cookbooks, and where an
   organization's choices live
 
 Daily work

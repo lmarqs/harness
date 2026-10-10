@@ -23,7 +23,7 @@ These rules apply to anything `the-cook` writes into a repository.
 | Owned whole file that allows comments | the wrapper `cook` (after its `#!` line), `.cook/wrapper.yaml`, a whole rules file a worker ingredient renders, the shipped skill `.agents/skills/the-cook/SKILL.md` (as a YAML comment right after the opening `---` of its front matter) | header line, plus the manifest |
 | Owned whole file that allows no comments | `.cook/manifest.json` and other JSON files | the manifest |
 | Seeded file | `.cook/config.yaml`, `.cook/policy.yaml`, `.cook/hooks.yaml`, the `.agents/memory/` skeleton | the manifest records it as seeded, with the hash it was created with: written once, then the repository's |
-| Template file | a file a recipe's template wrote, such as a loop runner's configuration file from a recipe that uses the loop runner | nothing: seeded content the manifest does not record, written once and only where the file was absent, then the repository's |
+| Template file | a file a station's template wrote, such as a loop runner's configuration file from a station that uses the loop runner | nothing: seeded content the manifest does not record, written once and only where the file was absent, then the repository's |
 | Managed block inside a human file | the [block ids](#block-ids) in `AGENTS.md`, `README.md`, and the files ingredients render blocks into, such as a worker's instructions file and the version control system's ignore file | opening and closing markers, plus the manifest |
 | Owned keys inside a native file | the permission keys, `the-cook hook` entries (hooks on worker events, notification and context hooks) and rendered raw hook entries in a worker's settings files, as its ingredient names them | the manifest |
 | Link | a link from a worker's native skill directory to `.agents/skills/the-cook`, as its ingredient names it | the manifest |
@@ -37,7 +37,7 @@ The manifest also records the owner of each piece of owned content: the binary, 
 model alone (`cook`, `wrapper.yaml`, the shipped skill, the manifest, the `AGENTS.md` and `README.md` blocks), or the
 [ingredient](../features/ingredients.md#renders) whose renders produce it (a worker ingredient's keys in its worker's
 settings file and its instructions-file import, a whole rules file, the version-control ingredient's ignore-file
-blocks). Renders come only from ingredients: a recipe has none, so no owned content belongs to a recipe. Deleting an
+blocks). Renders come only from ingredients: a station has none, so no owned content belongs to a station. Deleting an
 ingredient from `ingredients:` and rendering removes exactly the content the manifest records under that ingredient.
 Why: the binary contains no program's format, so what a program's files hold is the ingredient's, and only an owner in
 the record tells a render which content leaves with the ingredient ([ADR 0007](../adrs/0007-ownership.md),
@@ -45,19 +45,19 @@ the record tells a render which content leaves with the ingredient ([ADR 0007](.
 
 Owned content is rendered and replaced on every render, and a hand edit to it is drift. Seeded content is written once
 and then edited by people and workers. `the-cook` never re-renders it. It writes to the repository files again only when
-a person pins an ingredient (`the-cook ingredient pin`), which adds or moves that pin, or applies a recipe
-(`the-cook recipe apply`), which adds only what they lack. Why: the seeded files hold the repository's choices and
+a person pins an ingredient (`the-cook ingredient pin`), which adds or moves that pin, or applies a station
+(`the-cook station apply`), which adds only what they lack. Why: the seeded files hold the repository's choices and
 knowledge, which `the-cook` cannot recompute.
 
-A template is seeded content of its own kind: a whole file in a recipe or in `scaffold`, rendered once with values from
+A template is seeded content of its own kind: a whole file in a station or in `scaffold`, rendered once with values from
 the profile, written only when the file is absent, and from then on the repository's own file. `the-cook` never renders
 it again and never removes it, and the manifest does not record it. Why: a template is usually a file another program
 reads, such as a loop runner's configuration, which the team then edits for that program. A record would make it look
-owned, and removing it with the recipe's record would then delete a file the team edited
+owned, and removing it with the station's record would then delete a file the team edited
 ([configuration-standards.md](configuration-standards.md#what-each-part-writes)).
 
-`the-cook scaffold` seeds the repository files and, with `--cookbook`, applies the recipes whose detect rule matches the
-repository as it seeds them ([configuration-standards.md](configuration-standards.md#applying-a-recipe)). The
+`the-cook scaffold` seeds the repository files and, with `--cookbook`, applies the stations whose detect rule matches
+the repository as it seeds them ([configuration-standards.md](configuration-standards.md#applying-a-station)). The
 `.agents/memory/` skeleton is seeded when the memory module is enabled, by `the-cook scaffold` or by the first
 `the-cook render` after the module is enabled, and is never re-rendered. The recorded creation hash is what lets undo
 (`the-cook remove`) tell an untouched skeleton from content someone wrote ([ADR 0007](../adrs/0007-ownership.md)).
@@ -226,7 +226,7 @@ Why: two teammates rendering the same commit must produce the same diff, or ever
 - The same repository files, pinned release and ingredients pinned by hash produce the same bytes on every supported
   operating system, with no network access, because nothing else is an input
   ([ADR 0013](../adrs/0013-organization-content.md), [ADR 0022](../adrs/0022-tool-integration.md)). The per-user cache
-  supplies only ingredients whose archive matches their `sha256`, and a recipe is not an input to rendering. A new
+  supplies only ingredients whose archive matches their `sha256`, and a station is not an input to rendering. A new
   release may render differently, the shipped skill and `cook` included; a new version of an ingredient may render
   differently, its floor included. Moving either pin (`the-cook wrapper --version <tag>`, `the-cook ingredient pin`)
   renders the repository in the same change, so every such difference reaches review in that diff
@@ -265,7 +265,7 @@ Why: two teammates rendering the same commit must produce the same diff, or ever
   created.
 - Reviewers judge the source change (`policy.yaml`, `hooks.yaml`, `config.yaml`); the rendered diff shows its effect
   on each worker.
-- `the-cook recipe apply` writes its additions and renders them in the same change, so the recipe and ingredient pins,
+- `the-cook station apply` writes its additions and renders them in the same change, so the station and ingredient pins,
   the entries, the files its templates wrote and their rendered effect reach review as one diff, and the drift check
   passes on it. `the-cook ingredient pin` does the same for the pins it writes.
 - A version upgrade reaches review as one diff: `wrapper.yaml` (the version and its checksums) and every artefact the
@@ -299,7 +299,7 @@ without `the-cook`:
 - It deletes the owned files and links, removes every managed block including its markers and text, and removes owned
   keys and entries from native files. Without `--module`, it also deletes `cook`, `wrapper.yaml`, the manifest and
   the seeded repository files in `.cook/`, listing the seeded files first, and then `.cook/` once nothing else
-  is in it. Their history stays in version control. Entries a recipe added are part of those files and go with them.
+  is in it. Their history stays in version control. Entries a station added are part of those files and go with them.
   Why: the seeded files have no meaning without `the-cook`.
 - A seeded file outside `.cook/` (the `.agents/memory/` skeleton) is deleted only while it still matches the hash
   the manifest recorded when it was seeded; an edited one is kept and listed. Why: an untouched skeleton is generated
@@ -328,5 +328,5 @@ without `the-cook`:
 - It keeps the `.agents/memory/` skeleton and whatever people wrote into it, because it is the repository's knowledge.
 
 After eject, the repository keeps its conventions, permissions, hooks and static standing directives, and every file a
-template wrote. A program whose configuration a recipe's template wrote keeps that configuration; an entry in it that
+template wrote. A program whose configuration a station's template wrote keeps that configuration; an entry in it that
 runs `./cook` is the repository's to change.

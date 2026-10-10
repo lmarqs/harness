@@ -24,9 +24,9 @@ Every output belongs either to the binary itself, such as `cook` and the `AGENTS
 version-control ingredient its ignore-file blocks. The binary contains no format of any program; each ingredient's
 renders describe its program's files, and every ingredient comes from a cookbook the profile pins it from. The manifest
 records every output with its owner, so deleting an ingredient from `ingredients:` in the profile and rendering removes
-exactly that ingredient's renders. What a recipe applied once, its [entries](recipes.md#entries) and
-[templates](recipes.md#templates), stays as the repository's own, and the recipe's entry in `recipes:` has no effect on
-what renders.
+exactly that ingredient's renders. What a station applied once, its [entries](stations.md#entries) and
+[templates](stations.md#templates), stays as the repository's own, and the station's entry in `stations:` has no effect
+on what renders.
 
 Examples on this page run commands as `./cook <command>`, through the repository's [wrapper](wrapper.md); with a
 global install, `the-cook <command>` is equivalent.
@@ -37,7 +37,7 @@ global install, `the-cook <command>` is equivalent.
 | --- | --- |
 | You edited `.cook/config.yaml`, `.cook/policy.yaml` or `.cook/hooks.yaml` | `./cook render` |
 | You turned a module on or off, moved a state path, or changed the `context` section | `./cook render` |
-| You want a stack's starting commands, lanes and post-edit hooks | `./cook recipe apply <name> --cookbook <source>@<version>`, which writes the recipe's entries, pins the ingredients it lists and renders ([recipes](recipes.md)) |
+| You want a stack's starting commands, lanes and post-edit hooks | `./cook station apply <name> --cookbook <source>@<version>`, which writes the station's entries, pins the ingredients it lists and renders ([stations](stations.md)) |
 | You want a newer version of one ingredient, such as the version-control one | `./cook ingredient pin <name> --cookbook <source>@<version>`, which moves the pin and renders ([ingredients](ingredients.md)) |
 | You stopped using a program, such as one coding agent | delete its worker from `workers` and its ingredient from `ingredients:`, then `./cook render`, which removes that ingredient's renders |
 | You want CI or a reviewer to confirm rendered files match their sources | `./cook render --check` |
@@ -45,12 +45,12 @@ global install, `the-cook <command>` is equivalent.
 
 ## How it works
 
-1. Read the repository files and validate them against the schema. Resolve every ingredient `ingredients:` pins from
-   the per-user cache, `$COOK_HOME/cookbook/<sha256>.tar.gz`, verified by its `sha256`. A pinned ingredient that is
-   not cached stops the render with exit 3 and the command that caches it, `./cook fetch`; `render` never fetches. An
-   ingredient's render that needs a contract no pinned ingredient fills, such as the
-   [hook command](#the-hook-command)'s root operation without a version-control ingredient, stops the render with exit
-   3 and names `./cook ingredient pin`. `render` reads no recipe: entries in `recipes:` have no effect on what renders.
+1. Read the repository files and validate them against the schema. Resolve every ingredient `ingredients:` pins from the
+   per-user cache, `$COOK_HOME/cookbook/<sha256>.tar.gz`, verified by its `sha256`. A pinned ingredient that is not
+   cached stops the render with exit 3 and the command that caches it, `./cook fetch`; `render` never fetches. An
+   ingredient's render that needs a contract no pinned ingredient fills, such as the [hook command](#the-hook-command)'s
+   root operation without a version-control ingredient, stops the render with exit 3 and names `./cook ingredient pin`.
+   `render` reads no station: entries in `stations:` have no effect on what renders.
 2. Compute every output: the binary's own and every ingredient's renders, which are owned files, owned keys inside
    native files, managed blocks and links, and the [floor rules](ingredients.md#the-floor) of every ingredient in use.
 3. Compare with the manifest and the working tree.
@@ -74,7 +74,7 @@ pins by hash, and on nothing else: `render` reads nothing from the network, and 
 ingredients whose content matches their `sha256` ([ADR 0013](../adrs/0013-organization-content.md),
 [ADR 0022](../adrs/0022-tool-integration.md)). No output records the release: only `.cook/wrapper.yaml` names it. A
 new release or a moved ingredient pin can render differently, so [`the-cook ingredient pin`](ingredients.md),
-[`the-cook recipe apply`](recipes.md) and [`the-cook wrapper --version <tag>`](wrapper.md#upgrading) each render the
+[`the-cook station apply`](stations.md) and [`the-cook wrapper --version <tag>`](wrapper.md#upgrading) each render the
 repository in the same change as the pin they write, and the pin and its effect are reviewed as one diff.
 
 ### What render writes
@@ -254,7 +254,7 @@ block and its line count, so a long lane list is visible in review.
   release would not; `the-cook doctor` notes when it runs.
 
 Run it in CI as an optional step, on every pull request. The wrapper downloads and verifies the release the pull
-request pins, and `./cook fetch` downloads and verifies every ingredient and recipe it pins, before the check:
+request pins, and `./cook fetch` downloads and verifies every ingredient and station it pins, before the check:
 
 ```sh
 # a CI job's steps, in a fresh checkout of the pull request
@@ -296,7 +296,7 @@ Global flags `-C <dir>`, `--yes` and `--verbose` also apply; see [CLI reference]
 | Exit code | Meaning |
 | --- | --- |
 | 0 | Rendered, or `--check` found no drift |
-| 1 | Error: invalid repository file; `vcs:` or `workers.<name>.ingredient` naming an ingredient `ingredients:` does not pin; a worker whose ingredient fills no worker contract; two entries with the same name in `ingredients:` or in `recipes:`; a cached ingredient whose content does not match its `sha256` |
+| 1 | Error: invalid repository file; `vcs:` or `workers.<name>.ingredient` naming an ingredient `ingredients:` does not pin; a worker whose ingredient fills no worker contract; two entries with the same name in `ingredients:` or in `stations:`; a cached ingredient whose content does not match its `sha256` |
 | 2 | `--check` found drift |
 | 3 | Repository schema is newer than the running release; a migration needs confirmation without a terminal; a pinned ingredient is not cached (`./cook fetch`); a render needs a contract no pinned ingredient fills (`./cook ingredient pin`) |
 

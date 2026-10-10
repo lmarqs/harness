@@ -23,10 +23,10 @@ generated content, skills and documentation. They are normative, like architectu
 
 - Architecture decisions: [../adrs/](../adrs/)
 - Individual features and their reference: [../features/](../features/)
-- Terms (profile, policy, managed block, manifest, receipt, worker, attempt, ingredient, recipe, contract, renders,
+- Terms (profile, policy, managed block, manifest, receipt, worker, attempt, ingredient, station, contract, renders,
   lane, …): [glossary](../features/glossary.md)
 - Ingredients, the contracts they fill and their floor: [ingredients](../features/ingredients.md)
-- Recipes, the ways of running the lifecycle a repository applies: [recipes](../features/recipes.md)
+- Stations, the ways of running the lifecycle a repository applies: [stations](../features/stations.md)
 
 A standard here applies to every feature, present and future. When the binary, a generated file, the shipped skill or
 a features page disagrees with a standard, that artifact is wrong and is corrected to match the standard. When a
@@ -43,12 +43,12 @@ wrapper as `./cook <command>` ([cli-standards.md](cli-standards.md#entry-points)
 | Developer in an adopted repository | `./cook`, generated files in pull requests | one pinned version on every machine, predictable commands, readable diffs, nothing written without being shown first |
 | Worker in an interactive session (a coding agent a person works with, as a pinned worker ingredient describes it) | rendered settings, hooks, `AGENTS.md` blocks, injected standing context, the shipped skill, `the-cook explain` | parseable output, exact next commands, text that matches the binary |
 | Worker in an attempt (one [`the-cook attempt`](../features/attempts.md) runs for a loop runner, a script or a coordinating worker, or one an [`attempt` action](../features/lifecycle.md#action-kinds) starts) | the CLI without a terminal, exit codes, JSON | no prompts, a distinct "blocked" outcome, no hidden state |
-| Another tool that calls `the-cook` (a loop runner, a tracker updated by actions) | `the-cook attempt`, lifecycle events and their `COOK_*` variables, files a recipe's templates wrote | a stable attempt interface; no code for the tool in the binary and no reading of its configuration; every file it reads is the repository's own |
+| Another tool that calls `the-cook` (a loop runner, a tracker updated by actions) | `the-cook attempt`, lifecycle events and their `COOK_*` variables, files a station's templates wrote | a stable attempt interface; no code for the tool in the binary and no reading of its configuration; every file it reads is the repository's own |
 | CI | the optional `./cook render --check` and `./cook doctor` steps | deterministic checks with the pinned, checksum-verified version; nothing required |
 | Repository owner or teammate who does not use `the-cook` | committed files only | a clone that builds, tests and runs its workers without the binary; conventions written in plain language in `AGENTS.md` and the ignore file |
 | Repository that stops using `the-cook` | `the-cook remove`, `the-cook remove --eject` | undo returns the repository to a working state without `the-cook`; eject keeps its conventions, permissions and hooks as the repository's own |
 | Pull-request reviewer | diffs of rendered files, managed blocks and the pin | every generated change visible and traceable to a source file; every version change traceable to a signed release |
-| Workflow maintainer | `fleet`, cookbooks, `the-cook recipe apply` and `the-cook ingredient pin`, declared actions, organization skills, schemas | one way to do each thing, safe across many repositories; nothing leaves a clone undeclared; nothing reaches a repository except as a reviewed change to its own files |
+| Workflow maintainer | `fleet`, cookbooks, `the-cook station apply` and `the-cook ingredient pin`, declared actions, organization skills, schemas | one way to do each thing, safe across many repositories; nothing leaves a clone undeclared; nothing reaches a repository except as a reviewed change to its own files |
 | Open-source user | any of the above | no organization-specific content in the binary, its skill or its docs |
 
 ## Normative language
@@ -85,9 +85,9 @@ describe what `the-cook` is, so a standard and the behaviour it describes change
 | --- | --- |
 | [principles.md](principles.md) | The user-facing principles every other standard derives from, and how they rank when they conflict |
 | [cli-standards.md](cli-standards.md) | Entry points (the wrapper, a global install, implicit hooks), the attempt command other tools call, command grammar, naming, flags, output, exit codes, errors, confirmations, dry-run, non-interactive use, environment variables, help, version, deprecation |
-| [when-cli-when-skill.md](when-cli-when-skill.md) | Where new behaviour goes: command, flag, profile field, declared action, standing-context entry, skill, ingredient, recipe or the repository itself; support for a third-party program as an ingredient or a declared action |
+| [when-cli-when-skill.md](when-cli-when-skill.md) | Where new behaviour goes: command, flag, profile field, declared action, standing-context entry, skill, ingredient, station or the repository itself; support for a third-party program as an ingredient or a declared action |
 | [skills-standards.md](skills-standards.md) | The shipped skill, organization skills and repository skills: when to create each, structure, use as standing context, evaluation |
-| [configuration-standards.md](configuration-standards.md) | Where files live (`.cook/`, `.agents/`, state paths) and the user-editable files: the wrapper pin, inputs (only the repository's own files, its pinned release and its pinned ingredients), schemas, defaults, validation, policy entry forms, declared actions and their kinds, standing context, the ingredients it pins and the recipes it applied (`ingredients:`, `recipes:`, `vcs:`, `workers:`), secrets, what never becomes a setting |
+| [configuration-standards.md](configuration-standards.md) | Where files live (`.cook/`, `.agents/`, state paths) and the user-editable files: the wrapper pin, inputs (only the repository's own files, its pinned release and its pinned ingredients), schemas, defaults, validation, policy entry forms, declared actions and their kinds, standing context, the ingredients it pins and the stations it applied (`ingredients:`, `stations:`, `vcs:`, `workers:`), secrets, what never becomes a setting |
 | [generated-content-standards.md](generated-content-standards.md) | Everything `the-cook` writes into a repository: headers, owned and seeded files, template files, managed-block markers, ids and classes, the `AGENTS.md` budget, determinism, review, removal (undo and eject) |
-| [messages-and-docs.md](messages-and-docs.md) | Voice and tone for CLI messages, text workers read, block text and documentation; the names of the lifecycle's parts (worker, attempt, ingredient, recipe, cookbook); the features page template |
-| [compatibility-standards.md](compatibility-standards.md) | Versioning, breaking changes, ingredients and recipes across versions and the version ranges of ingredients, adoption equivalence, deprecation windows, supported workers, coexistence, transparency, version pinning and release trust, update notices |
+| [messages-and-docs.md](messages-and-docs.md) | Voice and tone for CLI messages, text workers read, block text and documentation; the names of the lifecycle's parts (worker, attempt, ingredient, station, cookbook); the features page template |
+| [compatibility-standards.md](compatibility-standards.md) | Versioning, breaking changes, ingredients and stations across versions and the version ranges of ingredients, adoption equivalence, deprecation windows, supported workers, coexistence, transparency, version pinning and release trust, update notices |

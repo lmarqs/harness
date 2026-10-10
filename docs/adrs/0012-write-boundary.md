@@ -31,7 +31,7 @@ stays the team's.
 - The loop runner merges its per-user configuration into every run it starts, and anyone can start it without the tool
   ([0022](0022-tool-integration.md)).
 - Some starting files are another tool's configuration, such as a loop runner's entries that start each task through the
-  tool's attempt command; a recipe can supply one as a template ([0013](0013-organization-content.md)).
+  tool's attempt command; a station can supply one as a template ([0013](0013-organization-content.md)).
 - The tool's own releases must be fetched from somewhere; some networks reach only an internal mirror.
 
 ## Decision
@@ -43,11 +43,11 @@ stays the team's.
    binary records, such as the task a working copy is bound to, stays in the clone.
 3. Delivery is everything that leaves the clone: a push, a pull request, a CI trigger, a notification. It happens only
    through actions that the repository declares on lifecycle events ([0015](0015-development-lifecycle.md),
-   [0019](0019-action-kinds.md)). No action runs that the repository's files do not declare: a recipe that holds actions
-   writes them into those files only when a person applies it.
+   [0019](0019-action-kinds.md)). No action runs that the repository's files do not declare: a station that holds
+   actions writes them into those files only when a person applies it.
 4. The binary never reconfigures state it did not create:
    - an existing third-party database is left as found;
-   - another program's configuration and files are written only as a template of a recipe a person applies, where the
+   - another program's configuration and files are written only as a template of a station a person applies, where the
      file is absent, or as content an ingredient renders and the manifest records ([0007](0007-ownership.md),
      [0013](0013-organization-content.md), [0022](0022-tool-integration.md)), and are never read beyond the files an
      ingredient renders into and the rules adoption imports ([0008](0008-native-configuration.md),
@@ -142,7 +142,7 @@ Must be maintained:
 - A fixture with a foreign tool configuration directory refuses adoption, names the conflict and writes nothing.
 - A fixture whose root and per-user loop-runner configurations set a bypass runs every command of the tool without
   opening either file, and both are byte-identical afterwards.
-- Applying a recipe whose template names a loop-runner configuration that already exists leaves that file byte-identical
-  and reports it as kept.
+- Applying a station whose template names a loop-runner configuration that already exists leaves that file
+  byte-identical and reports it as kept.
 - Review rejects any hosting-platform client library, platform API endpoint or platform credential in the binary.
 - A fixture with no declared lifecycle actions, taken through every lifecycle event, leaves its remote unchanged.

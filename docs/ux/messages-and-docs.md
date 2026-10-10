@@ -226,7 +226,7 @@ A section with no content is omitted rather than left empty.
   `ingredient: claude` pinned from `github:acme/cookbook`, never as a description of that program's behaviour, flags,
   file keys, versions or pitfalls; that knowledge belongs to the page of the cookbook that describes the program. An ADR
   names a product only in its Context, as checkable evidence of what exists. Why: the binary contains code and data for
-  no program and ships no ingredient and no recipe, so a page that describes a program's behaviour documents something
+  no program and ships no ingredient and no station, so a page that describes a program's behaviour documents something
   `the-cook` does not hold and goes stale with that program's releases ([ingredients](../features/ingredients.md),
   [ADR 0022](../adrs/0022-tool-integration.md)).
 - What `the-cook` does with a program is attributed to the ingredient that fills its role: "the version-control
@@ -253,17 +253,17 @@ other page the same way:
 | a worker session that drives `the-cook` commands for a person | a **coordinating worker** |
 | the events a worker fires in a session: session start, post edit, prompt submit, attention, turn end | **worker events** |
 | a named, versioned description of one program | an **ingredient**: a worker ingredient, the version-control ingredient, a loop runner's ingredient |
-| a named, versioned description of one way of running the lifecycle, built from ingredients | a **recipe**, which a repository applies once |
-| a source that publishes ingredients and recipes by tag | a **cookbook** |
+| a named, versioned description of one way of running the lifecycle, built from ingredients | a **station**, which a repository applies once |
+| a source that publishes ingredients and stations by tag | a **cookbook** |
 
 - The concept is a worker whatever kind of program fills it, because the core treats a coding agent, a bot and a
   codemod the same way. "Coding agent" names the main example, and a product name appears only in a short example of a
   worker declared with an ingredient pinned from `github:acme/cookbook`.
-- An ingredient renders and runs; a recipe is applied. A page never says that a recipe renders, denies or runs
-  anything, because a recipe has no renders and no floor: what it wrote is the repository's own, and the ingredients it
+- An ingredient renders and runs; a station is applied. A page never says that a station renders, denies or runs
+  anything, because a station has no renders and no floor: what it wrote is the repository's own, and the ingredients it
   pinned do the rendering.
 - `AGENTS.md`, `.agents/`, model and effort keep their names. `AGENTS.md` and `.agents/` are file conventions of the
   agent ecosystem that a worker ingredient names; model and effort are settings a worker ingredient maps, and a worker
   whose program has no model ignores them. Why: a reader looks for these names where other tools already use them.
-- Agentic coding is described as the main example of a recipe, never as the definition of `the-cook`. Why: a page
-  that defines `the-cook` by one recipe makes every other way of running the lifecycle look like a misuse.
+- Agentic coding is described as the main example of a station, never as the definition of `the-cook`. Why: a page
+  that defines `the-cook` by one station makes every other way of running the lifecycle look like a misuse.

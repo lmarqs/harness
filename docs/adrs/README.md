@@ -90,7 +90,7 @@ One ADR holds one decision. If its points serve two decisions, it is two ADRs.
 - Present tense, no hedges.
 - No names of the tool's commands, flags, settings, environment variables, exit codes or files. Mechanisms are named
   generically: the wrapper, the manifest, the drift check, the health check, the repository's data, an ingredient, a
-  recipe. The [glossary](../features/glossary.md) and the [features](../features/) pages give the tool's own name for
+  station. The [glossary](../features/glossary.md) and the [features](../features/) pages give the tool's own name for
   each. The directory layout ADR names directories because the layout is its decision.
 - A third-party product whose behaviour a decision depends on is named with the version that behaviour was checked
   against. Prior art and rejected tools are named without a version, because nothing depends on their behaviour.
@@ -150,7 +150,7 @@ Must be maintained:
 | [0002](0002-division-of-work.md) | Which work does the binary do? | The binary does only deterministic work |
 | [0003](0003-implementation-language.md) | In what language, and as what artefact? | The tool is one executable written in Go |
 | [0004](0004-runtime-dependencies.md) | What does the binary need at runtime? | The binary needs only the operating system at runtime |
-| [0005](0005-schema-compatibility.md) | How do repository files, ingredients, recipes and binaries stay compatible? | Repository files, ingredients and recipes carry a schema version the binary enforces |
+| [0005](0005-schema-compatibility.md) | How do repository files, ingredients, stations and binaries stay compatible? | Repository files, ingredients and stations carry a schema version the binary enforces |
 | [0006](0006-repository-contract.md) | What does a repository hold? | A repository holds declarative data, never engine code |
 | [0007](0007-ownership.md) | How is ownership of generated content known? | A committed manifest records everything the tool owns |
 | [0008](0008-native-configuration.md) | How does the tool write files that workers and people share? | The tool owns only named keys inside shared native files |
@@ -169,4 +169,4 @@ Must be maintained:
 | [0021](0021-release-trust.md) | How is downloaded content trusted? | Only an already trusted binary admits downloaded content |
 | [0022](0022-tool-integration.md) | How does the binary reach external programs? | Every program the binary uses is described by an ingredient |
 | [0023](0023-core-and-contracts.md) | How is the binary's code divided? | The binary is a core behind contracts it declares |
-| [0024](0024-ingredients-and-recipes.md) | What does a cookbook publish? | An ingredient describes one program, a recipe one way of working |
+| [0024](0024-ingredients-and-stations.md) | What does a cookbook publish? | An ingredient describes one program, a station one way of working |

@@ -19,8 +19,8 @@ stages; and the proof a change carries, the [receipt](verify.md#the-receipt) and
 program. A stage that needs one reaches it through a contract or through an action the repository declares, and
 cookbooks describe the programs ([ADR 0015](../adrs/0015-development-lifecycle.md),
 [ADR 0023](../adrs/0023-core-and-contracts.md)). Agentic coding, where coding agents implement the change, is the main
-example on these pages and one [recipe](recipes.md) among others
-([ADR 0024](../adrs/0024-ingredients-and-recipes.md)); a bot or a codemod is a [worker](workers.md) in the same place.
+example on these pages and one [station](stations.md) among others
+([ADR 0024](../adrs/0024-ingredients-and-stations.md)); a bot or a codemod is a [worker](workers.md) in the same place.
 
 | Stage | Who acts | What the core does | Reached through |
 | --- | --- | --- | --- |
@@ -45,7 +45,7 @@ checks, are data in that program's worker ingredient.
 trigger, a notification) is an **action** that the repository declares on a **lifecycle event** in its own
 `.cook/hooks.yaml`. An action is a shell command, an HTTP request `the-cook` makes itself, or an attempt: a declared
 worker started unattended on a prompt. The binary decides when an event fires and enforces its guards. No action runs
-that the repository's files do not declare; a recipe's actions reach them, as entries, only when a person applies it
+that the repository's files do not declare; a station's actions reach them, as entries, only when a person applies it
 ([ADR 0015](../adrs/0015-development-lifecycle.md), [ADR 0019](../adrs/0019-action-kinds.md)).
 
 Every lifecycle action and every [notification hook](hooks.md#worker-notifications) a repository runs is written in
@@ -307,7 +307,7 @@ These are [built-in invariants](concepts.md#built-in-invariants). No repository 
 | Values only as environment variables | `the-cook` never substitutes a value into a `run` command's text, so a task title or a branch name cannot inject shell syntax. `http` and `attempt` actions expand `$NAME` only as described in [Action kinds](#action-kinds) |
 | `attempt` actions run under the attempt contract | The worker starts with the unattended launch arguments of its worker ingredient, the floor and the repository's `unattended.deny`; the ingredient's floor bypass arguments are refused, and the tamper check restores and compares the tool-owned files. It cannot commit, push or fire lifecycle events ([attempts](attempts.md#the-attempt-contract)) |
 | Every run is recorded | Each run, refused and skipped ones included, is appended to the [lifecycle log](#the-lifecycle-log). Dry runs are not recorded |
-| No undeclared action runs | No action runs that the repository's `.cook/hooks.yaml` does not declare. The seeded files hold none; a [recipe](recipes.md#entries)'s actions, such as the tracker actions of a recipe like `agentic-coding`, reach the file as entries only when a person applies it, and from then on they are the repository's own. `the-cook lifecycle list` prints them all |
+| No undeclared action runs | No action runs that the repository's `.cook/hooks.yaml` does not declare. The seeded files hold none; a [station](stations.md#entries)'s actions, such as the tracker actions of a station like `agentic-coding`, reach the file as entries only when a person applies it, and from then on they are the repository's own. `the-cook lifecycle list` prints them all |
 
 The scaffolded repository policy seeds `[the-cook, lifecycle, run, deliver]` under `ask`, because permitting a worker
 to run an event permits everything its actions do ([safety](safety.md#lifecycle-actions-are-code)). `render` writes it
@@ -776,7 +776,7 @@ not belong in `deliver`.
 ### Ralph: delivery per run, or delivery after judgement
 
 A Ralph run is an unattended run of a loop runner that starts `the-cook attempt` for each task, such as a loop runner
-whose configuration a recipe wrote as a template. With `the-cook attempt --commit`, each verified task is one commit on
+whose configuration a station wrote as a template. With `the-cook attempt --commit`, each verified task is one commit on
 the branch of the workspace the run works in.
 
 **Per run.** Each finished run becomes one draft pull request from that branch. The actions are limited to scope

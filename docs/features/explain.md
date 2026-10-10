@@ -32,11 +32,11 @@ global install, `the-cook <command>` is equivalent.
 - Someone asks what happens at each stage of a change, or a worker declares or triggers lifecycle actions or
   notifications: `explain lifecycle`, `explain hooks`.
 - Someone wants a stack's starting commands, [lanes](verify.md) and hooks, or reads a line such as
-  `kept lanes.unit: differs from recipe node` from `recipe apply`: `explain recipes`.
+  `kept lanes.unit: differs from station node` from `station apply`: `explain stations`.
 - Someone asks how `the-cook` works with the version control system, a worker or another program, or where a
   repository's ingredients come from: `explain ingredients`.
 - Someone wants a directive or a skill applied without invoking it each time: `explain context`.
-- Someone connects a loop runner or a task tracker: `explain attempt`, `explain lifecycle`, `explain recipes`.
+- Someone connects a loop runner or a task tracker: `explain attempt`, `explain lifecycle`, `explain stations`.
 - Someone asks how the repository pins, downloads and verifies the release it runs: `explain wrapper`.
 - Something behaves unexpectedly: `explain pitfalls`.
 - You are offline and need the reference for the pinned release: the text is embedded in the binary.
@@ -52,7 +52,7 @@ Markdown on stdout.
 | Topic | Explains |
 | --- | --- |
 | `layout` | the `.cook/` and `.agents/` directories and who owns each, `cook`, native directories, links, the state paths |
-| `profile` | `.cook/config.yaml` fields, `ingredients:`, `recipes:`, `vcs:` and `workers:` among them, and how to choose values |
+| `profile` | `.cook/config.yaml` fields, `ingredients:`, `stations:`, `vcs:` and `workers:` among them, and how to choose values |
 | `policy` | `.cook/policy.yaml`, the three entry forms, rendering per worker and per spelling of a `the-cook` command, precedence, the floor rules of the ingredients in use, how to place an entry |
 | `hooks` | `.cook/hooks.yaml`, the hook runtime, the `{file}` placeholder, notification hooks on the worker events `attention` and `turn_end`, the hook command and why it never downloads |
 | `lifecycle` | the stages of a change, who acts at each and what each reaches through, lifecycle events including `blocked`, trigger points, scopes, task binding with `workspace create --task`, the action kinds `run`, `http` and `attempt`, the built-in guards, the `COOK_*` environment, `lifecycle.jsonl` in the state directory |
@@ -63,7 +63,7 @@ Markdown on stdout.
 | `invariants` | the invariants built into the binary, the floor rules they apply from ingredients, and why none can be turned off |
 | `blocks` | managed blocks, their markers, the per-module and per-ingredient ids, convention blocks and tool blocks, the `AGENTS.md` budget, the editing rules |
 | `ingredients` | ingredients and their parts (operations, renders, floor, checks), the version-control and worker contracts, floor rules, the pin of each declared ingredient (cookbook, version, sha256), how pinning is trusted and reviewed, fetching and the cache, what a command does when no ingredient fills a contract or an ingredient is not cached, `the-cook ingredient pin`, `list` and `show`, `the-cook fetch` |
-| `recipes` | recipes and their parts (ingredients, stages, entries, templates, detect rule), cookbooks, applying a recipe once, the merge rules and why applying only adds, applying a newer version, `recipes:` in the profile, `the-cook recipe apply`, `list` and `show` |
+| `stations` | stations and their parts (ingredients, stages, entries, templates, detect rule), cookbooks, applying a station once, the merge rules and why applying only adds, applying a newer version, `stations:` in the profile, `the-cook station apply`, `list` and `show` |
 | `wrapper` | `cook`, `.cook/wrapper.yaml` as the only pin, the cache, checksum and signature verification, `--no-download`, global-install deferral, upgrades, air-gapped machines |
 | `safety` | the threat model, the layers of defence, how to place a policy entry, unattended runs, actions as code, secrets, attempt actions and prompt injection |
 | `pitfalls` | known pitfalls, gaps and traps, each with its symptom, cause and what to do |

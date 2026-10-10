@@ -64,14 +64,14 @@ version-control contract for workspaces, bases, history and landed work, the wor
 change the repository for someone, such as coding agents, bots and codemods, and lifecycle actions for everything else.
 The binary contains code and data for no program. An [ingredient](features/ingredients.md) describes one: the files
 rendered for it, the operations that fill a contract, and the arguments and commands that are never safe. A
-[recipe](features/recipes.md) is one way of running the lifecycle: the ingredients it uses and the entries and templates
-a repository starts from, applied once ([ADR 0022](adrs/0022-tool-integration.md),
-[ADR 0023](adrs/0023-core-and-contracts.md), [ADR 0024](adrs/0024-ingredients-and-recipes.md)). semantic-release reaches
-its release steps through plugins in the same way, and it and ESLint keep plugins, which add what a tool can do, apart
-from shareable configurations, which set how a project uses it; Chef, Ansible and Terraform describe what they manage as
-data. A repository pins each ingredient and recipe it uses from a cookbook. Agentic coding, with an interactive coding
-agent, an unattended one and the loop runner that hands it tasks, is the first recipe and the main example; it is one
-way of running the lifecycle, not its definition.
+[station](features/stations.md) is one way of running the lifecycle: the ingredients it uses and the entries and
+templates a repository starts from, applied once ([ADR 0022](adrs/0022-tool-integration.md),
+[ADR 0023](adrs/0023-core-and-contracts.md), [ADR 0024](adrs/0024-ingredients-and-stations.md)). semantic-release
+reaches its release steps through plugins in the same way, and it and ESLint keep plugins, which add what a tool can do,
+apart from shareable configurations, which set how a project uses it; Chef, Ansible and Terraform describe what they
+manage as data. A repository pins each ingredient and station it uses from a cookbook. Agentic coding, with an
+interactive coding agent, an unattended one and the loop runner that hands it tasks, is the first station and the main
+example; it is one way of running the lifecycle, not its definition.
 
 It is not a worker, not a client of hosting platforms or tool servers, not a source of configuration that lives outside
 your repository, not a launcher for any loop runner, and not a replacement for your task runner, skills installer or
@@ -117,7 +117,7 @@ before it happens.
 
 **Problem.** Problems 1 and 2.
 
-**Tenet.** A practice is built once, as a guard of the lifecycle in the tool or as an ingredient or a recipe in a
+**Tenet.** A practice is built once, as a guard of the lifecycle in the tool or as an ingredient or a station in a
 cookbook, and reaches each repository as data in that repository's files. Adopting it, upgrading it and removing it
 take one command per repository, or one operation across many, and removal leaves nothing the tool owns.
 
@@ -168,15 +168,15 @@ program's releases.
 included, is described by an ingredient. The binary keeps the lifecycle and the process around it: stages, events,
 guards, proof, attempts, ownership, rendering and removal. Ingredients keep the program facts: the files a program
 reads, the commands that answer the binary's questions, the arguments that start it unattended and the ones that are
-never safe. Recipes keep ways of working: which ingredients fill the stages, and the entries and templates a repository
-starts from, which become its own once applied. The binary ships no ingredient or recipe and names no default source of
+never safe. Stations keep ways of working: which ingredients fill the stages, and the entries and templates a repository
+starts from, which become its own once applied. The binary ships no ingredient or station and names no default source of
 one: a repository pins every one it uses from a cookbook, by version and hash, and the reviewed pin is the trust
 decision for everything it runs. Any number of cookbooks may exist, and none is official. A team switches a program by
 switching its ingredient, which changes only the repository's files, and other programs call `the-cook` through a
 stable command interface.
 
 **Bound by.** [ADR 0022](adrs/0022-tool-integration.md), [ADR 0023](adrs/0023-core-and-contracts.md),
-[ADR 0024](adrs/0024-ingredients-and-recipes.md).
+[ADR 0024](adrs/0024-ingredients-and-stations.md).
 
 ### A safety floor nobody can lower
 

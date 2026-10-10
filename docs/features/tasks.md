@@ -28,7 +28,7 @@ Three pieces make this work:
 - **The `completed` guard.** `completed` with scope `task` is refused (exit 3) without a valid
   [verification receipt](verify.md) when the verify module is on, whoever fires it.
 - **Trackers wired by actions.** The repository declares the actions with the tracker's own command line, or applies
-  a [recipe](recipes.md#entries) that holds them as entries. Every tracker is wired the same way.
+  a [station](stations.md#entries) that holds them as entries. Every tracker is wired the same way.
 
 Commands are named `the-cook <command>` on this page. The examples run them through the repository's wrapper,
 `./cook <command>`, from the root of a checkout; with a global install, `the-cook <command>` is equivalent
@@ -98,20 +98,20 @@ The actions are the repository's own entries in `.cook/hooks.yaml`, reviewed lik
 trackers changes those entries and nothing else. A program an action names that is not on `PATH` is a
 [`the-cook doctor`](doctor.md) finding.
 
-#### Tracker actions from a recipe
+#### Tracker actions from a station
 
-A [recipe](recipes.md), one way of running the lifecycle such as `agentic-coding`, can hold these actions as
-[entries](recipes.md#entries). `the-cook recipe apply <name> --cookbook <source>@<version>` shows them in one diff with
-the rest of the recipe and writes them into `.cook/hooks.yaml` ([recipes](recipes.md#how-apply-works)); from then on
-they are the repository's own. Such a recipe usually also holds:
+A [station](stations.md), one way of running the lifecycle such as `agentic-coding`, can hold these actions as
+[entries](stations.md#entries). `the-cook station apply <name> --cookbook <source>@<version>` shows them in one diff
+with the rest of the station and writes them into `.cook/hooks.yaml` ([stations](stations.md#how-apply-works)); from
+then on they are the repository's own. Such a station usually also holds:
 
 - an `unattended.deny` entry for the tracker's close command, so a task closes only through the guarded `completed`
   event, never from inside an attempt;
-- a `writable_roots` value on each worker its [stages](recipes.md#stages) declare whose ingredient opens sandbox
+- a `writable_roots` value on each worker its [stages](stations.md#stages) declare whose ingredient opens sandbox
   roots, naming the tracker's data directory, so the tracker commands a sandboxed worker runs can update it
   ([profile](profile.md#workers)).
 
-It may also list the tracker's [ingredient](ingredients.md), which applying the recipe pins, so `the-cook doctor`
+It may also list the tracker's [ingredient](ingredients.md), which applying the station pins, so `the-cook doctor`
 checks the tracker's version against the range that ingredient supports. Nothing in the binary initialises, configures
 or reads a tracker's data. Creating it is the tracker's own job.
 
@@ -167,13 +167,13 @@ Files written: the lifecycle log; whatever the actions write.
 
 ## Examples
 
-### A Node API with tracker actions from a recipe
+### A Node API with tracker actions from a station
 
-The repository applies the recipe `agentic-coding` from the cookbook `github:acme/cookbook`, whose entries include the
+The repository applies the station `agentic-coding` from the cookbook `github:acme/cookbook`, whose entries include the
 actions for its tracker:
 
 ```sh
-./cook recipe apply agentic-coding --cookbook github:acme/cookbook@v1.2.0
+./cook station apply agentic-coding --cookbook github:acme/cookbook@v1.2.0
 ./cook workspace create invoice-rounding --task acme-api-7f2   # the start action marks the task in progress
 cd .work/workspaces/invoice-rounding
 # edit, test

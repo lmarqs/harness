@@ -49,8 +49,8 @@ The effective policy is the union of:
    binary's own entries for its commands;
 2. allow entries for the commands of each enabled [module](profile.md#modules), rendered for each spelling `the-cook`
    renders ([below](#entries-for-the-cook-commands));
-3. the entries in `.cook/policy.yaml`, including those a recipe's entries added when it was applied, which are the
-   repository's own from then on ([recipes](recipes.md#entries)).
+3. the entries in `.cook/policy.yaml`, including those a station's entries added when it was applied, which are the
+   repository's own from then on ([stations](stations.md#entries)).
 
 Nothing else contributes an entry: no file outside the repository is read
 ([ADR 0013](../adrs/0013-organization-content.md)). Lists are unions: no source removes an entry from another, and
@@ -152,7 +152,7 @@ rules.
 
 Organization choices are not in the floor: denying the remote sync of a [task tracker](tasks.md), allowing deploy status
 tasks, MCP read rules. They belong in each repository's policy file, written there by a person, by a worker, or by the
-entries of a recipe the repository applied, and reviewed like any other change ([recipes](recipes.md)).
+entries of a station the repository applied, and reviewed like any other change ([stations](stations.md)).
 
 ### The seeded entry
 
@@ -309,8 +309,8 @@ More:
 - Do comment each group of entries with the reason; the reason is what a reviewer evaluates.
 - Do write an organization's entries into each repository's policy through a reviewed change, for example by a coding
   agent following a skill the organization publishes, such as one installed from `acme/agent-skills`, or by applying a
-  recipe from the organization's cookbook: each repository reviews them, and they are readable where they apply
-  ([recipes](recipes.md)).
+  station from the organization's cookbook: each repository reviews them, and they are readable where they apply
+  ([stations](stations.md)).
 - Do express a rule as a prefix list whenever every worker must enforce it.
 - Do write an entry for a `the-cook` command once, as `[the-cook, …]`; `render` writes it for each spelling it renders,
   and the binary's own guards catch the others.

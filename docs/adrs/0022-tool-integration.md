@@ -66,16 +66,16 @@ description of that program, and neither the tool's code nor its release names a
    repository's declared data, owned and recorded under the ingredient's name ([0007](0007-ownership.md),
    [0008](0008-native-configuration.md)). Floor: the facts of point 5. Checks: a version command with a supported
    range, and a detect rule that tells the health check the program is in use. Content written once into the
-   repository, entries and templates, belongs to recipes, never to an ingredient
-   ([0024](0024-ingredients-and-recipes.md)).
-3. The binary ships no ingredient and no recipe and names no source of either. Every ingredient a repository uses, the
+   repository, entries and templates, belongs to stations, never to an ingredient
+   ([0024](0024-ingredients-and-stations.md)).
+3. The binary ships no ingredient and no station and names no source of either. Every ingredient a repository uses, the
    version control ingredient and the worker ingredients included, comes from a cookbook: a source that publishes
-   ingredients and recipes by version, with a content hash for each ([0024](0024-ingredients-and-recipes.md)). The
+   ingredients and stations by version, with a content hash for each ([0024](0024-ingredients-and-stations.md)). The
    repository's data declares every ingredient it uses by name, cookbook, version and content hash, each name at most
    once, and a declaration enters the repository only through a reviewed change. The binary fetches a declared
    ingredient only on an explicit command, caches it outside the repository and verifies it against its hash on every
    fetch and every load ([0021](0021-release-trust.md)). The project tests the binary with stand-in ingredients and
-   recipes that describe no real program; each cookbook tests its own against the programs they describe.
+   stations that describe no real program; each cookbook tests its own against the programs they describe.
 4. Nothing fetches during a hook or an attempt. An ingredient the attempt needs and does not have is a missing
    prerequisite, reported before any worker starts. An attempt resolves the ingredients it needs before the worker
    starts and uses that resolution for every read, comparison, reset and launch of the attempt.
@@ -105,17 +105,17 @@ description of that program, and neither the tool's code nor its release names a
   floor), when the binary needs an answer or starts it (operations), and when a person checks the machine (checks).
   Operations may fill no contract because a program can need a floor or renders without the binary needing any answer
   from it, as a task runner does (Context). What a repository writes once about a program depends on the team's way
-  of working, not on the program, so it lives in recipes ([0024](0024-ingredients-and-recipes.md)), and everything an
+  of working, not on the program, so it lives in stations ([0024](0024-ingredients-and-stations.md)), and everything an
   ingredient holds acts exactly while it is pinned. Naming the parts keeps each ingredient reviewable as data
   ([0006](0006-repository-contract.md)) and keeps ownership exact: a render is recorded under its ingredient's name.
 - **3.** An ingredient is knowledge of one program, and that knowledge changes with the program's releases (Context).
   In the binary, as data or as code, it would put the binary's release on every program's schedule: a worker that
   changes a bypass argument would need a release of the binary, and every repository would take that release, and
   everything else in it, to get the fix. From a cookbook, an ingredient's new version moves alone, through one reviewed
-  change of its pin. An ingredient or a recipe the release shipped would also be the choice every page documents and
+  change of its pin. An ingredient or a station the release shipped would also be the choice every page documents and
   every test of the project vouches for, which is the imposed choice of point 1 in data form: a test of a description
   shows only that it works with its program (Context), and the choice of program stays the team's. Keeping every
-  ingredient and recipe in cookbooks keeps the project's own documentation and decisions about the lifecycle and its
+  ingredient and station in cookbooks keeps the project's own documentation and decisions about the lifecycle and its
   contracts, which change with the binary, and leaves each program's knowledge with that program's description. Naming
   no source keeps the binary from choosing a cookbook for anyone: whatever a repository uses, it named. Pinning by hash
   in a reviewed change makes every ingredient an input the repository fixes exactly, as a committed dependency lock
@@ -154,7 +154,7 @@ description of that program, and neither the tool's code nor its release names a
 ### The release embeds and tests descriptions of the common programs
 
 The binary carries ingredients for the version control system, the common coding agents, a loop runner, a task
-tracker, a task runner and a skills installer, and recipes for the usual way of working and each common stack, and the
+tracker, a task runner and a skills installer, and stations for the usual way of working and each common stack, and the
 project's CI tests each against its programs. At its best, adoption is one command for the usual setup, with no
 cookbook to name and nothing to fetch, and the safety facts of point 5 sit behind the project's tests and the release's
 signature, which is where a team expects them to be maintained. It loses because the binary's release then follows
@@ -167,7 +167,7 @@ a reviewer can read in full ([0021](0021-release-trust.md)).
 
 ### A default cookbook the binary names
 
-The binary ships no ingredient and no recipe but knows one cookbook it uses when a person names none. At its best,
+The binary ships no ingredient and no station but knows one cookbook it uses when a person names none. At its best,
 adoption needs no source argument, everyone starts from the same well-known descriptions, and the release stays free of
 program knowledge. It loses because the binary then chooses a cookbook for every repository: its maintainers inherit
 the project's role of following every program, the tool's documentation describes its contents, and its users expect
@@ -225,7 +225,7 @@ Costs:
 - The project's tests show that the core interprets ingredients correctly, not that any ingredient works with its
   program; showing that is each cookbook's work.
 - A repository that wants a tracker updated, a loop runner configured or shared skills installed carries the entries
-  and files for it, written by a recipe ([0024](0024-ingredients-and-recipes.md)), a person or a worker.
+  and files for it, written by a station ([0024](0024-ingredients-and-stations.md)), a person or a worker.
 - Nothing fires the events of an unattended run as a whole; whoever drives the run fires them.
 - A bypass setting in a loop runner's configuration surfaces only when the attempt command refuses it, at the first
   task.
@@ -234,13 +234,13 @@ Must be maintained:
 
 - The ingredient schema and the two contracts, as a public format other people write to.
 - Stand-in ingredients that exercise every part of the format and every operation of both contracts.
-- The check that the binary's source and embedded assets name no external program and hold no ingredient or recipe.
+- The check that the binary's source and embedded assets name no external program and hold no ingredient or station.
 - The attempt command's arguments, exit statuses and environment, as a stable interface other programs name.
 
 ## Confirmation
 
 - A CI check fails when the binary's source or embedded assets contain the name of any external program, any
-  ingredient or any recipe, or when the binary starts a program that no ingredient, declared command or action names.
+  ingredient or any station, or when the binary starts a program that no ingredient, declared command or action names.
 - Fixtures run stand-in ingredients, named after no real program, through every part of the format: the version
   control operations, the worker renders, launches and payload mappings, and a loop runner and a task tracker end to
   end. In the loop runner fixture, a configuration entry that passes a bypass argument fails at the first task with the

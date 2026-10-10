@@ -31,11 +31,11 @@ binary interprets ([ADR 0022](../adrs/0022-tool-integration.md)). It holds up to
 
 An ingredient has no entries and no templates: it never writes a file the repository then owns. What a repository
 writes once and keeps, such as its lanes, its unattended denies and a loop runner's configuration file, comes from a
-[recipe](recipes.md), one way of running the lifecycle, which also pins the ingredients it uses.
+[station](stations.md), one way of running the lifecycle, which also pins the ingredients it uses.
 
 The profile pins ingredients under `ingredients:` ([profile](profile.md#ingredients)). `vcs:` names the ingredient that
 fills the version-control contract, and each worker's `ingredient` names the one that fills its worker contract
-([profile](profile.md#workers)). Applying a recipe pins the ingredients it lists, and
+([profile](profile.md#workers)). Applying a station pins the ingredients it lists, and
 [`the-cook ingredient pin`](#the-cook-ingredient-pin) adds or moves pins on its own. Every render writes the renders
 and floor of every pinned ingredient; deleting a pin and rendering removes exactly what that ingredient rendered.
 
@@ -52,11 +52,11 @@ Commands are named `the-cook <command>` on this page. The examples run them thro
 | See which ingredients a cookbook tag holds and which match this repository's files | `./cook ingredient list --cookbook github:acme/cookbook@v1.2.0` |
 | Read everything an ingredient holds before pinning it | `./cook ingredient show <name> --cookbook github:acme/cookbook@v1.2.0` |
 | Move an ingredient to a newer tag, such as a newer `git` ingredient | `./cook ingredient pin git --cookbook github:acme/cookbook@v1.3.0` |
-| Take up a whole way of working, with the ingredients it uses | a recipe: `./cook recipe apply <name> --cookbook <source>@<version>` ([recipes](recipes.md)) |
-| Use a program no applied recipe lists | `./cook ingredient pin <name> --cookbook <source>@<version>`, then name it in `vcs:` or a worker's `ingredient` when it fills a contract ([Examples](#a-program-no-recipe-lists)) |
-| Cache every pinned ingredient and recipe after cloning, or in CI | `./cook fetch` ([Fetching](#fetching)) |
+| Take up a whole way of working, with the ingredients it uses | a station: `./cook station apply <name> --cookbook <source>@<version>` ([stations](stations.md)) |
+| Use a program no applied station lists | `./cook ingredient pin <name> --cookbook <source>@<version>`, then name it in `vcs:` or a worker's `ingredient` when it fills a contract ([Examples](#a-program-no-station-lists)) |
+| Cache every pinned ingredient and station after cloning, or in CI | `./cook fetch` ([Fetching](#fetching)) |
 | Stop using a program | delete its pin from `ingredients:`, and the `vcs:` or worker that names it, then run `./cook render` |
-| Describe a program no cookbook describes | write an ingredient and publish it in a cookbook ([cookbooks](recipes.md#cookbooks)) |
+| Describe a program no cookbook describes | write an ingredient and publish it in a cookbook ([cookbooks](stations.md#cookbooks)) |
 
 ## Parts of an ingredient
 
@@ -71,7 +71,7 @@ Operations are what the binary asks of a program and how it starts one. They fil
   `workers.<name>.ingredient` names.
 
 An ingredient fills at most one contract, and many fill none: a loop runner's, a tracker's or a task runner's
-ingredient has no operations. The lifecycle reaches those programs through the actions and the templates a recipe
+ingredient has no operations. The lifecycle reaches those programs through the actions and the templates a station
 writes into the repository's files, and the ingredient adds their renders, floor and checks. Every operation is a
 command with placeholders and a declared output kind, or a mapping the binary reads as data. The binary never parses
 a program's free text: an answer is a string, a list of lines, bytes or an exit status.
@@ -180,7 +180,7 @@ is an ingredient with the same operations.
 The binary finds the repository root itself, as the nearest directory upward that holds `.cook/config.yaml`, so
 reading the profile never needs this contract; workspace, base and history operations do. A command that needs the
 contract while `vcs:` names no pinned ingredient exits 3 and names both ways to fill it:
-`the-cook recipe apply` with a recipe whose stages name a version-control ingredient, or `the-cook ingredient pin`
+`the-cook station apply` with a station whose stages name a version-control ingredient, or `the-cook ingredient pin`
 followed by `vcs:` in the profile. The version-control ingredient's program missing is a missing prerequisite too: the
 command exits 3 and names the program.
 
@@ -234,21 +234,21 @@ ingredients:
 | Field | Meaning |
 | --- | --- |
 | `name` | the ingredient's name; it must equal the `name` in its `ingredient.yaml`, and is unique within `ingredients:` |
-| `source` | the [cookbook](recipes.md#cookbooks) |
+| `source` | the [cookbook](stations.md#cookbooks) |
 | `version` | the cookbook tag; it must equal the `version` in its `ingredient.yaml` |
 | `sha256` | the sha256 of the archive, as the tag's `checksums.txt` states it |
 
 Two commands write these entries, and each shows them as a diff and asks before writing:
 
-- [`the-cook recipe apply`](recipes.md#how-apply-works) pins every ingredient the applied recipes list, at the
-  sha256 each recipe lists, in the same diff as the recipe's entries and templates. An ingredient the repository
+- [`the-cook station apply`](stations.md#how-apply-works) pins every ingredient the applied stations list, at the
+  sha256 each station lists, in the same diff as the station's entries and templates. An ingredient the repository
   already pins keeps the repository's pin; when the sha256 differs, the difference is reported:
-  `kept ingredients.git: pinned at v1.1.0, recipe agentic-coding lists v1.2.0`.
+  `kept ingredients.git: pinned at v1.1.0, station agentic-coding lists v1.2.0`.
 - [`the-cook ingredient pin`](#the-cook-ingredient-pin) adds or moves pins only, from one cookbook tag, and renders.
   Pinning a name already in `ingredients:` at another version or from another cookbook moves its pin.
 
 Pinning declares an ingredient and renders its renders and floor; it declares no worker and writes no `vcs:`. A
-recipe's stages do that when it is applied, and a person can write them in the profile. The profile fails validation
+station's stages do that when it is applied, and a person can write them in the profile. The profile fails validation
 with exit 1, for every command that reads it, when two entries of `ingredients:` share a name, when `vcs:` names an
 ingredient that is not pinned or does not fill the version-control contract, and when a worker's `ingredient` is not
 pinned or does not fill the worker contract.
@@ -256,7 +256,7 @@ pinned or does not fill the worker contract.
 ### Trust
 
 Pinning from a tag trusts the cookbook's `checksums.txt` as downloaded over HTTPS at that moment. An ingredient pinned
-by applying a recipe is trusted through the recipe: the recipe's archive is verified against its tag's
+by applying a station is trusted through the station: the station's archive is verified against its tag's
 `checksums.txt`, and the sha256 it lists for each ingredient is what the ingredient's archive must match. Either way
 the pins enter the repository only through a reviewed diff, and from then on the binary verifies every archive against
 its pin, on download and on every load. No release key vouches for an ingredient. An ingredient is data, so a
@@ -266,7 +266,7 @@ included.
 
 ## Fetching
 
-The binary stores each ingredient and each recipe archive in the per-user cache as
+The binary stores each ingredient and each station archive in the per-user cache as
 `$COOK_HOME/cookbook/<sha256>.tar.gz`, outside the repository, and checks its sha256 every time it loads it: a
 mismatch, on download or on load, stops the command with exit 1, and the archive is not used.
 
@@ -274,12 +274,12 @@ Only these commands download, always over HTTPS:
 
 | Command | Downloads |
 | --- | --- |
-| `the-cook recipe apply --cookbook` | the tag's `checksums.txt`, the named recipes and every ingredient they list that is not cached |
-| `the-cook recipe apply` | a recorded recipe it applies, and an ingredient that recipe lists, that is not cached |
+| `the-cook station apply --cookbook` | the tag's `checksums.txt`, the named stations and every ingredient they list that is not cached |
+| `the-cook station apply` | a recorded station it applies, and an ingredient that station lists, that is not cached |
 | `the-cook ingredient pin` | the tag's `checksums.txt` and the named ingredients |
-| `the-cook fetch` | every pinned ingredient and recipe that is not cached |
-| `the-cook scaffold --cookbook` | the tag's `checksums.txt`, its recipes, and the ingredients the chosen recipes list |
-| `the-cook ingredient list --cookbook`, `the-cook ingredient show --cookbook`, `the-cook recipe list --cookbook`, `the-cook recipe show --cookbook` | the tag's `checksums.txt` and the archives they read |
+| `the-cook fetch` | every pinned ingredient and station that is not cached |
+| `the-cook scaffold --cookbook` | the tag's `checksums.txt`, its stations, and the ingredients the chosen stations list |
+| `the-cook ingredient list --cookbook`, `the-cook ingredient show --cookbook`, `the-cook station list --cookbook`, `the-cook station show --cookbook` | the tag's `checksums.txt` and the archives they read |
 
 Nothing else fetches. `render`, `doctor`, the hooks a worker fires, `the-cook attempt` and `attempt` actions read an
 ingredient only from the cache. When a pinned ingredient is not there, `render` exits 3 naming `./cook fetch`, an
@@ -287,8 +287,8 @@ attempt fails with exit 3 before any worker starts, a hook prints one line on st
 reports a finding. A fresh clone works offline once its ingredients are cached, and a CI job runs `./cook fetch`
 before `render --check` or `doctor`. An attempt resolves the version-control ingredient and the worker's ingredient
 from the cache before anything else and uses that resolution for every read, comparison, reset and launch of the
-attempt ([attempts](attempts.md#the-attempt-contract)). Nothing rendered depends on a recipe, so a recipe missing from
-the cache stops only `recipe show` and `recipe apply` without `--cookbook`, which fetch it.
+attempt ([attempts](attempts.md#the-attempt-contract)). Nothing rendered depends on a station, so a station missing from
+the cache stops only `station show` and `station apply` without `--cookbook`, which fetch it.
 
 ## Reference
 
@@ -299,7 +299,7 @@ the-cook ingredient pin <name>... --cookbook <source>@<version> [--yes] [--dry-r
 the-cook fetch
 ```
 
-`ingredient` follows the `the-cook <noun> <verb>` shape; `fetch` serves ingredients and recipes alike. An ingredient
+`ingredient` follows the `the-cook <noun> <verb>` shape; `fetch` serves ingredients and stations alike. An ingredient
 leaves `ingredients:` by an edit and a render ([Overview](#overview)). Global flags `-C <dir>`, `--json` and
 `--verbose` apply to every subcommand; see [CLI reference](cli.md).
 
@@ -377,8 +377,8 @@ Files read: `.cook/config.yaml`, the tag's `checksums.txt` and the named archive
 
 ### `the-cook fetch`
 
-Downloads every ingredient `ingredients:` pins and every recipe `recipes:` records that is not in the cache, checks
-each archive's sha256 against its pin, checks its `ingredient.yaml` or `recipe.yaml` (a supported schema and contract
+Downloads every ingredient `ingredients:` pins and every station `stations:` records that is not in the cache, checks
+each archive's sha256 against its pin, checks its `ingredient.yaml` or `station.yaml` (a supported schema and contract
 version, the pinned name and version) and stores it in the cache. An archive already cached is checked and left. Run
 it once per machine after cloning, after the pins change, and in CI before `render --check` or `doctor`.
 
@@ -386,8 +386,8 @@ It takes no arguments.
 
 | Exit code | Meaning |
 | --- | --- |
-| 0 | Every pinned ingredient and recipe is cached and verified, or there was nothing to fetch |
-| 1 | No network, or a source that cannot be reached; an archive whose sha256 differs from its pin (both hashes are printed); an invalid `ingredient.yaml` or `recipe.yaml`, one whose name or version differs from its pin, or one whose schema or contract version is newer than the running release supports. A failing archive is not stored; the others are |
+| 0 | Every pinned ingredient and station is cached and verified, or there was nothing to fetch |
+| 1 | No network, or a source that cannot be reached; an archive whose sha256 differs from its pin (both hashes are printed); an invalid `ingredient.yaml` or `station.yaml`, one whose name or version differs from its pin, or one whose schema or contract version is newer than the running release supports. A failing archive is not stored; the others are |
 
 Files read: `.cook/config.yaml`, `$COOK_HOME/cookbook/`. Files written: `$COOK_HOME/cookbook/<sha256>.tar.gz`, on a
 verified download only.
@@ -405,7 +405,7 @@ An ingredient is a directory:
 | Key of `ingredient.yaml` | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `schema` | integer | yes | Format version of the ingredient file: `1` |
-| `name` | string | yes | Lowercase letters, digits and `-`: the name `ingredients:`, `vcs:`, `workers.<name>.ingredient` and a recipe's `ingredients` use |
+| `name` | string | yes | Lowercase letters, digits and `-`: the name `ingredients:`, `vcs:`, `workers.<name>.ingredient` and a station's `ingredients` use |
 | `version` | string | yes | The cookbook tag the ingredient is published under, which `ingredients:` pins |
 | `description` | string | no | One line, printed by `ingredient list` |
 | `contract.name` | `vcs` \| `worker` | with `operations` | The contract `operations` fills; `contract` is absent when the ingredient has no operations |
@@ -439,9 +439,9 @@ any declared worker is a bare string, shorthand for a shell command rule. The bi
 
 The binary refuses an ingredient whose `schema` or `contract.version` is newer than it supports, with exit 1 naming
 the release needed, and reads older ones inside its support window ([ADR 0005](../adrs/0005-schema-compatibility.md)).
-`the-cook version` prints the ingredient and recipe schemas and the contract versions the running release supports.
+`the-cook version` prints the ingredient and station schemas and the contract versions the running release supports.
 
-Unknown keys are an error, and so are `entries` and `templates`, which only a recipe holds. A command, in `checks` or
+Unknown keys are an error, and so are `entries` and `templates`, which only a station holds. A command, in `checks` or
 in an operation, is a list of arguments run without a shell from the root of the checkout the binary works in. A
 placeholder such as `{rev}` is replaced inside the argument it appears in, so a value never splits into more arguments
 or reaches a shell. An operation that needs a shell names `sh` and passes values as positional parameters:
@@ -458,7 +458,7 @@ or reaches a shell. An operation that needs a shell names `sh` and passes values
 
 #### The template language
 
-Render templates and the templates of a [recipe](recipes.md#templates) use one logic-free language: `{{name}}` inserts
+Render templates and the templates of a [station](stations.md#templates) use one logic-free language: `{{name}}` inserts
 a value of the neutral model below, `{{#name}}...{{/name}}` repeats its text for each element of a list, or renders it
 once when a value is present, and `{{^name}}...{{/name}}` renders its text when the value is empty or absent. There
 are no comparisons, functions or includes. A template's text is inline in `ingredient.yaml` or in a file under
@@ -591,7 +591,7 @@ $ ./cook ingredient show acme-agent --cookbook github:acme/cookbook@v1.2.0
 
 `acme-agent` matches the repository's `.acme/` directory but is not pinned, so its floor does not hold here yet.
 
-### A program no recipe lists
+### A program no station lists
 
 The team adopts `acme-agent` as a second interactive worker:
 
@@ -621,13 +621,13 @@ git diff
 ```
 
 The renders and floor of the new versions are in the same diff. Entries and templates are not: those come from a
-recipe, applied again ([applying again](recipes.md#applying-again)).
+station, applied again ([applying again](stations.md#applying-again)).
 
 ### Cache after cloning, and in CI
 
 ```sh
 git clone https://github.com/acme/acme-web && cd acme-web
-./cook fetch            # every pinned ingredient and recipe, verified against its pin
+./cook fetch            # every pinned ingredient and station, verified against its pin
 ./cook render --check
 ```
 
@@ -639,7 +639,7 @@ nothing is fetched behind their back.
 ```sh
 # delete the "name: acme-tasks" entry from ingredients: in .cook/config.yaml
 ./cook render        # removes the acme-tasks ingredient's renders and floor
-git diff             # the lifecycle actions a recipe wrote for it stay, as the repository's own
+git diff             # the lifecycle actions a station wrote for it stay, as the repository's own
 ```
 
 ## Guidelines
@@ -648,7 +648,7 @@ git diff             # the lifecycle actions a recipe wrote for it stay, as the 
   operations, renders and floor run in every session and every attempt, and the review of the pin is the only thing
   that vouches for them.
 - Do keep every program the repository uses pinned: an ingredient's floor holds only while it is pinned.
-- Do move ingredient pins with `ingredient pin`, and apply a recipe again for its entries: applying never moves a pin
+- Do move ingredient pins with `ingredient pin`, and apply a station again for its entries: applying never moves a pin
   the repository already holds.
 - Do commit the pins together with the files `ingredient pin` rendered, so the diff explains itself.
 - Do run `./cook fetch` in CI before `render --check` and `doctor`.
@@ -663,13 +663,13 @@ git diff             # the lifecycle actions a recipe wrote for it stay, as the 
 | Symptom | Cause | Fix |
 | --- | --- | --- |
 | `render` or `the-cook attempt` exits 3 naming `./cook fetch`, a hook prints one line naming it, or `doctor` reports an ingredient not cached | A pinned ingredient is not in this machine's cache, and only the commands in [Fetching](#fetching) download | Run `./cook fetch` |
-| A command exits 3 naming `the-cook recipe apply` and `the-cook ingredient pin` | It needs the version-control contract or a worker contract, and no pinned ingredient fills it | Apply a recipe whose stages fill it, or pin an ingredient that fills it and name it in `vcs:` or a worker's `ingredient`; `./cook doctor` lists each unfilled contract and the commands it blocks |
+| A command exits 3 naming `the-cook station apply` and `the-cook ingredient pin` | It needs the version-control contract or a worker contract, and no pinned ingredient fills it | Apply a station whose stages fill it, or pin an ingredient that fills it and name it in `vcs:` or a worker's `ingredient`; `./cook doctor` lists each unfilled contract and the commands it blocks |
 | Exit 1: an archive's sha256 differs | The archive at the source is not the one the profile pins: a new upload under the same version, a different `source`, or tampering | Do not change the `sha256` to match. Ask the cookbook's publisher; pin a tag whose archives match its `checksums.txt` |
 | Exit 1: two `ingredients:` entries with the same name | A name is unique within `ingredients:` | Delete one; `ingredient pin` moves an existing pin instead of adding a second |
 | Exit 1: `vcs:` or a worker's `ingredient` names an ingredient not pinned, or one that fills another contract | The pin was deleted, never written, or names the wrong ingredient | Pin it, or point `vcs:` or the worker at a pinned ingredient that fills the contract |
 | Exit 1: an ingredient's schema or contract version is newer than the running release supports | The cookbook tag was written for a newer `the-cook` | Move the release pin with `./cook wrapper --version <tag>` to the release the message names, or pin an older tag of the ingredient |
 | Exit 3 naming a program | The version-control ingredient's program, or a worker's, is not installed on this machine | Install it |
-| `ingredient pin` exits 1: the tag does not publish the name | The name is wrong, the name is a recipe's, or the cookbook added the ingredient in a later tag | `./cook ingredient list --cookbook <source>@<version>` prints the tag's ingredients |
-| `kept ingredients.<name>: pinned at <version>` after `recipe apply` | The repository already pins the ingredient, and applying never moves a pin | Nothing, if the pinned version is right. To take the recipe's, `./cook ingredient pin <name> --cookbook <source>@<version>` |
+| `ingredient pin` exits 1: the tag does not publish the name | The name is wrong, the name is a station's, or the cookbook added the ingredient in a later tag | `./cook ingredient list --cookbook <source>@<version>` prints the tag's ingredients |
+| `kept ingredients.<name>: pinned at <version>` after `station apply` | The repository already pins the ingredient, and applying never moves a pin | Nothing, if the pinned version is right. To take the station's, `./cook ingredient pin <name> --cookbook <source>@<version>` |
 | `the-cook attempt` exits 3: `unattended.deny` cannot reach the worker | Its ingredient passes no deny arguments at launch and renders no permissions | Use the worker interactively only, or use an ingredient that fills `launch.unattended_deny` or renders permissions |
-| `fetch` exits 1 for a recipe whose source is gone | `fetch` also downloads the recipes `recipes:` records | Nothing rendered depends on a recipe: delete its entry from `recipes:` |
+| `fetch` exits 1 for a station whose source is gone | `fetch` also downloads the stations `stations:` records | Nothing rendered depends on a station: delete its entry from `stations:` |

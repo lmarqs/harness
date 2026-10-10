@@ -1,14 +1,14 @@
-# 0005. Repository files, ingredients and recipes carry a schema version the binary enforces
+# 0005. Repository files, ingredients and stations carry a schema version the binary enforces
 
 ## Objective
 
-**Problem.** Many repositories depend on the shape of the tool's files and of the ingredients and recipes they use, and
+**Problem.** Many repositories depend on the shape of the tool's files and of the ingredients and stations they use, and
 binaries of one release meet files written for another. A binary that misreads a newer file can drop a deny rule or a
 guard without noticing, then rewrite the repository with outdated rules. Output that changes with every release makes
 every upgrade look like drift.
 
-**Goal.** A binary either reads a repository file, an ingredient or a recipe correctly or refuses it, naming the release
-to run, and an upgrade by itself never shows as drift.
+**Goal.** A binary either reads a repository file, an ingredient or a station correctly or refuses it, naming the
+release to run, and an upgrade by itself never shows as drift.
 
 ## Context
 
@@ -21,10 +21,10 @@ to run, and an upgrade by itself never shows as drift.
   file and the files rendered from it with outdated rules. A dropped field can be a deny rule or a guard.
 - Generated artefacts are committed and drift-checked ([0007](0007-ownership.md)). Any value in them that changes with
   the binary's release shows as drift after every upgrade.
-- Ingredients and recipes are data the binary interprets, published in cookbooks and never shipped with the binary. An
-  ingredient can mark deny rules as floor ([0022](0022-tool-integration.md)), and a recipe's entries, which the binary
-  writes into the repository's files when the recipe is applied, can hold deny rules and guards
-  ([0024](0024-ingredients-and-recipes.md)). Each is pinned by its content hash, so its bytes cannot change without a
+- Ingredients and stations are data the binary interprets, published in cookbooks and never shipped with the binary. An
+  ingredient can mark deny rules as floor ([0022](0022-tool-integration.md)), and a station's entries, which the binary
+  writes into the repository's files when the station is applied, can hold deny rules and guards
+  ([0024](0024-ingredients-and-stations.md)). Each is pinned by its content hash, so its bytes cannot change without a
   new pin ([0021](0021-release-trust.md)).
 - An ingredient that fills a contract relies on that contract's operations and output kinds
   ([0023](0023-core-and-contracts.md)). A contract can gain an operation while the ingredient format stays the same.
@@ -39,10 +39,10 @@ to run, and an upgrade by itself never shows as drift.
 3. The binary migrates a file with an older schema and shows the diff.
 4. Generated artefacts record the schema version and never the binary version.
 5. Schema changes are rare. Migrations exist from every schema inside a documented support window.
-6. Every ingredient and every recipe carries the schema version of the format it is written in and, when an ingredient
-   fills a contract, the version of that contract it fills. The binary refuses an ingredient or a recipe whose schema or
-   contract version is newer than it supports, naming the release needed, and reads one of an older schema or contract
-   version inside the support window without rewriting it.
+6. Every ingredient and every station carries the schema version of the format it is written in and, when an ingredient
+   fills a contract, the version of that contract it fills. The binary refuses an ingredient or a station whose schema
+   or contract version is newer than it supports, naming the release needed, and reads one of an older schema or
+   contract version inside the support window without rewriting it.
 
 ## Reasons
 
@@ -60,14 +60,14 @@ to run, and an upgrade by itself never shows as drift.
   committed record of a release.
 - **5.** Each schema change costs one migration in every adopting repository and one more code path in the binary.
   Keeping changes rare bounds the first cost, and a support window bounds the second.
-- **6.** A binary that misread a newer ingredient could drop a floor rule, and one that misread a newer recipe could
+- **6.** A binary that misread a newer ingredient could drop a floor rule, and one that misread a newer station could
   drop a deny rule or a guard from the entries it writes, the way it could drop a deny rule from a repository file, so
   the same refusal applies (point 2). A contract carries a version of its own because a contract can change while the
   format does not (Context): an ingredient written against a newer contract could rely on an operation the binary lacks,
   and refusing it names the release instead of failing in the middle of a use case. Neither can be migrated in place,
   because the hash its repository pins fixes its bytes (Context); reading older schemas and contract versions keeps it
   usable across releases until its cookbook publishes a newer version. The trade: the binary keeps a reader for every
-  ingredient and recipe schema and every contract version in the support window.
+  ingredient and station schema and every contract version in the support window.
 
 ## Rejected alternatives
 
@@ -104,6 +104,6 @@ Must be maintained:
 - Fixtures at the previous schema migrate and print a diff; fixtures at a newer schema are refused with a message that
   names the release.
 - A test asserts that no generated artefact contains the binary version.
-- A fixture ingredient and a fixture recipe at a newer schema, and a fixture ingredient that declares a newer contract
-  version, are each refused with a message that names the release; a fixture ingredient and a fixture recipe at the
+- A fixture ingredient and a fixture station at a newer schema, and a fixture ingredient that declares a newer contract
+  version, are each refused with a message that names the release; a fixture ingredient and a fixture station at the
   oldest schema and contract version in the support window load and stay byte-identical.

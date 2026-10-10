@@ -30,7 +30,7 @@ They apply to proposals for `the-cook` itself and to the advice `the-cook` gives
 | **Standing-context entry** | a declared trigger (`always`, `when.paths`, `when.prompt`) that puts an existing skill or repository file in front of a worker, under `context:` in `config.yaml` | the repository |
 | **shipped skill or explain topic** | guidance a coding agent follows to do judgement work around `the-cook` | `the-cook` (embedded, shipped with the binary) |
 | **Ingredient** | a named, versioned description of one program ([ingredients](../features/ingredients.md)): renders and floor written on every render, operations that fill the version-control or worker contract, and checks. Ingredients describe the version control system, a worker such as a coding agent, a loop runner, a task tracker, a task runner or a skills installer | the maintainers of the cookbook that publishes it; the repository pins it |
-| **Recipe** | a named, versioned description of one way of running the lifecycle, built from ingredients ([recipes](../features/recipes.md)): the ingredients it pins, the stages they fill, entries for the repository's files, and templates, which `the-cook scaffold` and `the-cook recipe apply` write once, on request. `agentic-coding` sets up the lifecycle with a coding agent in sessions and in attempts, a loop runner and a tracker; a stack recipe (`go`, `node`, `terraform`, `python`) holds the starting commands, test lanes, validators, module switches and post-edit hooks of one stack | the maintainers of the cookbook that publishes it; once applied, its pins, entries and files are the repository's |
+| **Station** | a named, versioned description of one way of running the lifecycle, built from ingredients ([stations](../features/stations.md)): the ingredients it pins, the stages they fill, entries for the repository's files, and templates, which `the-cook scaffold` and `the-cook station apply` write once, on request. `agentic-coding` sets up the lifecycle with a coding agent in sessions and in attempts, a loop runner and a tracker; a stack station (`go`, `node`, `terraform`, `python`) holds the starting commands, test lanes, validators, module switches and post-edit hooks of one stack | the maintainers of the cookbook that publishes it; once applied, its pins, entries and files are the repository's |
 | **Organization or personal skill** | guidance a coding agent follows for judgement work specific to an organization's conventions, including writing the organization's choices (policy entries, actions, standing-context entries) into a repository's files | the organization; the entries it leads to are the repository's |
 | **Left to the repository** | a task in the repository's own task runner (a task-runner task, a `Makefile` target), a repository skill, prose in `AGENTS.md`, memory | the repository |
 
@@ -56,7 +56,7 @@ They apply to proposals for `the-cook` itself and to the advice `the-cook` gives
 | yes | yes | yes | no | no | built-in invariant | a rule every repository needs and none may drop cannot be a setting, because a setting gets lost when a repository's configuration is copied or edited |
 | yes | wherever one program is used | yes | no | no | floor rule of that program's ingredient | a fact about one program, such as its bypass arguments, changes with the program, so it lives in the program's ingredient; marking it floor keeps any repository from dropping it |
 | yes | yes | no | no | no | command, flag, or profile field (see below) | one implementation serves every repository and is fixed in one release |
-| yes | in every repository of one stack | no | no | no | stack recipe, applied with `the-cook recipe apply` | stack facts are the same in every repository on that stack, so a cookbook supplies them once for all of them; applying on request keeps every write something a person asked for |
+| yes | in every repository of one stack | no | no | no | stack station, applied with `the-cook station apply` | stack facts are the same in every repository on that stack, so a cookbook supplies them once for all of them; applying on request keeps every write something a person asked for |
 | yes | any | no | yes | in applying it | entries in each repository's files, written by a coding agent following an organization skill | organization content stays out of an open-source binary; it differs between an organization's repositories, so applying it takes judgement, and each repository reviews the result as a diff |
 | yes | any | no | yes, or one repository | no | declared action, when it reaches outside the clone at a lifecycle or worker event ([below](#declared-actions)) | side effects outside the clone must be declared, reviewed and guarded |
 | yes | no | no | no | no | left to the repository (a task in its own task runner, or a profile value) | one repository's need does not justify a contract every user carries |
@@ -70,7 +70,7 @@ is deterministic even when the guidance is not.
 
 Support for any program, the version control system and the workers included, is an ingredient or a declared action,
 whatever the other columns say, and never a command, a flag, a profile field or code in the binary; a way of running
-the lifecycle with several programs is a recipe built from their ingredients. The program calls `the-cook` through its
+the lifecycle with several programs is a station built from their ingredients. The program calls `the-cook` through its
 commands, such as [`the-cook attempt`](cli-standards.md#the-attempt-command) as the command a loop runner runs for each
 task, and `the-cook` reaches the program through the operations of its ingredient and the commands the repository
 declares. Why: each team picks different programs and each program follows its own release schedule, so code in the
@@ -175,8 +175,8 @@ agent through the to-do, and `the-cook doctor` confirms the result.
 
 Repository content follows the same split ([ADR 0013](../adrs/0013-organization-content.md)):
 
-- Stack facts need no judgement, so they are stack recipes whose entries the binary writes on request
-  (`the-cook scaffold --cookbook`, `the-cook recipe apply <name>`), adding only what the repository lacks.
+- Stack facts need no judgement, so they are stack stations whose entries the binary writes on request
+  (`the-cook scaffold --cookbook`, `the-cook station apply <name>`), adding only what the repository lacks.
 - An organization's conventions differ between its repositories, so a coding agent following the organization's skill
   decides which entries a repository needs and writes them into its files. `the-cook render` renders them and
   `the-cook doctor` checks the result.
@@ -194,10 +194,10 @@ Repository content follows the same split ([ADR 0013](../adrs/0013-organization-
 | Read-only patterns for an organization's observability MCP server | deterministic entries, organization specific, applied with judgement per repository | `shared.allow` entries in each repository's `policy.yaml`, written by a coding agent following the organization's skill |
 | Open a pull request when work is concluded | deterministic command, leaves the clone, hosting-platform specific, belongs at `deliver` | a `deliver` action of kind `run` in `hooks.yaml` (push, then the hosting platform's pull-request command) |
 | Add a CI trigger commit before the pull request | deterministic, leaves the clone with the push, organization convention, belongs at `deliver` | a `deliver` action in each repository's `hooks.yaml`, declared before the pull-request action and written there by a coding agent following the organization's skill |
-| Set up agentic coding: a coding agent in sessions and in attempts, a loop runner and a tracker | a way of running the lifecycle with several programs, deterministic wiring | recipe `agentic-coding`: `the-cook recipe apply agentic-coding --cookbook github:acme/cookbook@v1.2.0` pins its ingredients and writes its workers, lanes, unattended denies, lifecycle actions and the loop runner's configuration |
-| Give a Node repository its lint, build and test commands and a lint-on-edit hook | deterministic, the same in every Node repository | stack recipe `node`: applied by `the-cook scaffold --cookbook <source>@<version>` when its detect rule finds `package.json`, or by `the-cook recipe apply node --cookbook <source>@<version>` |
-| Add a stack's entries to a repository that took it up after adoption | deterministic, stack facts | `the-cook recipe apply <name> --cookbook <source>@<version>`; the additions are shown as a diff and confirmed |
-| Take a newer version's additions to a recipe | deterministic, on request | `./cook recipe apply node --cookbook github:acme/cookbook@v1.3.0 --dry-run` shows them, and the same command without `--dry-run` writes them; across repositories, `the-cook fleet recipe apply node --cookbook github:acme/cookbook@v1.3.0 --yes --deliver` |
+| Set up agentic coding: a coding agent in sessions and in attempts, a loop runner and a tracker | a way of running the lifecycle with several programs, deterministic wiring | station `agentic-coding`: `the-cook station apply agentic-coding --cookbook github:acme/cookbook@v1.2.0` pins its ingredients and writes its workers, lanes, unattended denies, lifecycle actions and the loop runner's configuration |
+| Give a Node repository its lint, build and test commands and a lint-on-edit hook | deterministic, the same in every Node repository | stack station `node`: applied by `the-cook scaffold --cookbook <source>@<version>` when its detect rule finds `package.json`, or by `the-cook station apply node --cookbook <source>@<version>` |
+| Add a stack's entries to a repository that took it up after adoption | deterministic, stack facts | `the-cook station apply <name> --cookbook <source>@<version>`; the additions are shown as a diff and confirmed |
+| Take a newer version's additions to a station | deterministic, on request | `./cook station apply node --cookbook github:acme/cookbook@v1.3.0 --dry-run` shows them, and the same command without `--dry-run` writes them; across repositories, `the-cook fleet station apply node --cookbook github:acme/cookbook@v1.3.0 --yes --deliver` |
 | Move to a newer description of a program, such as a version-control ingredient for a new release of the program | deterministic, on request, changes rendered output | `the-cook ingredient pin git --cookbook github:acme/cookbook@v1.3.0`: the pin and its rendered effect in one diff |
 | Apply an organization's conventions to many repositories | judgement per repository, organization specific | a coding agent following the organization's skill in each repository, reviewed as a diff in each; `the-cook fleet` runs `the-cook` commands, never a worker |
 | Post to the team chat when a task completes | deterministic, leaves the clone, a notification channel | a `completed` action of kind `http` with `url_env`, `auto: true` |
@@ -226,8 +226,8 @@ Repository content follows the same split ([ADR 0013](../adrs/0013-organization-
 | Open an issue for each to-do item | judgement, writes to the record of work | a coding agent with its own tools; the binary never writes issues |
 | Report workspaces whose branch was merged | deterministic, every repository | a `doctor` check |
 | Install an organization's shared skills in a repository | a third-party installer, organization data | the team's own step with the skills installer of its choice, then a commit of `.agents/skills/` and the installer's lock file; an ingredient for the installer describes it, and standing context names the skills it injects |
-| Run a loop runner over a task list with every result verified | a third-party loop runner, deterministic wiring | the loop runner's ingredient and a recipe that uses it, such as `agentic-coding`, whose template names `./cook attempt <worker> --commit` as the command the loop runner runs for each task; the person runs the loop runner in a managed workspace, never through a `the-cook` command |
-| Update a task tracker when work starts, completes or stops | a third-party tracker, deterministic, at lifecycle points | the tracker's ingredient, and the lifecycle actions a recipe such as `agentic-coding` applies: actions on `start`, `completed` and `blocked`, scope `task`, `auto: true`, which run the tracker's commands with `$COOK_TASK` |
+| Run a loop runner over a task list with every result verified | a third-party loop runner, deterministic wiring | the loop runner's ingredient and a station that uses it, such as `agentic-coding`, whose template names `./cook attempt <worker> --commit` as the command the loop runner runs for each task; the person runs the loop runner in a managed workspace, never through a `the-cook` command |
+| Update a task tracker when work starts, completes or stops | a third-party tracker, deterministic, at lifecycle points | the tracker's ingredient, and the lifecycle actions a station such as `agentic-coding` applies: actions on `start`, `completed` and `blocked`, scope `task`, `auto: true`, which run the tracker's commands with `$COOK_TASK` |
 | Support another loop runner or task tracker | a third-party program | an ingredient pinned from a cookbook, or declared actions and a configuration that names `the-cook attempt`; never a command, flag or profile field |
 | Pin the version of `the-cook` a repository runs | deterministic, every repository, affects what every machine runs | binary: `.cook/wrapper.yaml`, the only pin, and the committed wrapper `cook`; `the-cook wrapper --version <tag>` changes the pin after verifying the release's signed checksum file |
 | Deliver an upgrade of `the-cook` to every repository | deterministic tool-owned changes, many repositories | `the-cook fleet wrapper --version <tag> --deliver`, then, once it lands, `the-cook fleet render --deliver`: fleet commits on a local branch and fires each repository's own `deliver` actions |
@@ -245,17 +245,17 @@ Each of these breaks a principle, for the reason given after it.
   switched off the version-control ingredient's deny on force pushes to the default branch, `acme/web` allows force
   pushes without anyone there deciding to.
 - A key that names a source outside the repository for entries `the-cook` renders or runs (an inherited file, an
-  include, a remote set of entries), other than a release, an ingredient or a recipe pinned by hash: a rule whose source
-  sits outside the repository cannot be read or reviewed where it acts
+  include, a remote set of entries), other than a release, an ingredient or a station pinned by hash: a rule whose
+  source sits outside the repository cannot be read or reviewed where it acts
   ([ADR 0013](../adrs/0013-organization-content.md)).
-- A default cookbook, or any ingredient or recipe, in the binary: the binary would choose for every repository which
+- A default cookbook, or any ingredient or station, in the binary: the binary would choose for every repository which
   programs it describes and whose review it trusts, and every user would carry descriptions of programs they never use.
   Each repository pins its own.
-- A recipe that renders or carries floor, or an ingredient with entries or templates: what acts on every render and
+- A station that renders or carries floor, or an ingredient with entries or templates: what acts on every render and
   what is applied once would share one pin, which would then mean two things at once, and a reader could not tell from
-  the repository what still acts on it ([ADR 0024](../adrs/0024-ingredients-and-recipes.md)).
-- A recipe's entries applied by a command that was not asked to apply them (a render, an upgrade), or a record of which
-  entries a recipe added: every write to a repository's files is one someone asked for, and a record would tie the
+  the repository what still acts on it ([ADR 0024](../adrs/0024-ingredients-and-stations.md)).
+- A station's entries applied by a command that was not asked to apply them (a render, an upgrade), or a record of which
+  entries a station added: every write to a repository's files is one someone asked for, and a record would tie the
   repository's own entries to a definition outside its files.
 - A program's safety fact kept as a policy entry instead of a floor rule of its ingredient: an entry gets lost when the
   configuration is copied or edited.

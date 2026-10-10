@@ -62,7 +62,7 @@ output is detected.
   separately lets undo remove them while the drift check leaves them alone, since the repository edits them. Their
   creation hash tells an untouched skeleton from content someone wrote. Recording the ingredient that renders each owned
   item lets a repository stop using one ingredient and lose exactly that ingredient's renders, while the entries a
-  recipe applied stay the repository's own ([0024](0024-ingredients-and-recipes.md)).
+  station applied stay the repository's own ([0024](0024-ingredients-and-stations.md)).
 - **2.** Worker programs read configuration from the clone when a session starts, so it has to exist in every clone,
   including clones without the binary ([0010](0010-dependence-on-the-binary.md)). Committed artefacts also show every
   permission change to reviewers as a diff.

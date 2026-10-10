@@ -42,7 +42,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 | Standing context: the skills and files `context` entries name | instructions | every matching session reads them as guidance; whoever can change them steers the workers |
 | `COOK_MESSAGE`, `COOK_REASON`, task titles and summaries | untrusted input | workers and task text shape them; they reach notifications and `attempt` prompts |
 | An [ingredient](ingredients.md), pinned from a cookbook | data from an outside source, pinned in the profile by version and sha256 | pinning trusts the cookbook's `checksums.txt` as downloaded over HTTPS at that moment, and the pin enters the repository only through a reviewed diff; from then on every archive is verified against its pin on download and on every load, and no hook or attempt fetches one. Its operations, renders and floor are what its author wrote, and no release key vouches for them: reading the ingredient (`the-cook ingredient show`) before approving the pin is the trust decision for everything it runs |
-| A [recipe](recipes.md), applied from a cookbook | data from an outside source, applied once | its entries and templates enter the repository only through the one diff `the-cook recipe apply` shows, together with the ingredient pins it lists, and become the repository's own files. They write commands, lanes, validators, post-edit hooks and lifecycle actions, which run with the credentials of whoever triggers them. After that the recipe has no effect on what renders |
+| A [station](stations.md), applied from a cookbook | data from an outside source, applied once | its entries and templates enter the repository only through the one diff `the-cook station apply` shows, together with the ingredient pins it lists, and become the repository's own files. They write commands, lanes, validators, post-edit hooks and lifecycle actions, which run with the credentials of whoever triggers them. After that the station has no effect on what renders |
 | The pinned release: `cook` and `.cook/wrapper.yaml` | code fetched from the network | the wrapper downloads the release the pin names and runs it with your credentials; the checksums committed next to the pin are what make the download trustworthy |
 
 What must stay safe:
@@ -206,7 +206,7 @@ that fired them, outside the worker's per-command permission checks.
   `the-cook verify`, `the-cook workspace create`, `the-cook workspace remove` and `the-cook fleet --deliver`.
   `the-cook doctor` never fires events ([lifecycle](lifecycle.md#trigger-points)).
 - **The hooks file is the complete list.** Every action is declared in the repository's own `.cook/hooks.yaml`, and
-  nothing outside the repository adds one ([ADR 0013](../adrs/0013-organization-content.md)). A recipe that declares
+  nothing outside the repository adds one ([ADR 0013](../adrs/0013-organization-content.md)). A station that declares
   actions writes them there as entries only when a person applies it, and the diff shows them. Reviewing that file
   reviews everything an event can run.
 - **Every action sees the whole environment.** A webhook URL exported for one `http` action is visible to every `run`
@@ -216,7 +216,7 @@ In practice:
 
 - Review `lifecycle` changes in `.cook/hooks.yaml` like code, including those a coding agent wrote while following a
   skill an organization publishes, such as one installed from `acme/agent-skills` with a skills installer, and those a
-  recipe's entries added.
+  station's entries added.
 - Keep the seeded `ask` on `[the-cook, lifecycle, run, deliver]` until the actions are ones you accept a worker running
   unasked. Moving it to `allow` is a decision about the actions, not about the command.
 - Check `the-cook lifecycle list` for `auto: true` before granting a worker a command with a trigger point.
@@ -288,13 +288,13 @@ Every clone runs the release of `the-cook` that `.cook/wrapper.yaml` pins, throu
   so two files never answer the same question.
 - **`COOK_BINARY` bypasses the pin.** It makes the wrapper run any binary, unverified. Keep it for air-gapped
   machines and for development of `the-cook` itself; never set it in a shared shell profile or in CI.
-- **Ingredients and recipes are pinned by hash.** Every [ingredient](ingredients.md) and [recipe](recipes.md) comes
-  from a cookbook and is downloaded only by an explicit command: `./cook ingredient pin`, `recipe apply`, `fetch`,
+- **Ingredients and stations are pinned by hash.** Every [ingredient](ingredients.md) and [station](stations.md) comes
+  from a cookbook and is downloaded only by an explicit command: `./cook ingredient pin`, `station apply`, `fetch`,
   `scaffold --cookbook`, and `list` or `show` with `--cookbook`. It is cached outside the repository and verified
   against the `sha256` in the profile on download and on every load; a mismatch exits 1 and the archive is unused.
   Review a change to a pin's `source`, `version` or `sha256` like a dependency bump, and read an ingredient with
-  `./cook ingredient show <name>`, or a recipe with `./cook recipe show <name>`, before approving it. Two entries with
-  the same name in `ingredients:`, or in `recipes:`, are a validation error.
+  `./cook ingredient show <name>`, or a station with `./cook station show <name>`, before approving it. Two entries with
+  the same name in `ingredients:`, or in `stations:`, are a validation error.
 - **Workers cannot swap the binary.** The tamper check restores `cook` and `wrapper.yaml` before the worker starts
   and fails an attempt that changed them, and a failed attempt returns the checkout to the base commit, so the next
   attempt a loop runner starts through `./cook` runs the pinned release.
@@ -333,19 +333,19 @@ files are only read; the person's own settings keep applying to them.
 
 ## Reviewing rendered diffs
 
-Rendered files are committed so every permission change is a diff. After `the-cook render`, `the-cook recipe apply`,
+Rendered files are committed so every permission change is a diff. After `the-cook render`, `the-cook station apply`,
 `the-cook ingredient pin` or an upgrade, read:
 
 | File | Look for |
 | --- | --- |
 | Each worker's rendered permissions and hook entries, as its ingredient's [renders](ingredients.md#renders) name them | new `allow` entries and their breadth; entries that left `deny` or `ask`; new hook commands and the keys that enable them; a deny present in one worker's file and missing in another's is an entry that worker cannot express |
 | The `policy` block in `AGENTS.md` | entries marked as not enforced in a worker; the floor rules, each with the ingredient it comes from |
-| `ingredients`, `recipes`, `vcs` and `workers` in `.cook/config.yaml` | an ingredient added or removed: removing one removes its renders and its floor rules; a pin's `source`, `version` or `sha256` changing, read with `./cook ingredient show <name>` before approving; a worker added or its role changed. A `recipes:` entry records which recipe was applied and changes nothing rendered |
+| `ingredients`, `stations`, `vcs` and `workers` in `.cook/config.yaml` | an ingredient added or removed: removing one removes its renders and its floor rules; a pin's `source`, `version` or `sha256` changing, read with `./cook ingredient show <name>` before approving; a worker added or its role changed. A `stations:` entry records which station was applied and changes nothing rendered |
 | `.cook/hooks.yaml` | new or changed `post_edit` hooks and `lifecycle`, `attention` and `turn_end` actions, especially `auto: true`, `attempt` actions and their prompts, and the variables `http` actions read |
-| `commands`, `verify.lanes` and `verify.validators` in `.cook/config.yaml` | new or changed lint and build commands, lanes and validators, such as those `the-cook recipe apply` adds: `the-cook verify` and the worker hooks run them with the credentials of the person or worker at work |
+| `commands`, `verify.lanes` and `verify.validators` in `.cook/config.yaml` | new or changed lint and build commands, lanes and validators, such as those `the-cook station apply` adds: `the-cook verify` and the worker hooks run them with the credentials of the person or worker at work |
 | `context` in `.cook/config.yaml`, the `context` block in `AGENTS.md` | new or changed entries, the files and skills they inject, and which roles they reach |
 | `.agents/skills/` | a skill's content changing, from the source you expect |
-| A file a recipe's template seeded, such as a loop runner's configuration | every task's command still runs `./cook attempt`, and no setting turns permission checks off. `the-cook` reads none of it, so this review is the check before the first task |
+| A file a station's template seeded, such as a loop runner's configuration | every task's command still runs `./cook attempt`, and no setting turns permission checks off. `the-cook` reads none of it, so this review is the check before the first task |
 | `.cook/wrapper.yaml` | a version change you intended, with checksums that match the release's published checksum file; a `source` that moved |
 | `cook` | changes only together with an upgrade whose release brings a new wrapper |
 

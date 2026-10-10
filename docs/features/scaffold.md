@@ -16,8 +16,8 @@ written. Whatever needs a person's judgement is listed as work to do, not guesse
 ## Overview
 
 `the-cook scaffold` sets a repository up for `the-cook`. On a repository with no setup of its own it seeds the
-repository files from its own templates and, with `--cookbook <source>@<version>`, applies the [recipes](recipes.md)
-of that cookbook tag whose detect rule matches, or those named with `--recipe`, which pins the
+repository files from its own templates and, with `--cookbook <source>@<version>`, applies the [stations](stations.md)
+of that cookbook tag whose detect rule matches, or those named with `--station`, which pins the
 [ingredients](ingredients.md) they list (greenfield). With `--adopt` it takes over an existing hand-written setup,
 imports every permission rule and hook it finds into the repository files without losing one, and lists what needs
 judgement as a to-do for a person or a coding agent. Either way it writes the repository's [wrapper](wrapper.md),
@@ -31,10 +31,10 @@ with a global install, `the-cook <command>` is equivalent.
 
 | Situation | Command |
 | --- | --- |
-| No worker permissions or hooks yet | `the-cook scaffold --cookbook github:acme/cookbook@v1.2.0 --recipe agentic-coding` |
-| Hand-written permissions or hooks in a worker's native files, an instruction file with content, existing skills | `the-cook scaffold --cookbook github:acme/cookbook@v1.2.0 --recipe agentic-coding --adopt` |
-| Only the skeleton now, recipes later | `the-cook scaffold`, then [`./cook recipe apply <name> --cookbook <source>@<version>`](recipes.md#how-apply-works) |
-| A program to wire in after scaffolding, such as a loop runner or a tracker | a recipe that uses it: `./cook recipe apply <name> --cookbook <source>@<version>`; or its ingredient alone: `./cook ingredient pin <name> --cookbook <source>@<version>` |
+| No worker permissions or hooks yet | `the-cook scaffold --cookbook github:acme/cookbook@v1.2.0 --station agentic-coding` |
+| Hand-written permissions or hooks in a worker's native files, an instruction file with content, existing skills | `the-cook scaffold --cookbook github:acme/cookbook@v1.2.0 --station agentic-coding --adopt` |
+| Only the skeleton now, stations later | `the-cook scaffold`, then [`./cook station apply <name> --cookbook <source>@<version>`](stations.md#how-apply-works) |
+| A program to wire in after scaffolding, such as a loop runner or a tracker | a station that uses it: `./cook station apply <name> --cookbook <source>@<version>`; or its ingredient alone: `./cook ingredient pin <name> --cookbook <source>@<version>` |
 | The repository already has `.cook/config.yaml` | Not `scaffold`: edit the files and run [`./cook render`](render.md) |
 | Many repositories at once | [`the-cook fleet scaffold`](fleet.md) |
 
@@ -45,31 +45,31 @@ a greenfield repository it finds nothing to import and behaves like a plain scaf
 
 ### Greenfield
 
-1. **Detect.** With `--cookbook`, download the tag's `checksums.txt` and its recipe archives, verify each, and choose
-   the recipes: every recipe of the tag whose detect rule matches, plus each `--recipe`
-   ([recipe detection](#recipe-detection)). Then download every ingredient the chosen recipes list and verify it
-   against the sha256 its recipe lists. When the chosen recipes' stages name a version-control ingredient, ask it for
+1. **Detect.** With `--cookbook`, download the tag's `checksums.txt` and its station archives, verify each, and choose
+   the stations: every station of the tag whose detect rule matches, plus each `--station`
+   ([station detection](#station-detection)). Then download every ingredient the chosen stations list and verify it
+   against the sha256 its station lists. When the chosen stations' stages name a version-control ingredient, ask it for
    the default branch. A `.cook/` directory that holds neither a `the-cook` profile nor a manifest belongs to another
    tool: `scaffold` stops with exit 3 and names it, before planning anything.
 2. **Plan.** Build the list of files, blocks and links to write. With `--dry-run`, print it and stop.
 3. **Confirm.** Show the plan and ask. `--yes` skips the question. Without a terminal and without `--yes`, nothing is
    written and the command exits 3.
-4. **Seed** the repository files from the templates `scaffold` holds, once, then apply the chosen recipes, as
-   [`the-cook recipe apply`](recipes.md#how-apply-works) does:
-   - `.cook/config.yaml`: its skeleton, with `ingredients:` pinning every ingredient the chosen recipes list, at the
-     sha256 each lists, `recipes:` recording each chosen recipe at the tag and its hash from the tag's
-     `checksums.txt`, `vcs:` and `workers:` from the recipes' [stages](recipes.md#stages), plus the recipes' entries
-     (commands, lanes, validators, standing context); without `--cookbook`, `ingredients:` and `recipes:` are empty
+4. **Seed** the repository files from the templates `scaffold` holds, once, then apply the chosen stations, as
+   [`the-cook station apply`](stations.md#how-apply-works) does:
+   - `.cook/config.yaml`: its skeleton, with `ingredients:` pinning every ingredient the chosen stations list, at the
+     sha256 each lists, `stations:` recording each chosen station at the tag and its hash from the tag's
+     `checksums.txt`, `vcs:` and `workers:` from the stations' [stages](stations.md#stages), plus the stations' entries
+     (commands, lanes, validators, standing context); without `--cookbook`, `ingredients:` and `stations:` are empty
      and `vcs:` and `workers:` are absent;
    - `.cook/policy.yaml` with one seeded entry, `[the-cook, lifecycle, run, deliver]` under `shared.ask`, rendered for
      each spelling `the-cook` renders, so a coding agent's own permission prompt asks a person before it runs the
-     repository's delivery actions, plus the recipes' policy entries, such as `unattended.deny`. The repository owns
+     repository's delivery actions, plus the stations' policy entries, such as `unattended.deny`. The repository owns
      this seeded entry and may change it ([policy](policy.md#the-seeded-entry),
      [ADR 0015](../adrs/0015-development-lifecycle.md));
-   - `.cook/hooks.yaml`: its skeleton, plus the recipes' post-edit hooks and lifecycle actions;
+   - `.cook/hooks.yaml`: its skeleton, plus the stations' post-edit hooks and lifecycle actions;
    - `.agents/memory/` skeleton, when the `memory` module is on;
-   - each template of the chosen recipes whose file is absent;
-   - the archives of the chosen recipes and of their ingredients, into the per-user cache.
+   - each template of the chosen stations whose file is absent;
+   - the archives of the chosen stations and of their ingredients, into the per-user cache.
 5. **Pin** the release that runs `scaffold` in `.cook/wrapper.yaml`, an owned file: its exact version, and the
    checksums of its four platform binaries. They come from that release's checksum file, fetched over HTTPS and
    accepted only after its signature verifies against the release keys embedded in the running binary
@@ -85,39 +85,39 @@ After this, the seeded files belong to the repository. `scaffold` never rewrites
 workers edit the profile, the policy and the hooks file; the pin changes only through
 [`the-cook wrapper`](wrapper.md#the-cook-wrapper).
 
-### Recipe detection
+### Station detection
 
-With `--cookbook <source>@<version>`, `scaffold` reads every recipe the tag publishes and chooses each one whose
-[detect rule](recipes.md#detect-rule) matches the repository's files, plus each one `--recipe` names. It applies the
-chosen recipes in one plan and one confirmation, with the same [merge rules](recipes.md#merge-rules) as
-`the-cook recipe apply`: first the recipes `--recipe` names, in the order given, then the detected ones in name order.
-The detect rules are the cookbook's data; `scaffold` holds none of its own.
+With `--cookbook <source>@<version>`, `scaffold` reads every station the tag publishes and chooses each one whose
+[detect rule](stations.md#detect-rule) matches the repository's files, plus each one `--station` names. It applies the
+chosen stations in one plan and one confirmation, with the same [merge rules](stations.md#merge-rules) as
+`the-cook station apply`: first the stations `--station` names, in the order given, then the detected ones in name
+order. The detect rules are the cookbook's data; `scaffold` holds none of its own.
 
-A polyglot repository gets the recipes of every detected stack. Their lanes and hooks sit side by side. For an item two
-recipes name, such as `commands.lint` or `vcs`, the repository gets the first recipe's entry, and the other recipe's
-differing entry is reported, as [`recipe apply`](recipes.md#how-apply-works) reports every difference it does not
-write. A repository whose stack no recipe of the tag detects gets no stack recipe: the seeded files hold their
-skeleton, what the other chosen recipes add, and the seeded delivery `ask` entry.
+A polyglot repository gets the stations of every detected stack. Their lanes and hooks sit side by side. For an item two
+stations name, such as `commands.lint` or `vcs`, the repository gets the first station's entry, and the other station's
+differing entry is reported, as [`station apply`](stations.md#how-apply-works) reports every difference it does not
+write. A repository whose stack no station of the tag detects gets no stack station: the seeded files hold their
+skeleton, what the other chosen stations add, and the seeded delivery `ask` entry.
 
 Three flags change the choice:
 
 | Flag | Effect |
 | --- | --- |
 | `--cookbook <source>@<version>` | the cookbook tag to choose from; without it, `scaffold` applies and pins nothing |
-| `--recipe <name>` | adds a recipe of the tag to the detected set, ahead of the detected ones; repeatable |
-| `--no-detect` | applies only the recipes named with `--recipe` |
+| `--station <name>` | adds a station of the tag to the detected set, ahead of the detected ones; repeatable |
+| `--no-detect` | applies only the stations named with `--station` |
 
-`recipes:` in the profile records the recipes `scaffold` applied; their entries and templates are the repository's
-from the moment they are written. A program the repository takes up later comes with a recipe,
-`./cook recipe apply <name> --cookbook <source>@<version>`, or on its own, `./cook ingredient pin <name> --cookbook
+`stations:` in the profile records the stations `scaffold` applied; their entries and templates are the repository's
+from the moment they are written. A program the repository takes up later comes with a station,
+`./cook station apply <name> --cookbook <source>@<version>`, or on its own, `./cook ingredient pin <name> --cookbook
 <source>@<version>`.
 
 ### Without a cookbook
 
 `the-cook scaffold` with no `--cookbook` seeds the skeleton of each repository file, with empty `ingredients:` and
-`recipes:` and no `vcs:` or workers, the seeded delivery `ask` entry, the wrapper and the pin, and renders the
+`stations:` and no `vcs:` or workers, the seeded delivery `ask` entry, the wrapper and the pin, and renders the
 binary's own files. It downloads nothing from a cookbook. Its to-do lists the two contracts no ingredient fills and
-the commands each one blocks; `./cook doctor` keeps reporting them until an applied recipe, or a pinned ingredient
+the commands each one blocks; `./cook doctor` keeps reporting them until an applied station, or a pinned ingredient
 named in the profile, fills them.
 
 ### Files created when absent
@@ -137,7 +137,7 @@ block and the module that owns it.
 `the-cook scaffold --adopt` runs the greenfield steps, and first imports what the repository, and optionally its
 contributors' personal settings, already configure. The import is lossless: every permission rule in the project scope
 is still in effect after adoption, or adoption stops. Adoption reads only the files the worker ingredients of the
-chosen recipes name, so `--adopt` needs `--cookbook`.
+chosen stations name, so `--adopt` needs `--cookbook`.
 
 ### Import scopes
 
@@ -163,7 +163,7 @@ keep applying to the person who has them, alongside the policy.
 | A native rule in the shape the worker ingredient's `native_rules` reads back as a command prefix | a prefix list under the same decision, for example `[npm, run, test]`, rendered for every worker |
 | Any other native rule | a native rule string under the same decision, rendered verbatim for that worker |
 | A hook in a worker's native hook file | a modelled declaration in `hooks.yaml` when it has a shape `hooks.yaml` models, otherwise a `raw` entry under its event, with its matcher, rendered as written so it keeps running without `the-cook` |
-| A rule file that a worker ingredient of the tag names, for a worker no chosen recipe declares | a to-do item for a person or a coding agent to translate |
+| A rule file that a worker ingredient of the tag names, for a worker no chosen station declares | a to-do item for a person or a coding agent to translate |
 
 See [policy](policy.md#entry-forms) for the three entry forms.
 
@@ -234,9 +234,9 @@ What adoption cannot resolve deterministically, it prints as a to-do. The same l
 | --- | --- | --- |
 | Personal entry to review | an entry was imported from the `local` or `user` scope | its `review:` marker is gone from the provenance comment: the entry was kept on purpose, or removed |
 | Allow/deny conflict | a pattern was both allowed and denied | its `review:` marker is gone: the deny stays, or a person removes it |
-| Foreign permission dialect | a rule file of a worker no chosen recipe declares was found | a person or a coding agent has expressed its rules in `policy.yaml` and the file is retired |
+| Foreign permission dialect | a rule file of a worker no chosen station declares was found | a person or a coding agent has expressed its rules in `policy.yaml` and the file is retired |
 | `.agents/AGENTS.md` instead of a root `AGENTS.md` | the repository keeps instructions under `.agents/` | the content is moved to the root `AGENTS.md`, which every worker ingredient's `instructions` reach |
-| Unfilled contract | `vcs:` names no pinned ingredient that fills the [version-control contract](ingredients.md#the-version-control-contract), or no worker is declared and so no ingredient fills a [worker contract](ingredients.md#the-worker-contract); the item names the commands that exit 3 until one does: workspaces, `verify`, `attempt`, `lifecycle run` and landed branches for the first, `attempt`, `attempt` actions and worker hooks for the second | a recipe whose stages fill it is applied, `./cook recipe apply <name> --cookbook <source>@<version>`, or an ingredient that fills it is pinned with `./cook ingredient pin` and named in `vcs:` or a worker's `ingredient` |
+| Unfilled contract | `vcs:` names no pinned ingredient that fills the [version-control contract](ingredients.md#the-version-control-contract), or no worker is declared and so no ingredient fills a [worker contract](ingredients.md#the-worker-contract); the item names the commands that exit 3 until one does: workspaces, `verify`, `attempt`, `lifecycle run` and landed branches for the first, `attempt`, `attempt` actions and worker hooks for the second | a station whose stages fill it is applied, `./cook station apply <name> --cookbook <source>@<version>`, or an ingredient that fills it is pinned with `./cook ingredient pin` and named in `vcs:` or a worker's `ingredient` |
 
 `doctor` derives every item from the repository's current state, so an item closes as soon as its condition is gone.
 
@@ -256,38 +256,38 @@ those entries as you would any policy change; see [safety](safety.md).
 ## Reference
 
 ```text
-the-cook scaffold [--cookbook <source>@<version>] [--recipe <name>]... [--no-detect] [--adopt]
+the-cook scaffold [--cookbook <source>@<version>] [--station <name>]... [--no-detect] [--adopt]
                  [--import <scope>[,<scope>]...] [--offline] [--yes] [--dry-run]
 ```
 
 | Flag | Default | Meaning |
 | --- | --- | --- |
-| `--cookbook <source>@<version>` | none | The [cookbook](recipes.md#cookbooks) tag whose recipes are detected and applied, and whose ingredients they pin. Without it, `scaffold` applies no recipe ([without a cookbook](#without-a-cookbook)) |
-| `--recipe <name>` | none | Apply this recipe of the tag besides the detected ones, ahead of them; repeatable, applied in the order given; needs `--cookbook` |
-| `--no-detect` | off | Apply only the recipes named with `--recipe` |
+| `--cookbook <source>@<version>` | none | The [cookbook](stations.md#cookbooks) tag whose stations are detected and applied, and whose ingredients they pin. Without it, `scaffold` applies no station ([without a cookbook](#without-a-cookbook)) |
+| `--station <name>` | none | Apply this station of the tag besides the detected ones, ahead of them; repeatable, applied in the order given; needs `--cookbook` |
+| `--no-detect` | off | Apply only the stations named with `--station` |
 | `--adopt` | off | Import an existing setup and emit a to-do |
 | `--import <scope>[,<scope>]...` | `project` with `--adopt`, else `none` | Scopes to import, as a comma-separated set from the closed enumeration `project`, `local`, `user`, `none` |
 | `--offline` | off | Make no network request. The pin is written [pending](wrapper.md#a-pending-pin), without checksums, and is completed later with `the-cook wrapper --version <tag>`. Cannot be combined with `--cookbook` |
 | `--yes` | off | Do not ask for confirmation |
-| `--dry-run` | off | Print the plan, the recipes it would apply and the ingredients they pin, the generated `policy.yaml` and `hooks.yaml`, and the equivalence report; write nothing |
+| `--dry-run` | off | Print the plan, the stations it would apply and the ingredients they pin, the generated `policy.yaml` and `hooks.yaml`, and the equivalence report; write nothing |
 
 Global flags `-C <dir>`, `--json`, `--verbose` also apply; see [CLI reference](cli.md).
 
 | Exit code | Meaning |
 | --- | --- |
 | 0 | Scaffolded or adopted. Open to-do items, unfilled contracts among them, do not change the exit code |
-| 1 | Error, including a repository that already has `.cook/config.yaml`; a `--recipe` the tag does not publish, or `--recipe` without `--cookbook`; a cookbook tag that cannot be reached; an archive that does not match its tag's `checksums.txt` or the sha256 its recipe lists; a recipe or ingredient whose schema or contract version is newer than the running release supports; stages that name an ingredient their recipe does not list, or one that does not fill the contract the stage needs; `--offline` with `--cookbook`, or `--adopt` without it; a checksum file of the pinned release that cannot be fetched without `--offline`, and one whose signature does not verify. Nothing is written |
+| 1 | Error, including a repository that already has `.cook/config.yaml`; a `--station` the tag does not publish, or `--station` without `--cookbook`; a cookbook tag that cannot be reached; an archive that does not match its tag's `checksums.txt` or the sha256 its station lists; a station or ingredient whose schema or contract version is newer than the running release supports; stages that name an ingredient their station does not list, or one that does not fill the contract the stage needs; `--offline` with `--cookbook`, or `--adopt` without it; a checksum file of the pinned release that cannot be fetched without `--offline`, and one whose signature does not verify. Nothing is written |
 | 2 | The equivalence check found a project-scope rule that would not be in effect; nothing was written |
 | 3 | A person must act: confirmation needed and no terminal (rerun with `--yes`, or from a terminal), a `.cook/` directory that belongs to another tool, or the version-control ingredient's program not installed |
 
-Files read: with `--cookbook`, the tag's `checksums.txt` and recipe archives, the files each of their detect rules
-names, the ingredient archives the chosen recipes list, and the default branch the version-control ingredient reports;
+Files read: with `--cookbook`, the tag's `checksums.txt` and station archives, the files each of their detect rules
+names, the ingredient archives the chosen stations list, and the default branch the version-control ingredient reports;
 the native files, hook files and instruction files the chosen worker ingredients name, `.gitignore`, the skills
 directories the worker ingredients link into; with `--import local` and `--import user`, the files the worker
 ingredients' `native_rules` name for those scopes. Files written: see [render](render.md#what-render-writes) (`cook`
-included), the owned `.cook/wrapper.yaml`, plus the seeded `.cook/config.yaml` (with `ingredients:`, `recipes:`,
-`vcs:` and `workers:`), `.cook/policy.yaml`, `.cook/hooks.yaml` and `.agents/memory/`, each template of the recipes
-it applies whose file is absent, and the archives of the chosen recipes and their ingredients under
+included), the owned `.cook/wrapper.yaml`, plus the seeded `.cook/config.yaml` (with `ingredients:`, `stations:`,
+`vcs:` and `workers:`), `.cook/policy.yaml`, `.cook/hooks.yaml` and `.agents/memory/`, each template of the stations
+it applies whose file is absent, and the archives of the chosen stations and their ingredients under
 `$COOK_HOME/cookbook/`.
 
 ## Examples
@@ -296,7 +296,7 @@ it applies whose file is absent, and the archives of the chosen recipes and thei
 
 ```sh
 $ cd ~/src/acme-api
-$ the-cook scaffold --cookbook github:acme/cookbook@v1.2.0 --recipe agentic-coding --dry-run
+$ the-cook scaffold --cookbook github:acme/cookbook@v1.2.0 --station agentic-coding --dry-run
 named: agentic-coding; detected from github:acme/cookbook@v1.2.0: node; default branch: main
 would apply: agentic-coding, node (v1.2.0, sha256 verified against checksums.txt)
 would pin: git, claude, acme-agent, acme-loop, acme-tasks (v1.2.0, sha256 verified against agentic-coding)
@@ -308,24 +308,24 @@ would write:
   the renders of git, claude, acme-agent, acme-loop and acme-tasks
   AGENTS.md (new)  README.md (block)
   .cook/manifest.json
-$ the-cook scaffold --cookbook github:acme/cookbook@v1.2.0 --recipe agentic-coding --yes
+$ the-cook scaffold --cookbook github:acme/cookbook@v1.2.0 --station agentic-coding --yes
 $ git add -A && git commit -m "chore: adopt the-cook"
 $ ./cook doctor
 ```
 
 Then review the seeded lanes in `.cook/config.yaml` against the repository's real test commands.
 
-### Chosen recipes only
+### Chosen stations only
 
 ```sh
 $ cd ~/src/acme-infra
-$ the-cook scaffold --cookbook github:acme/cookbook@v1.2.0 --no-detect --recipe agentic-coding \
-    --recipe terraform --yes
+$ the-cook scaffold --cookbook github:acme/cookbook@v1.2.0 --no-detect --station agentic-coding \
+    --station terraform --yes
 ```
 
 The profile pins the five ingredients `agentic-coding` lists under `ingredients:`, records `agentic-coding` and
-`terraform` under `recipes:`, writes `vcs: git` and the two workers from the stages of `agentic-coding`, and gets the
-lanes the `terraform` recipe holds; the `commands` block in `AGENTS.md` shows `./cook verify ...`.
+`terraform` under `stations:`, writes `vcs: git` and the two workers from the stages of `agentic-coding`, and gets the
+lanes the `terraform` station holds; the `commands` block in `AGENTS.md` shows `./cook verify ...`.
 
 ### No cookbook yet
 
@@ -334,10 +334,10 @@ $ cd ~/src/acme-tools
 $ the-cook scaffold --yes
 to-do:
   1. no ingredient fills the version-control contract: workspaces, verify, attempt, lifecycle run and landed
-     branches exit 3 until one does; run ./cook recipe apply <name> --cookbook <source>@<version>
+     branches exit 3 until one does; run ./cook station apply <name> --cookbook <source>@<version>
   2. no worker is declared, so no ingredient fills a worker contract: attempt, attempt actions and worker hooks
-     are unavailable; run ./cook recipe apply <name> --cookbook <source>@<version>
-$ ./cook recipe apply agentic-coding --cookbook github:acme/cookbook@v1.2.0 --yes
+     are unavailable; run ./cook station apply <name> --cookbook <source>@<version>
+$ ./cook station apply agentic-coding --cookbook github:acme/cookbook@v1.2.0 --yes
 ```
 
 ### Offline, completed later
@@ -355,7 +355,7 @@ $ git commit -am "chore: complete the release pin" && git push
 
 Everything else works offline at once on this machine through the global `the-cook`. Worker hooks and `./cook` start
 working here once the pin is complete and the release is in the cache; on other machines they need the completed pin
-([wrapper](wrapper.md#a-pending-pin)). Recipes are applied afterwards with `./cook recipe apply`, which needs the
+([wrapper](wrapper.md#a-pending-pin)). Stations are applied afterwards with `./cook station apply`, which needs the
 network.
 
 ### A repository with a hand-written setup
@@ -365,7 +365,7 @@ and `agentic-coding` declares a worker for it:
 
 ```sh
 $ cd ~/src/acme-cli
-$ the-cook scaffold --cookbook github:acme/cookbook@v1.2.0 --recipe agentic-coding --adopt --dry-run
+$ the-cook scaffold --cookbook github:acme/cookbook@v1.2.0 --station agentic-coding --adopt --dry-run
 --- .cook/policy.yaml (generated)
 schema: 1
 shared:
@@ -392,7 +392,7 @@ raw:
 acme-agent: 14 of 14 project rules in effect
 dropped: Run(git push --force origin main) weakens a floor rule of the git ingredient
 note: permissions.mode in .acme/settings.json is not policy; left in place
-$ the-cook scaffold --cookbook github:acme/cookbook@v1.2.0 --recipe agentic-coding --adopt --yes
+$ the-cook scaffold --cookbook github:acme/cookbook@v1.2.0 --station agentic-coding --adopt --yes
 note: ACME.md has content; instructions every worker needs belong in AGENTS.md
 $ ./cook doctor
 ```
@@ -402,7 +402,7 @@ Then ask a coding agent to finish the adoption with the shipped skill.
 ### Importing a person's settings too
 
 ```sh
-$ the-cook scaffold --cookbook github:acme/cookbook@v1.2.0 --recipe agentic-coding --adopt --import project,local --yes
+$ the-cook scaffold --cookbook github:acme/cookbook@v1.2.0 --station agentic-coding --adopt --import project,local --yes
 to-do:
   1. review [docker, compose, up] imported from .acme/settings.local.json (local): now shared with everyone
 ```
@@ -413,14 +413,14 @@ to-do:
 - Do commit the scaffold as its own commit, so later changes to the repository files are reviewable on their own.
 - Do complete a pending pin before you push: until then, no machine without the release in its cache can run
   `./cook`.
-- Do review the seeded lanes and commands: recipes guess from the stack, while the repository knows its real commands.
+- Do review the seeded lanes and commands: stations guess from the stack, while the repository knows its real commands.
 - Do give the to-do to a coding agent with the shipped skill; it is written for that.
 - Do import `local` or `user` only when those settings are meant for everyone, and review each entry they bring.
-- Do read the recipes of a cookbook tag with `the-cook recipe show <name> --cookbook <source>@<version>`, and the
+- Do read the stations of a cookbook tag with `the-cook station show <name> --cookbook <source>@<version>`, and the
   ingredients they list with `the-cook ingredient show`, before scaffolding from it: the confirmation is the review of
   every pin `scaffold` writes.
 - Don't run `scaffold` again to "refresh" a repository. Edit the repository files and run `./cook render`. To add a
-  way of working or a stack, run `./cook recipe apply <name> --cookbook <source>@<version>`; to add a program, run
+  way of working or a stack, run `./cook station apply <name> --cookbook <source>@<version>`; to add a program, run
   `./cook ingredient pin`. To move to another release, run `./cook wrapper`.
 - Don't hand-edit rendered files to finish an adoption; the next render overwrites them and `render --check` fails.
 
@@ -434,11 +434,11 @@ to-do:
 | Exit 3 in a script | No terminal to confirm | Pass `--yes` |
 | Exit 3 naming `.cook/` | The directory holds neither a profile nor a manifest of `the-cook`, so another program created it | `the-cook` never writes into a directory it did not create; the repository cannot be adopted while the directory is there ([greenfield](#greenfield)) |
 | Exit 2 naming a rule | The equivalence check found a project rule the new files would not keep in effect; nothing was written | Keep the repository unadopted and report the rule to the publisher of the worker's ingredient, with the rule and the worker's version ([ADR 0016](../adrs/0016-permission-adoption.md)) |
-| Wrong stack detected | Marker files of another stack are present (for example a `package.json` for tooling in a repository of another stack) | Before scaffolding, pass `--no-detect` with a `--recipe` for each recipe you want, after checking with `the-cook recipe list --cookbook <source>@<version>`; afterwards, delete the entries that do not apply from `.cook/config.yaml` and `.cook/hooks.yaml`, and the recipe's record from `recipes:` |
+| Wrong stack detected | Marker files of another stack are present (for example a `package.json` for tooling in a repository of another stack) | Before scaffolding, pass `--no-detect` with a `--station` for each station you want, after checking with `the-cook station list --cookbook <source>@<version>`; afterwards, delete the entries that do not apply from `.cook/config.yaml` and `.cook/hooks.yaml`, and the station's record from `stations:` |
 | A rule allowing a force push is missing after adopt | It weakens a floor rule of the version-control ingredient and was dropped | Nothing to restore; the floor rule holds while that ingredient is pinned |
-| `kept vcs: differs from recipe <name>` | Two chosen recipes name different version-control ingredients, and the first one's was written | Nothing, if the first is right; otherwise edit `vcs:` and delete the pin of the ingredient no longer named |
-| Exit 3 naming a program | The version-control ingredient's program is not installed | Install it, or choose a recipe whose stages name the version control system the repository uses, with `--no-detect` and `--recipe` |
-| The to-do lists an unfilled contract | No ingredient pinned so far fills it | `./cook recipe apply <name> --cookbook <source>@<version>` with a recipe whose stages fill it, or `./cook ingredient pin <name> --cookbook <source>@<version>` and name it in `vcs:` or a worker |
+| `kept vcs: differs from station <name>` | Two chosen stations name different version-control ingredients, and the first one's was written | Nothing, if the first is right; otherwise edit `vcs:` and delete the pin of the ingredient no longer named |
+| Exit 3 naming a program | The version-control ingredient's program is not installed | Install it, or choose a station whose stages name the version control system the repository uses, with `--no-detect` and `--station` |
+| The to-do lists an unfilled contract | No ingredient pinned so far fills it | `./cook station apply <name> --cookbook <source>@<version>` with a station whose stages fill it, or `./cook ingredient pin <name> --cookbook <source>@<version>` and name it in `vcs:` or a worker |
 
 ## Coexistence
 

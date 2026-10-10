@@ -57,8 +57,8 @@ and supporting another worker changes no repository's declarations.
    worker cannot express it skips it. Every native permission rule of every worker an ingredient describes is
    expressible this way ([0016](0016-permission-adoption.md)).
 6. Which workers a repository declares, and which role each fills, interactive or unattended, is repository data, not
-   ingredient content. A recipe may propose them as entries, which are the repository's own once applied
-   ([0024](0024-ingredients-and-recipes.md)).
+   ingredient content. A station may propose them as entries, which are the repository's own once applied
+   ([0024](0024-ingredients-and-stations.md)).
 
 ## Reasons
 
@@ -86,7 +86,7 @@ and supporting another worker changes no repository's declarations.
   raw entry for workers that cannot express it keeps every other ingredient's output valid.
 - **6.** Role assignments differ between repositories (Context). An ingredient that fixed one assignment would impose
   it on every repository that uses the program. With the assignment as data, each repository states its own, and a
-  recipe that proposes one hands it to the repository like any other entry.
+  station that proposes one hands it to the repository like any other entry.
 
 ## Rejected alternatives
 

@@ -45,7 +45,7 @@ share, so a skills installer, the workers and people find them in one place. The
 | A convention holds across one organization's repositories, as judgement or as entries `the-cook` enforces (a deny, a delivery action) | organization skill that guides a coding agent to write it into each repository's files ([below](#organization-skills-that-write-repository-entries)) | the organization owns and reviews the skill once; applying it to a repository takes judgement, and each repository reviews the result |
 | A procedure or body of knowledge is specific to one repository | repository skill | it is reviewed where it applies |
 | Known guidance must apply every session, or whenever certain files or words appear | an existing skill plus a standing-context entry ([configuration-standards.md](configuration-standards.md#standing-context)) | the trigger is deterministic; the skill stays the single text |
-| The behaviour is deterministic and organization neutral | not a skill: a command, flag, profile field, [ingredient](../features/ingredients.md) or [recipe](../features/recipes.md) | prose would drift from the behaviour |
+| The behaviour is deterministic and organization neutral | not a skill: a command, flag, profile field, [ingredient](../features/ingredients.md) or [station](../features/stations.md) | prose would drift from the behaviour |
 | A one-off instruction for a single session | not a skill: the prompt | a skill outlives the session it was written for |
 
 The shipped skill names no organization, vendor or company convention, because it ships to every user of an open-source

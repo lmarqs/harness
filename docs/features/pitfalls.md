@@ -264,7 +264,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
   the loop runner's own behaviour. `the-cook` has no code for any loop runner.
 - **What `the-cook` does.** Nothing beyond the attempt contract: `the-cook attempt` passes the worker the arguments the
   runner gives it, after refusing every floor bypass argument of the worker's ingredient among them.
-- **What you do.** Read the traps the cookbook documents for the loop runner and the tracker the recipe uses, and
+- **What you do.** Read the traps the cookbook documents for the loop runner and the tracker the station uses, and
   configure the runner and shape the tasks accordingly.
 
 ### A synchronised tracker exposes claims to other machines
@@ -488,25 +488,25 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
   ([render](render.md#drift-check)).
 - **What you do.** Edit the source (`policy.yaml`, `hooks.yaml`, `config.yaml`) and render.
 
-### A newer recipe's entries reach a repository only when it is applied again
+### A newer station's entries reach a repository only when it is applied again
 
-- **Symptom.** A newer version of a recipe the repository applied holds an entry the repository lacks, such as a lane
+- **Symptom.** A newer version of a station the repository applied holds an entry the repository lacks, such as a lane
   or a post-edit hook, and neither `the-cook render` nor moving an ingredient pin adds it.
-- **Why.** A recipe is applied once: its entries are written into the repository's files when someone applies it, and
-  from then on they are the repository's own. `recipes:` records which version was applied, not which entries it
+- **Why.** A station is applied once: its entries are written into the repository's files when someone applies it, and
+  from then on they are the repository's own. `stations:` records which version was applied, not which entries it
   wrote, and has no effect on renders; only the pinned ingredients render on every render
   ([ADR 0013](../adrs/0013-organization-content.md)).
-- **What `the-cook` does.** `the-cook recipe apply <name> --cookbook <source>@<version>` adds only the entries the
-  repository lacks: every entry it holds stays as it is, an item it names that differs from the recipe's is kept and
-  reported, and a second apply of the same version adds nothing. It also moves the recipe's record in `recipes:` and
-  the ingredient pins the recipe lists ([recipes](recipes.md)).
-- **What you do.** Run `./cook recipe apply <name> --cookbook <source>@<version> --dry-run` with the newer version to
+- **What `the-cook` does.** `the-cook station apply <name> --cookbook <source>@<version>` adds only the entries the
+  repository lacks: every entry it holds stays as it is, an item it names that differs from the station's is kept and
+  reported, and a second apply of the same version adds nothing. It also moves the station's record in `stations:` and
+  the ingredient pins the station lists ([stations](stations.md)).
+- **What you do.** Run `./cook station apply <name> --cookbook <source>@<version> --dry-run` with the newer version to
   see what it would add, then apply it, review the diff and commit. Applying again also adds back an entry the
   repository deleted on purpose, so read the diff before confirming. Across many repositories, use [fleet](fleet.md).
 
 ### A command that needs a contract no ingredient fills refuses
 
-- **Symptom.** `./cook workspace create` or `./cook attempt` exits 3 naming `the-cook recipe apply` and
+- **Symptom.** `./cook workspace create` or `./cook attempt` exits 3 naming `the-cook station apply` and
   `the-cook ingredient pin`, while `./cook doctor` works and lists the unfilled contract with the commands it makes
   unavailable.
 - **Why.** The binary has no code for any program. Workspaces, bases and history need an ingredient that fills the
@@ -516,14 +516,14 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 - **What `the-cook` does.** Refuses with exit 3 before acting, and never downloads an ingredient on its own. Hooks
   print one stderr line and exit 0.
 - **What you do.** Pin an ingredient that fills the contract, from a cookbook whose `ingredient show` output you have
-  read: `./cook ingredient pin <name> --cookbook <source>@<version>`, or apply a recipe that lists one; then review and
+  read: `./cook ingredient pin <name> --cookbook <source>@<version>`, or apply a station that lists one; then review and
   commit the diff.
 
 ### A fresh clone has no ingredients cached
 
 - **Symptom.** On a new machine or in a CI job, `./cook render` exits 3 and `./cook doctor` reports a finding, each
   naming `./cook fetch`, and worker hooks print one stderr line.
-- **Why.** Only `ingredient pin`, `recipe apply`, `fetch` and `scaffold --cookbook` download ingredients and recipes.
+- **Why.** Only `ingredient pin`, `station apply`, `fetch` and `scaffold --cookbook` download ingredients and stations.
   Every other command reads them from the per-user cache, which a fresh clone or a new CI runner does not have.
 - **What `the-cook` does.** Downloads nothing implicitly; verifies every archive against its pin when it is
   downloaded and every time it is loaded, and refuses a mismatch with exit 1.
@@ -533,15 +533,15 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 ### Pinning trusts the cookbook at that moment
 
 - **Symptom.** A pinned ingredient runs a command, renders a rule or marks a floor nobody on the team read, or an
-  applied recipe wrote entries nobody read.
-- **Why.** `the-cook recipe apply` and `the-cook ingredient pin` trust the cookbook's `checksums.txt` as it is
-  downloaded over HTTPS at that moment. No release key vouches for an ingredient or a recipe. From then on the binary
+  applied station wrote entries nobody read.
+- **Why.** `the-cook station apply` and `the-cook ingredient pin` trust the cookbook's `checksums.txt` as it is
+  downloaded over HTTPS at that moment. No release key vouches for an ingredient or a station. From then on the binary
   verifies each archive against its pin, so the pin fixes its bytes, but the pin itself is only as trustworthy as the
   review of the diff that added it.
-- **What `the-cook` does.** Shows the pins, and a recipe's entries and templates, as one diff and asks before writing
+- **What `the-cook` does.** Shows the pins, and a station's entries and templates, as one diff and asks before writing
   them, and renders in the same change, so the declaration and its effect are one diff.
 - **What you do.** Read each one with `./cook ingredient show <name> --cookbook <source>@<version>` or
-  `./cook recipe show <name> --cookbook <source>@<version>` before approving the pin, and review a pin move like any
+  `./cook station show <name> --cookbook <source>@<version>` before approving the pin, and review a pin move like any
   change to the policy.
 
 ## The wrapper

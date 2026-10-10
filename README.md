@@ -32,25 +32,25 @@ The name comes from the kitchen: a cook follows the recipe exactly and lets noth
 the check. The workers do the cooking, and `the-cook` holds them to that standard.
 
 The lifecycle knows no program. The programs that do the work at its stages, version control, workers such as coding
-agents or bots, trackers and task runners, are described by ingredients and combined by recipes, both published in
+agents or bots, trackers and task runners, are described by ingredients and combined by stations, both published in
 cookbooks ([ADR 0022](docs/adrs/0022-tool-integration.md)). An [ingredient](docs/features/ingredients.md) describes one
 program: the files rendered for it on every render, the operations that fill one of the lifecycle's contracts, and its
 floor, the rules about that program that no repository policy can remove, such as the arguments that bypass a coding
-agent's permission checks ([ADR 0011](docs/adrs/0011-safety-invariants.md)). A [recipe](docs/features/recipes.md) is one
-way of running the lifecycle: the ingredients it uses, which of them fills version control and which are its workers,
-and the entries and templates it writes into the repository once, which are the repository's own from then on. A
-repository pins every ingredient and recipe it uses by version and sha256 in a reviewed change; `the-cook` ships none
-and names no default cookbook ([ADR 0024](docs/adrs/0024-ingredients-and-recipes.md)).
+agent's permission checks ([ADR 0011](docs/adrs/0011-safety-invariants.md)). A [station](docs/features/stations.md) is
+one way of running the lifecycle: the ingredients it uses, which of them fills version control and which are its
+workers, and the entries and templates it writes into the repository once, which are the repository's own from then on.
+A repository pins every ingredient and station it uses by version and sha256 in a reviewed change; `the-cook` ships none
+and names no default cookbook ([ADR 0024](docs/adrs/0024-ingredients-and-stations.md)).
 
-Agentic coding is the first recipe and the main example. It declares an interactive coding agent and an unattended one,
+Agentic coding is the first station and the main example. It declares an interactive coding agent and an unattended one,
 the lanes they verify with, what unattended runs must never do, and lifecycle actions that keep a tracker up to date.
 `the-cook` is not a launcher for any loop runner: a loop runner names `./cook attempt <worker>` as the command it runs
 for each task, and that command runs the unattended coding agent under rules it cannot bypass and reports the task done
-only after the replay passes. `./cook recipe apply agentic-coding --cookbook github:acme/cookbook@v1.2.0` writes that
+only after the replay passes. `./cook station apply agentic-coding --cookbook github:acme/cookbook@v1.2.0` writes that
 wiring into the repository's files on request.
 
 For a cookbook to read or start from, see [lmarqs/the-cookbook](https://github.com/lmarqs/the-cookbook), the author's
-personal cookbook, starting with an `agentic-coding` recipe and the ingredients it uses.
+personal cookbook, starting with an `agentic-coding` station and the ingredients it uses.
 
 ## Read next
 
@@ -59,7 +59,7 @@ personal cookbook, starting with an `agentic-coding` recipe and the ingredients 
 | Why the project exists, what it is trying to achieve, and the tenets behind every decision | [Philosophy](docs/philosophy.md) |
 | What each feature does and how to use it, starting with a five-minute quickstart | [Features](docs/features/README.md) |
 | The stages every change goes through, the events and guards between them, and how each stage reaches its programs | [Development lifecycle](docs/features/lifecycle.md) |
-| What an ingredient and a recipe hold, how a repository pins them from a cookbook, and how to write them | [Ingredients](docs/features/ingredients.md), [recipes](docs/features/recipes.md) |
+| What an ingredient and a station hold, how a repository pins them from a cookbook, and how to write them | [Ingredients](docs/features/ingredients.md), [stations](docs/features/stations.md) |
 | The decisions that shape the tool, and their reasons; the authority over everything else | [Architecture decisions](docs/adrs/README.md) |
 | The rules for everything a user sees: commands, files, messages, generated content | [User-experience standards](docs/ux/README.md) |
 

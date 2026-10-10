@@ -31,10 +31,10 @@ worker's own program under the [attempt contract](attempts.md#the-attempt-contra
 ### Is `the-cook` a coding-agent tool?
 
 It is a software development lifecycle a repository declares, and the binary that enforces it: the stages a change goes
-through, the events between them, the guards that hold and the proof a change carries
-([lifecycle](lifecycle.md)). Coding agents are the workers it is used with most, and agentic coding is the first recipe,
-but the lifecycle knows no program: a bot, a codemod or a person moves a change through the same stages, and each
-program is described by an [ingredient](ingredients.md) the repository pins.
+through, the events between them, the guards that hold and the proof a change carries ([lifecycle](lifecycle.md)).
+Coding agents are the workers it is used with most, and agentic coding is the first station, but the lifecycle knows no
+program: a bot, a codemod or a person moves a change through the same stages, and each program is described by an
+[ingredient](ingredients.md) the repository pins.
 
 ### Does it use MCP servers?
 
@@ -78,7 +78,7 @@ No. Nothing in a repository's build, test, deploy or release depends on it. `./c
 ### Does it work offline?
 
 Yes, once the pinned release and the pinned ingredients are cached: the wrapper makes no network request after the
-first download, and only the commands that pin, apply, fetch or read a cookbook tag download ingredients and recipes
+first download, and only the commands that pin, apply, fetch or read a cookbook tag download ingredients and stations
 ([fetching](ingredients.md#fetching)). A machine that never has network access uses `COOK_BINARY` or a pre-filled cache
 ([wrapper](wrapper.md#air-gapped-machines)). Adoption works offline too: `the-cook scaffold --offline` writes everything
 and leaves the pin [pending](wrapper.md#a-pending-pin) until a later `the-cook wrapper --version <tag>` with network
@@ -91,15 +91,15 @@ ingredient fills the [worker contract](workers.md#the-worker-contract), and a wo
 a worker `reviewer` declared with `ingredient: claude`, pinned from `github:acme/cookbook`. Which programs and versions
 a cookbook covers, and how it tests them, is that cookbook's to say.
 
-### Where do ingredients and recipes come from?
+### Where do ingredients and stations come from?
 
-From cookbooks. Each tag of a cookbook publishes one archive per ingredient and per recipe, `<name>.tar.gz`, and a
+From cookbooks. Each tag of a cookbook publishes one archive per ingredient and per station, `<name>.tar.gz`, and a
 `checksums.txt` listing their sha256. A repository pins every ingredient it uses in `ingredients:` with its `name`,
-`source` (the cookbook), `version` (the tag) and `sha256`, and records every recipe it applied in `recipes:` the same
-way. `./cook recipe apply <name>... --cookbook <source>@<version>` verifies the recipes against that tag's checksums and
-shows their entries, templates and ingredient pins as one diff to review; `./cook ingredient pin` adds or moves one
-ingredient pin. `the-cook` ships no ingredient or recipe and names no default cookbook, so a repository may pin from any
-number of cookbooks, its own included ([cookbooks](recipes.md#cookbooks), [ingredients](ingredients.md)).
+`source` (the cookbook), `version` (the tag) and `sha256`, and records every station it applied in `stations:` the same
+way. `./cook station apply <name>... --cookbook <source>@<version>` verifies the stations against that tag's checksums
+and shows their entries, templates and ingredient pins as one diff to review; `./cook ingredient pin` adds or moves one
+ingredient pin. `the-cook` ships no ingredient or station and names no default cookbook, so a repository may pin from
+any number of cookbooks, its own included ([cookbooks](stations.md#cookbooks), [ingredients](ingredients.md)).
 
 ### Can I use my own version control system or worker?
 
@@ -114,13 +114,13 @@ included.
 ### Does `the-cook` work with my loop runner or tracker?
 
 Yes, with any that runs a command. The binary contains code for no external program; every program reaches a repository
-as data: an ingredient's renders, a recipe's entries and templates, a declared command or a lifecycle action
+as data: an ingredient's renders, a station's entries and templates, a declared command or a lifecycle action
 ([ADR 0022](../adrs/0022-tool-integration.md)). A loop runner names `./cook attempt <worker>` as the command it runs for
 each task. A tracker is updated by lifecycle actions on `start`, `completed` and `blocked` that read `COOK_TASK` and
-`COOK_ACTOR` in a workspace created with `--task`. A recipe can write those entries for you, as `agentic-coding` does:
-`./cook recipe apply agentic-coding --cookbook github:acme/cookbook@v1.2.0` ([recipes](recipes.md)). Otherwise declare
-the action yourself, for example a `completed` action that runs `./scripts/close-task "$COOK_TASK"`, or write a recipe
-that holds it.
+`COOK_ACTOR` in a workspace created with `--task`. A station can write those entries for you, as `agentic-coding` does:
+`./cook station apply agentic-coding --cookbook github:acme/cookbook@v1.2.0` ([stations](stations.md)). Otherwise
+declare the action yourself, for example a `completed` action that runs `./scripts/close-task "$COOK_TASK"`, or write a
+station that holds it.
 
 ### Does it depend on a task runner or a tool-version manager?
 
@@ -183,7 +183,7 @@ Yes. Workers keep their permissions and `raw` hooks from the native files, and t
 and the ignore file as plain text, so people and workers still find workspaces and state where they were. The tool
 blocks, which describe how to use `the-cook`, are removed, so nothing left names a command that is gone. What stops is
 everything `the-cook` runs: the wrapper, verification receipts, the lifecycle's events and guards, `the-cook attempt`
-and its contract, injected standing context and the hooks that called `the-cook`. Templates a recipe wrote stay as they
+and its contract, injected standing context and the hooks that called `the-cook`. Templates a station wrote stay as they
 are, so a loop runner's configuration whose command for each task is `./cook attempt` needs a new one.
 
 ## Policy
@@ -214,14 +214,14 @@ that applies, and the same commit renders the same bytes on every machine
   repository's `.cook/policy.yaml`, `.cook/hooks.yaml` or profile. Each repository reviews the change as a diff, so two
   repositories can hold different entries for the same choice when they need to.
 - **A way of working**, such as the organization's lanes, unattended denies and delivery actions: publish it as a
-  recipe in the organization's cookbook, and apply it in each repository; it becomes that repository's own.
-- **`the-cook` commands**, such as applying a stack recipe or moving to a new release: run them across repositories
+  station in the organization's cookbook, and apply it in each repository; it becomes that repository's own.
+- **`the-cook` commands**, such as applying a stack station or moving to a new release: run them across repositories
   with [`the-cook fleet`](fleet.md), for example
-  `the-cook fleet recipe apply node --cookbook github:acme/cookbook@v1.2.0 --yes --deliver` with a fleet file of Node
+  `the-cook fleet station apply node --cookbook github:acme/cookbook@v1.2.0 --yes --deliver` with a fleet file of Node
   repositories.
-- **Stack facts**, such as how to lint, test and build a Node project: these come from a stack recipe in a cookbook,
-  which `scaffold --cookbook` applies when its detect rule matches and `the-cook recipe apply` applies on request
-  ([recipes](recipes.md)).
+- **Stack facts**, such as how to lint, test and build a Node project: these come from a stack station in a cookbook,
+  which `scaffold --cookbook` applies when its detect rule matches and `the-cook station apply` applies on request
+  ([stations](stations.md)).
 
 ### An allowed command still prompts. Why?
 
@@ -270,7 +270,7 @@ hosting platform. A repository that wants an issue closed when its task complete
 
 ### I already sync my tracker across machines. Will `the-cook` break that?
 
-No. `the-cook` has no code for any tracker: it never initialises, configures or reads a tracker's data. A recipe that
+No. `the-cook` has no code for any tracker: it never initialises, configures or reads a tracker's data. A station that
 wires a tracker, such as `agentic-coding`, adds only lifecycle actions that run the tracker's own commands on the task a
 workspace is bound to ([tasks](tasks.md)).
 
@@ -331,8 +331,8 @@ both with scope `task`.
 
 ### I run my loop runner directly with my own configuration. Does `the-cook` interfere?
 
-No. `the-cook` has no code for any loop runner and reads no loop runner's configuration. A recipe that holds a loop
-runner's configuration template writes it only when you apply the recipe and the file is absent; an existing file is
+No. `the-cook` has no code for any loop runner and reads no loop runner's configuration. A station that holds a loop
+runner's configuration template writes it only when you apply the station and the file is absent; an existing file is
 reported as `kept <path>: exists` and left as it is. Workers your configuration starts without `the-cook attempt` get
 no attempt contract.
 
@@ -343,8 +343,8 @@ no attempt contract.
 Every repository set up with `the-cook scaffold` is pinned: `.cook/wrapper.yaml` names one release and the checksums of
 its binaries, and both `./cook` and a global install run that release. Within one repository, every machine and CI job
 runs the same version ([wrapper](wrapper.md)). `wrapper.yaml` is the only pin of the release: a global install, however
-it was installed, defers to it. Each ingredient has its own pin in `ingredients:`, and each applied recipe its record
-in `recipes:`.
+it was installed, defers to it. Each ingredient has its own pin in `ingredients:`, and each applied station its record
+in `stations:`.
 
 ### How do I upgrade?
 
@@ -353,14 +353,14 @@ the same change, so the pin and everything the new release renders differently a
 it. `the-cook fleet wrapper --version <tag> --deliver` does the same across many repositories
 ([wrapper](wrapper.md#upgrading)).
 
-### A newer version of a recipe has entries our repository lacks.
+### A newer version of a station has entries our repository lacks.
 
-A recipe is applied once: its entries reached the repository when someone applied it, and they are the repository's
-own. Run `./cook recipe apply node --cookbook github:acme/cookbook@v1.3.0 --dry-run` to see what the newer `node` recipe
-would add. Without `--dry-run` it shows the same diff, asks, adds only what the repository lacks, moves the recipe's
-record in `recipes:` and the ingredient pins it lists, and renders ([recipes](recipes.md)). An ingredient's renders and
-floor rules follow its pin on every render, so `./cook ingredient pin <name> --cookbook <source>@<version>` alone
-updates them. Upgrading the release moves no pin.
+A station is applied once: its entries reached the repository when someone applied it, and they are the repository's
+own. Run `./cook station apply node --cookbook github:acme/cookbook@v1.3.0 --dry-run` to see what the newer `node`
+station would add. Without `--dry-run` it shows the same diff, asks, adds only what the repository lacks, moves the
+station's record in `stations:` and the ingredient pins it lists, and renders ([stations](stations.md)). An ingredient's
+renders and floor rules follow its pin on every render, so `./cook ingredient pin <name> --cookbook <source>@<version>`
+alone updates them. Upgrading the release moves no pin.
 
 ### A teammate's `the-cook` refuses our repository.
 

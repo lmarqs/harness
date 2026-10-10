@@ -55,9 +55,9 @@ workers:
 ```
 
 `the-cook ingredient pin claude codex --cookbook github:acme/cookbook@v1.2.0` writes the `ingredients:` entries above
-after showing them as a diff. A recipe that declares workers in its [stages](recipes.md#stages), such as an
-`agentic-coding` recipe, writes its `workers` entries and pins their ingredients in the one diff
-`the-cook recipe apply` shows; from then on the entries are the repository's own ([recipes](recipes.md)).
+after showing them as a diff. A station that declares workers in its [stages](stations.md#stages), such as an
+`agentic-coding` station, writes its `workers` entries and pins their ingredients in the one diff
+`the-cook station apply` shows; from then on the entries are the repository's own ([stations](stations.md)).
 
 | Field | Meaning |
 | --- | --- |

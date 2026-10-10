@@ -53,7 +53,7 @@ You do not need them for ordinary work: `the-cook verify` also works in the prim
    loop runner prepares is ready to build too.
 7. Fires the `start` [lifecycle event](lifecycle.md) in the new workspace: with scope `task` and `COOK_TASK` set to
    the id when `--task` is given, with scope `change` otherwise. Actions declared with `auto: true` run, such as
-   [tracker actions from a recipe](tasks.md#tracker-actions-from-a-recipe).
+   [tracker actions from a station](tasks.md#tracker-actions-from-a-station).
 
 The workspace starts from committed code only. Uncommitted changes, credentials, dependency directories and personal
 configuration are not copied.
@@ -153,7 +153,7 @@ Paths below show the defaults, `state.dir: .work` and `workspaces.dir: .work/wor
 
 ### A Node API, with tracker actions
 
-With [tracker actions from a recipe](tasks.md#tracker-actions-from-a-recipe) applied:
+With [tracker actions from a station](tasks.md#tracker-actions-from-a-station) applied:
 
 ```sh
 ./cook workspace create fix-invoice-rounding --task acme-api-7f2   # start: the task is marked in progress

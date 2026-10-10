@@ -27,7 +27,7 @@ signal the caller expects is text the caller hands to `the-cook attempt`, which 
 `the-cook attempt` is the command a **loop runner** runs for each task. A loop runner is a third-party program that
 works through a list of tasks and starts a worker for each. `the-cook` has no code for any loop runner: it does not
 start one, read its configuration or know when a run starts or ends ([ADR 0022](../adrs/0022-tool-integration.md)). An
-unattended run of a loop runner whose command for each task is `the-cook attempt` is called a Ralph run. A recipe that
+unattended run of a loop runner whose command for each task is `the-cook attempt` is called a Ralph run. A station that
 uses a loop runner, applied from a cookbook, seeds its configuration with `./cook attempt` as that command
 ([how a loop runner calls it](#how-a-loop-runner-calls-it)). A team's own script calls `the-cook attempt` the same way
 ([example](#a-teams-own-loop-script)).
@@ -121,7 +121,7 @@ The worker never commits, pushes or fires lifecycle events. The binary refuses `
 `COOK_ATTEMPT=1`, whatever spelling started it. As defence in depth, the binary renders `[the-cook, lifecycle]` into
 `unattended.deny` in each spelling `the-cook` renders ([policy](policy.md#the-floor)). The repository's
 `unattended.deny` denies the other commands a worker must not run, such as commits, pushes and the hosting platform's
-CLI, which a recipe may add as [entries](recipes.md#entries) when it is applied. A worker that lacks a permission
+CLI, which a station may add as [entries](stations.md#entries) when it is applied. A worker that lacks a permission
 reports the task as blocked in its output.
 
 An [`attempt` lifecycle action](lifecycle.md#attempt) runs under the same contract and sets the same `COOK_ATTEMPT=1`
@@ -209,9 +209,9 @@ to keep:
 | the loop runner's state files inside the checkout are ignored by the version control system | otherwise `the-cook attempt` refuses the checkout as having uncommitted changes, and `--commit` would commit them |
 | the command that marks a task done in the task source is in `unattended.deny`, and the loop runner marks the task itself once it receives the completion signal | the task is marked done only after a verified attempt |
 
-A recipe that uses a loop runner holds these properties for it: one of its [templates](recipes.md#templates) seeds the
+A station that uses a loop runner holds these properties for it: one of its [templates](stations.md#templates) seeds the
 loop runner's configuration once, from then on the repository's own file, which `the-cook` never re-renders, reads or
-removes; its [entries](recipes.md#entries) add the `unattended.deny` rules; and the loop runner's ingredient renders
+removes; its [entries](stations.md#entries) add the `unattended.deny` rules; and the loop runner's ingredient renders
 the ignore block for its state files ([renders](ingredients.md#renders)). Their pages in their cookbook explain each
 setting.
 
@@ -293,7 +293,7 @@ Paths below show the default `state.dir: .work` ([profile](profile.md#state-path
 
 ### A loop runner run in its own workspace
 
-`acme/api` applied a recipe from `github:acme/cookbook` that uses a loop runner, and committed the configuration it
+`acme/api` applied a station from `github:acme/cookbook` that uses a loop runner, and committed the configuration it
 seeded. The run goes in its own workspace, and whoever started it fires the run's event:
 
 ```sh
@@ -385,7 +385,7 @@ for that command asks a person first ([policy](policy.md#the-seeded-entry)).
   starts a worker directly, runs outside `the-cook`: no bypass refusal, tamper check or replay applies to it.
   `the-cook` neither detects nor prevents such a run.
 - `the-cook` reads no loop runner configuration, the project's or a per-user one, and never writes it after a
-  recipe's template seeded the project's file.
+  station's template seeded the project's file.
 - A loop runner's checkouts, branches and state files are its own; `the-cook` never cleans them up.
 
 See [compatibility](compatibility.md).

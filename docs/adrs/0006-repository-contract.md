@@ -44,10 +44,11 @@ controls the facts only it knows.
    wrapper ([0017](0017-engine-version.md)), which only resolves, verifies and executes the pinned binary, and to hook
    entries that call it.
 5. Commands a repository declares are its own data.
-6. Ingredients and recipes are data the binary interprets, never engine code in the repository
-   ([0022](0022-tool-integration.md), [0023](0023-core-and-contracts.md), [0024](0024-ingredients-and-recipes.md)). The
-   repository's data names every ingredient it uses and the recipes it applied, and pins each one from the cookbook that
-   publishes it, by version and content hash; neither is stored in the repository ([0014](0014-directory-layout.md)).
+6. Ingredients and stations are data the binary interprets, never engine code in the repository
+   ([0022](0022-tool-integration.md), [0023](0023-core-and-contracts.md), [0024](0024-ingredients-and-stations.md)). The
+   repository's data names every ingredient it uses and the stations it applied, and pins each one from the cookbook
+   that publishes it, by version and content hash; neither is stored in the repository
+   ([0014](0014-directory-layout.md)).
 
 ## Reasons
 
@@ -67,15 +68,15 @@ controls the facts only it knows.
   code in the repository and would diverge like the copied renderer in Context.
 - **5.** The repository's build, test and lint commands belong to its stack. The binary runs them as declared and never
   interprets them, so they are data even though they execute.
-- **6.** An ingredient describes a program as data the binary interprets, and a recipe is data too, so the engine stays
+- **6.** An ingredient describes a program as data the binary interprets, and a station is data too, so the engine stays
   in the binary for every program a repository uses and every way of working it applies
-  ([0022](0022-tool-integration.md)). Executable ingredients or recipes would be engine code beside the binary, with the
-  divergence of point 4 and a runtime the binary does not have ([0004](0004-runtime-dependencies.md)). Which ingredients
-  and recipes a repository uses, and at which version and hash, is a fact only that repository knows, so it lives in its
-  data and changes by a reviewed diff. An ingredient is shared by every repository that uses the program (Context) and
-  fixed by its hash, so a copy in each repository would be one more copy to edit locally, the way the `acme/web`
-  renderer in Context forks; what a recipe adds is in the repository's own files once it is applied
-  ([0024](0024-ingredients-and-recipes.md)), so a copy of the recipe would hold it twice. The trade: a reader of the
+  ([0022](0022-tool-integration.md)). Executable ingredients or stations would be engine code beside the binary, with
+  the divergence of point 4 and a runtime the binary does not have ([0004](0004-runtime-dependencies.md)). Which
+  ingredients and stations a repository uses, and at which version and hash, is a fact only that repository knows, so it
+  lives in its data and changes by a reviewed diff. An ingredient is shared by every repository that uses the program
+  (Context) and fixed by its hash, so a copy in each repository would be one more copy to edit locally, the way the
+  `acme/web` renderer in Context forks; what a station adds is in the repository's own files once it is applied
+  ([0024](0024-ingredients-and-stations.md)), so a copy of the station would hold it twice. The trade: a reader of the
   repository sees which ingredient is pinned, not its description.
 
 ## Rejected alternatives
@@ -118,7 +119,7 @@ Must be maintained:
 ## Confirmation
 
 - Validation fixtures cover each file, including invalid content and an unknown schema.
-- A fixture that uses an ingredient and has applied a recipe holds the name, cookbook, version and hash of each in the
+- A fixture that uses an ingredient and has applied a station holds the name, cookbook, version and hash of each in the
   repository's data and no copy of either.
 - A test asserts that the manifest of an adopted fixture lists no executable file other than the wrapper, and that every
   owned hook entry is one command that calls it.

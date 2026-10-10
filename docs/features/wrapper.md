@@ -298,7 +298,7 @@ Files read: `.cook/wrapper.yaml`, `$COOK_HOME/versions/<version>/the-cook`. File
 
 | Variable | Read by | Effect |
 | --- | --- | --- |
-| `COOK_HOME` | `cook`, `the-cook` | The per-user cache directory, default `$XDG_CACHE_HOME/the-cook`, or `~/.cache/the-cook` when `XDG_CACHE_HOME` is unset. It holds pinned releases at `<COOK_HOME>/versions/<version>/the-cook`, [ingredients and recipes](ingredients.md#fetching) at `cookbook/<sha256>.tar.gz`, the update-check result and the signed-checksum check of `doctor`, nothing else |
+| `COOK_HOME` | `cook`, `the-cook` | The per-user cache directory, default `$XDG_CACHE_HOME/the-cook`, or `~/.cache/the-cook` when `XDG_CACHE_HOME` is unset. It holds pinned releases at `<COOK_HOME>/versions/<version>/the-cook`, [ingredients and stations](ingredients.md#fetching) at `cookbook/<sha256>.tar.gz`, the update-check result and the signed-checksum check of `doctor`, nothing else |
 | `COOK_BINARY` | `cook` | A path to a `the-cook` binary to exec instead of the pinned release. No download and no checksum check: it bypasses the pin, and `the-cook doctor` notes that the running release is not the pinned one |
 | `COOK_NO_UPDATE_CHECK=1` | `the-cook` | Turns off the daily newer-release check on explicit commands and in `doctor` |
 
@@ -411,7 +411,7 @@ jobs:
 
 The cache step is optional; it saves the download on later runs. CI runs the release the pull request pins, so an
 upgrade and the files it re-rendered are checked together. `./cook fetch` caches the
-[ingredients and recipes](ingredients.md#fetching) the profile pins, which `render` reads only from the cache.
+[ingredients and stations](ingredients.md#fetching) the profile pins, which `render` reads only from the cache.
 
 ## Air-gapped machines
 

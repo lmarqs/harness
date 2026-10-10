@@ -45,33 +45,33 @@ choices, stack facts and the wiring of a tool still reach each repository throug
    conventions. The content the release carries is limited to the invariants ([0011](0011-safety-invariants.md)), the
    templates and starting entries of the tool's own files seeded into a newly adopted repository
    ([0007](0007-ownership.md), [0015](0015-development-lifecycle.md)), and the documentation and skill the tool ships
-   ([0002](0002-division-of-work.md)). It carries no ingredient and no recipe ([0022](0022-tool-integration.md),
-   [0024](0024-ingredients-and-recipes.md)).
+   ([0002](0002-division-of-work.md)). It carries no ingredient and no station ([0022](0022-tool-integration.md),
+   [0024](0024-ingredients-and-stations.md)).
 2. What the tool renders and runs in a repository is determined by that repository's own files, the release it pins
    ([0017](0017-engine-version.md)) and the ingredients it pins ([0022](0022-tool-integration.md)), and by nothing else.
    Repository data has no inheritance and no includes, and no key brings entries from outside the repository into what
-   the tool renders or runs: a recipe's entries reach the repository only by being written into its files (point 3),
-   and the repository's record of the recipes it applied acts on nothing ([0024](0024-ingredients-and-recipes.md)).
+   the tool renders or runs: a station's entries reach the repository only by being written into its files (point 3),
+   and the repository's record of the stations it applied acts on nothing ([0024](0024-ingredients-and-stations.md)).
    Where the data names an outside location to fetch from, what it brings acts only when it matches the hash the
    repository committed.
-3. A recipe ([0024](0024-ingredients-and-recipes.md)) carries the starting content for one way of running the
+3. A station ([0024](0024-ingredients-and-stations.md)) carries the starting content for one way of running the
    lifecycle, such as one technology stack or one way of working with workers: entries for the repository's data files,
-   and templates, which are whole files. Applying a recipe happens only on request, at adoption or at any later time.
-   It writes the recipe's entries into the repository's own files and adds only what they lack: an entry already
+   and templates, which are whole files. Applying a station happens only on request, at adoption or at any later time.
+   It writes the station's entries into the repository's own files and adds only what they lack: an entry already
    present stays as it is, an item or value the repository already has is never replaced, every difference from the
-   recipe is reported, and nothing is removed. A template is rendered once from the repository's data, written only
+   station is reported, and nothing is removed. A template is rendered once from the repository's data, written only
    when its file is absent, and never rendered again; an existing file is reported and left as it is. Once written,
-   entries and files are the repository's like any it wrote itself, and nothing records which recipe wrote which of
+   entries and files are the repository's like any it wrote itself, and nothing records which station wrote which of
    them. An ingredient's renders and floor rules are not entries: they are rendered output
    ([0022](0022-tool-integration.md)).
 4. An organization's choices reach its repositories as changes to each repository's files, written by a person or a
-   coding agent, for example one following a skill the organization publishes, or by applying a recipe the
+   coding agent, for example one following a skill the organization publishes, or by applying a station the
    organization publishes, and reviewed in each repository as a diff.
-5. An organization's recipes and ingredients reach its repositories the way every recipe and ingredient does: the
+5. An organization's stations and ingredients reach its repositories the way every station and ingredient does: the
    organization publishes them in a cookbook of its own, never inside the binary, and a repository that uses one pins
    it in its data by version and content hash ([0022](0022-tool-integration.md),
-   [0024](0024-ingredients-and-recipes.md)). Each acts only as the bytes its pin names ([0021](0021-release-trust.md)).
-   A recipe's entries and templates reach the repository as point 3 describes. An ingredient for one of the
+   [0024](0024-ingredients-and-stations.md)). Each acts only as the bytes its pin names ([0021](0021-release-trust.md)).
+   A station's entries and templates reach the repository as point 3 describes. An ingredient for one of the
    organization's own programs renders on every render while the repository pins it, and its floor can make the
    organization's own deny rules about that program a floor.
 
@@ -80,7 +80,7 @@ choices, stack facts and the wiring of a tool still reach each repository throug
 - **1.** Organization content inside the binary couples releases to organizations, publishes their content in the tool,
   and makes every other user carry entries they never use. Knowledge of programs, stacks and ways of working inside the
   binary would couple releases to those programs in the same way, which is why the release carries no ingredient and
-  no recipe either ([0022](0022-tool-integration.md)). What the release keeps is about the tool itself and the same in
+  no station either ([0022](0022-tool-integration.md)). What the release keeps is about the tool itself and the same in
   every repository: its invariants, the skeletons of its own files and its own documentation. Seeded templates and
   starting entries are generic and belong to the repository from the moment they are written, so any organization
   changes them like its own.
@@ -90,35 +90,35 @@ choices, stack facts and the wiring of a tool still reach each repository throug
   repository. With the repository's files and what they pin by hash as the only inputs, the same commit renders the
   same bytes on every machine and every day, and no check fails because someone else published a change (Context). A
   shared source would save only the writing, because each repository still reviews every move to a newer version of
-  it. The data does name where the release, the ingredients and the recipes come from, but each acts only once it
-  matches the hash the repository committed, so the repository's files fix exactly what acts; a recipe acts only when
+  it. The data does name where the release, the ingredients and the stations come from, but each acts only once it
+  matches the hash the repository committed, so the repository's files fix exactly what acts; a station acts only when
   a person applies it, and the record that it was applied is no input at all. The binary reads no configuration from
   outside the repository; the programs it starts read their own ([0022](0022-tool-integration.md)). The trade is that
   a choice shared by many repositories is written in each of them.
 - **3.** Stack facts are the same in every repository on that stack, and a program's wiring is the same in every
-  repository that uses it (Context), so a recipe can supply them deterministically ([0002](0002-division-of-work.md)).
+  repository that uses it (Context), so a station can supply them deterministically ([0002](0002-division-of-work.md)).
   Applying only on request keeps every write to a repository's files something a person asked for. Adding only what is
   missing keeps the repository's own entries authoritative and makes a second application harmless, so a repository can
-  take a later version's improvements to a recipe by applying it again and reading the diff. A template is a whole file
+  take a later version's improvements to a station by applying it again and reading the diff. A template is a whole file
   that the team then edits, so it cannot be merged entry by entry: writing it only where the file is absent never
   replaces the repository's version, and never rendering it again keeps the team's edits. Leaving no record of which
-  recipe wrote which entry keeps one source of truth for each entry and file, the file itself, and gives the tool
-  nothing it could later use to change them by itself. An ingredient's renders differ in kind from entries: they are
-  the program's side of the repository's data, which nobody writes by hand, so they follow the ingredient on every
-  render, and a repository that stops pinning an ingredient loses exactly its renders while the entries a recipe applied
-  stay ([0007](0007-ownership.md), [0024](0024-ingredients-and-recipes.md)).
+  station wrote which entry keeps one source of truth for each entry and file, the file itself, and gives the tool
+  nothing it could later use to change them by itself. An ingredient's renders differ in kind from entries: they are the
+  program's side of the repository's data, which nobody writes by hand, so they follow the ingredient on every render,
+  and a repository that stops pinning an ingredient loses exactly its renders while the entries a station applied stay
+  ([0007](0007-ownership.md), [0024](0024-ingredients-and-stations.md)).
 - **4.** An organization's choices differ between its repositories (Context), so applying them takes judgement, which
-  belongs to people and coding agents guided by documentation and skills ([0002](0002-division-of-work.md)). A recipe
+  belongs to people and coding agents guided by documentation and skills ([0002](0002-division-of-work.md)). A station
   the organization publishes writes the same kind of change mechanically, and the person who applies it still reviews
   the diff, together with every difference point 3 reports. Each repository reviews the change as it reviews any other,
   and afterwards the change is in its files.
 - **5.** An organization's own program (Context) needs an ingredient like any other program, and an organization's way
-  of working a recipe like any other; inside the binary, either loses for the reasons of point 1. Publishing them in
-  the organization's own cookbook gives them the path every ingredient and recipe takes
-  ([0022](0022-tool-integration.md), [0024](0024-ingredients-and-recipes.md)), so no organization's content is special.
+  of working a station like any other; inside the binary, either loses for the reasons of point 1. Publishing them in
+  the organization's own cookbook gives them the path every ingredient and station takes
+  ([0022](0022-tool-integration.md), [0024](0024-ingredients-and-stations.md)), so no organization's content is special.
   Pinning by content hash makes each an input like the release: the repository's files fix exactly which bytes act, a
   newer version reaches a repository only through a reviewed change of the pin, and publishing a version breaks no
-  check anywhere (Context). A recipe's entries and templates follow point 3, so the organization's choices of what
+  check anywhere (Context). A station's entries and templates follow point 3, so the organization's choices of what
   workers may do still land in each repository's own files. What an ingredient adds on every render is what any
   ingredient renders: the repository's own data in the program's format, and floor rules, which only deny or refuse
   ([0022](0022-tool-integration.md)). The trade, shared by every ingredient: the description sits in a per-user cache,
@@ -129,11 +129,11 @@ choices, stack facts and the wiring of a tool still reach each repository throug
 
 ## Rejected alternatives
 
-### Organization ingredients and recipes shipped inside the binary
+### Organization ingredients and stations shipped inside the binary
 
 At its best, the organizations whose content ships in the binary need no source of their own, no pin and no fetch. It
 loses because releases become coupled to organizations, their content becomes public in the tool, and every other user
-carries descriptions they do not use. An ingredient or a recipe in the organization's own cookbook gives it the same
+carries descriptions they do not use. An ingredient or a station in the organization's own cookbook gives it the same
 content without any of the three (point 5).
 
 ### One fork per organization
@@ -151,16 +151,16 @@ only the writing is saved, and merging needs override rules that a person must l
 repository does. Without the pin, the same commit renders differently on different days, and the drift check fails in
 repositories that changed nothing. An ingredient is pinned the same way but merges no entry into a render: on every
 render it adds only the program's format and floor rules, which can only narrow what the repository allows, and a
-recipe's entries are written into the repository's files once (point 3).
+station's entries are written into the repository's files once (point 3).
 
-### Applied entries recorded with their recipe
+### Applied entries recorded with their station
 
-The manifest records which recipe wrote each entry, so the tool can report a recipe's new entries or apply them again.
-At its best, a repository learns when a recipe it used gains an entry. It loses because the record ties the repository's
-own entries to a definition outside its files: applying from it would be the hidden coupling point 2 excludes, and
-reporting from it nags a repository that removed an entry on purpose. A repository that wants a newer recipe's entries
-applies it again and reads the diff. The repository's data records which recipes it applied, and at which version, but
-not what each wrote ([0024](0024-ingredients-and-recipes.md)).
+The manifest records which station wrote each entry, so the tool can report a station's new entries or apply them again.
+At its best, a repository learns when a station it used gains an entry. It loses because the record ties the
+repository's own entries to a definition outside its files: applying from it would be the hidden coupling point 2
+excludes, and reporting from it nags a repository that removed an entry on purpose. A repository that wants a newer
+station's entries applies it again and reads the diff. The repository's data records which stations it applied, and at
+which version, but not what each wrote ([0024](0024-ingredients-and-stations.md)).
 
 ### Only content applied once comes from outside
 
@@ -176,7 +176,7 @@ that protect it ([0011](0011-safety-invariants.md)).
 Costs:
 
 - A choice shared by many repositories is written into each of them, and changing it is a change in each.
-- A later version's improvements to a recipe's entries reach a repository only when someone applies the recipe again,
+- A later version's improvements to a station's entries reach a repository only when someone applies the station again,
   and improvements to a template never reach a repository that already has the file.
 - Two repositories of one organization can hold different entries for the same choice, because each was applied with
   judgement.
@@ -187,7 +187,7 @@ Costs:
 
 Must be maintained:
 
-- The rule that applying a recipe only adds, and the scan that keeps organization identifiers out of the release.
+- The rule that applying a station only adds, and the scan that keeps organization identifiers out of the release.
 
 ## Confirmation
 
@@ -196,11 +196,11 @@ Must be maintained:
   tool renders or runs.
 - A fixture rendered with no network access and a per-user cache pre-filled with its pinned ingredients renders the
   same bytes as on any other machine; with an empty cache it renders nothing and fetches nothing.
-- Applying a recipe to a fixture that already holds some of its entries adds only the missing ones and changes no
+- Applying a station to a fixture that already holds some of its entries adds only the missing ones and changes no
   existing line; applying it a second time changes nothing.
-- A fixture that names an item, or sets a value, that the recipe also has keeps its own after the recipe is applied, and
-  the difference is reported.
-- Applying a recipe to a fixture that already has a file the recipe's template would write leaves that file
+- A fixture that names an item, or sets a value, that the station also has keeps its own after the station is applied,
+  and the difference is reported.
+- Applying a station to a fixture that already has a file the station's template would write leaves that file
   byte-identical and reports it.
-- A fixture that stops pinning an ingredient loses that ingredient's renders, and the entries and templates recipes
+- A fixture that stops pinning an ingredient loses that ingredient's renders, and the entries and templates stations
   applied stay byte-identical.

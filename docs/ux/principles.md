@@ -82,7 +82,7 @@ them would carry credentials and cost, and a loop of its own to maintain ([ADR 0
   the user's behalf, because knowledge needs judgement. It writes rendered files, managed blocks whose text is derived
   from the repository files (fixed sentences stating a convention with its configured values, tables, lists), the
   repository files (`config.yaml`, `policy.yaml`, `hooks.yaml`) only when seeding them, migrating them, pinning an
-  ingredient or applying a recipe a person asked for, and the owned pin `wrapper.yaml` only when scaffolding or
+  ingredient or applying a station a person asked for, and the owned pin `wrapper.yaml` only when scaffolding or
   re-pinning.
 - The binary contains no logic for any hosting platform and never writes the team's record of work: no issues,
   projects, boards, comments, reviews or labels. Why: the team's record already has writers under the team's own
@@ -102,7 +102,7 @@ them would carry credentials and cost, and a loop of its own to maintain ([ADR 0
 ## 4. Least surprise
 
 - A command does what its name says and nothing else. Read commands (`doctor`, `explain`, `version`, `context show`,
-  `lifecycle list`, `ingredient list`, `ingredient show`, `recipe list`, `recipe show`, `render --check`,
+  `lifecycle list`, `ingredient list`, `ingredient show`, `station list`, `station show`, `render --check`,
   `verify --check`) MUST NOT modify the repository, fire lifecycle events or run actions. Why: workers and CI call read
   commands freely, so a side effect there happens without anyone deciding it.
 - The same invocation in the same state gives the same result. Running a mutation twice changes nothing the second
@@ -111,18 +111,18 @@ them would carry credentials and cost, and a loop of its own to maintain ([ADR 0
   because two teammates rendering the same commit must produce the same diff. A binary upgrade changes those bytes only
   under the rules in [compatibility-standards.md](compatibility-standards.md#rendered-output-across-releases), and an
   ingredient's renders change only when its pin moves
-  ([ingredients and recipes across versions](compatibility-standards.md#ingredients-and-recipes-across-versions)).
+  ([ingredients and stations across versions](compatibility-standards.md#ingredients-and-stations-across-versions)).
 - No hidden network access, because a user must be able to say what a command contacted. The network calls `the-cook`
   makes on its own are: the wrapper's download of the version pinned in `.cook/wrapper.yaml` (on an explicit invocation
   only, over HTTPS, verified against the pinned checksum); the release's signed checksum file, fetched by
   `the-cook scaffold` (not with `--offline`) and `the-cook wrapper` before they write a pin and re-verified by
-  `the-cook doctor` at most daily; the download of a cookbook tag's `checksums.txt` and of ingredient and recipe
-  archives by `the-cook ingredient pin`, `the-cook recipe apply` (with `--cookbook`, or for a pin that is not cached),
+  `the-cook doctor` at most daily; the download of a cookbook tag's `checksums.txt` and of ingredient and station
+  archives by `the-cook ingredient pin`, `the-cook station apply` (with `--cookbook`, or for a pin that is not cached),
   `the-cook fetch`, `scaffold --cookbook` and the `--cookbook` reads of `ingredient list`, `ingredient show`,
-  `recipe list` and `recipe show` (over HTTPS, each archive verified against its `sha256`); and the daily release check
-  ([update notices](compatibility-standards.md#update-notices)). Each is documented and the release check can be
+  `station list` and `station show` (over HTTPS, each archive verified against its `sha256`); and the daily release
+  check ([update notices](compatibility-standards.md#update-notices)). Each is documented and the release check can be
   disabled. Rendering needs none of them once the pinned ingredients are cached, and neither does applying a cached
-  recipe again, because their only inputs are the repository's files, the pinned release and what the repository pins
+  station again, because their only inputs are the repository's files, the pinned release and what the repository pins
   by hash ([principle 9](#9-everything-a-repository-does-is-in-its-own-files)). Any other network access is a declared
   action (an `http` action, a `run` action whose command reaches the network, or an `attempt` action whose worker does),
   visible in `the-cook lifecycle list` and in `.cook/hooks.yaml`.
@@ -137,7 +137,7 @@ Why: a repository is the team's work, and a tool that loses part of it is remove
 - Every mutating command accepts `--dry-run` and prints exactly the change set it would apply, so the change can be
   judged before it happens.
 - `the-cook` writes only inside content it owns: files and blocks recorded in the manifest, and the native keys it owns.
-  The one other write is a recipe's template, and only where its file is absent. Everything else is preserved byte for
+  The one other write is a station's template, and only where its file is absent. Everything else is preserved byte for
   byte, because content outside the manifest is somebody else's.
 - When owned content has been edited by hand, `the-cook remove` refuses to delete it unless `--force` is given, and
   names each path it refused, because the hand edit may be the only copy of someone's work.
@@ -177,9 +177,9 @@ and hard to undo, so it must be written down, reviewed and guarded before it can
 [lifecycle guide](../features/lifecycle.md) has the stages, trigger points and full reference.
 
 - **Declared.** Actions live in `.cook/hooks.yaml`, and no action runs that the repository does not declare there. A
-  recipe's actions, such as the tracker actions of an `agentic-coding` recipe, reach the file only when a person applies
-  the recipe and reads its diff; stack recipes hold none. So what "deliver" means is decided in the repository, where an
-  organization's delivery convention is written like any other entry.
+  station's actions, such as the tracker actions of an `agentic-coding` station, reach the file only when a person
+  applies the station and reads its diff; stack stations hold none. So what "deliver" means is decided in the
+  repository, where an organization's delivery convention is written like any other entry.
 - **Three kinds.** An action is a shell command (`run`), an HTTP request `the-cook` performs itself (`http`), or a
   worker started unattended on a prompt (`attempt`). Notification events accept `run` and `http` only, so a worker's
   hook never starts another worker.
@@ -250,19 +250,19 @@ cannot be read by anyone working there, and a reviewer sees its effect without i
 
 - The same commit renders the same bytes on every machine and every day, with no network, because no input can change
   without a commit in the repository: the release and every ingredient are pinned by hash in its files, and the binary
-  ships no ingredient and no recipe of its own.
+  ships no ingredient and no station of its own.
 - No repository file has a key that names a source outside the repository for what `the-cook` renders or runs, except a
-  release, an ingredient or a recipe pinned by hash ([configuration-standards.md](configuration-standards.md#inputs)),
+  release, an ingredient or a station pinned by hash ([configuration-standards.md](configuration-standards.md#inputs)),
   so reading the repository is enough to predict what it does.
 - Every write to the repository files is one a person or a worker asked for: seeding them, migrating them, pinning an
-  ingredient with `the-cook ingredient pin`, applying a recipe with `the-cook recipe apply`, or an edit. Why: a file
+  ingredient with `the-cook ingredient pin`, applying a station with `the-cook station apply`, or an edit. Why: a file
   that changes by itself holds decisions nobody made.
 - A program reaches a repository only through an ingredient the repository pins in `ingredients:`, as renders the
   manifest records under the ingredient's name. A way of running the lifecycle reaches it only when a person applies a
-  recipe: as entries written into its files, files its templates write, and the ingredient pins it lists, all in one
-  reviewed diff. `recipes:` records the pin a recipe was applied at; nothing records where an entry or a template file
+  station: as entries written into its files, files its templates write, and the ingredient pins it lists, all in one
+  reviewed diff. `stations:` records the pin a station was applied at; nothing records where an entry or a template file
   came from, so each has one source of truth: the file it is in
-  ([configuration-standards.md](configuration-standards.md#ingredients-and-recipes)).
+  ([configuration-standards.md](configuration-standards.md#ingredients-and-stations)).
 - An organization's choices reach its repositories as changes to each repository's files, written by a person or by a
   coding agent following the organization's skill, and reviewed there as a diff. The cost is that a choice shared by
   many repositories is written, and changed, in each of them. For example, when acme lets its coding agents use the

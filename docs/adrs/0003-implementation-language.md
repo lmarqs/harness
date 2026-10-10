@@ -31,9 +31,9 @@ installed, for the life of the project.
 
 1. The tool is one executable written in Go, cross-compiled for Linux and macOS on amd64 and arm64.
 2. The tool's own documentation, the shipped skill's text, the templates of the tool's own files and the release public
-   keys are embedded at build time, and nothing that names an external program is among them: no ingredient or recipe is
-   embedded ([0022](0022-tool-integration.md)). Nothing executable ships beside the binary: no helper scripts, loadable
-   modules or sidecar processes.
+   keys are embedded at build time, and nothing that names an external program is among them: no ingredient or station
+   is embedded ([0022](0022-tool-integration.md)). Nothing executable ships beside the binary: no helper scripts,
+   loadable modules or sidecar processes.
 3. A hook invocation adds at most 50 ms at p95 on a developer workstation, excluding the repository's own commands. A
    change that exceeds this budget is not released.
 
@@ -49,8 +49,8 @@ installed, for the life of the project.
   [0021](0021-release-trust.md)). Embedded documentation and templates describe the tool itself, so they ship with the
   release that enforces them ([0002](0002-division-of-work.md)), and embedded keys need no fetch to verify a release
   ([0021](0021-release-trust.md)). Ingredients describe other programs and change with them, so they come from cookbooks
-  instead ([0022](0022-tool-integration.md)), and so do the recipes built from them
-  ([0024](0024-ingredients-and-recipes.md)). Helper scripts or loadable modules beside the binary would be engine code
+  instead ([0022](0022-tool-integration.md)), and so do the stations built from them
+  ([0024](0024-ingredients-and-stations.md)). Helper scripts or loadable modules beside the binary would be engine code
   that can drift or be edited, which [0006](0006-repository-contract.md) excludes.
 - **3.** Hook overhead multiplies by the number of worker events in a session. A fixed budget measured in CI makes
   latency a release criterion instead of a regression that people discover in their sessions.

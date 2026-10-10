@@ -27,8 +27,8 @@ reached through an interface the rules declare.
 - Ports-and-adapters is the established name for this shape: the core declares the interfaces it needs, the
   connections implement them, and the entry point wires the two. Its known payoffs are technology independence,
   testing with stand-ins and reuse of the core by several entry points.
-- Every ingredient and every recipe is data the binary interprets, never code it loads
-  ([0022](0022-tool-integration.md), [0024](0024-ingredients-and-recipes.md), [0006](0006-repository-contract.md)).
+- Every ingredient and every station is data the binary interprets, never code it loads
+  ([0022](0022-tool-integration.md), [0024](0024-ingredients-and-stations.md), [0006](0006-repository-contract.md)).
 - The binary ships no ingredient, and a repository has the ingredients its data pins and nothing else
   ([0022](0022-tool-integration.md)). A newly adopted repository can have pinned none.
 - The repository's declared data sits in the tool's configuration directory at the repository root
@@ -52,7 +52,7 @@ reached through an interface the rules declare.
 4. The core declares, besides those, only generic interfaces: the files of a checkout, running a command and reading
    its exit status and output, an HTTP request, the release source, the clock, and presenting a plan, a diff, a
    finding or a question to a person. Each has one connection and an in-memory stand-in for tests.
-5. The entry point resolves every ingredient the use case needs, and the recipe a use case applies, from the verified
+5. The entry point resolves every ingredient the use case needs, and the station a use case applies, from the verified
    cache before the use case runs, and hands the use case the connections configured with them. Repository data
    chooses parameters and names ingredients; it never supplies a connection.
 6. The entry point is the only way in. People, hooks fired by a worker and loop runners all call the command line

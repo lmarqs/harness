@@ -150,12 +150,12 @@ bound it are the attempt contract.
 At its best, the rules are visible and adjustable per repository. It loses because editable entries are how the rules
 get lost: a copy can drop any entry a repository can edit.
 
-### Floor rules as recipe entries
+### Floor rules as station entries
 
-The floor's program facts come as entries a recipe adds to the repository's policy when it is applied
-([0024](0024-ingredients-and-recipes.md)). At its best, the rules are visible in the repository's own files and the
+The floor's program facts come as entries a station adds to the repository's policy when it is applied
+([0024](0024-ingredients-and-stations.md)). At its best, the rules are visible in the repository's own files and the
 binary renders nothing the policy does not hold. It loses the same way as default entries, by omission: a repository
-that never applies the recipe, or edits its entries away, has no floor. Rendered from the ingredient on every render,
+that never applies the station, or edits its entries away, has no floor. Rendered from the ingredient on every render,
 the same rules stay visible in every worker's output and out of the repository's reach.
 
 ### Invariants with an override switch

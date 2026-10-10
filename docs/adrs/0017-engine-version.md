@@ -103,7 +103,7 @@ first command works with nothing installed beforehand.
 - **2.** One exact release per repository makes every machine, every pipeline and the committed artefacts agree, so the
   drift check gives the same answer everywhere. Per-platform checksums let the wrapper verify what it downloads without
   trusting the download host alone. The pin exists in one place because two pins drift apart after the first upgrade
-  that touches only one. The pin fixes the engine only: the ingredients and recipes a repository uses are pinned
+  that touches only one. The pin fixes the engine only: the ingredients and stations a repository uses are pinned
   separately, by content hash, in its data ([0022](0022-tool-integration.md)), so a new version of either and a new
   release of the binary each reach a repository in a change of its own. The pin is owned, not seeded: its checksums are
   worth something only if an admitted release verified them ([0021](0021-release-trust.md)), so a hand edit has to show

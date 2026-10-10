@@ -68,11 +68,11 @@ settings file, its rules file, or an ingredient's `.gitignore` block.
 | The shipped skill and its links | deleted | deleted |
 | The `.agents/memory/` skeleton | a file whose content still matches the hash it was seeded with is deleted; an edited file is knowledge and stays, listed | kept |
 | Knowledge: `AGENTS.md` prose, edited memory, domain skills, `.agents/commands/`, `.agents/REVIEW.md` | kept | kept |
-| Templates a [recipe](recipes.md#templates) wrote, such as a loop runner's configuration: the repository's own files | kept | kept |
+| Templates a [station](stations.md#templates) wrote, such as a loop runner's configuration: the repository's own files | kept | kept |
 | State: the [state paths](profile.md#state-paths) (default under `.work/`) | left in place and listed; no longer ignored | left in place, still ignored |
 
 Neither mode touches a worker's local or user-level settings, other tools' files such as a tracker's data, or anything
-`the-cook` did not create. The manifest records no template a recipe wrote, so removal never deletes one.
+`the-cook` did not create. The manifest records no template a station wrote, so removal never deletes one.
 
 ## How it works
 
@@ -122,7 +122,7 @@ After an eject the repository keeps working without `the-cook`:
 | `raw` hooks | modelled hooks (post-edit commands, validators, session context), notification hooks and hook-delivered context, which ran through `the-cook hook` |
 | Convention blocks in `AGENTS.md`: where workspaces live, the permissions workers run under, the memory index, `static` context | the tool blocks: the commands, the layout, the verification checks and the delivery steps |
 | `.gitignore` entries for every state path | lifecycle events and their actions; the receipt, its replay and the drift check |
-| A tracker, with its data; the templates a recipe wrote, such as a loop runner's configuration | `the-cook attempt`, its attempt contract and tamper check; a command that names `./cook attempt`, such as the per-task command in a loop runner's configuration, fails until the team changes it |
+| A tracker, with its data; the templates a station wrote, such as a loop runner's configuration | `the-cook attempt`, its attempt contract and tamper check; a command that names `./cook attempt`, such as the per-task command in a loop runner's configuration, fails until the team changes it |
 
 ### Removing one module
 
@@ -136,7 +136,7 @@ After an eject the repository keeps working without `the-cook`:
 | `memory` | the `memory` block, and the skeleton files that still match the hash they were seeded with; edited files stay, listed: they are knowledge |
 
 Repeat `--module` to remove several. `--module` changes only `modules.<name>` in the profile: `vcs:`, `ingredients:`,
-`recipes:`, `workers:` and every other key are repository data and stay.
+`stations:`, `workers:` and every other key are repository data and stay.
 
 ### Removing one ingredient
 
@@ -146,9 +146,9 @@ owns it, so `render` removes exactly that ingredient's files, keys and blocks, a
 [floor rules](ingredients.md#the-floor) leave every worker's output. `vcs:` and `workers.<name>.ingredient` must not
 name an ingredient `ingredients:` no longer lists, or `render` exits 1.
 
-What recipes applied once, their entries in the repository files and their templates, stays as the repository's own;
-edit or delete them like anything else. Deleting an entry from `recipes:` changes nothing rendered: it only drops the
-record of which recipe was applied, at which pin.
+What stations applied once, their entries in the repository files and their templates, stays as the repository's own;
+edit or delete them like anything else. Deleting an entry from `stations:` changes nothing rendered: it only drops the
+record of which station was applied, at which pin.
 
 ```sh
 $EDITOR .cook/config.yaml        # delete the codex entry from ingredients: and the workers that name it
@@ -241,7 +241,7 @@ git commit -am "chore: drop the-cook memory module"
 - Do read the `--dry-run` output for a repository you did not set up.
 - Do eject, rather than undo, when people or workers rely on the conventions; undo when the adoption was a trial.
 - Do change every command that names `./cook attempt`, such as the per-task command in a loop runner's configuration,
-  when the repository stops using `the-cook`: removal keeps the templates a recipe wrote as they are.
+  when the repository stops using `the-cook`: removal keeps the templates a station wrote as they are.
 - Do write the checks and the delivery steps into `AGENTS.md` prose after an eject, if workers should keep following
   them: the `verify` and `lifecycle` blocks are tool blocks and leave with the tool.
 - Do delete, or ignore yourself, the state paths an undo lists.
@@ -259,4 +259,4 @@ git commit -am "chore: drop the-cook memory module"
 | The lanes and delivery steps are gone from `AGENTS.md` after an eject | `verify` and `lifecycle` are tool blocks, and an eject removes tool blocks | Write the checks you still want into `AGENTS.md` prose |
 | An undo kept a memory file | The file changed since it was seeded, so it is knowledge | Expected; delete it yourself if the repository no longer wants it |
 | `.cook/` is still there after a removal | It holds a file `the-cook` neither owns nor seeded, such as a script the team keeps there; the output listed it | Delete the file, or keep it, as you choose |
-| A loop runner cannot start a worker after a removal | Its configuration, a template a recipe wrote, names `./cook attempt`, which removal deleted | Point each per-task command at the worker's own program, or at a wrapper of your own |
+| A loop runner cannot start a worker after a removal | Its configuration, a template a station wrote, names `./cook attempt`, which removal deleted | Point each per-task command at the worker's own program, or at a wrapper of your own |

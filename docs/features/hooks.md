@@ -38,7 +38,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 | You want | Declare |
 | --- | --- |
 | The edited file formatted or linted right after every edit a worker makes | a `post_edit` entry |
-| The stack's usual format-on-edit or lint-on-edit hook | `./cook recipe apply <name> --cookbook <source>@<version>` with a stack recipe, such as `node`, whose [entries](recipes.md#entries) add it as a `post_edit` entry |
+| The stack's usual format-on-edit or lint-on-edit hook | `./cook station apply <name> --cookbook <source>@<version>` with a stack station, such as `node`, whose [entries](stations.md#entries) add it as a `post_edit` entry |
 | A repository check run when certain files are edited | `validators` |
 | A session in a [managed workspace](workspaces.md) to know its task | `session_start.context: true` |
 | A message when a worker waits for you: a permission prompt, a question, idle input | an `attention` action |
@@ -263,7 +263,7 @@ In short:
 - lifecycle actions never run inside the worker of an attempt, whether `the-cook attempt` or an `attempt` action
   started it;
 - every action is one the repository declares in this file: the seeded files hold none, and a
-  [recipe](recipes.md#entries) that declares actions writes them here, as entries, only when a person applies it.
+  [station](stations.md#entries) that declares actions writes them here, as entries, only when a person applies it.
 
 An action runs with the permissions of the process that fired it, outside any worker's permission checks. Review
 lifecycle actions like code; see [safety](safety.md).

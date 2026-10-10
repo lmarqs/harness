@@ -26,8 +26,8 @@ state each promise and how it changes.
 | Each repository file (`config.yaml`, `policy.yaml`, `hooks.yaml`, `wrapper.yaml`) | an integer `schema`, per file | the file's first key |
 | The version a repository runs | an exact release tag, pinned per repository | `version` in `.cook/wrapper.yaml` |
 | An ingredient, with its operations, renders, floor and checks | the tag of the cookbook that publishes it, pinned exactly with the sha256 of its archive; the binary ships none | `version` and `sha256` of its entry under `ingredients:` in `.cook/config.yaml`; `the-cook ingredient list` |
-| A recipe, with its ingredient pins, stages, entries and templates | the tag of the cookbook that publishes it, recorded with the sha256 of its archive when it is applied; the binary ships none | `version` and `sha256` of its entry under `recipes:` in `.cook/config.yaml`; `the-cook recipe list` |
-| The ingredient format, the recipe format and each contract | an integer `schema` per format, an integer version per contract; an ingredient declares its schema and the contract it fills, a recipe its schema | `schema` and `contract` in `ingredient.yaml`, `schema` in `recipe.yaml`; `the-cook version` prints the ones the running release supports |
+| A station, with its ingredient pins, stages, entries and templates | the tag of the cookbook that publishes it, recorded with the sha256 of its archive when it is applied; the binary ships none | `version` and `sha256` of its entry under `stations:` in `.cook/config.yaml`; `the-cook station list` |
+| The ingredient format, the station format and each contract | an integer `schema` per format, an integer version per contract; an ingredient declares its schema and the contract it fills, a station its schema | `schema` and `contract` in `ingredient.yaml`, `schema` in `station.yaml`; `the-cook version` prints the ones the running release supports |
 | Rendered files and [managed blocks](generated-content-standards.md#managed-blocks) | the schema of their sources | the [generated-file header](generated-content-standards.md#header) and the manifest (`.cook/manifest.json`) |
 
 - Rendered content carries the schema, never the binary version ([ADR 0005](../adrs/0005-schema-compatibility.md)). It
@@ -40,14 +40,14 @@ state each promise and how it changes.
   `COOK_*` environment variables (those `the-cook` and its wrapper read and those it passes to actions and to the
   workers it starts), exit-code meanings, JSON output shapes, the
   [attempt command](cli-standards.md#the-attempt-command)'s flags, exit codes, output and environment,
-  `the-cook explain` topic names, the ingredient and recipe schemas and the two contracts, the cookbook layout
+  `the-cook explain` topic names, the ingredient and station schemas and the two contracts, the cookbook layout
   (`<source>/download/<version>/<name>.tar.gz` and `checksums.txt`), the repository file schemas (`wrapper.yaml`
   included), the wrapper's name, location and flags (`cook` at the repository root, `--no-download`), lifecycle event
   names and trigger points, notification event names, action kinds and their keys,
   [standing-context](../features/context.md) triggers and roles, the profile's state path keys and their defaults,
   managed-block ids, their markers and their class (convention or tool), the generated-file header, the manifest
   location, and the format of the release's signed checksum file. Why: each of these is read by scripts, workers, policy
-  entries, ingredients, recipes, other tools' configuration or other repositories, and changes there break them. The
+  entries, ingredients, stations, other tools' configuration or other repositories, and changes there break them. The
   attempt command is named in files such as a loop runner's configuration, which a repository keeps unchanged across
   upgrades of `the-cook` ([ADR 0022](../adrs/0022-tool-integration.md)).
 - Human-readable output text is not part of the contract and may change in any release, because people read it and
@@ -67,7 +67,7 @@ state each promise and how it changes.
 | Rendered output | for unchanged inputs and schema, a change in what the rendered files make a worker do, other than a new [invariant](../features/concepts.md#built-in-invariants) or floor rule | for unchanged inputs and schema, different bytes that leave worker behaviour unchanged (the shipped skill's text, formatting), shipped in a minor release and reviewed in the upgrade diff; different bytes because the inputs changed |
 | Managed blocks and header | changing marker syntax, a block id, a block's class or the header line | adding a new block id |
 | Invariants | weakening one (never allowed) | adding one; it changes rendered output and therefore follows the rendered-output rule |
-| Ingredient and recipe schemas, contracts | removing, renaming or redefining a field or an operation; changing an operation's output kind; dropping an ingredient or recipe schema, or a contract version, from the support window before its deprecation ends | adding an optional field or operation whose absence keeps existing behaviour; reading a new schema or contract version |
+| Ingredient and station schemas, contracts | removing, renaming or redefining a field or an operation; changing an operation's output kind; dropping an ingredient or station schema, or a contract version, from the support window before its deprecation ends | adding an optional field or operation whose absence keeps existing behaviour; reading a new schema or contract version |
 | Release trust | removing a key a released binary trusts without a rotation release ([below](#release-trust)) | introducing the next key in a release signed by the current one |
 
 
@@ -81,7 +81,7 @@ on nothing else. A patch release never changes them for unchanged inputs. A mino
 shipped skill teaches the commands of the release that renders it and a rendering fix changes bytes. When a new
 invariant adds an entry, the release is breaking and its notes name the affected files. A program's own format change
 reaches a repository as a new version of the ingredient that describes it, through a moved ingredient pin
-([below](#ingredients-and-recipes-across-versions)).
+([below](#ingredients-and-stations-across-versions)).
 
 Every such change reaches a repository the same way: `the-cook wrapper --version <tag>` renders the repository with the
 new release in the same change as the pin, `cook` and the shipped skill included, so the pin and its effects reach
@@ -91,10 +91,10 @@ because its drift results may differ. Why: with upgrades rendered in their own d
 repository always agree, and an exemption would hide exactly the hand edits the check exists to catch
 ([ADR 0007](../adrs/0007-ownership.md)).
 
-### Ingredients and recipes across versions
+### Ingredients and stations across versions
 
 An ingredient's renders and floor are inputs to rendering, and they change only when the repository moves the
-ingredient's pin, that is, changes its `version` and `sha256`; moving the release pin changes none of them. A recipe is
+ingredient's pin, that is, changes its `version` and `sha256`; moving the release pin changes none of them. A station is
 not an input to rendering: its pins, entries and templates take effect only once they are written into the repository's
 files, and from then on they are the repository's own. Why: a check whose result changes when someone else publishes a
 change fails pipelines that changed nothing, and an entry that changes without a change in the repository cannot be
@@ -103,17 +103,17 @@ explained from the repository ([ADR 0013](../adrs/0013-organization-content.md),
 
 - Moving an ingredient's pin with `the-cook ingredient pin` renders in the same change, so the newer version's renders
   and floor reach review as one diff with the pin.
-- A newer version of a recipe reaches a repository only when someone applies it:
-  `./cook recipe apply node --cookbook github:acme/cookbook@v1.3.0 --dry-run` shows what it would add, and applying adds
-  only what the repository lacks and moves the recipe's entry in `recipes:` to that version. It never moves an
-  ingredient pin the repository holds, and reports each ingredient whose pin differs from the one the recipe lists. A
+- A newer version of a station reaches a repository only when someone applies it:
+  `./cook station apply node --cookbook github:acme/cookbook@v1.3.0 --dry-run` shows what it would add, and applying
+  adds only what the repository lacks and moves the station's entry in `stations:` to that version. It never moves an
+  ingredient pin the repository holds, and reports each ingredient whose pin differs from the one the station lists. A
   newer template is written only where its file is absent; where the file exists, applying reports `kept <path>: exists`
   and leaves it, because the file is the repository's own.
-- A release reads every ingredient and recipe schema and contract version in its support window and refuses a newer
+- A release reads every ingredient and station schema and contract version in its support window and refuses a newer
   one, naming the release needed ([ADR 0005](../adrs/0005-schema-compatibility.md)), so moving the release pin never
-  silently changes how a pinned ingredient or a recipe is read.
-- Nothing records which entries a recipe added, so no command reports that a recipe gained entries. Why: such a report
-  would nag a repository that removed an entry on purpose. A repository that wants a newer recipe's entries applies it
+  silently changes how a pinned ingredient or a station is read.
+- Nothing records which entries a station added, so no command reports that a station gained entries. Why: such a report
+  would nag a repository that removed an entry on purpose. A repository that wants a newer station's entries applies it
   again and reads the diff.
 
 ## Adoption equivalence
@@ -177,9 +177,9 @@ is worse than none ([ADR 0016](../adrs/0016-permission-adoption.md)).
 - `the-cook ingredient list --cookbook <source>@<version>` shows which ingredients of a tag detect their program in the
   repository. Why: a program in use without its ingredient runs without that ingredient's floor, so a person needs to
   see the gap before choosing what to pin.
-- The project's CI tests the core with stand-in ingredients and recipes in its own fixtures, none named after or
+- The project's CI tests the core with stand-in ingredients and stations in its own fixtures, none named after or
   describing a real program, and checks that the binary's source and embedded assets name no external program. Each
-  cookbook tests its ingredients against the real programs and versions their checks name, and its recipes by applying
+  cookbook tests its ingredients against the real programs and versions their checks name, and its stations by applying
   them, and owns the ranges and the floor. Why: an ingredient writes its program's format and carries its floor, so
   whoever publishes it is the one who can test both.
 - Each worker ingredient documents which worker events it renders for hooks, notifications (`attention`, `turn_end`)
@@ -213,7 +213,7 @@ An adopted repository behaves for non-users exactly as it did before adoption
 - CI never needs the binary or the wrapper. A CI that opts in runs `./cook render --check` and `./cook doctor`. They
   need the network only to download the pinned version (verified against its checksum) and to re-verify its signed
   checksum file. Because every ingredient a repository uses is pinned, such a job runs `./cook fetch` before them, which
-  downloads each uncached ingredient and recipe and verifies it against its `sha256`. The check for a newer release
+  downloads each uncached ingredient and station and verifies it against its `sha256`. The check for a newer release
   ([update notices](#update-notices)) never affects their result.
 - Managed blocks are plain Markdown or comments and read correctly without `the-cook`. Convention blocks state the
   repository's conventions as fact, and `the-cook remove --eject` keeps them as the repository's own text
@@ -229,11 +229,11 @@ owners depend on them as they are ([ADR 0012](../adrs/0012-write-boundary.md)).
 | A hosting platform's issues, projects, boards, comments, reviews and labels as the record of work | never written; the binary has no logic for the platform that hosts the team's work; task state `the-cook` creates stays clone-local; linking work to issues is a coding agent's job |
 | Pull requests, pushes, CI conventions and notification channels | produced only by actions the repository declares in `hooks.yaml`; the binary ships none |
 | MCP servers a worker is configured to use | never contacted by `the-cook`; work that needs them is an `attempt` action or the job of the [coordinating worker](../features/lifecycle.md#the-lifecycle-stage-by-stage) |
-| A task tracker's existing data | never read, initialised or configured by the binary; actions the repository declares, such as those a recipe applied for the tracker, run the tracker's commands on it, and what they write travels wherever the repository synchronises it ([ADR 0022](../adrs/0022-tool-integration.md)) |
-| A loop runner's repository and global configuration | never read; a recipe's template writes the loop runner's repository file only when it is absent, and from then on it is the repository's file. Why: the binary reads no program's configuration; a bypass argument set there reaches `the-cook attempt`, which refuses it at the first task ([ADR 0022](../adrs/0022-tool-integration.md)) |
+| A task tracker's existing data | never read, initialised or configured by the binary; actions the repository declares, such as those a station applied for the tracker, run the tracker's commands on it, and what they write travels wherever the repository synchronises it ([ADR 0022](../adrs/0022-tool-integration.md)) |
+| A loop runner's repository and global configuration | never read; a station's template writes the loop runner's repository file only when it is absent, and from then on it is the repository's file. Why: the binary reads no program's configuration; a bypass argument set there reaches `the-cook attempt`, which refuses it at the first task ([ADR 0022](../adrs/0022-tool-integration.md)) |
 | A loop runner, a tracker or a script around them that a person runs outside the binary | neither detected nor prevented; the invariants hold for what the binary renders and for every worker the binary starts (`the-cook attempt`, `attempt` actions) ([ADR 0022](../adrs/0022-tool-integration.md)) |
 | Workspaces a worker keeps in its own directories | the worker's; never scanned or cleaned |
-| A task runner's tasks and tool list (its configuration files, a `Makefile`, `package.json` scripts) | never read or written, though a file's presence can match the detect rule of an ingredient or a recipe; a task that runs `./cook` is the repository's own; a `the-cook` a tool installs globally defers to `wrapper.yaml` inside the repository ([ADR 0022](../adrs/0022-tool-integration.md)) |
+| A task runner's tasks and tool list (its configuration files, a `Makefile`, `package.json` scripts) | never read or written, though a file's presence can match the detect rule of an ingredient or a station; a task that runs `./cook` is the repository's own; a `the-cook` a tool installs globally defers to `wrapper.yaml` inside the repository ([ADR 0022](../adrs/0022-tool-integration.md)) |
 | A `.cook/` directory another program created | never written; `the-cook scaffold` refuses with exit 3 and names the conflict |
 | Another program named `the-cook` earlier on `PATH` | `./cook` always runs its own pinned binary from its cache, so wrapper invocations are unaffected; only the optional global command can be shadowed, and `the-cook doctor` reports it as a note |
 | The version control system's hook settings and hook managers | never changed |

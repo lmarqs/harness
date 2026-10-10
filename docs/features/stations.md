@@ -1,4 +1,4 @@
-# Recipes
+# Stations
 
 ## Objective
 
@@ -17,58 +17,58 @@ another reviewed change.
 
 `the-cook` declares a software development lifecycle: the stages a change goes through, the events fired between them,
 the guards that hold between stages and the proof a change carries ([lifecycle](lifecycle.md)). It knows no program;
-[ingredients](ingredients.md) describe the programs the stages reach. A recipe is a named, versioned description of
+[ingredients](ingredients.md) describe the programs the stages reach. A station is a named, versioned description of
 one way of running that lifecycle, built from ingredients: which ingredient serves version control, which workers
 implement a change and in which role, and the lanes, denies, actions and files that go with them
-([ADR 0024](../adrs/0024-ingredients-and-recipes.md)). A recipe holds up to five parts:
+([ADR 0024](../adrs/0024-ingredients-and-stations.md)). A station holds up to five parts:
 
 | Part | What it is | What applying does |
 | --- | --- | --- |
-| [Ingredients](#ingredients) | the ingredients the recipe uses, each pinned by cookbook, version and sha256 | pins each into `ingredients:`; a pin the repository already holds stays |
+| [Ingredients](#ingredients) | the ingredients the station uses, each pinned by cookbook, version and sha256 | pins each into `ingredients:`; a pin the repository already holds stays |
 | [Stages](#stages) | the ingredient that fills version control, and the workers, each with its ingredient and role | writes `vcs:` and `workers.<name>` into the profile |
 | [Entries](#entries) | additions to the profile, the policy and the hooks file, standing context included | adds what the files lack |
 | [Templates](#templates) | whole files | writes each one whose file is absent |
-| [Detect rule](#detect-rule) | file globs | nothing: `scaffold` applies the recipe when they match |
+| [Detect rule](#detect-rule) | file globs | nothing: `scaffold` applies the station when they match |
 
-A recipe has no renders and no floor. It is applied once: [`the-cook recipe apply`](#how-apply-works) pins the
+A station has no renders and no floor. It is applied once: [`the-cook station apply`](#how-apply-works) pins the
 ingredients it lists and writes its stages, entries and templates into the repository's own files, adding only what
 they lack, shows it all as one diff to review, then renders. From then on those entries and files are the
 repository's, like anything written by hand, while everything rendered comes from the pinned ingredients
 ([ADR 0013](../adrs/0013-organization-content.md)).
 
-The profile records each applied recipe under `recipes:` ([profile](profile.md#recipes)), with its cookbook, version
-and sha256, so a person can tell where the repository started from and apply a newer version later. A recipe in
-`recipes:` has no effect on what renders, and deleting the entry changes nothing rendered. A repository may apply
-several recipes: one way of working, such as `agentic-coding`, and one recipe for each stack it uses, such as `node`.
+The profile records each applied station under `stations:` ([profile](profile.md#stations)), with its cookbook, version
+and sha256, so a person can tell where the repository started from and apply a newer version later. A station in
+`stations:` has no effect on what renders, and deleting the entry changes nothing rendered. A repository may apply
+several stations: one way of working, such as `agentic-coding`, and one station for each stack it uses, such as `node`.
 
 Commands are named `the-cook <command>` on this page. The examples run them through the repository's wrapper,
 `./cook <command>`, from the root of a checkout; with a global install, `the-cook <command>` is equivalent
-([wrapper](wrapper.md)). The examples use two recipes of a cookbook published at `github:acme/cookbook`:
-[`agentic-coding`](#the-agentic-coding-recipe), which runs the lifecycle on `git` with an interactive coding agent,
+([wrapper](wrapper.md)). The examples use two stations of a cookbook published at `github:acme/cookbook`:
+[`agentic-coding`](#the-agentic-coding-station), which runs the lifecycle on `git` with an interactive coding agent,
 `claude`, an unattended one, `acme-agent`, a loop runner, `acme-loop`, and a tracker, `acme-tasks`; and
-[`node`](#the-node-recipe), the commands, lanes and post-edit hook of a Node project.
+[`node`](#the-node-station), the commands, lanes and post-edit hook of a Node project.
 
 ## When to use it
 
 | Situation | Command |
 | --- | --- |
-| Set up a new repository with the recipes its files call for | `the-cook scaffold --cookbook github:acme/cookbook@v1.2.0`: it applies every recipe of the tag whose detect rule matches ([scaffold](scaffold.md#recipe-detection)) |
-| Set up a new repository with chosen recipes only | `the-cook scaffold --cookbook github:acme/cookbook@v1.2.0 --no-detect --recipe agentic-coding --recipe node` |
-| See which recipes a cookbook tag holds and which fit this repository | `./cook recipe list --cookbook github:acme/cookbook@v1.2.0` |
-| Read everything a recipe holds before applying it | `./cook recipe show <name> --cookbook github:acme/cookbook@v1.2.0` |
-| The repository takes up a way of working, or gains a stack | `./cook recipe apply <name> --cookbook github:acme/cookbook@v1.2.0` |
-| See which recipes the repository applied, and at which version | `./cook recipe list` |
-| Take a newer version's entries and templates | `./cook recipe apply <name> --cookbook github:acme/cookbook@v1.3.0 --dry-run`, then without `--dry-run` ([Applying again](#applying-again)) |
-| See what the files lack from the version a recipe was applied at | `./cook recipe apply <name> --dry-run` |
-| Move the programs a recipe uses to newer versions | `./cook ingredient pin <name>... --cookbook github:acme/cookbook@v1.3.0` ([ingredients](ingredients.md#pinning)) |
-| Describe a way of working no cookbook has | write a recipe and publish it in a cookbook ([Cookbooks](#cookbooks)) |
-| Apply a recipe in many repositories, each delivered for review | `the-cook fleet recipe apply <name> --cookbook <source>@<version> --yes --deliver` ([fleet](fleet.md)) |
-| Bring an organization's conventions into a repository | a recipe the organization publishes, or a reviewed change written by a person or a worker: see [Organization choices](#organization-choices) |
+| Set up a new repository with the stations its files call for | `the-cook scaffold --cookbook github:acme/cookbook@v1.2.0`: it applies every station of the tag whose detect rule matches ([scaffold](scaffold.md#station-detection)) |
+| Set up a new repository with chosen stations only | `the-cook scaffold --cookbook github:acme/cookbook@v1.2.0 --no-detect --station agentic-coding --station node` |
+| See which stations a cookbook tag holds and which fit this repository | `./cook station list --cookbook github:acme/cookbook@v1.2.0` |
+| Read everything a station holds before applying it | `./cook station show <name> --cookbook github:acme/cookbook@v1.2.0` |
+| The repository takes up a way of working, or gains a stack | `./cook station apply <name> --cookbook github:acme/cookbook@v1.2.0` |
+| See which stations the repository applied, and at which version | `./cook station list` |
+| Take a newer version's entries and templates | `./cook station apply <name> --cookbook github:acme/cookbook@v1.3.0 --dry-run`, then without `--dry-run` ([Applying again](#applying-again)) |
+| See what the files lack from the version a station was applied at | `./cook station apply <name> --dry-run` |
+| Move the programs a station uses to newer versions | `./cook ingredient pin <name>... --cookbook github:acme/cookbook@v1.3.0` ([ingredients](ingredients.md#pinning)) |
+| Describe a way of working no cookbook has | write a station and publish it in a cookbook ([Cookbooks](#cookbooks)) |
+| Apply a station in many repositories, each delivered for review | `the-cook fleet station apply <name> --cookbook <source>@<version> --yes --deliver` ([fleet](fleet.md)) |
+| Bring an organization's conventions into a repository | a station the organization publishes, or a reviewed change written by a person or a worker: see [Organization choices](#organization-choices) |
 
 ### Organization choices
 
 An organization's way of working, such as its delivery actions, the denies its unattended runs need or a commit
-trailer its CI expects, is a recipe in a cookbook of its own, beside the ingredients for its own programs
+trailer its CI expects, is a station in a cookbook of its own, beside the ingredients for its own programs
 ([ADR 0013](../adrs/0013-organization-content.md)). Applying it writes those choices into each repository's own files
 in one reviewed diff, and from then on each repository edits them like its own.
 
@@ -86,17 +86,17 @@ git diff .cook/ AGENTS.md
 Either way the entries end up in the repository's files, where its people and workers read them, and the repository
 renders the same bytes on every machine without fetching anything beyond its pins.
 
-## Parts of a recipe
+## Parts of a station
 
 ### Ingredients
 
-A recipe lists the ingredients it uses, each pinned the way `ingredients:` pins one: name, cookbook, version and sha256
-([ingredients](ingredients.md#pinning)), usually from its own cookbook tag. Applying the recipe pins each one into
-`ingredients:` at the sha256 the recipe lists, in the same diff as everything else it writes. An ingredient the
+A station lists the ingredients it uses, each pinned the way `ingredients:` pins one: name, cookbook, version and sha256
+([ingredients](ingredients.md#pinning)), usually from its own cookbook tag. Applying the station pins each one into
+`ingredients:` at the sha256 the station lists, in the same diff as everything else it writes. An ingredient the
 repository already pins keeps the repository's pin, and a different sha256 is reported, so applying never moves a pin;
 [`the-cook ingredient pin`](ingredients.md#the-cook-ingredient-pin) does that.
 
-A stack recipe often lists no ingredient, or only a task runner's. The [stages](#stages) of a recipe may name only
+A stack station often lists no ingredient, or only a task runner's. The [stages](#stages) of a station may name only
 ingredients it lists.
 
 ### Stages
@@ -110,8 +110,8 @@ The stages say which ingredient serves each stage of the lifecycle that needs a 
   `writable_roots`, `model` and `effort` ([profile](profile.md#workers)).
 
 Applying writes them into the profile as `vcs:` and one `workers.<name>` item each, under the
-[merge rules](#merge-rules). Stages are what make a recipe a way of running the lifecycle. A stack recipe declares
-none: it adds commands and lanes to a lifecycle that another recipe, or the repository itself, sets up.
+[merge rules](#merge-rules). Stages are what make a station a way of running the lifecycle. A stack station declares
+none: it adds commands and lanes to a lifecycle that another station, or the repository itself, sets up.
 
 ### Entries
 
@@ -119,17 +119,17 @@ Entries are additions to the repository's three YAML files: commands, `bootstrap
 and [standing context](context.md) in `.cook/config.yaml`; `unattended.deny` and other policy entries in
 `.cook/policy.yaml`; post-edit hooks and lifecycle actions in `.cook/hooks.yaml`. `apply` adds only what the files
 lack, following the [merge rules](#merge-rules). From then on each entry is the repository's own: people and workers
-change or delete it by editing the file, and nothing records which recipe wrote it
+change or delete it by editing the file, and nothing records which station wrote it
 ([ADR 0013](../adrs/0013-organization-content.md)). A newer version's entries reach a repository only when someone
-applies the recipe again ([Applying again](#applying-again)).
+applies the station again ([Applying again](#applying-again)).
 
 Entries fit what a repository may reasonably change, such as a stack's lint command or a tracker's lifecycle actions.
 A rule that must hold whatever the repository edits is a [floor](ingredients.md#the-floor) rule of an ingredient
-instead; a recipe holds none.
+instead; a station holds none.
 
 ### Templates
 
-A template is a whole file a recipe holds, rendered once with values from the profile in the
+A template is a whole file a station holds, rendered once with values from the profile in the
 [template language](ingredients.md#the-template-language), such as a loop runner's configuration file that names
 `./cook attempt <worker>`, or a directive file a standing-context entry names. `apply` writes it only when the file
 is absent. From then on it is the repository's own file: `the-cook` never renders it again, never overwrites it and
@@ -138,30 +138,30 @@ reports `kept <path>: exists`.
 
 `the-cook scaffold` seeds the repository files, such as `.cook/config.yaml`, from templates of its own
 ([scaffold](scaffold.md#greenfield)). The manifest records those as seeded files, which `the-cook remove` deletes
-([remove](remove.md#undo-and-eject-compared)); nothing records a template a recipe wrote.
+([remove](remove.md#undo-and-eject-compared)); nothing records a template a station wrote.
 
 ### Detect rule
 
-A detect rule is a list of file globs whose match shows that the recipe fits the repository, such as `package.json`
-for `node`. `the-cook scaffold --cookbook` applies every recipe of the tag whose rule matches, and
-`recipe list --cookbook` shows which match. A recipe without a detect rule is applied only when someone names it.
+A detect rule is a list of file globs whose match shows that the station fits the repository, such as `package.json`
+for `node`. `the-cook scaffold --cookbook` applies every station of the tag whose rule matches, and
+`station list --cookbook` shows which match. A station without a detect rule is applied only when someone names it.
 The rules are the cookbook's data; the binary holds none of its own.
 
 ## How apply works
 
-`the-cook recipe apply <name>... [--cookbook <source>@<version>]` applies one or more recipes, in the order given, to a
-repository already set up with `the-cook scaffold`:
+`the-cook station apply <name>... [--cookbook <source>@<version>]` applies one or more stations, in the order given, to
+a repository already set up with `the-cook scaffold`:
 
 1. **Check.** The repository needs `.cook/config.yaml`; without it, `apply` exits 1 and names `the-cook scaffold`.
-   With `--cookbook`, `apply` downloads the tag's `checksums.txt` and the named recipes over HTTPS, verifies each
-   archive against it and checks each `recipe.yaml`. Without it, every name must be in `recipes:`, and a name that is
-   not exits 1 and names `--cookbook`; a recorded recipe that is not cached is downloaded and verified against its
-   pin. Every ingredient the recipes list that is not cached is then downloaded and verified against the sha256 its
-   recipe lists, and the stages are checked against the contracts those ingredients fill. On any failure nothing is
+   With `--cookbook`, `apply` downloads the tag's `checksums.txt` and the named stations over HTTPS, verifies each
+   archive against it and checks each `station.yaml`. Without it, every name must be in `stations:`, and a name that is
+   not exits 1 and names `--cookbook`; a recorded station that is not cached is downloaded and verified against its
+   pin. Every ingredient the stations list that is not cached is then downloaded and verified against the sha256 its
+   station lists, and the stages are checked against the contracts those ingredients fill. On any failure nothing is
    written.
-2. **Plan** the changes: each recipe's pin in `recipes:`, added or moved to the version applied; the ingredient pins;
+2. **Plan** the changes: each station's pin in `stations:`, added or moved to the version applied; the ingredient pins;
    the stages; the entries for `.cook/config.yaml`, `.cook/policy.yaml` and `.cook/hooks.yaml`; and the templates
-   whose file is absent, rendered with the profile. Each recipe is planned against the files as the recipes before it
+   whose file is absent, rendered with the profile. Each station is planned against the files as the stations before it
    leave them, following the [merge rules](#merge-rules).
 3. **Confirm.** Show every pin, addition and template to write as one diff, and every item kept with its difference
    or `exists`, then ask. `--yes` skips the question. Without a terminal and without `--yes`, nothing is written and
@@ -171,7 +171,7 @@ repository already set up with `the-cook scaffold`:
    ingredient, those just pinned included, so the additions and their rendered effect are one diff and the drift check
    passes on it.
 
-When there is nothing to add and `recipes:` already records each recipe at the version applied, `apply` says so,
+When there is nothing to add and `stations:` already records each station at the version applied, `apply` says so,
 writes nothing and exits 0.
 
 ### Merge rules
@@ -180,24 +180,24 @@ Applying only adds. The repository's own entries, files and pins stay authoritat
 
 | Element | Rule |
 | --- | --- |
-| An ingredient pin | added when `ingredients:` has none by that name; when it has one with another sha256, the repository's stays and the difference is reported: `kept ingredients.git: pinned at v1.1.0, recipe agentic-coding lists v1.2.0` |
-| A recipe pin | added to `recipes:`, or moved to the version applied |
-| A single value: `vcs`, a module switch | written when the profile has none; when it has one that differs, the repository's stays and the difference is reported: `kept vcs: differs from recipe agentic-coding` |
-| A named item: a worker, a command, a lane, a lifecycle action | added when the repository has none by that name; when it has one that differs, the repository's stays and the difference is reported: `kept lanes.unit: differs from recipe node` |
+| An ingredient pin | added when `ingredients:` has none by that name; when it has one with another sha256, the repository's stays and the difference is reported: `kept ingredients.git: pinned at v1.1.0, station agentic-coding lists v1.2.0` |
+| A station pin | added to `stations:`, or moved to the version applied |
+| A single value: `vcs`, a module switch | written when the profile has none; when it has one that differs, the repository's stays and the difference is reported: `kept vcs: differs from station agentic-coding` |
+| A named item: a worker, a command, a lane, a lifecycle action | added when the repository has none by that name; when it has one that differs, the repository's stays and the difference is reported: `kept lanes.unit: differs from station node` |
 | An element of a list: a `bootstrap` command, a glob of a path list, a validator, a post-edit hook declaration, a standing-context entry, a policy entry such as one of `unattended.deny` | added when the list holds no equal element, one with the same fields and values |
 | A template | written when the file is absent; an existing file is the repository's and stays untouched, and is reported: `kept <path>: exists` |
 | Everything already in the files | nothing is removed, replaced or reordered; comments, key order and blank lines are preserved |
 
-Additions go at the end of the list or map they belong to; a section the file lacks is added at its end. Two recipes
+Additions go at the end of the list or map they belong to; a section the file lacks is added at its end. Two stations
 applied together follow the same rules: when both name the same item, such as `commands.lint`, the first one's entry
 is added and the second one's is reported as kept.
 
 ### Applying again
 
 Applying is idempotent: a second `apply` of the same version adds nothing, because every pin, entry and template is
-already there. Applying again is therefore the way to take a newer version's improvements to a recipe's stages,
-entries and templates. `./cook recipe apply node --cookbook github:acme/cookbook@v1.3.0 --dry-run` shows what the new
-version would add and the `recipes:` pin it would move, and the same command without `--dry-run` writes it as a diff
+already there. Applying again is therefore the way to take a newer version's improvements to a station's stages,
+entries and templates. `./cook station apply node --cookbook github:acme/cookbook@v1.3.0 --dry-run` shows what the new
+version would add and the `stations:` pin it would move, and the same command without `--dry-run` writes it as a diff
 to review. The ingredient pins a newer version lists do not move the repository's: the diff reports each difference,
 and `./cook ingredient pin <name>... --cookbook github:acme/cookbook@v1.3.0` moves them, with their renders and floor,
 in the same change or another.
@@ -208,22 +208,22 @@ to take a newer version's, delete the file and apply, then carry over your own c
 
 ### After applying
 
-`recipes:` records which recipes the repository applied and at which pin. Nothing rendered depends on it: deleting an
-entry from `recipes:` changes nothing rendered and leaves the profile valid. Nothing records which entries or
-templates a recipe wrote either: each entry's one source of truth is the file it is in, and `the-cook` holds no record
+`stations:` records which stations the repository applied and at which pin. Nothing rendered depends on it: deleting an
+entry from `stations:` changes nothing rendered and leaves the profile valid. Nothing records which entries or
+templates a station wrote either: each entry's one source of truth is the file it is in, and `the-cook` holds no record
 it could later use to change those entries by itself ([ADR 0013](../adrs/0013-organization-content.md)). Change or
 delete an applied entry or template by editing the file, then run `./cook render`.
 
-To stop using what a recipe set up, delete the entries that no longer apply from the files, and the ingredient pins
+To stop using what a station set up, delete the entries that no longer apply from the files, and the ingredient pins
 nothing else uses, with the `vcs:` or workers that name them, then run `./cook render`. The render removes those
 ingredients' renders and floor, which the manifest records under their names. An ingredient that `vcs:` or a worker
 names cannot leave `ingredients:` while it is named: the profile fails validation with exit 1. Both removal modes of
 [`the-cook remove`](remove.md) delete the seeded `.cook/` files whatever they hold, so applied entries go with them; a
-template a recipe wrote stays.
+template a station wrote stays.
 
 ## Cookbooks
 
-A cookbook is a source that publishes ingredients and recipes by tag: an HTTPS base URL laid out like the
+A cookbook is a source that publishes ingredients and stations by tag: an HTTPS base URL laid out like the
 [release source](wrapper.md#release-source), or `github:<owner>/<repo>`, shorthand for
 `https://github.com/<owner>/<repo>/releases`. `the-cook` holds no default cookbook and knows none by name; any number
 of cookbooks exist, and a repository may pin from several. An organization keeps its own programs and its own way of
@@ -233,22 +233,22 @@ Each tag of a cookbook publishes, under `<source>/download/<version>/`:
 
 | File | Holds |
 | --- | --- |
-| `<name>.tar.gz`, one per ingredient and one per recipe | a gzip-compressed tar of the ingredient or recipe directory: `ingredient.yaml` or `recipe.yaml` at its root and `files/` beside it |
+| `<name>.tar.gz`, one per ingredient and one per station | a gzip-compressed tar of the ingredient or station directory: `ingredient.yaml` or `station.yaml` at its root and `files/` beside it |
 | `checksums.txt` | the sha256 of every archive of the tag, one `<sha256>  <name>.tar.gz` line each |
 
-Every ingredient and recipe of a tag carries the tag as its `version`. Within one cookbook an ingredient and a recipe
+Every ingredient and station of a tag carries the tag as its `version`. Within one cookbook an ingredient and a station
 never share a name, because both publish as `<name>.tar.gz`. A repository pins from a tag with
-`the-cook recipe apply --cookbook` or [`the-cook ingredient pin`](ingredients.md#the-cook-ingredient-pin), which take
-the hashes from that tag's `checksums.txt`; `scaffold --cookbook` does the same for every recipe it applies.
+`the-cook station apply --cookbook` or [`the-cook ingredient pin`](ingredients.md#the-cook-ingredient-pin), which take
+the hashes from that tag's `checksums.txt`; `scaffold --cookbook` does the same for every station it applies.
 
 ### Layout of a cookbook repository
 
 ```text
 ingredients/<name>/ingredient.yaml   one directory per program the cookbook describes
 ingredients/<name>/files/            its render templates
-recipes/<name>/recipe.yaml           one directory per way of running the lifecycle, or per stack
-recipes/<name>/files/                its templates
-docs/                                a page for each ingredient and each recipe
+stations/<name>/station.yaml           one directory per way of running the lifecycle, or per stack
+stations/<name>/files/                its templates
+docs/                                a page for each ingredient and each station
 ```
 
 `the-cook`'s documentation describes the core and the two contracts; what a particular program does, which files and
@@ -256,42 +256,42 @@ keys it reads and which of its arguments are unsafe is the cookbook's to describ
 
 ### Writing and publishing
 
-To write an ingredient or a recipe, create its directory following
-[the ingredient file](ingredients.md#the-ingredient-file) or [the recipe file](#the-recipe-file). Both are data, and the
-cookbook that publishes them owns their tests: an ingredient against the programs and versions its checks name, a recipe
-by applying it to sample repositories and running the lifecycle there. `the-cook`'s own tests cover the core with
-stand-in ingredients that describe no real program.
+To write an ingredient or a station, create its directory following
+[the ingredient file](ingredients.md#the-ingredient-file) or [the station file](#the-station-file). Both are data, and
+the cookbook that publishes them owns their tests: an ingredient against the programs and versions its checks name, a
+station by applying it to sample repositories and running the lifecycle there. `the-cook`'s own tests cover the core
+with stand-in ingredients that describe no real program.
 
-To publish a tag, build the ingredient archives first, because each recipe lists the sha256 of the ingredients it
-uses, usually from the same tag; then the recipe archives; then `checksums.txt`, with every archive of the tag. Upload
+To publish a tag, build the ingredient archives first, because each station lists the sha256 of the ingredients it
+uses, usually from the same tag; then the station archives; then `checksums.txt`, with every archive of the tag. Upload
 them all under the tag. A new version is a new tag; an archive already published under a tag is never replaced,
 because every repository that pinned it would then refuse it ([fetching](ingredients.md#fetching)).
 
 ## Reference
 
 ```text
-the-cook recipe list [--cookbook <source>@<version>]
-the-cook recipe show <name> [--cookbook <source>@<version>]
-the-cook recipe apply <name>... [--cookbook <source>@<version>] [--yes] [--dry-run]
+the-cook station list [--cookbook <source>@<version>]
+the-cook station show <name> [--cookbook <source>@<version>]
+the-cook station apply <name>... [--cookbook <source>@<version>] [--yes] [--dry-run]
 ```
 
-`recipe` follows the `the-cook <noun> <verb>` shape. `apply` has no inverse, because the entries and templates it writes
-become the repository's own ([After applying](#after-applying)). [`the-cook fetch`](ingredients.md#the-cook-fetch)
-caches the recipes `recipes:` records along with the ingredients. Global flags `-C <dir>`, `--json` and `--verbose`
-apply to every subcommand; see [CLI reference](cli.md).
+`station` follows the `the-cook <noun> <verb>` shape. `apply` has no inverse, because the entries and templates it
+writes become the repository's own ([After applying](#after-applying)).
+[`the-cook fetch`](ingredients.md#the-cook-fetch) caches the stations `stations:` records along with the ingredients.
+Global flags `-C <dir>`, `--json` and `--verbose` apply to every subcommand; see [CLI reference](cli.md).
 
-### `the-cook recipe list`
+### `the-cook station list`
 
-Without `--cookbook`, prints the recipes `recipes:` records, each with its version and source and whether it is cached
+Without `--cookbook`, prints the stations `stations:` records, each with its version and source and whether it is cached
 on this machine. It reads only the profile and the cache.
 
-With `--cookbook <source>@<version>`, prints the recipes that tag publishes, each with whether its detect rule matches
-in this repository, the ingredients it lists, and the version `recipes:` records it at, if any. It works in a
-repository that is not scaffolded yet, so it also helps choose `scaffold --recipe`.
+With `--cookbook <source>@<version>`, prints the stations that tag publishes, each with whether its detect rule matches
+in this repository, the ingredients it lists, and the version `stations:` records it at, if any. It works in a
+repository that is not scaffolded yet, so it also helps choose `scaffold --station`.
 
 | Flag | Default | Meaning |
 | --- | --- | --- |
-| `--cookbook <source>@<version>` | none | List that cookbook tag's recipes instead of the applied ones |
+| `--cookbook <source>@<version>` | none | List that cookbook tag's stations instead of the applied ones |
 
 | Exit code | Meaning |
 | --- | --- |
@@ -302,37 +302,37 @@ Files read: `.cook/config.yaml` when present, `$COOK_HOME/cookbook/`; with `--co
 archives and the files each detect rule names. Files written: with `--cookbook`, each verified archive into
 `$COOK_HOME/cookbook/`.
 
-### `the-cook recipe show`
+### `the-cook station show`
 
-Prints the recipe's `recipe.yaml`, the ingredients it lists with their pins, its stages, its entries as the YAML they
+Prints the station's `station.yaml`, the ingredients it lists with their pins, its stages, its entries as the YAML they
 add, grouped by the file they go into, and every template with its path and content. Templates are rendered with the
-repository's profile when there is one. Without `--cookbook` the recipe is one `recipes:` records; with it, the recipe
-of that name in that tag. It does not compare anything with the repository; `apply --dry-run` shows what applying
-would write here. Read the ingredients a recipe lists with
+repository's profile when there is one. Without `--cookbook` the station is one `stations:` records; with it, the
+station of that name in that tag. It does not compare anything with the repository; `apply --dry-run` shows what
+applying would write here. Read the ingredients a station lists with
 [`the-cook ingredient show`](ingredients.md#the-cook-ingredient-show).
 
 | Flag | Default | Meaning |
 | --- | --- | --- |
-| `<name>` | required | The recipe |
-| `--cookbook <source>@<version>` | none | Read the recipe from that cookbook tag instead of the recorded one |
+| `<name>` | required | The station |
+| `--cookbook <source>@<version>` | none | Read the station from that cookbook tag instead of the recorded one |
 
 | Exit code | Meaning |
 | --- | --- |
 | 0 | Printed |
-| 1 | A name `recipes:` does not record, which names `--cookbook`; a source that cannot be reached; an archive that does not match its pin or, with `--cookbook`, the tag's `checksums.txt`; with `--cookbook`, a name the tag does not publish |
+| 1 | A name `stations:` does not record, which names `--cookbook`; a source that cannot be reached; an archive that does not match its pin or, with `--cookbook`, the tag's `checksums.txt`; with `--cookbook`, a name the tag does not publish |
 
-Files read: `.cook/config.yaml`, when present; `$COOK_HOME/cookbook/<sha256>.tar.gz`; the recipe's source when it is
+Files read: `.cook/config.yaml`, when present; `$COOK_HOME/cookbook/<sha256>.tar.gz`; the station's source when it is
 not cached; with `--cookbook`, the tag's `checksums.txt` and the archive. Files written: each verified archive it
 downloads, into `$COOK_HOME/cookbook/`.
 
-### `the-cook recipe apply`
+### `the-cook station apply`
 
-Applies one or more recipes, in the order given ([How apply works](#how-apply-works)).
+Applies one or more stations, in the order given ([How apply works](#how-apply-works)).
 
 | Flag | Default | Meaning |
 | --- | --- | --- |
-| `<name>...` | required | One or more recipes: published by the `--cookbook` tag, or without it recorded in `recipes:` |
-| `--cookbook <source>@<version>` | none | The cookbook and the tag to apply from. Without it, each recipe is applied again at the version `recipes:` records |
+| `<name>...` | required | One or more stations: published by the `--cookbook` tag, or without it recorded in `stations:` |
+| `--cookbook <source>@<version>` | none | The cookbook and the tag to apply from. Without it, each station is applied again at the version `stations:` records |
 | `--yes` | off | Apply without asking; required without a terminal |
 | `--dry-run` | off | Print the pins, the additions and the kept items; write nothing |
 
@@ -342,46 +342,46 @@ each with its file and, for an entry, its key.
 | Exit code | Meaning |
 | --- | --- |
 | 0 | Applied, or nothing to add; `--dry-run` printed |
-| 1 | Error: a repository that is not scaffolded, an invalid repository file; without `--cookbook`, a name `recipes:` does not record (the message names `--cookbook`); with it, a name the tag does not publish; no network or a source that cannot be reached; an archive that does not match the tag's `checksums.txt`, its pin, or the sha256 its recipe lists; an invalid `recipe.yaml` or `ingredient.yaml`, one whose name or version differs from its pin, or one whose schema or contract version is newer than the running release supports (the message names the release needed); stages that name an ingredient the recipe does not list, or one that does not fill the contract the stage needs. Nothing is written |
+| 1 | Error: a repository that is not scaffolded, an invalid repository file; without `--cookbook`, a name `stations:` does not record (the message names `--cookbook`); with it, a name the tag does not publish; no network or a source that cannot be reached; an archive that does not match the tag's `checksums.txt`, its pin, or the sha256 its station lists; an invalid `station.yaml` or `ingredient.yaml`, one whose name or version differs from its pin, or one whose schema or contract version is newer than the running release supports (the message names the release needed); stages that name an ingredient the station does not list, or one that does not fill the contract the stage needs. Nothing is written |
 | 3 | Confirmation needed and there is no terminal: rerun with `--yes`; or the repository files use a newer schema than the running release supports. Nothing is written |
 
 Files read: `.cook/config.yaml`, `.cook/policy.yaml`, `.cook/hooks.yaml`, whether each template's file exists,
 `$COOK_HOME/cookbook/`, with `--cookbook` the tag's `checksums.txt` and the named archives, the source of each
-ingredient or recorded recipe that is not cached, and everything [`render`](render.md#reference) reads. Files
+ingredient or recorded station that is not cached, and everything [`render`](render.md#reference) reads. Files
 written: `$COOK_HOME/cookbook/<sha256>.tar.gz` for each verified archive it downloads; `.cook/config.yaml`,
 `.cook/policy.yaml` and `.cook/hooks.yaml`, additions and pins only; each template whose file was absent; then every
 file `render` writes ([what render writes](render.md#what-render-writes)).
 
-### The recipe file
+### The station file
 
-A recipe is a directory:
+A station is a directory:
 
 ```text
 <name>/
-  recipe.yaml      the recipe's description
-  files/           template sources, when the recipe has any
+  station.yaml      the station's description
+  files/           template sources, when the station has any
 ```
 
-| Key of `recipe.yaml` | Type | Required | Meaning |
+| Key of `station.yaml` | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `schema` | integer | yes | Format version of the recipe file: `1` |
-| `name` | string | yes | Lowercase letters, digits and `-`: the name `recipes:` records |
-| `version` | string | yes | The cookbook tag the recipe is published under, which `recipes:` records |
-| `description` | string | no | One line, printed by `recipe list` |
+| `schema` | integer | yes | Format version of the station file: `1` |
+| `name` | string | yes | Lowercase letters, digits and `-`: the name `stations:` records |
+| `version` | string | yes | The cookbook tag the station is published under, which `stations:` records |
+| `description` | string | no | One line, printed by `station list` |
 | `ingredients` | list of pins | no | [Ingredients](#ingredients): each with `name`, `source`, `version` and `sha256`, as an entry of `ingredients:` has them ([pinning](ingredients.md#pinning)); a name appears once |
 | `stages.vcs` | ingredient name | no | [Stages](#stages): an ingredient of `ingredients` that fills the version-control contract; written as `vcs:` |
 | `stages.workers` | map of worker name to declaration | no | Each declaration has the fields of a profile [worker](profile.md#workers): `ingredient`, an ingredient of `ingredients` that fills the worker contract, by default the one named like the worker; `role`; and optionally `writable_roots`, `model` and `effort` |
-| `entries` | map of file to YAML | no | [Entries](#entries), grouped by the file they go into: `.cook/config.yaml`, `.cook/policy.yaml`, `.cook/hooks.yaml`. Each value has the shape of that file; entries for `.cook/config.yaml` hold no `schema`, `name`, `ingredients`, `recipes`, `vcs` or `workers`, which pins and stages write |
+| `entries` | map of file to YAML | no | [Entries](#entries), grouped by the file they go into: `.cook/config.yaml`, `.cook/policy.yaml`, `.cook/hooks.yaml`. Each value has the shape of that file; entries for `.cook/config.yaml` hold no `schema`, `name`, `ingredients`, `stations`, `vcs` or `workers`, which pins and stages write |
 | `templates` | list | no | [Templates](#templates): `path`, where the file is written, relative to the repository root, and `source`, a file under `files/` |
-| `detect` | list of globs | no | The [detect rule](#detect-rule): paths relative to the repository root whose match shows the recipe fits; a trailing `/` matches a directory |
+| `detect` | list of globs | no | The [detect rule](#detect-rule): paths relative to the repository root whose match shows the station fits; a trailing `/` matches a directory |
 
-The binary refuses a recipe whose `schema` is newer than it supports, with exit 1 naming the release needed, and reads
+The binary refuses a station whose `schema` is newer than it supports, with exit 1 naming the release needed, and reads
 older ones inside its support window ([ADR 0005](../adrs/0005-schema-compatibility.md)). `the-cook version` prints the
-recipe and ingredient schemas and the contract versions the running release supports. Unknown keys are an error, and
+station and ingredient schemas and the contract versions the running release supports. Unknown keys are an error, and
 so are `renders`, `floor`, `operations` and `checks`, which only an ingredient holds. Templates read the
 [neutral model](ingredients.md#the-neutral-model).
 
-#### The `agentic-coding` recipe
+#### The `agentic-coding` station
 
 `agentic-coding` runs the lifecycle with an interactive coding agent and an unattended one that a loop runner starts
 for each task of a tracker. Applied, it pins five ingredients, declares two workers and writes the module switches, a
@@ -389,7 +389,7 @@ validator, a standing-context entry, the unattended denies and the tracker's lif
 
 ```text
 agentic-coding/
-  recipe.yaml
+  station.yaml
   files/
     acme-loop.toml
     unattended.md
@@ -454,10 +454,10 @@ templates:
   - { path: .agents/directives/unattended.md, source: files/unattended.md }
 ```
 
-`files/acme-loop.toml`, written once when `.acme-loop.toml` is absent, names the worker the recipe declares:
+`files/acme-loop.toml`, written once when `.acme-loop.toml` is absent, names the worker the station declares:
 
 ```toml
-# acme-loop settings for this repository, written once by the agentic-coding recipe; edit freely
+# acme-loop settings for this repository, written once by the agentic-coding station; edit freely
 tasks = ["acme-tasks", "ready", "--json"]
 worker = ["./cook", "attempt", "acme-agent", "--commit"]
 logs = "{{state_dir}}/acme-loop"
@@ -474,11 +474,11 @@ logs = "{{state_dir}}/acme-loop"
 ```
 
 The workers' native files, the floor of `git` and `acme-agent`, and the ignore rules of the state paths are not in
-the recipe: they are the renders of the ingredients it pins, and they follow those pins on every render.
+the station: they are the renders of the ingredients it pins, and they follow those pins on every render.
 
-#### The `node` recipe
+#### The `node` station
 
-`node` is a stack recipe: no ingredients, no stages, entries only.
+`node` is a stack station: no ingredients, no stages, entries only.
 
 ```yaml
 schema: 1
@@ -502,23 +502,23 @@ entries:
       - { paths: ["src/**/*.{ts,js}"], run: npm run lint -- {file} }
 ```
 
-The commands run the project's own scripts, so the recipe guesses only their names; the repository edits them to its
+The commands run the project's own scripts, so the station guesses only their names; the repository edits them to its
 real commands.
 
 ## Examples
 
-### Choose recipes before scaffolding
+### Choose stations before scaffolding
 
 ```text
 $ cd ~/src/acme-web
-$ the-cook recipe list --cookbook github:acme/cookbook@v1.2.0
-recipe          detected  ingredients                                    applied
+$ the-cook station list --cookbook github:acme/cookbook@v1.2.0
+station          detected  ingredients                                    applied
 agentic-coding  no        git, claude, acme-agent, acme-loop, acme-tasks  -
 node            yes       -                                              -
 python          yes       -                                              -
 terraform       no        -                                              -
 $ the-cook scaffold --cookbook github:acme/cookbook@v1.2.0 --no-detect \
-    --recipe agentic-coding --recipe node --dry-run
+    --station agentic-coding --station node --dry-run
 ```
 
 `requirements.txt` here only pins a documentation tool, so the scaffold takes `node` and leaves `python` out. The
@@ -529,16 +529,16 @@ repository has no `AGENTS.md` and no `.agents/` yet, so `agentic-coding` does no
 The repository was scaffolded without a cookbook, and its people already wrote their own `build` command:
 
 ```text
-$ ./cook recipe show agentic-coding --cookbook github:acme/cookbook@v1.2.0
+$ ./cook station show agentic-coding --cookbook github:acme/cookbook@v1.2.0
 $ ./cook ingredient show acme-agent --cookbook github:acme/cookbook@v1.2.0
-$ ./cook recipe apply agentic-coding node --cookbook github:acme/cookbook@v1.2.0
+$ ./cook station apply agentic-coding node --cookbook github:acme/cookbook@v1.2.0
 verified against github:acme/cookbook@v1.2.0: agentic-coding, node; 5 ingredients against agentic-coding
 .cook/config.yaml
 +  - name: git
 +    source: github:acme/cookbook
 +    version: v1.2.0
 +    sha256: d2f0d562418c7d176d0393d8694cc6f6f569f2dff3f7ede3788a2075d3ff5c3f
-   ... four more ingredient pins, then the pins of agentic-coding and node in recipes:
+   ... four more ingredient pins, then the pins of agentic-coding and node in stations:
 +vcs: git
 +workers:
 +  claude: { ingredient: claude, role: interactive }
@@ -553,10 +553,10 @@ verified against github:acme/cookbook@v1.2.0: agentic-coding, node; 5 ingredient
    ... the three lifecycle actions and the post-edit hook
 new .acme-loop.toml
 new .agents/directives/unattended.md
-kept commands.build: differs from recipe node
+kept commands.build: differs from station node
 apply these changes? [y/N] y
 applied agentic-coding, node: 5 ingredients pinned, 2 templates written, 1 item kept; rendered the repository
-$ git add -A && git commit -m "chore: apply the agentic-coding and node recipes"
+$ git add -A && git commit -m "chore: apply the agentic-coding and node stations"
 ```
 
 The diff is shortened here; `apply` prints all of it. Each teammate runs `./cook fetch` once on their machine.
@@ -565,62 +565,62 @@ The diff is shortened here; `apply` prints all of it. Each teammate runs `./cook
 
 ```sh
 ./cook ingredient pin git claude acme-agent acme-loop acme-tasks --cookbook github:acme/cookbook@v1.3.0 --yes
-./cook recipe apply agentic-coding node --cookbook github:acme/cookbook@v1.3.0 --dry-run
-./cook recipe apply agentic-coding node --cookbook github:acme/cookbook@v1.3.0 --yes
+./cook station apply agentic-coding node --cookbook github:acme/cookbook@v1.3.0 --dry-run
+./cook station apply agentic-coding node --cookbook github:acme/cookbook@v1.3.0 --yes
 git diff
 ```
 
 The first command moves the programs to v1.3.0, with their renders and floor. The second shows what v1.3.0 adds that
-the files lack and the `recipes:` pins it moves; the third writes it. Without the first, the apply would report each
+the files lack and the `stations:` pins it moves; the third writes it. Without the first, the apply would report each
 ingredient pin it leaves as it is.
 
 ### Many repositories
 
 ```sh
-the-cook fleet recipe apply node --cookbook github:acme/cookbook@v1.2.0 --yes --deliver
+the-cook fleet station apply node --cookbook github:acme/cookbook@v1.2.0 --yes --deliver
 ```
 
-Each repository that lacks some of the recipe's entries, or its record in `recipes:`, gets a branch with the change
+Each repository that lacks some of the station's entries, or its record in `stations:`, gets a branch with the change
 and its rendered effect, delivered through its own `deliver` actions. A repository that already holds them is
 reported as unchanged ([fleet](fleet.md)). The command runs without a terminal in each repository, so it needs
 `--yes`.
 
 ## Guidelines
 
-- Do read a recipe with `the-cook recipe show <name> --cookbook <source>@<version>`, and the ingredients it lists
+- Do read a station with `the-cook station show <name> --cookbook <source>@<version>`, and the ingredients it lists
   with `the-cook ingredient show`, before applying it: the review of the diff `apply` shows is the trust decision for
   every pin it adds.
 - Do read the diff `apply` shows before confirming: once written, the entries and templates are the repository's own
   and nothing marks where they came from.
-- Do edit applied entries to fit the repository: a recipe guesses from the stack or the way of working, the repository
+- Do edit applied entries to fit the repository: a station guesses from the stack or the way of working, the repository
   knows its real commands, and applying again never overwrites an item you changed.
-- Do run `./cook recipe apply <name> --cookbook <source>@<newer> --dry-run` when a cookbook publishes a newer tag: new
-  entries reach the repository only when someone applies the recipe again.
+- Do run `./cook station apply <name> --cookbook <source>@<newer> --dry-run` when a cookbook publishes a newer tag: new
+  entries reach the repository only when someone applies the station again.
 - Do commit the pins and additions together with the files `apply` rendered, so the diff explains itself.
-- Do write an organization's shared way of working as a recipe in its own cookbook, and choices that differ between
+- Do write an organization's shared way of working as a station in its own cookbook, and choices that differ between
   its repositories through a reviewed change in each ([Organization choices](#organization-choices)).
-- Don't expect deleting an entry from `recipes:` to undo a recipe: it changes nothing rendered. Delete the entries and
+- Don't expect deleting an entry from `stations:` to undo a station: it changes nothing rendered. Delete the entries and
   the ingredient pins themselves.
-- Don't apply a recipe again to restore an item you changed: `apply` keeps every item the repository names. Delete
-  yours first if you want the recipe's.
+- Don't apply a station again to restore an item you changed: `apply` keeps every item the repository names. Delete
+  yours first if you want the station's.
 
 ## Troubleshooting
 
 | Symptom | Cause | Fix |
 | --- | --- | --- |
-| `kept lanes.unit: differs from recipe node` | The repository already has a `unit` lane, and `apply` never replaces an item the repository names | Nothing, if yours is right. To take the recipe's, delete yours and apply again |
-| `kept <path>: exists` | The file is there, and `apply` writes a template only when its file is absent | Nothing, if yours is right. To take the recipe's, move yours aside, apply again, and carry over what you need |
-| `kept vcs: differs from recipe agentic-coding` | The profile already names a version-control ingredient | Nothing, if yours is right; `vcs:` is one value, and `apply` never replaces it |
-| `kept ingredients.<name>: pinned at <version>, recipe <recipe> lists <version>` | The repository already pins the ingredient, and applying never moves a pin | Nothing, if the pinned version is right. To take the recipe's, `./cook ingredient pin <name> --cookbook <source>@<version>` |
-| `recipe apply` exits 1 naming `the-cook scaffold` | The repository has no `.cook/config.yaml` | Run `the-cook scaffold` |
-| `recipe apply` or `recipe show` exits 1 naming `--cookbook` | The name is not in `recipes:`, so there is no recorded version to use | Pass `--cookbook <source>@<version>` |
-| `recipe apply --cookbook` exits 1: the tag does not publish the name | The name is wrong, the name is an ingredient's, or the cookbook added the recipe in a later tag | `./cook recipe list --cookbook <source>@<version>` prints the tag's recipes |
-| `recipe apply` exits 3 | No terminal to confirm, and no `--yes` | Review with `--dry-run`, then rerun with `--yes`; under `fleet`, always pass `--yes` |
-| Exit 1: an ingredient's archive does not match the sha256 its recipe lists | The archive at the ingredient's source is not the one the recipe was built with: a new upload under the same version, or tampering | Do not work around it. Ask the cookbook's publisher; apply a tag whose archives match |
-| Exit 1: a recipe's stages name an ingredient it does not list, or one that fills another contract | The recipe is invalid | Report it to the cookbook's publisher; apply another tag |
-| Exit 1: a recipe's or an ingredient's schema or contract version is newer than the running release supports | The cookbook tag was written for a newer `the-cook` | Move the release pin with `./cook wrapper --version <tag>` to the release the message names, or apply an older tag |
-| Deleting a recipe from `recipes:` changed nothing | `recipes:` is a record; nothing rendered depends on it | Delete the entries that no longer apply, and the ingredient pins nothing else uses, then `./cook render` ([After applying](#after-applying)) |
-| An entry or a template you deleted is back after `recipe apply` | `apply` adds every entry the files lack and writes every absent template, and nothing records that you removed them | Delete it again, and read the diff before confirming the next apply |
-| `recipe apply` with a newer tag adds nothing but the pin | The files already hold every entry of the recipe, or equal ones | Expected |
-| Only one stack's lint command is in the profile | `commands.lint` is one named item: the first recipe applied wrote it, and the next one's was reported as kept | Write a lint command that covers both stacks, such as a script or a task-runner task that picks the linter by the file's extension |
-| Entries of the wrong stack after `scaffold` | Marker files of another stack are present, such as a `package.json` for tooling in another stack's repository | Delete the entries that do not apply from `.cook/config.yaml` and `.cook/hooks.yaml`, and the recipe's record from `recipes:`; on the next repository, `the-cook scaffold --cookbook <source>@<version> --no-detect --recipe <name>` |
+| `kept lanes.unit: differs from station node` | The repository already has a `unit` lane, and `apply` never replaces an item the repository names | Nothing, if yours is right. To take the station's, delete yours and apply again |
+| `kept <path>: exists` | The file is there, and `apply` writes a template only when its file is absent | Nothing, if yours is right. To take the station's, move yours aside, apply again, and carry over what you need |
+| `kept vcs: differs from station agentic-coding` | The profile already names a version-control ingredient | Nothing, if yours is right; `vcs:` is one value, and `apply` never replaces it |
+| `kept ingredients.<name>: pinned at <version>, station <station> lists <version>` | The repository already pins the ingredient, and applying never moves a pin | Nothing, if the pinned version is right. To take the station's, `./cook ingredient pin <name> --cookbook <source>@<version>` |
+| `station apply` exits 1 naming `the-cook scaffold` | The repository has no `.cook/config.yaml` | Run `the-cook scaffold` |
+| `station apply` or `station show` exits 1 naming `--cookbook` | The name is not in `stations:`, so there is no recorded version to use | Pass `--cookbook <source>@<version>` |
+| `station apply --cookbook` exits 1: the tag does not publish the name | The name is wrong, the name is an ingredient's, or the cookbook added the station in a later tag | `./cook station list --cookbook <source>@<version>` prints the tag's stations |
+| `station apply` exits 3 | No terminal to confirm, and no `--yes` | Review with `--dry-run`, then rerun with `--yes`; under `fleet`, always pass `--yes` |
+| Exit 1: an ingredient's archive does not match the sha256 its station lists | The archive at the ingredient's source is not the one the station was built with: a new upload under the same version, or tampering | Do not work around it. Ask the cookbook's publisher; apply a tag whose archives match |
+| Exit 1: a station's stages name an ingredient it does not list, or one that fills another contract | The station is invalid | Report it to the cookbook's publisher; apply another tag |
+| Exit 1: a station's or an ingredient's schema or contract version is newer than the running release supports | The cookbook tag was written for a newer `the-cook` | Move the release pin with `./cook wrapper --version <tag>` to the release the message names, or apply an older tag |
+| Deleting a station from `stations:` changed nothing | `stations:` is a record; nothing rendered depends on it | Delete the entries that no longer apply, and the ingredient pins nothing else uses, then `./cook render` ([After applying](#after-applying)) |
+| An entry or a template you deleted is back after `station apply` | `apply` adds every entry the files lack and writes every absent template, and nothing records that you removed them | Delete it again, and read the diff before confirming the next apply |
+| `station apply` with a newer tag adds nothing but the pin | The files already hold every entry of the station, or equal ones | Expected |
+| Only one stack's lint command is in the profile | `commands.lint` is one named item: the first station applied wrote it, and the next one's was reported as kept | Write a lint command that covers both stacks, such as a script or a task-runner task that picks the linter by the file's extension |
+| Entries of the wrong stack after `scaffold` | Marker files of another stack are present, such as a `package.json` for tooling in another stack's repository | Delete the entries that do not apply from `.cook/config.yaml` and `.cook/hooks.yaml`, and the station's record from `stations:`; on the next repository, `the-cook scaffold --cookbook <source>@<version> --no-detect --station <name>` |
