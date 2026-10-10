@@ -14,11 +14,12 @@ and can find the page for any part of it.
 
 `harness` is a command-line tool that sets up, constrains and checks the environment coding agents work in. It writes
 the permission rules, hooks and instructions that Claude Code and Codex read. It gives people and agents the same
-commands for task worktrees, verification receipts and local task tracking. It launches unattended [Ralph](ralph.md)
-runs whose workers cannot bypass permissions or claim work they did not verify. It fires
-[development lifecycle](lifecycle.md) events at fixed points, so what a repository declares (a push, a pull request, a
-cleanup) happens at the same moment for people and agents. It never calls a model, never writes knowledge such as prose,
-memory or domain skills, and contains no logic for any hosting platform.
+commands for task [worktrees](worktrees.md), verification receipts (records that a change's checks passed on its exact
+content, [verify](verify.md)) and local [task tracking](tasks.md). It launches unattended [Ralph](ralph.md) runs whose
+workers (the agent processes a run starts, one per task) cannot bypass permissions or claim work they did not verify. It
+fires [development lifecycle](lifecycle.md) events at fixed points, so what a repository declares (a push, a pull
+request, a cleanup) happens at the same moment for people and agents. It never calls a model, never writes knowledge
+such as prose, memory or domain skills, and contains no logic for any hosting platform.
 
 ## The game master
 
@@ -41,9 +42,9 @@ same documentation blocks in every repository that adopts it.
 | --- | --- | --- |
 | Core (always on) | the `harnessw` wrapper pinned to one verified release, the `.harness/` configuration, profile, policy rendered for each agent, conventions written as managed blocks in `AGENTS.md`, `README.md` and `.gitignore`, manifest, the harness skill, lifecycle events and actions | [wrapper](wrapper.md), [concepts](concepts.md), [policy](policy.md), [render](render.md), [lifecycle](lifecycle.md) |
 | `hooks` | Agent-neutral hooks: lint-on-edit, validators, session context, notifications when an agent waits for a person or ends a turn, and [standing context](context.md): directives and skills injected when a declared trigger fires | [hooks](hooks.md), [context](context.md) |
-| `verify` | Named verification lanes and a receipt bound to file contents | [verify](verify.md) |
-| `tasks` | Clone-local task tracking with Beads or a PRD JSON file | [tasks](tasks.md) |
-| `ralph` | Unattended multi-task runs through ralph-tui with a safe worker contract | [ralph](ralph.md) |
+| `verify` | Named verification lanes (families of test commands, such as `unit` and `e2e`) and a receipt bound to file contents | [verify](verify.md) |
+| `tasks` | Clone-local task tracking with Beads (a task tracker used through its `bd` command) or a PRD JSON file (a list of user stories) | [tasks](tasks.md) |
+| `ralph` | Unattended multi-task runs through [ralph-tui](https://github.com/subsy/ralph-tui), one agent process per task, with a worker contract that refuses permission bypass and replays each task's checks | [ralph](ralph.md) |
 | `memory` | A memory skeleton under `.agents/memory/` and its index in the `memory` block of `AGENTS.md` | [memory](memory.md) |
 | `skills` | Declared skill sources installed through the `skills` CLI | [skills](skills.md) |
 
@@ -63,7 +64,10 @@ cd ~/src/acme-api
 Every command below runs as `./harnessw <command>`; with a global install, `harness <command>` is equivalent.
 
 A repository that has no `harnessw` yet needs a `harness` binary once, to scaffold it
-([installation](installation.md#scaffolding-a-new-repository)). The scaffold pins the release that runs it:
+([installation](installation.md#scaffolding-a-new-repository)). The commands below get it through
+[mise](https://mise.jdx.dev), a tool-version manager and task runner;
+[installation](installation.md#global-install-optional) also covers a plain download. The scaffold pins the release that
+runs it:
 
 ```sh
 mise use -g github:lmarqs/harness@<tag>     # or one-off: mise exec github:lmarqs/harness@<tag> -- harness scaffold

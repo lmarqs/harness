@@ -13,12 +13,12 @@ everything it runs afterwards can be read from its own files.
 
 ## Overview
 
-A preset is a set of starting entries for one technology stack, embedded in the `harness` binary: how to lint an
-edited file, how to build, which test lanes to run, which command formats or lints a file after an agent edits it. The
-binary holds four: `go`, `node`, `terraform` and `python`. `harness preset apply <name>` writes a preset's entries into
-the repository's own files, `.harness/config.yaml` and `.harness/hooks.yaml`, adds only what those files lack, and
-renders the repository, so the additions and their rendered effect are one diff to review. `harness scaffold` applies
-the presets of the stacks it detects the same way.
+A preset is a set of starting entries for one technology stack, embedded in the `harness` binary: how to lint an edited
+file, how to build, which test lanes (named families of test commands, such as `unit` or `e2e`) to run, which command
+formats or lints a file after an agent edits it. The binary holds four: `go`, `node`, `terraform` and `python`.
+`harness preset apply <name>` writes a preset's entries into the repository's own files, `.harness/config.yaml` and
+`.harness/hooks.yaml`, adds only what those files lack, and renders the repository, so the additions and their rendered
+effect are one diff to review. `harness scaffold` applies the presets of the stacks it detects the same way.
 
 Once written, the entries are the repository's own, like entries anyone wrote by hand. Nothing records which presets a
 repository applied, and people and agents change or delete the entries by editing the file. What `harness` renders and
@@ -45,10 +45,10 @@ Commands are named `harness <command>` on this page. The examples run them throu
 
 ### Organization choices
 
-A preset holds only facts that are the same in every repository on its stack. An organization's choices, such as the
-MCP tools its agents may read, the deploy tasks they must never run, a trailer its CI needs on delivery commits, or the
-rules for its tracker, differ between its repositories, so applying them takes judgement. A person or an agent writes
-them into each repository's own files, typically an agent following a skill the organization publishes, and each
+A preset holds only facts that are the same in every repository on its stack. An organization's choices, such as the MCP
+tools its agents may read, the deploy tasks they must never run, a trailer its CI needs on delivery commits, or the
+rules for its task tracker, differ between its repositories, so applying them takes judgement. A person or an agent
+writes them into each repository's own files, typically an agent following a skill the organization publishes, and each
 repository reviews the change as a diff like any other:
 
 ```sh
@@ -70,13 +70,14 @@ renders the same bytes on every machine without fetching anything.
 | `terraform` | Terraform | `*.tf` files | a format command, `validate` and `plan` lanes, a format-on-edit hook, `modules.ralph: false` |
 | `python` | Python | `pyproject.toml` or `requirements.txt` | a lint command, a test lane, a lint-on-edit hook |
 
-Commands, lanes, validators and module switches go into `.harness/config.yaml`; post-edit hooks go into
-`.harness/hooks.yaml`. `./harnessw preset show <name>` prints every entry a preset holds. Policy entries, lifecycle
-actions and standing context are choices each repository makes in its own files, so presets hold none.
+Commands, lanes, [validators](profile.md#verify) (repository checks run when matching files change) and module switches
+go into `.harness/config.yaml`; post-edit hooks go into `.harness/hooks.yaml`. `./harnessw preset show <name>` prints
+every entry a preset holds. Policy entries, lifecycle actions and standing context are choices each repository makes in
+its own files, so presets hold none.
 
-The presets are those of the running release, which in an adopted repository is the pinned one. A newer release may
-hold more entries in a preset; they reach a repository only when someone applies the preset again
-([Applying again](#applying-again)).
+The presets are those of the running release, which in a repository set up with `harness scaffold` is the release it
+pins in `.harness/wrapper.yaml`. A newer release may hold more entries in a preset; they reach a repository only when
+someone applies the preset again ([Applying again](#applying-again)).
 
 A stack the table does not list gets no preset. `harness scaffold` then seeds the skeleton of each repository file and
 the seeded delivery `ask` entry ([policy](policy.md#the-seeded-entry)), and the repository writes its commands and
@@ -84,7 +85,8 @@ lanes itself.
 
 ## How apply works
 
-`harness preset apply <name>...` applies one or more presets, in the order given, to an adopted repository:
+`harness preset apply <name>...` applies one or more presets, in the order given, to a repository already set up with
+`harness scaffold`:
 
 1. **Check.** The repository needs `.harness/config.yaml`; without it, `apply` exits 1 and names `harness scaffold`.
    Every name must be a preset of the running release; an unknown name exits 1. On either failure nothing is written.
@@ -289,5 +291,5 @@ delivered through its own `deliver` actions. A repository that already holds eve
 | `preset apply` exits 3 | No terminal to confirm, and no `--yes` | Review with `--dry-run`, then rerun with `--yes`; under `fleet`, always pass `--yes` |
 | An entry you deleted is back after `preset apply` | `apply` adds every entry the files lack, and nothing records that you removed it | Delete it again, and read the diff before confirming the next apply |
 | `preset apply` after an upgrade adds nothing | The files already hold every entry of the preset, or equal ones | Expected |
-| Only one stack's lint command is in the profile | `commands.lint` is one named item: the first preset applied wrote it, and the next one's was reported as kept | Write a lint command that covers both stacks, such as a mise task that dispatches on the file's extension |
+| Only one stack's lint command is in the profile | `commands.lint` is one named item: the first preset applied wrote it, and the next one's was reported as kept | Write a lint command that covers both stacks, such as a script or a [mise](compatibility.md#mise) task that picks the linter by the file's extension |
 | Entries of the wrong stack after `scaffold` | Marker files of another stack are present, such as a `package.json` for tooling in a Go repository | Delete the entries that do not apply from `.harness/config.yaml` and `.harness/hooks.yaml`, then `./harnessw render`; on the next repository, `harness scaffold --preset <name>` |

@@ -13,10 +13,11 @@ and every agent and tool working there uses the same answer.
 ## Overview
 
 The profile tells `harness` what a repository is: which modules it uses, how to bootstrap a checkout, how to lint and
-build, which verification lanes exist, which task tracker and agents it uses, Ralph defaults, skill sources, and the
-standing context agents receive. It is seeded and then repository-owned. `scaffold` seeds it once, with the entries of
-the [presets](presets.md) of the stacks it detects. From then on people and agents edit it, `harness preset apply` adds
-a stack's entries to it, and `harness render` reads it.
+build, which verification lanes (named families of test commands) exist, which task tracker and agents it uses, defaults
+for [Ralph](ralph.md) runs (unattended agents working through a task list), skill sources, and the standing context
+agents receive. It is seeded and then repository-owned. `scaffold` seeds it once, with the entries of the
+[presets](presets.md) of the stacks it detects. From then on people and agents edit it, `harness preset apply` adds a
+stack's entries to it, and `harness render` reads it.
 
 Examples on this page run commands as `./harnessw <command>`, through the repository's [wrapper](wrapper.md); with a
 global install, `harness <command>` is equivalent.
@@ -30,7 +31,7 @@ global install, `harness <command>` is equivalent.
 | Change how a file is linted or the project is built | `commands` |
 | Add, rename or require a test lane | `verify.lanes` |
 | Run a repository check when certain files change | `verify.validators` |
-| Use Beads or PRD files by default | `tracker` |
+| Use [Beads](tasks.md) or PRD files by default | `tracker` |
 | Add Codex, or make an agent a Ralph-only worker | `agents` |
 | Change the Ralph model, effort or iteration budget | `ralph` |
 | Install shared skills | `skills.sources` |
@@ -84,7 +85,7 @@ Run `./harnessw render` after every edit, and `./harnessw doctor` to check globs
 | `tasks` | boolean | [`harness task`](tasks.md) and its task shim |
 | `ralph` | boolean | [`harness ralph`](ralph.md) and its task shims |
 | `memory` | boolean | [memory](memory.md) skeleton and `memory` block |
-| `skills` | boolean | [`harness skills sync`](skills.md) and the pending check |
+| `skills` | boolean | [`harness skills sync`](skills.md) and the `doctor` check for declared skill sources that are not installed |
 
 An omitted module is off.
 
@@ -92,7 +93,7 @@ An omitted module is off.
 
 | Value | Effect |
 | --- | --- |
-| `mise` | [task shims](render.md#task-shims), one-line mise tasks that exec `./harnessw <command>`, are rendered; the `commands` block shows `mise run …` |
+| `mise` | [task shims](render.md#task-shims), one-line tasks for the mise task runner that exec `./harnessw <command>`, are rendered; the `commands` block of `AGENTS.md` shows `mise run …` |
 | `binary` | no task shims; the `commands` block shows `./harnessw …` |
 
 ### `commands`
@@ -149,7 +150,7 @@ A map from agent name to its settings. Only declared agents are rendered. Agents
 
 | Field | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `config` | `managed` \| `inherit` | `managed` | `managed`: the coordinator's ralph-tui configuration is generated from this profile. `inherit`: the repository's root `.ralph-tui/config.toml` is the base, with the worker-contract keys forced. See [ralph](ralph.md#managed-and-inherited-configuration) |
+| `config` | `managed` \| `inherit` | `managed` | `managed`: the coordinator's ralph-tui configuration is generated from this profile; the coordinator is the isolated worktree a harness-launched run executes in. `inherit`: the repository's root `.ralph-tui/config.toml` is the base, with the worker-contract keys forced. See [ralph](ralph.md#managed-and-inherited-configuration) |
 | `default_agent` | agent name | required with `modules.ralph` | Agent used when `--agent` is omitted |
 | `max_iterations` | integer | required with `modules.ralph` | Iteration budget when `--iterations` is omitted. `0` is unlimited |
 | `agents` | map of agent name to `{model, effort}` | | Per-agent defaults for workers |
@@ -177,7 +178,7 @@ examples.
 ```yaml
 context:
   always:                                   # every session start, and again after compaction
-    - skill: karpathy-guidelines
+    - skill: coding-guidelines
     - file: .agents/directives/worker-rules.md
       for: [worker]
     - file: .agents/directives/house-rules.md
@@ -226,8 +227,8 @@ tree.
 
 State is clone-local, gitignored and disposable, and lives outside `.harness/`. Four keys say where, each relative to
 the repository root. Each path is written down as a convention in a managed block of `AGENTS.md` and a managed block of
-`.gitignore` ([block ids](render.md#block-ids)), so people, agents, ralph-tui and `bd` find it, with or without
-`harness`.
+`.gitignore` ([block ids](render.md#block-ids)), so people, agents, ralph-tui and `bd` (the Beads command) find it, with
+or without `harness`.
 
 ```yaml
 state:
@@ -242,7 +243,7 @@ ralph:
 
 | Field | Type | Default | Holds | Blocks it produces |
 | --- | --- | --- | --- | --- |
-| `state.dir` | path | `.work` | in the primary checkout: `lifecycle.jsonl` and the locks shared by every worktree; in each checkout: `session.json`, `verified.json` (the receipt), `hook-checks.json` | `.gitignore` `state` (`/.work/`); named in the `AGENTS.md` `layout` block |
+| `state.dir` | path | `.work` | in the primary checkout: `lifecycle.jsonl` and the locks shared by every worktree; in each checkout: `session.json`, `verified.json` (the [receipt](verify.md) of a passing `harness verify`), `hook-checks.json` | `.gitignore` `state` (`/.work/`); named in the `AGENTS.md` `layout` block |
 | `worktrees.dir` | path | `.work/worktrees` | each managed worktree, at `<dir>/<name>` | `AGENTS.md` `worktrees` (where worktrees are created, their `work/<name>` branch, that they start from committed code); `.gitignore` `worktrees` (`/.work/worktrees/`) |
 | `tasks.prd_dir` | path | `.work/prds` | PRD files | `AGENTS.md` `tasks`; `.gitignore` `tasks` (`/.work/prds/`); with `modules.tasks` |
 | `ralph.worktrees_dir` | path | `.work/ralph-worktrees` | ralph-tui's worker checkouts for the parallel tasks of harness-launched runs. The coordinator and sequential task worktrees live under `worktrees.dir`, as `ralph-<session-id>` and `ralph-<session-id>-<task>`; ralph-tui state stays in the coordinator's `.ralph-tui/` | `AGENTS.md` `ralph`; `.gitignore` `ralph` (`/.ralph-tui/`, `/.work/ralph-worktrees/`); with `modules.ralph` |
@@ -290,10 +291,10 @@ ralph:
   agents:
     claude: { model: claude-sonnet-5-5, effort: medium }
     codex: { model: gpt-5-codex, effort: high }
-skills: { sources: [lmarqs/skills] }
+skills: { sources: [acme/agent-skills] }
 context:
   always:
-    - skill: karpathy-guidelines
+    - skill: coding-guidelines
   when:
     - paths: ["src/migrations/**", "**/*.sql"]
       skill: sql-quality-check
@@ -344,7 +345,7 @@ verify:
 tracker: { default: prd }
 agents: { claude: { role: interactive }, codex: { role: interactive } }
 ralph: { config: managed, default_agent: claude, max_iterations: 8, agents: { claude: { model: claude-sonnet-5-5, effort: high } } }
-skills: { sources: [lmarqs/skills] }
+skills: { sources: [acme/agent-skills] }
 ```
 
 Patterns for the Go lanes are package paths:

@@ -23,9 +23,10 @@ install, `harness <command>` is equivalent.
 
 ### Does `harness` call a model or host agents?
 
-No. It configures and constrains the tools that do (Claude Code, Codex, ralph-tui) and never calls a model. When a
-Ralph run or an [`agent` action](lifecycle.md) needs an agent, `harness` starts the agent's own CLI, under the worker
-contract.
+No. It configures and constrains the tools that do (Claude Code, Codex, and ralph-tui, which starts an agent for each
+task of a list) and never calls a model. When a [Ralph](ralph.md) run, an unattended run through ralph-tui, or an
+[`agent` action](lifecycle.md) needs an agent, `harness` starts the agent's own CLI, under the
+[worker contract](ralph.md#the-worker-contract).
 
 ### Is it related to Harness.io?
 
@@ -36,8 +37,9 @@ pinned binary, whatever else is on `PATH` ([compatibility](compatibility.md#harn
 ### Does it use MCP servers?
 
 The binary is never an MCP client. Work that needs an MCP tool is done by an agent that owns that connection and its
-credentials: the coordinating agent, or an [`agent` action](lifecycle.md). Deterministic integrations use a service's
-API through an `http` action, or its CLI through a `run` action.
+credentials: the coordinating agent, meaning the agent session that runs `harness` commands for a person, or an
+[`agent` action](lifecycle.md). Deterministic integrations use a service's API through an `http` action, or its CLI
+through a `run` action.
 
 ### Do my teammates need to install it?
 
@@ -86,8 +88,9 @@ Claude Code and Codex CLI, each through an adapter. A new agent needs a complete
 
 ### Does it work without mise?
 
-Yes. Set `front_door: binary` (the default when the repository has no mise configuration) and call `./harnessw`
-directly. The wrapper itself needs no mise.
+Yes. mise, a tool-version manager and task runner, is optional: with `front_door: mise` in the
+[profile](profile.md#front_door), `harness` renders task shims such as `mise run verify`. Set `front_door: binary` (the
+default when the repository has no mise configuration) and call `./harnessw` directly. The wrapper itself needs no mise.
 
 ### Does it support monorepos?
 
@@ -102,7 +105,8 @@ No. It runs on linux and macOS, on amd64 and arm64, and the wrapper is a POSIX `
 
 ### Why three files instead of one?
 
-Each has one audience and one renderer: the profile describes the repository, the policy is reviewed as security
+Each of `.harness/config.yaml` (the profile), `.harness/policy.yaml` (the policy) and `.harness/hooks.yaml` (the hooks
+file) has one audience and one renderer: the profile describes the repository, the policy is reviewed as security
 policy, and the hooks file describes editor feedback. Reviewers of a permission change read only `policy.yaml` and its
 rendered diff.
 
@@ -133,15 +137,16 @@ Two ways ([remove](remove.md)). `./harnessw remove` undoes the adoption: it dele
 the permission rules and hooks adoption imported. `./harnessw remove --eject` stops `harness` managing the repository
 and keeps the result: the conventions in `AGENTS.md` and `.gitignore`, the permissions and the `raw` hooks stay as
 hand-owned files. Both delete `harnessw` and the files in `.harness/` that `harness` owns or seeded, then `.harness/`
-once it is empty. A file the manifest does not record, such as `.harness/ralph/prompt.hbs`, is listed and left.
+once it is empty. A file the manifest does not record, such as `.harness/ralph/prompt.hbs`, an optional override of the
+Ralph prompt, is listed and left.
 
 ### Does anything keep working after an eject?
 
-Yes. Agents keep their permissions and `raw` hooks from the native files, and the convention blocks stay in
-`AGENTS.md` and `.gitignore` as plain text, so people, agents, `bd` and ralph-tui still find worktrees and state where
-they were. The tool blocks, which describe how to use `harness`, are removed, so nothing left names a command that is
-gone. What stops is everything `harness` runs: the wrapper, verification receipts, lifecycle events, Ralph's worker
-contract, injected standing context and the hooks that called `harness`.
+Yes. Agents keep their permissions and `raw` hooks from the native files, and the convention blocks stay in `AGENTS.md`
+and `.gitignore` as plain text, so people, agents, `bd` (the CLI of the Beads task tracker) and ralph-tui still find
+worktrees and state where they were. The tool blocks, which describe how to use `harness`, are removed, so nothing left
+names a command that is gone. What stops is everything `harness` runs: the wrapper, verification receipts, lifecycle
+events, Ralph's worker contract, injected standing context and the hooks that called `harness`.
 
 ## Policy
 
@@ -163,10 +168,11 @@ Write them into each repository. What `harness` renders and runs in a repository
 files and the release it pins, so a reviewer and an agent working there can read every rule that applies, and the
 same commit renders the same bytes on every machine ([ADR 0013](../adrs/0013-organization-content.md)).
 
-- **Choices that take judgement**, such as MCP read patterns, deploy denies, a CI trigger in delivery or tracker
-  rules: publish a skill that describes them, install it with `npx skills add acme/agent-skills`, and have an agent
-  following it change each repository's `.harness/policy.yaml`, `.harness/hooks.yaml` or profile. Each repository
-  reviews the change as a diff, so two repositories can hold different entries for the same choice when they need to.
+- **Choices that take judgement**, such as which MCP tools agents may read without asking, a deny on each repository's
+  deploy command, a CI trigger in delivery or the task tracker its repositories use: publish a skill that describes
+  them, install it with `npx skills add acme/agent-skills`, and have an agent following it change each repository's
+  `.harness/policy.yaml`, `.harness/hooks.yaml` or profile. Each repository reviews the change as a diff, so two
+  repositories can hold different entries for the same choice when they need to.
 - **`harness` commands**, such as applying a stack preset or moving to a new release: run them across repositories
   with [`harness fleet`](fleet.md), for example `harness fleet preset apply node --yes --deliver` with a fleet file
   of Node repositories.
@@ -200,8 +206,10 @@ Codex has no equivalent, and the `policy` block lists it as Claude-only.
 
 ### Why does `verify` refuse to skip every lane?
 
-A skip reason is free text that no check can judge. It may skip a lane, but an application change needs at least one
-lane of real evidence.
+For an application change, one that touches a file matching `verify.app_paths`, each lane (a named family of test
+commands in the profile) is either run or skipped with a reason, such as `--skip e2e="no route changed"`. A skip reason
+is free text that no check can judge. It may skip a lane, but an application change needs at least one lane of real
+evidence ([verify](verify.md#lane-rules)).
 
 ### My receipt became invalid after I committed.
 
@@ -215,7 +223,8 @@ GitHub issues or projects.
 
 ### I already sync Beads across machines. Will `harness` break that?
 
-No. An existing `.beads/` is used as found; `harness` configures only a database it creates.
+No. Beads keeps its tasks in a `.beads/` database in the clone. An existing `.beads/` is used as found, its remotes and
+sync settings untouched; `harness` configures only a database it creates ([compatibility](compatibility.md#beads)).
 
 ## Lifecycle and delivery
 
@@ -254,8 +263,9 @@ runs outside `harness` are unaffected.
 
 ### Why does the worker replay verification instead of trusting the receipt?
 
-The receipt is in the tree the agent can write, so it only selects what to check. The worker reruns those checks
-against the final content, with rules read from the base commit, before it releases completion.
+The receipt, the record `harness verify` writes when the checks pass, is in the tree the agent can write, so it only
+selects what to check. The worker reruns those checks against the final content, with rules read from the base commit,
+before it releases completion.
 
 ### Does `harness` open the pull request after a run?
 
@@ -274,10 +284,10 @@ sessions it recorded.
 
 ### Should we pin the version per repository?
 
-Every adopted repository is pinned: `.harness/wrapper.yaml` names one release and the checksums of its binaries, and
-both `./harnessw` and a global install run that release. Within one repository, every machine and CI job runs the
-same version ([wrapper](wrapper.md)). Do not pin `harness` again in `mise.toml` or `.tool-versions`: `wrapper.yaml` is
-the only pin, and `doctor` reports a second one as a finding.
+Every repository set up with `harness scaffold` is pinned: `.harness/wrapper.yaml` names one release and the checksums
+of its binaries, and both `./harnessw` and a global install run that release. Within one repository, every machine and
+CI job runs the same version ([wrapper](wrapper.md)). Do not pin `harness` again in `mise.toml` or `.tool-versions`:
+`wrapper.yaml` is the only pin, and `doctor` reports a second one as a finding.
 
 ### How do I upgrade?
 

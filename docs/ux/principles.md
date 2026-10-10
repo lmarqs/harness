@@ -41,9 +41,10 @@ committed files of those that did, so anything harness requires of them is impos
 - Files harness writes MUST NOT add a runtime dependency, a required CI step, or a change to build, test, deploy or
   release outputs, because those outputs belong to the repository's own toolchain. The wrapper's first-run
   requirements (a POSIX `sh`, `curl` or `wget`, `sha256sum` or `shasum`) apply only to running harness.
-- Adoption and removal are per repository and per module, because a repository may want one practice without the
-  others. Removal has two modes, undo (`harness remove`) and eject (`harness remove --eject`), and either leaves a
-  repository that works with what remains (see [generated-content-standards.md](generated-content-standards.md#removal)).
+- Adoption and removal are per repository and per module (for example, `modules.verify` on and `modules.ralph` off),
+  because a repository may want one practice without the others. Removal has two modes, undo (`harness remove`) and
+  eject (`harness remove --eject`), and either leaves a repository that works with what remains (see
+  [generated-content-standards.md](generated-content-standards.md#removal)).
 
 ## 2. The binary is deterministic; judgement belongs to agents
 
@@ -64,14 +65,16 @@ guess made by code is wrong in the first repository nobody anticipated
 
 ## 3. Sets the rules, never plays
 
-harness is a meta-harness (see the [glossary](../features/glossary.md)): it configures and constrains the tools that
-run models, and it never takes their place. Why: the agents people already use are developed by their vendors and
-follow every model change. A tool that competed with them would carry credentials, cost and a second loop to maintain
+harness is a meta-harness (see the [glossary](../features/glossary.md)): it configures and constrains the tools that run
+models, and it never takes their place. Why: the agents people already use are developed by their vendors and follow
+every model change. A tool that competed with them would carry credentials, cost and a second agent loop to maintain
 ([ADR 0001](../adrs/0001-role-of-the-tool.md)).
 
-- The binary never calls a model and is never a client of an agent tool server (MCP). Work that needs a model or an
-  MCP tool is done by an agent: the coordinating agent, or an `agent` action that harness starts as a child process
-  under the worker contract. Why: the agent owns those connections, their credentials and their permissions.
+- The binary never calls a model and is never a client of an agent tool server (MCP). Work that needs a model or an MCP
+  tool is done by an agent: the [coordinating agent](../features/lifecycle.md#the-lifecycle-stage-by-stage), or an
+  `agent` action that harness starts as a child process under the
+  [worker contract](../features/ralph.md#the-worker-contract). Why: the agent owns those connections, their credentials
+  and their permissions.
 - The binary never writes knowledge: no free prose, no memory entries, no domain skills, no policy entries invented on
   the user's behalf, because knowledge needs judgement. It writes rendered files, managed blocks whose text is derived
   from the repository files (fixed sentences stating a convention with its configured values, tables, lists), the
@@ -82,9 +85,10 @@ follow every model change. A tool that competed with them would carry credential
   conventions, and platform logic in the binary binds every release to one platform. Everything that leaves the
   clone, a pull request included, is a declared action ([principle 7](#7-nothing-leaves-the-clone-undeclared);
   [ADR 0012](../adrs/0012-write-boundary.md)).
-- The binary never reconfigures state it did not create (an existing `.beads/`, a root `.ralph-tui/`,
-  `core.hooksPath`, existing mise tasks, a task runner's tool list, `CLAUDE.md` content, a `.harness/` directory that
-  another product created), because its owners depend on it as it is.
+- The binary never reconfigures state it did not create (an existing `.beads/`, the database of the Beads task tracker;
+  a root `.ralph-tui/`, the configuration of ralph-tui, which runs unattended agents; `core.hooksPath`; existing tasks
+  of the mise task runner; a task runner's tool list; `CLAUDE.md` content; a `.harness/` directory that another
+  product created), because its owners depend on it as it is.
 
 ## 4. Least surprise
 
@@ -102,9 +106,9 @@ follow every model change. A tool that competed with them would carry credential
   on its own are: the wrapper's download of the version pinned in `.harness/wrapper.yaml` (on an explicit invocation
   only, over HTTPS, verified against the pinned checksum); the release's signed checksum file, fetched by
   `harness scaffold` (not with `--offline`) and `harness wrapper` before they write a pin and re-verified by
-  `harness doctor` at most daily; the daily release check; and `skills sync` (through the `skills` CLI). Each is
-  documented and the release check can be disabled. Rendering and applying a preset need none of them, because their
-  only inputs are the repository's files and the pinned release
+  `harness doctor` at most daily; the daily release check ([update notices](compatibility-standards.md#update-notices));
+  and `skills sync` (through the `skills` CLI). Each is documented and the release check can be disabled. Rendering and
+  applying a preset need none of them, because their only inputs are the repository's files and the pinned release
   ([principle 9](#9-everything-a-repository-does-is-in-its-own-files)). Any other network access is a declared action
   (an `http` action, or a `run` or `agent` action whose command reaches the network), visible in
   `harness lifecycle list` and in `.harness/hooks.yaml`.
@@ -174,9 +178,10 @@ hard to undo, so it must be written down, reviewed and guarded before it can hap
 - **One action, three triggers.** A person runs `harness lifecycle run <event>`; a coordinating agent runs the same
   command; or harness fires the action at the event's trigger point when the action sets `auto: true`. `auto`
   defaults to false, so nothing leaves the clone automatically unless a committed file says so.
-- **Guarded.** Actions never run inside a Ralph worker or an `agent` action: the binary refuses `lifecycle run` there
-  itself, whatever spelling invoked it. `deliver` always refuses on the default branch and with uncommitted changes
-  and, when the verify module is enabled, without a valid receipt. These guards are built-in invariants
+- **Guarded.** Actions never run inside a [Ralph](../features/ralph.md) worker (the agent process an unattended run
+  starts for one task) or an `agent` action: the binary refuses `lifecycle run` there itself, whatever spelling invoked
+  it. `deliver` always refuses on the default branch and with uncommitted changes and, when the verify module is
+  enabled, without a valid receipt (the record a passing `harness verify` writes). These guards are built-in invariants
   ([ADR 0011](../adrs/0011-safety-invariants.md)).
 - **Code, not settings.** Actions are committed and reviewed like code. They receive values only as environment
   variables, never substituted into a command string, so a task title or a branch name cannot inject shell syntax.
@@ -196,10 +201,10 @@ as an absolute path to the binary, match no prefix rule, and the binary enforces
 
 ## 8. Conventions outlive the tool
 
-Every convention harness establishes is written down as plain-language text where people and other tools already
-look, and stays valid after harness is removed. Why: people, agents, ralph-tui and `bd` rely on where worktrees, task
-files and state live. If those conventions existed only in harness's configuration, removing harness would leave state
-that follows rules nobody wrote down ([ADR 0018](../adrs/0018-conventions.md)).
+Every convention harness establishes is written down as plain-language text where people and other tools already look,
+and stays valid after harness is removed. Why: people, agents, ralph-tui and `bd` (the Beads command) rely on where
+worktrees, task files and state live. If those conventions existed only in harness's configuration, removing harness
+would leave state that follows rules nobody wrote down ([ADR 0018](../adrs/0018-conventions.md)).
 
 - Two classes of managed block carry harness's text in `AGENTS.md`
   ([generated-content-standards.md](generated-content-standards.md#block-classes)):
@@ -235,9 +240,11 @@ there, and a reviewer sees its effect without its reason ([ADR 0013](../adrs/001
 - A built-in preset reaches a repository only as entries written into its files, and nothing records where an entry
   came from, so each entry has one source of truth: the file it is in
   ([configuration-standards.md](configuration-standards.md#presets)).
-- An organization's choices reach its repositories as changes to each repository's files, written by a person or by
-  an agent following the organization's skill, and reviewed there as a diff. The cost is that a choice shared by many
-  repositories is written, and changed, in each of them.
+- An organization's choices reach its repositories as changes to each repository's files, written by a person or by an
+  agent following the organization's skill, and reviewed there as a diff. The cost is that a choice shared by many
+  repositories is written, and changed, in each of them. For example, when acme lets its agents use the read-only tools
+  of its observability MCP server, `acme/api` and `acme/web` each get those entries in their own `policy.yaml`, in a
+  change reviewed in that repository.
 
 ## When principles conflict
 

@@ -51,9 +51,14 @@ nobody can tell which facts it depends on. So every ADR justifies every point it
 
 - Each numbered point of the Decision serves the Objective and has at least one reason in Reasons.
 - A reason ties a fact from Context, or another ADR, to the point, and states what the decision trades away.
-- Context holds the data and examples that make the objective concrete, each with its source: a tool's documented
-  behaviour with the version it was checked against, a measurement, a survey count, a case from a real repository. It
-  holds no conclusions. The objective is understood without it; Context is where a reader checks it.
+- Context holds the facts and examples that make the objective concrete, and a reader with only this repository and
+  public sources can check or follow every one of them: a third-party tool's documented behaviour, with the version it
+  was checked against; a property of the tool or of the problem itself; or a worked example, named as one, set in a
+  made-up organization (`acme`). It holds no conclusions. The objective is understood without it; Context is where a
+  reader checks it.
+- Context never relies on what the reader cannot see: no counts from a private survey, no cases from repositories,
+  people or conversations outside this project. Why: the ADRs are read by people who were not there, and a fact they
+  cannot check is only an assertion, while an example they can follow makes the same point and stays true.
 - Each rejected alternative is stated at its best before the reason it loses.
 
 An ADR whose Reasons section does not cover every point is incomplete, whatever its Decision says.
@@ -84,8 +89,9 @@ One ADR holds one decision. If its points serve two decisions, it is two ADRs.
 
 - Present tense, no hedges.
 - No names of the tool's commands, flags, settings, environment variables, exit codes or files. Mechanisms are named
-  generically: the wrapper, the manifest, the drift check, the health check, the repository's data. The directory
-  layout ADR names directories because the layout is its decision.
+  generically: the wrapper, the manifest, the drift check, the health check, the repository's data. The
+  [glossary](../features/glossary.md) and the [features](../features/) pages give the tool's own name for each. The
+  directory layout ADR names directories because the layout is its decision.
 - A third-party product whose behaviour a decision depends on is named with the version that behaviour was checked
   against. Prior art and rejected tools are named without a version, because nothing depends on their behaviour.
 - Organizations appear only as the makers of third-party products whose behaviour matters; examples use `acme`.

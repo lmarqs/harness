@@ -34,7 +34,7 @@ wrapper as `./harnessw <command>` ([cli-standards.md](cli-standards.md#entry-poi
 | --- | --- | --- |
 | Developer in an adopted repository | `./harnessw`, task shims, generated files in pull requests | one pinned version on every machine, predictable commands, readable diffs, nothing written without being shown first |
 | Interactive agent (Claude Code, Codex) | rendered settings, hooks, `AGENTS.md` blocks, injected standing context, the harness skill, `harness explain` | parseable output, exact next commands, text that matches the binary |
-| Unattended agent (Ralph coordinator or worker, an `agent` action) | the CLI without a terminal, exit codes, JSON | no prompts, a distinct "blocked" outcome, no hidden state |
+| Unattended agent ([Ralph](../features/ralph.md) coordinator or worker, an [`agent` action](../features/lifecycle.md#action-kinds)) | the CLI without a terminal, exit codes, JSON | no prompts, a distinct "blocked" outcome, no hidden state |
 | CI | the optional `./harnessw render --check` and `./harnessw doctor` steps | deterministic checks with the pinned, checksum-verified version; nothing required |
 | Repository owner or teammate who does not use harness | committed files only | a clone that builds, tests and runs agents without the binary; conventions written in plain language in `AGENTS.md` and `.gitignore` |
 | Repository that stops using harness | `harness remove`, `harness remove --eject` | undo returns the repository to a working state without harness; eject keeps its conventions, permissions and hooks as the repository's own |

@@ -25,7 +25,7 @@ install, `harness <command>` is equivalent.
 | Already in the repository | What `harness` does |
 | --- | --- |
 | GitHub issues, pull requests, projects | The binary never writes them; delivery is the repository's declared `deliver` actions |
-| A `.beads/` database | Uses it as found |
+| A `.beads/` database ([Beads](#beads), a task tracker) | Uses it as found |
 | A root `.ralph-tui/` and direct ralph-tui use | Never reads or writes it, unless `ralph.config: inherit` (read only) |
 | mise tasks | Never overwrites them; collisions get `harness:<name>` task shims |
 | A pin of `harness` in `mise.toml`, `.mise.toml` or `.tool-versions` | Never edits it; adoption copies it into `.harness/wrapper.yaml`, and `doctor` reports the second pin until it is removed |
@@ -56,6 +56,9 @@ platform's own CLI. A repository that declares none never has anything leave the
 
 ## Beads
 
+Beads is a task tracker that keeps tasks in a `.beads/` database in the clone and is used through its `bd` CLI.
+`harness task` and [Ralph](ralph.md) runs can work from it ([tasks](tasks.md)).
+
 | Situation | Behaviour |
 | --- | --- |
 | No `.beads/` and `--tracker beads` | `harness` creates a local database: prefix from the profile, no git hooks, no agent files, no remotes, automatic export off |
@@ -65,6 +68,10 @@ platform's own CLI. A repository that declares none never has anything leave the
 | A tracker remote you want agents never to push to | add a `deny` entry to the repository's policy; the built-in base has none |
 
 ## ralph-tui
+
+[ralph-tui](https://github.com/subsy/ralph-tui) works through a list of tasks unattended, starting an agent for each.
+`harness ralph` launches it with a generated configuration ([ralph](ralph.md)). A direct run is one a person starts with
+ralph-tui itself, outside `harness`.
 
 | Situation | Behaviour |
 | --- | --- |
@@ -81,6 +88,10 @@ worktrees sit beside it as `ralph-<session-id>-<task>`, and only ralph-tui's par
 `AGENTS.md` and `.gitignore` write that down, so the layout stays readable after an eject.
 
 ## mise
+
+[mise](https://mise.jdx.dev) is a tool-version manager and task runner. With `front_door: mise` in the profile, `render`
+writes task shims: one-line mise tasks, such as `mise run verify`, that run `./harnessw <command>`
+([render](render.md#task-shims)).
 
 | Situation | Behaviour |
 | --- | --- |
@@ -144,9 +155,9 @@ audiences, and a repository uses one of them.
 
 ## Other tools in `AGENTS.md`
 
-Tools such as `bd init` may add their own sections to `AGENTS.md`. `harness` blocks are bound to their markers, never to
-headings, so the sections coexist. The two may say similar things; trim the other tool's section if it reads
-redundantly.
+Other tools may add their own sections to `AGENTS.md`, such as Beads through `bd init`. `harness` blocks are bound to
+their markers, never to headings, so the sections coexist. The two may say similar things; trim the other tool's section
+if it reads redundantly.
 
 ## Monorepos
 
@@ -156,7 +167,7 @@ redundantly.
 
 ## CI/CD
 
-An adopted repository's CI/CD is unchanged:
+A repository's CI/CD is unchanged by adopting `harness`:
 
 - no build, test, deploy or release step requires the binary or the wrapper;
 - rendered files add no dependency and change no build output;
@@ -183,6 +194,8 @@ An adopted repository's CI/CD is unchanged:
   ([wrapper](wrapper.md#upgrading)). A binary older than the repository's schema refuses, naming the pinned release to
   run. That happens only when the pin is bypassed, through `HARNESS_BINARY` or a global binary too old to defer to the
   pin ([installation](installation.md#version-skew)).
+- The documentation describes Claude Code 2.1.x, Codex CLI 0.16x, Beads (`bd`) 1.3.1, ralph-tui 0.12, mise 2026.6
+  and the `skills` CLI 1.7. The ranges a release supports are in that release: `harness doctor --json` lists them.
 - `harness doctor` checks `claude`, `codex`, `bd` and `ralph-tui`, and `mise` when task shims are rendered and the
   `skills` CLI when the skills module is enabled, against the release's supported versions, and reports a version
   outside that range as a finding.
@@ -210,7 +223,8 @@ left behind names a command that no longer exists.
 An undo, `harness remove` without `--eject`, instead returns the repository to the setup it had before adoption: every
 block and its text is removed, and the settings adoption imported are written back. Both modes delete `harnessw`, the
 files `.harness/` holds that `harness` owns or seeded, and then `.harness/` once nothing else is in it. A file the
-manifest does not record, such as `.harness/ralph/prompt.hbs`, is listed and left. Both leave state where it is.
+manifest does not record, such as `.harness/ralph/prompt.hbs`, an optional override of the Ralph prompt, is listed and
+left. Both leave state where it is.
 
 ## Not supported
 

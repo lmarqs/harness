@@ -20,11 +20,13 @@ Giving a repository a consistent agent setup involves two kinds of work:
 
 Facts:
 
-- Propagation that nothing fixes produces different output for the same input. Three hand-ported copies of one agent
-  workflow exist; each is a dialect, and two lost the original's safety settings. An agent following a scaffolding
-  skill has the same property, because nothing fixes its output.
-- Input shapes are unbounded. A survey of 51 repositories found three shapes of the same skills directory, instruction
-  files with 2 to 24 KB of hand-written content, and hooks on events that no shared model covers.
+- Propagation that nothing fixes produces different output for the same input. Example: acme copies one agent workflow
+  by hand from `acme/api` into `acme/web` and `acme/infra`; each copy becomes its own dialect, and two of them start
+  unattended agents with permission checks turned off. An agent following a scaffolding skill has the same property,
+  because nothing fixes its output: run twice on one repository, it can write two different setups.
+- Input shapes are unbounded. Example: at acme, `.claude/skills` is a directory of the team's own skills in `acme/api`,
+  a symbolic link to a shared directory in `acme/web` and absent in `acme/infra`; `AGENTS.md` runs from a few lines to
+  tens of kilobytes of hand-written prose; and some repositories hook events that no shared model covers.
 - A drift check compares a repository with a fresh render; it is meaningful only if the render is reproducible.
 - Agents working inside a repository change its setup correctly only when they know the rules, the reasons and which
   files are generated.
@@ -70,8 +72,8 @@ where a repository needs specific prose.
 
 A skill describes the target setup and an agent ports it to each repository. At its best, there is no code to maintain
 and every repository gets a tailored result. It loses because output differs per run, nothing enforces the invariants
-and no drift check exists. Hand propagation has the same properties and produced three dialects that lost safety
-settings.
+and no drift check exists. Hand propagation has the same properties: it turns the acme workflow in Context into three
+dialects, two of which lose their safety settings.
 
 ## Consequences
 

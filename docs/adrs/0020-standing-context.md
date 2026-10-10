@@ -15,8 +15,10 @@ the sessions that do not need it.
 - Repositories keep guidance as skills and directive files: coding guidelines, a SQL review checklist, rules for dates
   and timezones. An agent loads a skill when the model judges the skill's description relevant to the request; whether
   a given skill is loaded for a given request is the model's choice.
-- People invoke known guidance by name at the start of sessions because description matching does not load it
-  reliably. The cost is repeated typing, and guidance that is forgotten is not applied.
+- People invoke known guidance by name at the start of sessions because description matching does not load it reliably.
+  The cost is repeated typing, and guidance that is forgotten is not applied. For example, a developer in `acme/api`
+  names the SQL review checklist and the timezone rules at the start of each session, and in the session where they
+  forget, the agent writes date handling without the timezone rules.
 - Much guidance applies to specific files (SQL rules to migrations) or topics (timezone rules to date handling).
   Instruction files are read at the start of every session ([0018](0018-conventions.md)), so guidance placed there
   costs context in every session, including the many where it does not apply.
@@ -70,8 +72,8 @@ the sessions that do not need it.
 - **4.** Delivered text acts as instructions, so it may come only from sources that are reviewed: versioned files, or
   skills whose content matches the hash recorded when they were installed. Fetching at hook time would make each hook
   depend on the network and the 50 ms budget ([0003](0003-implementation-language.md)), and would deliver content no one
-  reviewed. Reading from the base commit for unattended agents means a worker cannot rewrite its own instructions
-  between attempts, as with the rest of the data that drives it ([0011](0011-safety-invariants.md)).
+  reviewed. Reading from the base commit for unattended agents means an unattended agent cannot rewrite the instructions
+  of its next attempt at a task, as with the rest of the data that drives it ([0011](0011-safety-invariants.md)).
 - **5.** Every always-on line costs context in every session of the role. A budget makes that cost visible as a number.
   A report rather than a refusal leaves the trade to the repository.
 - **6.** What a hook adds to a session is invisible from outside it. A preview computed by the same rules lets a person

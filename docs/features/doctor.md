@@ -25,7 +25,8 @@ global install, `harness <command>` is equivalent.
 
 - After `harness scaffold` or `harness scaffold --adopt`, to see what is left.
 - After editing the profile, policy or hooks file, as a broader check than `render --check`.
-- When something does not behave as expected: a hook does not fire, a lane selects nothing, Ralph refuses to start.
+- When something does not behave as expected: a hook does not fire, a [lane](verify.md) selects nothing, an unattended
+  [Ralph](ralph.md) run refuses to start.
 - In CI, optionally, next to `harness render --check`.
 - Across many repositories with [`harness fleet doctor`](fleet.md).
 
@@ -39,7 +40,7 @@ global install, `harness <command>` is equivalent.
 | Wrapper file | `.harness/wrapper.yaml` missing or invalid: no `schema`, a `version` that is not an exact tag, a `source` that is neither `github:<owner>/<repo>` nor an HTTPS base URL ([release source](wrapper.md#release-source)), or a checksum missing or not 64 hexadecimal characters for one of `linux-amd64`, `linux-arm64`, `darwin-amd64`, `darwin-arm64`. `checksums: pending` is valid and reported as the next row |
 | Pending pin | `.harness/wrapper.yaml` has `checksums: pending`, written by `scaffold --offline`: no machine without the release in its cache can run `./harnessw` until `harness wrapper --version <the pinned tag>` completes it ([wrapper](wrapper.md#a-pending-pin)) |
 | Wrapper script | `harnessw` missing, not executable, or different from the pinned release's template |
-| One pin | `mise.toml`, `.mise.toml` or `.tool-versions` also pins `harness` (`github:lmarqs/harness` or `harness`). `.harness/wrapper.yaml` is the only pin; `harness` never edits the task runner's file, so remove the line yourself |
+| One pin | `mise.toml`, `.mise.toml` or `.tool-versions`, the files the [mise](https://mise.jdx.dev) task runner reads tool versions from, also pins `harness` (`github:lmarqs/harness` or `harness`). `.harness/wrapper.yaml` is the only pin; `harness` never edits the task runner's file, so remove the line yourself |
 | Release signature | online only, at most once a day and cached: the pinned release's signed checksum file does not verify with the keys embedded in the running release, or its checksums differ from those in `.harness/wrapper.yaml` ([wrapper](wrapper.md#security)); a pending pin has none to compare and is reported as pending |
 | Cached release | the pinned release is not in `$HARNESS_HOME` on this machine and `HARNESS_BINARY` is unset, so agent hooks skip until `./harnessw version` runs |
 | Rendered files | the same drift `harness render --check` reports |
@@ -48,7 +49,7 @@ global install, `harness <command>` is equivalent.
 | Commands | `commands`, lane `select`/`full`, `bootstrap`, validator and post-edit commands that call a mise task the repository does not define |
 | Globs | `verify.app_paths`, `verify.lint_paths`, lane `required_when`, validator `when` and post-edit `paths` that match no tracked file |
 | Default branch | `origin/HEAD` cannot be resolved, so the built-in force-push deny cannot name the branch |
-| Tools | `claude`, `codex`, `bd` and `ralph-tui` versions outside the supported range, for the tools the profile uses; `mise` when task shims are rendered (`front_door: mise`); the `skills` CLI when `modules.skills` is on |
+| Tools | `claude` (Claude Code), `codex`, `bd` (the command of the Beads task tracker, [tasks](tasks.md#trackers)) and `ralph-tui` (the runner behind [Ralph](ralph.md)) versions outside the supported range, for the tools the profile uses; `mise` when [task shims](render.md#task-shims) are rendered (`front_door: mise`); the `skills` CLI when `modules.skills` is on |
 | Policy | an entry that would weaken a built-in invariant, such as an `allow` for a force push to the default branch; `render` leaves it out and renders the invariant, and the entry stays a finding until it is removed ([ADR 0011](../adrs/0011-safety-invariants.md)) |
 | Skills | declared skill sources that are not installed (`modules.skills`) |
 | Context | invalid `context` declarations, a skill or file an entry names that does not exist, and a skill whose content does not match its hash in `skills-lock.json`, which is therefore not injected ([context](context.md#sources-and-trust)) |
@@ -120,14 +121,14 @@ pin
 globs
   verify.lanes.e2e.required_when: src/**/routes/** matches no tracked file
 skills
-  lmarqs/skills is declared but not installed: run ./harnessw skills sync
+  acme/agent-skills is declared but not installed: run ./harnessw skills sync
 to-do
   mise task "verify" collides; wrapper written as harness:verify
 landed
   work/fix-invoice-rounding has landed: run ./harnessw worktree remove fix-invoice-rounding to fire landed
 note
   harness v0.9.0 is available (this repository pins v0.8.2): run ./harnessw wrapper --version v0.9.0
-  context for interactive sessions is 134 lines, over the budget of 120: karpathy-guidelines 96, house-rules 38
+  context for interactive sessions is 134 lines, over the budget of 120: coding-guidelines 96, house-rules 38
 $ echo $?
 2
 ```

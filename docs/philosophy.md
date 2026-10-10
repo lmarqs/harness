@@ -18,19 +18,21 @@ skills, and the loops that run agents unattended. Across many repositories, that
    verification step or a way to run agents unattended, reaches another only when someone visits it and copies it.
    Withdrawing it is another visit to each.
 2. **Copies drift.** Each hand-made copy becomes its own dialect: the same command does different things in different
-   repositories, and a fix made in one never reaches the others. Three hand-ported copies of one agent workflow are
-   three dialects.
-3. **Safety is lost in copying.** Two of those three copies run unattended agents with permission checks turned off,
-   which the original refuses to do.
+   repositories, and a fix made in one never reaches the others. For example, suppose acme copies one agent workflow by
+   hand into `acme/api`, `acme/web` and `acme/infra`. A year later the verification step also lints in `acme/api` and
+   skips the slow tests in `acme/web`, and `acme/infra` still has a bug that `acme/api` fixed months ago.
+3. **Safety is lost in copying.** In the same example, `acme/web` and `acme/infra` now start unattended agents with
+   permission checks turned off, which the workflow in `acme/api` never allowed.
 4. **Everyone pays for one person's choice.** Teammates and pipelines that never chose a practice inherit whatever its
-   copy requires, or whatever it breaks.
+   copy requires, or whatever it breaks. For example, a hook that one person adds, calling a program only their machine
+   has, fails in every teammate's agent session and in every pipeline that runs it.
 5. **Nobody can tell what a repository's agents may do, or why.** Rules spread across hand-edited files, personal
    settings and sources outside the repository cannot be read, reviewed or explained from the repository itself.
 
 ## The goals
 
 - A practice learned once reaches every repository through one reviewed change in each, and is withdrawn the same way.
-- A fix to the workflow reaches every adopted repository through one release.
+- A fix to a workflow the tool provides reaches every adopted repository through one release.
 - People and agents work the same way in every adopted repository.
 - Wherever agents run unattended, they cannot bypass permissions or be recorded as done without a verification that
   passed.
@@ -41,8 +43,8 @@ skills, and the loops that run agents unattended. Across many repositories, that
 ## What harness is
 
 `harness` is a meta-harness. It writes, checks and removes the configuration that agent harnesses such as Claude Code,
-Codex CLI and ralph-tui read, and it constrains how a harness starts when `harness` starts it. It never calls a model
-and never runs an agent loop: it sets the rules and never plays
+Codex CLI and ralph-tui (which runs agents unattended through a list of tasks) read, and it constrains how a harness
+starts when `harness` starts it. It never calls a model and never runs an agent loop: it sets the rules and never plays
 ([the game master](features/README.md#the-game-master), [ADR 0001](adrs/0001-role-of-the-tool.md)).
 
 It is not an agent, not a client of hosting platforms or agent tool servers, not a source of configuration that lives
@@ -158,8 +160,8 @@ written so that they read correctly and still hold without it.
 
 **Problem.** A tool whose authors do not live with it ships its rough edges to every adopter.
 
-**Tenet.** The `harness` repository is adopted with `harness`, and its CI runs the drift check and the health check on
-itself.
+**Tenet.** The `harness` repository is adopted with `harness`, and its CI runs the
+[drift check](features/render.md#drift-check) and the [health check](features/doctor.md) on itself.
 
 **Bound by.** The project's own CI.
 

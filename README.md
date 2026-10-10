@@ -14,9 +14,10 @@ notice it.
 ## What it is
 
 `harness` is a single command-line binary that writes, checks and removes the configuration agent harnesses read
-(Claude Code, Codex CLI, ralph-tui). Everything it does in a repository is written in that repository's own files and
-pinned to one verified release. It never calls a model, and it never plays: like a game master, it sets the rules
-of the world and leaves the turns to the players, who are the developers, and their characters, the agents.
+(Claude Code, Codex CLI, and ralph-tui, which runs agents unattended through a list of tasks). Everything it does in a
+repository is written in that repository's own files and pinned to one verified release. It never calls a model, and it
+never plays: like a game master, it sets the rules of the world and leaves the turns to the players, who are the
+developers, and their characters, the agents.
 
 ## Read next
 

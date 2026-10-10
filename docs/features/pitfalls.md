@@ -17,7 +17,11 @@ Each entry below is a place where agents, permission systems, worktrees or track
 reasonable person expects, with what `harness` does about it. Every entry has four parts: the **symptom** you see,
 **why** it happens, what **`harness` does** about it, and what **you do**.
 
-For the principles behind these entries, read [safety](safety.md). For the terms, see the [glossary](glossary.md).
+For the principles behind these entries, read [safety](safety.md). For the terms, see the [glossary](glossary.md). Three
+third-party tools recur below: ralph-tui, which [`harness ralph`](ralph.md) launches to run agents on a list of tasks
+unattended, one Ralph worker per task; Beads, a task tracker kept in the clone, and its `bd` CLI
+([tasks](tasks.md#trackers)); and mise, a task runner, for which `harness` can write [task shims](render.md#task-shims)
+such as `mise run verify`.
 
 Commands are named `harness <command>` on this page. Run them through the repository's wrapper,
 `./harnessw <command>`, from the root of a checkout; with a global install, `harness <command>` is equivalent
@@ -39,8 +43,9 @@ Commands are named `harness <command>` on this page. Run them through the reposi
 
 ### A prefix matches the leading words only
 
-- **Symptom.** `[kubectl, patch]` is denied, yet an agent runs `kubectl -n prod patch deployment api …` without a
-  prompt, or the classifier decides it.
+- **Symptom.** The policy denies `[kubectl, patch]`, a [prefix list](policy.md#entry-forms) that matches commands whose
+  leading words are `kubectl patch`, yet an agent runs `kubectl -n prod patch deployment api …` without a prompt, or
+  Claude Code's auto-mode classifier decides it.
 - **Why.** A prefix entry matches the first words of the command. A flag before the subcommand changes the first
   words, so the command matches no entry and falls to the agent's default.
 - **What `harness` does.** Renders prefixes exactly; it does not parse each tool's flags.
@@ -60,13 +65,14 @@ Commands are named `harness <command>` on this page. Run them through the reposi
 
 ### A task runner runs whatever its tasks say
 
-- **Symptom.** `[npm, run, test]` is allowed, and the agent runs a test script it just edited to do something else;
-  or `mise run deliver` runs `harness lifecycle run deliver` although that command is under `ask`.
+- **Symptom.** `[npm, run, test]` is allowed, and the agent runs a test script it just edited to do something else; or
+  `mise run deliver`, a task the repository defines, runs `harness lifecycle run deliver` although that command is under
+  `ask`.
 - **Why.** A rule matches the command the agent starts, not what that command runs. A task runner, a script, a
   `Makefile` target or a wrapper runs code the agent can read and often edit.
-- **What `harness` does.** Denies mise `:::` chaining in the built-in base, so one allowed task cannot carry an
-  unlisted one ([policy](policy.md#the-built-in-base)). Replays a worker's checks from the base commit, so a worker
-  cannot change the checks it is measured by.
+- **What `harness` does.** Denies mise `:::` chaining, such as `mise run test ::: deploy`, in the built-in base, so one
+  allowed task cannot carry an unlisted one ([policy](policy.md#the-built-in-base)). Replays a worker's checks from the
+  base commit, so a worker cannot change the checks it is measured by.
 - **What you do.** Allow tasks whose effects stay in the clone. Give a wrapper of a guarded command the same decision
   as the command it wraps. Treat "edit files" plus "run the test runner" as "run any code", and keep production
   credentials out of the agent's environment.
@@ -88,7 +94,7 @@ Commands are named `harness <command>` on this page. Run them through the reposi
 
 ### Codex cannot match mid-command patterns
 
-- **Symptom.** A deny works in Claude Code and not in Codex; the `policy` block lists it as Claude-only.
+- **Symptom.** A deny works in Claude Code and not in Codex; the `policy` block in `AGENTS.md` lists it as Claude-only.
 - **Why.** Codex rules match command prefixes. Raw strings, native rule strings other than a pure `Bash(<prefix> *)`,
   and flag-last spellings such as `git push origin main --force` have no Codex form.
 - **What `harness` does.** Renders every prefix list for both agents, renders the other forms for Claude Code only,
@@ -99,7 +105,7 @@ Commands are named `harness <command>` on this page. Run them through the reposi
 
 ### An `ask` entry stalls unattended runs
 
-- **Symptom.** An unattended coordinator or a Claude Code session in auto mode stops and waits.
+- **Symptom.** An unattended coordinating agent, or a Claude Code session in auto mode, stops and waits.
 - **Why.** A matching `ask` prompts even in auto mode, and no `allow` from any settings scope overrides it.
 - **What `harness` does.** Renders `ask` as written. The built-in base contains no `ask`; `scaffold` seeds one, on
   `harness lifecycle run deliver`.
@@ -195,8 +201,8 @@ Commands are named `harness <command>` on this page. Run them through the reposi
 
 - **Symptom.** A worker does something no one asked for, following text in a task description or a pasted issue.
 - **Why.** Agents act on what they read. Anyone who can write a task, an issue or a comment can address the agent.
-- **What `harness` does.** Bounds what a worker can do: pinned mode, `worker.deny`, tamper check, replay, no lifecycle
-  actions inside workers.
+- **What `harness` does.** Bounds what a worker can do with the [worker contract](ralph.md#the-worker-contract): pinned
+  mode, `worker.deny`, tamper check, replay, no lifecycle actions inside workers.
 - **What you do.** Run workers on tasks a person wrote or read. Scope runs with `--epic`.
 
 ### Hooks skip until the pinned binary is cached
@@ -246,9 +252,9 @@ Commands are named `harness <command>` on this page. Run them through the reposi
 - **Why.** Worktrees share the machine: fixed ports, database names, container names and volumes are the same in
   every checkout of the clone.
 - **What `harness` does.** Isolates files, not services. It does not serialise or namespace them.
-- **What you do.** Give each checkout its own names and ports (derived from the worktree path), or serialise the
-  commands with a lock in the repository's own task. Deny service resets to workers, and size `--workers` to what the
-  services allow.
+- **What you do.** Give each checkout its own names and ports (derived from the worktree path, such as a database
+  `api_invoice_rounding` for `.work/worktrees/invoice-rounding`), or serialise the commands with a lock in the
+  repository's own task. Deny service resets to workers, and size `--workers` to what the services allow.
 
 ## Ralph, trackers and verification
 
@@ -263,8 +269,9 @@ Commands are named `harness <command>` on this page. Run them through the reposi
 
 ### ralph-tui behaviours the launcher absorbs
 
-- **Symptom.** Without the launcher, direct ralph-tui runs show the behaviours in the table below.
-- **Why.** These are properties of ralph-tui and `bd` that conflict with safe unattended runs.
+- **Symptom.** Run directly, without the launcher `harness ralph run`, ralph-tui shows the behaviours in the table
+  below.
+- **Why.** These are properties of ralph-tui and of `bd`, the Beads CLI, that conflict with safe unattended runs.
 - **What `harness` does.** Absorbs each one, as listed.
 - **What you do.** Run through `harness ralph`, and shape tasks as the last column says.
 
@@ -312,7 +319,8 @@ Commands are named `harness <command>` on this page. Run them through the reposi
 ### The receipt lives in the worker's writable tree
 
 - **Symptom.** A worker's receipt lists lanes that passed, and the task still fails.
-- **Why.** The worker can write its receipt (`.work/verified.json` by default), so the receipt cannot be proof.
+- **Why.** The worker can write its receipt, the record of a passing `harness verify` (`.work/verified.json` by
+  default), so the receipt cannot be proof.
 - **What `harness` does.** Uses the receipt only to select lanes and skip reasons, then replays them from the base
   commit's rules. The replay is the proof ([verify](verify.md#who-relies-on-it)).
 - **What you do.** Read `last-worker-output` in the task checkout's state directory, and run the lanes there
@@ -338,7 +346,8 @@ Commands are named `harness <command>` on this page. Run them through the reposi
 ### Worker output appears only at the end
 
 - **Symptom.** A worker looks hung: nothing streams for many minutes.
-- **Why.** The worker wrapper buffers the agent's output so it can withhold completion until the replay passes.
+- **Why.** The worker wrapper, `harness ralph-worker`, which ralph-tui runs as its agent command, buffers the agent's
+  output so it can withhold completion until the replay passes.
 - **What `harness` does.** Prints the output after a passing replay; keeps it in `last-worker-output`, in the task
   checkout's state directory, after a failure.
 - **What you do.** Watch ralph-tui's progress, not the agent's tokens. Stopping Ralph stops the agent and its
@@ -434,15 +443,15 @@ Commands are named `harness <command>` on this page. Run them through the reposi
 
 ### A landed `agent` action leaves a worktree with uncommitted edits
 
-- **Symptom.** After `landed`, a worktree `.work/worktrees/landed-<slug>-<n>` holds changes nobody committed, and more
-  of them appear with every landed branch.
+- **Symptom.** After `landed`, a worktree `.work/worktrees/landed-<name>-<n>`, named after the landed work's worktree or
+  Ralph session, holds changes nobody committed, and more of them appear with every landed branch.
 - **Why.** An `agent` action cannot commit. On `landed`, the work's own worktree is about to be removed and the primary
   checkout holds whatever you are doing, so `harness` gives the agent a fresh worktree of the default branch, on branch
-  `work/landed-<slug>-<n>`, and leaves the agent's edits there ([lifecycle](lifecycle.md)).
+  `work/landed-<name>-<n>`, and leaves the agent's edits there ([lifecycle](lifecycle.md#agent)).
 - **What `harness` does.** Records the worktree like any managed worktree, never touches the primary checkout, and
   lists the worktree and its changed paths in the action's output and in the lifecycle log.
 - **What you do.** Review each such worktree: commit its edits and deliver them as a change, or remove it with
-  `./harnessw worktree remove landed-<slug>-<n>`. Keep such actions manual if nobody reviews them promptly.
+  `./harnessw worktree remove landed-<name>-<n>`. Keep such actions manual if nobody reviews them promptly.
 
 ### Values in an `agent` prompt address the agent
 
@@ -470,7 +479,8 @@ Commands are named `harness <command>` on this page. Run them through the reposi
 
 ### Prompt words match unrelated messages
 
-- **Symptom.** A skill is injected when the person writes "update the date on the release notes".
+- **Symptom.** A skill whose `prompt` trigger lists the word "date" is injected when the person writes "update the date
+  on the release notes".
 - **Why.** A `prompt` trigger matches whole words, case-insensitively, wherever they appear. It cannot tell what the
   person means.
 - **What `harness` does.** Injects each `when` entry at most once per session.
@@ -508,7 +518,8 @@ Commands are named `harness <command>` on this page. Run them through the reposi
 
 - **Symptom.** `harness render --check` exits 2; an edit to `.claude/settings.json` permissions or inside a managed
   block disappears after `harness render`.
-- **Why.** Rendered files and blocks are outputs of the three repository files and the pinned release.
+- **Why.** Rendered files and blocks are outputs of the three repository files (`.harness/config.yaml`,
+  `.harness/policy.yaml` and `.harness/hooks.yaml`) and the pinned release.
 - **What `harness` does.** Rewrites what it owns, preserves everything else byte for byte, and reports differences
   ([render](render.md#drift-check)).
 - **What you do.** Edit the source (`policy.yaml`, `hooks.yaml`, `config.yaml`) and render.
@@ -530,20 +541,19 @@ Commands are named `harness <command>` on this page. Run them through the reposi
 
 ### A mise task with the same name keeps its name
 
-- **Symptom.** `mise run verify` runs the repository's old task, not `harness verify`.
+- **Symptom.** `mise run verify` runs the repository's own `verify` task, not `harness verify`.
 - **Why.** `harness` never overwrites an existing task; the task shim is written as `harness:verify`.
 - **What `harness` does.** Writes the namespaced task shim and lists the collision as a to-do until it is resolved
   ([render](render.md#task-shims)).
-- **What you do.** Remove or rename the old task, or keep both and say which one agents use.
+- **What you do.** Remove or rename the repository's task, or keep both and say which one agents use.
 
 ### Another tool's `.harness/` directory blocks scaffolding
 
 - **Symptom.** `harness scaffold` exits 3 naming a foreign `.harness/` directory.
-- **Why.** Another product, a CI/CD platform, keeps its pipelines in a `.harness/` directory and ships a CLI also named
-  `harness`. A `.harness/` without this tool's `config.yaml` or `manifest.json` belongs to someone else.
-- **What `harness` does.** Refuses to write into it, and never changes it ([compatibility](compatibility.md)).
-- **What you do.** Decide whether the repository uses the other product. Repositories that do are outside this tool's
-  audience.
+- **Why.** Harness.io, a CI/CD platform, keeps its pipeline definitions in a `.harness/` directory and ships a CLI also
+  named `harness`. A `.harness/` without this tool's `config.yaml` or `manifest.json` belongs to someone else.
+- **What `harness` does.** Refuses to write into it, and never changes it ([compatibility](compatibility.md#harnessio)).
+- **What you do.** Decide whether the repository uses Harness.io. Repositories that do are outside this tool's audience.
 
 ## The wrapper
 
@@ -626,8 +636,8 @@ Commands are named `harness <command>` on this page. Run them through the reposi
 
 - **Symptom.** `harness doctor` or `harness version` prints something unrelated, or `doctor` reports that the
   `harness` on `PATH` is not this tool.
-- **Why.** Another product ships a CLI named `harness`. The global command resolves through `PATH`, so whichever comes
-  first runs.
+- **Why.** Harness.io, a CI/CD platform, also ships a CLI named `harness`. The global command resolves through `PATH`,
+  so whichever comes first runs.
 - **What `harness` does.** Nothing it can do changes `PATH`. `./harnessw` always runs the pinned binary from its own
   cache, so wrapper invocations, task shims and hooks are never affected.
 - **What you do.** Use `./harnessw` inside repositories, and put this tool's global binary earlier on `PATH` only if
@@ -671,8 +681,8 @@ Commands are named `harness <command>` on this page. Run them through the reposi
 - **Why.** Issues, comments, reviews, labels and boards are the team's record. The binary writes none of them, and
   lifecycle actions deliver work and do not report on it.
 - **What `harness` does.** Keeps task state in the clone and leaves the record to people, agents and CI.
-- **What you do.** Have the coordinating agent update the issue or the pull request as its skill says, or let CI
-  report.
+- **What you do.** Have the coordinating agent update the issue or the pull request, following a skill that says how the
+  team records work, or let CI report.
 
 ### Claude Code's own worktrees are not managed
 

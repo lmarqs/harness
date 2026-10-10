@@ -18,20 +18,21 @@ Where third-party tools look, checked against their documented behaviour or the 
   `CLAUDE.md` and the files it imports.
 - Codex CLI (0.16x) reads `.codex/config.toml`, `.codex/hooks.json` and `.codex/rules/` at the repository root, and
   reads `AGENTS.md`.
-- A widely used skills installer writes to `.agents/skills/`.
-- The loop runner (0.12) reads its configuration only from a fixed directory under its working directory and offers no
-  flag to move it.
-- The task tracker (1.3.1) finds its directory by walking up from the working directory; an environment variable can
-  move it.
+- A widely used skills installer, the `skills` CLI (1.7), writes to `.agents/skills/`.
+- The loop runner, ralph-tui (0.12), which runs agents unattended one task after another, reads its configuration only
+  from a fixed directory under its working directory and offers no flag to move it.
+- The task tracker, Beads (1.3.1), a clone-local task database, finds its directory by walking up from the working
+  directory; an environment variable can move it.
 
-Evidence from 51 surveyed repositories:
+What repositories already hold before they adopt the tool:
 
-- 12 use `.agents/` as their canonical agent directory, linked from the native agent directories. Its skills, memory
+- Some use `.agents/` as their canonical agent directory, linked from the native agent directories. Its skills, memory
   and review guidance serve people and agents in repositories that never adopt this tool.
-- `.claude/skills` is a whole-directory link in 13 repositories, a real directory in 10, and a set of per-entry links
-  in 1.
-- An agent's own worktree directory exists under `.claude/` in 28.
-- One repository commits its task tracker's directory to git.
+- Where `.claude/skills` exists, it has one of three shapes: a link to a whole directory such as `.agents/skills`, a
+  real directory of skills people wrote, or a directory of per-entry links. For example, `acme/api` links
+  `.claude/skills` to `.agents/skills`, while `acme/web` keeps hand-written skills in a real `.claude/skills` directory.
+- Some keep an agent's own worktree directory under `.claude/`.
+- Some commit the task tracker's directory to git.
 
 Other forces:
 
@@ -39,8 +40,8 @@ Other forces:
 - People, agents and third-party tools use parts of the tool's clone-local state directly: they work inside the working
   copies the tool creates, and the loop runner reads its configuration inside them.
 - Removal deletes what the manifest lists ([0007](0007-ownership.md)).
-- Another product, a CI/CD platform, uses a `.harness/` directory at the repository root for pipeline definitions and
-  ships a command-line program named `harness`. Its users and this tool's users do not overlap.
+- Another product, the CI/CD platform Harness.io, uses a `.harness/` directory at the repository root for pipeline
+  definitions and ships a command-line program named `harness`.
 
 ## Decision
 
@@ -63,29 +64,29 @@ Other forces:
 ## Reasons
 
 - **1.** Agents read only these locations, so rendered configuration must be there. Linking per entry adds the tool's
-  skill without replacing anything: in 10 surveyed repositories `.claude/skills` is a real directory, and replacing it
-  with a link would move files people own; the 13 whole-directory links already expose everything in `.agents/`.
-- **2.** `.agents/` is a convention shared across tools and repositories, including the 12 surveyed repositories that
-  use it without this tool. Content there must stay meaningful when the tool is absent or removed. Keeping the tool's
-  configuration out of it means readers of agent content never meet files only the tool reads, and removal never has
-  to pick files out of a directory others write. The shipped skill lives there because that is where agents and the
-  skills installer find skills.
+  skill without replacing anything: where `.claude/skills` is a real directory, replacing it with a link would move
+  files people own, and a whole-directory link already exposes everything in `.agents/`.
+- **2.** `.agents/` is a convention shared across tools and repositories, including repositories that use it without
+  this tool. Content there must stay meaningful when the tool is absent or removed. Keeping the tool's configuration out
+  of it means readers of agent content never meet files only the tool reads, and removal never has to pick files out of
+  a directory others write. The shipped skill lives there because that is where agents and the skills installer find
+  skills.
 - **3.** One directory for the tool's configuration is one place to review and one directory removal deletes. Holding
   only tracked paths keeps its meaning simple: what is in it is what the repository committed, with no ignore rules
   inside a committed tree.
 - **4.** People and third-party tools work directly in the tool's state, chiefly its working copies, and repositories
-  have their own conventions for where those go (28 surveyed repositories keep an agent's worktrees under `.claude/`). A
-  configurable path with a default lets each repository keep its convention, while the default gives one root to ignore.
-  State inside `.harness/` would put ignored paths into the committed configuration directory, contradicting point 3.
-  State inside `.agents/` would show clone-local files to every tool that reads agent content. Committed state would
-  publish one clone's uncommitted work.
+  have their own conventions for where those go (some keep an agent's worktrees under `.claude/`). A configurable path
+  with a default lets each repository keep its convention, while the default gives one root to ignore. State inside
+  `.harness/` would put ignored paths into the committed configuration directory, contradicting point 3. State inside
+  `.agents/` would show clone-local files to every tool that reads agent content. Committed state would publish one
+  clone's uncommitted work.
 - **5.** The loop runner's configuration location cannot be moved, so the only way to give it tool-generated
   configuration without touching a root configuration people use directly is a working copy the tool creates.
   Relocating the task tracker through an override would make every invocation depend on that override, and people who
   run the tracker directly would see different state.
 - **6.** One set of ignore blocks per capability lets one capability be removed without un-ignoring another's paths
-  ([0018](0018-conventions.md)). A tracked path in an ignore rule would stop new files in a committed directory, such
-  as the task tracker's directory in the one repository that commits it, from being added.
+  ([0018](0018-conventions.md)). A tracked path in an ignore rule would stop new files in a committed directory, such as
+  the task tracker's directory in a repository that commits it, from being added.
 
 ## Rejected alternatives
 
@@ -98,10 +99,9 @@ directory that removal must either delete with their contents or leave half remo
 
 ### Configuration inside `.agents/`
 
-At its best, everything agent-related and committed is in one directory that 12 surveyed repositories already use, and
-the repository root gains no directory. It loses because the tool's configuration would sit among content the tool
-does not own and that must stay meaningful without the tool, and removal would pick files out of a directory others
-write.
+At its best, everything agent-related and committed is in one directory that repositories already use, and the
+repository root gains no directory. It loses because the tool's configuration would sit among content the tool does not
+own and that must stay meaningful without the tool, and removal would pick files out of a directory others write.
 
 ### One fixed root for state
 
@@ -115,8 +115,8 @@ those tools directly see different state.
 
 ### Whole-directory links from native directories
 
-At its best, each directory needs one link. It loses because in 10 surveyed repositories the target is a real directory,
-and replacing it moves files people own.
+At its best, each directory needs one link. It loses because where `.claude/skills` is already a real directory,
+replacing it moves files people own.
 
 ## Consequences
 

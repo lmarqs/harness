@@ -12,9 +12,11 @@ record of work stays as the team writes it.
 
 ## Overview
 
-`harness task` claims, annotates, completes and releases tasks in a clone-local tracker: a Beads database or a PRD JSON
-file. Each managed worktree has its own actor, so two sessions cannot complete each other's tasks, and completion
-requires a valid [verification receipt](verify.md).
+`harness task` claims, annotates, completes and releases tasks in a clone-local tracker: a Beads database (Beads is a
+task tracker that keeps its database in `.beads/` and is used through its `bd` command) or a PRD JSON file (a list of
+user stories in the format of [ralph-tui](https://github.com/subsy/ralph-tui), the runner behind [Ralph](ralph.md)).
+Each managed worktree has its own actor, the identity under which its session claims tasks, so two sessions cannot
+complete each other's tasks, and completion requires a valid [verification receipt](verify.md).
 
 Commands are named `harness <command>` on this page. The examples run them through the repository's wrapper,
 `./harnessw <command>`, from the root of a checkout; with a global install, `harness <command>` is equivalent
@@ -26,7 +28,7 @@ Commands are named `harness <command>` on this page. The examples run them throu
 | --- | --- | --- |
 | Lives in | GitHub (issues, pull requests, projects) | this clone: `.beads/` or a PRD JSON file |
 | Seen by | the team | this clone only |
-| Purpose | the record of the project's work | organising long sessions and local work, including Ralph runs |
+| Purpose | the record of the project's work | organising long sessions and local work, including [Ralph](ralph.md) runs |
 | Written by `harness` | never | yes, through `harness task` and Ralph |
 
 What the team needs to know goes to the issue or the pull request. Tasks are optional and disposable.
@@ -47,7 +49,7 @@ Tasks need `modules.tasks: true` in the [profile](profile.md).
 | --- | --- | --- |
 | `beads` | the `bd` CLI and the clone's `.beads/` database | If `.beads/` does not exist, `harness` creates a local database with prefix `tracker.beads_prefix`, without git hooks, without agent files and without remotes, and turns off automatic export. An existing `.beads/` is used exactly as found and never reconfigured |
 | `prd` | a PRD JSON file you choose (`--prd`), in ralph-tui's `userStories` format | The file must exist. A file in the configured PRD directory (`tasks.prd_dir`, default `.work/prds`) stays out of git: the `tasks` block of `.gitignore` ignores that directory |
-| `none` | nothing | Nothing is initialised; the session is handed off through the conversation |
+| `none` | nothing | Nothing is initialised; the session is handed off through the agent conversation |
 
 `harness` never switches backends on its own: when `bd` is not installed, `--tracker beads` fails rather than fall
 back.
@@ -107,7 +109,7 @@ completed only after its checks pass. A task that will not be finished is releas
 ```
 
 With `tracker.default: prd` the second sentence names the PRD files as the tracker; with `none`, it says tasks are
-handed off through the conversation.
+handed off through the agent conversation.
 
 ```gitignore
 # harness:tasks
@@ -125,11 +127,11 @@ When `harness` created the Beads database and the repository does not track `.be
 
 An existing `.beads/` keeps whatever ignore rules the repository already has.
 
-These are convention blocks: they state the convention as a fact and name no `harness` command. After
-[`harness remove --eject`](remove.md#eject) the markers go and the text and ignore entries stay. `bd` and ralph-tui keep
-working with the same database and PRD files, and agents keep claiming before they work, but nothing checks for a
-receipt at completion any more. `harness remove --module tasks` removes the blocks and leaves the database and the PRD
-files in place.
+These are [convention blocks](concepts.md#convention-blocks-and-tool-blocks): they state the convention as a fact and
+name no `harness` command. After [`harness remove --eject`](remove.md#eject) the markers go and the text and ignore
+entries stay. `bd` and ralph-tui keep working with the same database and PRD files, and agents keep claiming before they
+work, but nothing checks for a receipt at completion any more. `harness remove --module tasks` removes the blocks and
+leaves the database and the PRD files in place.
 
 ## Reference
 

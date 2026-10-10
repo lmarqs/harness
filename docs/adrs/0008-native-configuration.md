@@ -16,11 +16,13 @@ told apart.
   `.codex/rules/`.
 - Where an agent reads a whole directory of rule files, a file can be added to it without touching the others.
   Claude Code's project settings file has no include mechanism: everything it holds lives in one file.
-- These files are shared with people. Of 51 surveyed repositories, 8 have a project settings file; 7 of those hold
-  hand-written permissions (4 to 102 rules), 5 hold hooks, and one carries a schema reference key. People also set
-  environment, model, plugin and status-line keys there.
-- Personal override files (`.claude/settings.local.json`, `*.local.toml`) exist in 20 of the 51 repositories. They hold
-  one person's choices and are usually untracked.
+- These files are shared with people. Claude Code's project settings file holds permissions, hooks and keys for the
+  environment, the model, plugins, the status line and a schema reference, and people write any of them by hand.
+  Example: the `.claude/settings.json` of `acme/api` holds 40 hand-written allow and deny rules, a hook that formats
+  each edited file and an environment variable for the test database.
+- Personal override files (`.claude/settings.local.json`, `*.local.toml`) hold one person's choices and are usually
+  untracked. Example: a teammate's `.claude/settings.local.json` in `acme/api` allows a deploy command that the team
+  never agreed to give agents.
 - JSON has no comments, so ownership of a key inside a JSON file cannot be marked in the file itself
   ([0007](0007-ownership.md)).
 - Rendering an owned key writes its whole content from the repository's data. A hand-written entry that is not in the
@@ -63,8 +65,7 @@ told apart.
 ### Own native files wholesale
 
 At its best, rendering and checking are simplest: the tool writes the file and compares the file. It loses because it
-destroys the keys people set, which in the survey means permissions, hooks or other settings in every repository that
-has the file.
+destroys every key people set, such as the rules, hook and environment variable of the `acme/api` example in Context.
 
 ### Write only to the personal override file
 

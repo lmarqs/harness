@@ -25,8 +25,8 @@ output is detected.
 - JSON allows no comments, so ownership of a key inside a JSON file cannot be marked in the file itself.
 - A team that stops using the tool wants one of two outcomes: the repository as it was before adoption, or the setup the
   tool produced, kept and maintained by hand.
-- Clone-local state can hold uncommitted work, and cleanup acts only on what the tool recorded creating
-  ([0012](0012-write-boundary.md)).
+- Clone-local state, the ignored files one clone keeps for its own work such as worktrees and local task lists, can hold
+  uncommitted work, and cleanup acts only on what the tool recorded creating ([0012](0012-write-boundary.md)).
 
 ## Decision
 
@@ -46,11 +46,11 @@ output is detected.
      seeded files in the tool's configuration directory, and seeded files elsewhere only while they still match their
      recorded hash. An edited seeded file outside that directory is knowledge: it stays and is listed. Clone-local
      state stays in place and is listed.
-   - Eject ends management and keeps the result. Convention blocks ([0018](0018-conventions.md)) lose their markers and
-     stay. Tool blocks are removed. Rendered native configuration stays as hand-owned content without its headers.
-     Hooks, entry points and permission entries that call or name the tool's commands are removed and listed. The tool's
-     configuration directory ([0014](0014-directory-layout.md)), the wrapper ([0017](0017-engine-version.md)) and the
-     manifest are deleted.
+   - Eject ends management and keeps the result. Convention blocks, which state facts that hold without the tool
+     ([0018](0018-conventions.md)), lose their markers and stay. Tool blocks, which describe how to use the tool, are
+     removed. Rendered native configuration stays as hand-owned content without its headers. Hooks, entry points and
+     permission entries that call or name the tool's commands are removed and listed. The tool's configuration directory
+     ([0014](0014-directory-layout.md)), the wrapper ([0017](0017-engine-version.md)) and the manifest are deleted.
    - In both modes, a file the manifest does not record is listed and left, even inside the tool's configuration
      directory, which is deleted once nothing else is in it ([0012](0012-write-boundary.md)).
 

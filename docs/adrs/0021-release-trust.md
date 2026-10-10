@@ -2,9 +2,9 @@
 
 ## Objective
 
-**Problem.** The wrapper downloads the pinned release and runs it with the person's credentials, on every machine and in
-every repository that pins it. A release compromised before anyone recorded its checksum, or replaced on the download
-host, would run everywhere, and checksums alone cannot tell.
+**Problem.** The wrapper script committed in each repository downloads the release the repository pins and runs it with
+the person's credentials, on every machine and in every repository that pins it. A release compromised before anyone
+recorded its checksum, or replaced on the download host, would run everywhere, and checksums alone cannot tell.
 
 **Goal.** Only releases their publisher signed run, on every machine, whoever recorded the pin.
 

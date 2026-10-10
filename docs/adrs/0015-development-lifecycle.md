@@ -21,9 +21,11 @@ run reaches a person.
 - Delivery leaves the clone, so its mistakes are visible to others and hard to undo. Publishing from the default
   branch, publishing uncommitted work and publishing unverified work are never wanted
   ([0011](0011-safety-invariants.md)).
-- Steps are started by different actors: a person at the terminal, a coordinating agent following shipped
-  documentation, or the tool itself at the end of an unattended run. Three hand-ported copies of one agent workflow
-  exist, and each runs the same steps differently; a step defined once per actor drifts in the same way
+- Steps are started by different actors: a person at the terminal, a coordinating agent following shipped documentation,
+  or the tool itself at the end of an unattended run. A workflow copied by hand drifts into dialects: suppose acme
+  copies one agent workflow into `acme/api` and `acme/web`, and a year later delivery in `acme/api` runs the tests and
+  opens a draft pull request, while delivery in `acme/web` pushes without running them. A step defined once per actor
+  drifts in the same way: the person, the agent and the end of the unattended run each do it their own way
   ([0006](0006-repository-contract.md)).
 - Unattended agents are the least trusted actor ([0011](0011-safety-invariants.md)).
 - Values such as task titles and branch names are written by people and agents. Substituted into command text, they
@@ -71,8 +73,8 @@ run reaches a person.
 - **1, 3.** The recurring points are common to every change, so one fixed vocabulary serves every repository: actions
   written for one repository carry over to another unchanged, and the shipped documentation describes one lifecycle
   instead of one per repository. A set that repositories could extend would give each repository its own event names,
-  which is the dialect problem the hand-ported copies show. The trade is that a step that fits no event stays outside
-  the tool.
+  which is the dialect problem of workflows copied by hand (Context). The trade is that a step that fits no event stays
+  outside the tool.
 - **2.** A stop is the moment a person is needed, and in an unattended run it is also the moment nobody is watching.
   Modelling every stop as one event lets a repository attach one notification to all of them instead of configuring
   each cause. It is out of band because it is not a step in the order of a change. It needs no guard beyond the
@@ -86,10 +88,10 @@ run reaches a person.
   Declared actions put those conventions in committed files that are reviewed like code. Shipping no actions means the
   binary never sends anything out of a clone that nobody declared. The trade is that a repository that declares
   nothing gets no delivery from the binary.
-- **6.** One definition run by every trigger removes the per-actor drift seen in the hand-ported copies: a person, a
-  coordinating agent and the end of an unattended run all produce the same result. Automatic triggering is opt-in per
-  action because an action that runs without anyone choosing it, such as one that publishes work, is a decision the
-  repository must make explicitly.
+- **6.** One definition run by every trigger removes the per-actor drift described in Context: a person, a coordinating
+  agent and the end of an unattended run all produce the same result. Automatic triggering is opt-in per action because
+  an action that runs without anyone choosing it, such as one that publishes work, is a decision the repository must
+  make explicitly.
 - **7.** Task titles and branch names are written by people and agents; passing them as environment values keeps them
   out of the text the shell parses, so a title cannot add a command. How each action kind consumes them is decided in
   [0019](0019-action-kinds.md).

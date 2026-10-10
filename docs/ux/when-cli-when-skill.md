@@ -28,9 +28,9 @@ They apply to proposals for harness itself and to the advice harness gives repos
 | **Declared action** | an action on a lifecycle event (`lifecycle:`) or an agent notification event (`attention:`, `turn_end:`) in `.harness/hooks.yaml`, of kind `run` (a shell command), `http` (a request harness performs) or `agent` (a headless agent run) | the repository |
 | **Standing-context entry** | a declared trigger (`always`, `when.paths`, `when.prompt`) that puts an existing skill or repository file in front of an agent, under `context:` in `config.yaml` | the repository |
 | **Harness skill or explain topic** | guidance an agent follows to do judgement work around harness | harness (embedded, shipped with the binary) |
-| **Built-in preset** | the starting entries for one technology stack (`go`, `node`, `terraform`, `python`): commands, lanes, validators, module switches and post-edit hooks, which `harness scaffold` and `harness preset apply` write into the repository's files on request | harness (embedded, shipped with the binary); once written, the entries are the repository's |
+| **Built-in preset** | the starting entries for one technology stack (`go`, `node`, `terraform`, `python`): commands, test lanes, validators, module switches and post-edit hooks, which `harness scaffold` and `harness preset apply` write into the repository's files on request ([presets](../features/presets.md)) | harness (embedded, shipped with the binary); once written, the entries are the repository's |
 | **Organization or personal skill** | guidance an agent follows for judgement work specific to an organization's conventions, including writing the organization's choices (policy entries, actions, standing-context entries) into a repository's files | the organization; the entries it leads to are the repository's |
-| **Left to the repository** | a mise task, a repository skill, prose in `AGENTS.md`, memory | the repository |
+| **Left to the repository** | a mise task (mise is a task runner), a repository skill, prose in `AGENTS.md`, memory | the repository |
 
 ## Criteria
 
@@ -50,7 +50,7 @@ They apply to proposals for harness itself and to the advice harness gives repos
 
 | Determinism | Repetition | Safety relevant | Org specific | Judgement | Destination | Because |
 | --- | --- | --- | --- | --- | --- | --- |
-| yes | yes | yes | no | no | built-in invariant | a rule every repository needs and none may drop cannot be a setting, or it is lost by copying |
+| yes | yes | yes | no | no | built-in invariant | a rule every repository needs and none may drop cannot be a setting, because a setting gets lost when a repository's configuration is copied or edited |
 | yes | yes | no | no | no | command, flag, or profile field (see below) | one implementation serves every repository and is fixed in one release |
 | yes | in every repository of one stack | no | no | no | built-in preset, applied with `harness preset apply` | stack facts are the same in every repository on that stack, so the binary supplies them; applying on request keeps every write something a person asked for |
 | yes | any | no | yes | in applying it | entries in each repository's files, written by an agent following an organization skill | organization content stays out of an open-source binary; it differs between an organization's repositories, so applying it takes judgement, and each repository reviews the result as a diff |
@@ -78,8 +78,8 @@ A behaviour is a declared action when all of these hold:
 2. It reaches outside the clone, or reacts to something that happened outside it, or tells a person something.
 3. It is organization or repository specific: it names a hosting platform, a CI convention, a notification channel
    or a cleanup habit that not every repository shares.
-4. It is triggered at a lifecycle point or an agent event, by a person, a coordinating agent or automatically
-   (`auto: true`).
+4. It is triggered at a lifecycle point or an agent event, by a person, a
+   [coordinating agent](../features/lifecycle.md#the-lifecycle-stage-by-stage) or automatically (`auto: true`).
 
 Why: these are the side effects whose form differs per team, so the team declares them and harness only fires them
 under its guards ([ADR 0015](../adrs/0015-development-lifecycle.md), [ADR 0019](../adrs/0019-action-kinds.md)).
@@ -102,8 +102,8 @@ or calls a hosting platform is a design error, whatever the convenience
 | Run a CLI the repository already uses (`git`, the hosting platform's CLI) | `run` | the CLI carries its own authentication and conventions |
 | Notify a person or a service: a chat message, an incident, a status page | `http` | harness performs the request itself, reads the URL and headers from environment variables and JSON-encodes values, so no `curl`, no shell quoting and no secret on a command line |
 | Tell a person the agent is waiting for them, or has finished a turn | `http` (or `run` for a local notifier) on `attention` or `turn_end` | notification events accept `run` and `http` only, so an agent hook never starts another agent |
-| Tell a person an unattended run stopped or a task was skipped | `http` on `blocked` | `blocked` fires wherever work stops for a person, with `HARNESS_REASON` |
-| Judgement after an event: summarise a merged change, write lessons into memory, triage a failure | `agent` | the agent does the judgement under the worker contract; its edits stay uncommitted for review |
+| Tell a person an unattended run stopped or a task was skipped | `http` on `blocked` | `blocked` fires wherever work stops for a person, with the reason in `HARNESS_REASON` |
+| Judgement after an event: summarise a merged change, write lessons into memory, triage a failure | `agent` | the agent does the judgement under the [worker contract](../features/ralph.md#the-worker-contract); its edits stay uncommitted for review |
 | Use a tool only an MCP server provides | `agent`, or leave it to the coordinating agent | harness is never an MCP client; the agent owns the connection, its credentials and its permissions |
 
 When the behaviour needs judgement before the side effect (which commits belong together, how to word them), split
@@ -132,12 +132,12 @@ entry.
 
 For deterministic, repeated, organization-neutral behaviour:
 
-1. **Profile field** when repositories need different values for the same behaviour (a lane's command, the lint
-   command, the tracker). The default MUST preserve existing behaviour, so adding the field changes nothing for
-   repositories that do not set it.
-2. **Flag** when the same repository needs the behaviour sometimes, per invocation (`--full`, `--base <ref>`,
-   `--no-bootstrap`). A flag that every invocation in a repository would pass is a profile field instead, because a
-   flag repeated on every call is a setting written in the wrong place.
+1. **Profile field** when repositories need different values for the same behaviour (the command of a test lane, the
+   lint command, the task tracker). The default MUST preserve existing behaviour, so adding the field changes nothing
+   for repositories that do not set it.
+2. **Flag** when the same repository needs the behaviour sometimes, per invocation (`verify --full`,
+   `verify --base <ref>`, `worktree create --no-bootstrap`). A flag that every invocation in a repository would pass is
+   a profile field instead, because a flag repeated on every call is a setting written in the wrong place.
 3. **New command** when the operation has a different object or a different effect from every existing command. A
    behaviour that changes what an existing command writes is a flag or a field, not a new command, because two
    commands writing the same files compete.
@@ -152,8 +152,9 @@ of owner:
 - The binary never performs the judgement half by heuristics; the skill never re-implements the deterministic half
   in prose.
 
-Adoption is the model. `harness scaffold --adopt` imports what it can map and lists the rest as a to-do, the harness
-skill guides the agent through the to-do, and `harness doctor` confirms the result.
+Adoption, taking over a repository's existing hand-written agent setup, is the pattern to follow.
+`harness scaffold --adopt` imports what it can map and lists the rest as a to-do, the harness skill guides the agent
+through the to-do, and `harness doctor` confirms the result.
 
 Repository content follows the same split ([ADR 0013](../adrs/0013-organization-content.md)):
 
@@ -181,7 +182,7 @@ Repository content follows the same split ([ADR 0013](../adrs/0013-organization-
 | Apply an organization's conventions to many repositories | judgement per repository, organization specific | an agent following the organization's skill in each repository, reviewed as a diff in each; `harness fleet` runs harness commands, never agents |
 | Post to the team chat when a task completes | deterministic, leaves the clone, a notification channel | a `completed` action of kind `http` with `url_env`, `auto: true` |
 | Ping me when the agent is waiting for my answer | deterministic, a notification, per person or repository | an `attention` action of kind `http` (or `run` for a desktop notifier) in `hooks.yaml` |
-| Tell me when an unattended Ralph run stops unfinished | deterministic, a notification at the moment work stops | a `blocked` action of kind `http`, `auto: true` |
+| Tell me when an unattended [Ralph](../features/ralph.md) run stops unfinished | deterministic, a notification at the moment work stops | a `blocked` action of kind `http`, `auto: true` |
 | Write lessons into memory after a change lands | judgement, after an event | a `landed` action of kind `agent`; it runs in a fresh worktree of the default branch, and its edits stay uncommitted there for review |
 | Look something up through an MCP-only service before delivery | needs an MCP tool | the coordinating agent before it runs `harness lifecycle run deliver`, or an `agent` action; never the binary |
 | Choose which Ralph task commits go into which pull request and reword them | judgement (grouping, wording), conventions vary by organization | an agent guided by an organization or personal skill; the agent then runs `harness lifecycle run deliver` |
@@ -195,11 +196,11 @@ Repository content follows the same split ([ADR 0013](../adrs/0013-organization-
 | Lint a file after every edit | deterministic, per-repository command | `hooks.yaml` `post_edit` entry |
 | Support a new agent CLI | deterministic translation of the same policy and hooks | adapter in the binary |
 | Finish an adoption: reconcile a colliding `verify` task, move a hook the importer could not model | judgement | harness skill, checked by `harness doctor` |
-| Summarise the effective permissions in `AGENTS.md` | deterministic, derived from the policy | binary: the `policy` convention block |
+| Summarise the effective permissions in `AGENTS.md` | deterministic, derived from the policy | binary: the `policy` [convention block](generated-content-standards.md#block-classes) |
 | Tell people and agents where worktrees are created and on which branch | deterministic, derived from the profile, must hold without harness | binary: the `worktrees` convention blocks in `AGENTS.md` and `.gitignore` ([principles.md](principles.md#8-conventions-outlive-the-tool)) |
 | Keep worktrees and state somewhere other than `.work/` | deterministic, different values per repository | profile fields `state.dir`, `worktrees.dir`, `tasks.prd_dir`, `ralph.worktrees_dir`; `harness render` rewrites the blocks that state them |
 | Keep harness configuration beside the skills in `.agents/` | `.agents/` is the cross-tool agent-content directory | not allowed: harness configuration lives in `.harness/`, state at the profile's paths |
-| Explain in `AGENTS.md` why the team keeps e2e tests mandatory for routes | judgement, one repository | repository prose, outside managed blocks |
+| Explain in `AGENTS.md` why the team keeps e2e tests mandatory for routes | judgement, one repository | repository prose, outside [managed blocks](generated-content-standards.md#managed-blocks) |
 | Record a lesson learned during a session | judgement | agent, in the repository's memory; never the binary |
 | Open an issue for each to-do item | judgement, writes to the record of work | agent with its own tools; the binary never writes issues |
 | Report worktrees whose branch was merged | deterministic, every repository | a `doctor` check |
@@ -215,7 +216,9 @@ Each of these breaks a principle, for the reason given after it.
 
 - A command that writes free prose, memory or skill content: the binary does only deterministic work. Managed blocks
   hold only fixed convention statements derived from the repository files.
-- A setting that turns off an invariant: the invariants are lost by copying as soon as they are optional.
+- A setting that turns off an invariant: once an invariant is optional, it gets lost when a repository's configuration
+  is copied or edited. For example, if `acme/web` copies its configuration from `acme/api`, where someone switched off
+  the deny on force pushes to the default branch, `acme/web` allows force pushes without anyone there deciding to.
 - A key that names a source outside the repository for entries harness renders or runs (an inherited file, an
   include, a remote set of entries): a rule whose source sits outside the repository cannot be read or reviewed where
   it acts ([ADR 0013](../adrs/0013-organization-content.md)).

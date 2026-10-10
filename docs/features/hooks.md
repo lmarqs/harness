@@ -38,7 +38,7 @@ Commands are named `harness <command>` on this page. Run them through the reposi
 | The edited file formatted or linted right after every agent edit | a `post_edit` entry |
 | The stack's usual format-on-edit or lint-on-edit hook | `./harnessw preset apply <name>`, which adds it as a `post_edit` entry ([presets](presets.md)) |
 | A repository check run when certain files are edited | `validators` |
-| A session in a managed worktree to know its task and tracker | `session_start.context: true` |
+| A session in a [managed worktree](worktrees.md) to know its task and tracker | `session_start.context: true` |
 | A message when an agent waits for you: a permission prompt, a question, idle input | an `attention` action |
 | A message when an agent finishes a turn | a `turn_end` action |
 | A skill or directive in the agent's context without invoking it | a `context` entry in the profile ([context](context.md)) |
@@ -112,8 +112,10 @@ Directives a session must never miss belong in [static context](context.md#stati
 `AGENTS.md`.
 
 Raw entries are rendered as native hook entries running their own commands, not through `harness hook`, so they keep
-running without the binary, exactly as they did before adoption. The manifest records them as owned, so `render`
-updates them when `hooks.yaml` changes and `render --check` reports a hand edit.
+running without the binary. [`harness scaffold --adopt`](scaffold.md#how-each-source-becomes-an-entry) turns each
+existing hook it cannot model into a raw entry, so that hook runs after adoption exactly as it did before. The manifest
+records raw entries as owned, so `render` updates them when `hooks.yaml` changes and `render --check` reports a hand
+edit.
 
 ### Payload normalisation
 
@@ -187,7 +189,7 @@ turn_end:         # the agent finished a turn
 | `attention` | `Notification`: a permission prompt, or input idle | not rendered: Codex has no such event |
 | `turn_end` | `Stop` | `notify`, called after each turn |
 
-Values reach the actions as environment variables, with the same rules as lifecycle actions:
+Values reach the actions as environment variables, with the same rules as [lifecycle actions](#lifecycle-actions):
 
 | Variable | Value |
 | --- | --- |
@@ -202,8 +204,8 @@ Values reach the actions as environment variables, with the same rules as lifecy
   error, so an agent hook never starts another agent.
 - `harness hook` exits 0 on these events whatever the actions return, so a failed notification never keeps an agent
   working or interrupts it. A failure is printed on stderr.
-- They do not run in Ralph worker sessions: an unattended run reports through the lifecycle event
-  [`blocked`](lifecycle.md#events).
+- They do not run in the sessions of [Ralph](ralph.md) workers, the agents of an unattended run: such a run reports
+  through the lifecycle event [`blocked`](lifecycle.md#events).
 - Like every agent hook, they do nothing on a machine where the pinned release is not cached
   ([the missing-binary guard](#the-missing-binary-guard)).
 - The `notify` key of `.codex/config.toml` holds one program. `harness` owns it only when it rendered it. When the file
@@ -239,7 +241,7 @@ lifecycle:
 In short:
 
 - an action is a shell command (`run`), an HTTP request `harness` makes (`http`), or a headless agent run under the
-  worker contract (`agent`) ([action kinds](lifecycle.md#action-kinds));
+  [worker contract](ralph.md#the-worker-contract) (`agent`) ([action kinds](lifecycle.md#action-kinds));
 - actions run in the work's checkout, in declaration order, and the first failure stops the event with exit 2 unless
   the action says `on_failure: continue`, in which case the remaining actions run and the event still exits 2;
 - values reach an action only as environment variables, never substituted into `run`, so a task title or a branch
@@ -325,7 +327,8 @@ raw:
 ```
 
 `CHAT_WEBHOOK_URL` is set in each developer's own shell profile; a developer who does not set it gets an `attention`
-failure on stderr, and the session continues.
+failure on stderr, and the session continues. The `raw` entry runs `bd prime`, from the [Beads](tasks.md) task tracker's
+`bd` command line, as a native hook at session start, so it runs whether or not the pinned release is cached.
 
 ### A desktop notification when the agent finishes
 

@@ -14,9 +14,9 @@ carries over, and the limits that must always hold stay in force whatever anyone
 ## Overview
 
 The policy says what agents may do without asking (`allow`), only after a person confirms (`ask`), or never (`deny`),
-plus what Ralph workers alone may not do. It is written once, agent-neutrally where the agents allow it, and rendered
-into each agent's native permission format. A built-in base that holds the tool's invariants is always added and
-cannot be removed.
+plus what is denied only to Ralph workers, the agent processes that an unattended [Ralph](ralph.md) run starts, one per
+task. It is written once, agent-neutrally where the agents allow it, and rendered into each agent's native permission
+format. A built-in base that holds the tool's invariants is always added and cannot be removed.
 
 Commands are named `harness <command>` on this page. Run them through the repository's wrapper,
 `./harnessw <command>`, from the root of a checkout; with a global install, `harness <command>` is equivalent
@@ -41,15 +41,15 @@ Then run `harness render` and review the diff of the rendered files.
 The effective policy is the union of:
 
 1. the built-in base ([below](#the-built-in-base));
-2. allow entries for the commands of each enabled module, rendered for each spelling `harness` renders
-   ([below](#entries-for-harness-commands));
+2. allow entries for the commands of each enabled [module](profile.md#modules), rendered for each spelling `harness`
+   renders ([below](#entries-for-harness-commands));
 3. the entries in `.harness/policy.yaml`.
 
 Nothing else contributes an entry: no file outside the repository is read
 ([ADR 0013](../adrs/0013-organization-content.md)). Lists are unions: no source removes an entry from another, and
 nothing removes a built-in invariant. An entry in the policy file that would weaken an invariant, such as an `allow` for
 a force push to the default branch, is not a validation error. `render` leaves it out of the output, renders the
-invariant and reports the entry. `doctor` reports it as a finding until it is removed
+invariant and reports the entry. [`doctor`](doctor.md) reports it as a finding until it is removed
 ([ADR 0011](../adrs/0011-safety-invariants.md)). When a command matches entries with different decisions, the decision
 is taken in this order, in every agent:
 
@@ -97,17 +97,17 @@ reader sees which rules Codex does not enforce. See [agents](agents.md#roles) fo
 ### Entries for `harness` commands
 
 An agent can invoke a `harness` command in several spellings: `./harnessw <command>`, the form `AGENTS.md` teaches;
-`harness <command>` with a global install; `harnessw <command>` when the repository root is on `PATH`; and a task
-shim, such as `mise run verify`, where the profile writes one. An entry for a `harness` command names the program
-once, as `harness`:
+`harness <command>` with a global install; `harnessw <command>` when the repository root is on `PATH`; and a
+[task shim](render.md#task-shims), a one-line task of the mise task runner such as `mise run verify`, when the profile
+sets `front_door: mise`. An entry for a `harness` command names the program once, as `harness`:
 
 ```yaml
 - [harness, lifecycle, run, deliver]
 ```
 
 `render` writes such an entry for each rendered spelling: `harness …`, `./harnessw …`, `harnessw …`, and the task shim's
-`mise run <task> …` when a shim exists for that command. The built-in base, the module entries and the seeded entry
-are written the same way.
+`mise run <task> …` when a shim exists for that command. The built-in base, the module entries and the
+[seeded entry](#the-seeded-entry) are written the same way.
 
 A prefix rule still matches only leading words, so an absolute path to the wrapper, or `sh harnessw …`, matches none of
 the rendered spellings ([pitfalls](pitfalls.md#the-wrapper-is-a-second-spelling-of-every-harness-command)). The guards
@@ -140,9 +140,9 @@ and shown in the `policy` block of `AGENTS.md`.
 The prefix forms catch the flag-first spellings for both agents; the bare strings catch the flag-last spellings for
 Claude Code.
 
-Organization choices are not in the base: denying a tracker's remote sync, allowing deploy status tasks, MCP read
-rules. They belong in each repository's policy file, written there by a person or an agent and reviewed like any other
-change ([organization choices](presets.md#organization-choices)).
+Organization choices are not in the base: denying the remote sync of a [task tracker](tasks.md), allowing deploy status
+tasks, MCP read rules. They belong in each repository's policy file, written there by a person or an agent and reviewed
+like any other change ([organization choices](presets.md#organization-choices)).
 
 ### The seeded entry
 
@@ -165,8 +165,8 @@ configuration; review them like code ([lifecycle](lifecycle.md), [safety](safety
 
 `harness scaffold --adopt` imports existing permission rules into this file: Claude Code permissions, Codex rules and,
 with `--import local` or `--import user`, personal settings. Each imported entry keeps its decision and carries a
-provenance comment, and an equivalence check proves no project rule was lost. See
-[scaffold](scaffold.md#adopt).
+provenance comment naming its source, such as `# imported from .claude/settings.json (project)`, and an equivalence
+check proves no project rule was lost. See [scaffold](scaffold.md#adopt).
 
 ### The convention in `AGENTS.md`
 
@@ -176,9 +176,9 @@ entry marked.
 
 `policy` is a convention block ([concepts](concepts.md#conventions-outlive-the-tool)): it describes the permissions the
 agents' native settings enforce, and stays true when `harness` is gone. Entries for `harness`'s own commands are
-therefore left out of it, since those commands no longer exist after an eject. `./harnessw explain policy` prints the
-complete effective policy, those entries included. For the [Node API](#a-node-api) below, with every module on and task
-shims:
+therefore left out of it, since those commands no longer exist after an [eject](remove.md#eject)
+(`harness remove --eject`). `./harnessw explain policy` prints the complete effective policy, those entries included.
+For the [Node API](#a-node-api) below, with every module on and task shims:
 
 ```markdown
 <!-- harness:policy -->
@@ -336,7 +336,8 @@ More:
 
 - Do comment each group of entries with the reason; the reason is what a reviewer evaluates.
 - Do write an organization's entries into each repository's policy through a reviewed change, for example by an agent
-  following the organization's skill: each repository reviews them, and they are readable where they apply
+  following a skill the organization publishes, such as one installed with `npx skills add acme/agent-skills`: each
+  repository reviews them, and they are readable where they apply
   ([organization choices](presets.md#organization-choices)).
 - Do express a rule as a prefix list whenever Codex must also enforce it.
 - Do write an entry for a `harness` command once, as `[harness, …]`; `render` writes it for each spelling it renders,

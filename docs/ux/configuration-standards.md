@@ -16,7 +16,9 @@ its mistake named, never partly applied.
 ## Overview
 
 These rules cover the files that people and agents edit and harness reads. The field-by-field reference is in
-[../features/](../features/) and in `harness explain profile|policy|hooks|lifecycle|context`.
+[../features/](../features/) and in `harness explain profile|policy|hooks|lifecycle|context`. Terms used here in a
+precise sense, such as profile, seeded, owned, receipt and worker, are defined in the
+[glossary](../features/glossary.md).
 
 ## Where files live
 
@@ -26,7 +28,7 @@ makes removal pick files out of a tree others write, and state inside a committe
 
 | Location | Owner | Holds |
 | --- | --- | --- |
-| `.harness/` | harness's own versioned configuration | `config.yaml` (the profile), `policy.yaml`, `hooks.yaml`, `wrapper.yaml`, the manifest `manifest.json`, and an optional Ralph prompt override `ralph/prompt.hbs`. Everything in it is committed; nothing in it is state and nothing in it is ignored |
+| `.harness/` | harness's own versioned configuration | `config.yaml` (the profile), `policy.yaml`, `hooks.yaml`, `wrapper.yaml`, the manifest `manifest.json`, and `ralph/prompt.hbs`, an optional override of the prompt [Ralph](../features/ralph.md#the-prompt) workers receive. Everything in it is committed; nothing in it is state and nothing in it is ignored |
 | `.agents/` | agent content, the cross-tool convention other tools (the `skills` CLI, the `AGENTS.md` ecosystem) share | `skills/` (including the tool-owned `skills/harness/`), `memory/`, `commands/`, `REVIEW.md`, and repository files that standing context points to. It stays meaningful without harness |
 | repository root | the repository, with managed blocks | `harnessw` (the wrapper, tool-owned), `AGENTS.md`, `CLAUDE.md`, `README.md`, `.gitignore` |
 | state paths ([below](#state-paths)) | harness, clone-local | receipts, sessions, locks, the lifecycle log, the hook cache, standing-context session records, managed worktrees, task files, Ralph worktrees |
@@ -83,7 +85,8 @@ checksums:
   its checksums are worth something only if a trusted binary verified them, so a hand edit must not pass as the
   repository's choice ([ADR 0017](../adrs/0017-engine-version.md)).
 - `wrapper.yaml` is the only place the harness version is pinned. A second pin in `mise.toml`, `.mise.toml` or
-  `.tool-versions` is a `harness doctor` finding, because two pins disagree as soon as one moves.
+  `.tool-versions` (files from which [mise](https://mise.jdx.dev) reads tool versions) is a `harness doctor` finding,
+  because two pins disagree as soon as one moves.
 - `harness wrapper --version <tag>` (or `--latest`) and `harness scaffold` write `checksums` only from the release's
   checksum file after the running binary has verified its signature, or, with `scaffold --offline`, write the literal
   `pending`, which admits no download
@@ -112,7 +115,7 @@ ralph:
 | `state.dir` | `.work` | receipts, sessions, locks, the lifecycle log, the hook cache, standing-context session records |
 | `worktrees.dir` | `.work/worktrees` | each managed worktree, at `<dir>/<name>`; a Ralph coordinator at `<dir>/ralph-<id>`; sequential Ralph task worktrees at `<dir>/ralph-<id>-<task>` |
 | `tasks.prd_dir` | `.work/prds` | PRD JSON task files |
-| `ralph.worktrees_dir` | `.work/ralph-worktrees` | ralph-tui's parallel worker checkouts |
+| `ralph.worktrees_dir` | `.work/ralph-worktrees` | the parallel worker checkouts of [ralph-tui](https://github.com/subsy/ralph-tui), the program that schedules a Ralph run's tasks |
 
 - Paths are repository-relative. A path inside `.harness/` or `.agents/` is a validation error (exit 1), because both
   trees are committed.
@@ -121,8 +124,8 @@ ralph:
 - Each path is a convention: the module that uses it states it in a managed block of `AGENTS.md` and ignores it in a
   managed block of `.gitignore`, naming the configured value
   ([generated-content-standards.md](generated-content-standards.md#conventions-in-blocks)).
-- Beads stays at `.beads/` (where `bd` discovers it) and ralph-tui state stays in the coordinator worktree's
-  `.ralph-tui/`. Neither is a setting, because those tools find their files only there.
+- The Beads task database stays at `.beads/` (where `bd`, the Beads CLI, discovers it) and ralph-tui state stays in the
+  coordinator worktree's `.ralph-tui/`. Neither is a setting, because those tools find their files only there.
 
 ## Ownership
 
@@ -160,12 +163,14 @@ and by nothing else ([ADR 0013](../adrs/0013-organization-content.md)).
   either location takes effect only as the pinned release or as files the repository commits and reviews.
 - Machine-level files (the fleet file, the cache under `$HARNESS_HOME`) never affect what is rendered into a
   repository, so two machines render the same bytes.
-- An organization's choices (observability read patterns, deploy denies, a CI-trigger commit in delivery, tracker
-  rules) are entries in each repository's files, written by a person or by an agent following a skill the
-  organization publishes, and reviewed in each repository as a diff ([when-cli-when-skill.md](when-cli-when-skill.md)).
-  Why: those choices differ between an organization's repositories, so applying them takes judgement, and afterwards
-  each choice is in the files of the repository it governs. The cost is that a choice shared by many repositories is
-  written, and changed, in each of them.
+- An organization's choices (which observability tools agents may read without asking, a deny on each repository's
+  deploy command, a CI-trigger commit in delivery
+  ([example](../features/lifecycle.md#an-organization-convention-a-ci-trigger-commit-before-the-pull-request)), the task
+  tracker its repositories use) are entries in each repository's files, written by a person or by an agent following a
+  skill the organization publishes, and reviewed in each repository as a diff
+  ([when-cli-when-skill.md](when-cli-when-skill.md)). Why: those choices differ between an organization's repositories,
+  so applying them takes judgement, and afterwards each choice is in the files of the repository it governs. The cost is
+  that a choice shared by many repositories is written, and changed, in each of them.
 
 ## Schema versioning
 
@@ -376,7 +381,7 @@ single meaning.
   as a Ralph worker, so it gets the same bounds.
 - Actions run in the worktree of the work the event concerns. On `landed`, `run` and `http` actions run in the primary
   checkout. An `agent` action runs in a fresh worktree of the default branch, which harness creates under
-  `worktrees.dir` as `landed-<slug>-<n>` and records. harness leaves that worktree with the agent's uncommitted edits
+  `worktrees.dir` as `landed-<name>-<n>` and records. harness leaves that worktree with the agent's uncommitted edits
   for a person to review, commit or remove with `harness worktree remove`. Why: once work has landed its worktree is
   about to go, and the primary checkout holds whatever a person is doing there
   ([ADR 0019](../adrs/0019-action-kinds.md)).
@@ -518,8 +523,9 @@ that decides it, because a setting that weakens them would copy along with the f
 
 - Workers never bypass permissions.
 - Force pushes to the detected default branch are denied.
-- mise `:::` task chaining is denied.
-- Proofs are replayed outside the agent's writable tree, and completion is withheld until the replay passes.
+- mise `:::` task chaining, which runs a second task in the same command, is denied.
+- Verification proofs are replayed outside the agent's writable tree, and completion is withheld until the replay
+  passes.
 - Hooks never decide permissions.
 - Tool-owned files are restored from the session's base commit before each worker launch and compared after it; any
   difference fails the attempt.

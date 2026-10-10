@@ -16,9 +16,10 @@ generated content, and nothing people wrote themselves, disappears without anyon
 
 `harness remove` takes `harness`, or one of its modules, out of a repository, in one of two modes. **Undo**, the
 default, deletes what `harness` added and returns the repository to the setup it had before adoption. **Eject**,
-`--eject`, stops `harness` managing the repository and keeps the result: its convention blocks, permissions and hooks
-stay as ordinary hand-owned files. Both work from the [manifest](concepts.md#ownership-and-the-manifest), and both refuse
-to delete a file someone edited by hand.
+`--eject`, stops `harness` managing the repository and keeps the result: its convention blocks (the marked sections of
+`AGENTS.md` and `.gitignore` that state a convention, such as where worktrees live), permissions and hooks stay as
+ordinary hand-owned files. Both work from the [manifest](concepts.md#ownership-and-the-manifest), and both refuse to
+delete a file someone edited by hand.
 
 Examples on this page run commands as `./harnessw <command>`, through the repository's [wrapper](wrapper.md); with a
 global install, `harness <command>` is equivalent.
@@ -29,7 +30,7 @@ global install, `harness <command>` is equivalent.
 | --- | --- |
 | The adoption was a trial; the repository should go back to how it was before `harness` | `./harnessw remove` |
 | The repository should stop using `harness` and keep its worktree, task and Ralph conventions, its permissions and its hooks | `./harnessw remove --eject` |
-| The repository no longer wants one feature, for example Ralph | `./harnessw remove --module ralph` |
+| The repository no longer wants one feature, for example [Ralph](ralph.md), its unattended multi-task runs | `./harnessw remove --module ralph` |
 | You want to see what a mode would do | add `--dry-run` |
 
 Turning a module off in the profile and running `./harnessw render` has the same effect as `remove --module`, except
@@ -49,7 +50,7 @@ with. Managed blocks are owned, and each is either a convention block or a tool 
 | --- | --- | --- |
 | Seeded files in `.harness/`: profile, policy, hooks file | deleted, listed first | deleted |
 | Owned files in `.harness/`: `wrapper.yaml`, the manifest | deleted | deleted |
-| Other files in `.harness/`, such as `ralph/prompt.hbs` | listed and left; `.harness/` is deleted once empty | listed and left; `.harness/` is deleted once empty |
+| Other files in `.harness/`, such as `ralph/prompt.hbs`, an optional override of the Ralph prompt | listed and left; `.harness/` is deleted once empty | listed and left; `.harness/` is deleted once empty |
 | `harnessw` | deleted | deleted |
 | Convention blocks: `worktrees`, `tasks`, `ralph`, `policy`, `memory`, `context` in `AGENTS.md`; `import` in `CLAUDE.md`; every `.gitignore` block | removed, text and entries included | markers removed, text and entries kept |
 | Tool blocks: `commands`, `layout`, `verify`, `lifecycle` in `AGENTS.md`; `commands` in `README.md` | removed | removed |
@@ -61,7 +62,7 @@ with. Managed blocks are owned, and each is either a convention block or a tool 
 | The harness skill and its links | deleted | deleted |
 | The `.agents/memory/` skeleton | a file whose content still matches the hash it was seeded with is deleted; an edited file is knowledge and stays, listed | kept |
 | Knowledge: `AGENTS.md` prose, edited memory, domain skills, `.agents/commands/`, `.agents/REVIEW.md` | kept | kept |
-| State: the [state paths](profile.md#state-paths) (default under `.work/`), `.beads/`, `.ralph-tui/` | left in place and listed; no longer ignored | left in place, still ignored |
+| State: the [state paths](profile.md#state-paths) (default under `.work/`), `.beads/` (the Beads task database), `.ralph-tui/` (ralph-tui's configuration and state) | left in place and listed; no longer ignored | left in place, still ignored |
 
 Neither mode touches `settings.local.json`, user-level settings, or anything `harness` did not create.
 
@@ -114,7 +115,7 @@ After an eject the repository keeps working without `harness`:
 | `raw` hooks | modelled hooks (post-edit commands, validators, session context), notification hooks and hook-delivered context, which ran through `harness hook` |
 | Convention blocks in `AGENTS.md`: where worktrees live, how local tasks are tracked and where PRD files are, Ralph's directories and worker rules, the permissions agents work under, the memory index, `static` context | the tool blocks: the commands, the layout, the verification checks and the delivery steps |
 | `.gitignore` entries for every state path | lifecycle events and their actions; the receipt, its replay and the drift check |
-| `bd` with its `.beads/`; direct ralph-tui runs with their own configuration | the Ralph worker contract and tamper check of harness-launched runs |
+| `bd`, the Beads task tracker's CLI, with its `.beads/`; direct ralph-tui runs with their own configuration | the Ralph worker contract and tamper check of harness-launched runs |
 
 ### Removing one module
 
@@ -128,7 +129,7 @@ After an eject the repository keeps working without `harness`:
 | `tasks` | the `task` task shim, the `tasks` blocks in `AGENTS.md` and `.gitignore`, the `beads` block |
 | `ralph` | the `ralph` and `ralph:clean` task shims, the module's allow entries, the `ralph` blocks in `AGENTS.md` and `.gitignore` |
 | `memory` | the `memory` block, and the skeleton files that still match the hash they were seeded with; edited files stay, listed: they are knowledge |
-| `skills` | nothing on disk; `skills sync` and the pending check stop. Installed skills stay |
+| `skills` | nothing on disk; `skills sync` stops, and so does the `doctor` check that reports a declared skill source as pending while the lock file lists no skill from it ([skills](skills.md)). Installed skills stay |
 
 Repeat `--module` to remove several. A path the module's `.gitignore` block listed stays in place and is listed.
 Paths other modules use stay ignored, because each module writes its own `.gitignore` entries

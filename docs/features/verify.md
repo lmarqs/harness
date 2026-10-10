@@ -13,8 +13,11 @@ edit makes it unchecked again.
 ## Overview
 
 `harness verify` runs the checks a change needs and, when they pass, writes a receipt: a small record bound to the
-change's base commit and to the exact content of every changed file. Any later edit invalidates it. Task completion
-and Ralph workers require a valid receipt; `harness verify --check` tells you whether you have one.
+change's base commit and to the exact content of every changed file. Any later edit invalidates it. The checks are the
+lint command, validators, build and test **lanes** the [profile](profile.md#verify) declares; a lane is a named family
+of test commands, such as `unit` or `e2e`, run with the test patterns you give it (`--lane unit=invoice`). Task
+completion ([tasks](tasks.md)) and the workers of an unattended [Ralph](ralph.md) run require a valid receipt;
+`harness verify --check` tells you whether you have one.
 
 Commands are named `harness <command>` on this page. The examples run them through the repository's wrapper,
 `./harnessw <command>`, from the root of a checkout; with a global install, `harness <command>` is equivalent
@@ -78,6 +81,12 @@ A change is an **application change** when a changed file matches `verify.app_pa
 3. At least one lane must be selected. A reason is free text that no check can judge, so it may skip a lane, never all
    of them.
 
+For example, take the Node API in the [profile examples](profile.md#a-node-api), whose `e2e` lane is required when a
+changed file matches `src/**/*.controller.ts`. A change to `src/invoices/invoice.service.ts` passes the rules with
+`--lane unit=invoice --skip e2e="no route, controller or guard changed"`. Rule 1 refuses `--lane unit=invoice` alone,
+and rule 3 refuses skipping both lanes. Rule 2 refuses any `--skip e2e=<reason>` for a change to
+`src/invoices/invoices.controller.ts`.
+
 With `--full`, every lane that has a `full` command runs it; a lane without one still follows rules 1 and 2.
 
 A change that is not an application change (documentation, configuration outside `app_paths`) needs no lane and no
@@ -134,9 +143,9 @@ to that checkout.
 
 ### The `verify` block in `AGENTS.md`
 
-With the verify module on, `harness render` writes the repository's checks into the `verify` block of `AGENTS.md`,
-in plain language, from the profile's `commands` and `verify` sections, and says how to record them with
-`./harnessw verify`. For the Node API of the [profile](profile.md) examples:
+With the verify module on, `harness render` writes the repository's checks into the `verify` block of `AGENTS.md`, in
+plain language, from the profile's `commands` and `verify` sections, and says how to record them with
+`./harnessw verify`. For the Node API in the [profile examples](profile.md#a-node-api):
 
 ```markdown
 <!-- harness:verify -->
@@ -157,10 +166,11 @@ A missing service or dependency is blocked work, never a reason to skip a lane. 
 <!-- /harness:verify -->
 ```
 
-`verify` is a tool block: the lane rules, the receipt and its replay exist only while `harness` manages the
-repository, so the block describes how to use `harness` here and names `./harnessw verify`. An eject
-([`harness remove --eject`](remove.md#eject)) removes it, as does `harness remove --module verify`. A repository that
-wants its checks written down after an eject keeps them in `AGENTS.md` prose outside the markers.
+`verify` is a [tool block](concepts.md#convention-blocks-and-tool-blocks): the lane rules, the receipt and its replay
+exist only while `harness` manages the repository, so the block describes how to use `harness` here and names
+`./harnessw verify`. An eject ([`harness remove --eject`](remove.md#eject)) removes it, as does
+`harness remove --module verify`. A repository that wants its checks written down after an eject keeps them in
+`AGENTS.md` prose outside the markers.
 
 ## Reference
 
@@ -242,5 +252,5 @@ primary checkout's state directory; whatever the repository's commands and `veri
 ## Coexistence
 
 `verify` runs the repository's own commands; it adds no dependency to them and CI does not need it. A repository that
-already has a `verify` mise task keeps it; the task shim, which execs `./harnessw verify`, is named
-`harness:verify` until the two are reconciled ([render](render.md#task-shims)).
+already has a `verify` task in [mise](compatibility.md#mise) keeps it; the task shim, which execs `./harnessw verify`,
+is named `harness:verify` until the two are reconciled ([render](render.md#task-shims)).

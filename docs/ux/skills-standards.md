@@ -15,16 +15,17 @@ and ends in a result a check confirms rather than one taken on trust.
 ## Overview
 
 A skill is a directory with a `SKILL.md` that an agent loads when its description matches the task, or that harness
-injects through standing context. Skills carry the judgement half of the work; the binary carries the deterministic
-half ([when-cli-when-skill.md](when-cli-when-skill.md)). This page covers the skill harness ships and the rules harness
-expects of the skills around it.
+injects through standing context. Skills carry the judgement half of the work; the binary carries the deterministic half
+([when-cli-when-skill.md](when-cli-when-skill.md)). This page covers the skill harness ships and the rules harness
+expects of the skills around it. Terms such as standing context, pin and profile are defined in the
+[glossary](../features/glossary.md).
 
 ## Three kinds of skill
 
 | Kind | Lives in | Written by | Reaches a repository by | Holds |
 | --- | --- | --- | --- | --- |
 | **Harness skill** | the binary; installed at `.agents/skills/harness/` | harness maintainers | `harness render` (tool-owned, listed in the manifest) | how to run harness (`./harnessw <command>`), edit the repository files in `.harness/`, finish an adoption, read `doctor` findings, when to run `harness lifecycle run <event>`, and why the invariants exist |
-| **Organization skill** | an organization's skills repository | the organization | `skills.sources` in the profile, installed by `harness skills sync` through the `skills` CLI | conventions shared by one organization's repositories, and how to write them into one repository's files: delivery actions, policy entries (observability read patterns, deploy denies), review, domain vocabulary |
+| **Organization skill** | an organization's skills repository | the organization | `skills.sources` in the profile, installed by `harness skills sync` through the [`skills` CLI](https://github.com/vercel-labs/skills) | conventions shared by one organization's repositories, and how to write them into one repository's files: delivery actions, policy entries (observability read patterns, deploy denies), review, domain vocabulary |
 | **Repository skill** | `.agents/skills/<name>/` in the repository | people and agents in that repository | committed directly | knowledge of one repository: its modules, risks, procedures |
 
 The binary writes only the harness skill. Organization and repository skills are knowledge; the binary never creates,
@@ -85,19 +86,19 @@ for standing context:
   first screen of the body are enough to act on;
 - reads correctly when loaded twice, once injected and once by description, because the agent's own matching is left
   as it is ([compatibility-standards.md](compatibility-standards.md#coexistence));
-- is installed under `.agents/skills/` and, when it comes from a skills source, locked in `skills-lock.json`, because
-  harness injects a locked skill only when its content matches the locked hash.
+- is installed under `.agents/skills/` and, when it comes from a skills source, locked in `skills-lock.json`, the
+  `skills` CLI's lock file, because harness injects a locked skill only when its content matches the locked hash.
 
 A directive that must apply even without the binary is declared `static`, so it is written into `AGENTS.md` and does
 not depend on a hook.
 
 ## Organization skills that write repository entries
 
-An organization's choices that harness enforces (observability read patterns, deploy denies, a CI-trigger commit in
-delivery, tracker rules) reach a repository only as entries in its own files, written by a person or by an agent
-following the organization's skill. Why: no repository file can name a source outside the repository, and the
-organization's choices differ between its repositories, so applying them takes judgement
-([ADR 0013](../adrs/0013-organization-content.md)). Such a skill:
+An organization's choices that harness enforces (which observability tools agents may read without asking, a deny on
+each repository's deploy command, a CI-trigger commit in delivery, the task tracker its repositories use) reach a
+repository only as entries in its own files, written by a person or by an agent following the organization's skill. Why:
+no repository file can name a source outside the repository, and the organization's choices differ between its
+repositories, so applying them takes judgement ([ADR 0013](../adrs/0013-organization-content.md)). Such a skill:
 
 - states each entry with the reason the organization holds it, and how to fit it to the repository in front of the
   agent: which entries apply, and what to do with an entry the repository already has, because the agent decides per
@@ -106,6 +107,12 @@ organization's choices differ between its repositories, so applying them takes j
   a managed block, because those are replaced by the next render;
 - ends by running `harness render` and then `harness doctor`, so the entries and their rendered effect reach review as
   one diff and the binary checks the result.
+
+For example, acme's CI runs a pull request only when its tip commit carries `#ci`, and acme's agents may search its
+observability service without asking. acme's skill has the agent add `"mcp__acme_observability__search_*"` under
+`shared.allow` in `.harness/policy.yaml`, read the repository's CI configuration, and, only where that CI waits for
+`#ci`, declare a `ci-trigger` action before the pull-request action under `lifecycle.deliver` in `.harness/hooks.yaml`
+([lifecycle](../features/lifecycle.md#an-organization-convention-a-ci-trigger-commit-before-the-pull-request)).
 
 ## Explain the reasoning
 

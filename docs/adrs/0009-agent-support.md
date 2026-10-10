@@ -14,14 +14,16 @@ another agent changes no repository's declarations.
 - The supported agents differ in permission syntax (pattern strings in Claude Code's settings, rule files that match
   the leading words of a command in Codex CLI), in hook schema, in the payload they send to a hook, and in the events
   they emit. More agents exist and new ones appear.
-- Configuration maintained by hand once per agent drifts. One hand-ported copy of an agent workflow carries a
-  dedicated check whose only job is to compare the two agents' hand-written files and keep them in step.
+- Configuration maintained by hand once per agent drifts. Example: `acme/api` writes its permissions by hand twice, in
+  Claude Code's settings and in Codex CLI's rule files. A teammate allows a new test command in one and forgets the
+  other, so the two agents disagree, and the repository grows a dedicated check whose only job is to compare the two
+  files and keep them in step.
 - Agents change their formats between releases. A central engine fixes such a change once, and is broken by it in
   every repository until fixed.
-- Some constructs exist in one agent only. Surveyed repositories hold hooks on events that only some agents emit, and
-  agents differ in whether they report that they are waiting for a person or that a turn ended.
-- Repositories assign agents to roles differently: one uses an agent interactively and another only for unattended
-  work; another uses one agent for both.
+- Some constructs exist in one agent only. A repository can hook events that only some agents emit, and agents differ in
+  whether they report that they are waiting for a person or that a turn ended.
+- Repositories assign agents to roles differently. Example: `acme/api` uses Claude Code interactively and Codex CLI only
+  for unattended work, `acme/cli` uses both interactively, and `acme/web` uses Claude Code for both.
 
 ## Decision
 
@@ -32,7 +34,7 @@ another agent changes no repository's declarations.
 3. Each adapter normalises its agent's hook payloads into one neutral event set. The set includes the agent's
    notification events, waiting for a person and turn ended ([0019](0019-action-kinds.md)), and the points where
    guidance enters the agent's context ([0020](0020-standing-context.md)). Where an agent lacks an event, the adapter
-   renders nothing for it and the health check reports the gap.
+   renders nothing for it and the health check, the tool's read-only report on a repository's setup, reports the gap.
 4. The adapter contract is public and documented. Adding an agent means adding an adapter; the sources and the other
    adapters do not change.
 5. A construct the neutral model does not express may be written as a raw, agent-specific entry. An adapter whose
@@ -43,7 +45,7 @@ another agent changes no repository's declarations.
 ## Reasons
 
 - **1.** One source means one change reaches every agent with equivalent effect. The alternative, one hand-written
-  file per agent, drifts. The workflow copy that needs a check to keep two agents' files in step shows the cost.
+  file per agent, drifts. The dedicated check of the `acme/api` example in Context shows the cost.
 - **2.** Each agent's syntax, schema and release cadence is confined to one component. A format change in one agent
   is fixed in one adapter, and the other agents' output is untouched. The supported-version declaration lets the
   health check stop an unsupported agent version before the tool renders configuration that agent misreads.
@@ -63,8 +65,8 @@ another agent changes no repository's declarations.
 
 ### One source per agent
 
-At its best, each agent's full feature set is available with no translation. It loses because every rule exists once
-per agent, and those copies drift in practice.
+At its best, each agent's full feature set is available with no translation. It loses because every rule exists once per
+agent, and those copies drift, as the `acme/api` example in Context shows.
 
 ### A neutral model with no passthrough
 

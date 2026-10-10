@@ -13,16 +13,18 @@ no hook fails for lack of a runtime.
 
 - Adoption must cost nothing to teammates and pipelines that do not use the tool
   ([0010](0010-dependence-on-the-binary.md)) and little to those who do.
-- Across 51 surveyed repositories, 36 pin no Python and the rest span 3.9 to 3.14; 12 do not use the task runner the
-  others share; several have no Node.
+- Repositories carry the runtimes and tools of their own stack, so what one repository has, another lacks. Example: at
+  acme, `acme/api` is a Node service with no Python, two Python services pin Python 3.9 and 3.13, and `acme/infra` holds
+  Terraform code, has neither Python nor Node, and uses no task runner, while the other repositories share one.
 - Hooks run on every matching agent event. A missing or mismatched interpreter surfaces as failing hooks inside agent
   sessions.
-- Some adjacent work belongs to third-party tools that bring their own runtime, such as a skills installer that needs
-  Node.
+- Some adjacent work belongs to third-party tools that bring their own runtime, such as the `skills` CLI (1.7), a skills
+  installer that needs Node.
 - Everything the tool manages is a git repository: commits, branches, working copies and diffs. git is present wherever
   a repository is cloned.
 - macOS supports system calls only through its system library, so every macOS program links it.
-- On a machine where no binary exists yet, the wrapper obtains the pinned release ([0017](0017-engine-version.md)).
+- On a machine where no binary exists yet, the wrapper, a script committed in the repository, obtains the pinned release
+  ([0017](0017-engine-version.md)).
 
 ## Decision
 
@@ -38,17 +40,17 @@ no hook fails for lack of a runtime.
 
 ## Reasons
 
-- **1.** The survey shows no runtime that every repository shares. Requiring one turns adoption into an installation
-  project and adds a setup step to every CI job that runs a check. A mismatched interpreter breaks hooks inside agent
-  sessions. git is the one program the tool cannot work without and that every clone already has. The trade: git is a
-  hard dependency.
+- **1.** A repository's runtimes follow its stack, so no runtime is common to every repository (Context). Requiring one
+  turns adoption into an installation project and adds a setup step to every CI job that runs a check. A mismatched
+  interpreter breaks hooks inside agent sessions. git is the one program the tool cannot work without and that every
+  clone already has. The trade: git is a hard dependency.
 - **2.** A statically linked Linux binary runs on every distribution and in minimal containers, so CI can use it by
   downloading one file. On macOS the system library is the only supported way to reach the kernel, so linking it adds
   no dependency a macOS machine lacks.
 - **3.** Reimplementing a third-party tool duplicates a specification another project owns and changes. Delegation keeps
   that behaviour correct as the third-party tool evolves. Reporting the item as pending, instead of installing a
-  runtime, leaves each machine's runtimes to its owner. The trade: those capabilities stay pending on machines without
-  the runtime.
+  runtime, leaves each machine's runtimes to its owner. The trade: the delegated capabilities stay pending on machines
+  without the runtime.
 - **4.** The repository's commands are its own data ([0006](0006-repository-contract.md)) and the harnesses are the
   user's choice ([0001](0001-role-of-the-tool.md)). Counting them as the binary's dependencies would make its
   requirements unbounded.
@@ -59,8 +61,9 @@ no hook fails for lack of a runtime.
 
 ### Require a documented runtime
 
-For example, a minimum Python version. At its best, the code is smaller and contribution is easier. It loses because the
-survey shows version skew, and every CI pipeline that runs a check gains a setup step.
+For example, a minimum Python version. At its best, the code is smaller and contribution is easier. It loses because
+repositories pin different versions of the same runtime, or none (Context), and every CI pipeline that runs a check
+gains a setup step.
 
 ### Bundle an interpreter
 

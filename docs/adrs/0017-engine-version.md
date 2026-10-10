@@ -11,9 +11,9 @@ first command works with nothing installed beforehand.
 
 ## Context
 
-- One person may work across about thirty repositories, with teammates and CI runners working in the same ones. Unless
-  something pins the release, a teammate's machine, a CI runner and the release a repository was last rendered with
-  can all differ.
+- A person may work across many repositories, with teammates and CI runners working in the same ones. Unless something
+  pins the release, a teammate's machine, a CI runner and the release a repository was last rendered with can all
+  differ.
 - Generated artefacts are committed and drift-checked ([0007](0007-ownership.md)). Rendering rules change between
   releases, so with different releases on different machines, the drift check passes on one machine and fails on
   another for the same commit.
@@ -23,8 +23,9 @@ first command works with nothing installed beforehand.
   A clone runs the pinned version without a prior installation of the build tool.
 - A newcomer to a repository has installed nothing; the first command they run is the one the repository's
   instructions name.
-- Across 51 surveyed repositories, 12 do not use the task runner the others share
-  ([0004](0004-runtime-dependencies.md)). A pin kept in that task runner's tool list does not reach them.
+- Some task runners, such as mise (2026.6), also install tools: their own file holds a tool list that names a version
+  for each tool. Repositories differ in their task runners, and some use none ([0004](0004-runtime-dependencies.md)). A
+  pin kept in one task runner's tool list does not reach a repository, machine or pipeline without that task runner.
 - A version pinned in two places drifts: after the first upgrade that touches only one of them, the two disagree.
 - Agent hooks must not fail or stall a session because the binary is missing
   ([0010](0010-dependence-on-the-binary.md)), and a hook invocation adds at most 50 ms at p95
@@ -34,7 +35,8 @@ first command works with nothing installed beforehand.
 - The tool is one executable with its templates embedded ([0003](0003-implementation-language.md)); it needs only the
   operating system and git at runtime ([0004](0004-runtime-dependencies.md)); a repository holds no engine code
   ([0006](0006-repository-contract.md)).
-- Starting a container from an image already present measured 565 to 875 ms in ten runs on a developer workstation.
+- Starting a container, even from an image already present, takes a container runtime hundreds of milliseconds; anyone
+  with a runtime can time it on their own machine.
 - Releases appear while repositories stay on what they pinned; a person learns of a newer release only when something
   tells them.
 - Some networks reach only an internal mirror, not the project's release host. The binary contains no client for any
@@ -165,7 +167,7 @@ its own release, and a newcomer installs the tool before the first command works
 The repository lists the tool and its version in the tool list of the task runner it already uses, and the task runner
 installs and selects that version. At its best, there is no new script and no new file, and the pin sits beside the
 repository's other tool versions. It loses because the pin reaches only machines where that task runner is installed,
-which excludes the 12 of 51 surveyed repositories that do not use it ([0004](0004-runtime-dependencies.md)). Agent hooks
+which excludes repositories that use another task runner or none ([0004](0004-runtime-dependencies.md)). Agent hooks
 get the pinned version only when the task runner's activation is present in the agent's environment, and pinning depends
 on a third-party tool.
 
@@ -180,9 +182,9 @@ reviewed as a diff, and the repository carries engine content ([0006](0006-repos
 
 The repository names an image that contains the pinned binary, and entry points run the tool inside it. At its best, the
 image pins the binary and its environment together, and CI systems that run jobs in images use it directly. It loses
-because every machine needs a container runtime ([0004](0004-runtime-dependencies.md)). A container start measured 565
-to 875 ms against the 50 ms hook budget ([0003](0003-implementation-language.md)), and the tool must reach the working
-tree and the git state from inside the container.
+because every machine needs a container runtime ([0004](0004-runtime-dependencies.md)). A container start takes hundreds
+of milliseconds against the 50 ms hook budget ([0003](0003-implementation-language.md)), and the tool must reach the
+working tree and the git state from inside the container.
 
 ### Refuse adoption without access to the release source
 

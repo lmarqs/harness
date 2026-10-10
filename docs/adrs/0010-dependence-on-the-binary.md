@@ -13,14 +13,15 @@ withdraw one practice at a time.
 
 - Not every teammate, machine or pipeline installs the tool, yet everyone who clones a repository shares its committed
   files.
-- 34 of 51 surveyed repositories run hosted CI workflows. Their build, test, deploy and release outputs are what the
-  team ships.
+- Repositories commonly run hosted CI workflows, and their build, test, deploy and release outputs are what the team
+  ships.
 - Hooks run inside agent sessions on every matching event. A hook that fails interrupts every session of every
   teammate, and a hook invocation has a budget of 50 ms at p95 ([0003](0003-implementation-language.md)).
 - The committed wrapper fetches the pinned release over the network on first use and keeps it in a per-user cache
   ([0017](0017-engine-version.md)). Until then, a machine has no binary to run.
 - Entry points are called in two ways. Agents call hooks implicitly, on events, without anyone asking for a result.
-  People and agents call task-runner shims and the wrapper explicitly, to obtain a result such as a check.
+  People and agents call task-runner shims (one-line tasks that call the wrapper) and the wrapper explicitly, to obtain
+  a result such as a check.
 - A repository may want one practice without the others, and must be able to withdraw one without withdrawing all.
 
 ## Decision
@@ -52,9 +53,8 @@ withdraw one practice at a time.
 - **4.** An explicit call asks for a result. Exiting zero without running the check would report a pass that never
   happened, which is worse than failing. A non-zero exit that names the missing piece tells the caller exactly what to
   fix. Explicit calls may fetch the pinned release ([0017](0017-engine-version.md)), because someone asked for them.
-- **5.** The CI outputs of the 34 repositories with hosted workflows are what their teams ship, and adoption must not
-  change them. A required step would make the tool a dependency of every pipeline. Teams that want a drift gate add it
-  themselves.
+- **5.** A repository's CI outputs are what its team ships, and adoption must not change them. A required step would
+  make the tool a dependency of every pipeline. Teams that want a drift gate add it themselves.
 - **6.** Repositories need different subsets of the tool's practices, and withdrawing one practice must not withdraw
   the rest. The manifest records what each capability owns, so removing one is mechanical.
 

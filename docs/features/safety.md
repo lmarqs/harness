@@ -16,8 +16,8 @@ and what that protection does not stop, and every gap left open is one they chos
 `harness` lets agents work in a repository, attended or not, without handing them more than the work needs. The
 guidelines cover what it defends against, which layers do the defending, and how to configure a repository so the layers
 hold. That configuration covers where to place a policy entry, what changes when nobody is watching, why lifecycle
-actions are code, what an `agent` action may do, where standing context may come from, where secrets must not go, and
-what to read in a rendered diff. A checklist for unattended runs closes the page.
+actions are code, what an `agent` action may do, where [standing context](context.md) may come from, where secrets must
+not go, and what to read in a rendered diff. A checklist for unattended runs closes the page.
 
 [Pitfalls](pitfalls.md) describes the traps behind many of these guidelines one by one.
 
@@ -31,11 +31,11 @@ Commands are named `harness <command>` on this page. Run them through the reposi
 | --- | --- | --- |
 | A person | trusted; decides | owns the repository, the credentials and the merge |
 | An interactive agent | an untrusted contributor, with a person present | acts on instructions and on everything it reads; a person sees its prompts |
-| A coordinating agent left alone | an untrusted contributor, with nobody present | the same agent, without the person who would catch a wrong step |
+| A coordinating agent left alone | an untrusted contributor, with nobody present | the same agent, coordinating work such as a [Ralph](ralph.md) run and its delivery, without the person who would catch a wrong step |
 | A Ralph worker | the least trusted | unattended, driven by task text, and the one that writes the code its own checks run |
 | Task, issue and pull-request text | untrusted input | anyone who can write it can address the agent that reads it |
 | Lifecycle actions, notification actions, raw hooks, validators, lane commands | code | they run with the person's credentials; `harness` runs them without judging them |
-| An `agent` action | an unattended agent | it runs headless on a prompt, often with values written by people and agents in it; it runs under the worker contract |
+| An `agent` action | an unattended agent | it runs headless on a prompt, often with values written by people and agents in it; it runs under the [worker contract](ralph.md#the-worker-contract) |
 | Standing context: the skills and files `context` entries name | instructions | every matching session reads them as guidance; whoever can change them steers the agents |
 | `HARNESS_MESSAGE`, `HARNESS_REASON`, task titles and summaries | untrusted input | agents and task text shape them; they reach notifications and `agent` prompts |
 | A built-in preset, applied with `harness preset apply` or by `scaffold` | code from the pinned release | it writes commands, lanes, validators and post-edit hooks into the repository's files, which run them with the credentials of whoever triggers them; `apply` shows the additions as a diff before writing, and the commit is reviewed like any other |
@@ -62,10 +62,10 @@ runs code it wrote ([pitfalls](pitfalls.md#a-task-runner-runs-whatever-its-tasks
 | Layer | Stops | Does not stop |
 | --- | --- | --- |
 | Native permissions rendered from the [policy](policy.md) | commands the policy denies or asks about, in every agent that renders them | commands no entry matches (the agent's default decides), spellings a prefix does not match, settings outside the policy |
-| [Built-in invariants](concepts.md#built-in-invariants) | permission bypass in workers, force push to the default branch, task-runner chaining, completion without a replayed proof, delivery of unsafe work, lifecycle actions inside workers, `agent` actions outside the worker contract | anything a repository allows on purpose |
+| [Built-in invariants](concepts.md#built-in-invariants) | permission bypass in workers, force push to the default branch, task-runner chaining such as mise's `:::`, completion without a replayed proof, delivery of unsafe work, lifecycle actions inside workers, `agent` actions outside the worker contract | anything a repository allows on purpose |
 | Guards in the binary ([spellings](#guards-live-in-the-binary)) | `harness lifecycle run` inside a worker, unsafe `deliver`, whatever spelling of the command an agent uses | a command `harness` does not run |
 | The worker contract ([Ralph](ralph.md#the-worker-contract)) | bypass flags from any configuration, `worker.deny` commands, a worker committing or integrating its own work | commands `worker.deny` does not list |
-| The tamper check | a worker editing rendered rules, owned settings keys, hook entries, `harnessw` or `.harness/wrapper.yaml` to widen its next attempt | edits to files `harness` does not own |
+| The tamper check ([below](#the-worker-contract-and-the-tamper-check)) | a worker editing rendered rules, owned settings keys, hook entries, `harnessw` or `.harness/wrapper.yaml` to widen its next attempt | edits to files `harness` does not own |
 | Receipt replay ([verify](verify.md#who-relies-on-it)) | a worker claiming checks it did not run, or weakening the checks it is measured by | tests that pass without exercising the change |
 | Lifecycle guards ([lifecycle](lifecycle.md#built-in-guards)) | delivery from the default branch or of uncommitted work and, when the verify module is enabled, of work without a valid receipt; actions run by a worker | what a declared action does once it runs |
 | The pinned, verified binary ([wrapper](wrapper.md)) | a download that does not match the checksums committed in the repository; a pin of a release its publisher did not sign; an agent hook fetching code; two versions of `harness` in one repository | a compromised signing key; `HARNESS_BINARY`, which bypasses the pin by design |
@@ -99,20 +99,21 @@ flowchart TD
 | unlisted | production, cloud and repository-settings writes | `kubectl apply`, `aws …`, `gh repo edit` |
 | `worker.deny` | everything that leaves the worker's worktree before the worker wrapper verifies it | commits, pushes, refs and worktrees, `git -C`/`git -c`, the hosting platform's CLI, shared local services, production and cloud |
 
-Production stays unlisted rather than denied because a `deny` would also stop the person who means it. Each kind of
-session handles it in its own way. A person at the terminal decides case by case. An unattended Claude Code session in
-auto mode leaves it to its classifier, which judges it from the conversation. Workers are denied it through
-`worker.deny`.
+Production stays unlisted rather than denied because a `deny` would also stop the person who means it, such as a
+developer who asks the agent to run a planned `kubectl apply`. Each kind of session handles it in its own way. A person
+at the terminal decides case by case. An unattended Claude Code session in auto mode (`--permission-mode auto`) leaves
+it to its classifier, which judges it from the conversation. Workers are denied it through `worker.deny`.
 
 Write the reason above each group of entries. The reason is what a reviewer evaluates, and an entry broader than its
 reason is a finding.
 
 ### Guards live in the binary
 
-An agent can invoke `harness` as `./harnessw <command>`, `harness <command>`, `harnessw <command>` or a task shim. A
-policy entry for a `harness` command is written once, `[harness, lifecycle, run, deliver]`, and `render` writes it for
-every one of those spellings ([policy](policy.md#entries-for-harness-commands)). A prefix rule still matches leading
-words only, so an absolute path to the wrapper or `sh harnessw …` matches none of them.
+An agent can invoke `harness` as `./harnessw <command>`, `harness <command>`, `harnessw <command>` or a
+[task shim](render.md#task-shims). A policy entry for a `harness` command is written once,
+`[harness, lifecycle, run, deliver]`, and `render` writes it for every one of those spellings
+([policy](policy.md#entries-for-harness-commands)). A prefix rule still matches leading words only, so an absolute path
+to the wrapper or `sh harnessw …` matches none of them.
 
 The guards that matter therefore never rest on policy entries. The binary refuses `harness lifecycle run` inside a Ralph
 worker on its own: the worker launcher sets `HARNESS_WORKER=1`, and the binary checks it. The binary also enforces the
@@ -136,6 +137,11 @@ Two rules decide how an unattended session behaves:
 
 Before leaving a session alone, check that every `ask` it reaches is either acceptable as a stop or moved, and that
 every `allow` is one you accept with no judgement applied.
+
+For example, a coordinating session told to open a pull request when the run ends reaches the seeded `ask` on
+`[harness, lifecycle, run, deliver]` and waits there until someone answers. Either that stop is what you want, or the
+entry moves to `allow` once you accept every `deliver` action running unasked
+([lifecycle actions are code](#lifecycle-actions-are-code)).
 
 ## The worker contract and the tamper check
 
@@ -181,8 +187,8 @@ that fired them, outside the agent's per-command permission checks.
 
 In practice:
 
-- Review `lifecycle` changes in `.harness/hooks.yaml` like code, including those an agent wrote while following an
-  organization's skill.
+- Review `lifecycle` changes in `.harness/hooks.yaml` like code, including those an agent wrote while following a
+  skill an organization publishes, such as one installed with `npx skills add acme/agent-skills`.
 - Keep the seeded `ask` on `[harness, lifecycle, run, deliver]` until the actions are ones you accept an agent running
   unasked. Moving it to `allow` is a decision about the actions, not about the command.
 - Check `harness lifecycle list` for `auto: true` before granting an agent a command with a trigger point.
@@ -223,8 +229,8 @@ prompt.
 Every session that [standing context](context.md) reaches reads it as instructions, so its sources are controlled:
 
 - Entries name only repository files and skills installed under `.agents/skills/`. Nothing is fetched when a hook runs.
-- A skill listed in `skills-lock.json` is injected only when its content matches the locked hash; `harness doctor`
-  reports a mismatch as a finding.
+- A skill listed in `skills-lock.json`, the lock file the [`skills` CLI](skills.md#declared-skill-sources) writes, is
+  injected only when its content matches the locked hash; `harness doctor` reports a mismatch as a finding.
 - For a worker, the declarations and every file they name are read from the session's base commit, so a worker cannot
   rewrite its own instructions between attempts.
 - A change to an injected file or skill is a change to every agent session's instructions. Review it like policy.
@@ -283,9 +289,9 @@ Personal settings accumulate entries nobody chose for a team:
 - broad allows a person accepted for convenience;
 - rules for tools only that person has.
 
-Every entry from these scopes is marked for review in the to-do. Run with `--dry-run` first, read each marked entry,
-delete what is personal, and keep only what you would have written for the team. The source files are only read; the
-person's own settings keep applying to them.
+Every entry from these scopes is marked for review in the [to-do](scaffold.md#the-to-do). Run with `--dry-run` first,
+read each marked entry, delete what is personal, and keep only what you would have written for the team. The source
+files are only read; the person's own settings keep applying to them.
 
 ## Reviewing rendered diffs
 

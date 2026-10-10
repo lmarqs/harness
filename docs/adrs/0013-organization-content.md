@@ -13,13 +13,14 @@ and stack facts still reach each repository through one reviewed change.
 ## Context
 
 - The tool is open source and meant for users outside any one organization.
-- Agent policies in practice mix generic rules with one organization's choices. One surveyed policy holds, beside its
-  generic rules, a deny on synchronising the task database to remotes, allows for deployment tasks, read patterns for
-  an observability service, and a commit trailer that triggers CI. Other teams need different choices; a team that
+- Agent policies mix generic rules with one organization's choices. For example, beside generic rules such as a deny on
+  force pushes to the default branch, the policy of `acme/api` holds a deny on synchronising its clone-local task
+  database to remotes, allows for acme's deployment tasks, read patterns for the observability service acme uses, and a
+  commit trailer that triggers acme's CI. Other teams, at acme or elsewhere, need different choices; a team that
   synchronises its task database across machines needs that deny absent.
-- Repositories on the same technology stack start from the same facts: how to lint an edited file, how to run the
-  tests, how to build. Of 32 surveyed repositories of one organization, 17 use Node, 7 Python, 3 Terraform and 1 Go,
-  some of them several.
+- Repositories on the same technology stack start from the same facts: how to lint an edited file, how to run the tests,
+  how to build. For example, `acme/api` and `acme/web` are both Node repositories and lint, test and build the same way,
+  while acme's Terraform repositories need other entries, and one repository can use several stacks.
 - People reviewing a change, and agents working on one, read the files of the repository in front of them. Content
   resolved from another repository or from a per-user cache is not among those files.
 - Drift checks run in CI and on developer machines ([0007](0007-ownership.md)). A check whose result changes when
@@ -79,8 +80,8 @@ and stack facts still reach each repository through one reviewed change.
 
 ### Organization presets shipped inside the binary
 
-At its best, those organizations need no setup. It loses because releases become coupled to organizations, their
-content becomes public in the tool, and every other user carries entries they do not use.
+At its best, the organizations whose presets ship in the binary need no setup. It loses because releases become coupled
+to organizations, their content becomes public in the tool, and every other user carries entries they do not use.
 
 ### One fork per organization
 

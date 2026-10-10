@@ -14,15 +14,16 @@ without reading the pages before it.
 
 **The game master.** `harness` is to agents what a game master is to a tabletop game: it rules the world and never
 plays. Developers are the players, who decide what gets built. Agents are the characters, who act within the rules.
-Repositories are the world. The three repository files are the rulebook, and the built-in invariants are the rules no
-table can change.
+Repositories are the world. The three repository files, `.harness/config.yaml`, `.harness/policy.yaml` and
+`.harness/hooks.yaml`, are the rulebook, and the built-in invariants are the rules no table can change.
 
 | Term | Meaning |
 | --- | --- |
-| Action kind | What a declared action does: `run` (a shell command), `http` (an HTTP request `harness` makes itself, with the URL and header values read from environment variables) or `agent` (a headless agent run under the worker contract). Notification hooks take `run` and `http` only. See [lifecycle](lifecycle.md#action-kinds) |
+| Action kind | What a declared action does: `run` (a shell command), `http` (an HTTP request `harness` makes itself, with the URL and header values read from environment variables) or `agent` (a headless agent run under the [worker contract](ralph.md#the-worker-contract)). Notification hooks take `run` and `http` only. See [lifecycle](lifecycle.md#action-kinds) |
 | Actor | The identity a session or a Ralph run uses to claim tasks: `<user>:<worktree>:<random>` for a managed worktree, `ralph:<session-id>` for a run |
 | Adapter | The part of `harness` that knows one agent: its native files, permission and hook formats, hook payloads, and safe worker launch. See [agents](agents.md#the-adapter-contract) |
 | Adopt | `harness scaffold --adopt`: take over an existing hand-written agent setup, import what can be expressed, list the rest as a to-do |
+| Adopted repository | A repository set up for `harness`, by `harness scaffold` with or without `--adopt`: it holds `.harness/`, the committed wrapper `harnessw` and the files `harness` renders. See [scaffold](scaffold.md) |
 | Adoption class | Greenfield, brownfield-simple or brownfield-complex: the state a repository starts from. See [concepts](concepts.md#adoption-classes) |
 | Agent-content directory | `.agents/`: skills, memory, agent commands and the review guide. A convention shared with other tools, such as the `skills` CLI, that stays meaningful without `harness`. See [concepts](concepts.md#two-directories-two-owners) |
 | Always-on context | The [standing context](context.md) every session of a role receives: `always` entries, `static` ones included. Capped by `context.budget` |
@@ -31,6 +32,7 @@ table can change.
 | Base | The commit a change is measured against: a managed worktree's starting commit, or the merge-base with the default branch |
 | Base policy | The built-in policy entries every repository gets and none can remove: no force push to the default branch, no mise `:::` chaining, no `harness lifecycle` for workers, in every rendered spelling of the command (`harness`, `./harnessw`, `harnessw`, task shims). The binary enforces the same guards itself; the entries are defence in depth |
 | Bare string | A policy string that is not a native rule string, that is, neither `Tool(specifier)`, nor a tool name on its own such as `WebSearch` or `Read`, nor an `mcp__…` name: shorthand for `Bash(<string>)`, Claude-only. See [policy](policy.md#entry-forms) |
+| Beads | A third-party task tracker that keeps tasks in a `.beads/` database in the clone and is used through its `bd` CLI; one of the trackers `harness task` and Ralph work from. See [tasks](tasks.md) |
 | Block | See managed block |
 | Blocked | The out-of-band lifecycle event that fires at any stage when work stops unfinished or needs a person: a Ralph run stopping unfinished, a task skipped after its retries, a command without a terminal exiting 3. Its actions receive the reason in `HARNESS_REASON`. See [lifecycle](lifecycle.md#events) |
 | Bootstrap | The profile's list of commands that prepares a new checkout |
@@ -39,6 +41,7 @@ table can change.
 | Configuration directory | `.harness/`: the profile, policy, hooks file, `wrapper.yaml`, manifest and an optional Ralph prompt. Versioned, never state, never ignored. Both removal modes delete every file `harness` recorded there, and the directory once nothing else is in it |
 | Context trigger | What makes a `when` entry of [standing context](context.md) fire: `paths` (the agent first reads or edits a matching file) or `prompt` (the person's message contains a listed word or phrase) |
 | Convention block | A managed block that states, as plain fact, a convention that stays true without `harness`, and never names a `harness` command: `worktrees`, `tasks`, `ralph`, `policy`, `memory` and `context` in `AGENTS.md`, `import` in `CLAUDE.md`, every `.gitignore` block. An eject keeps its text. See [concepts](concepts.md#convention-blocks-and-tool-blocks) |
+| Coordinating agent | An agent session, attended or left alone, that drives work through `harness` commands for a person, for example launching a Ralph run, arranging the run's commits and running `harness lifecycle run deliver`. Work that needs an MCP tool is its job, since `harness` never connects to an MCP server. See [safety](safety.md#unattended-runs) |
 | Coordinator | The isolated worktree in which a harness-launched ralph-tui run executes |
 | Default branch | The branch `origin/HEAD` points to |
 | Deliver | The lifecycle event that sends concluded work out of the clone through declared actions (push, pull request, CI trigger). Guarded: never on the default branch or with uncommitted changes and, when the verify module is enabled, never without a valid receipt. See [lifecycle](lifecycle.md) |
@@ -67,6 +70,7 @@ table can change.
 | Memory | Durable, reviewed repository knowledge for agents under `.agents/memory/`, indexed in `AGENTS.md` |
 | Merge-render | Writing only owned keys and entries into a native file and preserving everything else byte for byte |
 | Meta-harness | A tool that configures and constrains the harnesses that run agents (Claude Code, Codex, ralph-tui) and never calls a model itself |
+| mise | A third-party tool-version manager and task runner ([mise](https://mise.jdx.dev)). With `front_door: mise`, `harness` renders task shims, one-line mise tasks such as `mise run verify`. See [compatibility](compatibility.md#mise) |
 | Module | An opt-in feature set in the profile: `hooks`, `verify`, `tasks`, `ralph`, `memory`, `skills` |
 | Native file | A file an agent reads from a fixed path: `.claude/settings.json`, `.codex/config.toml`, `.codex/hooks.json`, `.codex/rules/` |
 | Notification hook | An action declared under `attention` or `turn_end` in `hooks.yaml`: `run` or `http`, fired by the agent's own notification events, never inside a Ralph worker. See [hooks](hooks.md) |
@@ -78,6 +82,8 @@ table can change.
 | PRD file | A JSON file of user stories in ralph-tui's format, usable as a task tracker |
 | Preset | A set of starting entries for one technology stack, built into the release: `go`, `node`, `terraform` or `python`. It holds commands, lanes, validators and module switches for the profile, and post-edit hooks for the hooks file. `harness preset apply` writes the entries a repository lacks into its own files, keeping every entry and item it already has, and `scaffold` applies the presets of the stacks it detects. Once written, the entries are the repository's own, and nothing records where they came from. See [presets](presets.md) |
 | Profile | `.harness/config.yaml`: the repository's facts for `harness` |
+| Ralph | Unattended work through a list of tasks: `harness ralph run` launches ralph-tui, which starts one worker per task, and the verified results land on a local branch. Also the name of the `ralph` module. See [ralph](ralph.md) |
+| ralph-tui | A third-party program ([ralph-tui](https://github.com/subsy/ralph-tui)) that schedules tasks from Beads or a PRD file and starts an agent process for each. `harness ralph` launches it with a generated configuration; a person can also run it directly, outside `harness`, which is a direct run. See [ralph](ralph.md) |
 | Raw entry | A hook in `hooks.yaml` `raw`, rendered as a native hook entry that runs without the binary |
 | Receipt | `verified.json` in a checkout's state directory (default `.work/`): the record of a passing `harness verify`, bound to the base and the fingerprint |
 | Render | Produce native files, `harnessw`, task shims, the skill, links and blocks from the repository files and the pinned release |
@@ -100,5 +106,7 @@ table can change.
 | Trust chain | How a release becomes trusted: each release publishes a checksum file and its signature, every binary embeds the release keys it trusts, and a pin changes only after an already trusted binary verifies the new release's signed checksum file. The first binary a person installs is the root. See [wrapper](wrapper.md#security) |
 | Turn end | The notification event for an agent finishing a turn. Its `run` and `http` actions are declared under `turn_end` in `hooks.yaml`; rendered from Claude Code's `Stop` event and Codex's `notify` setting |
 | Undo | `harness remove` without `--eject`: delete the owned content, every block and its text included, the seeded files in `.harness/`, and the memory skeleton files that still match the hash they were seeded with; write back the settings adoption imported from the project's native files; list and leave any file the manifest does not record. See [remove](remove.md#undo) |
+| Validator | A repository check: a command run when a changed or edited file matches its `when` globs. Those under `verify.validators` in the profile run in `harness verify`; those under `validators` in `hooks.yaml`, which may reuse the profile's, run after an agent edits a file. See [profile](profile.md#verify), [hooks](hooks.md) |
 | Worker | An agent process ralph-tui starts through `harness ralph-worker` for one task; also an agent role meaning "runs here only as a Ralph worker" |
+| Worker contract | The rules every Ralph worker and every `agent` action runs under: a pinned permission mode with `worker.deny` applied, bypass flags refused, the tamper check, and no commits, pushes or lifecycle events of its own. A Ralph worker also reads its rules from the base commit and completes a task only after a passing replay. See [ralph](ralph.md#the-worker-contract) |
 | Wrapper | `harnessw`: the committed POSIX `sh` script at the repository root that runs the pinned release, downloading it and verifying its checksum the first time a machine needs it. The default entry point for people, agents, task shims and hooks. See [wrapper](wrapper.md) |

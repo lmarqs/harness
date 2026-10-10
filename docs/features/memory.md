@@ -12,9 +12,10 @@ and reviewers do not correct the same mistake twice.
 
 ## Overview
 
-Memory is a repository's durable, reviewed knowledge for agents: patterns, conventions and lessons that are not
-obvious from the code. `harness` provides the place for it and keeps an index of it in `AGENTS.md`. People and agents
-write the content; `harness` never does.
+Memory is a repository's durable, reviewed knowledge for agents: patterns, conventions and lessons that are not obvious
+from the code, such as "amounts are rounded once, at the domain boundary" or "list endpoints paginate with a cursor,
+never an offset". `harness` provides the place for it and keeps an index of it in `AGENTS.md`. People and agents write
+the content; `harness` never does.
 
 Commands are named `harness <command>` on this page. Run them through the repository's wrapper,
 `./harnessw <command>`, from the root of a checkout; with a global install, `harness <command>` is equivalent
@@ -33,9 +34,10 @@ Needs `modules.memory: true` in the [profile](profile.md).
 ### The skeleton
 
 When the module is on, `harness scaffold` (or the first `harness render` after turning the module on) creates
-`.agents/memory/` with a starter file explaining what belongs there. The starter file is seeded: the manifest records
-it with the hash it was created with, and `harness` never rewrites it. Everything people and agents write in
-`.agents/memory/` is knowledge, which `harness` never writes or deletes.
+`.agents/memory/` with a starter file explaining what belongs there. The starter file is seeded: the
+[manifest](concepts.md#ownership-and-the-manifest) (`.harness/manifest.json`) records it with the hash it was created
+with, and `harness` never rewrites it. Everything people and agents write in `.agents/memory/` is knowledge, which
+`harness` never writes or deletes.
 
 An [undo](remove.md#undo), or `harness remove --module memory`, deletes the starter file only while it still matches
 its recorded hash. Once someone edits it, it is knowledge: it stays, and the output lists it. An
@@ -63,10 +65,10 @@ Adding, renaming or removing a memory file changes the block, so run `harness re
 A memory file that agents must read in every session, or whenever they touch certain files, can also be declared as
 [standing context](context.md) with a `file:` entry, so it is injected instead of waiting for the agent to open it.
 
-`memory` is a convention block. It states the convention as a fact and names no `harness` command, and `.agents/memory/`
-is agent content that any agent reads without `harness`. After [`harness remove --eject`](remove.md#eject) the markers
-go and the text stays. Agents keep finding the files, but nothing updates the list on additions and renames, so keep it
-current by hand.
+`memory` is a [convention block](concepts.md#convention-blocks-and-tool-blocks). It states the convention as a fact and
+names no `harness` command, and `.agents/memory/` is agent content that any agent reads without `harness`. After
+[`harness remove --eject`](remove.md#eject) the markers go and the text stays. Agents keep finding the files, but
+nothing updates the list on additions and renames, so keep it current by hand.
 
 ## Reference
 
@@ -93,7 +95,7 @@ A Node API's memory:
 A Terraform repository's memory holds files such as `state-layout.md` and `module-conventions.md`; a Go repository's,
 `error-handling.md` and `concurrency.md`.
 
-Asking an agent to record a lesson:
+Asking an agent to record a lesson, in the session where the person and the agent settled on a pagination rule:
 
 ```text
 Add the pagination rule we just agreed on to .agents/memory/backend-patterns.md, then run ./harnessw render.
@@ -101,8 +103,8 @@ Add the pagination rule we just agreed on to .agents/memory/backend-patterns.md,
 
 ## Guidelines
 
-- Do record only reviewed, durable, repository-wide patterns. Session notes and to-dos belong in your tracker, not in
-  memory.
+- Do record only reviewed, durable, repository-wide patterns. Session notes and to-dos belong in your task tracker
+  ([tasks](tasks.md)), not in memory.
 - Do describe what is true now; delete what stopped being true.
 - Do keep each file focused on one area so agents load only what they need.
 - Don't write secrets, credentials or personal data into memory; it is committed.

@@ -72,12 +72,13 @@ harness context: sql-quality-check (path src/migration/1700000000000-add-invoice
 
 ### Roles
 
-`for` limits an entry to roles: `interactive` for every session a person starts, `worker` for Ralph workers and
-[`agent` actions](lifecycle.md#action-kinds). The default is both. A worker session is the one the worker launcher
-starts with `HARNESS_WORKER=1`; every other session is interactive.
+`for` limits an entry to roles: `interactive` for every session a person starts, `worker` for
+[`agent` actions](lifecycle.md#action-kinds) and for Ralph workers, the agent processes an unattended [Ralph](ralph.md)
+run starts, one per task. The default is both. A worker session is one started with `HARNESS_WORKER=1`, which `harness`
+sets for Ralph workers and `agent` actions; every other session is interactive.
 
-For a worker, the declarations and every file they name are read from the session's base commit, not from the
-worker's writable tree, so a worker cannot change its own instructions between attempts
+For a worker, the declarations and every file they name are read from the session's base commit, the commit its work
+started from, not from the worker's writable tree, so a worker cannot change its own instructions between attempts
 ([safety](safety.md#standing-context)).
 
 ### Delivery per agent
@@ -105,7 +106,7 @@ Codex reads `AGENTS.md` directly, and a machine where the pinned binary is not c
 
 ```markdown
 <!-- harness:context -->
-Apply the karpathy-guidelines skill to every change: read `.agents/skills/karpathy-guidelines/SKILL.md`.
+Apply the coding-guidelines skill to every change: read `.agents/skills/coding-guidelines/SKILL.md`.
 <!-- /harness:context -->
 ```
 
@@ -150,7 +151,7 @@ The reasoning behind this design is in [ADR 0020](../adrs/0020-standing-context.
 ```yaml
 context:
   always:
-    - skill: karpathy-guidelines
+    - skill: coding-guidelines
     - file: .agents/directives/worker-rules.md
       for: [worker]
   when:
@@ -179,9 +180,10 @@ Validation errors (exit 1 from `render`, `doctor` and `context show`): an entry 
 `for`; a `file` outside the repository or inside a state directory; an unknown role.
 
 Every entry a session receives is declared in this section of the repository's own profile
-([ADR 0013](../adrs/0013-organization-content.md)). Directives an organization wants in all its repositories are
-written into each profile, typically by an agent following a skill the organization publishes, and reviewed there
-like any other change.
+([ADR 0013](../adrs/0013-organization-content.md)). Directives an organization wants in all its repositories are written
+into each profile, typically by an agent following a skill the organization publishes, and reviewed there like any other
+change. For example, an agent following acme's skill adds the same `always` entry and directive file to `acme/api` and
+to `acme/web`, and each repository reviews and merges that change on its own.
 
 ### `harness context show`
 
@@ -211,7 +213,7 @@ with the reason. It reads the same files the hooks read and writes nothing.
 | Variable | Effect |
 | --- | --- |
 | `HARNESS_NO_CONTEXT=1` | Hooks inject nothing in this environment and every process started from it |
-| `HARNESS_WORKER=1` | Set by the worker launcher; selects the `worker` role |
+| `HARNESS_WORKER=1` | Set by the Ralph worker launcher and for `agent` actions; selects the `worker` role |
 
 Files read: `.harness/config.yaml`, the skills and files the entries name, `skills-lock.json`, the hook payload, and
 for workers the same files at the base commit. Files written: `<state.dir>/context/<session-id>.json`; by `render`, the
@@ -225,7 +227,7 @@ hook entries in the native agent files and the `context` block of `AGENTS.md`.
 # .harness/config.yaml
 context:
   always:
-    - skill: karpathy-guidelines
+    - skill: coding-guidelines
 ```
 
 Every session, interactive or worker, starts with the skill's instructions, and Claude Code receives them again after
@@ -303,7 +305,7 @@ A teammate who never runs `./harnessw` still gets it, and it stays after an ejec
 
 ```text
 role interactive
-always  karpathy-guidelines  content  .agents/skills/karpathy-guidelines/SKILL.md      61 lines
+always  coding-guidelines    content  .agents/skills/coding-guidelines/SKILL.md        61 lines
 always  house-rules.md       static   AGENTS.md, block context                         1 line
 path    sql-quality-check    pointer  src/migration/1700000000000-add-invoice-index.ts matches src/migration/**
 prompt  timezone-handling    pointer  "DST"

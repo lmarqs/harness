@@ -3,8 +3,9 @@
 ## Objective
 
 **Problem.** Repositories already hold state and records that people and other tools depend on: synchronised task
-databases, a loop runner's configuration, task names, an issue tracker, a code-review platform. A tool that writes or
-normalises what it did not create breaks their work, often in ways that are hard to undo.
+databases, the configuration of a loop runner (a program that runs agents unattended, one task after another), task
+names, an issue tracker, a code-review platform. A tool that writes or normalises what it did not create breaks their
+work, often in ways that are hard to undo.
 
 **Goal.** Everything people and other tools kept before adoption works the same after it, and the team's record of work
 stays the team's.
@@ -16,20 +17,20 @@ stays the team's.
 - Delivery conventions differ between organizations and hosting platforms: draft or ready pull requests, a commit that
   triggers CI, a notification, or a platform other than the common ones. Logic for one platform serves that
   platform's users and depends on its API and credentials.
-- Repositories already contain third-party state that its owners depend on. Across 51 surveyed repositories: local
-  task databases synchronised to remotes, one of them committed to git with its own git hooks path; loop-runner
-  configurations at the repository root in two repositories; task-runner tasks whose names collide with the tool's
-  (one of its names in 4 repositories, 5 to 7 collisions in each of three hand-ported copies of one agent workflow);
-  instruction files with 2 to 24 KB of hand-written content in 17 repositories; and an agent's own worktree directory
-  in 28.
+- Repositories already contain third-party state that its owners depend on: clone-local task databases synchronised to
+  remotes, sometimes committed to git with their own git hooks path; a loop runner's configuration at the repository
+  root; task-runner tasks whose names collide with the tool's; instruction files with hand-written content; and an
+  agent's own worktree directory. For example, `acme/api` commits its task database to git and points git's hooks path
+  at the database's own hooks, keeps a loop-runner configuration at the root for people who start runs by hand, and has
+  a task-runner task with the same name as one the tool would add.
 - Normalising state a person created breaks them: disconnecting the remotes of a task database ends a synchronisation
   they rely on.
-- People run the loop runner directly, and it names branches by a fixed pattern. A tool that cleans branches by pattern
-  can delete a branch a person created.
-- 39 of 51 surveyed repositories use one task runner whose own file also lists tool versions; a version pin for this
-  tool can appear there ([0017](0017-engine-version.md)).
-- Another product, a CI/CD platform, keeps its pipeline definitions in a directory at the repository root whose name is
-  the name of the tool's configuration directory ([0014](0014-directory-layout.md)).
+- People run the loop runner, ralph-tui (0.12), directly, and it names branches by a fixed pattern. A tool that cleans
+  branches by pattern can delete a branch a person created.
+- Some task runners, such as mise (2026.6), also install tools, at the versions their own file lists. A version pin for
+  this tool can appear in that file, beside other tools' pins and comments ([0017](0017-engine-version.md)).
+- Another product, the CI/CD platform Harness.io, keeps its pipeline definitions in a directory at the repository root
+  whose name is the name of the tool's configuration directory ([0014](0014-directory-layout.md)).
 - The loop runner merges its per-user configuration into every run it starts, including runs the binary launches
   ([0014](0014-directory-layout.md)).
 - The tool's own releases must be fetched from somewhere; some networks reach only an internal mirror.
@@ -85,9 +86,9 @@ stays the team's.
   one purpose: to refuse and name a bypass setting before it reaches an unattended agent
   ([0011](0011-safety-invariants.md)).
 - **5.** A directory of the same name that another product reads holds files the binary does not own. Writing into it
-  would mix two products' files, and removal, which deletes what the manifest lists ([0007](0007-ownership.md)),
-  would then operate inside a directory another product depends on. Refusing is the only outcome that cannot damage
-  it, and because the two products' audiences do not overlap, it costs little.
+  would mix two products' files, and removal, which deletes what the manifest lists ([0007](0007-ownership.md)), would
+  then operate inside a directory another product depends on. Refusing is the only outcome that cannot damage it. The
+  trade: a repository that uses that product cannot adopt the tool.
 - **6.** Branch and directory names collide with those people and other tools create. A record of what the binary
   created is the only proof that something is its to remove.
 

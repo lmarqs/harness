@@ -20,7 +20,7 @@ These rules apply to anything harness writes into a repository.
 
 | Kind | Example | How ownership is marked |
 | --- | --- | --- |
-| Owned whole file that allows comments | the wrapper `harnessw` (after its `#!` line), `.harness/wrapper.yaml`, `.codex/rules/harness.rules`, task shims under `.mise/tasks/`, the harness skill `.agents/skills/harness/SKILL.md` (as a YAML comment right after the opening `---` of its front matter) | header line, plus the manifest |
+| Owned whole file that allows comments | the wrapper `harnessw` (after its `#!` line), `.harness/wrapper.yaml`, `.codex/rules/harness.rules`, task shims (one-line mise tasks that run `./harnessw <command>`) under `.mise/tasks/`, the harness skill `.agents/skills/harness/SKILL.md` (as a YAML comment right after the opening `---` of its front matter) | header line, plus the manifest |
 | Owned whole file that allows no comments | `.harness/manifest.json` and other JSON files | the manifest |
 | Seeded file | `.harness/config.yaml`, `.harness/policy.yaml`, `.harness/hooks.yaml`, the `.agents/memory/` skeleton | the manifest records it as seeded, with the hash it was created with: written once, then the repository's |
 | Managed block inside a human file | the [block ids](#block-ids) in `AGENTS.md`, `README.md`, `CLAUDE.md` and `.gitignore` | opening and closing markers, plus the manifest |
@@ -40,8 +40,8 @@ choices and knowledge, which harness cannot recompute.
 `harness scaffold` seeds the repository files and applies the presets of the detected stacks as it seeds them
 ([configuration-standards.md](configuration-standards.md#presets)). The `.agents/memory/` skeleton is seeded when the
 memory module is enabled, by `harness scaffold` or by the first `harness render` after the module is enabled, and is
-never re-rendered. The recorded creation hash is what lets undo tell an untouched skeleton from content someone wrote
-([ADR 0007](../adrs/0007-ownership.md)).
+never re-rendered. The recorded creation hash is what lets undo (`harness remove`) tell an untouched skeleton from
+content someone wrote ([ADR 0007](../adrs/0007-ownership.md)).
 
 ## Header
 
@@ -107,8 +107,8 @@ Worktrees in this project are created in `.work/worktrees/<name>`, on branch `wo
 
 ### Block classes
 
-Every block belongs to one of two classes. Why: some of harness's text states facts that stay true without it, and
-some only explains how to use it. Eject must keep the first and must not leave the second behind
+Every block belongs to one of two classes. Why: some of harness's text states facts that stay true without it, and some
+only explains how to use it. Eject (`harness remove --eject`) must keep the first and must not leave the second behind
 ([ADR 0018](../adrs/0018-conventions.md)).
 
 | Class | States | Mentions harness commands | On `harness remove --eject` |
@@ -150,7 +150,7 @@ every adopted repository, so their conventions and conditions are stated in ever
 | `AGENTS.md` | `lifecycle` | tool | the conditions work meets before it leaves the clone, and each event's actions in order |
 | `AGENTS.md` | `worktrees` | convention | where managed worktrees are created, on which branch, from which base |
 | `AGENTS.md` | `tasks` | convention | how tasks are tracked: the tracker, where task files live, claiming, completing and releasing |
-| `AGENTS.md` | `ralph` | convention | how Ralph runs work: worktrees, branches, where ralph-tui state lives, what a worker may do |
+| `AGENTS.md` | `ralph` | convention | how [Ralph](../features/ralph.md) runs work: worktrees, branches, where ralph-tui state lives, what a worker may do |
 | `AGENTS.md` | `policy` | convention | the effective permissions by decision, with the entries only Claude enforces |
 | `AGENTS.md` | `memory` | convention | the index of `.agents/memory/` |
 | `AGENTS.md` | `context` | convention | the standing directives declared `static`, inline or as pointer lines |
@@ -160,7 +160,7 @@ every adopted repository, so their conventions and conditions are stated in ever
 | `.gitignore` | `worktrees` | convention | `/<worktrees.dir>/` |
 | `.gitignore` | `tasks` | convention | `/<tasks.prd_dir>/` |
 | `.gitignore` | `ralph` | convention | `/.ralph-tui/` and `/<ralph.worktrees_dir>/` |
-| `.gitignore` | `beads` | convention | `/.beads/`, only when harness created the Beads database and the repository does not track the path |
+| `.gitignore` | `beads` | convention | `/.beads/`, only when harness created the [Beads](../features/tasks.md#trackers) database and the repository does not track the path |
 
 ### Conventions in blocks
 
@@ -173,8 +173,8 @@ harness ([principles.md](principles.md#8-conventions-outlive-the-tool)):
 - The text names the configured value of each path, never a default the profile overrode, because a reader acts on
   what the text says.
 - A block's text describes the convention as fact. It never says it is managed by harness beyond the marker, and it
-  never depends on the binary to be true, so people, agents, ralph-tui and `bd` can rely on it after harness is
-  ejected.
+  never depends on the binary to be true, so people, agents, ralph-tui and `bd` (the Beads command) can rely on it after
+  harness is ejected.
 
 ## Owned keys in native files
 
@@ -184,8 +184,10 @@ Why: native files are shared with people and other tools, so harness owns the ke
 - harness changes only the keys it owns. Every other key, its value, its order and its formatting are preserved byte
   for byte.
 - Owned permission lists belong to harness entirely: an entry added there by hand is drift. To keep it, add it to
-  `policy.yaml`. Adoption does this for entries that existed before harness. Why: two writers of one list cannot both
-  be right after the next render.
+  `policy.yaml`. Adoption does this for entries that existed before harness. Why: two writers of one list cannot both be
+  right after the next render. For example, `Bash(make lint *)` typed into `permissions.allow` in
+  `.claude/settings.json` is drift, while `[make, lint]` under `shared.allow` in `policy.yaml` renders as that same rule
+  for Claude Code and as a `prefix_rule` for Codex.
 - Hook entries are owned one by one. harness owns the entries that run the harness hook command (agent hooks,
   notification hooks such as Claude Code's `Notification` and `Stop`, and the hooks that inject standing context) and
   the native entries it renders from `raw` declarations in `hooks.yaml`. Hooks added by other tools or by hand are
@@ -236,11 +238,12 @@ Why: two teammates rendering the same commit must produce the same diff, or ever
 - A change to one repository file produces the smallest rendered diff that expresses it; unrelated lines do not move,
   so a reviewer reads only the effect of the change.
 - The binary commits in a repository in two cases only: the Ralph worker wrapper commits a task's verified work inside
-  the Ralph coordinator worktree, and `harness fleet <command> --deliver` commits the tool-owned changes on a new local
-  branch `<branch_prefix><command>`, cut from the fetched default branch, then fires that repository's `deliver`
-  actions. Any other commit, push or pull request is a declared action. Why: a commit is the start of delivery, and
-  delivery is the repository's decision. The two exceptions commit only work the binary itself verified or rendered,
-  on branches it created.
+  the Ralph coordinator worktree (the isolated worktree a Ralph run executes in), and
+  `harness fleet <command> --deliver`, which runs a command across a listed set of repositories, commits the tool-owned
+  changes on a new local branch `<branch_prefix><command>`, cut from the fetched default branch, then fires that
+  repository's `deliver` actions. Any other commit, push or pull request is a declared action. Why: a commit is the
+  start of delivery, and delivery is the repository's decision. The two exceptions commit only work the binary itself
+  verified or rendered, on branches it created.
 - Reviewers judge the source change (`policy.yaml`, `hooks.yaml`, `config.yaml`); the rendered diff shows its effect
   on each agent.
 - `harness preset apply` writes its additions and renders them in the same change, so the entries and their rendered

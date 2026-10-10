@@ -20,7 +20,8 @@ itself never shows as drift.
   file and the files rendered from it with outdated rules. A dropped field can be a deny rule or a guard.
 - Generated artefacts are committed and drift-checked ([0007](0007-ownership.md)). Any value in them that changes with
   the binary's release shows as drift after every upgrade.
-- Most releases change behaviour without changing the shape of any file.
+- Most releases change behaviour without changing the shape of any file. For example, a release that fixes a bug in a
+  check reads and writes the same files, with the same fields, as the release before it.
 
 ## Decision
 

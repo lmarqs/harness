@@ -15,7 +15,8 @@ same way. A reader of any documentation page finds what is true now, in the plac
 
 These rules set the voice, tone and structure of every text harness produces or ships: CLI messages, hook output,
 `doctor` findings, injected standing context, the harness skill, `harness explain`, managed-block content and the
-documentation in this repository.
+documentation in this repository. Terms such as standing context, managed block, module and harness skill are defined in
+the [glossary](../features/glossary.md).
 
 ## Voice
 
@@ -75,15 +76,16 @@ harness: wrapper: v1.4.0 refused: the signature of its checksum file does not ve
 harness: v0.9.0 not downloaded, hook skipped; run: ./harnessw version
 ```
 
-The last example is the complete message a rendered hook prints when the pinned version is not in the machine cache. The
-hook exits 0 and the session continues. The next step names `./harnessw`, the explicit entry point that downloads the
-pinned version, because the hook itself never downloads.
+The last example is the complete message a rendered hook prints when the pinned version is not in the machine's cache of
+downloaded releases. The hook exits 0 and the session continues. The next step names `./harnessw`, the explicit entry
+point that downloads the pinned version, because the hook itself never downloads.
 
 - The next step names a command when one exists, in the documented invocation `./harnessw <command>`
   ([cli-standards.md](cli-standards.md#entry-points)). It never says only "check your configuration", because that
   leaves the reader where they started.
-- When the next step is a person's decision (exit 3), the message says so and names the choices, so an agent stops
-  and asks instead of guessing.
+- When the next step is a person's decision (exit 3), the message says so and names the choices, so an agent stops and
+  asks instead of guessing. For example, when `scaffold` needs a confirmation and no terminal is attached, its message
+  names both ways forward: run it again with `--yes`, or run it from a terminal.
 - Errors never print stack traces, internal type names or file paths inside the binary unless `--verbose` is given,
   because they mean nothing to the person who must act.
 
@@ -107,11 +109,11 @@ pinned version, because the hook itself never downloads.
 
 ## Generated text in human files
 
-Managed blocks hold derived facts: the conventions a module establishes, stated in plain language with their
-configured values, command tables, an index of memory files, a summary of the effective permissions, static
-directives, an import line. Blocks contain no prose that reads as a person's opinion, and nothing that duplicates prose
-outside the block, because the binary writes only what it can derive. Explanations of a repository's choices are
-written by people or agents outside the markers.
+Managed blocks hold derived facts: the conventions a module establishes, stated in plain language with their configured
+values, command tables, an index of memory files, a summary of the effective permissions, static directives (`static`
+standing-context entries), an import line (`@AGENTS.md` in `CLAUDE.md`). Blocks contain no prose that reads as a
+person's opinion, and nothing that duplicates prose outside the block, because the binary writes only what it can
+derive. Explanations of a repository's choices are written by people or agents outside the markers.
 
 The two block classes ([generated-content-standards.md](generated-content-standards.md#block-classes)) are written
 differently:
@@ -122,8 +124,8 @@ differently:
   `harness remove --eject` keeps their text, which must still be true and usable afterwards.
 - **Tool blocks** explain how to use harness and name its commands in the documented form, `./harnessw <command>`.
   Why: eject removes them, so they may depend on the tool.
-- Every block stays within the `AGENTS.md` budget: one fact per line, detail left to `harness explain` and the skill,
-  because agents read `AGENTS.md` in every session.
+- Every block stays within the [`AGENTS.md` budget](../features/render.md#the-agentsmd-budget): one fact per line,
+  detail left to `harness explain` and the skill, because agents read `AGENTS.md` in every session.
 
 ## Documentation structure
 
@@ -181,13 +183,20 @@ A section with no content is omitted rather than left empty.
   control keeps the past.
 - Each page stands alone: define a term on first use or link it to the [glossary](../features/glossary.md), because
   readers arrive from search and links, not from page one.
+- A page states only what any reader can check: facts about harness, public facts about third-party tools, and worked
+  examples set in a made-up organization. It never points at context the reader does not have, such as a survey of
+  unnamed repositories, an earlier implementation, a conversation or "the original". Why: a claim that depends on
+  unseen context reads as an unexplained reference to an outsider, and a concrete example makes the same point to
+  everyone.
+- An abstract rule is followed by a concrete example when the rule alone leaves a reader asking what it looks like,
+  because most readers learn the rule from the example.
 - Pages link to each other with relative links, use tables for reference material, and put commands, YAML and output in
   fenced code blocks with a language tag, because a relative link keeps working wherever the pages are read, a table is
   where a reader looks up a value, and a tagged block renders and copies exactly as written.
 - No organization names in examples or in content harness carries; examples use `acme` for an organization and
   `acme/api` for a repository, because harness is open source and its docs must fit any organization. Third-party
-  products (Claude Code, Codex, GitHub, the `skills` CLI, Harness.io) are named where their behaviour matters, because
-  a reader needs to know which tool a rule is about.
+  products (Claude Code, Codex, GitHub, the `skills` CLI, Harness.io, a CI/CD platform whose CLI is also called
+  `harness`) are named where their behaviour matters, because a reader needs to know which tool a rule is about.
 - Example commands are complete and run as written; example output is copied from a real run of the documented
   release, so a reader can trust what they copy.
 - Commands that run inside a repository are written as `./harnessw <command>`, with `harness <command>` shown as the

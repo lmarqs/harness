@@ -11,16 +11,19 @@ anything is written.
 
 ## Context
 
-- Repositories that adopt the tool already have native permission rules. Of 51 surveyed repositories, 8 have a project
-  settings file for one agent, and 7 of those hold hand-written permissions (4 to 102 rules).
+- Many repositories that adopt the tool already have native permission rules, written by hand in an agent's project
+  settings file. For example, the Claude Code project settings of `acme/api`, `.claude/settings.json`, hold about a
+  hundred hand-written rules, among them `Bash(npm run test:*)`, `WebFetch(domain:docs.acme.example)`,
+  `mcp__tracker__get_issue` and a deny on `Read(./.env)`.
 - Native rule languages cover more than shell commands. Claude Code 2.1.x rules name tools with specifiers: web
   domains, file paths, and tools served by external tool servers, with globs. Codex CLI 0.16x rule files match the
   leading words of a shell command and decide allow, prompt or forbid.
 - Taking ownership of a native permission key replaces its content with the rendered policy
   ([0008](0008-native-configuration.md)). A rule the source cannot express is lost at that moment. A lost deny widens
   what agents may do; a lost allow stalls unattended runs on prompts.
-- Permissions also live in personal scopes: a per-clone override file and per-user settings. They are not shared.
-  Committing them publishes one person's choices to the team.
+- Permissions also live in personal scopes: a per-clone override file and per-user settings, for Claude Code
+  `.claude/settings.local.json` and `~/.claude/settings.json`. They are not shared. Committing them publishes one
+  person's choices to the team.
 - Some native settings are not permission rules: default permission modes, extra readable directories, sandbox and
   approval settings, tool-server definitions, and settings an administrator manages.
 - An imported rule can contradict a built-in invariant ([0011](0011-safety-invariants.md)), for example by allowing a
@@ -50,10 +53,11 @@ anything is written.
 ## Reasons
 
 - **1.** Ownership of a native permission key replaces its content ([0008](0008-native-configuration.md)), so any rule
-  the source cannot hold is lost at the moment of adoption, and the survey shows hand-written rule sets of up to 102
-  rules that include domains, paths and tool-server rules. A source that holds every native rule makes adoption safe for
-  every repository instead of only those whose rules fit a common subset. The trade is that the source admits entries
-  that apply to one agent only; the rendered summary makes those visible instead of hiding the difference.
+  the source cannot hold is lost at the moment of adoption, and a hand-written rule set such as the one in Context holds
+  a hundred rules that include domains, paths and tool-server rules. A source that holds every native rule makes
+  adoption safe for every repository instead of only those whose rules fit a common subset. The trade is that the source
+  admits entries that apply to one agent only; the rendered summary makes those visible instead of hiding the
+  difference.
 - **2.** With different precedence per agent, the same policy would grant different things to different agents.
   Deny-first is the order in which a conflict resolves toward the narrower permission.
 - **3.** The project scope is what the team already shares, so importing it changes nothing about who sees what.

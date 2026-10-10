@@ -3,8 +3,8 @@
 ## Objective
 
 **Problem.** Teams often use more than one coding agent, and each agent reads its permissions, hooks and instructions
-from its own files, in its own syntax, with its own events. Kept by hand once per agent, these copies drift, so one
-repository lets one agent run a command it forbids another, and an agent left to work unattended can be started in a
+from its own files, in its own syntax, with its own events. Kept by hand, one set per agent, these files drift apart, so
+one repository lets one agent run a command it forbids another, and an agent left to work unattended can be started in a
 mode that skips its permission checks. A maintainer who adds another agent has to write the whole setup again.
 
 **Goal.** Every agent a repository uses follows the same permissions, hooks and instructions from one set of
@@ -13,9 +13,10 @@ repository's declarations.
 
 ## Overview
 
-`harness` supports two agents, Claude Code (`claude`) and Codex CLI (`codex`). Each is handled by an adapter that
-knows where the agent reads its configuration, how its permissions and hooks are expressed, what its hook payloads
-look like and how to launch it safely as a Ralph worker. A repository declares which agents it uses, and in which
+`harness` supports two agents, Claude Code (`claude`) and Codex CLI (`codex`). Each is handled by an adapter that knows
+where the agent reads its configuration, how its permissions and hooks are expressed, what its hook payloads look like
+and how to launch it safely as a [Ralph](ralph.md) worker: the agent process that ralph-tui, the tool `harness ralph`
+launches to work through tasks unattended, starts for one task. A repository declares which agents it uses, and in which
 role, in the [profile](profile.md#agents).
 
 Commands are named `harness <command>` on this page. Run them through the repository's wrapper,
@@ -36,6 +37,12 @@ rendered for it.
 
 ## Roles
 
+A role decides which parts of the [policy](policy.md) an agent's native files carry. `shared` holds the `allow`, `ask`
+and `deny` entries for every session; `worker.deny` holds what Ralph workers alone must never run, such as
+`[git, push]`. The built-in `worker.deny` always holds `[harness, lifecycle]`, rendered once for each spelling of a
+`harness` command, such as `harness lifecycle` and `./harnessw lifecycle`
+([policy](policy.md#entries-for-harness-commands)).
+
 | Role | Meaning | Native files carry | As a Ralph worker |
 | --- | --- | --- | --- |
 | `interactive` | people use this agent in the repository | the shared policy (`shared.*`) | Claude Code: `worker.deny`, including the built-in `[harness, lifecycle]` in each spelling `harness` renders, is added at launch. Codex: refused, because its denies can only come from rendered rules |
@@ -47,10 +54,11 @@ Codex workers. Claude Code can be both, since its worker denies are passed at la
 A Codex worker's denies live in files inside its own task checkout, which the agent can write. The worker's
 [tamper check](ralph.md#the-worker-contract) closes that gap. Before every launch it restores
 `.codex/rules/harness.rules`, the owned `.codex/config.toml` keys and the harness entries of `.codex/hooks.json` from
-the session's base commit, and after the agent exits it compares them again. An attempt whose agent changed any of
-them fails, whatever the receipt says. The same check covers Claude Code's owned keys in `.claude/settings.json` and,
-for every agent, the wrapper `harnessw` and its pin `.harness/wrapper.yaml`, so an agent cannot change the binary its
-hooks and its next attempt run.
+the session's base commit, the commit the run started from, and after the agent exits it compares them again. An attempt
+whose agent changed any of them fails, whatever its [receipt](verify.md#the-receipt) (the record of a passing
+`harness verify`) says. The same check covers Claude Code's owned keys in `.claude/settings.json` and, for every agent,
+the wrapper `harnessw` and its pin `.harness/wrapper.yaml`, so an agent cannot change the binary its hooks and its next
+attempt run.
 
 ## What each adapter renders
 
@@ -85,7 +93,7 @@ is preserved byte for byte.
 | Tamper check restores | the owned `permissions.*` keys and harness hook entries of `.claude/settings.json`; `harnessw`; `.harness/wrapper.yaml` | `.codex/rules/harness.rules`, owned `.codex/config.toml` keys, harness entries of `.codex/hooks.json`; `harnessw`; `.harness/wrapper.yaml` |
 | Environment | `HARNESS_WORKER=1`: `harness` refuses lifecycle events, and notification hooks do nothing | the same |
 | Standing context | entries for `role: worker`, read from the session's base commit | the same |
-| Writable outside the task checkout | as permitted by its permissions | only the clone's shared state directory (`state.dir`, default `.work/`), mise's cache directory, and the clone's `.beads/` with Beads |
+| Writable outside the task checkout | as permitted by its permissions | only the clone's shared state directory (`state.dir`, default `.work/`), the cache directory of the [mise](compatibility.md#mise) task runner, and the clone's `.beads/` with the [Beads](tasks.md#trackers) tracker |
 | Network | as permitted by its permissions | on |
 | Refused flags | `--dangerously-skip-permissions`; `skipPermissions = true` in a ralph-tui config | `--dangerously-bypass-approvals-and-sandbox`, `--yolo`, the `danger-full-access` sandbox; `fullAuto = true` in a ralph-tui config |
 | Model override | the full model id replaces the configured one | the model id replaces the configured one |
@@ -97,7 +105,9 @@ The full worker contract is on the [Ralph](ralph.md#the-worker-contract) page.
 
 Both agents load project configuration only for folders the person has trusted, and global or managed settings may
 restrict project settings. `harness` never changes trust, global settings or credentials. Worktrees nested inside the
-primary checkout inherit its trust; sibling worktrees outside it do not ([pitfalls](pitfalls.md)).
+primary checkout inherit its trust; sibling worktrees outside it do not. For example, with `~/src/api` trusted, the
+managed worktree `~/src/api/.work/worktrees/fix-login` is trusted too, and a sibling checkout `~/src/api-fix-login` is
+not ([pitfalls](pitfalls.md#claude-code-ignores-project-permissions-in-an-untrusted-folder)).
 
 ## The adapter contract
 

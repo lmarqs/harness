@@ -22,9 +22,12 @@ repository (a push, a pull request, a CI trigger) is the `deliver` actions that 
 `.harness/hooks.yaml`.
 
 `fleet` runs the same `harness` command in every repository it lists. A choice that takes judgement in each repository,
-such as an organization's MCP read patterns, deploy denies or delivery convention, is written into each repository by a
-person or an agent, typically one following a skill the organization publishes. It is reviewed there as a diff, and
-`fleet` does not run that agent ([ADR 0013](../adrs/0013-organization-content.md)).
+such as which services an organization lets agents read through MCP, which deploy commands it denies or how its changes
+are delivered, is written into each repository by a person or an agent, typically one following a skill the organization
+publishes. It is reviewed there as a diff, and `fleet` does not run that agent
+([ADR 0013](../adrs/0013-organization-content.md)). For example, acme denies deploys to agents everywhere, but
+`acme/api` deploys with `npm run deploy` and `acme/infra` with `terraform apply`, so an agent following acme's skill
+writes a different `deny` entry into each repository's `.harness/policy.yaml`.
 
 Commands are named `harness <command>` on this page. The examples run `fleet` through an adopted repository's wrapper,
 `./harnessw fleet …`; with a global install, `harness fleet …` is equivalent and runs from any directory
@@ -85,8 +88,8 @@ fleet runs ([lifecycle](lifecycle.md#an-organization-convention-a-ci-trigger-com
 4. With `--deliver`, if the command changed files:
    1. commit them on the new branch with `commit_message`;
    2. run `harness verify` (no lanes are needed for a change outside `app_paths`), because the
-      [`deliver` guards](lifecycle.md#built-in-guards) require a committed, clean branch that is not the default
-      branch and, when the verify module is enabled, a valid receipt;
+      [`deliver` guards](lifecycle.md#built-in-guards) require a committed, clean branch that is not the default branch
+      and, when the verify module is enabled, a valid [receipt](verify.md#the-receipt);
    3. fire `deliver` with scope `change`, which runs every `deliver` action declared for that scope, in order,
       whatever its `auto` flag.
 
@@ -206,9 +209,9 @@ Health check before a release:
 - Do use `--deliver` for anything that changes files, and declare `deliver` actions that put the change where each
   repository's owners review it, such as a pull request.
 - Do read `harness lifecycle list` in one repository before a fleet delivery: `--deliver` runs every `deliver` action
-  declared for scope `change`, not only the automatic ones. An `agent` action among them starts one agent per
-  repository.
-- Don't run `fleet` with uncommitted work in those repositories; `fleet` refuses them by design.
+  declared for scope `change`, not only the automatic ones. An [`agent` action](lifecycle.md#agent) among them starts
+  one agent per repository.
+- Don't run `fleet` with uncommitted work in the fleet's repositories; `fleet` refuses them by design.
 - Don't declare a `deliver` action that pushes to the default branch: a review is where each repository's owners
   accept the change.
 

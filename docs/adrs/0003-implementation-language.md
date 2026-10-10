@@ -13,10 +13,17 @@ installed, for the life of the project.
 
 - The tool runs on developer machines, on CI runners, and inside hook calls that harnesses fire on agent events such as
   every file edit. Hook latency adds to every agent action, and a session can make hundreds of edits.
-- Across 51 surveyed repositories, 36 pin no Python version and the rest span Python 3.9 to 3.14. Many have no Node.
+- Repositories carry the runtimes of their own stack, so a runtime one repository has, another lacks. Example: at acme,
+  `acme/api` is a Node service with no Python, two Python services pin Python 3.9 and 3.13, and `acme/infra` holds
+  Terraform code and has neither Python nor Node.
 - The developer machines and CI runners in scope run Linux or macOS, on amd64 or arm64.
-- The maintainer's other distributed tools are Go binaries with a working cross-compilation and release pipeline.
-- The workflow this tool generalises is written in Python and has contract tests.
+- Go's standard toolchain (1.5 and later) builds a native executable for another operating system and architecture with
+  no extra tooling when cgo is off, so one machine builds the binaries for all four targets.
+- This project's maintainers already build and release other command-line tools as single Go binaries, with a
+  cross-compilation and release pipeline that applies to this tool unchanged.
+- A tool that replaces a hand-written workflow can reuse that workflow's code only in the workflow's own language.
+  Example: acme's hand-copied agent workflow is a Python script with contract tests; a tool written in Python can reuse
+  that code and those tests, and a tool written in Go rewrites both.
 - The language is the hardest part of the tool to change: changing it is a rewrite.
 
 ## Decision
@@ -30,9 +37,11 @@ installed, for the life of the project.
 ## Reasons
 
 - **1.** Go compiles to a native executable that needs no runtime to install or start, which satisfies
-  [0004](0004-runtime-dependencies.md) and the hook budget of point 3 by construction. The toolchain cross-compiles to
-  the four targets without extra tooling, and the release pipeline of the maintainer's other tools applies unchanged,
-  so release cost is known before the first release. The trade: the Python workflow and its tests are rewritten.
+  [0004](0004-runtime-dependencies.md) and the hook budget of point 3 by construction. Its standard toolchain alone
+  builds the four targets from one machine, so a release is one build job with no per-platform build machine, and the
+  maintainers' existing release pipeline applies unchanged, so the release cost is known before the first release. The
+  trade: code that already exists in another language, such as a Python workflow and its tests, is rewritten instead of
+  reused.
 - **2.** One file is one thing to pin, download, verify and cache ([0017](0017-engine-version.md),
   [0021](0021-release-trust.md)). Embedded documentation and templates ship with the release that enforces them
   ([0002](0002-division-of-work.md)). Helper scripts or plugins beside the binary would be engine code that can drift
@@ -44,29 +53,30 @@ installed, for the life of the project.
 
 ### Python, distributed as a zip application or an isolated install
 
-At its best, there is no rewrite: the tested Python code of the workflow this tool generalises is reused as is. It loses
-because every machine and CI runner needs a compatible interpreter, the survey shows interpreter skew across
-repositories, and it contradicts [0004](0004-runtime-dependencies.md).
+At its best, there is no rewrite: tested Python code, such as acme's workflow script in Context, is reused as is. It
+loses because every machine and CI runner needs a compatible interpreter, repositories pin different Python versions or
+none (Context), and it contradicts [0004](0004-runtime-dependencies.md).
 
 ### TypeScript compiled into one executable with an embedded JavaScript runtime
 
 At its best, it uses the language of many target repositories and some adjacent tools, and ships as one file. It loses
 because the executable embeds a full JavaScript runtime whose start-up is paid on every hook call against the 50 ms
-budget, the rewrite costs the same as in Go, and no release pipeline exists for it.
+budget, the rewrite costs the same as in Go, and the single-file build depends on one JavaScript runtime's own packaging
+feature, where Go's standard toolchain builds every target by itself and a release pipeline already exists (Context).
 
 ### Rust
 
 At its best, it is a native executable with the same start-up and static-linking properties as Go, with stronger
-compile-time guarantees. It loses because it adds a second toolchain and release pipeline beside the maintainer's
-existing Go ones for no property this tool needs: the work is file rendering, hashing and process supervision, which Go
-covers.
+compile-time guarantees. It loses because those guarantees buy no property this tool needs: the work is file rendering,
+hashing and process supervision, which Go covers, and it adds a second toolchain and release pipeline beside the
+maintainers' Go ones (Context).
 
 ## Consequences
 
 Costs:
 
-- The logic and contract tests of the Python workflow are rewritten in Go; a subtle invariant can be lost in the
-  translation.
+- Logic and contract tests that already exist in another language, such as a Python workflow's, are rewritten in Go; a
+  subtle invariant can be lost in the translation.
 - Contributors need Go. Repository-specific validators stay in whatever language each repository uses.
 - Windows is not a target platform.
 

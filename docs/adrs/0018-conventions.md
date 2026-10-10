@@ -14,8 +14,9 @@ to every agent session.
 - Agents read instruction files, not the tool's configuration. Claude Code 2.1.x reads `CLAUDE.md` and the files it
   imports; Codex CLI 0.16x reads `AGENTS.md`.
 - People, agents and third-party tools use the tool's clone-local state directly: they work inside the working copies
-  the tool creates, and the loop runner reads its configuration inside them ([0014](0014-directory-layout.md)). Where
-  these live, which branch work starts from and how tasks are tracked are conventions all of them rely on.
+  the tool creates, and a loop runner, a program that runs agents unattended one task after another, reads its
+  configuration inside them ([0014](0014-directory-layout.md)). Where these live, which branch work starts from and how
+  tasks are tracked are conventions all of them rely on.
 - Not every teammate installs the tool ([0010](0010-dependence-on-the-binary.md)); everyone shares the committed files.
 - Working copies can hold uncommitted work, and cleanup acts only on what the binary recorded creating
   ([0012](0012-write-boundary.md)), so removing the tool leaves clone-local state in place ([0007](0007-ownership.md)).

@@ -86,8 +86,8 @@ release, downloading it through the same verified path only when the command was
 
 Commands never prompt without a terminal: where confirmation is needed and `--yes` is absent, they stop with exit 3.
 `harness lifecycle run` never asks for confirmation. The gate for agents is the policy
-([the seeded entry](policy.md#the-seeded-entry)), and inside a Ralph worker the binary refuses it whatever the policy
-says.
+([the seeded entry](policy.md#the-seeded-entry)), and inside a [Ralph](ralph.md) worker, an agent of an unattended run,
+the binary refuses it whatever the policy says.
 
 ## Exit codes
 
@@ -95,8 +95,8 @@ says.
 | --- | --- | --- |
 | 0 | Success | |
 | 1 | Error | invalid flags or files, a failed external command, a failed download or checksum check, a release whose signed checksum file does not verify |
-| 2 | A check or an action failed | `render --check` drift; a `doctor` finding; `verify` lint, validator, build or lane failure; `verify --check` or `task complete` without a valid receipt; a failing post-edit hook; the adoption equivalence check; a failing action in `lifecycle run` or `fleet --deliver` |
-| 3 | Blocked: a person must act | a confirmation without a terminal; a prerequisite a person must install, such as Node for the `skills` CLI, `bd` or `ralph-tui`; uncommitted changes where committed state is required; a resource owned by another session or run; a repository schema newer than the running release; an unfinished Ralph run; a lifecycle guard refusing `deliver`; an owned path edited by hand before `remove`; a `.harness/` directory another tool owns, at `scaffold` |
+| 2 | A check or an action failed | `render --check` drift; a `doctor` finding; `verify` lint, validator, build or lane failure; `verify --check` or `task complete` without a valid [receipt](verify.md); a failing post-edit hook; the adoption equivalence check; a failing action in `lifecycle run` or `fleet --deliver` |
+| 3 | Blocked: a person must act | a confirmation without a terminal; a prerequisite a person must install, such as Node for the `skills` CLI, `bd` for [Beads](tasks.md) tasks, or `ralph-tui` for Ralph runs; uncommitted changes where committed state is required; a resource owned by another session or run; a repository schema newer than the running release; an unfinished Ralph run; a lifecycle guard refusing `deliver`; an owned path edited by hand before `remove`; a `.harness/` directory another tool owns, at `scaffold` |
 
 A command run without a terminal that exits 3 fires the [`blocked`](lifecycle.md#events) lifecycle event for the
 scope of its work, with the refusal in `HARNESS_REASON`, so a declared notification reaches the person who must act.
@@ -117,7 +117,7 @@ is enabled), the automatic `deliver` does not fire, and the command says which c
 | `task claim` | `start` (scope `task`) |
 | `verify` (never with `--check`) | `verified` |
 | `task complete` | `completed` (scope `task`), then `deliver` (scope `task`) |
-| `ralph run`, `ralph resume` | `completed` (scope `task`) when a verified task commit lands on the run branch, `completed` (scope `run`) when the run finishes, each followed by `deliver` of the same scope; `blocked` (scope `task`) when the launcher skips a task after its retries, `blocked` (scope `run`) when the run stops unfinished; actions run in the launcher process, never inside a worker |
+| `ralph run`, `ralph resume` | `completed` (scope `task`) when a verified task commit lands on the run branch, `completed` (scope `run`) when the run finishes, each followed by `deliver` of the same scope; `blocked` (scope `task`) when the launcher (this `harness ralph` process) skips a task after its retries, `blocked` (scope `run`) when the run stops unfinished; actions run in the launcher process, never inside a worker |
 | `worktree remove`, `ralph clean` | `landed` once per recorded branch whose patches are on the default branch, before its worktree is removed |
 | `fleet --deliver` | `deliver` (scope `change`) in each repository with a committed change, after `harness verify`; every declared `deliver` action for scope `change` runs |
 | any command run without a terminal that exits 3 | `blocked`, for the scope of the command's work, otherwise `change` |
@@ -132,7 +132,7 @@ is enabled), the automatic `deliver` does not fire, and the command says which c
 | `scaffold` | Set up a repository, `harnessw` and `wrapper.yaml` included, applying the presets of the detected stacks (`--preset` names one, or `none`), pinning the running release after verifying its signed checksum file, or, with `--offline`, writing a [pending pin](wrapper.md#a-pending-pin) and making no network request; `--adopt` imports an existing setup, `--import` chooses the scopes | 0 set up; 1 error, already scaffolded, the release's checksum file unreachable without `--offline`, or not verified; 2 the equivalence check lost a rule; 3 confirmation needed, or a `.harness/` directory another tool owns | [scaffold](scaffold.md) |
 | `remove` | Undo the adoption, or one module, using the manifest; `--eject` stops managing and keeps the result | 0 removed or ejected; 1 error; 3 an owned path changed by hand, or confirmation needed | [remove](remove.md) |
 | `render` | Render native files, `harnessw`, task shims, the skill, blocks; `--check` for drift | 0 rendered or no drift; 1 invalid file; 2 drift; 3 newer schema, or migration needs confirmation | [render](render.md) |
-| `preset list` | List the running release's built-in presets, the stack each fits, and whether its marker files are present | 0 listed | [presets](presets.md#harness-preset-list) |
+| `preset list` | List the running release's built-in presets, the stack each fits, and whether its marker files, such as `go.mod` for `go`, are present | 0 listed | [presets](presets.md#harness-preset-list) |
 | `preset show <name>` | Print every entry a preset holds, as YAML grouped by file | 0 printed; 1 unknown preset | [presets](presets.md#harness-preset-show) |
 | `preset apply <name>...` | Add the presets' entries the repository's `.harness/config.yaml` and `.harness/hooks.yaml` lack, after showing the diff and confirming; keep and report every item the repository already names; then render | 0 applied, or nothing to add; 1 unknown preset, not scaffolded, invalid repository file; 3 confirmation needed without a terminal, or newer schema | [presets](presets.md#harness-preset-apply) |
 | `wrapper` | Pin a release in `.harness/wrapper.yaml` (`--version`, `--latest`): verify the release's signed checksum file with the running release's embedded keys, then download and verify this platform's binary, then have the new release render the repository: `harnessw`, `wrapper.yaml`, every file it renders differently, and a migration of older-schema files after confirmation. Without a flag, print the pin, whether it is cached and the newest release, and write nothing | 0 pinned, a pending pin completed, already pinned, or status printed; 1 unknown tag, no network, a signature that does not verify, missing checksums, checksum mismatch, invalid `wrapper.yaml`; 3 a migration needs confirmation without a terminal; nothing is written unless every step passes | [wrapper](wrapper.md#harness-wrapper) |
@@ -147,7 +147,7 @@ is enabled), the automatic `deliver` does not fire, and the command says which c
 | `verify` | Run checks and write the receipt; `--check` validates it; fires `verified` | 0 passed, or valid receipt; 1 lane rule not met, files changed during verification; 2 a check failed, or no valid receipt | [verify](verify.md) |
 | `task` | Claim, note, complete or release a task; fires `start` and `completed` | 0 done; 1 error; 2 `complete` without a valid receipt; 3 owned by another actor, or a Ralph run owns the PRD | [tasks](tasks.md) |
 | `ralph run` | Launch an unattended run | 0 finished; 1 error; 3 refused, or unfinished | [ralph](ralph.md) |
-| `ralph resume` | Continue an unfinished run in its coordinator | as `ralph run` | [ralph](ralph.md) |
+| `ralph resume` | Continue an unfinished run in its coordinator worktree | as `ralph run` | [ralph](ralph.md) |
 | `ralph clean` | Remove finished sessions' worktrees and landed branches; fires `landed` | 0 cleaned; 1 error; 3 a Ralph run holds the lock | [ralph](ralph.md#finishing-resuming-cleaning) |
 | `ralph-worker` | Internal: the worker command ralph-tui calls | 0 task verified; 1 refused or failed attempt | [ralph](ralph.md#the-worker-contract) |
 | `skills sync` | Install declared skill sources through the `skills` CLI | 0 installed; 1 the `skills` CLI failed; 3 no Node | [skills](skills.md) |
@@ -176,11 +176,11 @@ Paths under `.work/` are shown at their defaults; the profile moves them with `s
 | `lifecycle list` | the hooks file | nothing |
 | `lifecycle run` | the hooks file, `.work/session.json`, `.work/verified.json`, git | `.work/lifecycle.jsonl`; whatever the actions write |
 | `worktree create` | the profile, git | `.work/worktrees/<name>/`, branch `work/<name>`, its `.work/session.json`; `.beads/` when initialising Beads; `.work/lifecycle.jsonl` |
-| `worktree remove` | git, the hooks file | removes `.work/worktrees/<name>/`; `.work/lifecycle.jsonl`; whatever `landed` actions write; for a `landed` `agent` action, a recorded worktree `.work/worktrees/landed-<slug>-<n>` on branch `work/landed-<slug>-<n>` |
+| `worktree remove` | git, the hooks file | removes `.work/worktrees/<name>/`; `.work/lifecycle.jsonl`; whatever `landed` actions write; for a `landed` `agent` action, a recorded worktree `.work/worktrees/landed-<name>-<n>` on branch `work/landed-<name>-<n>` |
 | `verify` | the profile, git, changed files, `.work/session.json` | `.work/verified.json`; `.work/lifecycle.jsonl` |
 | `task` | `.work/session.json`, `.work/verified.json` | the Beads database through `bd`, or the PRD file; `.work/lifecycle.jsonl` |
 | `ralph run` / `resume` | the profile, policy, hooks file (from the base commit), the PRD or Beads | `.work/ralph.lock`, the coordinator worktree `.work/worktrees/ralph-<id>` and its `.ralph-tui/`, sequential task worktrees `.work/worktrees/ralph-<id>-<task>`, ralph-tui's parallel worker checkouts under `.work/ralph-worktrees/`, branches `work/ralph-*` and `ralph/session-*`, `.work/lifecycle.jsonl` |
-| `ralph clean` | `.work/` session records, git | removes recorded worktrees and landed branches; `.work/lifecycle.jsonl`; for a `landed` `agent` action, a recorded worktree `.work/worktrees/landed-<slug>-<n>` |
+| `ralph clean` | `.work/` session records, git | removes recorded worktrees and landed branches; `.work/lifecycle.jsonl`; for a `landed` `agent` action, a recorded worktree `.work/worktrees/landed-<name>-<n>` |
 | `skills sync` | the profile | `.agents/skills/`, `skills-lock.json` (through the `skills` CLI) |
 | `fleet` | the fleet file | whatever the command writes; with `--deliver`, a local branch, a commit and a receipt per changed repository, `.work/lifecycle.jsonl`, and whatever its `deliver` actions write |
 | `version` | `$HARNESS_HOME` | `$HARNESS_HOME` with `--check-update` |

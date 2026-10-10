@@ -6,17 +6,20 @@
 made in one never reaches the others. Each repository also has facts only it knows, which must live with it. Where that
 line falls decides whether a fix reaches every repository.
 
-**Goal.** A fix to the workflow reaches every repository through one release, while each repository keeps and controls
-the facts only it knows.
+**Goal.** A fix to a practice's engine reaches every repository through one release, while each repository keeps and
+controls the facts only it knows.
 
 ## Context
 
-- Engine code copied into repositories diverges. Of three hand-ported copies of one agent workflow, one carries a fork
-  of the configuration renderer that differs from the original by 108 lines, and fixes made in one copy do not reach
-  the others.
+- Engine code copied into repositories diverges. Example: acme copies its agent workflow, including the script that
+  renders agent configuration, by hand from `acme/api` into `acme/web` and `acme/infra`. A teammate patches the renderer
+  in `acme/web` for a local need, and within a year it differs from the one in `acme/api` by a hundred lines. A bug
+  fixed in `acme/api` then reaches neither copy: the `acme/web` renderer differs too much to take the patch, and nobody
+  goes back to `acme/infra`.
 - Repository-specific facts vary and must live in the repository: the stack, the commands to run, which paths need which
   checks, permissions, hooks, what happens at each step of the development lifecycle, and which guidance agents receive.
-- People, agents and reviewers read these files, and agents edit them ([0002](0002-division-of-work.md)).
+- People, agents and reviewers read the files that hold these facts, and agents edit them
+  ([0002](0002-division-of-work.md)).
 - Permission changes carry a distinct review concern: reviewers look for what an agent may now do that it could not do
   before.
 - A clone must obtain the pinned release before any binary exists on the machine ([0017](0017-engine-version.md)).
@@ -42,8 +45,8 @@ the facts only it knows.
 ## Reasons
 
 - **1.** With the engine in one binary, a fix ships as one release and reaches a repository through one reviewed change
-  to its pin ([0017](0017-engine-version.md)). There is no copy to edit locally, which is how the 108-line fork arose. A
-  repository changes only when its own facts change.
+  to its pin ([0017](0017-engine-version.md)). There is no copy to edit locally, which is how the `acme/web` renderer in
+  Context forks. A repository changes only when its own facts change.
 - **2.** YAML reads well in diffs, takes comments, and parses without a runtime ([0004](0004-runtime-dependencies.md)).
   Agents edit it reliably. One concern per file lets a permission change be reviewed as a diff of a file that holds only
   permissions. Hook declarations and actions share a file because both state what runs when an event occurs. The
@@ -54,7 +57,7 @@ the facts only it knows.
 - **4.** One-line entry points exist because agents and task runners call commands by path; they contain no logic. The
   wrapper exists because a clone must obtain the pinned release before the binary is on the machine. Limiting it to
   resolve, verify and execute keeps every behaviour in the binary. Anything more would be engine code in the repository
-  and would diverge like the copies did.
+  and would diverge like the copied renderer in Context.
 - **5.** The repository's build, test and lint commands belong to its stack. The binary runs them as declared and never
   interprets them, so they are data even though they execute.
 
@@ -63,13 +66,14 @@ the facts only it knows.
 ### Vendored engine per repository, locked by hash and updated by bot pull requests
 
 At its best, it works offline, agents can read the engine inside the repository, and pinning comes free. It loses
-because every fix becomes one change per repository and copies get edited locally, which is how the 108-line fork
-happened. Each repository also needs the engine's runtime, and the update volume is high while the engine changes often.
+because every fix becomes one change per repository and copies get edited locally, which is how the `acme/web` renderer
+in Context forks. Each repository also needs the engine's runtime, and the update volume is high while the engine
+changes often.
 
 ### Hand-copied engine
 
-At its best, there is no investment and each repository tailors freely. It loses because it produces the measured
-divergence and the lost safety settings.
+At its best, there is no investment and each repository tailors freely. It loses because it produces the divergence
+shown in Context, and copies that lose their safety settings ([0011](0011-safety-invariants.md)).
 
 ### One combined file
 

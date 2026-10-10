@@ -23,11 +23,12 @@ global install, `harness <command>` is equivalent.
 
 - An agent must edit `.harness/policy.yaml`, `.harness/hooks.yaml` or the profile correctly: `explain policy`,
   `explain hooks`, `explain profile`.
-- An agent is finishing an adoption: `explain adoption`.
+- An agent is finishing an adoption, that is, resolving the to-do `harness scaffold --adopt` leaves after it takes over
+  a hand-written agent setup ([scaffold](scaffold.md#adopt)): `explain adoption`.
 - Someone asks why `harness` refuses something: `explain invariants`, `explain safety`.
 - An agent declares or triggers lifecycle actions, or a notification: `explain lifecycle`, `explain hooks`.
-- Someone wants a stack's starting commands, lanes and hooks, or reads a `kept` line from `preset apply`:
-  `explain presets`.
+- Someone wants a stack's starting commands, [lanes](verify.md) and hooks, or reads a line such as
+  `kept lanes.unit: differs from preset node` from `preset apply`: `explain presets`.
 - Someone wants a directive or a skill applied without invoking it each time: `explain context`.
 - Someone asks how the repository pins, downloads and verifies the release it runs: `explain wrapper`.
 - Something behaves unexpectedly: `explain pitfalls`.
@@ -35,8 +36,9 @@ global install, `harness <command>` is equivalent.
 
 ## How it works
 
-The text is embedded in the binary and matches its version, which in an adopted repository is the pinned release.
-`explain` reads nothing from the repository and writes nothing. Output is Markdown on stdout.
+The text is embedded in the binary and matches its version. Through `./harnessw`, that binary is the release the
+repository pins in `.harness/wrapper.yaml`. `explain` reads nothing from the repository and writes nothing. Output is
+Markdown on stdout.
 
 ## Topics
 
@@ -86,5 +88,6 @@ Allow agents to run the deploy status task in this repository. Read `./harnessw 
 
 - Do point agents at `explain` or the skill instead of pasting rules into prompts; the text stays current with the
   binary.
-- Don't copy `explain` output into `AGENTS.md`: it would go stale on the next release. The managed blocks, such as
-  `commands`, `layout` and `policy`, already carry the repository-specific facts.
+- Don't copy `explain` output into `AGENTS.md`: it would go stale on the next release. The
+  [managed blocks](render.md#managed-blocks) `harness render` writes into `AGENTS.md`, such as `commands`, `layout` and
+  `policy`, already carry the repository-specific facts.

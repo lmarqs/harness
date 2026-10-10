@@ -13,8 +13,9 @@ part is detected.
 
 ## Overview
 
-`harness render` turns the three repository files into the files each agent and tool reads: native permission and
-hook configuration, the wrapper `harnessw`, task shims, the harness skill and its links, and the managed blocks inside
+`harness render` turns the three repository files in `.harness/` (the [profile](profile.md), the [policy](policy.md) and
+the [hooks file](hooks.md)) into the files each agent and tool reads: native permission and hook configuration, the
+wrapper `harnessw`, [task shims](#task-shims), the harness skill and its links, and the managed blocks inside
 human-written files. `harness render --check` reports drift without writing.
 
 Examples on this page run commands as `./harnessw <command>`, through the repository's [wrapper](wrapper.md); with a
@@ -122,8 +123,9 @@ Until then, hook-delivered context and notification hooks do nothing on that mac
 
 ### Task shims
 
-With `front_door: mise`, `render` writes a task shim for each command people and agents run often: a one-line mise
-task that starts with the generated header and hands its arguments to the repository's wrapper:
+With `front_door: mise`, `render` writes a task shim for each command people and agents run often: a one-line task for
+the [mise](https://mise.jdx.dev) task runner that starts with the generated header and hands its arguments to the
+repository's wrapper:
 
 ```sh
 #!/bin/sh
@@ -196,7 +198,7 @@ Block ids are per module and per convention: a module owns its blocks, and turni
 | `AGENTS.md` | `worktrees` | convention | where managed worktrees are created, their branch names, and that they start from committed code | core, always |
 | `AGENTS.md` | `verify` | tool | the checks a change needs: lint, build, the lanes and when each is required | `verify` |
 | `AGENTS.md` | `tasks` | convention | that local tasks stay in the clone, the tracker in use, and where PRD files are kept | `tasks` |
-| `AGENTS.md` | `ralph` | convention | where Ralph runs keep their worktrees and ralph-tui state, and what a worker may do | `ralph` |
+| `AGENTS.md` | `ralph` | convention | where [Ralph](ralph.md) runs keep their worktrees and ralph-tui state, and what a worker may do | `ralph` |
 | `AGENTS.md` | `lifecycle` | tool | the conditions for delivery and the actions this repository declares for each event | core, always |
 | `AGENTS.md` | `policy` | convention | the effective permissions by decision, as the native files enforce them, with built-in and Claude Code-only entries marked; entries for `harness` commands are left out | core, always |
 | `AGENTS.md` | `memory` | convention | the files under `.agents/memory/`, linked | `memory` |
@@ -207,7 +209,7 @@ Block ids are per module and per convention: a module owns its blocks, and turni
 | `.gitignore` | `worktrees` | convention | `/<worktrees.dir>/` | core, always |
 | `.gitignore` | `tasks` | convention | `/<tasks.prd_dir>/` | `tasks` |
 | `.gitignore` | `ralph` | convention | `/.ralph-tui/` and `/<ralph.worktrees_dir>/` | `ralph` |
-| `.gitignore` | `beads` | convention | `/.beads/` | `tasks`, only when `harness` created the Beads database and the path is not tracked |
+| `.gitignore` | `beads` | convention | `/.beads/` | `tasks`, only when `harness` created the [Beads](tasks.md) database and the path is not tracked |
 
 The paths come from the profile ([state paths](profile.md#state-paths)). Every block's text is generated from the
 repository files.
@@ -238,8 +240,8 @@ block and its line count, so a long lane list is visible in review.
 - Never edit between the markers. `render` overwrites the edit and `render --check` reports it.
 - A block's text states its content as fact; it never says it is managed by `harness`, beyond the marker. A
   convention block also never names a `harness` command, so it stays true after an eject.
-- Text from other tools' sections (for example a section `bd init` added) is untouched; blocks are bound to their
-  markers, not to headings.
+- Text from other tools' sections (for example a section that `bd init`, the Beads setup command, added) is untouched;
+  blocks are bound to their markers, not to headings.
 - Deleting a block's markers by hand is drift: `render` puts the block back. Turn the module off, or run
   [`harness remove`](remove.md), to remove a block.
 
@@ -281,8 +283,9 @@ When the repository files use an older `schema` than the running release's, they
 confirmed before anything is written (`--yes` skips the question). This happens when
 [`harness wrapper --version <tag>`](wrapper.md#harness-wrapper) moves the pin to a release with a newer schema, inside
 the same change, and with `render` when a pinned release meets older files. When the files use a newer schema than the
-running binary supports, which happens only when the pin is bypassed, `render` refuses with exit 3. Its message names
-the file's schema, the newest schema this binary supports, and the release to run, the one `.harness/wrapper.yaml` pins:
+running binary supports, which happens only when the pin is bypassed (for example with `HARNESS_BINARY`), `render`
+refuses with exit 3. Its message names the file's schema, the newest schema this binary supports, and the release to
+run, the one `.harness/wrapper.yaml` pins:
 
 ```text
 harness: .harness/config.yaml uses schema 2; this binary (v0.8.2) supports schema 1. Run the pinned release, v0.9.0: ./harnessw render

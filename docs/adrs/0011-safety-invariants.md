@@ -2,19 +2,20 @@
 
 ## Objective
 
-**Problem.** Safety settings that live in configuration get lost when the configuration is copied or edited: two of
-three hand-ported copies of one workflow run unattended agents with permission checks turned off. An unattended agent
-that can edit its own rules or its own verification can also give itself more permissions and claim work it did not do.
+**Problem.** Safety settings that live in configuration get lost when the configuration is copied or edited, and a copy
+that has lost them runs unattended agents with permission checks turned off. An unattended agent that can edit its own
+rules or its own verification can also give itself more permissions and claim work it did not do.
 
 **Goal.** In every repository, unattended agents run with permission checks on, cannot widen their own permissions, and
 cannot be recorded as done without a verification that passed.
 
 ## Context
 
-- Safety settings that live in configuration do not survive copying. Of three hand-ported copies of one agent
-  workflow, two start unattended agents with permission bypass: the loop runner's configuration skips permission
-  prompts, the second agent runs in full-auto mode with hook trust bypassed, and one copy documents an unrestricted
-  sandbox as intended. The third copy refuses exactly those flags.
+- Safety settings that live in configuration do not survive copying. Example: acme copies one agent workflow by hand
+  from `acme/api` into `acme/web` and `acme/infra`. In `acme/web`, the configuration of the runner that drives
+  unattended agents through a task list skips permission prompts. In `acme/infra`, the second agent the repository uses
+  for unattended work runs in its full-auto mode with hook trust bypassed, and the copy's documentation calls an
+  unrestricted sandbox intended. The `acme/api` copy refuses exactly these settings.
 - An unattended agent can claim its task is complete. An agent that can write both its work and the configuration of
   its verification can weaken the verification.
 - An unattended agent writes in a tree that also holds the rendered permission rules, the hook entries and the
@@ -25,11 +26,15 @@ cannot be recorded as done without a verification that passed.
   agent, with the credentials in the environment.
 - An action may start an agent ([0019](0019-action-kinds.md)). Its prompt can contain values written by people and
   agents, such as task titles and agent messages, and nobody watches the session.
-- Delivery publishes work outside the clone. Publishing from the default branch, publishing uncommitted work, or
-  publishing work whose verification did not pass is never a legitimate choice.
-- A task runner that accepts several tasks in one invocation lets a single allowed command run tasks the policy never
-  listed.
-- 5 of 51 surveyed repositories have a default branch other than `main`; a rule that names `main` is wrong in them.
+- Delivery publishes work outside the clone, for example by pushing a branch or opening a pull request. Publishing from
+  the default branch, publishing uncommitted work, or publishing work whose verification did not pass is never a
+  legitimate choice.
+- A task runner that accepts several tasks in one invocation, as mise (2026.6) does, lets a single allowed command run
+  tasks the policy never listed. For example, a rule that allows the runner's `test` task by its leading words also
+  matches one invocation that runs `test` and then `deploy`.
+- A repository's default branch is its own setting, and its name varies: `main`, `master` and `develop` all occur.
+  Example: the default branch of `acme/infra` is `master`, so a rule that denies force pushes to `main` does not protect
+  it.
 - A tool command has several spellings: the committed wrapper, a global install, an absolute path to either, a shell
   that runs the wrapper script. Agent permission rules match the literal leading words of a command (Claude Code 2.1.x
   pattern strings, Codex CLI 0.16x rule files).
@@ -44,8 +49,8 @@ cannot be removed or weakened by it. Repository policy adds to them.
    refused with a message that names their source.
 2. Force push to the repository's default branch, detected from the remote's `HEAD`, is denied.
 3. Chaining several tasks in one task-runner invocation is denied.
-4. Proof of verification is replayed by the binary with configuration read from the committed base, outside any tree
-   the agent can write.
+4. Proof of verification, the record a verification run leaves of the checks it ran, is replayed by the binary with
+   configuration read from the committed base, outside any tree the agent can write.
 5. Completion is withheld until the replay passes. A malformed proof counts as failed.
 6. Hooks never decide permissions; permissions come only from the rendered policy.
 7. The binary never writes knowledge (prose, memory, domain skills) and never writes the team's record of work
@@ -61,8 +66,8 @@ cannot be removed or weakened by it. Repository policy adds to them.
 11. Delivery is refused from the default branch and with uncommitted changes and, when verification is enabled,
     without a valid proof of verification for the work's base. A refused delivery runs none of its actions.
 12. An action that starts an agent runs it under the same contract as an unattended agent: the binary pins its
-    permission mode, applies the unattended denies, refuses bypass and runs the tamper check of invariant 9. The agent
-    cannot commit, push or trigger events.
+    permission mode, applies the deny rules for unattended agents, refuses bypass and runs the tamper check of
+    invariant 9. The agent cannot commit, push or trigger events.
 13. The binary enforces its guards itself. It recognises an unattended agent by a mark its launcher sets in that
     agent's environment, and it checks branch and tree state before acting. Permission entries that deny or ask for
     the tool's own commands are defence in depth, never the only guard.
@@ -70,14 +75,15 @@ cannot be removed or weakened by it. Repository policy adds to them.
 ## Reasons
 
 - **All.** Every rule in this list is never a legitimate choice, so a repository loses nothing by being unable to
-  configure it. Rules that are configuration get dropped: two of three copies of one workflow lost them by omission.
+  configure it. Rules that are configuration get dropped by omission, as in two of the three acme copies in Context.
   Built into the binary, the floor travels with every release and no copy of a repository's files can lower it. The line
   between invariant and policy is exactly "never legitimate". Everything an organization may want differently stays
   policy ([0013](0013-organization-content.md)).
 - **1.** Bypass removes every permission check from an agent that nobody is watching. Naming the source of the flag
   (an argument or an inherited configuration file) lets the person fix the file that carries it.
 - **2.** A force push to the default branch rewrites history others build on. Detecting the branch from the remote's
-  `HEAD` makes the rule right in the 5 surveyed repositories whose default branch is not `main`.
+  `HEAD` makes the rule right in every repository, including those whose default branch is not `main`, such as
+  `acme/infra` in Context.
 - **3.** With chaining, an allow rule for one task becomes an allow rule for any task, and the policy stops meaning
   what a reviewer reads.
 - **4, 5.** The agent's proof selects which checks to run. The binary runs them from configuration the agent cannot

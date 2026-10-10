@@ -2,7 +2,7 @@
 
 ## Objective
 
-**Problem.** Developers, agents and CI pipelines work in the same repository on different machines, and what the tool
+**Problem.** Developers, agents and CI pipelines work in the same repository on different machines, and what `harness`
 writes and checks depends on which release runs it. When each machine runs whatever release it happens to have, the same
 commit passes a check on one machine and fails it on another, and a newcomer has to find and install the right release
 before their first command works. A release fetched onto each machine also runs with that person's credentials, so one
@@ -16,13 +16,15 @@ nothing installed beforehand, and a release runs only if its publisher signed it
 `harnessw` is a POSIX `sh` script committed at the root of every adopted repository. It runs the `harness` release the
 repository pins in `.harness/wrapper.yaml`. The first time a machine needs that release, the wrapper downloads it over
 HTTPS, checks its sha256 against the pinned checksum, caches it and runs it. Afterwards it runs it from the cache,
-offline. People, agents, task shims and agent hooks all reach `harness` through it, so every machine runs the same
-release in a given repository, and nobody installs anything to work in one.
+offline. People, agents, [task shims](render.md#task-shims) (one-line tasks of the mise task runner, such as
+`mise run verify`) and agent hooks all reach `harness` through it, so every machine runs the same release in a given
+repository, and nobody installs anything to work in one.
 
-`.harness/wrapper.yaml` is the only place a repository pins `harness`. It is owned content: the manifest records it, and
-a hand edit is drift. A `harness` binary verifies every change to that pin against the release's signed checksum file
-before the change is written, so trust passes from the first binary a person installs to every release the repository
-later moves to ([trust chain](#the-trust-chain)).
+`.harness/wrapper.yaml` is the only place a repository pins `harness`. It is
+[owned content](concepts.md#ownership-and-the-manifest): `.harness/manifest.json` records it, and a hand edit is drift,
+which `harness render --check` reports. A `harness` binary verifies every change to that pin against the release's
+signed checksum file before the change is written, so trust passes from the first binary a person installs to every
+release the repository later moves to ([trust chain](#the-trust-chain)).
 
 Examples on this page run commands as `./harnessw <command>`; with a
 [global install](installation.md#global-install-optional), `harness <command>` is equivalent.
@@ -97,14 +99,15 @@ harness: v0.9.0 not downloaded, hook skipped; run: ./harnessw version
 ```
 
 The session-start hook also adds one line to the agent's session context, so a fresh clone's first agent session
-knows why it has no standing context or lint-on-edit, and tells the person:
+knows why it has no [standing context](context.md) or lint-on-edit hooks, and tells the person:
 
 ```text
 harness v0.9.0 is not cached on this machine; run ./harnessw version once to fetch it.
 ```
 
 Explicit entry points never succeed without running: a task shim that cannot obtain the release exits 1, or 3 when a
-person must act first, so no verification or task command claims work that did not happen.
+person must act first, so no verification or task command claims work that did not happen. For example,
+`mise run verify` on a fresh clone without network access exits 1 instead of reporting a passing verification.
 
 ### A global install defers to the pin
 
@@ -120,9 +123,9 @@ A global `harness` (one on your PATH) looks for `.harness/wrapper.yaml` in the r
 A global install is a convenience and never causes version skew, because within one repository every machine runs the
 pinned release.
 
-The name `harness` is also used by another product's CLI. `./harnessw` always runs the pinned binary from its own
+Harness.io, a CI/CD platform, also names its CLI `harness`. `./harnessw` always runs the pinned binary from its own
 cache, so a different `harness` earlier on `PATH` never affects it; only the optional global command can be shadowed.
-`harness doctor` reports when the `harness` on `PATH` is not this tool ([compatibility](compatibility.md)).
+`harness doctor` reports when the `harness` on `PATH` is not this tool ([compatibility](compatibility.md#harnessio)).
 
 ### One pin
 
@@ -216,7 +219,7 @@ A pending pin never admits a download, because there is nothing to verify one ag
 | `./harnessw <command>`, task shims | runs it | exit 3: `harness: pin of v0.9.0 is pending, nothing downloaded; with network access, run: harness wrapper --version v0.9.0` |
 | Agent hooks | run it | skip, as for [an uncached release](#which-entry-points-download) |
 | A global `harness` of the pinned version | runs itself | runs itself |
-| A global `harness` of another version | runs the cached release | runs `harness wrapper` itself, so it can complete the pin; any other command exits 3 as above |
+| A global `harness` of another version | runs the cached release | runs `harness wrapper` itself, so it can complete the pin; any other command exits 3 with the message in the first row |
 
 A cached release was checked against a committed checksum when it was downloaded, so running it under a pending pin
 trusts nothing new.
@@ -313,9 +316,10 @@ With a version to pin, it:
 2. reads the checksum of each of the four platforms from the verified file;
 3. downloads the release's binary for this machine into the cache and verifies its sha256 against that checksum;
 4. has the new release render the repository: `harnessw` from its own template, `.harness/wrapper.yaml` with the new
-   `version` and `checksums`, and every other owned file, key and block the new release renders differently, such as
-   the harness skill. When the new release reads a newer `schema`, the repository files are migrated in the same step;
-   the migration's diff is shown and confirmed first (`--yes` skips the question). The manifest records it all.
+   `version` and `checksums`, and every other owned file, key and block the new release renders differently, such as the
+   [harness skill](skills.md#the-harness-skill). When the new release reads a newer `schema`, the repository files are
+   migrated in the same step; the migration's diff is shown and confirmed first (`--yes` skips the question). The
+   manifest records it all.
 
 Pinning the release a pending pin already names completes it: the same steps, and only the checksums change.
 
@@ -374,9 +378,10 @@ off ([installation](installation.md#update-notice)).
 harness fleet wrapper --version v0.9.0 --deliver
 ```
 
-It runs `harness wrapper --version v0.9.0` in each repository of the [fleet](fleet.md) file, which pins the release
-and renders that repository with it, commits the change on a new branch and fires `deliver`. Each repository gets one
-pull request holding its pin and its rendered changes.
+It runs `harness wrapper --version v0.9.0` in each repository of the [fleet](fleet.md) file, which pins the release and
+renders that repository with it, commits the change on a new branch and fires the [`deliver`](lifecycle.md#deliver)
+lifecycle event, which runs the delivery actions the repository declares, such as a push and a pull request. Each
+repository gets one pull request holding its pin and its rendered changes.
 
 ## CI
 
@@ -480,4 +485,4 @@ install -m 0755 ./harness "$dir/harness"
 | `harness wrapper` exits 1: signature does not verify | The checksum file is not signed with a key the running binary trusts: a tampered release, a `source` that is not this tool's publisher, or an old release signed only with a retired key | Do not pin it. Check `source`; pin a release signed with a current key |
 | `doctor` finding: checksums differ from the signed checksum file | `wrapper.yaml` was edited by hand, or the release was republished | Re-pin from a trusted network with `./harnessw wrapper --version <tag>` and review the diff |
 | `doctor` finding: `harness` is also pinned in `mise.toml` | Two pins for one tool | Remove the entry from the task runner's file; `wrapper.yaml` is the pin |
-| `doctor` reports that `harness` on `PATH` is not this tool | Another product's `harness` CLI comes first on `PATH` | Use `./harnessw`, which is never affected, or reorder `PATH` for the global command |
+| `doctor` reports that `harness` on `PATH` is not this tool | Another program named `harness`, such as Harness.io's CLI, comes first on `PATH` | Use `./harnessw`, which is never affected, or reorder `PATH` for the global command |

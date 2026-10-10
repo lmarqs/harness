@@ -16,7 +16,9 @@ the result alone.
 
 These rules apply to every command, flag, output stream and exit code of `harness`. The
 [reference surface](#reference-surface) below is the command set they govern. A new command or flag MUST follow them,
-and a deviation is a change to this standard, with its reason ([README.md](README.md#changing-a-standard)).
+and a deviation is a change to this standard, with its reason ([README.md](README.md#changing-a-standard)). Terms used
+here in a precise sense, such as worker, coordinator, receipt and lane, are defined in the
+[glossary](../features/glossary.md).
 
 ## Entry points
 
@@ -31,7 +33,7 @@ version the repository chose, with no installation step before the first command
 | --- | --- | --- |
 | `./harnessw <command>` | explicit, the documented invocation | runs the pinned version; downloads it over HTTPS and verifies its checksum when it is not cached; exits non-zero naming the cause when it cannot: 1 for a failed download or a checksum mismatch, 3 when a person must act first (no downloader or sha256 tool, or a pending pin whose release is not cached) |
 | `harness <command>` | explicit, optional global install | inside a repository whose `.harness/wrapper.yaml` pins a different version, execs the pinned version from the cache, downloading it through the same verified path (never from a hook); under a pending pin whose release is not cached, runs `harness wrapper` itself, the command that completes the pin, and exits 3 for any other command, because nothing can be downloaded against a pending pin; elsewhere runs itself |
-| task shims (`front_door: mise`) | explicit | one-line mise tasks that exec `./harnessw <command>` |
+| task shims (`front_door: mise`) | explicit | one-line [mise](https://mise.jdx.dev) tasks that exec `./harnessw <command>`, such as `mise run verify` |
 | `./harnessw --no-download <command>` | implicit: rendered agent hooks | runs only a cached binary and never downloads; when none is cached, prints one stderr line naming `./harnessw`, and for the session-start event also the one context line below, then exits 0 |
 
 - Implicit entry points MUST NOT download. Only an invocation a person or agent makes on purpose fetches a binary.
@@ -59,10 +61,13 @@ shim. These four are the rendered spellings: a policy entry that names a harness
 `[harness, …]`, and rendered for each of them ([configuration-standards.md](configuration-standards.md#policy-entries)).
 Why: an entry rendered for one spelling would leave the others open.
 
-Guards never rely on those entries alone. The binary itself refuses `harness lifecycle run` inside a Ralph worker or
-an `agent` action (the launcher sets `HARNESS_WORKER=1` in the agent's environment, and the binary checks it), and it
-enforces the `deliver` guards itself. Why: an absolute path or `sh harnessw` slips past any prefix rule, so policy
-entries are defence in depth and the binary is the enforcement ([ADR 0011](../adrs/0011-safety-invariants.md)).
+Guards never rely on those policy entries alone. The binary itself refuses `harness lifecycle run` inside a Ralph
+worker, the agent process that [ralph-tui](https://github.com/subsy/ralph-tui) starts for one task in an unattended
+[`harness ralph`](../features/ralph.md) run, and inside an `agent` action, the headless agent run a lifecycle event
+starts. The launcher sets `HARNESS_WORKER=1` in the agent's environment, and the binary checks it. The binary also
+enforces the [`deliver` guards](../features/lifecycle.md#built-in-guards) itself. Why: an absolute path or `sh harnessw`
+slips past any prefix rule, so policy entries are defence in depth and the binary is the enforcement
+([ADR 0011](../adrs/0011-safety-invariants.md)).
 
 ## Reference surface
 
@@ -117,7 +122,7 @@ harness ralph-worker <agent> [agent args...]
 | `preset apply <name>...` | applies the named presets, in order, to an adopted repository: needs `.harness/config.yaml` (otherwise exit 1, naming `harness scaffold`); adds to `.harness/config.yaml` and `.harness/hooks.yaml` only what they lack, never replacing an item the repository names and reporting each item it kept ([configuration-standards.md](configuration-standards.md#presets)); shows the additions as a diff and asks; then writes them and renders the repository as `render` does. Nothing to add exits 0; `--json` lists the entries added and the items kept |
 | `lifecycle list` | prints every lifecycle event (the out-of-band `blocked` included), its actions, their kinds, `auto` flags and scopes |
 | `lifecycle run <event>` | runs the event's declared actions, in declaration order, for one scope; never asks for confirmation; refuses, exit 3, inside a Ralph worker or an `agent` action |
-| `fleet <command> --deliver` | after the command, commits the tool-owned changes on a new local branch `<branch_prefix><command>` cut from the fetched default branch, runs `harness verify` (no lanes are needed for a change outside `app_paths`), then fires `deliver` (scope `change`) in that repository, running every declared `deliver` action for that scope |
+| `fleet <command> --deliver` | after the command, commits the tool-owned changes on a new local branch `<branch_prefix><command>` cut from the fetched default branch, runs `harness verify` (no lanes are needed for a change outside `verify.app_paths`), then fires `deliver` (scope `change`) in that repository, running every declared `deliver` action for that scope |
 
 The binary contains no logic for the platform that hosts the team's work: no command and no flag pushes, opens a pull
 request or writes to a hosting platform by itself ([ADR 0012](../adrs/0012-write-boundary.md)). Those effects exist
@@ -136,10 +141,10 @@ command lives without reading help.
 | `harness fleet <command>` | a repository-level command run across a declared list of repositories | `fleet render`, `fleet doctor`, `fleet scaffold`, `fleet wrapper`, … |
 
 Internal commands are called by agents or by files harness generates, not by people: `harness hook` (reads an agent hook
-payload on stdin) and `harness ralph-worker` (the agent command in a coordinator's ralph-tui configuration). They appear
-in help under a separate **Internal** heading, and their interface is a contract with the adapters. Where the calling
-agent's protocol and the rules in this page differ, their I/O follows the protocol, because the agent, not harness,
-defines what a hook must print and return.
+payload on stdin) and `harness ralph-worker` (the agent command in the ralph-tui configuration harness generates for a
+coordinator, the worktree a Ralph run executes in). They appear in help under a separate **Internal** heading, and their
+interface is a contract with the adapters. Where the calling agent's protocol and the rules in this page differ, their
+I/O follows the protocol, because the agent, not harness, defines what a hook must print and return.
 
 Rules:
 
@@ -290,7 +295,7 @@ are not settings. Why: the narrower the scope of a source, the more deliberate t
 | 0 | success; nothing to report or nothing left to do | `render` wrote or found everything up to date; `doctor` found nothing beyond notes; every action of a `lifecycle run` passed, or the event declares no actions |
 | 1 | error: the command could not do its job | invalid usage, unknown key in a repository file, a state path inside `.harness/` or `.agents/`, I/O failure; an unknown preset, or `preset apply` in a repository without `.harness/config.yaml`; an explicit entry point that cannot obtain the pinned binary (download failure, checksum mismatch); `wrapper --version`, or `scaffold` without `--offline`, meeting a release whose signed checksum file is unreachable or does not verify |
 | 2 | a check ran and failed | `render --check` found drift, `doctor` reported a finding (a second harness pin in a task runner's file, a locked skill whose hash does not match, a pinned release whose signed checksum file no longer matches `wrapper.yaml`), `verify --check` or `task complete` met an invalid receipt; a lifecycle action exited non-zero; `scaffold --adopt` found a project-scope rule no longer in effect |
-| 3 | blocked: the next step is a person's decision | confirmation needed with no TTY and no `--yes`; a prerequisite tool a person must install is missing (Node for `skills sync`, `ralph-tui`, `bd`, the wrapper's downloader or sha256 tool); an explicit entry point meets a pending pin whose release is not cached; `remove` refused a hand-edited file without `--force`; `scaffold` found a `.harness/` directory harness did not create; the repository schema is newer than the binary (only when the pin is bypassed); a lifecycle guard refused (`deliver` on the default branch, with uncommitted changes, or, when the verify module is enabled, without a valid receipt; any event inside a Ralph worker or an `agent` action) |
+| 3 | blocked: the next step is a person's decision | confirmation needed with no TTY and no `--yes`; a prerequisite tool a person must install is missing (Node for `skills sync`, `ralph-tui`, the Beads CLI `bd`, the wrapper's downloader or sha256 tool); an explicit entry point meets a pending pin whose release is not cached; `remove` refused a hand-edited file without `--force`; `scaffold` found a `.harness/` directory harness did not create; the repository schema is newer than the binary (only when the pin is bypassed); a lifecycle guard refused (`deliver` on the default branch, with uncommitted changes, or, when the verify module is enabled, without a valid receipt; any event inside a Ralph worker or an `agent` action) |
 
 - Codes 2 and 3 tell an agent what to do next: 2 means "fix the finding and run again"; 3 means "stop and ask a
   person". A new failure mode MUST map to one of the four codes; no other code is used. Why: an agent acts on the

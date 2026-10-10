@@ -30,7 +30,7 @@ with a global install, `harness <command>` is equivalent.
 | --- | --- |
 | No `.claude/settings.json` permissions or hooks, no workflow tasks of its own | `harness scaffold` |
 | Hand-written permissions or hooks in `.claude/settings.json`, `CLAUDE.md` with content, existing skills | `harness scaffold --adopt` |
-| An existing workflow engine: mise tasks named `verify`/`ralph:*`/`worktree:*`, a root `.ralph-tui/`, a `.beads/` | `harness scaffold --adopt` |
+| An existing workflow engine: [mise](compatibility.md#mise) tasks named `verify`/`ralph:*`/`worktree:*`, a root `.ralph-tui/` ([ralph-tui](ralph.md) configuration), a `.beads/` ([Beads](tasks.md#trackers) task database) | `harness scaffold --adopt` |
 | The repository already has `.harness/config.yaml` | Not `scaffold`: edit the files and run [`./harnessw render`](render.md) |
 | A `.harness/` directory that another tool owns, such as Harness.io pipelines | `scaffold` refuses; see [compatibility](compatibility.md#harnessio) |
 | Many repositories at once | [`harness fleet scaffold`](fleet.md) |
@@ -42,9 +42,9 @@ finds nothing to import and behaves like a plain scaffold.
 
 ### Greenfield
 
-1. **Detect.** Find the stacks from marker files, the default branch from `origin/HEAD`, and whether mise is configured.
-   A `.harness/` directory that holds neither a `harness` profile nor a manifest belongs to another tool: `scaffold`
-   stops with exit 3 and names it, before planning anything.
+1. **Detect.** Find the stacks from marker files, the default branch from `origin/HEAD`, and whether the mise task
+   runner is configured. A `.harness/` directory that holds neither a `harness` profile nor a manifest belongs to
+   another tool: `scaffold` stops with exit 3 and names it, before planning anything.
 2. **Plan.** Build the list of files, blocks and links to write. With `--dry-run`, print it and stop.
 3. **Confirm.** Show the plan and ask. `--yes` skips the question. Without a terminal and without `--yes`, nothing is
    written and the command exits 3.
@@ -246,8 +246,8 @@ Adoption also prints notes that need a decision but are not to-do items, because
   its agents and templates in harness-launched runs (see [ralph](ralph.md#managed-and-inherited-configuration)).
 - The settings listed under [Not policy](#not-policy-notes).
 
-An agent finishes the adoption with the harness skill: ask it to "finish the harness adoption"; it reads
-`./harnessw explain adoption`, edits the repository files, and runs `./harnessw render --check` and
+An agent finishes the adoption with the [harness skill](skills.md#the-harness-skill): ask it to "finish the harness
+adoption"; it reads `./harnessw explain adoption`, edits the repository files, and runs `./harnessw render --check` and
 `./harnessw doctor` until both pass.
 
 Importing the `local` or `user` scope publishes one person's permissions to everyone who uses the repository. Review

@@ -24,10 +24,12 @@ trigger, a notification) is an **action** that the repository declares on a **li
 The binary decides when an event fires and enforces its guards; it ships no actions
 ([ADR 0015](../adrs/0015-development-lifecycle.md), [ADR 0019](../adrs/0019-action-kinds.md)).
 
-Every lifecycle action and every [notification hook](hooks.md#agent-notifications) a repository runs is written in
-that file, so the people who review a change and the agents that work on it read there everything an event or a
-notification runs. An organization's delivery convention reaches a repository the same way: written into its
-`.harness/hooks.yaml` and reviewed there as a diff ([ADR 0013](../adrs/0013-organization-content.md)).
+Every lifecycle action and every [notification hook](hooks.md#agent-notifications) a repository runs is written in that
+file, so the people who review a change and the agents that work on it read there everything an event or a notification
+runs. An organization's delivery convention, such as
+[a CI-trigger commit](#an-organization-convention-a-ci-trigger-commit-before-the-pull-request) before every pull
+request, reaches a repository the same way: written into its `.harness/hooks.yaml` and reviewed there as a diff
+([ADR 0013](../adrs/0013-organization-content.md)).
 
 Commands are named `harness <command>` on this page. The examples run them through the repository's wrapper,
 `./harnessw <command>`, from the root of a checkout; with a global install, `harness <command>` is equivalent
@@ -50,8 +52,8 @@ people, by agents following a skill, or by CI. They are not for checks either: c
 [verify lanes](verify.md) and [validators](hooks.md). An interactive agent waiting for a person, or finishing a turn,
 is an agent event with its own actions, not a lifecycle event ([agent notifications](hooks.md#agent-notifications)).
 
-A repository that declares no actions keeps working as before: every event runs nothing and succeeds, and people push
-and open pull requests by hand.
+In a repository that declares no actions, every event runs nothing and succeeds, and people push and open pull requests
+by hand.
 
 ## The lifecycle, stage by stage
 
@@ -61,7 +63,7 @@ The actors:
 | --- | --- |
 | Person | a developer at the terminal |
 | Coordinating agent | an interactive agent session (Claude Code or Codex) working with a person, or one left to drive a run, guided by the [harness skill](skills.md#the-harness-skill) |
-| Worker | an agent process a [Ralph](ralph.md) run starts for one task |
+| Worker | an agent process a [Ralph](ralph.md) run starts for one task: `harness ralph run` launches ralph-tui, a tool that works through a list of tasks unattended, one worker per task |
 | Binary | `harness` itself |
 | External | the hosting platform, CI and reviewers |
 
@@ -90,7 +92,7 @@ flowchart TB
 | | |
 | --- | --- |
 | Who acts | a person, usually with a coordinating agent and a planning skill |
-| Produces | the issue or the pull-request description (the team's record); optionally a PRD file or a Beads epic in the clone ([tasks](tasks.md)) |
+| Produces | the issue or the pull-request description (the team's record); optionally a PRD file (user stories in JSON) or an epic in Beads, a task tracker kept in the clone and driven by its `bd` CLI ([tasks](tasks.md)) |
 | `harness` guarantees | it never writes the record; a Beads database it creates is local, without git hooks, agent files or remotes |
 | Left to judgement | scope, the split into tasks, acceptance criteria, the order of dependencies |
 | Event | none |
@@ -99,8 +101,8 @@ flowchart TB
 
 | | |
 | --- | --- |
-| Who acts | a person or a coordinating agent runs `harness worktree create` and `harness task claim`; for a run, the Ralph launcher creates the coordinator |
-| `harness` guarantees | the worktree starts from committed code; its base commit is recorded; its actor is unique; a task has one owner; the profile's `bootstrap` runs ([worktrees](worktrees.md)) |
+| Who acts | a person or a coordinating agent runs `harness worktree create` and `harness task claim`; for a run, the Ralph launcher creates the coordinator, the worktree the run executes in |
+| `harness` guarantees | the worktree starts from committed code; its base commit is recorded; its actor, the identity it claims tasks with, is unique; a task has one owner; the profile's `bootstrap` runs ([worktrees](worktrees.md)) |
 | Left to judgement | the name, the base, the tracker, whether a worktree is needed at all |
 | Event | `start` |
 
@@ -117,8 +119,8 @@ flowchart TB
 
 | | |
 | --- | --- |
-| Who acts | the agent or the person runs `harness verify`; for a worker, the worker wrapper replays the selected checks |
-| `harness` guarantees | the receipt is bound to the base and to the content of every changed file; lane rules hold; a lane whose `required_when` matches cannot be skipped ([verify](verify.md)) |
+| Who acts | the agent or the person runs `harness verify`; for a worker, the worker wrapper (`harness ralph-worker`, the command ralph-tui runs to start each worker agent) replays the selected checks |
+| `harness` guarantees | the receipt, the record `harness verify` writes of a passing run, is bound to the base and to the content of every changed file; the rules of each lane (a named family of test commands) hold; a lane whose `required_when` matches cannot be skipped ([verify](verify.md)) |
 | Left to judgement | which lanes and patterns exercise the change; the skip reasons |
 | Event | `verified` |
 
@@ -205,7 +207,7 @@ reason in `HARNESS_REASON`.
 | --- | --- | --- |
 | `task` | one task of a tracker, in the managed worktree bound to it, or one task of a Ralph run | `harness task complete acme-api-7f2` |
 | `run` | a whole Ralph run, on its coordinator branch | a run finishing on `work/ralph-3f9c1a7b2e44` |
-| `change` | work not bound to a task: a managed worktree created without `--task`, a branch in the primary checkout, a branch `harness fleet --deliver` prepared | a hand-made fix on a branch |
+| `change` | work not bound to a task: a managed worktree created without `--task`, a branch in the primary checkout, a branch [`harness fleet --deliver`](fleet.md) prepared | a hand-made fix on a branch |
 
 Trigger-point details:
 
@@ -246,12 +248,12 @@ These are [built-in invariants](concepts.md#built-in-invariants). No repository 
 | Every run is recorded | Each run, refused and skipped ones included, is appended to the [lifecycle log](#the-lifecycle-log). Dry runs are not recorded |
 | The binary ships no actions | Every action is one the repository declares in `.harness/hooks.yaml`; neither the seeded files nor any [preset](presets.md#the-presets) holds one. `harness lifecycle list` prints them all |
 
-The scaffolded repository policy seeds `[harness, lifecycle, run, deliver]` under `ask`, because permitting an agent
-to run an event permits everything its actions do ([safety](safety.md#lifecycle-actions-are-code)). `render` writes it
-for each spelling `harness` renders: `harness …`, `./harnessw …`, `harnessw …`, and the task shim where one exists
-([policy](policy.md#entries-for-harness-commands)). It is a seeded entry the repository owns and may change, not an
-invariant ([ADR 0015](../adrs/0015-development-lifecycle.md)). The guards above do not depend on it: the binary
-enforces them whoever runs the command.
+The scaffolded repository policy seeds `[harness, lifecycle, run, deliver]` under `ask`, because permitting an agent to
+run an event permits everything its actions do ([safety](safety.md#lifecycle-actions-are-code)). `render` writes it for
+each spelling `harness` renders: `harness …`, `./harnessw …`, `harnessw …`, and the [task shim](render.md#task-shims)
+where one exists ([policy](policy.md#entries-for-harness-commands)). It is a seeded entry the repository owns and may
+change, not an invariant ([ADR 0015](../adrs/0015-development-lifecycle.md)). The guards above do not depend on it: the
+binary enforces them whoever runs the command.
 
 ## The `lifecycle` block in `AGENTS.md`
 
@@ -271,10 +273,10 @@ without a passing `./harnessw verify`, then runs `push` (run) and `open-pr` (run
 <!-- /harness:lifecycle -->
 ```
 
-"Without a passing `./harnessw verify`" appears only when the verify module is on. The block is a tool block: it
-names `harness` commands, and [`harness remove --eject`](remove.md#eject) removes it, because nothing fires the actions
-or enforces the guards after an eject. Like every block, it stays within the per-block line budget
-([render](render.md#managed-blocks)).
+"Without a passing `./harnessw verify`" appears only when the verify module is on. The block is a
+[tool block](concepts.md#convention-blocks-and-tool-blocks): it names `harness` commands, and
+[`harness remove --eject`](remove.md#eject) removes it, because nothing fires the actions or enforces the guards after
+an eject. Like every block, it stays within the per-block line budget ([render](render.md#managed-blocks)).
 
 ## Reference
 
@@ -689,8 +691,8 @@ or removes the worktree.
 
 ### A Terraform repository: push only
 
-The plan is posted to the pull request by the repository's CI, with its own credentials. Delivery only publishes the
-branch:
+The `terraform plan` output is posted to the pull request by the repository's CI, with its own credentials. Delivery
+only publishes the branch:
 
 ```yaml
 # .harness/hooks.yaml
@@ -730,8 +732,8 @@ lifecycle:
 The pull request holds every task of the run, on `work/ralph-<session-id>`, with the messages the tasks were
 committed with. Use it when one run is one reviewable unit.
 
-**Coordinator-led.** The coordinating agent chooses which task commits go together and rewords them, as the
-repository's delivery skill describes, then triggers `deliver` on the result:
+**Coordinator-led.** The coordinating agent chooses which task commits go together and rewords them, as a delivery skill
+in the repository describes, then triggers `deliver` on the result:
 
 ```sh
 ./harnessw ralph run --agent claude --tracker beads --epic acme-api-a10 --headless
@@ -746,7 +748,7 @@ git cherry-pick 1a2b3c4 5d6e7f8                 # the tasks that belong in this 
 ```
 
 The seeded `ask` entry on `harness lifecycle run deliver` makes the last step wait for a person unless the repository
-moved it.
+moved that entry out of `ask`.
 
 ## Guidelines
 

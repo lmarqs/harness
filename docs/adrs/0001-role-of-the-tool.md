@@ -16,9 +16,11 @@ An agent harness is the program that runs a model in a loop with tools: an inter
 runner that drives an agent through a list of tasks. Each harness reads its permissions, hooks, instructions and skills
 from files in the repository.
 
-- Three hand-ported copies of one agent workflow exist; each is a different dialect, and two of them start unattended
-  agents with permission-bypass flags that the third refuses. The copies differ in what they write and how they start
-  agents, not in what the agents can do.
+- Example: acme copies one agent workflow by hand from `acme/api` into `acme/web` and `acme/infra`. A year later each
+  copy is its own dialect. `acme/web` added a lint step and skips permission prompts through its unattended runner's
+  configuration, `acme/infra` starts the second agent it uses for unattended work with a permission-bypass flag, and
+  `acme/api` refuses both. All three run the same harnesses and models: the copies differ in what they write and how
+  they start agents, not in what the agents can do.
 - Harnesses are products their vendors develop and change often. A program that reimplements an agent loop has to follow
   every model and API change the harness vendors already follow.
 - Calling a model requires credentials, a provider choice, a cost budget and data-handling rules. Each of these is an
@@ -43,10 +45,10 @@ from files in the repository.
 
 ## Reasons
 
-- **1.** The divergence between the copies is a divergence of configuration and of start-up arguments, so owning those
-  surfaces is what solves it. The output is committed files, which reviewers read as diffs and which keep working when
-  the tool is absent ([0010](0010-dependence-on-the-binary.md)). The trade: the tool can enforce only what a harness's
-  configuration surface exposes.
+- **1.** Hand-copied setups diverge in their configuration and their start-up arguments, as the acme copies in Context
+  do, so owning those surfaces is what solves it. The output is committed files, which reviewers read as diffs and which
+  keep working when the tool is absent ([0010](0010-dependence-on-the-binary.md)). The trade: the tool can enforce only
+  what a harness's configuration surface exposes.
 - **2.** A harness already follows model and API changes. A second loop duplicates that work and competes with the
   harness a team chose. Credentials, provider choice and cost belong to organizations. A tool that holds none of them
   has no token cost, sends no data to a model provider and needs no data-handling review. The trade: every capability
@@ -56,10 +58,12 @@ from files in the repository.
   tool choose which remote tool to call, which is a model's decision (point 2). Integrations that need no judgement
   reach a service through its HTTP API or command-line client instead ([0019](0019-action-kinds.md)). The trade: work
   available only as a tool-server tool needs an agent run, with its cost and its variance.
-- **4.** Unattended runs are where the hand-ported copies lost their safety settings, so the tool controls the
-  arguments, permission mode and environment of every harness it starts. It judges the outcome by checks it can replay,
-  because an agent can claim completion that did not happen ([0011](0011-safety-invariants.md)). Starting the harness as
-  an unmodified child process keeps it replaceable and keeps its reasoning inside it.
+- **4.** Unattended runs are where a hand-copied setup loses its safety settings: a permission prompt stalls a run that
+  nobody watches, so a copy turns the prompts off in the start-up arguments or the runner's configuration, as two of the
+  three acme copies in Context do. The tool therefore controls the arguments, permission mode and environment of every
+  harness it starts. It judges the outcome by checks it can replay, because an agent can claim completion that did not
+  happen ([0011](0011-safety-invariants.md)). Starting the harness as an unmodified child process keeps it replaceable
+  and keeps its reasoning inside it.
 
 ## Rejected alternatives
 
