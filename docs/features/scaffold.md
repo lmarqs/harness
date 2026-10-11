@@ -180,7 +180,7 @@ shared:
     - [npm, run, [build, lint, test]]
     # imported from .acme/settings.json (project)
     - "Fetch(domain:pkg.go.dev)"
-    # imported from ~/.acme/settings.json (user); review: personal setting, now shared
+    # imported from ~/.acme/settings.json (user); review: personal setting, becomes shared
     - [kubectl, get]
 ```
 
@@ -276,10 +276,13 @@ the-cook scaffold [--cookbook <source>@<version>] [--station <name>]... [--no-de
 
 Global flags `-C <dir>`, `--json`, `--verbose` also apply; see [CLI reference](cli.md).
 
+**Jump to:** [flags](#reference) | [exit codes](#reference) | [greenfield](#greenfield) | [adopt](#adopt) |
+[station detection](#station-detection) | [import scopes](#import-scopes) | [merge rules](stations.md#merge-rules)
+
 | Exit code | Meaning |
 | --- | --- |
 | 0 | Scaffolded or adopted. Open to-do items, unfilled contracts among them, do not change the exit code |
-| 1 | Error, including a repository that already has `.cook/config.yaml`; a `--station` the tag does not publish, or `--station` without `--cookbook`; a cookbook tag that cannot be reached; an archive that does not match its tag's `checksums.txt` or the sha256 its station lists; a station, ingredient or recipe whose schema or contract version is newer than the running release supports; stages that name an ingredient their station does not list, or one that does not fill the contract the stage needs; `--offline` with `--cookbook`, or `--adopt` without it; a checksum file of the pinned release that cannot be fetched without `--offline`, and one whose signature does not verify. Nothing is written |
+| 1 | Error, nothing is written. One of:<br>• repository already has `.cook/config.yaml`<br>• `--station` the tag does not publish<br>• `--station` without `--cookbook`<br>• cookbook tag cannot be reached<br>• archive does not match `checksums.txt` or sha256 its station lists<br>• station, ingredient or recipe schema or contract version newer than running release supports<br>• stages name an ingredient their station does not list<br>• stages name an ingredient that does not fill the contract the stage needs<br>• `--offline` with `--cookbook`<br>• `--adopt` without `--cookbook`<br>• checksum file of pinned release cannot be fetched without `--offline`<br>• checksum file signature does not verify |
 | 2 | The equivalence check found a project-scope rule that would not be in effect; nothing was written |
 | 3 | A person must act: confirmation needed and no terminal (rerun with `--yes`, or from a terminal), a `.cook/` directory that belongs to another tool, the version-control ingredient's program not installed, or a contract, role or lane a recipe of the chosen stations requires that the seeded profile lacks, named. Nothing is written |
 
@@ -410,7 +413,7 @@ Then ask a coding agent to finish the adoption with the shipped skill.
 ```sh
 $ the-cook scaffold --cookbook github:acme/cookbook@v1.2.0 --station agentic-coding --adopt --import project,local --yes
 to-do:
-  1. review [docker, compose, up] imported from .acme/settings.local.json (local): now shared with everyone
+  1. review [docker, compose, up] imported from .acme/settings.local.json (local): becomes shared with everyone
 ```
 
 ## Guidelines

@@ -2,11 +2,11 @@
 
 ## Objective
 
-**Problem.** A team that tried `the-cook` in a repository, or no longer wants one of its practices, has to take out what
-was added across many shared files without touching what people wrote themselves. A piece left behind keeps acting on
-every coding agent session, and a piece removed too eagerly takes a teammate's settings or hand edits with it. A team
-that stops using the tool may still want to keep the working agreements, permissions and hooks it relies on, as its own
-files.
+**Problem.** A team that tried `the-cook` in a repository, or wants to withdraw one of its practices, has to take
+out what was added across many shared files without touching what people wrote themselves. A piece left behind keeps
+acting on every coding agent session, and a piece removed too eagerly takes a teammate's settings or hand edits with
+it. A team that stops using the tool may still want to keep the working agreements, permissions and hooks it relies
+on, as its own files.
 
 **Goal.** Taking out the whole setup or one practice is one step that removes exactly what was added, and either
 restores the setup the repository had before or leaves the result in place as the team's own files. No hand edit to
@@ -32,9 +32,9 @@ global install, `the-cook <command>` is equivalent.
 | --- | --- |
 | The adoption was a trial; the repository should go back to how it was before `the-cook` | `./cook remove` |
 | The repository should stop using `the-cook` and keep its workspace and memory conventions, its permissions and its hooks | `./cook remove --eject` |
-| The repository no longer wants one module, for example [memory](memory.md), its memory under `.agents/memory/` | `./cook remove --module memory` |
-| The repository no longer uses one program, such as one coding agent | delete its ingredient from `ingredients:` in the profile, with the workers that name it, and run `./cook render` ([Removing one ingredient](#removing-one-ingredient)) |
-| The repository no longer wants one [recipe](recipes.md) | delete `.cook/recipes/<name>/` and commit ([Removing one recipe](#removing-one-recipe)) |
+| The repository wants to withdraw one module, for example [memory](memory.md), its memory under `.agents/memory/` | `./cook remove --module memory` |
+| The repository stops using one program, such as one coding agent | delete its ingredient from `ingredients:` in the profile, with the workers that name it, and run `./cook render` ([Removing one ingredient](#removing-one-ingredient)) |
+| The repository wants to withdraw one [recipe](recipes.md) | delete `.cook/recipes/<name>/` and commit ([Removing one recipe](#removing-one-recipe)) |
 | You want to see what a mode would do | add `--dry-run` |
 
 Turning a module off in the profile and running `./cook render` has the same effect as `remove --module`, except
@@ -71,7 +71,7 @@ settings file, its rules file, or an ingredient's `.gitignore` block.
 | The `.agents/memory/` skeleton | a file whose content still matches the hash it was seeded with is deleted; an edited file is knowledge and stays, listed | kept |
 | Knowledge: `AGENTS.md` prose, edited memory, domain skills, `.agents/commands/`, `.agents/REVIEW.md` | kept | kept |
 | Templates a [station](stations.md#templates) wrote, such as a loop runner's configuration: the repository's own files | kept | kept |
-| State: the [state paths](profile.md#state-paths) (default under `.work/`) | left in place and listed; no longer ignored | left in place, still ignored |
+| State: the [state paths](profile.md#state-paths) (default under `.work/`) | left in place and listed; not ignored | left in place, still ignored |
 
 Neither mode touches a worker's local or user-level settings, other tools' files such as a tracker's data, or anything
 `the-cook` did not create. The manifest records no template a station wrote, so removal never deletes one. Recipes are
@@ -148,7 +148,7 @@ No flag of `remove` takes out one ingredient. Delete its entry from `ingredients
 `workers:` entry that names it, and run `./cook render`: the manifest records each render under the ingredient that
 owns it, so `render` removes exactly that ingredient's files, keys and blocks, and its
 [floor rules](ingredients.md#the-floor) leave every worker's output. `vcs:` and `workers.<name>.ingredient` must not
-name an ingredient `ingredients:` no longer lists, or `render` exits 1.
+name an ingredient `ingredients:` does not list, or `render` exits 1.
 
 What stations applied once, their entries in the repository files, their templates and the recipes they added, stays as
 the repository's own; edit or delete them like anything else. Deleting an entry from `stations:` changes nothing
@@ -215,7 +215,7 @@ would remove blocks: AGENTS.md (commands, layout, workspaces, verify, lifecycle,
                      README.md (commands), CLAUDE.md (import), .gitignore (state, workspaces)
 would remove: .claude/settings.json (permissions, hook entries), .codex/hooks.json (hook entries)
 would restore: .claude/settings.json (12 permission rules, 1 hook imported from project files)
-left in place, no longer ignored: .work/
+left in place, not ignored: .work/
 $ ./cook remove --yes
 $ rm -rf .work
 $ git status --short
@@ -278,7 +278,7 @@ git commit -am "chore: drop the-cook memory module"
 | `.work/` shows up in `git status` after an undo | Its `.gitignore` block was removed with the rest | Delete it, or add your own ignore entry |
 | A worker lost its lint-on-edit hook | Modelled hooks run through `the-cook hook`; `--module hooks`, undo and eject all remove them | Re-enable `modules.hooks` and render, or write the command as a plain hook in the worker's settings |
 | The lanes and delivery steps are gone from `AGENTS.md` after an eject | `verify` and `lifecycle` are tool blocks, and an eject removes tool blocks | Write the checks you still want into `AGENTS.md` prose |
-| An undo kept a memory file | The file changed since it was seeded, so it is knowledge | Expected; delete it yourself if the repository no longer wants it |
+| An undo kept a memory file | The file changed since it was seeded, so it is knowledge | Expected; delete it yourself if unwanted |
 | `.cook/` is still there after a removal | It holds a file `the-cook` neither owns nor seeded, such as a script the team keeps there; the output listed it | Delete the file, or keep it, as you choose |
 | A loop runner cannot start a worker after a removal | Its configuration, a template a station wrote, names `./cook attempt` or `./cook make`, which removal deleted | Point each per-task command at the worker's own program, or at a wrapper of your own |
 | A recipe is gone after a removal | Both modes delete `.cook/recipes/`; the plan listed it | Restore it from version control history if you still want its steps, as a script or a skill of your own |

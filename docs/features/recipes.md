@@ -81,6 +81,15 @@ workspace, receipt or delivery. Acting on what monitoring found is one: a recipe
 whose `attempt` step has a worker follow a monitoring skill. Setting a repository up is not a recipe either: what a way
 of working needs in place, its pins, workers, entries and templates, is a [station](stations.md), applied once.
 
+### Writing one
+
+**Authoring path (repository's own):** `./cook recipe create <name>` → edit [recipe file](#the-recipe-file) (inputs,
+requires, workspace, steps, verify) → draft templates in `files/` → test with `--here` in a managed workspace →
+commit.
+
+**Authoring path (for a cookbook):** write [recipe file](#the-recipe-file) in `recipes/<name>/` (without `origin`) →
+test in sample repositories → [cookbooks](stations.md#cookbooks) (build archive, checksums.txt, publish).
+
 ## The recipe file
 
 A recipe is a directory of `.cook/recipes/`, named like the recipe:
@@ -276,15 +285,10 @@ anything runs.
 - handoff: "Check the generated SQL against production data volumes, then continue."
 ```
 
-A string, with placeholders replaced. What the run does with it depends on whether someone drives the run, which its
-caller declares ([attended and unattended runs](#attended-and-unattended-runs)):
-
-- In an attended run, the run prints the text, records where it paused, fires nothing and exits 3. Whoever drives the
-  run, a person or the interactive worker in their session, does what the text asks, then runs
-  `the-cook make --continue`, which resumes with the step after the handoff.
-- In an unattended run, nobody is there to do what it asks: the run stops as blocked, fires `blocked` naming the step,
-  and exits 3. Once a person has done what the text asks, `the-cook make --continue` resumes with the step after the
-  handoff ([stopping and continuing](#stopping-and-continuing)).
+A string, with placeholders replaced. Behavior depends on whether someone drives the run
+([attended and unattended runs](#attended-and-unattended-runs)): an attended run pauses (prints text, fires nothing,
+exits 3); an unattended run stops as blocked (fires `blocked`, exits 3). In both cases, `the-cook make --continue`
+resumes with the step after the handoff.
 
 ## The run
 
@@ -492,7 +496,7 @@ itself.
 | The lifecycle's guards hold | the `completed` guard on a task and the `deliver` guards apply to a run's work as to any work ([built-in guards](lifecycle.md#built-in-guards)) |
 | Events come from the stages | a run fires `start`, `verified`, `completed`, `deliver` and `blocked` only where the lifecycle fires them. Inside a step, `the-cook` commands fire no event, and `the-cook lifecycle run` and `the-cook make` refuse with exit 3 |
 | `attempt` steps run under the attempt contract | the pinned launch, the unattended denies, the floor and the tamper check, as for every attempt. The tamper check compares the files under `.cook/` too, `.cook/recipes/` included, with their state when the step began, so the worker of a step cannot change a recipe, and a `--here` run keeps the uncommitted draft it runs |
-| A run reads its recipe once | from the base commit of the workspace it creates, when it starts; every stage and `make --continue` run that content, so no step can change the recipe of the run it is in. `--here`, which reads the working tree, is refused with `--unattended` |
+| A run reads its recipe once | ([The run](#the-run)): from the base commit when it starts; `--here` reads the working tree and is refused with `--unattended` |
 | Requirements are checked | `requires` is checked when the recipe is added and when it runs: a missing contract, role or lane exits 3 and names it, before anything is written or created |
 | Inputs are validated | every input is checked against its type before anything runs, and stays one argument in a `run` step |
 
@@ -568,6 +572,10 @@ the-cook recipe create <name> [--dry-run]
 `recipe` follows the `the-cook <noun> <verb>` shape; `make` is a command of its own, because it is how a change goes
 through the lifecycle, and a recipe runs only through it. Global flags `-C <dir>`, `--json` and `--verbose` apply to
 every subcommand; see [CLI reference](cli.md).
+
+**Jump to:** [`make`](#the-cook-make) | [`list`](#the-cook-recipe-list) | [`show`](#the-cook-recipe-show) |
+[`add`](#the-cook-recipe-add) | [`update`](#the-cook-recipe-update) | [`create`](#the-cook-recipe-create) |
+[flags](#the-cook-make) | [exit codes](#the-cook-make) | [recipe file](#the-recipe-file) | [step kinds](#step-kinds)
 
 ### `the-cook make`
 

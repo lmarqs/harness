@@ -62,6 +62,13 @@ Commands are named `the-cook <command>` on this page. The examples run them thro
 | Stop using a program | delete its pin from `ingredients:`, and the `vcs:` or worker that names it, then run `./cook render` |
 | Describe a program no cookbook describes | write an ingredient and publish it in a cookbook ([cookbooks](stations.md#cookbooks)) |
 
+### Writing one
+
+**Authoring path:** [the ingredient file](#the-ingredient-file) (operations, renders, floor, checks) →
+[render forms](#render-forms) (whole, keys, entries, block) → [the neutral model](#the-neutral-model) (values for
+templates) → [the template language](ingredients.md#the-template-language) → test against sample repositories →
+[cookbooks](stations.md#cookbooks) (build archive, checksums.txt, publish).
+
 ## Parts of an ingredient
 
 ### Operations
@@ -516,6 +523,11 @@ the-cook fetch
 ingredient leaves `ingredients:` by an edit and a render ([Overview](#overview)). Global flags `-C <dir>`, `--json` and
 `--verbose` apply to every subcommand; see [CLI reference](cli.md).
 
+**Jump to:** [`list`](#the-cook-ingredient-list) | [`show`](#the-cook-ingredient-show) |
+[`pin`](#the-cook-ingredient-pin) | [`fetch`](#the-cook-fetch) | [flags](#the-cook-ingredient-list) |
+[exit codes](#the-cook-ingredient-list) | [ingredient file](#the-ingredient-file) |
+[render forms](#render-forms) | [neutral model](#the-neutral-model)
+
 ### `the-cook ingredient list`
 
 Without `--cookbook`, prints the ingredients `ingredients:` pins, each with its version and source, the contract it
@@ -580,7 +592,7 @@ With `--json`, the output lists each entry added or moved, with its previous ver
 | Exit code | Meaning |
 | --- | --- |
 | 0 | Pinned, moved, or already pinned at that version; `--dry-run` printed |
-| 1 | Error: a repository that is not scaffolded, an invalid repository file, no network or a source that cannot be reached, a name the tag does not publish, an archive that does not match the tag's `checksums.txt`, an invalid `ingredient.yaml`, one whose name or version differs from the request, one whose schema or contract version is newer than the running release supports (the message names the release needed), or a moved pin whose new version no longer fills the contract `vcs:` or a worker needs. Nothing is written |
+| 1 | Error: a repository that is not scaffolded, an invalid repository file, no network or a source that cannot be reached, a name the tag does not publish, an archive that does not match the tag's `checksums.txt`, an invalid `ingredient.yaml`, one whose name or version differs from the request, one whose schema or contract version is newer than the running release supports (the message names the release needed), or a moved pin whose new version does not fill the contract `vcs:` or a worker needs. Nothing is written |
 | 3 | Confirmation needed and there is no terminal: rerun with `--yes`. Nothing is written |
 
 Files read: `.cook/config.yaml`, the tag's `checksums.txt` and the named archives, and everything

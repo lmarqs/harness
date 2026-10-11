@@ -68,6 +68,11 @@ Commands are named `the-cook <command>` on this page. The examples run them thro
 | Apply a station in many repositories, each delivered for review | `the-cook fleet station apply <name> --cookbook <source>@<version> --yes --deliver` ([fleet](fleet.md)) |
 | Bring an organization's conventions into a repository | a station the organization publishes, or a reviewed change written by a person or a worker: see [Organization choices](#organization-choices) |
 
+### Writing one
+
+**Authoring path:** [the station file](#the-station-file) (ingredients, stages, entries, templates, recipes, detect) →
+test by applying to sample repositories → [cookbooks](#cookbooks) (build archive, checksums.txt, publish under tag).
+
 ### Organization choices
 
 An organization's way of working, such as its delivery actions, the denies its unattended runs need or a commit
@@ -318,6 +323,10 @@ writes become the repository's own ([After applying](#after-applying)).
 and the version every added recipe came from.
 Global flags `-C <dir>`, `--json` and `--verbose` apply to every subcommand; see [CLI reference](cli.md).
 
+**Jump to:** [`list`](#the-cook-station-list) | [`show`](#the-cook-station-show) | [`apply`](#the-cook-station-apply) |
+[flags](#the-cook-station-list) | [exit codes](#the-cook-station-list) | [station file](#the-station-file) |
+[merge rules](#merge-rules)
+
 ### `the-cook station list`
 
 Without `--cookbook`, prints the stations `stations:` records, each with its version and source and whether it is cached
@@ -381,8 +390,8 @@ and the items kept, each with its file and, for an entry, its key.
 | Exit code | Meaning |
 | --- | --- |
 | 0 | Applied, or nothing to add; `--dry-run` printed |
-| 1 | Error: a repository that is not scaffolded, an invalid repository file; without `--cookbook`, a name `stations:` does not record (the message names `--cookbook`); with it, a name the tag does not publish; no network or a source that cannot be reached; an archive that does not match the tag's `checksums.txt`, its pin, or the sha256 its station lists; an invalid `station.yaml`, `ingredient.yaml` or `recipe.yaml`, one whose name or version differs from its pin, or one whose schema or contract version is newer than the running release supports (the message names the release needed); stages that name an ingredient the station does not list, or one that does not fill the contract the stage needs; a recipe the station lists that its tag does not publish. Nothing is written |
-| 3 | Confirmation needed and there is no terminal: rerun with `--yes`; the repository files use a newer schema than the running release supports; or a contract, role or lane a recipe the station adds requires is still missing once the plan is applied, named. Nothing is written |
+| 1 | Error, nothing is written. One of:<br>• repository not scaffolded<br>• invalid repository file<br>• without `--cookbook`, a name `stations:` does not record (message names `--cookbook`)<br>• with `--cookbook`, a name the tag does not publish<br>• no network or source cannot be reached<br>• archive does not match `checksums.txt`, its pin, or the sha256 its station lists<br>• invalid `station.yaml`, `ingredient.yaml` or `recipe.yaml`<br>• name or version differs from pin<br>• schema or contract version newer than running release supports (message names release needed)<br>• stages name an ingredient the station does not list<br>• stages name an ingredient that does not fill the contract the stage needs<br>• recipe the station lists that its tag does not publish |
+| 3 | Nothing is written. One of:<br>• confirmation needed and no terminal: rerun with `--yes`<br>• repository files use newer schema than running release supports<br>• contract, role or lane a recipe requires is still missing once plan is applied (named) |
 
 Files read: `.cook/config.yaml`, `.cook/policy.yaml`, `.cook/hooks.yaml`, whether each template's file exists,
 `.cook/recipes/`, `$COOK_HOME/cookbook/`, with `--cookbook` the tag's `checksums.txt` and the named archives, the source

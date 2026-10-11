@@ -162,7 +162,7 @@ Move every repository to a new release, delivered for review:
 
 Each repository gets a branch `the-cook/wrapper` whose commit changes `version` and `checksums` in
 `.cook/wrapper.yaml`, and `cook` when the new release brings a new wrapper. In each repository, the release it
-pinned so far verified the new release's signed checksum file with its embedded keys before writing anything, so a
+pinned verified the new release's signed checksum file with its embedded keys before writing anything, so a
 branch exists only for a release the project signed. Reviewers check the version they expected
 ([safety](safety.md#the-pinned-binary)). The `verify` that `--deliver` runs after the commit already uses the new
 version. Once these branches land, `fleet render --deliver` picks up what the new release renders differently
@@ -191,7 +191,7 @@ ingredient the repository already pins at another sha256 keeps the repository's 
 difference. Every entry and item the repository already holds stays as it is ([stations](stations.md#how-apply-works)).
 
 A recipe is copied, not pinned: `recipe add` writes it into each repository's `.cook/recipes/<name>/` with its
-`origin`, and from then on each copy is that repository's own ([recipes](recipes.md#the-cook-recipe-add)). Give a
+`origin`, and each copy is then that repository's own ([recipes](recipes.md#the-cook-recipe-add)). Give a
 recipe to the repositories that make its kind of change, then take a newer version of it everywhere:
 
 ```yaml
