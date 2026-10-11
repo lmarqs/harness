@@ -467,12 +467,17 @@ or reaches a shell. An operation that needs a shell names `sh` and passes values
 #### The template language
 
 Render templates, the templates of a [station](stations.md#templates) and the `template` steps of a
-[recipe](recipes.md#template) use one logic-free language: `{{name}}` inserts
-a value of the neutral model below, `{{#name}}...{{/name}}` repeats its text for each element of a list, or renders it
-once when a value is present, and `{{^name}}...{{/name}}` renders its text when the value is empty or absent. There
-are no comparisons, functions or includes. A template's text is inline in `ingredient.yaml` or in a file under
-`files/`, named by its path. A recipe's `template` step reads the run's inputs and `task` as its values instead of the
-neutral model.
+[recipe](recipes.md#template) use one logic-free language: `{{name}}` inserts a value of the neutral model below,
+`{{#name}}...{{/name}}` repeats its text for each element of a list, or renders it once when a value is present, and
+`{{^name}}...{{/name}}` renders its text when the value is empty or absent. There are no comparisons, functions or
+includes. A template's text is inline in `ingredient.yaml` or in a file under `files/`, named by its path. A recipe's
+`template` step reads the run's inputs and `task` as its values instead of the neutral model.
+
+A tag `{{=<% %>=}}` sets other delimiters for the rest of the template, as in Mustache, here `<%name%>` and
+`<%#name%>...<%/name%>`, so a template whose output itself holds `{{`, such as a CI workflow with `${{ ... }}` or
+another program's prompt template, writes those braces as text. A name that the template's values do not define is an
+error that names the template and the tag, so a misspelt name fails when the ingredient, the station or the recipe is
+read, never by writing an empty value.
 
 #### The neutral model
 
