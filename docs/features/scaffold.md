@@ -118,10 +118,10 @@ repository's from the moment they are written. A program the repository takes up
 ### Without a cookbook
 
 `the-cook scaffold` with no `--cookbook` seeds the skeleton of each repository file, with empty `ingredients:` and
-`stations:` and no `vcs:` or workers, the seeded delivery `ask` entry, the wrapper and the pin, and renders the
-binary's own files. It downloads nothing from a cookbook. Its to-do lists the two contracts no ingredient fills and
-the commands each one blocks; `./cook doctor` keeps reporting them until an applied station, or a pinned ingredient
-named in the profile, fills them.
+`stations:` and no `vcs:` or workers, the seeded delivery `ask` entry, the wrapper and the pin, and renders the binary's
+own files. It downloads nothing from a cookbook. Its to-do lists the version-control and worker contracts no ingredient
+fills and the commands each one blocks; `./cook doctor` keeps reporting them until an applied station, or a pinned
+ingredient named in the profile, fills them.
 
 ### Files created when absent
 

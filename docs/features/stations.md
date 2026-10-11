@@ -110,7 +110,9 @@ The stages say which ingredient serves each stage of the lifecycle that needs a 
   Start, Verify, Complete and Landed reach;
 - `workers`: the workers that act at Implement, each with its ingredient, which fills the
   [worker contract](ingredients.md#the-worker-contract), its role, `interactive` or `unattended`, and optionally its
-  `writable_roots`, `network`, `model` and `effort` ([profile](profile.md#workers)).
+  `writable_roots`, `network`, `jail`, `model` and `effort` ([profile](profile.md#workers)). A station that seeds a
+  `jail` lists the jail's ingredient among its `ingredients`, so applying it pins the jail in the same diff, and the
+  version-control ingredient it names fills `metadata` ([jails](workers.md#jails)).
 
 Applying writes them into the profile as `vcs:` and one `workers.<name>` item each, under the
 [merge rules](#merge-rules). Stages are what make a station a way of running the lifecycle. A stack station declares
@@ -284,7 +286,7 @@ recipes/<name>/files/                the sources of its template steps
 docs/                                a page for each ingredient, station and recipe
 ```
 
-`the-cook`'s documentation describes the core and the two contracts; what a particular program does, which files and
+`the-cook`'s documentation describes the core and the three contracts; what a particular program does, which files and
 keys it reads and which of its arguments are unsafe is the cookbook's to describe, on the page beside its ingredient.
 
 ### Writing and publishing
@@ -408,7 +410,7 @@ A station is a directory:
 | `description` | string | no | One line, printed by `station list` |
 | `ingredients` | list of pins | no | [Ingredients](#ingredients): each with `name`, `source`, `version` and `sha256`, as an entry of `ingredients:` has them ([pinning](ingredients.md#pinning)); a name appears once |
 | `stages.vcs` | ingredient name | no | [Stages](#stages): an ingredient of `ingredients` that fills the version-control contract; written as `vcs:` |
-| `stages.workers` | map of worker name to declaration | no | Each declaration has the fields of a profile [worker](profile.md#workers): `ingredient`, an ingredient of `ingredients` that fills the worker contract, by default the one named like the worker; `role`; and optionally `writable_roots`, `network`, `model` and `effort` |
+| `stages.workers` | map of worker name to declaration | no | Each declaration has the fields of a profile [worker](profile.md#workers): `ingredient`, an ingredient of `ingredients` that fills the worker contract, by default the one named like the worker; `role`; and optionally `writable_roots`, `network`, `jail` (whose `ingredient` is an ingredient of `ingredients` that fills the jail contract, and `args`), `model` and `effort` |
 | `entries` | map of file to YAML | no | [Entries](#entries), grouped by the file they go into: `.cook/config.yaml`, `.cook/policy.yaml`, `.cook/hooks.yaml`. Each value has the shape of that file; entries for `.cook/config.yaml` hold no `schema`, `name`, `ingredients`, `stations`, `vcs` or `workers`, which pins and stages write |
 | `templates` | list | no | [Templates](#templates): `path`, where the file is written, relative to the repository root, and `source`, a file under `files/` |
 | `recipes` | list of `{ name, sha256 }` | no | [Recipes](#recipes): the recipes the station adds, each with `name`, a recipe published under the same cookbook tag as `recipe-<name>.tar.gz`, and `sha256`, the sha256 of that archive; a name appears once |

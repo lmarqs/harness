@@ -19,8 +19,8 @@ what a reasonable person expects, with what `the-cook` does about it. Every entr
 see, **why** it happens, what **`the-cook` does** about it, and what **you do**.
 
 For the principles behind these entries, read [safety](safety.md). For the terms, see the [glossary](glossary.md). The
-entries below are about the core: the lifecycle, its guards and proof, the two contracts and recipe runs. A trap of one
-particular program, a coding agent, a loop runner, a task tracker or a task runner, is documented with the
+entries below are about the core: the lifecycle, its guards and proof, the three contracts and recipe runs. A trap of
+one particular program, a coding agent, a loop runner, a task tracker or a task runner, is documented with the
 [ingredient](ingredients.md) that describes it, in the cookbook that publishes that ingredient.
 
 Commands are named `the-cook <command>` on this page. Run them through the repository's wrapper,
@@ -327,6 +327,21 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 - **What `the-cook` does.** Prints the output after a passing replay; keeps it in `last-attempt-output`, in the state
   directory of the checkout it ran in, after a failure.
 - **What you do.** Watch the loop runner's progress, not the worker's output.
+
+### A lane that needs a variable or a service fails only in attempts of a jailed worker
+
+- **Symptom.** `./cook verify` passes in your checkout, and every attempt of one worker fails its replay at the same
+  lane, such as an end-to-end lane that reaches a local database, while other workers' attempts pass.
+- **Why.** The worker is declared with a [jail](workers.md#jails), and the replay runs in the same jail, because its
+  lanes run code the worker wrote. The jail passes only the `COOK_*` marks and `COOK_HOME`, shares only the checkout,
+  `writable_roots`, the version-control metadata and the per-user cache, and opens the network only with
+  `network: true`, so a variable, a socket outside the checkout or a service on the host that the lane needs is not
+  there.
+- **What `the-cook` does.** Runs the worker, the replay's lanes and validators, and in a recipe run every later step
+  with the same shares, variables, network and `jail.args`, and runs nothing it confines outside the jail.
+- **What you do.** Pass what the lane needs through `jail.args`, as the jail ingredient's page explains, such as a
+  variable by name or a share of the socket's directory, or set `network: true` for a lane that needs the network.
+  Keep the jail as narrow as the lanes allow: what `jail.args` opens, the worker can reach too.
 
 ## Recipe runs
 

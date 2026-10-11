@@ -150,11 +150,12 @@ binary and the ingredients ([ADR 0024](../adrs/0024-ingredients-and-stations.md)
 Yes. Nothing in the binary sets any program apart: it contains code and data for no external program
 ([ADR 0022](../adrs/0022-tool-integration.md)). A version control system needs an ingredient that fills the
 [version-control contract](ingredients.md#the-version-control-contract), named with `vcs:` in the profile; a worker
-needs an ingredient that fills the [worker contract](ingredients.md#the-worker-contract). The version-control contract
-asks little of a system: what history a checkout has and where the shared default line of work is, and an ingredient for
-a system with no shared copies can leave out the optional `default_revision` and `update`, because there the branch
-itself is the shared line and there is nothing to learn. A team writes the ingredient as data, publishes it in a
-cookbook, and each repository pins it with `./cook ingredient pin`. Reviewing the pin is the trust decision:
+needs an ingredient that fills the [worker contract](ingredients.md#the-worker-contract), and a jail around a worker's
+attempts one that fills the [jail contract](ingredients.md#the-jail-contract). The version-control contract asks little
+of a system: what history a checkout has and where the shared default line of work is, and an ingredient for a system
+with no shared copies can leave out the optional `default_revision` and `update`, because there the branch itself is the
+shared line and there is nothing to learn. A team writes the ingredient as data, publishes it in a cookbook, and each
+repository pins it with `./cook ingredient pin`. Reviewing the pin is the trust decision:
 `./cook ingredient show <name>` prints everything the ingredient runs and renders, its floor rules included.
 
 ### Does `the-cook` work with my loop runner or tracker?
@@ -354,6 +355,17 @@ renders. When the checkout is bound to a task, `the-cook attempt` fires `complet
 a task, such as a loop runner's, it fires no event.
 
 ## Unattended runs
+
+### Can a worker run in a container or on another machine?
+
+Not as a worker's jail. A [jail](workers.md#jails) runs the host's own programs at the host's own paths, confined to
+the directories, variables and network it is given, so the worker program, the version-control program and `the-cook`
+inside it are the same files as outside. A container image brings its own copies of the programs, so the version
+checks, the floor and the renders would describe a program other than the one that runs, and the binary would need a
+build for the image's platform; another machine has its own files, so the tamper check, the replay and the commit could
+not see what the worker changed. Run the whole recipe run or loop run there instead, with `the-cook` installed there:
+a loop runner's command for each task can start `./cook make <recipe> --task {id} --unattended` inside a container or
+on another machine. The core needs nothing for that ([ADR 0027](../adrs/0027-worker-jails.md)).
 
 ### Can an attempt run with permission checks bypassed?
 

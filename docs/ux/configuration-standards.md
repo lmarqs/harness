@@ -566,21 +566,35 @@ workers:
 | `ingredients[].sha256` | sha256 | required | the sha256 of the ingredient's archive, as the tag's `checksums.txt` states it; `the-cook` loads the ingredient only when its archive matches |
 | `stations` | list | empty; `the-cook scaffold --cookbook` writes the stations it applies | every station applied to the repository, with the pin it was applied at: `name` (equal to the `name` in its `station.yaml`, unique within `stations`), `source`, `version` and `sha256`, as under `ingredients` |
 | `vcs` | ingredient name | none; applying a station writes the one its stages name | the ingredient that fills the [version-control contract](../features/ingredients.md#the-version-control-contract) |
-| `workers.<name>` | map | none; applying a station adds the workers its stages declare | a worker the repository uses, with `ingredient`, `role`, `writable_roots`, `network`, `model` and `effort` ([workers](../features/workers.md)) |
+| `workers.<name>` | map | none; applying a station adds the workers its stages declare | a worker the repository uses, with `ingredient`, `role`, `writable_roots`, `network`, `jail`, `model` and `effort` ([workers](../features/workers.md)) |
 | `workers.<name>.ingredient` | ingredient name | the worker's name | the ingredient that fills the [worker contract](../features/ingredients.md#the-worker-contract) for that worker |
 | `workers.<name>.network` | boolean | `false` | whether the worker's attempts may use the network; `true` passes the ingredient's `launch.network` arguments at every unattended launch |
+| `workers.<name>.jail.ingredient` | ingredient name | none; required with `jail` | the ingredient that fills the [jail contract](../features/ingredients.md#the-jail-contract) around the worker's attempts |
+| `workers.<name>.jail.args` | list of arguments | `[]` | the jail's options this repository chooses, placed before the jail's separator |
 
-- `vcs` and every `workers.<name>.ingredient` name an ingredient listed in `ingredients` that fills the matching
-  contract, the version-control contract for `vcs` and the worker contract for a worker; any other name is a validation
-  error (exit 1). An ingredient fills at most one contract. Why: an answer the binary relies on, such as the
-  base revision of an attempt, has exactly one source, and a name that resolves to nothing must fail before anything
-  runs.
+- `vcs`, every `workers.<name>.ingredient` and every `workers.<name>.jail.ingredient` name an ingredient listed in
+  `ingredients` that fills the matching contract, the version-control contract for `vcs`, the worker contract for a
+  worker and the jail contract for a jail; any other name is a validation error (exit 1). An ingredient fills at most
+  one contract. Why: an answer the binary relies on, such as the base revision of an attempt, has exactly one source,
+  and a name that resolves to nothing must fail before anything runs.
 - `workers.<name>.network: true` on a worker whose ingredient has no `launch.network` is a validation error (exit 1),
   as `writable_roots` is without `launch.sandbox_roots`; `false` passes nothing about the network, so the program's own
   default holds, which the ingredient's page in its cookbook states. Why: whether attempts may reach the network is the
   repository's practice and the arguments that carry it are the program's fact, so the value is the profile's and its
   mapping the ingredient's; a `true` the program never receives would let a reviewer believe the attempts reach the
   network when nothing told the program ([workers](../features/workers.md#declaring-workers)).
+- `workers.<name>.jail` starts every attempt of that worker, and the replay of its work, inside the jail; it never
+  applies to an interactive session. The jail's ingredient holds the arguments that carry each share, variable and the
+  network; `jail.args` holds the options the repository chooses, such as how the worker program's login reaches the
+  jail. A worker with a jail fails validation (exit 1) when its jail ingredient lacks `share.read` or `share.write`,
+  declares neither or both of `env.pass` and `env.inherited`, or has no `network` for a worker with `network: true`;
+  when `jail.args` holds a floor bypass argument of the jail; when a `writable_roots` entry contains the
+  version-control metadata or the per-user cache; and when the version-control ingredient has no `metadata`. Why: the
+  choice to confine and the options are the repository's practice, while the arguments are the jail program's fact, so
+  the value is the profile's and the arguments the pinned ingredient's; a free-form command prefix would leave the
+  binary unable to place the worker's launch, tell the jail's arguments from the worker's when it refuses bypass
+  arguments, or pass the attempt marks, and every repository would retype the jail's facts
+  ([workers](../features/workers.md#jails), [ADR 0027](../adrs/0027-worker-jails.md)).
 - Names are unique within each list: two `ingredients` entries, or two `stations` entries, with the same `name` are a
   validation error (exit 1). Why: every reference to an ingredient, from `vcs`, a worker or the manifest, must resolve
   to exactly one, and applying a station again must resolve to one pin.
@@ -662,6 +676,7 @@ program floor comes from the ingredients the repository pins, and a station has 
 | a version control system | deny a force push to the default branch the ingredient reports |
 | a task runner | deny the syntax that chains a second task into one invocation |
 | a worker | the arguments that bypass its permission checks, refused at every launch ([ingredients](../features/ingredients.md#the-floor)) |
+| a jail | the arguments that turn its confinement off, refused wherever they appear in a jailed launch, `jail.args` included ([the jail contract](../features/ingredients.md#the-jail-contract)) |
 
 - The `policy` block of `AGENTS.md` lists each floor rule with the ingredient it comes from, such as
   `(*floor rule of the git ingredient*)` for an ingredient named `git`. Why: the rule is enforced but is not in

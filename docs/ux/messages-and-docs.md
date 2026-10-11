@@ -224,14 +224,14 @@ A section with no content is omitted rather than left empty.
 - No organization names in examples or in content `the-cook` carries; examples use `acme` for an organization and
   `acme/api` for a repository, and cookbooks in examples are `github:acme/cookbook`, because `the-cook` is open source
   and its docs must fit any organization.
-- Feature and standards pages describe the lifecycle, its core and its two contracts, and name programs by role: the
-  version control system, a worker, a loop runner, a task tracker, a task runner, a skills installer. A product appears
-  only in a short example that plainly uses an ingredient from a cookbook, such as a worker `claude` declared with
-  `ingredient: claude` pinned from `github:acme/cookbook`, never as a description of that program's behaviour, flags,
-  file keys, versions or pitfalls; that knowledge belongs to the page of the cookbook that describes the program. An ADR
-  names a product only in its Context, as checkable evidence of what exists. Why: the binary contains code and data for
-  no program and ships no ingredient, no station and no recipe, so a page that describes a program's behaviour documents
-  something `the-cook` does not hold and goes stale with that program's releases
+- Feature and standards pages describe the lifecycle, its core and its three contracts, and name programs by role: the
+  version control system, a worker, a jail, a loop runner, a task tracker, a task runner, a skills installer. A product
+  appears only in a short example that plainly uses an ingredient from a cookbook, such as a worker `claude` declared
+  with `ingredient: claude` pinned from `github:acme/cookbook`, never as a description of that program's behaviour,
+  flags, file keys, versions or pitfalls; that knowledge belongs to the page of the cookbook that describes the program.
+  An ADR names a product only in its Context, as checkable evidence of what exists. Why: the binary contains code and
+  data for no program and ships no ingredient, no station and no recipe, so a page that describes a program's behaviour
+  documents something `the-cook` does not hold and goes stale with that program's releases
   ([ingredients](../features/ingredients.md), [ADR 0022](../adrs/0022-tool-integration.md)).
 - What `the-cook` does with a program is attributed to the ingredient that fills its role: "the version-control
   ingredient reports the default branch", "a floor rule of the version-control ingredient". Why: a page that says

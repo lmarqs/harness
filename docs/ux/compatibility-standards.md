@@ -42,16 +42,17 @@ state each promise and how it changes.
   workers it starts), exit-code meanings, JSON output shapes, the
   [attempt command](cli-standards.md#the-attempt-command)'s and the [make command](cli-standards.md#the-make-command)'s
   flags, exit codes, output and environment, `the-cook explain` topic names, the ingredient, station and recipe schemas,
-  the recipe step kinds and the two contracts, the cookbook layout (`<source>/download/<version>/<kind>-<name>.tar.gz`,
-  `<kind>` being `ingredient`, `station` or `recipe`, and `checksums.txt`), the repository file schemas (`wrapper.yaml`
-  and `recipe.yaml` included), the wrapper's name, location and flags (`cook` at the repository root, `--no-download`),
-  lifecycle event names and trigger points, notification event names, action kinds and their keys,
-  [standing-context](../features/context.md) triggers and roles, the profile's state path keys and their defaults,
-  managed-block ids, their markers and their class (convention or tool), the generated-file header, the manifest
-  location, and the format of the release's signed checksum file. Why: each of these is read by scripts, workers, policy
-  entries, ingredients, stations, recipes, other tools' configuration or other repositories, and changes there break
-  them. The attempt command and the run command are named in files such as a loop runner's configuration, which a
-  repository keeps unchanged across upgrades of `the-cook` ([ADR 0022](../adrs/0022-tool-integration.md)).
+  the recipe step kinds and the three contracts, the cookbook layout
+  (`<source>/download/<version>/<kind>-<name>.tar.gz`, `<kind>` being `ingredient`, `station` or `recipe`, and
+  `checksums.txt`), the repository file schemas (`wrapper.yaml` and `recipe.yaml` included), the wrapper's name,
+  location and flags (`cook` at the repository root, `--no-download`), lifecycle event names and trigger points,
+  notification event names, action kinds and their keys, [standing-context](../features/context.md) triggers and roles,
+  the profile's state path keys and their defaults, managed-block ids, their markers and their class (convention or
+  tool), the generated-file header, the manifest location, and the format of the release's signed checksum file. Why:
+  each of these is read by scripts, workers, policy entries, ingredients, stations, recipes, other tools' configuration
+  or other repositories, and changes there break them. The attempt command and the run command are named in files such
+  as a loop runner's configuration, which a repository keeps unchanged across upgrades of `the-cook`
+  ([ADR 0022](../adrs/0022-tool-integration.md)).
 - Human-readable output text is not part of the contract and may change in any release, because people read it and
   JSON exists for programs.
 
@@ -210,6 +211,12 @@ is worse than none ([ADR 0016](../adrs/0016-permission-adoption.md)).
 - Each worker ingredient documents which worker events it renders for hooks, notifications (`attention`, `turn_end`)
   and standing context. Where a worker lacks an event, nothing is rendered for it and `the-cook doctor` reports a note,
   so a missing notification or injection is explained.
+- Each jail ingredient's page says what no argument of the [jail contract](../features/ingredients.md#the-jail-contract)
+  can declare for its program: that stdin, stdout and stderr pass through unchanged, that the jail exits with the
+  confined command's status, that a read share inside the working directory takes precedence over it, what the jail
+  reaches on the network by default, and how a worker program's login and settings reach it. Why: the binary relies on
+  each of these and can check none of them at launch, and a jail that broke one would fail an attempt, or open a path
+  read-write, without any message.
 - Each worker ingredient's page also says what its program reaches on the network by default, and which arguments its
   `launch.network` passes, if it has one. Why: `workers.<name>.network: false` passes nothing, so the program's own
   default decides what an attempt reaches, and a repository can only choose well when that default is written down.

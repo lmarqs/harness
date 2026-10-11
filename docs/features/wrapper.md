@@ -298,7 +298,7 @@ Files read: `.cook/wrapper.yaml`, `$COOK_HOME/versions/<version>/the-cook`. File
 
 | Variable | Read by | Effect |
 | --- | --- | --- |
-| `COOK_HOME` | `cook`, `the-cook` | The per-user cache directory, default `$XDG_CACHE_HOME/the-cook`, or `~/.cache/the-cook` when `XDG_CACHE_HOME` is unset. It holds pinned releases at `<COOK_HOME>/versions/<version>/the-cook`, [ingredient and station archives](ingredients.md#fetching), and the versions the repository's recipes came from, at `cookbook/<sha256>.tar.gz`, the update-check result and the signed-checksum check of `doctor`, nothing else |
+| `COOK_HOME` | `cook`, `the-cook` | The per-user cache directory, default `$XDG_CACHE_HOME/the-cook`, or `~/.cache/the-cook` when `XDG_CACHE_HOME` is unset. It holds pinned releases at `<COOK_HOME>/versions/<version>/the-cook`, [ingredient and station archives](ingredients.md#fetching), and the versions the repository's recipes came from, at `cookbook/<sha256>.tar.gz`, the update-check result and the signed-checksum check of `doctor`, nothing else. Inside a worker's [jail](workers.md#jails) the binary passes it with the cache's absolute path and shares the cache read-only, and commands there skip the update check and every other cache write |
 | `COOK_BINARY` | `cook` | A path to a `the-cook` binary to exec instead of the pinned release. No download and no checksum check: it bypasses the pin, and `the-cook doctor` notes that the running release is not the pinned one |
 | `COOK_NO_UPDATE_CHECK=1` | `the-cook` | Turns off the daily newer-release check on explicit commands and in `doctor` |
 

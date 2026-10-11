@@ -177,10 +177,10 @@ each task through a recipe.
 | environment given to the worker | `COOK_ATTEMPT=1`; `COOK_TASK` when the checkout is a managed workspace created with `--task`, otherwise unset |
 | events | after a verified attempt in a checkout bound to a task (`COOK_TASK` set), `completed` with scope `task`, then `deliver` with scope `task` when the work is concluded, both fired in the attempt command's own process; in an unbound checkout, such as a loop runner's workspace, none |
 
-- Before anything else, the attempt command resolves the version-control ingredient and the worker's ingredient from
-  the per-user cache, and uses that resolution for every read, comparison, reset and launch of the attempt. It never
-  fetches. Why: an ingredient fetched during an attempt would hand the attempt to whoever controls its source, and one
-  read from the working tree would hand it to the worker ([ADR 0022](../adrs/0022-tool-integration.md)).
+- Before anything else, the attempt command resolves the version-control ingredient, the worker's ingredient and its
+  jail's from the per-user cache, and uses that resolution for every read, comparison, reset and launch of the attempt.
+  It never fetches. Why: an ingredient fetched during an attempt would hand the attempt to whoever controls its source,
+  and one read from the working tree would hand it to the worker ([ADR 0022](../adrs/0022-tool-integration.md)).
 - The attempt command's flags, exit codes, output and environment are a stable interface: changing one is a breaking
   change ([compatibility-standards.md](compatibility-standards.md#versioning)). Why: other tools' configuration names
   them, and those files belong to repositories that upgrade `the-cook` at their own pace

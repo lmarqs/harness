@@ -18,13 +18,13 @@ files say, and a team can describe a new program without waiting for a release o
 
 `the-cook` declares a software development lifecycle: the stages a change goes through, the events fired between them,
 the guards that hold between stages and the proof a change carries ([lifecycle](lifecycle.md)). The binary knows no
-program. A stage that needs one reaches it through one of the two [contracts](#contracts) the binary declares, or
+program. A stage that needs one reaches it through one of the three [contracts](#contracts) the binary declares, or
 through an action the repository declares. An ingredient is a named, versioned description of one program, in data the
 binary interprets ([ADR 0022](../adrs/0022-tool-integration.md)). It holds up to four parts:
 
 | Part | What it is | When it acts |
 | --- | --- | --- |
-| [Operations](#operations) | the commands and mappings that fill one of the two contracts, or none | whenever the binary needs an answer from the program or starts it |
+| [Operations](#operations) | the commands and mappings that fill one of the three contracts, or none | whenever the binary needs an answer from the program or starts it |
 | [Renders](#renders) | owned files, keys, list entries and blocks | on every `the-cook render`, recorded in the manifest under the ingredient's name |
 | [Floor](#the-floor) | deny rules and bypass arguments no repository data can remove | rendered on every render, refused at every launch |
 | [Checks](#checks) | a version command with a supported range, and a detect rule | `doctor` runs the version command; `ingredient list --cookbook` uses the detect rule |
@@ -36,7 +36,8 @@ keeps, such as its lanes, its unattended denies and a loop runner's configuratio
 makes many times is a [recipe](recipes.md), copied into `.cook/recipes/` and run through the lifecycle.
 
 The profile pins ingredients under `ingredients:` ([profile](profile.md#ingredients)). `vcs:` names the ingredient that
-fills the version-control contract, and each worker's `ingredient` names the one that fills its worker contract
+fills the version-control contract, each worker's `ingredient` names the one that fills its worker contract, and a
+worker's `jail.ingredient`, when it has one, the one that fills the jail contract around its attempts
 ([profile](profile.md#workers)). Applying a station pins the ingredients it lists, and
 [`the-cook ingredient pin`](#the-cook-ingredient-pin) adds or moves pins on its own. Every render writes the renders
 and floor of every pinned ingredient; deleting a pin and rendering removes exactly what that ingredient rendered.
@@ -55,7 +56,8 @@ Commands are named `the-cook <command>` on this page. The examples run them thro
 | Read everything an ingredient holds before pinning it | `./cook ingredient show <name> --cookbook github:acme/cookbook@v1.2.0` |
 | Move an ingredient to a newer tag, such as a newer `git` ingredient | `./cook ingredient pin git --cookbook github:acme/cookbook@v1.3.0` |
 | Take up a whole way of working, with the ingredients it uses | a station: `./cook station apply <name> --cookbook <source>@<version>` ([stations](stations.md)) |
-| Use a program no applied station lists | `./cook ingredient pin <name> --cookbook <source>@<version>`, then name it in `vcs:` or a worker's `ingredient` when it fills a contract ([Examples](#a-program-no-station-lists)) |
+| Use a program no applied station lists | `./cook ingredient pin <name> --cookbook <source>@<version>`, then name it in `vcs:`, a worker's `ingredient` or a worker's `jail.ingredient` when it fills a contract ([Examples](#a-program-no-station-lists)) |
+| Confine a worker's attempts | pin a jail ingredient and name it in the worker's `jail` ([the jail contract](#the-jail-contract), [workers](workers.md#jails)) |
 | Cache every pinned ingredient and applied station, and the version every added recipe came from, after cloning or in CI | `./cook fetch` ([Fetching](#fetching)) |
 | Stop using a program | delete its pin from `ingredients:`, and the `vcs:` or worker that names it, then run `./cook render` |
 | Describe a program no cookbook describes | write an ingredient and publish it in a cookbook ([cookbooks](stations.md#cookbooks)) |
@@ -64,13 +66,15 @@ Commands are named `the-cook <command>` on this page. The examples run them thro
 
 ### Operations
 
-Operations are what the binary asks of a program and how it starts one. They fill one of the two
+Operations are what the binary asks of a program and how it starts one. They fill one of the three
 [contracts](#contracts) the binary declares ([ADR 0023](../adrs/0023-core-and-contracts.md)):
 
 - the [version-control contract](#the-version-control-contract), filled by one ingredient per repository, the one the
   profile's `vcs:` names;
 - the [worker contract](#the-worker-contract), filled by one ingredient per declared worker, the one
-  `workers.<name>.ingredient` names.
+  `workers.<name>.ingredient` names;
+- the [jail contract](#the-jail-contract), filled by the ingredient a worker's `jail.ingredient` names, for a worker
+  whose attempts run confined.
 
 An ingredient fills at most one contract, and many fill none: a loop runner's, a tracker's or a task runner's
 ingredient has no operations. The lifecycle reaches those programs through the actions and the templates a station
@@ -104,11 +108,15 @@ An ingredient may mark deny rules and bypass arguments as floor. Floor rules are
 - A worker ingredient's floor bypass arguments are refused by `the-cook attempt` and by `attempt` actions wherever
   they appear among the worker's arguments, with exit 1 naming the argument
   ([attempts](attempts.md#the-attempt-contract)).
+- A jail ingredient's floor bypass arguments, the ones that would turn its confinement off, are refused wherever they
+  appear in the launch of a jailed attempt, the worker declaration's `jail.args` included
+  ([the jail contract](#the-jail-contract)).
 
 Every floor rule of a program comes from the ingredient the repository pinned. A version-control ingredient typically
 denies a force push to the default branch, writing `{default_branch}` where the branch goes; a worker ingredient marks
-the arguments that would turn its worker's permission checks off; a task runner's ingredient may deny a way of chaining
-commands that would carry an unlisted command past every rule.
+the arguments that would turn its worker's permission checks off; a jail ingredient marks the arguments that would turn
+its confinement off; a task runner's ingredient may deny a way of chaining commands that would carry an unlisted command
+past every rule.
 
 The process that applies the floor belongs to the binary, because it is about the lifecycle and not about a program:
 refusing bypass arguments before a launch, rendering the deny rules into every worker's output, replaying from the
@@ -137,10 +145,12 @@ that is not installed.
 
 ## Contracts
 
-Two kinds of stage need a program the binary cannot do without: version control at Start, Verify, Complete and
-Landed, and workers at Implement ([lifecycle](lifecycle.md)). For each, the binary declares a contract, and an
-ingredient's operations fill it. Each contract has a version, which an ingredient declares in its file
-([The ingredient file](#the-ingredient-file)).
+Three needs take a program the binary cannot do without: version control at Start, Verify, Complete and Landed,
+workers at Implement, and a jail around a worker's attempts, for a worker whose attempts the repository confines
+([lifecycle](lifecycle.md)). For each, the binary declares a contract, and an ingredient's operations fill it. The
+version-control and worker contracts serve every repository that runs those stages; the jail contract is optional, and
+only a worker declaration that names a jail uses it. Each contract has a version, which an ingredient declares in its
+file ([The ingredient file](#the-ingredient-file)).
 
 ### The version-control contract
 
@@ -172,6 +182,7 @@ is an ingredient with the same operations, and the contract asks as little of th
 | `switch` | `{branch}` | status | the checkout switched to `{branch}` |
 | `workspace_add` | `{path}`, `{branch}`, `{rev}` | status | a new workspace at `{path}`, on a new `{branch}` starting at `{rev}` |
 | `workspace_remove` | `{path}` | status | the workspace at `{path}` removed |
+| `metadata` | | lines | the absolute paths that hold the checkout's version-control metadata, its history, its configuration and the hooks the program runs, which a worker must not write; optional |
 
 | Output kind | The binary reads |
 | --- | --- |
@@ -180,8 +191,8 @@ is an ingredient with the same operations, and the contract asks as little of th
 | bytes | the output as printed |
 | status | the exit status only: 0 is true, as for `clean`, or success |
 
-Every operation is required except `default_revision` and `update`. The binary uses `default_branch` where it needs the
-default branch as a name: the `{default_branch}` placeholder of floor rules and of the
+Every operation is required except `default_revision`, `update` and `metadata`. The binary uses `default_branch` where
+it needs the default branch as a name: the `{default_branch}` placeholder of floor rules and of the
 [neutral model](#the-neutral-model), `COOK_DEFAULT_BRANCH`, the [delivery guard](lifecycle.md#built-in-guards) against
 the default branch and the refusals of `deliver`. It uses `default_revision` where it needs the default branch as a
 commit: the base of the workspace a [recipe run](recipes.md#the-run) creates and the commit the run reads its recipe,
@@ -198,6 +209,15 @@ A checkout learns what is shared only through `update`, and only where a command
 ([workspaces](workspaces.md#remove)). Nothing else runs it: `make`, `workspace create` and `doctor` use what the
 checkout knows. Where a command calls `update` and the ingredient has none, the command prints one note and goes on
 with what the checkout knows.
+
+The binary uses `metadata` only to share those paths read-only inside a [jail](#the-jail-contract). A worker declared
+with a jail is a validation error, exit 1, when the version-control ingredient has no `metadata`: without it the worker
+could write the configuration and the hooks the binary's own commit runs, outside the jail. A git ingredient answers
+the checkout's git directory, the common directory and, in a linked workspace, its `.git` file.
+
+Version-control operations run outside any jail, with the person's environment, on files a worker may have written.
+An operation that would run code the checkout defines, such as hooks a version control program reads from a tracked
+directory, turns that code off where the program allows it ([ADR 0027](../adrs/0027-worker-jails.md)).
 
 The binary finds the repository root itself, as the nearest directory upward that holds `.cook/config.yaml`, so
 reading the profile never needs this contract; workspace, base and history operations do. A command that needs the
@@ -220,7 +240,7 @@ permission prompts, hooks or instruction file still runs as a worker:
 | `launch.command` | the program the binary starts | required |
 | `launch.unattended` | the arguments that start the worker unattended with its permission checks on | the worker starts with `launch.command` and its caller's arguments only |
 | `launch.unattended_deny` | how `unattended.deny` reaches the worker as arguments at launch | it reaches the worker only through the rendered rules, which then require `role: unattended` ([workers](workers.md#roles)); with no rendered permissions either, the worker cannot run attempts: `the-cook attempt` and `attempt` actions naming it exit 3, and it may still be an interactive worker |
-| `launch.sandbox_roots` | the arguments that open a directory beyond the checkout for writing: the clone's state directory and `workers.<name>.writable_roots` | `writable_roots` on the worker is a validation error |
+| `launch.sandbox_roots` | the arguments that open a directory beyond the checkout for writing: each entry of `workers.<name>.writable_roots` | `writable_roots` on the worker is a validation error, unless the worker has a jail, whose write shares then carry them |
 | `launch.network` | the arguments that let the worker's attempts use the network, passed at every unattended launch of a worker declared with `network: true` | `network: true` on the worker is a validation error; with `network: false` the ingredient states nothing about the network, and its page in its cookbook says what the program does by default |
 | `launch.model`, `launch.effort` | how a worker's model and effort, from `workers.<name>` or an `attempt` action, are passed | a model or an effort set for the worker is ignored, and `doctor` notes it |
 | `launch.prompt` | how the binary passes the prompt of an `attempt` action or a recipe's `attempt` step | an `attempt` action or step naming the worker fails validation |
@@ -240,6 +260,172 @@ launch or through rendered rules, runs no attempt at all. A worker declaration w
 [example ingredient](#an-example-ingredient) fills this contract for a coding agent named `acme-agent`; with its
 mapping, the policy entry `[git, push]` becomes `Run(git push *)` in `permissions.deny`, and under
 `the-cook attempt acme-agent` an `unattended.deny` entry `[acme-deploy]` is passed as `--deny 'Run(acme-deploy *)'`.
+
+### The jail contract
+
+A jail is a program that starts another program confined to what it is given: the directories it shares read-only or
+read-write, the environment variables it passes and the network it opens. It runs the host's own programs at the host's
+own paths, so the worker program, the version-control program and `the-cook` inside it are the same files as outside.
+A worker declaration that names a jail, `workers.<name>.jail` ([workers](workers.md#jails)), has the binary start the
+worker of each of its attempts through that jail: under `the-cook attempt`, an `attempt` action and a recipe's
+`attempt` step. The binary never starts an interactive session, so no jail wraps one: a person who wants a session
+confined starts it inside the jail, and the rendered files apply there as they do without one
+([ADR 0027](../adrs/0027-worker-jails.md)).
+
+A container image and another machine are not jails. An image brings its own copies of the programs, so the version
+checks, the floor and the renders would describe a program other than the one that runs, and the binary would need a
+build for the image's platform; another machine has its own files, so the tamper check, the replay and the commit could
+not see what the worker changed. A repository that wants its workers in a container or on another machine runs the
+whole recipe run or loop run there, with `the-cook` installed there, such as a loop runner whose command for each task
+starts `./cook make <recipe> --task {id} --unattended` inside the container. The core needs nothing for that.
+
+The ingredient `workers.<name>.jail.ingredient` names fills this contract, declared as
+`contract: { name: jail, version: 1 }`:
+
+| Item | Declares | When the ingredient leaves it out |
+| --- | --- | --- |
+| `launch.command` | the jail program and its fixed arguments | required |
+| `launch.separator` | the arguments that end the jail's own and begin the confined command, such as `[--]` | the confined command follows the jail's arguments directly |
+| `share.workdir` | the arguments that share the jail's working directory read-write and start the confined command in it, `{path}` replaced | the jail shares the directory it was started in read-write by itself |
+| `share.write` | the arguments passed once per further directory the confined command may write, `{path}` replaced | required |
+| `share.read` | the arguments passed once per directory it may only read, `{path}` replaced | required |
+| `env.pass` | the arguments passed once per variable, `{name}` and `{value}` replaced | required unless `env.inherited` |
+| `env.inherited` | `true`: the jail keeps the environment of the process that starts it | required unless `env.pass`; exactly one of the two |
+| `network` | the arguments that open the network to the confined command, passed for a worker declared with `network: true` | `network: true` on a worker in this jail is a validation error; with `network: false` the jail's own default holds, which its page in its cookbook explains |
+| `floor.bypass` | the jail's arguments that would turn its confinement off, refused wherever they appear ([the floor](#the-floor)) | nothing is refused beyond the worker's floor |
+| renders, checks | as for any ingredient: [renders](#renders), [checks](#checks) | as for any ingredient |
+
+The contract also requires what no item can declare, which the ingredient's page in its cookbook states for its
+program: the jail passes stdin, stdout and stderr through unchanged, exits with the confined command's exit status, and
+a read share inside the working directory takes precedence over it, so that path stays read-only inside the read-write
+checkout. The binary never passes a write share that contains a read share, because a jail may drop such a share
+without failing.
+
+#### The jailed launch
+
+The binary composes the launch of a jailed attempt in this order:
+
+1. the jail's `launch.command`;
+2. the jail's `share.workdir`, with the attempt's checkout;
+3. one `share.write` per directory in `workers.<name>.writable_roots`;
+4. one `share.read` per directory the confined command may only read: first each path the version-control ingredient's
+   `metadata` operation reports, then the per-user cache, `$COOK_HOME`, which holds the pinned release and the cached
+   ingredients that `./cook verify` and the hooks inside load;
+5. one `env.pass` per variable, unless the jail declares `env.inherited`: every `COOK_*` variable the binary sets for
+   the worker (`COOK_ATTEMPT`, and `COOK_CONTEXT_IN_PROMPT` when it is set), `COOK_NO_CONTEXT` when the attempt itself
+   runs with it, and `COOK_HOME` set to the cache's absolute path, so the wrapper inside finds the shared cache whatever
+   home the jail gives it;
+6. the jail's `network` arguments, when the worker is declared with `network: true`;
+7. the worker declaration's `jail.args`, the repository's choice of the jail's options;
+8. the jail's `launch.separator`;
+9. the worker's launch exactly as without a jail: its command, unattended arguments, `unattended.deny`, sandbox roots,
+   its own network arguments, model and effort, and the prompt arguments.
+
+The binary starts the jail in the attempt's checkout, with every variable it passes set in the jail's own environment
+too, so a jail whose `env.pass` names a variable without `{value}` and takes the value from its environment gets the
+right one. The checkout is the jail's working directory and never a `share.write`: the writable set is the checkout
+and `writable_roots`, and the clone's state directory is not in it ([attempts](attempts.md#the-attempt-contract)). It
+refuses the floor bypass arguments
+of both ingredients wherever they appear in the whole launch, the caller's arguments and `jail.args` included: a jail
+bypass argument in the profile's `jail.args` is a validation error, exit 1, and any other bypass argument is refused at
+launch with exit 1, naming it. Nothing else of the person's home is shared: how the worker program's own login and
+settings reach the jail is the jail's own configuration or `jail.args`, which the jail ingredient's page explains.
+
+Inside a jail the cache is read-only. `the-cook` commands run there, such as `./cook verify` and the hooks, skip the
+update check and every other cache write, and never need a download, because the attempt resolved every ingredient
+before it started the jail.
+
+#### What runs in the jail
+
+From the moment the worker starts until the attempt ends, every command the binary starts on the attempt's checkout runs
+in the worker's jail, with the same shares, variables, network and `jail.args`, the confined command being that command
+instead of the worker: the replay's lane commands and validators. In a recipe run, once an `attempt` step of a worker
+with a jail has run, the later `run` steps, the Verify stage and the replay of Complete run in that jail too
+([recipes](recipes.md#attempt)). What runs before the worker starts, the profile's `bootstrap` on the base, and the
+binary's own work outside the checkout's code, the version-control operations, the tamper check, the commit and the
+lifecycle actions, runs outside the jail with the person's environment.
+
+A worker with a jail fails validation, exit 1, when:
+
+- `jail.ingredient` is not pinned in `ingredients:` or does not fill the jail contract;
+- the jail ingredient declares neither or both of `env.pass` and `env.inherited`, or lacks `share.read` or
+  `share.write`;
+- the worker is declared with `network: true` and its jail has no `network`;
+- `jail.args` holds a floor bypass argument of the jail;
+- an entry of `writable_roots` contains a path the version-control ingredient's `metadata` reports, or the per-user
+  cache, because a write share over a read share can make the jail drop one of them without failing;
+- the version-control ingredient has no `metadata` operation.
+
+The jail's program not found and the jail ingredient not cached are missing prerequisites: the attempt exits 3, naming
+the program or `./cook fetch`, and without a terminal fires `blocked`. `doctor` checks the jail's version against its
+ingredient's range and reports a jail program that is not installed, as for a worker.
+
+#### An example jail ingredient
+
+`acme-jail` is a jail described in `github:acme/cookbook`:
+
+```yaml
+schema: 1
+name: acme-jail
+version: v1.2.0
+description: acme-jail, which runs a program confined to the directories and variables it is given
+contract: { name: jail, version: 1 }
+checks:
+  version: { run: [acme-jail, --version], range: ">=2.0 <3.0" }
+floor:
+  bypass: [--unconfined]
+operations:
+  launch:
+    command: [acme-jail, run]
+    separator: [--]
+  share:
+    workdir: [--project, "{path}"]
+    write: [--rw, "{path}"]
+    read: [--ro, "{path}"]
+  env:
+    pass: [--env, "{name}={value}"]
+  network: [--net]
+```
+
+A repository declares the [example worker ingredient](#an-example-ingredient) `acme-agent` in it, and passes its
+login token by name with an option of the jail:
+
+```yaml
+# .cook/config.yaml, with acme-agent and acme-jail pinned in ingredients:
+workers:
+  acme-agent:
+    role: unattended
+    writable_roots: [.tasks]
+    network: true
+    jail: { ingredient: acme-jail, args: [--keep-env, ACME_AGENT_TOKEN] }
+```
+
+In the managed workspace `run-invoice` of `/home/dev/src/acme-api`, with `unattended.deny` holding `[git, push]` and the
+prompt on stdin, `the-cook attempt acme-agent` starts:
+
+```text
+acme-jail run \
+  --project /home/dev/src/acme-api/.work/workspaces/run-invoice \
+  --rw /home/dev/src/acme-api/.tasks \
+  --ro /home/dev/src/acme-api/.git/worktrees/run-invoice \
+  --ro /home/dev/src/acme-api/.git \
+  --ro /home/dev/src/acme-api/.work/workspaces/run-invoice/.git \
+  --ro /home/dev/.cache/the-cook \
+  --env COOK_ATTEMPT=1 --env COOK_CONTEXT_IN_PROMPT=1 --env COOK_HOME=/home/dev/.cache/the-cook \
+  --net \
+  --keep-env ACME_AGENT_TOKEN \
+  -- \
+  acme-agent --mode unattended \
+  --deny 'Run(the-cook lifecycle *)' --deny 'Run(./cook lifecycle *)' --deny 'Run(cook lifecycle *)' \
+  --deny 'Run(git push *)' \
+  --writable /home/dev/src/acme-api/.tasks \
+  --network allow --print
+```
+
+The workspace's `.git` file is a read share inside the read-write checkout, so it stays read-only there. The replay of
+the receipt the worker leaves runs each lane command in the place of the `acme-agent` part, after the same `--`, with
+the same shares, variables and options. `--unconfined`, the jail's floor bypass argument, fails
+validation in `jail.args` and is refused at launch among the caller's arguments.
 
 ## Pinning
 
@@ -311,10 +497,10 @@ actions read an ingredient only from the cache. When a pinned ingredient is not 
 `./cook fetch`, an attempt fails with exit 3 before any worker starts, a recipe run exits 3 before it creates anything,
 a hook prints one line on stderr and exits 0, and `doctor` reports a finding. A fresh clone works offline once its
 ingredients are cached, and a CI job runs `./cook fetch` before `render --check` or `doctor`. An attempt resolves the
-version-control ingredient and the worker's ingredient from the cache before anything else and uses that resolution for
-every read, comparison, reset and launch of the attempt ([attempts](attempts.md#the-attempt-contract)). Nothing rendered
-depends on a station, so a station missing from the cache stops only `station show` and `station apply` without
-`--cookbook`, which fetch it. Nothing a run reads comes from a recipe's origin either: a recipe runs from
+version-control ingredient, the worker's ingredient and its jail's from the cache before anything else and uses that
+resolution for every read, comparison, reset and launch of the attempt ([attempts](attempts.md#the-attempt-contract)).
+Nothing rendered depends on a station, so a station missing from the cache stops only `station show` and `station apply`
+without `--cookbook`, which fetch it. Nothing a run reads comes from a recipe's origin either: a recipe runs from
 `.cook/recipes/`, and the version it came from serves only `recipe update`, which fetches it when it is not cached.
 
 ## Reference
@@ -434,15 +620,15 @@ An ingredient is a directory:
 | Key of `ingredient.yaml` | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `schema` | integer | yes | Format version of the ingredient file: `1` |
-| `name` | string | yes | Lowercase letters, digits and `-`: the name `ingredients:`, `vcs:`, `workers.<name>.ingredient` and a station's `ingredients` use |
+| `name` | string | yes | Lowercase letters, digits and `-`: the name `ingredients:`, `vcs:`, `workers.<name>.ingredient`, `workers.<name>.jail.ingredient` and a station's `ingredients` use |
 | `version` | string | yes | The cookbook tag the ingredient is published under, which `ingredients:` pins |
 | `description` | string | no | One line, printed by `ingredient list` |
-| `contract.name` | `vcs` \| `worker` | with `operations` | The contract `operations` fills; `contract` is absent when the ingredient has no operations |
-| `contract.version` | integer | with `contract.name` | The version of that contract the operations are written for: `1` for both contracts in this release line |
-| `operations` | map | with `contract` | The operations of the [version-control contract](#the-version-control-contract) or the items of the [worker contract](#the-worker-contract) |
+| `contract.name` | `vcs` \| `worker` \| `jail` | with `operations` | The contract `operations` fills; `contract` is absent when the ingredient has no operations |
+| `contract.version` | integer | with `contract.name` | The version of that contract the operations are written for: `1` for each of the three contracts in this release line |
+| `operations` | map | with `contract` | The operations of the [version-control contract](#the-version-control-contract), or the items of the [worker contract](#the-worker-contract) or of the [jail contract](#the-jail-contract) |
 | `renders` | list | no | [Renders](#renders): `file`, the target relative to the repository root, and exactly one of `whole`, `keys`, `entries`, `block` ([render forms](#render-forms)) |
 | `floor.deny` | list of policy entries | no | Floor deny rules, in the [policy entry forms](policy.md#entry-forms); `{default_branch}` is replaced by what the version-control ingredient reports |
-| `floor.bypass` | list of arguments | no | Floor bypass arguments; only with `contract.name: worker` |
+| `floor.bypass` | list of arguments | no | Floor bypass arguments; only with `contract.name: worker` or `contract.name: jail` |
 | `checks.version` | map | no | `run`, a command that prints the version, and `range`, the supported versions, such as `">=2.1 <2.2"`. The first dotted number in the output is the version |
 | `checks.detect` | list of globs | no | Paths relative to the repository root whose match shows the program is in use; a trailing `/` matches a directory |
 
@@ -461,6 +647,19 @@ The keys under `operations` for the worker contract:
 | `instructions` | `{ file, block, line }` | The worker's own instruction file, the id of the managed block rendered into it, and the import line the block holds |
 | `skills` | path | Where the link to `.agents/skills/the-cook` is rendered |
 | `native_rules` | map | `patterns`, a list of RE2 regular expressions (Go `regexp` syntax), each matched against the whole policy string; `keys`, the native keys that hold `allow`, `ask` and `deny`; `project`, `local` and `user`, the files of each import scope; `prefix`, the native rule shape that reads back as a command prefix; `notes`, the keys adoption reports as not policy |
+
+The keys under `operations` for the jail contract ([the jailed launch](#the-jailed-launch)):
+
+| Key | Type | Meaning |
+| --- | --- | --- |
+| `launch.command` | command | The jail program and its fixed arguments |
+| `launch.separator` | list of arguments | Passed between the jail's arguments and the confined command |
+| `share.workdir` | list of arguments | Passed once, with `{path}` replaced by the attempt's checkout, which the jail shares read-write and starts the confined command in |
+| `share.write` | list of arguments | Passed once per entry of `writable_roots`, with `{path}` replaced by it |
+| `share.read` | list of arguments | Passed once per directory the confined command may only read, with `{path}` replaced by it |
+| `env.pass` | list of arguments | Passed once per variable, with `{name}` and `{value}` replaced; exactly one of `env.pass` and `env.inherited` |
+| `env.inherited` | boolean | `true`: the jail keeps the environment of the process that starts it, and the binary passes no `env.pass` arguments |
+| `network` | list of arguments | Passed for a worker declared with `network: true` |
 
 `native_rules.patterns` decide the form of every string in the [policy](policy.md#entry-forms): a string is a native
 rule string for each declared worker whose ingredient has a pattern it matches, and is rendered verbatim for those
@@ -624,6 +823,7 @@ $ cd ~/src/acme-web
 $ ./cook ingredient list --cookbook github:acme/cookbook@v1.2.0
 ingredient  contract  detected  pinned
 acme-agent  worker    yes       -
+acme-jail   jail      no        -
 acme-loop   -         no        -
 acme-tasks  -         no        -
 claude      worker    no        -
@@ -707,6 +907,8 @@ git diff             # the lifecycle actions a station wrote for it stay, as the
 | `render` or `the-cook attempt` exits 3 naming `./cook fetch`, a hook prints one line naming it, or `doctor` reports an ingredient not cached | A pinned ingredient is not in this machine's cache, and only the commands in [Fetching](#fetching) download | Run `./cook fetch` |
 | A command exits 3 naming `the-cook station apply` and `the-cook ingredient pin` | It needs the version-control contract or a worker contract, and no pinned ingredient fills it | Apply a station whose stages fill it, or pin an ingredient that fills it and name it in `vcs:` or a worker's `ingredient`; `./cook doctor` lists each unfilled contract and the commands it blocks |
 | Exit 1: an archive's sha256 differs | The archive at the source is not the one the profile pins: a new upload under the same version, a different `source`, or tampering | Do not change the `sha256` to match. Ask the cookbook's publisher; pin a tag whose archives match its `checksums.txt` |
+| Exit 1: a worker's `jail.ingredient` does not fill the jail contract, or the jail ingredient declares both or neither of `env.pass` and `env.inherited`, or lacks `share.read` or `share.write` | The pin names another kind of ingredient, or the jail ingredient is incomplete | Name a pinned ingredient that fills the jail contract; report an incomplete one to its cookbook's publisher |
+| Exit 1: a worker with a jail, and the version-control ingredient has no `metadata` | The binary could not share the version-control metadata read-only in the jail | Pin a version-control ingredient that fills `metadata`, or remove the worker's `jail` |
 | Exit 1: two `ingredients:` entries with the same name | A name is unique within `ingredients:` | Delete one; `ingredient pin` moves an existing pin instead of adding a second |
 | Exit 1: `vcs:` or a worker's `ingredient` names an ingredient not pinned, or one that fills another contract | The pin was deleted, never written, or names the wrong ingredient | Pin it, or point `vcs:` or the worker at a pinned ingredient that fills the contract |
 | Exit 1: an ingredient's schema or contract version is newer than the running release supports | The cookbook tag was written for a newer `the-cook` | Move the release pin with `./cook wrapper --version <tag>` to the release the message names, or pin an older tag of the ingredient |

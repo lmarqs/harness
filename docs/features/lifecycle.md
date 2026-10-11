@@ -156,7 +156,7 @@ flowchart TB
 | | |
 | --- | --- |
 | Who acts | a worker in a session with a person (role `interactive`), or in an attempt (role `unattended`); in a recipe run, the recipe's steps in order: commands, templates, attempts, and handoffs to whoever drives the run ([step kinds](recipes.md#step-kinds)) |
-| `the-cook` guarantees | each worker runs under the permissions rendered from the [policy](policy.md) and the floor of its worker ingredient, which `the-cook render` writes into its configuration; post-edit hooks lint the edited file and report back ([hooks](hooks.md)); an attempt, an `attempt` step of a recipe included, runs in a pinned permission mode, cannot bypass permissions, and its tool-owned files are restored and compared ([safety](safety.md#the-attempt-contract-and-the-tamper-check)); a recipe's steps only add to what the guards check ([guards](recipes.md#guards)) |
+| `the-cook` guarantees | each worker runs under the permissions rendered from the [policy](policy.md) and the floor of its worker ingredient, which `the-cook render` writes into its configuration; post-edit hooks lint the edited file and report back ([hooks](hooks.md)); an attempt, an `attempt` step of a recipe included, runs in a pinned permission mode, cannot bypass permissions, runs inside the worker's [jail](workers.md#jails) when it declares one, and its tool-owned files are restored and compared ([safety](safety.md#the-attempt-contract-and-the-tamper-check)); a recipe's steps only add to what the guards check ([guards](recipes.md#guards)) |
 | Left to judgement | the code and the tests |
 | Event | none |
 
@@ -492,7 +492,8 @@ The shell expands the [environment](#environment); `the-cook` substitutes nothin
   arguments refused, and the tamper check, with the checkout's head commit as base, as the version-control ingredient
   reports it. It receives the `unattended` role's [standing context](context.md); when its worker ingredient passes the
   prompt on stdin, the `always` entries go in the prompt, before `attempt.prompt`
-  ([delivery in the prompt](context.md#delivery-in-the-prompt)).
+  ([delivery in the prompt](context.md#delivery-in-the-prompt)). A worker declared with a [jail](workers.md#jails) runs
+  inside it, as in any attempt.
 - It cannot commit, push or fire lifecycle events. Its file changes stay uncommitted in the checkout it ran in, and
   the output and the lifecycle log list the changed paths for a person to review and commit.
 - It runs in the work's workspace, except on `landed`. There, `the-cook` creates a fresh workspace at the revision of
@@ -515,7 +516,9 @@ Actions run in the workspace of the work, except on `landed`, where `run` and `h
 checkout and an `attempt` action runs in a fresh workspace ([`attempt`](#attempt)). They inherit the environment of
 the process that fired them, plus the variables below: `run` commands see them as shell variables, `http` and
 `attempt` actions expand them as `$NAME` ([Action kinds](#action-kinds)). A variable that does not apply is unset, not
-empty.
+empty. Actions run outside any [jail](workers.md#jails), with that environment, even when the work's worker has one:
+an action that runs a command the checkout defines, such as a task runner's task, runs what the worker wrote, outside
+the jail ([lifecycle actions are code](safety.md#lifecycle-actions-are-code)).
 
 | Variable | Value | Set |
 | --- | --- | --- |

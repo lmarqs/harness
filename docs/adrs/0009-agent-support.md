@@ -64,9 +64,10 @@ and supporting another worker changes no repository's declarations.
 6. Which workers a repository declares, which role each fills, interactive or unattended, and whether each one's
    attempts may use the network, off unless the repository says otherwise, is repository data, not ingredient content.
    The ingredient maps the network choice to its worker's arguments, as it maps the launch; a repository that lets the
-   attempts of a worker use the network, when the worker's ingredient gives no such arguments, fails validation. A
-   station may propose these as entries, which are the repository's own once applied
-   ([0024](0024-ingredients-and-stations.md)).
+   attempts of a worker use the network, when the worker's ingredient gives no such arguments, fails validation. The
+   declaration may also name a jail that confines the worker's attempts, with the jail's options the repository chooses;
+   the jail's own arguments are facts in the jail's ingredient ([0027](0027-worker-jails.md)). A station may propose
+   these as entries, which are the repository's own once applied ([0024](0024-ingredients-and-stations.md)).
 
 ## Reasons
 
@@ -99,7 +100,10 @@ and supporting another worker changes no repository's declarations.
   choice are a fact about the program, so the value is data the repository holds and its mapping is data the ingredient
   holds. Off by default keeps an attempt from reaching the network unless someone chose it. Failing validation when the
   ingredient cannot carry the choice keeps a repository from believing its attempts may reach the network when nothing
-  tells the program; with the choice off, the binary says nothing to the program, whose own default then holds.
+  tells the program; with the choice off, the binary says nothing to the program, whose own default then holds. Whether
+  a worker's attempts run confined, and in which jail, is the same kind of choice again: it differs between repositories
+  and between workers of one repository, so it belongs on the declaration, and the jail program's arguments belong to
+  its ingredient ([0027](0027-worker-jails.md)).
 
 ## Rejected alternatives
 
@@ -160,3 +164,5 @@ Must be maintained:
 - A fixture worker whose attempts may use the network starts with its ingredient's network arguments at every
   unattended launch; one declared without network access starts without them; and a fixture that allows network access
   to a worker whose ingredient gives no network arguments fails validation.
+- A fixture worker whose declaration names a jail starts every attempt through that jail, and its rendered files are
+  the same as without one.

@@ -94,8 +94,8 @@ them would carry credentials and cost, and a loop of its own to maintain ([ADR 0
   conventions, and platform logic in the binary binds every release to one platform. Everything that leaves the
   clone, a pull request included, is a declared action ([principle 7](#7-nothing-leaves-the-clone-undeclared);
   [ADR 0012](../adrs/0012-write-boundary.md)).
-- The binary contains code for no external program, the version control system and the workers included, and reads no
-  program's own configuration. A stage that needs a program reaches it through a contract that an
+- The binary contains code for no external program, the version control system, the workers and the jails included, and
+  reads no program's own configuration. A stage that needs a program reaches it through a contract that an
   [ingredient](../features/ingredients.md) fills, or through the commands the profile declares and the actions lifecycle
   events fire. Why: each team picks different programs, and code for one would follow every release of a program the
   project does not own while serving no team that chose another ([ADR 0022](../adrs/0022-tool-integration.md),

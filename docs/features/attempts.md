@@ -60,6 +60,7 @@ Prerequisites:
 | a worker ingredient that delivers `unattended.deny`, as launch arguments or through rendered permissions | the binary's own deny on lifecycle actions and the repository's unattended denies hold in every attempt ([the worker contract](workers.md#the-worker-contract)) |
 | the version-control ingredient the profile names in `vcs:`, pinned in `ingredients:`, and its program | the attempt reads the base, compares and resets through it ([the version-control contract](ingredients.md#the-version-control-contract)) |
 | every ingredient the attempt uses in the cache | an attempt never fetches; run `./cook fetch` first |
+| for a worker declared with a [jail](workers.md#jails), the jail's program, its ingredient pinned, and a version-control ingredient that fills `metadata` | the worker and the replay run inside the jail, with the version-control metadata shared read-only ([the jail contract](ingredients.md#the-jail-contract)) |
 | `role: unattended`, for a worker whose ingredient passes `unattended.deny` only through rendered rules | its unattended denies come only from rendered rules ([roles](workers.md#roles)) |
 | a clean, committed checkout | `the-cook attempt` refuses uncommitted changes |
 | `the-cook verify` working in this repository | every attempt must leave a [receipt](verify.md#the-receipt), the record of a passing `the-cook verify`, which `the-cook attempt` replays |
@@ -74,9 +75,10 @@ the workers included, against that ingredient's supported range. A loop runner i
 
 For each attempt, `the-cook attempt <worker>`:
 
-1. Resolves, before anything else runs, the version-control ingredient the profile names in `vcs:` and the worker's
-   ingredient (`workers.<name>.ingredient`, by default the worker's name), each from the verified cache in the user's
-   cache directory, `$COOK_HOME/cookbook/<sha256>.tar.gz`. It never fetches: a pinned ingredient that is not in the
+1. Resolves, before anything else runs, the version-control ingredient the profile names in `vcs:`, the worker's
+   ingredient (`workers.<name>.ingredient`, by default the worker's name) and, for a worker with a jail, the jail's
+   ingredient (`workers.<name>.jail.ingredient`), each from the verified cache in the user's cache directory,
+   `$COOK_HOME/cookbook/<sha256>.tar.gz`. It never fetches: a pinned ingredient that is not in the
    cache exits 3 and names `./cook fetch`; a profile where no pinned ingredient fills the version-control contract exits
    3 and names `./cook ingredient pin`; a worker whose ingredient can deliver `unattended.deny` in neither way, no deny
    arguments at launch and no rendered permissions, exits 3 and names that gap. Every read, comparison, reset and launch
@@ -85,9 +87,10 @@ For each attempt, `the-cook attempt <worker>`:
 2. Records the base: the head commit of the checkout when it starts, as the version-control ingredient reports it. A
    base that cannot be read fails the attempt, exit 1, before the worker starts. It refuses to run, exit 1, when the
    version-control ingredient reports uncommitted changes.
-3. Refuses the bypass arguments the worker's ingredient marks as [floor](ingredients.md#the-floor), wherever they
-   appear among the arguments it receives. It exits 1 and names the argument. It reads no loop runner's configuration:
-   a bypass a loop runner adds reaches `the-cook attempt` as an argument and is refused there, at the first task.
+3. Refuses the bypass arguments the worker's ingredient marks as [floor](ingredients.md#the-floor), and for a worker
+   with a jail those the jail's ingredient marks, wherever they appear among the arguments it receives and, for the
+   jail's, in `jail.args`. It exits 1 and names the argument. It reads no loop runner's configuration: a bypass a loop
+   runner adds reaches `the-cook attempt` as an argument and is refused there, at the first task.
 4. Reads the profile, the policy, the hooks file and the [standing context](context.md) from the base commit through
    the version-control ingredient, not from the files in the checkout, so a worker cannot weaken the rules its own
    result is checked against or rewrite its own instructions between attempts.
@@ -98,10 +101,17 @@ For each attempt, `the-cook attempt <worker>`:
 6. Pins the launch with the worker's ingredient: its unattended arguments, its sandbox-root arguments, its network
    arguments for a worker declared with `network: true`, the way it passes `unattended.deny`, as launch arguments or
    through the rendered rules the tamper check keeps intact, and the declared model and effort. For a worker with a
-   sandbox, the writable roots are the checkout, the clone's state directory (`state.dir`, default `.work`) and the
-   directories listed in `workers.<name>.writable_roots`, such as a task tracker's database directory
-   ([profile](profile.md#workers)). A worker declared with `network: false`, the default, gets no argument about the
-   network, and its program's default holds.
+   sandbox, the writable roots are the checkout and the directories listed in `workers.<name>.writable_roots`, such as a
+   task tracker's database directory ([profile](profile.md#workers)). The clone's state directory is not among them:
+   each checkout keeps its own state directory inside itself (receipt, session, hook cache, run record, bootstrap record
+   and attempt output); the primary checkout's holds only `lifecycle.jsonl` and the locks every workspace shares, which
+   the binary writes outside the worker; and it also holds every managed workspace, so opening it would let a worker in
+   one workspace write every other. A repository that needs more names it in `writable_roots`. A worker declared with
+   `network: false`, the default, gets no argument about the network, and its program's default holds. For a worker with
+   a jail, it composes the jailed launch around that pinned launch: the jail's command, its working-directory share with
+   the checkout, one write share per `writable_roots` entry, the read shares (the paths the version-control ingredient's
+   `metadata` reports, then `$COOK_HOME`), one `env.pass` per variable it passes, the jail's `network` arguments with
+   `network: true`, `jail.args` and the jail's separator ([the jailed launch](ingredients.md#the-jailed-launch)).
 7. Runs the profile's `bootstrap` once per checkout, and records that in the checkout's state directory, so later
    attempts in the same checkout skip it.
 8. Runs the worker with its prompt, read from stdin or from the worker arguments, whichever the caller uses, and
@@ -110,14 +120,18 @@ For each attempt, `the-cook attempt <worker>`:
    session-start hook injects no `always` entry; a prompt in the worker arguments is passed as it is, and the
    session-start hook delivers those entries ([context](context.md#delivery-in-the-prompt)). It buffers the worker's
    output instead of streaming it. Every `the-cook` process the worker starts sees `COOK_ATTEMPT=1` and refuses
-   `the-cook lifecycle run`, and the worker's `attention` and `turn_end` [hooks](hooks.md) do nothing.
+   `the-cook lifecycle run`, and the worker's `attention` and `turn_end` [hooks](hooks.md) do nothing. A worker with a
+   jail runs inside it, started from the checkout; the jail receives every `COOK_*` variable set for the worker, and
+   `COOK_HOME` with the cache's absolute path, so these marks hold inside the jail whatever environment it gives.
 9. Runs the tamper check, second half: compares with the base commit the tool-owned files, the files under `.cook/`
    and every file and skill a `context` entry names. Any difference fails the attempt and is reported by path: a worker
    that rewrote its own rules cannot complete, and a change to the rules reaches a run only through a commit a person
    made.
 10. Reads the receipt the worker wrote with `the-cook verify`. A missing or malformed receipt is a failed attempt.
     Otherwise `the-cook attempt` replays the lanes and skip reasons the receipt selected against the final content,
-    with the profile from the base commit. The receipt only selects; the replay is the proof.
+    with the profile from the base commit. The receipt only selects; the replay is the proof. For a worker with a jail,
+    every lane command and validator of the replay runs in the same jail, with the same shares, variables, network and
+    `jail.args`, because it runs code the worker wrote.
 11. If the replay passes: with `--commit`, commits the work in the checkout through the version-control ingredient,
     with the verification summary in the commit body (the [lanes](verify.md) and test patterns run, such as
     `unit=invoice`, and the reason for each skipped lane); prints the buffered output; when the checkout is bound to a
@@ -154,7 +168,9 @@ uncommitted edits of the steps before it included, and restores that state, so a
 recipe keeps its draft. Its prompt is the step's own, or the one the caller of `the-cook make` passes on stdin; the
 arguments given to `the-cook make` after `--` reach its worker after those the ingredient pins, and a floor bypass
 argument among them is refused. The recipe's inputs reach the prompt as plain text, a prompt-injection surface as in
-`attempt` actions ([safety](safety.md#recipe-runs)).
+`attempt` actions ([safety](safety.md#recipe-runs)). A worker with a [jail](workers.md#jails) runs inside it, and from
+then on the run's later `run` steps, its Verify stage and the replay of its Complete stage run in the same jail, because
+they run code the worker wrote ([what runs in the jail](ingredients.md#what-runs-in-the-jail)).
 
 What concerns the end of the work belongs to the run. The step's edits stay in the workspace for the next steps, and the
 step neither replays a receipt, commits nor fires events. A worker that runs `./cook verify` gets feedback on its change
@@ -335,8 +351,8 @@ A bypass argument the worker's ingredient marks as floor is refused anywhere in 
 | Exit code | Meaning |
 | --- | --- |
 | 0 | The attempt was verified: the replay passed, the work was committed with `--commit`, and the output was printed |
-| 1 | Refused (uncommitted changes, a floor bypass argument, a worker declared with `role: interactive` whose ingredient passes `unattended.deny` only through rendered rules, a cached ingredient whose hash does not match its pin), or a failed attempt (a base that cannot be read, a tamper-check difference, a missing or malformed receipt, a failing replay). The output was printed without the `--withhold` text |
-| 3 | A prerequisite is missing: the worker's program, the version-control ingredient's program, a pinned ingredient that is not in the cache (the message names `./cook fetch`), a version-control contract no pinned ingredient fills (the message names `./cook ingredient pin`), or a worker whose ingredient can deliver `unattended.deny` in neither way (the message names that gap). Without a terminal this fires `blocked` |
+| 1 | Refused (uncommitted changes, a floor bypass argument of the worker's ingredient or of its jail's, a worker with a jail that fails validation ([jails](workers.md#jails)), a worker declared with `role: interactive` whose ingredient passes `unattended.deny` only through rendered rules, a cached ingredient whose hash does not match its pin), or a failed attempt (a base that cannot be read, a tamper-check difference, a missing or malformed receipt, a failing replay). The output was printed without the `--withhold` text |
+| 3 | A prerequisite is missing: the worker's program, the version-control ingredient's program, the program of the worker's jail, a pinned ingredient, the jail's included, that is not in the cache (the message names `./cook fetch`), a version-control contract no pinned ingredient fills (the message names `./cook ingredient pin`), or a worker whose ingredient can deliver `unattended.deny` in neither way (the message names that gap). Without a terminal this fires `blocked` |
 
 #### Environment
 
@@ -344,6 +360,7 @@ A bypass argument the worker's ingredient marks as floor is refused anywhere in 
 | --- | --- | --- |
 | `COOK_ATTEMPT` | the worker and every process it starts | `1`: `the-cook lifecycle run` refuses, and `attention` and `turn_end` hooks do nothing |
 | `COOK_CONTEXT_IN_PROMPT` | the worker and every process it starts, when the prompt arrived on stdin | `1`: the prompt carried the `always` entries, and the session-start hook injects none ([context](context.md#delivery-in-the-prompt)) |
+| `COOK_HOME` | the jail of a worker with one, among the variables it passes | the per-user cache's absolute path, which the jail shares read-only, so the wrapper and `the-cook` inside load the pinned release and ingredients from it and write nothing there |
 | `COOK_TASK` | the actions of the events the attempt fires | the task id the workspace was created with (`--task`) |
 | `COOK_ACTOR` | the actions of the events the attempt fires | the managed workspace's actor, `<user>:<workspace>:<random>` |
 
@@ -356,7 +373,7 @@ Paths below show the default `state.dir: .work` ([profile](profile.md#state-path
 
 | Path | Read or written |
 | --- | --- |
-| the version-control ingredient and the worker's ingredient | resolved from `$COOK_HOME/cookbook/<sha256>.tar.gz` before anything else runs |
+| the version-control ingredient, the worker's ingredient and its jail's | resolved from `$COOK_HOME/cookbook/<sha256>.tar.gz` before anything else runs |
 | `.cook/config.yaml`, `.cook/policy.yaml`, `.cook/hooks.yaml` | read from the base commit |
 | the tool-owned files of the checkout | restored from the base commit before the worker starts, compared after it exits |
 | `<checkout>/.work/verified.json` | the receipt the worker wrote, read |

@@ -82,7 +82,9 @@ bound it are the attempt contract.
    reported. The repository data and the guidance are read from the base commit. A base that cannot be read fails the
    attempt. A failed attempt that the attempt command runs on its own, where a loop runner retries, leaves the working
    copy at its base commit, with the attempt's changes kept aside for a person to read; a recipe's attempt step that
-   fails follows invariant 13 instead.
+   fails follows invariant 13 instead. For a worker whose declaration names a jail, the version control metadata of the
+   working copy is shared read-only inside the jail, so the worker cannot change the history, the configuration or the
+   hooks that the binary's own operations, outside the jail, read and run ([0027](0027-worker-jails.md)).
 9. Lifecycle actions and notification actions never run inside a worker the binary starts unattended. The binary fires
    lifecycle events in its own process after the worker exits, and a worker it starts unattended is denied triggering
    events.
@@ -92,9 +94,10 @@ bound it are the attempt contract.
     permission mode, applies the deny rules for unattended work, refuses bypass and runs invariant 8's tamper check. The
     worker cannot commit, push or trigger events.
 12. The binary enforces its guards itself. It recognises a worker it started unattended by a mark that every attempt,
-    and every action or recipe step that starts a worker, sets in that worker's environment, and it checks branch and
-    tree state before acting. Permission entries that deny or ask for the tool's own commands are defence in depth,
-    never the only guard.
+    and every action or recipe step that starts a worker, sets in that worker's environment, and that the binary passes
+    through the jail of a worker that runs in one, as it passes every mark it sets ([0027](0027-worker-jails.md)); and
+    it checks branch and tree state before acting. Permission entries that deny or ask for the tool's own commands are
+    defence in depth, never the only guard.
 13. A recipe run holds every guard of the lifecycle ([0015](0015-development-lifecycle.md), [0025](0025-recipes.md)). A
     recipe can only add to what a change must pass: steps, required lanes and requirements. It cannot skip a lane,
     weaken a guard, declare an action or fire an event; the binary fires the run's events, and the run itself verifies
@@ -148,7 +151,9 @@ bound it are the attempt contract.
   trusts. Failing an attempt that changed the rules means a change to the rules reaches unattended work only through a
   commit a person made, even in a run where each task starts from the previous task's commit (Context). Returning a
   failed attempt to its base means the next attempt starts from files the binary checked, including the wrapper a loop
-  runner starts it through. The trade is that a worker cannot change its own permissions, hooks or guidance, even on
+  runner starts it through. Inside a jail, the worker could otherwise write the metadata the binary's commit and
+  comparisons rely on, and the version control program would run what it wrote outside the jail, so the metadata is
+  shared read-only there. The trade is that a worker cannot change its own permissions, hooks or guidance, even on
   purpose, and a retry starts over instead of continuing the failed attempt's edits.
 - **9.** Actions reach whatever their credentials reach. Run inside a worker nobody watches, they would extend that
   reach to the worker. Firing events in the binary's own process after the worker exits keeps actions out of its hands.
@@ -160,7 +165,10 @@ bound it are the attempt contract.
   commit, push and event restrictions, an action could deliver past the guards of invariant 10 or chain events.
 - **12.** Prefix rules match literal words, and the spellings of a tool command are open-ended. No finite rule list
   covers an absolute path or a shell running the wrapper script. A guard the binary checks holds whatever spelling
-  started it. Permission rules still stop the common spellings before the binary starts and show intent in review.
+  started it. Permission rules still stop the common spellings before the binary starts and show intent in review. A
+  jail may pass only the variables it is given ([0027](0027-worker-jails.md)), so the binary passes the mark through it
+  explicitly; otherwise every guard that rests on the mark would fall away for the very workers a repository chose to
+  confine.
 - **13.** A recipe is a file in the tree a worker writes in (Context). If a recipe could skip a lane or fire an event,
   the guards of every change it makes would be only as strong as the last edit to it; because it can only add, the most
   a recipe does is ask for more checks. The run verifies the lanes itself because a worker's verification covers only
@@ -222,6 +230,9 @@ Costs:
 - Changing an invariant takes a release and applies everywhere at once.
 - A program's floor rules are only as complete as the ingredient the repository pinned; an ingredient that marks no
   floor leaves its program without one.
+- Inside a jail, the mark and the read-only metadata hold only as far as the jail program honours the variables and
+  shares its ingredient declares, which the cookbook that publishes the ingredient tests
+  ([0027](0027-worker-jails.md)).
 
 Must be maintained:
 
@@ -241,8 +252,10 @@ Must be maintained:
   attempt starts at the base commit with the base commit's guidance.
 - A fixture in which the worker rewrites the wrapper and then fails leaves the base commit's wrapper in the working
   copy, and the next attempt runs the pinned release.
+- A fixture worker in a jail cannot write the version control metadata of its working copy.
 - A fixture in which a worker in an attempt tries to trigger a lifecycle event, by any spelling including an absolute
-  path to the binary, is refused by the binary, and the event's actions run only after the worker exits.
+  path to the binary, is refused by the binary, and the event's actions run only after the worker exits; the same holds
+  for a fixture worker in a jail that drops every variable it is not passed.
 - Delivery fixtures on the default branch, with uncommitted changes and, with verification enabled, with an invalid
   proof are refused, and no action runs.
 - A fixture action that starts a worker, and a fixture recipe's attempt step, each run the worker with the pinned

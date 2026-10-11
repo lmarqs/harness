@@ -18,10 +18,12 @@ reached through an interface the rules declare.
 - What the rules need from outside is small and regular. From version control: the base revision, a file at a revision,
   whether the tree is clean, whether a path is tracked, what changed since a revision, the common ancestor of two
   revisions, whether a branch's changes already reached another, the name of the shared default line of work and the
-  revision it is at, a reset, a commit, a branch, learning what is shared, a workspace. From a worker: how to launch it
-  and, where it has them, the files it owns and their content, the arguments that start it unattended, the arguments
-  that would bypass its checks, the arguments that let it use the network, and the fields of its hook payload. From any
-  other program: run this and tell me the exit status.
+  revision it is at, a reset, a commit, a branch, learning what is shared, a workspace, and where the checkout's version
+  control metadata lives. From a worker: how to launch it and, where it has them, the files it owns and their content,
+  the arguments that start it unattended, the arguments that would bypass its checks, the arguments that let it use the
+  network, and the fields of its hook payload. From a jail that confines a worker's attempts: how to start it around a
+  command, share a directory, pass a variable and open the network ([0027](0027-worker-jails.md)). From any other
+  program: run this and tell me the exit status.
 - A program's answers arrive as a string, lines, bytes or an exit status (Context of
   [0022](0022-tool-integration.md)). Writing in a program's format and reading structured output can be described as
   data; parsing a program's free text in general cannot.
@@ -50,15 +52,20 @@ reached through an interface the rules declare.
    No name of a program, a file format of a program, or an argument of a program appears in the core, and the core
    names what it needs by its role, never by one program's term for it: a separate working copy for a task is a
    workspace, whatever the version control calls it.
-3. The core declares two contracts that ingredients fill with data. The version control contract is a fixed set of
+3. The core declares three contracts that ingredients fill with data. The version control contract is a fixed set of
    operations, each with a declared output kind. It asks as little of a version control system as the rules allow: it
    names the shared default line of work and the revision it is at, and learning what is shared, never one system's
    mechanism for them; the operation that gives the revision and the one that learns what is shared are optional, and
    for each the core declares what it does without it: it takes the line's name as the revision, or goes on with what
-   the checkout knows after one note. The worker contract is the launch of one worker, its one required part, and, where
-   the worker has them, its unattended arguments, its bypass arguments, its network arguments, its renders, its hook
-   payload mapping, its instructions location, its skill location and its native rule import
-   ([0009](0009-agent-support.md)). One connection interprets an ingredient's operations for each contract.
+   the checkout knows after one note. The operation that lists where the checkout's version control metadata lives is
+   optional too, and only a worker that runs in a jail needs it ([0027](0027-worker-jails.md)). The worker contract is
+   the launch of one worker, its one required part, and, where the worker has them, its unattended arguments, its bypass
+   arguments, its network arguments, its renders, its hook payload mapping, its instructions location, its skill
+   location and its native rule import ([0009](0009-agent-support.md)). The jail contract, optional and used only around
+   the attempts of a worker whose declaration names a jail, is the jail's launch and its arguments that share a
+   directory, read-only or with write access, pass a variable or keep the environment, and, where the jail has them,
+   share its working directory, end its own arguments, open the network and would turn the confinement off
+   ([0027](0027-worker-jails.md)). One connection interprets an ingredient's operations for each contract.
 4. The core declares, besides those, only generic interfaces: the files of a checkout, running a command and reading
    its exit status and output, an HTTP request, the release source, the clock, and presenting a plan, a diff, a
    finding or a question to a person. Each has one connection and an in-memory stand-in for tests.
@@ -83,18 +90,21 @@ reached through an interface the rules declare.
   program's term in the core would also leak into commands, settings and pages, which would then read wrong for every
   other program that fills the same contract. The trade: every outside need passes through an interface, which is one
   more indirection to read.
-- **3.** The two things the rules rely on answers from, version control and the worker, get named contracts so that
-  an ingredient can fill them with data (Context) and a test can fill them with a stand-in. A fixed operation set with
-  declared output kinds is what keeps a description possible: the binary never has to parse free text. The version
-  control contract speaks of what is shared and of the shared default line of work, because systems differ in what a
-  clone holds and how it learns more (Context); a system that keeps no separate shared copy has no other revision to
-  give and nothing to learn, so those two operations are optional with a defined behaviour in their absence, which is
-  part of the contract, not a description of any program. The worker
-  contract requires only the launch because a worker can have no configuration of its own
-  ([0009](0009-agent-support.md)).
+- **3.** The things the rules rely on answers from, version control, the worker and, around a worker's attempts, a jail,
+  get named contracts so that an ingredient can fill them with data (Context) and a test can fill them with a stand-in.
+  A fixed operation set with declared output kinds is what keeps a description possible: the binary never has to parse
+  free text. The version control contract speaks of what is shared and of the shared default line of work, because
+  systems differ in what a clone holds and how it learns more (Context); a system that keeps no separate shared copy has
+  no other revision to give and nothing to learn, so those two operations are optional with a defined behaviour in their
+  absence, which is part of the contract, not a description of any program. The metadata operation is optional for the
+  same reason a jail is: a repository that confines no worker needs nothing new from its version control system. The
+  worker contract requires only the launch because a worker can have no configuration of its own
+  ([0009](0009-agent-support.md)). The jail contract is the third because only the binary can place the worker's launch
+  inside the jail's and keep both programs' bypass arguments out of it, and it is optional because most repositories
+  confine no worker ([0027](0027-worker-jails.md)).
 - **4.** The remaining needs are not about any program. One generic connection for each keeps the list of connections
   short, and the in-memory stand-ins are what let every contract test for an invariant run without a disk, a
-  network, a version control program or a worker on the machine.
+  network, a version control program, a worker or a jail on the machine.
 - **5.** Resolving before the use case runs is what [0022](0022-tool-integration.md) requires of attempts, and doing
   it in the entry point keeps resolution, caching and verification out of the rules. Data that could supply a
   connection would let the repository, and a worker running in it, choose how the repository is read
@@ -168,7 +178,7 @@ Costs:
 Must be maintained:
 
 - The dependency direction, checked in CI.
-- The two contracts and the generic interfaces as the complete list of what the core needs from outside.
+- The three contracts and the generic interfaces as the complete list of what the core needs from outside.
 - An in-memory stand-in for every interface, kept equivalent to its connection by a shared test suite.
 
 ## Confirmation
@@ -183,6 +193,8 @@ Must be maintained:
   makes unavailable.
 - In the same fixture, every use case that needs a contract stops as a missing prerequisite that names the contract,
   starts no program and writes nothing.
-- A stand-in version control ingredient without the optional operations runs every use case: where the core needs the
-  revision of the shared default line of work it uses the line's name, and where it would learn what is shared it
-  reports one note and goes on.
+- A stand-in version control ingredient without the optional operations runs every use case that confines no worker:
+  where the core needs the revision of the shared default line of work it uses the line's name, and where it would
+  learn what is shared it reports one note and goes on.
+- A stand-in jail ingredient around a stand-in worker receives the launch the core composes, in the order
+  [0027](0027-worker-jails.md) fixes, and the core's source names no jail program.

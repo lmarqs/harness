@@ -72,7 +72,7 @@ Run `./cook render` after every edit, and `./cook doctor` to check globs and com
 | `bootstrap` | list of commands | `[]` | Run in order in a new workspace, and once in each checkout an [attempt](attempts.md#the-attempt-contract) runs in |
 | `commands` | map | | Lint and build commands |
 | `verify` | map | | Verification paths, lanes and validators |
-| `workers` | map | | The [workers](#workers) rendered for this repository, their ingredients and roles, and what an attempt may write and reach |
+| `workers` | map | | The [workers](#workers) rendered for this repository, their ingredients and roles, what an attempt may write and reach, and the jail it runs in |
 | `context` | map | | [Standing context](#context): directives and skills injected by declared triggers |
 | `blocks` | map | | Limits for the managed blocks `the-cook` writes |
 | `state` | map | | Where clone-local state lives; see [State paths](#state-paths) |
@@ -187,8 +187,10 @@ applied ([stations](stations.md#stages)).
 | --- | --- | --- | --- |
 | `ingredient` | ingredient name | the worker's name | The ingredient that serves the worker; it must be in `ingredients` and fill the worker contract. Example: `reviewer: { ingredient: claude, role: interactive }` |
 | `role` | `interactive` \| `unattended` | required | `interactive`: people use the worker in this repository; its native files carry the shared policy. `unattended`: the worker runs here only in attempts, started by [`the-cook attempt`](attempts.md#the-attempt-contract), an `attempt` action or a recipe's [`attempt` step](recipes.md#attempt); its native files also carry `unattended.deny`. See [workers](workers.md#roles) |
-| `writable_roots` | list of paths | `[]` | Only for a worker whose ingredient opens sandbox roots (`launch.sandbox_roots`). Directories its attempts may write besides the task checkout and the clone's state directory, relative to the root of the primary checkout. Example: a tracker's database directory in the clone. No other directory is writable in its attempts |
+| `writable_roots` | list of paths | `[]` | Only for a worker whose ingredient opens sandbox roots (`launch.sandbox_roots`) or whose attempts run in a `jail`. Directories its attempts may write besides the task checkout, relative to the root of the primary checkout. Example: a tracker's database directory in the clone. No other directory is writable in its attempts, the clone's state directory included, because it holds every managed workspace. For a worker with a jail, an entry that contains the version-control metadata or the per-user cache is a validation error |
 | `network` | boolean | `false` | Whether the worker's attempts may use the network. `true` passes its ingredient's `launch.network` arguments at every unattended launch, and is a validation error for a worker whose ingredient has none; `false` passes nothing about the network, so the program's default holds, which the ingredient's page in its cookbook explains. See [workers](workers.md#declaring-workers) |
+| `jail.ingredient` | ingredient name | none; required with `jail` | A pinned ingredient that fills the [jail contract](ingredients.md#the-jail-contract): the worker's attempts start inside that jail, and their replay runs in it. Requires a version-control ingredient that fills `metadata`. See [workers](workers.md#jails) |
+| `jail.args` | list of arguments | `[]` | The jail's options this repository chooses, placed before the jail's separator, such as how the worker program's login reaches the jail; a floor bypass argument of the jail is a validation error |
 | `model` | string | none | The model the binary starts the worker with, in attempts and `attempt` actions, passed as its ingredient's `launch.model` says; an action's `attempt.model` overrides it. A worker whose ingredient maps no model ignores it, and `doctor` notes it |
 | `effort` | string | none | The effort level, passed and overridden like `model`, through `launch.effort` and `attempt.effort` |
 
@@ -451,8 +453,9 @@ Patterns for the Go lanes are package paths:
 | `vcs` or a worker's `ingredient` names an ingredient not in `ingredients` | The pin was deleted, or never written | Pin it with `./cook ingredient pin <name> --cookbook <source>@<version>`, or name a pinned ingredient |
 | `vcs` or a worker's `ingredient` names an ingredient that fills another contract | `vcs` needs a version-control ingredient, a worker a worker ingredient | Name an ingredient that fills the contract; `./cook ingredient list` shows each one's contract |
 | Two `ingredients` entries, or two `stations` entries, with the same name | A name is unique within each list | Delete one; `./cook ingredient pin` moves an existing pin |
-| `writable_roots` is rejected for a worker | Its ingredient opens no sandbox roots | Remove the field, or use an ingredient that fills `launch.sandbox_roots` |
+| `writable_roots` is rejected for a worker | Its ingredient opens no sandbox roots and the worker has no jail | Remove the field, use an ingredient that fills `launch.sandbox_roots`, or declare a `jail` |
 | `network: true` is rejected for a worker | Its ingredient has no `launch.network` arguments | Remove the field, or use an ingredient that fills `launch.network` |
+| A worker's `jail` is rejected | `jail.ingredient` is not pinned or fills another contract, the jail ingredient is incomplete, `jail.args` holds a floor bypass argument of the jail, the jail has no `network` for a worker with `network: true`, or the version-control ingredient has no `metadata` | Fix what the message names ([workers](workers.md#jails)) |
 | `render` exits 3 naming `./cook fetch` | An ingredient in `ingredients` is not in this machine's cache | Run `./cook fetch` |
 | `doctor` says a program is not on PATH | A command, lane, validator or action names a program this machine lacks | Install the program, or fix the command in `.cook/config.yaml` or `.cook/hooks.yaml` |
 | `doctor` says a glob matches nothing | Wrong path or quoting | YAML needs quotes around globs that start with `*` |

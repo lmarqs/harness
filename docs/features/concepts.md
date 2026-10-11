@@ -40,7 +40,7 @@ programs that do the work, and recipes take one kind of change through it.
 | --- | --- | --- | --- |
 | Plan | people, a tracker | nothing but the task id | lifecycle actions the repository declares |
 | Start | a person, a coordinating worker or a script | creates the workspace, records its base, actor and task; fires `start` | the version-control contract |
-| Implement | workers, interactive or unattended | renders the workers' configuration and floor, runs hooks, runs attempts | the worker contract |
+| Implement | workers, interactive or unattended | renders the workers' configuration and floor, runs hooks, runs attempts, inside a worker's jail when it declares one | the worker contract, and the jail contract for a jailed worker |
 | Verify | anyone | runs the declared lanes, writes the receipt bound to base and content; fires `verified` | the repository's lane commands |
 | Complete | the binary after a replay, or a person | replays the proof from the base, fires `completed` | the version-control contract, actions |
 | Deliver | declared actions | fires `deliver` only for committed work off the default branch and, with verification on, verified work | actions |
@@ -441,14 +441,16 @@ from their own loop-runner configuration, is outside them: `the-cook` neither de
    program's own configuration, such as a task tracker's database or a loop runner's configuration file. A station's
    template is written only when its file is absent.
 8. An unattended worker cannot change the rules it runs under. Before it starts the worker, `the-cook attempt` resolves
-   the version-control ingredient and the worker's ingredient from the verified cache, and restores the tool-owned
-   files, the renders of every ingredient in use, `cook` and its pin, from the base commit. After the worker exits it
-   fails the attempt if the worker changed them, a file under `.cook/` or a file standing context names. The standing
-   context an attempt receives is read from the same base commit; a base that cannot be read fails the attempt. A
-   failed attempt returns the checkout to its base.
+   the version-control ingredient, the worker's ingredient and its jail's from the verified cache, and restores the
+   tool-owned files, the renders of every ingredient in use, `cook` and its pin, from the base commit. After the worker
+   exits it fails the attempt if the worker changed them, a file under `.cook/` or a file standing context names. The
+   standing context an attempt receives is read from the same base commit; a base that cannot be read fails the attempt.
+   A failed attempt returns the checkout to its base. A worker with a [jail](workers.md#jails) runs inside it with the
+   version-control metadata and the per-user cache read-only, and the replay of its work runs in the same jail.
 9. Lifecycle and notification actions never run inside an attempt: `the-cook attempt` fires events in its own process
-   after the worker exits, the binary refuses `the-cook lifecycle` under the attempt mark (`COOK_ATTEMPT=1`), and the
-   binary renders its own `unattended.deny` entry for it in every spelling (`the-cook`, `./cook`, `cook`).
+   after the worker exits, the binary refuses `the-cook lifecycle` under the attempt mark (`COOK_ATTEMPT=1`), which it
+   passes through a worker's jail too, and the binary renders its own `unattended.deny` entry for it in every spelling
+   (`the-cook`, `./cook`, `cook`).
 10. `deliver` always refuses on the default branch and with uncommitted changes and, when the verify module is enabled,
     without a valid receipt for the work's base.
 11. An `attempt` action runs its worker under the attempt contract: the unattended launch arguments of its ingredient,

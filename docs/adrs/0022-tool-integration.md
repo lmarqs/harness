@@ -235,8 +235,8 @@ Costs:
 
 Must be maintained:
 
-- The ingredient schema and the two contracts, as a public format other people write to.
-- Stand-in ingredients that exercise every part of the format and every operation of both contracts.
+- The ingredient schema and the three contracts, as a public format other people write to.
+- Stand-in ingredients that exercise every part of the format and every operation of every contract.
 - The check that the binary's source and embedded assets name no external program and hold no ingredient, station or
   recipe.
 - The arguments, exit statuses and environment of the attempt command and of a recipe run, as a stable interface other

@@ -195,8 +195,9 @@ and passes values as positional parameters: `run: [sh, -c, 'npm run migration:cr
 "{name}"]`.
 
 The command runs as the binary does, with the rights of whoever started the run and outside every worker's permission
-checks, from the root of the workspace, like a [`run` lifecycle action](lifecycle.md#run). Its output is printed as it
-runs. It inherits the run's environment, plus:
+checks, from the root of the workspace, like a [`run` lifecycle action](lifecycle.md#run), and, after an `attempt` step
+of a worker with a [jail](#attempt), inside that jail. Its output is printed as it runs. It inherits the run's
+environment, plus:
 
 | Variable | Value |
 | --- | --- |
@@ -249,6 +250,13 @@ Arguments given to `the-cook make` after `--` go to the worker of every `attempt
 and a floor bypass argument among them is refused. When the prompt reaches the worker on stdin, it carries the `always`
 entries of the `unattended` [standing context](context.md#delivery-in-the-prompt) before the step's text, as in every
 attempt.
+
+A worker declared with a [jail](workers.md#jails) runs the step inside it. From then until the run ends, the later `run`
+steps, the Verify stage and the replay of Complete run in that jail too, with the same shares, variables, network and
+`jail.args`, because they run code the worker wrote; the steps before the first such `attempt` step, the
+version-control operations, the tamper check, the commit and the lifecycle actions run outside it
+([what runs in the jail](ingredients.md#what-runs-in-the-jail)). A `run` step that needs a variable or a service the
+jail withholds therefore passes before that step and fails after it, until `jail.args` lets it through.
 
 Completion belongs to the run, not to the step: the step passes when the worker exits 0 and the tamper check passes,
 and the receipt, the replay and `completed` come at the run's [Verify](#verify) and [Complete](#complete) stages. A
