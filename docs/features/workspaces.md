@@ -64,32 +64,47 @@ configuration are not copied.
 
 ### Created by a recipe run
 
+#### Workspace creation
+
 `the-cook make <recipe>` is the Start stage of one change ([the run](recipes.md#the-run)). After it validates the inputs
 and the recipe's requirements, it creates the workspace the recipe's `workspace` key names, with the inputs substituted,
-such as `migration-add-invoice-index` for `migration-{name}` with `--name add-invoice-index`. It creates it the way
-`the-cook workspace create` does: at `<workspaces.dir>/<name>`, on a new branch `work/<name>`, with a session, an actor
-and `bootstrap`, and it fires `start`. Its base is the revision the shared default line of work is at, as the
-version-control ingredient's `default_revision` reports it, not the checkout's head commit, and the run reads the
-recipe from there too, so a recipe runs in a new workspace only once it is on the shared default line of work (for
-git, pushed), not merely committed in this clone. The run learns nothing new about what is shared: its base is the
-revision this checkout last learned ([the version-control contract](ingredients.md#the-version-control-contract)).
+such as `migration-add-invoice-index` for `migration-{name}` with `--name add-invoice-index`.
+
+It creates it the way `the-cook workspace create` does: at `<workspaces.dir>/<name>`, on a new branch `work/<name>`,
+with a session, an actor and `bootstrap`, and it fires `start`.
+
+Its base is the revision the shared default line of work is at, as the version-control ingredient's `default_revision`
+reports it, not the checkout's head commit. The run reads the recipe from there too, so a recipe runs in a new workspace
+only once it is on the shared default line of work (for git, pushed), not merely committed in this clone. The run learns
+nothing new about what is shared: its base is the revision this checkout last learned
+([the version-control contract](ingredients.md#the-version-control-contract)).
+
 With `--task <id>` the workspace is bound to the task ([tasks](tasks.md#a-task-run-by-a-recipe)).
 
+#### Drafting with `--here`
+
 With `--here`, the run uses the managed workspace it is started in and creates none, and reads the recipe from that
-workspace's working tree, for drafting one: that workspace's base and branch are the run's, and its task unless
-`--task` gives one; no `bootstrap` runs and no `start` fires. It refuses `--unattended`, a checkout that is not a
-managed workspace, and a workspace that holds a run that is not completed.
+workspace's working tree, for drafting one. That workspace's base and branch are the run's, and its task unless
+`--task` gives one. No `bootstrap` runs and no `start` fires.
+
+It refuses `--unattended`, a checkout that is not a managed workspace, and a workspace that holds a run that is not
+completed.
+
+#### The run record
 
 The run records itself in `run.json` in the workspace's state directory (by default
 `.work/workspaces/<name>/.work/run.json`): the recipe's name, its content and digest as the run read them when it
 started, the inputs, whether the run is unattended, each step's result and the current stage.
+
 `the-cook make --status [<workspace>]` prints it. A paused or stopped run keeps its workspace with whatever its steps
 left in it, the changes of a failed `attempt` step included: nothing resets the workspace to its base.
+
 `the-cook make --continue [<workspace>]` resumes it with the recipe content the record holds, and after a failed step
-runs that step again on the tree as it is, so inspect or discard those changes first. To abandon the run, discard the
-workspace's changes and remove it with `the-cook workspace remove`, which refuses uncommitted changes as for any
-workspace. The branch `work/<name>` stays, as after every removal, so a later run that would create the same workspace
-needs it deleted first.
+runs that step again on the tree as it is, so inspect or discard those changes first.
+
+To abandon the run, discard the workspace's changes and remove it with `the-cook workspace remove`, which refuses
+uncommitted changes as for any workspace. The branch `work/<name>` stays, as after every removal, so a later run that
+would create the same workspace needs it deleted first.
 
 ### Nesting
 

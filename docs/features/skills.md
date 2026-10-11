@@ -17,17 +17,25 @@ Skills serve the Implement stage of the [development lifecycle](lifecycle.md), a
 session; the shipped skill also teaches a coordinating worker to drive every other stage.
 
 Skills are folders of instructions that workers such as coding agents load on demand. They live in `.agents/skills/`,
-one folder per skill, following the file conventions of the agent ecosystem. `the-cook` does two things with them. It
-installs and refreshes its own skill, the **shipped skill**, in every adopted repository. It injects skills into worker
-sessions when the repository names them as [standing context](context.md). It never writes a domain skill, and it
-contains no code for any skills installer: shared skills are installed by the team with the tool of its choice and
-committed like any other file ([ADR 0022](../adrs/0022-tool-integration.md)). An [ingredient](ingredients.md) can
-describe such an installer, as it describes any program.
+one folder per skill, following the file conventions of the agent ecosystem.
+
+`the-cook` does two things with them. It installs and refreshes its own skill, the **shipped skill**, in every adopted
+repository. It injects skills into worker sessions when the repository names them as [standing context](context.md).
+
+It never writes a domain skill, and it contains no code for any skills installer: shared skills are installed by the
+team with the tool of its choice and committed like any other file ([ADR 0022](../adrs/0022-tool-integration.md)). An
+[ingredient](ingredients.md) can describe such an installer, as it describes any program.
 
 A skill guides a worker and guarantees nothing about what the worker does with it. A [recipe](recipes.md) takes one kind
 of change through the lifecycle's stages, and its steps, its required lanes and the guards hold whatever the worker
 does. The two meet in a recipe's `attempt` step, whose prompt can tell its worker to follow a skill, such as a
 monitoring skill in a recipe that fixes the cause of an alert.
+
+**On this page:**
+
+- [The shipped skill](#the-shipped-skill): where it lives and what it teaches
+- [Shared skills](#shared-skills): installing and committing domain skills
+- [Skills as standing context](#skills-as-standing-context): injecting skills by trigger
 
 Commands are named `the-cook <command>` on this page. The examples run them through the repository's wrapper,
 `./cook <command>`, from the root of a checkout; with a global install, `the-cook <command>` is equivalent

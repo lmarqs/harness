@@ -13,17 +13,25 @@ and can find the page for any part of it.
 
 ## Overview
 
-`the-cook` is a command-line tool that enforces the software development lifecycle a repository declares. Every change
-goes through the same stages: plan, start, implement, verify, complete, deliver, review and merge, and landed, with
-`blocked` out of band for work that stops. At fixed points between them the binary fires
-[lifecycle events](lifecycle.md), at which the actions the repository declares run (a push, a pull request, a tracker
-update, a cleanup), and it holds the guards between stages: delivery runs only for committed work off the default branch
-and, with verification on, verified work. The proof a change carries is a receipt bound to its base and its exact
-content ([verify](verify.md)), and an unattended attempt is reported done only after that proof is replayed from the
-base ([ADR 0015](../adrs/0015-development-lifecycle.md)). People and workers move work through the stages with the same
-commands: [`the-cook make`](recipes.md#the-cook-make), which takes one change through the stages as a recipe says, task
-[workspaces](workspaces.md), [task binding](tasks.md), which ties a workspace to a task id from any tracker, and
-[`the-cook attempt`](attempts.md), which runs one worker for one task under rules it cannot bypass.
+`the-cook` is a command-line tool that enforces the software development lifecycle a repository declares.
+
+Every change goes through the same stages: plan, start, implement, verify, complete, deliver, review and merge, and
+landed, with `blocked` out of band for work that stops.
+
+At fixed points between them the binary fires [lifecycle events](lifecycle.md), at which the actions the repository
+declares run (a push, a pull request, a tracker update, a cleanup).
+
+It holds the guards between stages: delivery runs only for committed work off the default branch and, with verification
+on, verified work.
+
+The proof a change carries is a receipt bound to its base and its exact content ([verify](verify.md)). An unattended
+attempt is reported done only after that proof is replayed from the base
+([ADR 0015](../adrs/0015-development-lifecycle.md)).
+
+People and workers move work through the stages with the same commands: [`the-cook make`](recipes.md#the-cook-make),
+which takes one change through the stages as a recipe says, task [workspaces](workspaces.md), [task binding](tasks.md),
+which ties a workspace to a task id from any tracker, and [`the-cook attempt`](attempts.md), which runs one worker for
+one task under rules it cannot bypass.
 
 The lifecycle knows no program. Each stage that needs one reaches it through a contract or a declared action: the
 version-control contract for workspaces, bases, history and landed work, the worker contract for the programs that
@@ -126,7 +134,7 @@ add one recipe with `./cook recipe add <name>... --cookbook <source>@<version>` 
 ingredient with `./cook ingredient pin <name>... --cookbook <source>@<version>` ([ingredients](ingredients.md)).
 
 Review and edit the profile and the policy, then render and commit. A recipe run starts from the shared default line
-of work, so deliver the commit like any change before the first run:
+of work, so deliver the commit before the first run:
 
 ```sh
 $EDITOR .cook/config.yaml .cook/policy.yaml

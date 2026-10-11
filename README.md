@@ -16,12 +16,19 @@ not use the tool never notice it.
 
 ## What it is
 
-`the-cook` is a single command-line binary that enforces the software development lifecycle a repository declares. Every
-change goes through the same stages: plan, start, implement, verify, complete, deliver, review and merge, and landed.
-Between them the binary fires events, at which the actions the repository declares run; it holds the guards between
-stages, so delivery never runs for uncommitted work, work on the default branch or, with verification on, unverified
-work; and it binds the proof a change carries, a verification receipt, to the change's base and exact content. An
-unattended attempt is reported done only after that proof is replayed from the base
+`the-cook` is a single command-line binary that enforces the software development lifecycle a repository declares.
+
+Every change goes through the same stages: plan, start, implement, verify, complete, deliver, review and merge, and
+landed.
+
+Between stages the binary fires events, at which the actions the repository declares run.
+
+It holds the guards between stages, so delivery never runs for uncommitted work, work on the default branch or, with
+verification on, unverified work.
+
+It binds the proof a change carries, a verification receipt, to the change's base and exact content.
+
+An unattended attempt is reported done only after that proof is replayed from the base
 ([development lifecycle](docs/features/lifecycle.md), [ADR 0015](docs/adrs/0015-development-lifecycle.md)).
 
 Everything it does in a repository is written in that repository's own files and pinned to one verified release. It
@@ -39,11 +46,11 @@ separates them: facts about programs are pinned and rendered; practices are copi
 - An [ingredient](docs/features/ingredients.md) holds the facts about one program, such as the version control system or
   a coding agent: the contract it fills, the files rendered for it and its floor, the rules about that program that no
   repository policy can remove, such as the arguments that bypass a coding agent's permission checks
-  ([ADR 0011](docs/adrs/0011-safety-invariants.md)). A repository pins it by cookbook, version and sha256, and it acts
-  on every render and every launch.
+  ([ADR 0011](docs/adrs/0011-safety-invariants.md)). A repository pins it by cookbook, version and sha256. It acts on
+  every render and every launch.
 - A [station](docs/features/stations.md) holds what one way of working needs in place: the ingredients to pin, the
   workers and their roles, entries for the profile, the policy and the hooks file, templates, and the recipes to add. A
-  repository applies it once, in one reviewed change, and everything it wrote is the repository's own from then on.
+  repository applies it once, in one reviewed change. Everything it wrote is the repository's own from then on.
 - A [recipe](docs/features/recipes.md) is one kind of change, made many times: its inputs, its requirements, its steps
   and the lanes it requires. A repository writes its own or copies one from a cookbook, with its origin recorded, and
   edits it like any other file. Each run is one pass of one change through the stages: a workspace at start, the steps

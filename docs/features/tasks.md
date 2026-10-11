@@ -196,11 +196,11 @@ actions for its tracker:
 
 ```sh
 ./cook station apply agentic-coding --cookbook github:acme/cookbook@v1.2.0
-./cook workspace create invoice-rounding --task acme-api-7f2   # the start action marks the task in progress
+./cook workspace create invoice-rounding --task acme-api-7f2   # start: the task is marked in progress
 cd .work/workspaces/invoice-rounding
 # edit, test
 ./cook verify --lane unit=invoice --skip e2e="no route, controller or guard changed"
-./cook lifecycle run completed                                # the completed action closes acme-api-7f2
+./cook lifecycle run completed    # refused without a valid receipt; closes the task
 ./cook lifecycle run deliver
 ```
 

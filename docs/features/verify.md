@@ -232,6 +232,7 @@ the-cook verify [--lane <name>=<pattern>]... [--skip <name>=<reason>]... [--full
 | 0 | Passed and the receipt is written; or, with `--check`, the receipt is valid |
 | 1 | Error: a lane rule is not met, unknown lane, invalid `--base`, files changed during verification |
 | 2 | A check failed (lint, validator, build or lane), so no receipt was written; or, with `--check`, no valid receipt |
+| 3 | Blocked: no pinned ingredient fills the version-control contract; `./cook ingredient pin` fills it |
 
 Files read: the profile, the hooks file, the history and the changed files through the version-control ingredient,
 `session.json` in the checkout's state directory. Files written: `verified.json` in the checkout's state directory,

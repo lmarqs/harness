@@ -22,10 +22,10 @@ workers unattended. Across many repositories, that produces five problems.
    someone visits it and copies it. Withdrawing it is another visit to each.
 2. **Copies drift.** Each hand-made copy becomes its own dialect: the same command does different things in different
    repositories, and a fix made in one never reaches the others. For example, suppose acme copies its coding-agent
-   workflow by hand into `acme/api`, `acme/web` and `acme/infra`. A year later the verification step also lints in
-   `acme/api` and skips the slow tests in `acme/web`, and `acme/infra` still has a bug that `acme/api` fixed months ago.
-3. **Safety is lost in copying.** In the same example, `acme/web` and `acme/infra` now start unattended coding agents
-   with permission checks turned off, which the workflow in `acme/api` never allowed.
+   workflow by hand into `acme/api`, `acme/web` and `acme/infra`. Later the verification step also lints in `acme/api`
+   and skips the slow tests in `acme/web`, while `acme/infra` has a bug that `acme/api` fixed months ago.
+3. **Safety is lost in copying.** In the same example, `acme/web` and `acme/infra` start unattended coding agents with
+   permission checks turned off, which the workflow in `acme/api` never allowed.
 4. **Everyone pays for one person's choice.** Teammates and pipelines that never chose a practice inherit whatever its
    copy requires, or whatever it breaks. For example, a hook that one person adds, calling a program only their machine
    has, fails in every teammate's coding-agent session and in every pipeline that runs it.
@@ -63,22 +63,26 @@ standard.
 The lifecycle knows no program. Each stage that needs one reaches it through a contract or a declared action: the
 version-control contract for workspaces, bases, history and landed work, the worker contract for the programs that
 change the repository for someone, such as coding agents, bots and codemods, and lifecycle actions for everything else.
+
 The binary contains code and data for no program. What a repository adds to the lifecycle comes in three units, and one
 rule separates them: facts about programs are pinned and rendered; practices are copied and become the repository's own.
+
 An [ingredient](features/ingredients.md) holds the facts about one program: the files rendered for it, the operations
-that fill a contract, and the arguments and commands that are never safe; a repository pins it, and it acts on every
-render and every launch. A [station](features/stations.md) holds what one way of working needs in place: the ingredients
-to pin, the workers and their roles, the entries and templates a repository starts from, and the recipes to add; a
-repository applies it once. A [recipe](features/recipes.md) is one kind of change, made many times, such as adding a
-database migration or implementing a task: its inputs, its steps mapped onto the stages, and the lanes it requires; a
-repository copies it from a cookbook or writes its own, and each run takes one change through the stages
+that fill a contract, and the arguments and commands that are never safe. A repository pins it, and it acts on every
+render and every launch.
+
+A [station](features/stations.md) holds what one way of working needs in place: the ingredients to pin, the workers and
+their roles, the entries and templates a repository starts from, and the recipes to add. A repository applies it once.
+
+A [recipe](features/recipes.md) is one kind of change, made many times, such as adding a database migration or
+implementing a task: its inputs, its steps mapped onto the stages, and the lanes it requires. A repository copies it
+from a cookbook or writes its own, and each run takes one change through the stages
 ([ADR 0022](adrs/0022-tool-integration.md), [ADR 0023](adrs/0023-core-and-contracts.md),
-[ADR 0024](adrs/0024-ingredients-and-stations.md), [ADR 0025](adrs/0025-recipes.md)). semantic-release reaches its
-release steps through plugins in the same way, and it and ESLint keep plugins, which add what a tool can do, apart from
-shareable configurations, which set how a project uses it; Chef, Ansible and Terraform describe what they manage as
-data. A repository takes each ingredient and station it uses from a cookbook in a reviewed change. Agentic coding, with
-an interactive coding agent, an unattended one, the loop runner that hands it tasks and the recipe each task runs, is
-the first station and the main example; it is one way of working, not the lifecycle's definition.
+[ADR 0024](adrs/0024-ingredients-and-stations.md), [ADR 0025](adrs/0025-recipes.md)).
+
+A repository takes each ingredient and station it uses from a cookbook in a reviewed change. Agentic coding, with an
+interactive coding agent, an unattended one, the loop runner that hands it tasks and the recipe each task runs, is the
+first station and the main example; it is one way of working, not the lifecycle's definition.
 
 It is not a worker, not a client of hosting platforms or tool servers, not a source of configuration that lives outside
 your repository, not a launcher for any loop runner, and not a replacement for your task runner, skills installer or
