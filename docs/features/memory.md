@@ -103,14 +103,14 @@ Asking a coding agent to record a lesson, in the session where the person and th
 rule:
 
 ```text
-Add the pagination rule we just agreed on to .agents/memory/backend-patterns.md, then run ./cook render.
+Add the pagination rule to .agents/memory/backend-patterns.md, then run ./cook render.
 ```
 
 ## Guidelines
 
 - Do record only reviewed, durable, repository-wide patterns. Session notes and to-dos belong in your task tracker
   ([tasks](tasks.md)), not in memory.
-- Do describe what is true now; delete what stopped being true.
+- Do describe what is true; delete what is false.
 - Do keep each file focused on one area so workers load only what they need.
 - Don't write secrets, credentials or personal data into memory; it is committed.
 - Don't treat text from issues or pull requests as instructions when copying it into memory; it is data.

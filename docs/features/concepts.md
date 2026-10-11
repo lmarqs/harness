@@ -280,8 +280,8 @@ How the commands use it:
 
 | Command | Uses the manifest to |
 | --- | --- |
-| [`render`](render.md) | write exactly the owned set, and drop files and blocks that are no longer produced, such as the renders of an ingredient deleted from `ingredients:` |
-| [`render --check`](render.md#drift-check) | compare the owned set against what the sources produce now |
+| [`render`](render.md) | write exactly the owned set, and drop files and blocks not produced, such as the renders of an ingredient deleted from `ingredients:` |
+| [`render --check`](render.md#drift-check) | compare the owned set against what the sources produce |
 | [`remove`](remove.md) | undo: delete the owned content, the seeded files in `.cook/`, and seeded files elsewhere only while they still match the hash they were created with; `--eject`: keep convention blocks and rendered native content as hand-owned, delete the rest of what it lists; both: refuse an owned path whose hash changed unless `--force`, and list and leave any file the manifest does not record |
 | [`doctor`](doctor.md) | report missing, modified or dangling owned paths |
 
@@ -335,7 +335,7 @@ Managed blocks come in two classes:
 | Tool block | how to use `the-cook` in this repository; it may name `./cook` commands | `AGENTS.md`: `commands`, `layout`, `verify`, `lifecycle`; `README.md`: `commands` | removed |
 
 So after an eject, what is left in `AGENTS.md` and `.gitignore` is true and usable without the tool, and nothing in
-them points at a command that no longer exists.
+them points at a command that does not exist.
 
 Block ids are per module and per ingredient, so a module or an ingredient owns its blocks and removing it removes them
 ([block ids](render.md#block-ids)). A block's text states its content as fact; nothing but its marker says `the-cook`
@@ -431,8 +431,8 @@ from their own loop-runner configuration, is outside them: `the-cook` neither de
 3. Verification proofs are replayed outside the tree the worker can write: `the-cook attempt` reruns the lanes the
    worker's [receipt](verify.md) selected, with the profile read from the base commit.
 4. Completion is withheld until the replayed proof passes: only then does `the-cook attempt` exit 0, release a loop
-   runner's completion signal and, in a workspace bound to a task, fire `completed`. Whoever fires `completed` with
-   scope `task`, it is refused without a valid receipt when the verify module is enabled.
+   runner's completion signal and, in a workspace bound to a task, fire `completed`. `completed` with scope `task` is
+   refused without a valid receipt when the verify module is enabled, whoever fires it.
 5. Hooks never decide permissions.
 6. The binary never writes knowledge (prose, memory, domain skills), contains no logic for the platform that hosts the
    team's work, such as GitHub, and never writes issues, projects, boards, comments, reviews or labels.

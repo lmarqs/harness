@@ -187,12 +187,18 @@ applied ([stations](stations.md#stages)).
 | --- | --- | --- | --- |
 | `ingredient` | ingredient name | the worker's name | The ingredient that serves the worker; it must be in `ingredients` and fill the worker contract. Example: `reviewer: { ingredient: claude, role: interactive }` |
 | `role` | `interactive` \| `unattended` | required | `interactive`: people use the worker in this repository; its native files carry the shared policy. `unattended`: the worker runs here only in attempts, started by [`the-cook attempt`](attempts.md#the-attempt-contract), an `attempt` action or a recipe's [`attempt` step](recipes.md#attempt); its native files also carry `unattended.deny`. See [workers](workers.md#roles) |
-| `writable_roots` | list of paths | `[]` | Only for a worker whose ingredient opens sandbox roots (`launch.sandbox_roots`) or whose attempts run in a `jail`. Directories its attempts may write besides the task checkout, relative to the root of the primary checkout. Example: a tracker's database directory in the clone. No other directory is writable in its attempts, the clone's state directory included, because it holds every managed workspace. For a worker with a jail, an entry that contains the version-control metadata or the per-user cache is a validation error |
+| `writable_roots` | list of paths | `[]` | Directories an attempt may write besides the task checkout, relative to the primary checkout root. Only for workers with `launch.sandbox_roots` or a `jail`. See below for rules |
 | `network` | boolean | `false` | Whether the worker's attempts may use the network. `true` passes its ingredient's `launch.network` arguments at every unattended launch, and is a validation error for a worker whose ingredient has none; `false` passes nothing about the network, so the program's default holds, which the ingredient's page in its cookbook explains. See [workers](workers.md#declaring-workers) |
 | `jail.ingredient` | ingredient name | none; required with `jail` | A pinned ingredient that fills the [jail contract](ingredients.md#the-jail-contract): the worker's attempts start inside that jail, and their replay runs in it. Requires a version-control ingredient that fills `metadata`. See [workers](workers.md#jails) |
 | `jail.args` | list of arguments | `[]` | The jail's options this repository chooses, placed before the jail's separator, such as how the worker program's login reaches the jail; a floor bypass argument of the jail is a validation error |
 | `model` | string | none | The model the binary starts the worker with, in attempts and `attempt` actions, passed as its ingredient's `launch.model` says; an action's `attempt.model` overrides it. A worker whose ingredient maps no model ignores it, and `doctor` notes it |
 | `effort` | string | none | The effort level, passed and overridden like `model`, through `launch.effort` and `attempt.effort` |
+
+`writable_roots` rules:
+- Example: a tracker's database directory in the clone.
+- No other directory is writable in attempts; the state directory is excluded because it holds every managed workspace.
+- For a worker with a jail: an entry containing the version-control metadata or the per-user cache is a validation
+  error.
 
 ### `context`
 
@@ -263,7 +269,7 @@ workspaces:
 
 | Field | Type | Default | Holds | Blocks it produces |
 | --- | --- | --- | --- | --- |
-| `state.dir` | path | `.work` | in the primary checkout: `lifecycle.jsonl` and the locks shared by every workspace; in each checkout: `session.json`, `verified.json` (the [receipt](verify.md) of a passing `the-cook verify`), `hook-checks.json`, in a workspace a recipe runs in, `run.json` ([the run record](recipes.md#the-run-record)), and in a checkout an attempt runs in, the record that `bootstrap` ran, `last-attempt-output` and `last-attempt.patch` | `.gitignore` `state` (`/.work/`); named in the `AGENTS.md` `layout` block |
+| `state.dir` | path | `.work` | `lifecycle.jsonl` and locks (primary checkout); `session.json`, `verified.json`, `hook-checks.json`, `run.json`, `last-attempt-output`, `last-attempt.patch` (per checkout). See [verify](verify.md), [recipes](recipes.md#the-run-record) | `.gitignore` `state` (`/.work/`); named in the `AGENTS.md` `layout` block |
 | `workspaces.dir` | path | `.work/workspaces` | each managed workspace, at `<dir>/<name>` | `AGENTS.md` `workspaces` (where workspaces are created, their `work/<name>` branch, that they start from committed code); `.gitignore` `workspaces` (`/.work/workspaces/`) |
 
 Rules for the paths:
@@ -284,7 +290,7 @@ workspaces:
 
 | Field | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `workspaces.update_before_landed` | boolean | `false` | When `true`, `the-cook workspace remove` runs the version-control contract's `update` operation before it detects whether the workspace's branch has [landed](lifecycle.md#landed), so it compares with the shared default line of work as it is, not as the checkout last learned it. When `update` fails, as it does offline, or the version-control ingredient has none, it prints one note and detects against what the checkout knows. See [workspaces](workspaces.md#remove) |
+| `workspaces.update_before_landed` | boolean | `false` | Run the version-control contract's `update` before `workspace remove` detects landed work, so it compares with the shared default line as it is. When `update` fails or is absent, detects against what the checkout knows. See [workspaces](workspaces.md#remove) |
 
 Nothing else in `the-cook` learns what is shared on its own: `the-cook make`, `the-cook workspace create` and
 `the-cook doctor` never run `update`, and [`fleet`](fleet.md#for-each-repository) runs its own. A repository whose work
