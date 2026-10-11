@@ -104,14 +104,15 @@ change to its repository and still takes a newer version of it in one reviewed c
 6. What a recipe can and cannot change about the lifecycle's guards, how a run reads its recipe, how a run a worker
    drives treats its handoffs, and what a failed attempt step leaves, are invariants
    ([0011](0011-safety-invariants.md)).
-7. A run that stops, at a step that fails, at a verification that lacks a lane the repository's lane rules demand, or at
-   a handoff in a run a worker drives, fires the blocked event with the step and the reason
-   ([0015](0015-development-lifecycle.md)) and keeps its working copy. Continued, after a person has inspected or
-   discarded what the step left, it runs the step that stopped again on the tree as it is; abandoning it is removing its
-   working copy. Every run keeps a record in the clone's state: the recipe's content as the run read it and a hash of
-   that content, the inputs, each step's result and the current stage. Continuing a run follows the recipe content in
-   its record. The proof of verification a run writes records the recipe, its hash and its inputs, and the declared
-   actions of its events receive them.
+7. A run that stops fires the blocked event with the step and the reason ([0015](0015-development-lifecycle.md)) and
+   keeps its working copy. It stops at a step that fails, at a verification that lacks a lane the repository's lane
+   rules demand, or at a handoff in a run a worker drives. Continued, after a person has inspected or discarded what the
+   step
+   left, it runs the step that stopped again on the tree as it is. Abandoning it is removing its working copy. Every run
+   keeps a record in the clone's state: the recipe's content as the run read it and a hash of that content, the inputs,
+   each step's result and the current stage. Continuing a run follows the recipe content in its record. The proof of
+   verification a run writes records the recipe, its hash and its inputs, and the declared actions of its events receive
+   them.
 8. A recipe reaches a repository as a copy, made on a person's request, and the copy is the repository's own from then
    on: its team edits it like any of its files, and a run follows the copy as the repository holds it. The copy records
    its origin, the cookbook, version and content hash it came from, and a newer version reaches it through a merge that

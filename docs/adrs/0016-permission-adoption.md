@@ -50,8 +50,9 @@ anything is written.
 5. Invariants and the floor rules of the ingredients in use override imported rules. An imported entry that would weaken
    either is dropped and reported ([0011](0011-safety-invariants.md)).
 6. Before writing anything, adoption renders the imported sources and compares the effective rule set of each worker
-   with the set in effect before adoption. Every project-scope rule must still be in effect; otherwise adoption writes
-   nothing and names the rule. A preview shows the generated sources and the equivalence report without writing.
+   with the set in effect before adoption. Every project-scope rule must still be in effect, except those dropped under
+   point 5; otherwise adoption writes nothing and names the rule. A preview shows the generated sources and the
+   equivalence report without writing.
 7. Settings that are not permission rules are reported and left where they are.
 
 ## Reasons

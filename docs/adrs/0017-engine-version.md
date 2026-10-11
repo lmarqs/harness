@@ -144,14 +144,14 @@ first command works with nothing installed beforehand.
 - **13.** A binary cannot carry its own checksums, so an adoption that cannot reach the release source cannot verify
   them. Refusing such an adoption would block it on every machine that is offline or reaches neither the release host
   nor a mirror, although nothing else in adoption needs the network. A pending pin defers the verification without
-  skipping it. No download happens against it, so it fails closed: its cost is availability on machines that lack the
-  release, never an unverified binary. A release already in the cache was verified against a committed checksum when it
-  was downloaded (point 4), so running it under a pending pin trusts nothing new. Writing a pending pin only on request
-  keeps a network failure from producing, unnoticed, a pin that other machines cannot use. Completing it through the
-  upgrade operation keeps one operation that writes checksums, so every committed checksum is one a trusted binary
+  skipping it; no download happens against it, so it fails closed with its cost being availability on machines that lack
+  the release, never an unverified binary. A release already in the cache was verified against a committed checksum when
+  it was downloaded (point 4), so running it under a pending pin trusts nothing new. Writing a pending pin only on
+  request keeps a network failure from producing, unnoticed, a pin that other machines cannot use. Completing it through
+  the upgrade operation keeps one operation that writes checksums. Every committed checksum is then one a trusted binary
   verified ([0021](0021-release-trust.md)). A global installation runs that operation itself because deferring to a
-  release nobody can obtain would leave the pin with no way to be completed; the binary that runs it is one the person
-  already trusts, and it verifies the release with its embedded keys before writing. An upgrade never pends, because the
+  release nobody can obtain would leave the pin with no way to be completed. The binary that runs it is one the person
+  already trusts, and it verifies the release with its embedded keys before writing. An upgrade never pends because the
   repository keeps its verified pin while it waits for the network. Reporting a pending pin as a finding lets a pipeline
   that runs the health check stop a pin that other machines cannot use.
 

@@ -9,7 +9,7 @@ other kind outside them. Delivery mistakes leave the clone and are hard to undo,
 is told.
 
 **Goal.** Each step runs the same way whoever starts it and whatever program does the work, delivery never publishes
-work that is not ready, and a stopped run reaches a person.
+work that is not ready, and a stopped run can reach a person through an event.
 
 ## Context
 
@@ -100,17 +100,22 @@ work that is not ready, and a stopped run reaches a person.
    ([0013](0013-organization-content.md), [0024](0024-ingredients-and-stations.md)).
 8. Every event can be triggered by a person, by a coordinating worker or by a script, or automatically at a trigger
    point of the binary's own work, and every trigger runs the same declared actions under the same guards. Automatic
-   triggering applies only to actions that opt in to it. The trigger points are: creating a working copy fires work
-   started, at the scope of a task when the copy is bound to one and of a change otherwise; a verification run fires
-   work verified; a verified attempt in a working copy bound to a task fires work completed and then, when the work is
-   concluded, ready for delivery, both at the scope of that task, and fires nothing in a working copy bound to no task;
-   removing a working copy fires work landed once for each recorded branch whose changes are on the shared default line
-   of work; a recipe run fires work started when it creates its working copy and work verified when it verifies, as
-   those steps do, and, once its proof is replayed, what a verified attempt fires, at the same scopes, and it fires
-   blocked when a step stops it; delivery across several repositories fires ready for delivery at the scope of a change
-   in each; a command run without a terminal that stops for a person fires blocked, except a recipe run, for which the
-   caller's declaration of who drives it takes the place of the terminal ([0025](0025-recipes.md)). Nothing in the
-   binary fires an event at the scope of an unattended run; its caller does.
+   triggering applies only to actions that opt in to it. The automatic trigger points are:
+   - Creating a working copy fires work started, at the scope of a task when the copy is bound to one and of a change
+     otherwise.
+   - A verification run fires work verified.
+   - A verified attempt in a working copy bound to a task fires work completed and then, when the work is concluded,
+     ready for delivery, both at the scope of that task, and fires nothing in a working copy bound to no task.
+   - Removing a working copy fires work landed once for each recorded branch whose changes are on the shared default
+     line of work.
+   - A recipe run fires work started when it creates its working copy and work verified when it verifies, as those
+     steps do, and, once its proof is replayed, what a verified attempt fires, at the same scopes, and it fires blocked
+     when a step stops it.
+   - Delivery across several repositories fires ready for delivery at the scope of a change in each.
+   - A command run without a terminal that stops for a person fires blocked, except a recipe run, for which the
+     caller's declaration of who drives it takes the place of the terminal ([0025](0025-recipes.md)).
+
+   Nothing in the binary fires an event at the scope of an unattended run; its caller does.
 9. Event data reaches actions only through environment variables the binary sets for each run
    ([0019](0019-action-kinds.md)).
 10. Actions never run inside an attempt. The binary fires events in its own process after the worker exits, and a

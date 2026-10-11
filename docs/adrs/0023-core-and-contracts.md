@@ -23,7 +23,7 @@ reached through an interface the rules declare.
   the arguments that start it unattended, the arguments that would bypass its checks, the arguments that let it use the
   network, and the fields of its hook payload. From a jail that confines a worker's attempts: how to start it around a
   command, share a directory, pass a variable and open the network ([0027](0027-worker-jails.md)). From any other
-  program: run this and tell me the exit status.
+  program: its exit status.
 - A program's answers arrive as a string, lines, bytes or an exit status (Context of
   [0022](0022-tool-integration.md)). Writing in a program's format and reading structured output can be described as
   data; parsing a program's free text in general cannot.

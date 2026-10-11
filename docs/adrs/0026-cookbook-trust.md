@@ -63,20 +63,19 @@ recipe enters a repository only as the bytes its cookbook published, through a r
 - **1.** An ingredient's commands run with the person's credentials, as a release's do, and a station's entries become
   the repository's own commands and rules (Context), so the bytes of both need the same guarantee: what acts is exactly
   what someone pinned. A release key vouches only for the release's publisher, and the author of an ingredient or a
-  station is someone else, whose key no binary can carry (Context), so trust in them is built in three steps. At pin
-  time, the cookbook's checksum file over HTTPS is what ties the downloaded bytes to what the cookbook published; HTTPS
+  station is someone else, whose key no binary can carry (Context). Trust in them is built in three steps. First, at pin
+  time, the cookbook's checksum file over HTTPS ties the downloaded bytes to what the cookbook published. HTTPS
   authenticates only the host (Context), so this step alone is the model [0021](0021-release-trust.md) rejects for
-  releases, checksums recorded by whoever upgrades. The second step closes most of that gap: the pins enter the
-  repository only through a reviewed diff, and an ingredient or a station is data a reviewer can read in full before
-  approving it (Context), which a compiled release does not allow. An ingredient a station lists takes its hash from a
-  station the checksum file verified, and its pin appears in the same diff for the same review. After that, the hash
-  the reviewed change committed is the root, and verifying it on every load catches a cached copy changed after it was
-  fetched (Context). Fetching only on a person's command makes the moment of trust a moment a person acts: a fetch
-  during a hook or an attempt would let whoever controls the source change what a worker runs while nobody watches
-  (Context). The wrapper stays a shell script that knows only the release ([0021](0021-release-trust.md)). The trade:
-  an ingredient or a station compromised at its source before someone pinned it passes every check, and because none
-  comes from the release ([0022](0022-tool-integration.md)), the floor of every program is only as good as the review
-  of its pin.
+  releases. Second, the pins enter the repository only through a reviewed diff, and an ingredient or a station is data a
+  reviewer can read in full before approving it (Context), which a compiled release does not allow. An ingredient a
+  station lists takes its hash from a station the checksum file verified, and its pin appears in the same diff for the
+  same review. Third, after that, the hash the reviewed change committed is the root, and verifying it on every load
+  catches a cached copy changed after it was fetched (Context). Fetching only on a person's command makes the moment of
+  trust a moment a person acts: a fetch during a hook or an attempt would let whoever controls the source change what a
+  worker runs while nobody watches (Context). The wrapper stays a shell script that knows only the release
+  ([0021](0021-release-trust.md)). The trade: an ingredient or a station compromised at its source before someone pinned
+  it passes every check, and because none comes from the release ([0022](0022-tool-integration.md)), the floor of every
+  program is only as good as the review of its pin.
 - **2.** A recipe's steps run with the person's credentials (Context), so the bytes that enter the repository need the
   guarantee of point 1 at that moment: the cookbook's checksum file ties them to what the cookbook published. A recipe a
   station adds takes its hash from the station, whose own bytes are verified as point 1 decides, as an ingredient a

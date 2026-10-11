@@ -108,11 +108,11 @@ shell text, and no value written by people or workers runs as a command or instr
   the contract that bounds an attempt action ([0011](0011-safety-invariants.md)), so a guard proven for one holds for
   the other. A command action is shell text a repository writes around values people and workers wrote, which is why
   values reach it only as environment values (point 3). A command step has no shell to expand an environment value
-  inside one of its arguments, so the binary places each input into the elements itself: an element passed with no shell
+  inside one of its arguments, so the binary places each input into the elements itself. An element passed with no shell
   is one argument whatever it holds, and the input matched its type before the run started (Context). A template carries
-  a file of the recipe into the change being made and renders it from the recipe's inputs; an action has neither a
+  a file of the recipe into the change being made and renders it from the recipe's inputs. An action has neither a
   recipe to carry the file nor inputs to render it, and a command already writes any file an action needs. A pause needs
-  someone to continue it and a record to continue from. A recipe run has both, while an event's actions run to their end
+  someone to continue it and a record to continue from; a recipe run has both, while an event's actions run to their end
   each time it fires, often with nobody attending, and a stop that needs a person is already the blocked event
   ([0015](0015-development-lifecycle.md)). An HTTP request changes nothing in the repository: calling a service belongs
   to the events of a change, through the repository's declared actions, which a recipe never declares (Context). The

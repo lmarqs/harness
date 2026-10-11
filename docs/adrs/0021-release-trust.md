@@ -6,7 +6,8 @@
 person's credentials, on every machine and in every repository that pins it. A release compromised before anyone
 recorded its checksum, or replaced on the download host, would run everywhere, and checksums alone cannot tell.
 
-**Goal.** Only releases their publisher signed run, on every machine, whoever recorded the pin.
+**Goal.** Only releases their publisher signed are admitted to a repository's pin, and only pinned releases run
+unmodified.
 
 ## Context
 

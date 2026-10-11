@@ -87,14 +87,21 @@ while the binary's own work and its guards stay outside the confinement and out 
    documentation states for its program: the jail passes the standard streams through unchanged, exits with the
    confined command's exit status, and gives a read share inside its working directory precedence over the working
    directory.
-3. The binary composes the jailed launch itself, in a fixed order: the jail's launch; the working-directory share,
-   with the attempt's working copy; the write shares; the read shares, the version control metadata first and the
-   per-user cache after it; one variable after another; the jail's network arguments, when the worker's attempts may
-   use the network; the repository's options for the jail; the separator; then the worker's launch exactly as it is
-   without a jail, its own network arguments included. It starts the jail with the attempt's working copy as its
-   working directory, and never passes the working copy as a write share. It refuses the floor bypass arguments of both
-   ingredients wherever they appear in the whole launch: a bypass argument of the jail among the repository's options
-   fails validation, and any other is refused at launch, named.
+3. The binary composes the jailed launch itself, in a fixed order:
+   1. the jail's launch;
+   2. the working-directory share, with the attempt's working copy;
+   3. the write shares;
+   4. the read shares, the version control metadata first and the per-user cache after it;
+   5. one variable after another;
+   6. the jail's network arguments, when the worker's attempts may use the network;
+   7. the repository's options for the jail;
+   8. the separator;
+   9. the worker's launch exactly as it is without a jail, its own network arguments included.
+
+   It starts the jail with the attempt's working copy as its working directory, and never passes the working copy as a
+   write share. It refuses the floor bypass arguments of both ingredients wherever they appear in the whole launch: a
+   bypass argument of the jail among the repository's options fails validation, and any other is refused at launch,
+   named.
 4. The working copy is the jail's working directory, shared read-write. The write shares are the directories the worker
    declaration lists as writable, and nothing else: the clone's state directory is in no worker's writable set. The
    read shares are the paths of the working copy's version control metadata and the per-user cache. The binary never
@@ -171,10 +178,10 @@ while the binary's own work and its guards stay outside the confinement and out 
   no more. A recipe run's later steps run on the worker's edits too. The bootstrap runs on the base, before the worker
   wrote anything. The binary's own work needs what the jail withholds, the metadata writable, the person's credentials
   for delivery and the network, and runs no code the worker wrote, except where the version control program runs code
-  its configuration names (Context), which the operation turns off where the program allows. The trade: lanes run in
-  the jail's environment, which may lack a variable or a service a lane needs, such as a database on the host's
-  loopback address (Context), and a lifecycle action that runs a command the working copy defines runs code the worker
-  wrote, outside the jail.
+  its configuration names (Context), which the version control operation turns off where the program allows. The trade:
+  lanes run in the jail's environment, which may lack a variable or a service a lane needs, such as a database on the
+  host's loopback address (Context), and a lifecycle action that runs a command the working copy defines runs code the
+  worker wrote, outside the jail.
 - **6.** Where the metadata lives is a fact of the version control system and of the working copy's layout, and it is
   not one place in every layout (Context), so the version control ingredient answers it, as the contract answers every
   question about history ([0023](0023-core-and-contracts.md)). It is optional because only a jail needs it: a
