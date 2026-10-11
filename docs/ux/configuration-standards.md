@@ -308,7 +308,7 @@ a worker understands is expressible, in one of three forms, because a rule the p
 | Form | Example | Renders as |
 | --- | --- | --- |
 | Prefix list (a nested list gives alternatives for one word) | `[git, push]`, `[make, [lint, test]]` | a shell-command prefix for every worker whose ingredient renders permissions, in the form that ingredient renders |
-| Native rule string: a string that matches a native rule pattern of a declared worker's ingredient | `WebFetch(domain:example.com)`, `Read(./secrets/**)`, `mcp__acme-observability__get_*`, for a worker whose ingredient declares patterns for its program's tool rules | for each worker whose ingredient has a pattern the string matches, verbatim or converted into the program's own form, as the ingredient's renders say; for no other worker |
+| Native rule string: a string that matches a native rule pattern of a declared worker's ingredient | `WebFetch(domain:example.com)`, `Read(./secrets/**)`, `mcp__acme_observability__get_*`, for a worker whose ingredient declares patterns for its program's tool rules | for each worker whose ingredient has a pattern the string matches, verbatim or converted into the program's own form, as the ingredient's renders say; for no other worker |
 | Bare string: a string that matches no native rule pattern of any declared worker's ingredient | `"./deploy.sh *--force*"` | a whole-command glob rule, for each worker whose program matches whole shell commands by glob, as its ingredient's renders say; for no other worker |
 
 - An entry that names a `the-cook` command is written once with the program name, `[the-cook, lifecycle, run, deliver]`,
