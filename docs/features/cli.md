@@ -23,6 +23,9 @@ In an adopted repository every command runs through the committed [wrapper](wrap
 which runs the release the repository pins; with a global install, `the-cook <command>` is equivalent. Synopses on this
 page use `the-cook`.
 
+**Quick reference:** [Synopsis](#synopsis) · [Global flags](#global-flags) · [Exit codes](#exit-codes) ·
+[Commands](#commands) · [Environment variables](#environment-variables)
+
 ## Synopsis
 
 ```text
