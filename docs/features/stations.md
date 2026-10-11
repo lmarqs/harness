@@ -298,9 +298,9 @@ with stand-in ingredients that describe no real program.
 
 To publish a tag, build the ingredient and recipe archives first, because each station lists the sha256 of the
 ingredients it uses, usually from the same tag, and of the recipes it adds, always from the same tag; then the station
-archives; then `checksums.txt`, with every archive of the tag. Upload
-them all under the tag. A new version is a new tag; an archive already published under a tag is never replaced,
-because every repository that pinned it would then refuse it ([fetching](ingredients.md#fetching)).
+archives; then `checksums.txt`, with every archive of the tag. Upload them all under the tag. A new version is a new
+tag; an archive already published under a tag is never replaced, because every repository that pinned it would then
+refuse it ([fetching](ingredients.md#fetching)).
 
 ## Reference
 
