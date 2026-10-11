@@ -214,7 +214,7 @@ Allowed:
 - `mcp__acme_observability__search_*` (*not enforced in codex*)
 
 Denied to unattended runs, in addition:
-- `git am|cherry-pick|commit|merge|push|rebase|reset|stash|tag|update-ref|workspace`
+- `git am|cherry-pick|commit|merge|push|rebase|reset|stash|tag|update-ref|worktree`
 - `git -C`, `git -c`
 - `gh`
 <!-- /cook:policy -->

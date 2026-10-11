@@ -110,10 +110,11 @@ trust, configuration and tracker database.
   refuses a locked workspace;
 - keeps the branch `work/<name>`;
 - fires the `landed` [lifecycle event](lifecycle.md) when the version-control ingredient finds every patch of
-  `work/<name>` on the default branch, after its own checks pass and before it removes the workspace, so automatic
-  `landed` actions run in it. Each recorded branch fires `landed` at most once successfully; a failed `landed` is
-  re-fired manually with `the-cook lifecycle run landed`. A failing action is reported on stderr and recorded in the
-  [lifecycle log](lifecycle.md#the-lifecycle-log). The exit code is the removal's.
+  `work/<name>` on the default branch, after its own checks pass and before it removes the workspace; automatic `landed`
+  actions run in the primary checkout, or an `attempt` action in a fresh workspace
+  ([environment](lifecycle.md#environment)). Each recorded branch fires `landed` at most once successfully; a failed
+  `landed` is re-fired manually with `the-cook lifecycle run landed`. A failing action is reported on stderr and
+  recorded in the [lifecycle log](lifecycle.md#the-lifecycle-log). The exit code is the removal's.
 
 `the-cook doctor` lists managed workspaces whose branch has landed and prints the `the-cook workspace remove` command
 for each; it never fires `landed` itself.
