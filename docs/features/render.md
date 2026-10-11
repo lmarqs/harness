@@ -45,6 +45,9 @@ global install, `the-cook <command>` is equivalent.
 | You want CI or a reviewer to confirm rendered files match their sources | `./cook render --check` |
 | You want to see what would change | `./cook render --dry-run` |
 
+**Quick reference:** [Signature and exit codes](#reference) · [What render writes](#what-render-writes) ·
+[Block ids](#block-ids)
+
 ## How it works
 
 1. Read the repository files and validate them against the schema. Resolve every ingredient `ingredients:` pins from the
@@ -300,9 +303,9 @@ Global flags `-C <dir>`, `--yes` and `--verbose` also apply; see [CLI reference]
 | Exit code | Meaning |
 | --- | --- |
 | 0 | Rendered, or `--check` found no drift |
-| 1 | Error: invalid repository file; `vcs:` or `workers.<name>.ingredient` naming an ingredient `ingredients:` does not pin; a worker whose ingredient fills no worker contract; two entries with the same name in `ingredients:` or in `stations:`; a cached ingredient whose content does not match its `sha256` |
+| 1 | Error: invalid repository file; `vcs:` or `workers.<name>.ingredient` naming an ingredient `ingredients:` does not pin; a worker whose ingredient fills no worker contract; two entries with the same name in `ingredients:` or in `stations:`; or a cached ingredient whose content does not match its `sha256` |
 | 2 | `--check` found drift |
-| 3 | Repository schema is newer than the running release; a migration needs confirmation without a terminal; a pinned ingredient is not cached (`./cook fetch`); a render needs a contract no pinned ingredient fills (`./cook ingredient pin`) |
+| 3 | Repository schema is newer than the running release; a migration needs confirmation without a terminal; a pinned ingredient is not cached (`./cook fetch`); or a render needs a contract no pinned ingredient fills (`./cook ingredient pin`) |
 
 Files read: `.cook/config.yaml`, `.cook/policy.yaml`, `.cook/hooks.yaml`, `.cook/wrapper.yaml`,
 `.cook/manifest.json`, the native files listed above, `cook`, `AGENTS.md`, `README.md`, the workers' instruction files

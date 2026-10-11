@@ -44,6 +44,8 @@ global install, `the-cook <command>` is equivalent.
 - Something behaves unexpectedly: `explain pitfalls`.
 - You are offline and need the reference for the pinned release: the text is embedded in the binary.
 
+**Quick reference:** [Signature and exit codes](#reference) · [Topics](#topics)
+
 ## How it works
 
 The text is embedded in the binary and matches its version. Through `./cook`, that binary is the release the
@@ -65,9 +67,9 @@ Markdown on stdout.
 | `attempt` | `the-cook attempt`: the attempt contract and its tamper check, rules read from the base commit, the replay, `--commit` and `--withhold`, its exit codes, how a loop runner names it, or `the-cook make <recipe> --task <id> --unattended`, as the command it runs for each task, a recipe's `attempt` step, who fires the events of a run |
 | `invariants` | the invariants built into the binary, the floor rules they apply from ingredients, and why none can be turned off |
 | `blocks` | managed blocks, their markers, the per-module and per-ingredient ids, convention blocks and tool blocks, the `AGENTS.md` budget, the editing rules |
-| `ingredients` | ingredients and their parts (operations, renders, floor, checks), the version-control, worker and jail contracts, floor rules, the pin of each declared ingredient (cookbook, version, sha256), how pinning is trusted and reviewed, fetching and the cache, what a command does when no ingredient fills a contract or an ingredient is not cached, `the-cook ingredient pin`, `list` and `show`, `the-cook fetch` |
+| `ingredients` | ingredients and their parts (operations, renders, floor, checks); the version-control, worker and jail contracts; floor rules; the pin of each declared ingredient (cookbook, version, sha256); how pinning is trusted and reviewed; fetching and the cache; what a command does when a contract is unfilled or an ingredient is not cached; `the-cook ingredient pin`, `list`, `show`; `the-cook fetch` |
 | `stations` | stations and their parts (ingredients, stages, entries, templates, the recipes a station adds, detect rule), cookbooks, applying a station once, the merge rules and why applying only adds, applying a newer version, `stations:` in the profile, `the-cook station apply`, `list` and `show` |
-| `recipes` | recipes as one kind of change made many times: the recipe file and its `origin`, inputs and their types, `requires`, the stages a recipe maps (workspace, steps, required lanes), the step kinds `run`, `template`, `attempt` and `handoff`, the guards and why a recipe can only add, attended and unattended runs, the run record `run.json`, stopping and continuing a run, `the-cook make`, `the-cook recipe add`, `update`, `create`, `list` and `show` |
+| `recipes` | recipes as one kind of change made many times: the recipe file and its `origin`; inputs and their types; `requires`; the stages a recipe maps (workspace, steps, required lanes); step kinds (`run`, `template`, `attempt`, `handoff`); the guards and why a recipe can only add; attended and unattended runs; the run record `run.json`; stopping and continuing a run; `the-cook make`, `the-cook recipe add`, `update`, `create`, `list`, `show` |
 | `wrapper` | `cook`, `.cook/wrapper.yaml` as the only pin, the cache, checksum and signature verification, `--no-download`, global-install deferral, upgrades, air-gapped machines |
 | `safety` | the threat model, the layers of defence, how to place a policy entry, unattended runs, actions as code, secrets, attempt actions and prompt injection |
 | `pitfalls` | known pitfalls, gaps and traps, each with its symptom, cause and what to do |

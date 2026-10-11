@@ -53,6 +53,9 @@ Examples on this page run commands as `./cook <command>`; with a
 | A network that reaches only an internal mirror | `source` set to the mirror's base URL: see [Release source](#release-source) |
 | CI | nothing; or the opt-in `./cook render --check`: see [CI](#ci) |
 
+**Quick reference:** [wrapper.yaml](#cookwrapperyaml) · [cook script](#cook) ·
+[Environment variables](#environment-variables) · [the-cook wrapper](#the-cook-wrapper)
+
 ## How it works
 
 Every invocation follows the same steps:
@@ -118,7 +121,7 @@ A global `the-cook` (one on your PATH) looks for `.cook/wrapper.yaml` in the rep
 | --- | --- |
 | A repository whose `wrapper.yaml` pins its own version | runs itself |
 | A repository whose `wrapper.yaml` pins another version | execs the pinned release from the cache; when it is not cached, downloads it through the same verified path if the command was typed, and never from a hook |
-| A repository whose `wrapper.yaml` pin of another version is [pending](#a-pending-pin) | execs the pinned release from the cache; when it is not cached, runs `the-cook wrapper` itself, which completes the pin, and exits 3 naming that command for anything else |
+| A repository whose `wrapper.yaml` pin of another version is [pending](#a-pending-pin) | execs the pinned release from the cache; when it is not cached, runs `the-cook wrapper` itself to complete the pin, and exits 3 for anything else |
 | Anywhere else | runs itself |
 
 A global install is a convenience and never causes version skew, because within one repository every machine runs the
@@ -217,7 +220,7 @@ A pending pin never admits a download, because there is nothing to verify one ag
 | `./cook <command>` | runs it | exit 3: `the-cook: pin of v0.9.0 is pending, nothing downloaded; with network access, run: the-cook wrapper --version v0.9.0` |
 | Worker hooks | run it | skip, as for [an uncached release](#which-entry-points-download) |
 | A global `the-cook` of the pinned version | runs itself | runs itself |
-| A global `the-cook` of another version | runs the cached release | runs `the-cook wrapper` itself, so it can complete the pin; any other command exits 3 with the message in the first row |
+| A global `the-cook` of another version | runs the cached release | runs `the-cook wrapper` itself to complete the pin; any other command exits 3 with the message in the first row |
 
 A cached release was checked against a committed checksum when it was downloaded, so running it under a pending pin
 trusts nothing new.
@@ -361,8 +364,8 @@ git diff                                   # the pin, cook, the shipped skill, m
 git add -A && git commit -m "chore: run the-cook v0.9.0"
 ```
 
-The release the repository pins now is the one that verifies the next release's signed checksum file, so an upgrade
-can only move to a release signed with a key the current release trusts.
+The pinned release is the one that verifies the next release's signed checksum file, so an upgrade can only move to
+a release signed with a key the pinned release trusts.
 
 Rendered output depends on the sources and on the release that renders them, and never records the release; only
 `wrapper.yaml` names it. That is why the upgrade renders the repository with the new release inside the same change:
@@ -480,8 +483,8 @@ install -m 0755 ./the-cook "$dir/the-cook"
 | `the-cook: no curl or wget`, exit 3 | Neither downloader is on PATH | Install one, or use an [air-gapped setup](#air-gapped-machines) |
 | `the-cook: no sha256sum or shasum`, exit 3 | Neither checksum tool is on PATH | Install one: `sha256sum` comes with GNU coreutils, `shasum` with macOS |
 | The first run fails offline | The pinned release is not cached and the source is unreachable | Connect once and run `./cook version`, or pre-fill the cache |
-| `the-cook: pin of v0.9.0 is pending, nothing downloaded`, exit 3 | The repository was scaffolded with `--offline` and the pin was never completed | With network access and an installed `the-cook`: `the-cook wrapper --version v0.9.0`, then commit `.cook/wrapper.yaml` and the manifest |
-| `doctor` finding: the pin is pending | `.cook/wrapper.yaml` has `checksums: pending` | The same: `the-cook wrapper --version <the pinned tag>` with network access |
+| `the-cook: pin of v0.9.0 is pending, nothing downloaded`, exit 3 | The repository was scaffolded with `--offline` ([a pending pin](#a-pending-pin)) | With network access and an installed `the-cook`: `the-cook wrapper --version v0.9.0`, then commit `.cook/wrapper.yaml` and the manifest |
+| `doctor` finding: the pin is pending | `.cook/wrapper.yaml` has `checksums: pending` ([a pending pin](#a-pending-pin)) | `the-cook wrapper --version <the pinned tag>` with network access |
 | A worker session shows `the-cook: v0.9.0 not downloaded, hook skipped; run: ./cook version` | Hooks never download, and nothing has run `./cook` on this machine since the pin changed | Run `./cook version` once |
 | `./cook: Permission denied` | The executable bit was lost | `chmod +x cook`, then commit the mode with `git add --chmod=+x cook` |
 | `the-cook: unsupported platform`, exit 1 | The machine is not linux or macOS on amd64 or arm64 | Run on a supported platform |

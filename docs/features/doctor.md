@@ -33,6 +33,9 @@ global install, `the-cook <command>` is equivalent.
 - In CI, optionally, next to `the-cook render --check`.
 - Across many repositories with [`the-cook fleet doctor`](fleet.md).
 
+**Quick reference:** [Signature and exit codes](#reference) · [JSON output](#json-output) ·
+[Landed branches](#landed-branches)
+
 ## How it works
 
 `doctor` runs every check below and prints one line per finding, grouped by check, followed by any notes.
@@ -40,18 +43,18 @@ global install, `the-cook <command>` is equivalent.
 | Check | Finds |
 | --- | --- |
 | Repository files | `.cook/config.yaml`, `.cook/policy.yaml` or `.cook/hooks.yaml` missing, invalid, or with an unsupported `schema` |
-| Wrapper file | `.cook/wrapper.yaml` missing or invalid: no `schema`, a `version` that is not an exact tag, a `source` that is neither `github:<owner>/<repo>` nor an HTTPS base URL ([release source](wrapper.md#release-source)), or a checksum missing or not 64 hexadecimal characters for one of `linux-amd64`, `linux-arm64`, `darwin-amd64`, `darwin-arm64`. `checksums: pending` is valid and reported as the next row |
+| Wrapper file | `.cook/wrapper.yaml` missing or invalid: no `schema`; a `version` that is not an exact tag; a `source` that is neither `github:<owner>/<repo>` nor an HTTPS base URL ([release source](wrapper.md#release-source)); or a checksum missing or not 64 hexadecimal characters for one of `linux-amd64`, `linux-arm64`, `darwin-amd64`, `darwin-arm64`. `checksums: pending` is valid and reported as the next row |
 | Pending pin | `.cook/wrapper.yaml` has `checksums: pending`, written by `scaffold --offline`: no machine without the release in its cache can run `./cook` until `the-cook wrapper --version <the pinned tag>` completes it ([wrapper](wrapper.md#a-pending-pin)) |
 | Wrapper script | `cook` missing, not executable, or different from the pinned release's template |
 | Release signature | online only, at most once a day and cached: the pinned release's signed checksum file does not verify with the keys embedded in the running release, or its checksums differ from those in `.cook/wrapper.yaml` ([wrapper](wrapper.md#security)); a pending pin has none to compare and is reported as pending |
 | Cached release | the pinned release is not in `$COOK_HOME` on this machine and `COOK_BINARY` is unset, so worker hooks skip until `./cook version` runs |
 | Rendered files | the same drift `the-cook render --check` reports |
-| Manifest | owned paths missing, modified by hand, or present but no longer produced |
+| Manifest | owned paths missing, modified by hand, or present but not produced by the current configuration |
 | Links | skill links that do not resolve |
-| Contracts | a [contract](ingredients.md#contracts) no pinned ingredient fills, with the commands unavailable because of it: without a version-control ingredient, workspaces, `verify`, `attempt`, `lifecycle run` and landed branches exit 3; without a declared worker, and so without a worker ingredient, `attempt`, `attempt` actions and worker hooks are unavailable. Reported as the [unfilled contract](scaffold.md#the-to-do) to-do item, with `the-cook station apply` and `the-cook ingredient pin` as the fixes |
-| Cookbook cache | `ingredients:` pins an [ingredient](ingredients.md#fetching) that is not in the user's cache on this machine, so `render` and attempts exit 3 and hooks skip until `./cook fetch` runs; the version an added recipe came from, as its `origin` names it, is not cached, so `recipe update` has to download it; or a cached ingredient, station or recipe whose content does not match its `sha256` |
+| Contracts | a [contract](ingredients.md#contracts) no pinned ingredient fills, with the commands unavailable because of it. Reported as the [unfilled contract](scaffold.md#the-to-do) to-do item, with `the-cook station apply` and `the-cook ingredient pin` as the fixes. Without a version-control ingredient: workspaces, `verify`, `attempt`, `lifecycle run` and landed branches exit 3. Without a declared worker, and so without a worker ingredient: `attempt`, `attempt` actions and worker hooks are unavailable |
+| Cookbook cache | an ingredient pinned in `ingredients:` that is not in the user's cache on this machine, so `render` and attempts exit 3 and hooks skip until `./cook fetch` runs; the version an added recipe came from, as its `origin` names it, is not cached, so `recipe update` has to download it; or a cached ingredient, station or recipe whose content does not match its `sha256` |
 | Workers | a worker with `role: unattended` whose ingredient passes `unattended.deny` neither at launch nor through rendered rules, so every attempt of it exits 3 ([worker contract](ingredients.md#the-worker-contract)) |
-| Recipes | for each recipe in `.cook/recipes/`: a `recipe.yaml` that is invalid, has an unsupported `schema`, a name that differs from its directory, an input named like a flag of `make`, or a file that holds a conflict marker `recipe update` left, so `make` refuses it; a contract, role or lane its `requires` names that the repository lacks, or an `attempt` step whose worker is not declared with role `unattended`, so every run of it exits 3 ([recipes](recipes.md#the-recipe-file)) |
+| Recipes | for each recipe in `.cook/recipes/`: a `recipe.yaml` that is invalid (unsupported `schema`; name differs from directory; input named like a flag of `make`; conflict marker `recipe update` left), so `make` refuses it; a contract, role or lane its `requires` names that the repository lacks; or an `attempt` step whose worker is not declared with role `unattended`, so every run exits 3 ([recipes](recipes.md#the-recipe-file)) |
 | Programs | a program that a pinned ingredient, a declared command, an action or a recipe's `run` step names and that is not on `PATH`: the version-control ingredient's program, each worker's program, the program of each worker's jail, `commands`, lane `select`/`full`, `bootstrap`, validator and post-edit commands, lifecycle `run` actions, and the program each recipe's `run` steps start. The check needs no knowledge of the program ([ADR 0022](../adrs/0022-tool-integration.md)) |
 | Globs | `verify.app_paths`, `verify.lint_paths`, lane `required_when`, validator `when` and post-edit `paths` that match no tracked file |
 | Default branch | the version-control ingredient reports no default branch, so a floor rule that names the default branch, such as a deny of a force push to it, cannot name the branch |

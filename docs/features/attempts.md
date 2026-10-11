@@ -69,6 +69,9 @@ Prerequisites:
 `the-cook doctor` checks the version of each program an ingredient in use describes, the version control program and
 the workers included, against that ingredient's supported range. A loop runner is the team's to install and update.
 
+**Quick reference:** [Signature and exit codes](#the-cook-attempt) · [Argument passing](#argument-passing) ·
+[Environment variables](#environment) · [Files](#files)
+
 ## How it works
 
 ### The attempt contract
@@ -351,8 +354,8 @@ A bypass argument the worker's ingredient marks as floor is refused anywhere in 
 | Exit code | Meaning |
 | --- | --- |
 | 0 | The attempt was verified: the replay passed, the work was committed with `--commit`, and the output was printed |
-| 1 | Refused (uncommitted changes, a floor bypass argument of the worker's ingredient or of its jail's, a worker with a jail that fails validation ([jails](workers.md#jails)), a worker declared with `role: interactive` whose ingredient passes `unattended.deny` only through rendered rules, a cached ingredient whose hash does not match its pin), or a failed attempt (a base that cannot be read, a tamper-check difference, a missing or malformed receipt, a failing replay). The output was printed without the `--withhold` text |
-| 3 | A prerequisite is missing: the worker's program, the version-control ingredient's program, the program of the worker's jail, a pinned ingredient, the jail's included, that is not in the cache (the message names `./cook fetch`), a version-control contract no pinned ingredient fills (the message names `./cook ingredient pin`), or a worker whose ingredient can deliver `unattended.deny` in neither way (the message names that gap). Without a terminal this fires `blocked` |
+| 1 | Refused: uncommitted changes; a floor bypass argument of the worker's ingredient or its jail's; a worker with a jail that fails validation ([jails](workers.md#jails)); a worker declared with `role: interactive` whose ingredient passes `unattended.deny` only through rendered rules; or a cached ingredient whose hash does not match its pin. Or a failed attempt: a base that cannot be read; a tamper-check difference; a missing or malformed receipt; or a failing replay. The output was printed without the `--withhold` text |
+| 3 | A prerequisite is missing. Without a terminal this fires `blocked`. The worker's program; the version-control ingredient's program; the program of the worker's jail; a pinned ingredient, the jail's included, that is not in the cache (the message names `./cook fetch`); a version-control contract no pinned ingredient fills (the message names `./cook ingredient pin`); or a worker whose ingredient can deliver `unattended.deny` in neither way (the message names that gap) |
 
 #### Environment
 
