@@ -25,11 +25,11 @@ organizations give them.
 - What makes a change ready to leave the clone does not depend on who made it: whether it started from a recorded
   base, whether its checks pass against that base, whether it is committed and off the default branch
   ([0011](0011-safety-invariants.md)).
-- Example: acme copies one coding-agent workflow by hand from `acme/api` into `acme/web` and `acme/infra`. Each copy
-  is its own dialect. `acme/web` added a lint step and skips permission prompts through its unattended runner's
-  configuration, `acme/infra` starts the second coding agent it uses for unattended work with a permission-bypass flag,
-  and `acme/api` refuses both. All three run the same coding agents and models: the copies differ in how they guard a
-  change and how they start the programs that do it, not in what those programs can do.
+- Example: acme copies one coding-agent workflow by hand from `acme/api` into `acme/web` and `acme/infra`. A year later
+  each copy is its own dialect. `acme/web` added a lint step and skips permission prompts through its unattended
+  runner's configuration, `acme/infra` starts the second coding agent it uses for unattended work with a
+  permission-bypass flag, and `acme/api` refuses both. All three run the same coding agents and models: the copies
+  differ in how they guard a change and how they start the programs that do it, not in what those programs can do.
 - Coding agents are products their vendors develop and change often. A program that reimplements an agent loop has to
   follow every model and API change the vendors already follow.
 - Calling a model requires credentials, a provider choice, a cost budget and data-handling rules. Each of these is an

@@ -88,7 +88,7 @@ in the way; a rule without one can only be obeyed or ignored.
 ## Changing a standard
 
 A standard is edited in place, in the same pull request that changes the behaviour it governs. Why: the standards
-describe what `the-cook` is, so a standard and the behaviour it describe change together or not at all.
+describe what `the-cook` is, so a standard and the behaviour it describes change together or not at all.
 
 Steps:
 
