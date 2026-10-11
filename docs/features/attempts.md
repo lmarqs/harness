@@ -8,8 +8,8 @@ left alone can turn off its permission checks, change the rules or tests its wor
 that is not. Without protection against that, the developer either watches every session or cannot trust what was
 done.
 
-**Goal.** The developer comes back to a local branch holding only tasks whose checks passed under rules the program
-that did each task could not change, whichever program started it. No program had more permissions than the
+**Goal.** The developer comes back to a local branch holding only tasks whose checks passed under the rules the
+repository committed, whichever program started them. `the-cook` started no program with more permissions than the
 repository grants it.
 
 ## Overview

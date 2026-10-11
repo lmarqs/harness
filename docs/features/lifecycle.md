@@ -156,7 +156,7 @@ flowchart TB
 | | |
 | --- | --- |
 | Who acts | a worker in a session with a person (role `interactive`), or in an attempt (role `unattended`); in a recipe run, the recipe's steps in order: commands, templates, attempts, and handoffs to whoever drives the run ([step kinds](recipes.md#step-kinds)) |
-| `the-cook` guarantees | each worker runs under the permissions rendered from the [policy](policy.md) and the floor of its worker ingredient, which `the-cook render` writes into its configuration; post-edit hooks lint the edited file and report back ([hooks](hooks.md)); an attempt, an `attempt` step of a recipe included, runs in a pinned permission mode, cannot bypass permissions, runs inside the worker's [jail](workers.md#jails) when it declares one, and its tool-owned files are restored and compared ([safety](safety.md#the-attempt-contract-and-the-tamper-check)); a recipe's steps only add to what the guards check ([guards](recipes.md#guards)) |
+| `the-cook` guarantees | each worker's configuration carries the permissions rendered from the [policy](policy.md) and the floor of its worker ingredient, which `the-cook render` writes there; post-edit hooks lint the edited file and report back ([hooks](hooks.md)); an attempt, an `attempt` step of a recipe included, runs in a pinned permission mode, with the arguments that would turn its permission checks off refused, runs inside the worker's [jail](workers.md#jails) when it declares one, and its tool-owned files are restored and compared ([safety](safety.md#the-attempt-contract-and-the-tamper-check)); a recipe's steps only add to what the guards check ([guards](recipes.md#guards)) |
 | Left to judgement | the code and the tests |
 | Event | none |
 

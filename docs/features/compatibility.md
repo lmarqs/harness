@@ -13,7 +13,7 @@ reader can check that for each tool before adopting.
 
 ## Overview
 
-`the-cook` enforces the lifecycle a repository declares, and shares the repository with the tools, settings and records
+`the-cook` runs the lifecycle a repository declares, and shares the repository with the tools, settings and records
 below while staying out of their way. It never reconfigures state it did not create and never writes knowledge. The
 binary contains code for no external program and ships no ingredient, station or recipe: version control, every worker
 and every other program are described by the [ingredients](ingredients.md) the repository pins from a cookbook, and the

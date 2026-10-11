@@ -13,7 +13,7 @@ and can find the page for any part of it.
 
 ## Overview
 
-`the-cook` is a command-line tool that enforces the software development lifecycle a repository declares.
+`the-cook` is a command-line tool that runs the software development lifecycle a repository declares.
 
 Every change goes through the same stages: plan, start, implement, verify, complete, deliver, review and merge, and
 landed, with `blocked` out of band for work that stops.
@@ -31,7 +31,7 @@ attempt is reported done only after that proof is replayed from the base
 People and workers move work through the stages with the same commands: [`the-cook make`](recipes.md#the-cook-make),
 which takes one change through the stages as a recipe says, task [workspaces](workspaces.md), [task binding](tasks.md),
 which ties a workspace to a task id from any tracker, and [`the-cook attempt`](attempts.md), which runs one worker for
-one task under rules it cannot bypass.
+one task with its permission checks on.
 
 The lifecycle knows no program. Each stage that needs one reaches it through a contract or a declared action: the
 version-control contract for workspaces, bases, history and landed work, the worker contract for the programs that
@@ -63,11 +63,11 @@ the check. The workers do the cooking, and `the-cook` holds them to that standar
 
 ## The game master
 
-Think of a tabletop game. The game master rules the world but never plays. In `the-cook`:
+Think of a tabletop game. The game master runs the game the table agreed on but never plays. In `the-cook`:
 
 | In the game | In `the-cook` |
 | --- | --- |
-| The game master | `the-cook`: it sets the rules and enforces them, and never takes a turn |
+| The game master | `the-cook`: it runs the rules the repository declares, and never takes a turn |
 | The players | developers, who decide what gets built |
 | The characters | workers, such as coding agents, each reached through its ingredient, who act inside the rules |
 | The order of play | the lifecycle: the stages every change goes through and the guards between them |

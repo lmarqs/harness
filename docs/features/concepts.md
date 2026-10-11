@@ -2,7 +2,7 @@
 
 ## Objective
 
-**Problem.** A developer or a worker in an adopted repository meets one tool that enforces a lifecycle, programs that
+**Problem.** A developer or a worker in an adopted repository meets one tool that runs a lifecycle, programs that
 do the work at its stages, and files written by different hands: some by people, some generated from other files, some
 local state that must never be committed. Without knowing which is which, they expect the tool to do a program's work or
 a program to hold a guard, edit a generated file and lose the edit or fail a check, commit state that belongs to one
@@ -16,7 +16,7 @@ needs judgement.
 
 ## Overview
 
-`the-cook` enforces the software development lifecycle a repository declares: the stages a change goes through, the
+`the-cook` runs the software development lifecycle a repository declares: the stages a change goes through, the
 events fired between them, the guards that hold between them and the proof a change carries. The binary keeps that
 lifecycle and the process around it. What a repository adds to it comes in three units, and one rule separates them:
 facts about programs are pinned and rendered; practices are copied and become the repository's own.

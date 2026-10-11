@@ -55,16 +55,19 @@ What must stay safe:
 - the team's record: issues, pull requests, reviews;
 - the clone's shared state: other workspaces, the task tracker, local databases and containers;
 - the rules themselves: the rendered permissions and hooks a worker runs under, the standing context it is given, and
-  the pinned binary that enforces them;
+  the pinned binary that applies them;
 - secrets used by actions, such as webhook URLs and tokens.
 
 Outside the model: a person with commit access who means harm, a compromised worker program or jail program, anything
 the operating system lets a process reach beyond what the worker's own permission system, its sandbox or its jail
 controls, and whatever a person runs outside `the-cook`. A loop runner configured with another command for each task, a
 team's own wrapper around a loop runner, or a worker started directly runs without the attempt contract; that is the
-person's choice, and `the-cook` neither detects nor prevents it. The guarantees on this page hold for what `the-cook`
-renders and for every worker `the-cook` starts. Permissions constrain the commands a worker starts, not the code those
-commands run: a worker that can edit a test and run the test runner runs code it wrote
+person's choice, and `the-cook` neither detects nor prevents it. So is the configuration a person keeps for a worker
+program outside the repository, such as settings, plugins and instructions in their home directory: the program reads
+it in every session, attempts included, and `the-cook` never reads or restores it
+([ADR 0028](../adrs/0028-place-of-the-tool.md)). The guarantees on this page hold for what `the-cook` renders and for
+every worker `the-cook` starts. Permissions constrain the commands a worker starts, not the code those commands run: a
+worker that can edit a test and run the test runner runs code it wrote
 ([pitfalls](pitfalls.md#a-task-runner-runs-whatever-its-tasks-say)).
 
 ## Layers of defence
@@ -77,11 +80,11 @@ commands run: a worker that can edit a test and run the test runner runs code it
 | Guards in the binary ([spellings](#guards-live-in-the-binary)) | `the-cook lifecycle run` inside an attempt, unsafe `deliver`, whatever spelling of the command a worker uses | a command `the-cook` does not run |
 | The attempt contract ([attempts](attempts.md#the-attempt-contract)) | the floor bypass arguments of the worker's ingredient among the arguments `the-cook attempt` receives, whoever calls it; `unattended.deny` commands; a worker committing or integrating its own work; a loop runner reading a failed attempt as done | commands `unattended.deny` does not list; a worker started without `the-cook attempt` |
 | A jail around a worker's attempts ([workers](workers.md#jails)) | a worker reading the person's home, credentials and variables not passed; writing outside the checkout and `writable_roots`; writing the version-control metadata the binary's commit uses; reaching the network unless `network: true`; lanes and validators running the code the worker wrote | what the jail's own configuration or `jail.args` open; lifecycle actions and version-control operations, which run outside it; a worker without a jail |
-| The tamper check ([below](#the-attempt-contract-and-the-tamper-check)) | a worker editing rendered rules, owned settings keys, hook entries, `cook`, `.cook/wrapper.yaml`, any file under `.cook/`, the recipes in `.cook/recipes/` included, or a file or skill `context` names, to widen its next attempt or rewrite its rules | edits to other files, which the replay and review judge |
+| The tamper check ([below](#the-attempt-contract-and-the-tamper-check)) | a worker editing rendered rules, owned settings keys, hook entries, `cook`, `.cook/wrapper.yaml`, any file under `.cook/`, the recipes in `.cook/recipes/` included, or a file or skill `context` names, to widen its next attempt or rewrite its rules | edits to other files, which the replay and review judge; edits to the person's own configuration outside the repository, which only a jail keeps out of reach |
 | Receipt replay ([verify](verify.md#who-relies-on-it)) | a worker claiming checks it did not run, or weakening the checks it is measured by | tests that pass without exercising the change |
 | Lifecycle guards ([lifecycle](lifecycle.md#built-in-guards)) | delivery from the default branch or of uncommitted work and, when the verify module is enabled, of work without a valid receipt; completion of a task without a valid receipt; actions run by an attempt's worker | what a declared action does once it runs |
 | The pinned, verified binary ([wrapper](wrapper.md)) | a download that does not match the checksums committed in the repository; a pin of a release its publisher did not sign; a worker hook fetching code; two versions of `the-cook` in one repository | a compromised signing key; `COOK_BINARY`, which bypasses the pin by design |
-| Committed context sources ([context](context.md#sources-and-trust)) | context fetched when a hook runs; a worker editing its own instructions between attempts | a skill or file a reviewer accepted without reading |
+| Committed context sources ([context](context.md#sources-and-trust)) | context fetched when a hook runs; a worker editing the instructions the repository commits, between attempts | a skill or file a reviewer accepted without reading; instructions the worker program reads from outside the repository |
 | Review and branch protection (external) | anything reaching the default branch without a person's approval | anything that does not go through the default branch: production, cloud, other systems |
 
 Hooks are not a layer: they give feedback, notify and inject context, never decide permissions, and skip on any
@@ -187,9 +190,10 @@ contract is enforced inside `the-cook attempt`, so it holds whoever calls it: a 
    base those files, every file under `.cook/` and every file and skill a `context` entry names; any difference fails
    the attempt, withholds completion and is reported by path.
 6. It reads the profile, the policy, the hooks file and the [standing context](#standing-context) from the base
-   commit, so the checks it replays and the instructions the worker receives are the ones committed there. A prompt on
-   stdin carries the `always` entries of the `unattended` role before the task text, so they reach the worker even
-   when its program runs no hook unattended ([context](context.md#delivery-in-the-prompt)).
+   commit, so the checks it replays and the instructions it gives the worker are the ones committed there; the worker
+   program adds the person's own configuration, as in any session. A prompt on stdin carries the `always` entries of
+   the `unattended` role before the task text, so they reach the worker even when its program runs no hook unattended
+   ([context](context.md#delivery-in-the-prompt)).
 7. It replays the lanes and skip reasons the worker's receipt selected. The receipt lives in the worker's writable
    tree, so it only selects; the replay is the proof. For a worker with a jail, the replay runs in the same jail,
    because its lanes run code the worker wrote.

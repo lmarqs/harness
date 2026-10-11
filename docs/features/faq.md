@@ -23,7 +23,7 @@ install, `the-cook <command>` is equivalent.
 
 ### Does `the-cook` call a model or host coding agents?
 
-No. It enforces the lifecycle the workers work in, coding agents among them, and does no stage's work itself: it never
+No. It runs the lifecycle the workers work in, coding agents among them, and does no stage's work itself: it never
 calls a model. When a loop runner needs a worker for a task, it calls `./cook make <recipe> --task <id> --unattended` or
 `./cook attempt <worker>`, and either one starts the worker's own program under the
 [attempt contract](attempts.md#the-attempt-contract); an [`attempt` action](lifecycle.md#attempt) and a recipe's
@@ -31,7 +31,7 @@ calls a model. When a loop runner needs a worker for a task, it calls `./cook ma
 
 ### Is `the-cook` a coding-agent tool?
 
-It is a software development lifecycle a repository declares, and the binary that enforces it: the stages a change goes
+It is a software development lifecycle a repository declares, and the binary that runs it: the stages a change goes
 through, the events between them, the guards that hold and the proof a change carries ([lifecycle](lifecycle.md)).
 Coding agents are the workers it is used with most, and agentic coding is the first station, but the lifecycle knows no
 program: a bot, a codemod or a person moves a change through the same stages, each program is described by an
