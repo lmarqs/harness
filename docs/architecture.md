@@ -106,6 +106,15 @@ production data leak one `git add -A` wide" (2026-10-11; measured).
   any global one there.
 - **Editor settings.** VS Code's user settings live on the Windows host; the WSL side's machine settings are empty.
 
+**Build and CI files are written by hand too.**
+
+- **Dockerfiles.** The reference has one Dockerfile with a single stage, and it copies the whole context. Port 2 has 5
+  Dockerfiles and 2 `.dockerignore` files, each relative to its own build context (2026-10-11; measured).
+- **CI workflows.** mise 2026.6.13 ships generators for some of these files.
+  `mise generate github-action --write` writes `.github/workflows/<name>.yml`, a workflow that runs one mise task.
+  Others write a devcontainer and a git pre-commit hook (`mise generate --help`; measured).
+- **Credentials.** A Docker build can read them without keeping them, which C3 records.
+
 **Definitions live at three levels.** Some rules are an organization's, such as never shipping agent session state.
 Some are one project's, such as which editor files it shares. Some are one person's, such as their own editor's
 leftovers. The author's cookbook, `lmarqs/the-cookbook`, is the only shared source today, and it is public.
@@ -120,6 +129,7 @@ leftovers. The author's cookbook, `lmarqs/the-cookbook`, is the only shared sour
 | Unattended worker | implements one task with the settings the loop runner passes | ralph-tui | once per task |
 | CI pipeline and image build | checks out the repository and builds images from the build context | `.gitignore`, `.dockerignore` | every push |
 | The cook on a new clone or machine | retypes personal ignores, hooks, and agent and editor settings | `.git/info/exclude`, home directory files | 10 entries repeated in 3 clones (2026-10-11; measured) |
+| Team keeping build and CI files | writes Dockerfiles, `.dockerignore` files and CI workflows by hand in each repository | editor | reference: 1 Dockerfile; port 2: 5 Dockerfiles, 2 `.dockerignore` files (2026-10-11; measured) |
 | Cookbook author or organization | publishes definitions that others copy | a public cookbook | one cookbook, the author's |
 
 ### Problem
@@ -129,7 +139,9 @@ with two agents and a tracker, is done by hand inside the repository, and it sta
 committed, links and tracker hooks reach every clone, and in two of three repositories teammates inherit a loop runner
 with permission checks off. What is not committed still sits in the clone, 3.8 GB in one of them, and it leaves in
 locally built images. No repository says which tool files it means to share, and a person's own setup does not follow
-them: the same ignore entries are retyped in every clone, and a new machine starts empty.
+them: the same ignore entries are retyped in every clone, and a new machine starts empty. The files a team builds and
+ships with are kept the same way: each repository writes its own Dockerfiles, ignore files and CI workflows, so a
+better way learned in one reaches the others only by copying.
 
 ### Goals
 
@@ -142,7 +154,7 @@ them: the same ignore entries are retyped in every clone, and a new machine star
 | G5. What a cook keeps private stays private | the cook | no credential, transcript or private setting is ever published |
 | G6. A new program, or a new release of one, reaches the cooks who use it without waiting for a release of the tool | the cooks, the tool's maintainer | releases of the tool caused by a program change: 0 |
 | G7. A teammate who does not use the tool works exactly as before | teammate, CI | a clone, its CI and its images behave the same with and without the tool installed |
-| G8. An organization keeps its shared rules in one place, and each of its repositories takes them in one reviewed change | organization | a rule changed once reaches a repository as one diff in one review |
+| G8. An organization keeps its shared rules and standards in one place, and each of its repositories takes them in one reviewed change | organization, team keeping build and CI files | a rule or standard changed once, such as an ignore rule, a Dockerfile stage or a CI workflow, reaches a repository as one diff in one review |
 
 ### Stakeholders
 
@@ -163,13 +175,11 @@ them: the same ignore entries are retyped in every clone, and a new machine star
 | --- | --- | --- | --- |
 | C1 | Each program reads its files at fixed paths. Claude Code 2.1.296: `.claude/settings.json` and `.claude/settings.local.json` at the project root. Codex 0.160.1: `.codex/config.toml`, `.codex/rules/`, `.codex/hooks.json`. ralph-tui 0.12.0: `<cwd>/.ralph-tui/config.toml`, with no flag to move it. bd 1.3.1: finds `.beads/` by walking up from the working directory, and `BEADS_DIR` moves it | ralph-tui and bd: the installed binaries, checked on 2026-10-09. Claude Code and Codex: their documentation, and the reference's working setup on the installed versions | moving a program's files out of the paths it reads. The tool can keep them out of commits and images, and point a program elsewhere only where the program offers a way |
 | C2 | Git 2.43.0 ignore rules: a file under an excluded directory cannot be re-included; a repository's `.gitignore` takes precedence over `.git/info/exclude` and `core.excludesFile`; ignore rules do not apply to files already tracked; `git add -f` adds an ignored file anyway; `git add <ignored file>` exits 1 and says the path is ignored, while `git add -A` skips it without a word | `gitignore(5)`, and tests in a scratch repository on 2026-10-11 | relying on ignore rules to remove files already tracked; an allow inside a banned directory written as one line |
-| C3 | Docker buildx 0.37.1 reads only the `.dockerignore` of the build context, never `.gitignore`. A pattern without a leading `/` still matches only at the context root, so `node_modules` excluded the root copy and copied `pkg/node_modules/x`. A negation re-includes a file under an excluded directory in one line | tests in a scratch build context on 2026-10-11 (`-o type=local`) | using the same text for both ignore files; relying on `.gitignore` to keep anything out of an image |
+| C3 | Docker buildx 0.37.1 reads only the `.dockerignore` of the build context, never `.gitignore`. A pattern without a leading `/` still matches only at the context root, so `node_modules` excluded the root copy and copied `pkg/node_modules/x`. A negation re-includes a file under an excluded directory in one line. An allow-list (`*`, then `!package.json`, `!package-lock.json`, `!src/`) admitted only those paths and everything under `src/`. A secret passed with `--secret` and mounted with `RUN --mount=type=secret` was readable during that step (18 bytes) and absent from the output filesystem | tests in a scratch build context on 2026-10-11 (`-o type=local`) | using the same text for both ignore files; relying on `.gitignore` to keep anything out of an image |
 | C4 | EditorConfig: editors search parent directories for `.editorconfig` until they find one with `root = true` | the EditorConfig specification | none; without `root = true`, a file above the repository applies inside it |
 | C5 | A commit pushed to a public repository is published, and clones, forks and caches keep it after deletion | the hosting service's behaviour; `lmarqs/the-cook` and `lmarqs/the-cookbook` are public | pushing a person's setup to a public remote before its public and private parts are separated |
 
 ### Prior decisions
-
-Each was made by lmarqs; the date and the record are in the second column.
 
 | ID | Prior decision | When, and where recorded | Incumbent it implies | Cost to reverse |
 | --- | --- | --- | --- | --- |
@@ -238,6 +248,14 @@ This does not block the kitchen. It blocks any push of a kit.
   rules like an ESLint ruleset", "no symlinks between agent directories", "readers and writers built into the binary"
   and "init asks nothing" are ways of meeting a requirement. They are evaluated in the design.
 - **Constraints.** What each program reads, and how git and Docker match patterns, are constraints C1 to C5.
+- **Cookbook content.** Three examples were requested:
+  - `.dockerignore` and `.gitignore` entries derived from the tools in use, such as leaving `.mise/` tasks out of an
+    image;
+  - a layered Dockerfile that receives AWS credentials as a build secret;
+  - CI workflows built from the tooling, such as mise and Node.
+
+  Each is a recipe and its ingredients, which makes it a roadmap item for a cookbook, not a capability of the tool.
+  What the tool must offer for them to exist are F14 to F16.
 
 **What was challenged.**
 
@@ -245,7 +263,11 @@ This does not block the kitchen. It blocks any push of a kit.
 - "The cook checks the kitchen in a pipeline": git already lists committed files the rules exclude. So F2 asks for
   git alone, and the tool adds no check of its own.
 - "Leave the kitchen clean": F8 reads this as removing the session's ignored state too, not only keeping it out of
-  commits. #3 counted ignored state left in a clone as contamination.
+  commits. #3 counted ignored state left in a clone as contamination. Confirmed by the maintainer.
+- "Generate them based on my setup": if a committed file were rendered from one person's kit, no teammate or pipeline
+  could render it again, and the next render from another kit would rewrite it. That is contamination by generator.
+  So F16 requires the recipe to be copied into the repository first. A kit is where a recipe can come from, never
+  where a committed file is rendered from.
 
 **What was assumed.** The 1-second init target (N2) has no measurement behind it, and it is measured first.
 
@@ -266,12 +288,15 @@ This does not block the kitchen. It blocks any push of a kit.
 | F11 | G8, G3 | A repository takes definitions from a cookbook, an organization's included, by copying them with their origin and sha256. Taking a newer version is copying again, reviewed as a diff. A person's own definitions never enter the repository | Given versions 1 and 2 of a cookbook's group, when version 1 is copied, then its origin and hash are recorded; when version 2 is copied, then only the changed lines differ | the three levels; P8 |
 | F12 | G1, G3 | A team brings its existing `.gitignore` under the repository's rules without changing what git ignores | Given each of the three `.gitignore` files, when imported, then `git ls-files -oi --exclude-standard` and `git ls-files -ci --exclude-standard` give the same output before and after; when they differ, then nothing is written | the `.gitignore` comments; #7 |
 | F13 | G7 | A team removes the tool in one reviewed change, and the repository keeps working | Given an adopted fixture, when the tool is removed, then none of its own files remain and the fixture's own CI commands pass without it | ADR 0010 |
+| F14 | G8, G7 | A recipe the repository has taken writes parts of the team's own files, in any format the binary supports: a stage of a Dockerfile, a whole CI workflow, a section of an ignore file. The rest of each file stays as the team wrote it | Given a recipe that owns the `deps` stage of a Dockerfile and the workflow `.github/workflows/cook-ci.yml`, when rendered, then only that stage and that file change, and a stage and a workflow the team wrote stay byte for byte | build and CI files written by hand |
+| F15 | G5 | Rendered files name secrets but never hold their values | Given a recipe whose image build needs AWS credentials, when rendered, then the Dockerfile mounts a secret by id and the workflow passes it from the CI's secret store; when the image is built, then no rendered file and no file in the output holds the credential. Run as a fixture build with a fake credential | C3 |
+| F16 | G1, G7 | Committed files are rendered only from sources in the repository, so every teammate and pipeline renders the same bytes from the same commit | Given two cooks with different kits, when both render the same commit, then every committed file is byte-identical | the axes; P9 |
 
 ### Non-functional
 
 | ID | Goal | Requirement (metric, target, condition) | Derived from | Proof (measurement) | Source |
 | --- | --- | --- | --- | --- | --- |
-| N1 | G6 | Changes to the binary needed to support a new program: 0. Condition: the program's files use a format the binary reads and writes (JSON, TOML, YAML, ignore-file lines, Markdown with marked blocks, or a whole file the tool owns) | Today, the reference's renderer holds code for each of its 2 agents (measured). The maintainer decided program knowledge is data (P7) | a test adds an ingredient for a made-up program and renders it with an unchanged binary | P7 |
+| N1 | G6 | Changes to the binary needed to support a new program: 0. Condition: the program's files use a format the binary reads and writes (JSON, TOML, YAML, ignore-file lines, line files with `#` comments and marked blocks such as a Dockerfile, Markdown with marked blocks, or a whole file the tool owns) | Today, the reference's renderer holds code for each of its 2 agents (measured). The maintainer decided program knowledge is data (P7) | a test adds an ingredient for a made-up program and renders it with an unchanged binary | P7 |
 | N2 | G2 | Init asks 0 questions and finishes within 1 s of wall time on a repository of 7,456 tracked files (the reference's size), on a local disk | "Init is simple and quick" (maintainer, 2026-10-11). The 1 s target is assumed, and it is measured first | timed fixture run in CI | #4 |
 | N3 | G7 | Programs the binary needs at runtime besides the operating system: 0, git included | ADR 0004 and P6 | init and render run in a container that holds only the binary | P5, P6 |
 | N4 | G3 | Rendering is deterministic: identical sources give byte-identical files on Linux and macOS, and a second render changes nothing | F6's difference is meaningful only if a render reproduces its own output | CI renders on both systems and compares, then renders again and compares | F6 |
