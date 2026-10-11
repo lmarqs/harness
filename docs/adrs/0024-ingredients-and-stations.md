@@ -45,11 +45,14 @@ that combines several programs reaches a repository in one reviewed change.
 - Organization choices and stack facts reach a repository by being applied once: only what is missing is added, every
   difference is reported, and every entry and file is the repository's own afterwards
   ([0013](0013-organization-content.md)).
+- A way of working can rely on a kind of change it makes the same way in every repository that uses it. Example: in
+  `acme/api`, the loop runner makes the same kind of change, implementing one tracker task, for every task, and its
+  configuration names that kind of change ([0025](0025-recipes.md)).
 
 ## Decision
 
-1. A cookbook publishes two kinds of unit, ingredients and stations, each named, versioned and covered by a content hash
-   ([0022](0022-tool-integration.md)).
+1. A cookbook publishes ingredients and stations, the two units this decision separates, and recipes
+   ([0025](0025-recipes.md)), each named, versioned and covered by a content hash ([0022](0022-tool-integration.md)).
 2. An ingredient describes one program: the operations that fill one contract or none
    ([0023](0023-core-and-contracts.md)), its renders, its floor and its checks ([0022](0022-tool-integration.md)). It
    holds no entries and no templates. While a repository pins it, its renders and its floor act on every render.
@@ -58,12 +61,15 @@ that combines several programs reaches a repository in one reviewed change.
    fills the version control contract, and which workers it declares, each with its ingredient and its role
    ([0009](0009-agent-support.md)). It holds entries for the repository's data, templates, and optionally a detect rule
    that tells adoption the station fits the repository. It holds no renders and no floor. A station may list no
-   ingredient, such as one for a technology stack whose content is commands, lanes and hooks.
+   ingredient, such as one for a technology stack whose content is commands, lanes and hooks. It may also pin recipes
+   from its own cookbook version that it adds to the repository, each by its content hash, as it pins its ingredients.
 4. A station is applied once, on a person's request. Its entries and templates become the repository's own under the
-   rules of [0013](0013-organization-content.md): applying only adds, the repository's entries win, and every
-   difference is reported. The ingredients it lists are pinned into the repository's data in the same reviewed change.
-   An ingredient the repository already pins at another content hash keeps the repository's pin, and the difference is
-   reported.
+   rules of [0013](0013-organization-content.md): applying only adds, the repository's entries win, and every difference
+   is reported. The ingredients it lists are pinned into the repository's data in the same reviewed change. An
+   ingredient the repository already pins at another content hash keeps the repository's pin, and the difference is
+   reported. Each recipe it pins is verified against the content hash the station gives and copied into the repository
+   as adding that recipe copies it ([0013](0013-organization-content.md)), in the same reviewed change; a recipe the
+   repository already holds is kept and reported, never overwritten.
 5. The repository's data lists the ingredients it pins and, apart from them, the stations it applied, each with its pin.
    What the binary renders and runs depends only on the ingredients. The list of applied stations records which stations
    the repository started from, and at which version, so that a person can apply a newer version later. It has no
@@ -100,7 +106,14 @@ that combines several programs reaches a repository in one reviewed change.
   once, and a repository never holds a station's entries without the ingredients they need. Keeping an existing pin
   applies the rule for entries to pins: a repository that pins a newer version control ingredient keeps it when it
   applies a station written against an older one. Reporting the difference shows that the station's entries meet an
-  ingredient version the station did not list. The trade: that combination is one the station's cookbook did not test.
+  ingredient version the station did not list. Copying the recipes a station lists in the same change means its entries,
+  such as a loop runner's configuration that runs a recipe for each task, never name a recipe the repository lacks
+  (Context). Pinning each recipe by content hash, as the station pins its ingredients, ties the station to the exact
+  recipes its entries were written against, and applying it again copies those bytes, verified against the station's own
+  hash rather than a checksum file downloaded again ([0021](0021-release-trust.md)). A recipe the repository already
+  holds is kept for the reason an entry already present is: the repository's version is the one its team chose
+  ([0013](0013-organization-content.md)). The trade: that combination is one the station's cookbook did not test, and a
+  kept recipe may differ from the one the station's entries were written against.
 - **5.** What is rendered and run depends only on the ingredients, so once a station is applied it acts only through
   what it wrote into the repository's files, which keeps the rule of [0013](0013-organization-content.md) that only the
   repository's files and what they pin by hash act on it. Recording which stations were applied, and at which version,
@@ -166,7 +179,7 @@ Must be maintained:
 - The ingredient and station schemas ([0005](0005-schema-compatibility.md)), and the validation that refuses entries or
   templates in an ingredient and renders or floor rules in a station.
 - The application rules, shared with [0013](0013-organization-content.md), and the report of every difference they
-  leave.
+  leave, a kept recipe included.
 
 ## Confirmation
 
@@ -181,3 +194,7 @@ Must be maintained:
 - A fixture whose data names one ingredient twice, or one applied station twice, fails validation.
 - Applying two fixture stations that set one entry to different values keeps the first station's value and reports the
   second's.
+- Applying a fixture station that pins a recipe copies the recipe, with its origin, in the same diff as the station's
+  entries; in a fixture that already holds a recipe of that name, the recipe stays byte-identical and is reported.
+- Applying a fixture station whose recipe archive differs from the content hash the station gives is refused, and the
+  fixture stays byte-identical.

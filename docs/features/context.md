@@ -73,10 +73,10 @@ the-cook context: sql-quality-check (path src/migration/1700000000000-add-invoic
 ### Roles
 
 `for` limits an entry to roles: `interactive` for every session a person starts, `unattended` for
-[attempts](attempts.md#the-attempt-contract), the unattended runs `the-cook attempt` and
-[`attempt` actions](lifecycle.md#action-kinds) start, one per task. The default is both. An unattended session is one
-started with `COOK_ATTEMPT=1`, which `the-cook attempt` and `attempt` actions set for the worker they start; every
-other session is interactive.
+[attempts](attempts.md#the-attempt-contract), the unattended runs `the-cook attempt`,
+[`attempt` actions](lifecycle.md#action-kinds) and a recipe's [`attempt` steps](attempts.md#in-a-recipe-step) start.
+The default is both. An unattended session is one started with `COOK_ATTEMPT=1`, which all three set for the worker
+they start; every other session is interactive.
 
 For an attempt, the declarations and every file they name are read from its base commit, the head commit of the
 checkout when `the-cook attempt` started, through the version-control ingredient, not from the worker's writable tree,
@@ -103,7 +103,8 @@ through shell commands names no file to match, so its sessions fire a `paths` en
 file.
 
 In an attempt, the "person's message" is the task prompt the worker receives: what the loop runner passed to
-`the-cook attempt`, or an `attempt` action's prompt.
+`the-cook attempt` or `the-cook make`, an `attempt` action's prompt, or an `attempt` step's own prompt with the recipe's
+inputs substituted, so a `when.prompt` entry can match a word an input put there.
 
 ### Static entries
 
@@ -224,7 +225,7 @@ It reads the same files the hooks read and writes nothing.
 | Variable | Effect |
 | --- | --- |
 | `COOK_NO_CONTEXT=1` | Hooks inject nothing in this environment and every process started from it |
-| `COOK_ATTEMPT=1` | Set by `the-cook attempt` and by `attempt` actions for the worker they start; selects the `unattended` role |
+| `COOK_ATTEMPT=1` | Set by `the-cook attempt`, by `attempt` actions and by a recipe's `attempt` steps for the worker they start; selects the `unattended` role |
 
 Files read: `.cook/config.yaml`, the skills and files the entries name, the hook payload, and for attempts the same
 files at the base commit. Files written: `<state.dir>/context/<session-id>.json`; by `render`, the hook entries the

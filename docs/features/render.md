@@ -26,7 +26,8 @@ renders describe its program's files, and every ingredient comes from a cookbook
 records every output with its owner, so deleting an ingredient from `ingredients:` in the profile and rendering removes
 exactly that ingredient's renders. What a station applied once, its [entries](stations.md#entries) and
 [templates](stations.md#templates), stays as the repository's own, and the station's entry in `stations:` has no effect
-on what renders.
+on what renders. A [recipe](recipes.md) in `.cook/recipes/` is the repository's own file in the same way: nothing
+renders from it, and `render` never rewrites it.
 
 Examples on this page run commands as `./cook <command>`, through the repository's [wrapper](wrapper.md); with a
 global install, `the-cook <command>` is equivalent.
@@ -40,6 +41,7 @@ global install, `the-cook <command>` is equivalent.
 | You want a stack's starting commands, lanes and post-edit hooks | `./cook station apply <name> --cookbook <source>@<version>`, which writes the station's entries, pins the ingredients it lists and renders ([stations](stations.md)) |
 | You want a newer version of one ingredient, such as the version-control one | `./cook ingredient pin <name> --cookbook <source>@<version>`, which moves the pin and renders ([ingredients](ingredients.md)) |
 | You stopped using a program, such as one coding agent | delete its worker from `workers` and its ingredient from `ingredients:`, then `./cook render`, which removes that ingredient's renders |
+| You added or edited a recipe | nothing to render: a recipe is read when it runs ([recipes](recipes.md)) |
 | You want CI or a reviewer to confirm rendered files match their sources | `./cook render --check` |
 | You want to see what would change | `./cook render --dry-run` |
 
@@ -50,7 +52,8 @@ global install, `the-cook <command>` is equivalent.
    cached stops the render with exit 3 and the command that caches it, `./cook fetch`; `render` never fetches. An
    ingredient's render that needs a contract no pinned ingredient fills, such as the [hook command](#the-hook-command)'s
    root operation without a version-control ingredient, stops the render with exit 3 and names `./cook ingredient pin`.
-   `render` reads no station: entries in `stations:` have no effect on what renders.
+   `render` reads no station: entries in `stations:` have no effect on what renders, and neither do the recipes in
+   `.cook/recipes/`.
 2. Compute every output: the binary's own and every ingredient's renders, which are owned files, owned keys inside
    native files, managed blocks and links, and the [floor rules](ingredients.md#the-floor) of every ingredient in use.
 3. Compare with the manifest and the working tree.
@@ -253,8 +256,9 @@ block and its line count, so a long lane list is visible in review.
   always a real one. A binary other than the pinned release (`COOK_BINARY`) can report differences the pinned
   release would not; `the-cook doctor` notes when it runs.
 
-Run it in CI as an optional step, on every pull request. The wrapper downloads and verifies the release the pull
-request pins, and `./cook fetch` downloads and verifies every ingredient and station it pins, before the check:
+Run it in CI as an optional step, on every pull request. The wrapper downloads and verifies the release the pull request
+pins, and `./cook fetch` downloads and verifies every ingredient and station it pins, and the version each recipe came
+from, before the check:
 
 ```sh
 # a CI job's steps, in a fresh checkout of the pull request

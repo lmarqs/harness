@@ -45,8 +45,8 @@ work that is not ready, and a stopped run reaches a person.
   retries, a command run without a terminal refuses because a person must act. Nobody watches an unattended run; the
   person learns of the stop only by looking.
 - An unattended run as a whole, with its start, its end and its retries, belongs to the loop runner that drives it, not
-  to the binary ([0022](0022-tool-integration.md)). The tool sees one task at a time, through the attempt command a
-  loop runner calls.
+  to the binary ([0022](0022-tool-integration.md)). The tool sees one task at a time, through the command a loop runner
+  calls for each: the attempt command, or a run of a recipe ([0025](0025-recipes.md)).
 - A task tracker marks a task done when it is told the task is complete, whoever tells it.
 - The clone's state is readable by every process in it, workers included.
 
@@ -72,13 +72,16 @@ work that is not ready, and a stopped run reaches a person.
    - Landed: detects, when a working copy is removed, that its branch's changes are on the default branch, through the
      version control contract, and fires work landed.
 
-   Every capability of the binary serves one of these stages or keeps the setup they read consistent, reachable and
-   removable. A capability that does neither does not belong in the binary.
+   A run of a recipe the repository holds is one pass of one change through these stages, from start to complete
+   ([0025](0025-recipes.md)); it adds no stage and changes none. Every capability of the binary serves one of these
+   stages or keeps the setup they read consistent, reachable and removable. A capability that does neither does not
+   belong in the binary.
 3. The events between the stages are a fixed, ordered set: work started, work verified, work completed, work ready for
    delivery, and work landed on the default branch.
 4. One out-of-band event, blocked, fires at any stage when work stops unfinished or needs a person: an unattended run
-   stops, a task is skipped after its retries, or a command run without a terminal refuses because a person must act.
-   It carries the stop reason. Its actions never run inside an attempt, and it has no other guard.
+   stops, a task is skipped after its retries, a recipe run stops at a step, or a command run without a terminal refuses
+   because a person must act. It carries the stop reason. Its actions never run inside an attempt, and it has no other
+   guard.
 5. Each event applies to one or more scopes: a single task, an unattended run, or a change. The stages, the events,
    their order and their scopes are part of the binary; repositories cannot add stages or events.
 6. The binary decides when an event fires and enforces the guards that apply to it. The ready-for-delivery event fires
@@ -96,10 +99,13 @@ work that is not ready, and a stopped run reaches a person.
    started, at the scope of a task when the copy is bound to one and of a change otherwise; a verification run fires
    work verified; a verified attempt in a working copy bound to a task fires work completed and then, when the work is
    concluded, ready for delivery, both at the scope of that task, and fires nothing in a working copy bound to no task;
-   removing a working copy fires work landed once for each recorded branch whose changes are on the default branch;
-   delivery across several repositories fires ready for delivery at the scope of a change in each; a command run
-   without a terminal that stops for a person fires blocked. Nothing in the binary fires an event at the scope of an
-   unattended run; its caller does.
+   removing a working copy fires work landed once for each recorded branch whose changes are on the default branch; a
+   recipe run fires work started when it creates its working copy and work verified when it verifies, as those steps do,
+   and, once its proof is replayed, what a verified attempt fires, at the same scopes, and it fires blocked when a step
+   stops it; delivery across several repositories fires ready for delivery at the scope of a change in each; a command
+   run without a terminal that stops for a person fires blocked, except a recipe run, for which the caller's declaration
+   of who drives it takes the place of the terminal ([0025](0025-recipes.md)). Nothing in the binary fires an event at
+   the scope of an unattended run; its caller does.
 9. Event data reaches actions only through environment variables the binary sets for each run
    ([0019](0019-action-kinds.md)).
 10. Actions never run inside an attempt. The binary fires events in its own process after the worker exits, and a
@@ -117,14 +123,15 @@ work that is not ready, and a stopped run reaches a person.
 
 - **1, 2.** Context shows the same points in every change, reached by different actors and done by different programs.
   With the lifecycle as the core, the stages, guards and proof are the same whoever does the work, and a worker of
-  another kind needs an ingredient, not a change to the core. The core is about no kind of worker because a worker's
-  own facts are data in its ingredient ([0022](0022-tool-integration.md)), so a bot or a codemod is guarded the way a
-  coding agent is. Each stage needs something different from programs (Context); reaching each through a contract or
-  a declared action keeps program code out of the core ([0023](0023-core-and-contracts.md)). Doing nothing at plan and
-  at review and merge keeps the binary out of judgement and off the hosting platform (Context,
-  [0002](0002-division-of-work.md), [0012](0012-write-boundary.md)). Requiring every capability to serve a stage, or
-  the setup the stages read, gives each one a reason a reviewer can check and keeps the binary from growing into a
-  worker ([0001](0001-role-of-the-tool.md)). The trade: a step that fits no stage stays outside the tool.
+  another kind needs an ingredient, not a change to the core. The core is about no kind of worker because a worker's own
+  facts are data in its ingredient ([0022](0022-tool-integration.md)), so a bot or a codemod is guarded the way a coding
+  agent is. Each stage needs something different from programs (Context); reaching each through a contract or a declared
+  action keeps program code out of the core ([0023](0023-core-and-contracts.md)). Doing nothing at plan and at review
+  and merge keeps the binary out of judgement and off the hosting platform (Context, [0002](0002-division-of-work.md),
+  [0012](0012-write-boundary.md)). Requiring every capability to serve a stage, or the setup the stages read, gives each
+  one a reason a reviewer can check and keeps the binary from growing into a worker ([0001](0001-role-of-the-tool.md)).
+  A recipe run goes through the same stages instead of adding its own, so a kind of change a repository repeats has the
+  guards every change has ([0025](0025-recipes.md)). The trade: a step that fits no stage stays outside the tool.
 - **3, 5.** The recurring points are common to every change, so one fixed vocabulary serves every repository: actions
   written for one repository carry over to another unchanged, and the shipped documentation describes one lifecycle
   instead of one per repository. A set that repositories could extend would give each repository its own stage and
@@ -148,10 +155,14 @@ work that is not ready, and a stopped run reaches a person.
   worker, a script around a loop runner and the end of a verified attempt all produce the same result. Automatic
   triggering is opt-in per action because an action that runs without anyone choosing it, such as one that publishes
   work, is a decision the repository must make explicitly. Each trigger point is a step the binary performs itself, so
-  it fires there with the facts of that step at hand. The run scope has no such point: the run belongs to the loop
-  runner (Context), so its caller fires the run's events. An attempt in a working copy bound to no task, such as the
-  one a loop runner works in, has no task for the binary to name, so it fires nothing and leaves the events to the
-  caller as well. The trade: a run whose caller fires nothing reports no stop of the run as a whole.
+  it fires there with the facts of that step at hand. A recipe run creates its working copy, verifies and replays its
+  proof itself, so it fires the same events at the same points, and a step that stops it is one of the stops of point 4.
+  A handoff in a run a person drives pauses it for that person, who continues it, so it is no stop and fires nothing;
+  the terminal cannot tell such a run apart, because the worker in a person's session runs commands without one
+  ([0025](0025-recipes.md)). The run scope has no such point: the run belongs to the loop runner (Context), so its
+  caller fires the run's events. An attempt in a working copy bound to no task, such as the one a loop runner works in,
+  has no task for the binary to name, so it fires nothing and leaves the events to the caller as well. The trade: a run
+  whose caller fires nothing reports no stop of the run as a whole.
 - **9.** Task titles and branch names are written by people and workers; passing them as environment values keeps them
   out of the text the shell parses, so a title cannot add a command. How each action kind consumes them is decided in
   [0019](0019-action-kinds.md).
@@ -198,8 +209,9 @@ Extensions hook any point of the binary's operation with their own code. At its 
 loses because extension code is engine code in repositories ([0006](0006-repository-contract.md)) that may need a
 runtime ([0004](0004-runtime-dependencies.md)). An open set of hook points has no guard that covers all of them, and the
 tool grows into a worker ([0001](0001-role-of-the-tool.md)). An ingredient is data that fills fixed contracts
-([0022](0022-tool-integration.md), [0023](0023-core-and-contracts.md)), and a station is starting content applied once
-([0024](0024-ingredients-and-stations.md)), so neither adds a hook point.
+([0022](0022-tool-integration.md), [0023](0023-core-and-contracts.md)), a station is starting content applied once
+([0024](0024-ingredients-and-stations.md)), and a recipe's steps are a closed set of kinds that run inside the stages
+([0025](0025-recipes.md)), so none adds a hook point.
 
 ### Stops reported only in the command's output
 
@@ -246,4 +258,7 @@ Must be maintained:
 - No command of the binary, run through a whole fixture lifecycle, fires an event at the scope of an unattended run.
 - Every event run in the fixture suite appears in the record with its exit status; a fixture whose environment holds a
   secret asserts that the record does not contain it.
+- A fixture recipe run fires work started, work verified and, in a working copy bound to a task, work completed at the
+  same points and scopes as the steps it performs do elsewhere, and fires the blocked event naming the step that stops
+  it.
 - With no actions declared, every event runs nothing and succeeds.

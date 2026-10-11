@@ -17,7 +17,7 @@ its mistake named, never partly applied.
 
 These rules cover the files that people and workers edit and `the-cook` reads. The field-by-field reference is in
 [../features/](../features/) and in `the-cook explain profile|policy|hooks|lifecycle|context`. Terms used here in a
-precise sense, such as profile, seeded, owned, receipt, worker, ingredient and station, are defined in the
+precise sense, such as profile, seeded, owned, receipt, worker, ingredient, station and recipe, are defined in the
 [glossary](../features/glossary.md).
 
 ## Where files live
@@ -28,7 +28,7 @@ inside it ([ADR 0014](../adrs/0014-directory-layout.md)).
 
 | Location | Owner | Holds |
 | --- | --- | --- |
-| `.cook/` | the versioned configuration of `the-cook` | `config.yaml` (the profile), `policy.yaml`, `hooks.yaml`, `wrapper.yaml` and the manifest `manifest.json`. Everything in it is committed; nothing in it is state and nothing in it is ignored |
+| `.cook/` | the versioned configuration of `the-cook` | `config.yaml` (the profile), `policy.yaml`, `hooks.yaml`, `wrapper.yaml`, the manifest `manifest.json`, and the repository's recipes in `recipes/<name>/`. Everything in it is committed; nothing in it is state and nothing in it is ignored |
 | `.agents/` | the content workers read, a convention of the `AGENTS.md` ecosystem that other tools, such as skills installers, share | `skills/` (including the tool-owned `skills/the-cook/`), `memory/`, `commands/`, `REVIEW.md`, and repository files that standing context points to. It stays meaningful without `the-cook` |
 | repository root | the repository, with managed blocks | `cook` (the wrapper, tool-owned), `AGENTS.md`, `README.md`, and the files the ingredients in use render blocks into, such as a worker's instructions file and the version control system's ignore file |
 | state paths ([below](#state-paths)) | `the-cook`, clone-local | receipts, sessions, locks, the lifecycle log, the hook cache, standing-context session records, the output and changes of the last failed attempt, managed workspaces |
@@ -47,13 +47,15 @@ inside it ([ADR 0014](../adrs/0014-directory-layout.md)).
 | `.cook/policy.yaml` | repository, committed | the repository's permission entries; the floor of the ingredients in use is rendered beside them and is not in this file |
 | `.cook/hooks.yaml` | repository, committed | hook declarations for worker events, written once for every worker; notification actions (`attention`, `turn_end`) and lifecycle actions |
 | `.cook/wrapper.yaml` | repository, committed | the pinned release: `schema`, `version`, `source`, `checksums`; owned: written only by `the-cook scaffold` and `the-cook wrapper`, never by hand |
+| `.cook/recipes/<name>/recipe.yaml` | repository, committed | one [recipe](#recipes): one kind of change the repository makes many times, with its template files in `files/` beside it |
 | `~/.config/the-cook/fleet.yaml` (or `--repos <file>`) | machine | `repos` (the repository list), `branch_prefix` (default `the-cook/`) and `commit_message` (default `chore(the-cook): <command>`) for `the-cook fleet` |
 
 Each fact has one file ([principles.md](principles.md#6-one-way-to-do-each-thing)). A new setting goes in the file
 whose audience it serves: permissions in the policy, hooks and actions in the hooks file, the pinned version in the
-wrapper file, everything else `the-cook` needs about the repository in the profile. Why: a reviewer of a permission
-change reads one file that holds only permissions. Another repository file requires a change to this standard, with
-its reason.
+wrapper file, each kind of change the repository makes many times in its own recipe, everything else `the-cook` needs
+about the repository in the profile. Why: a reviewer of a permission change reads one file that holds only permissions.
+Another repository file requires a change to this standard, with its reason. Recipes are the one kind of file there are
+many of, one directory per recipe, because each is added, updated, run and deleted as a unit with its template files.
 
 ### `wrapper.yaml`
 
@@ -134,6 +136,12 @@ workspaces:
   through `--dry-run` and the confirmation rules in
   [cli-standards.md](cli-standards.md#confirmations---yes-and---force). Why: the seeded files hold the repository's
   choices, so `the-cook` must not overwrite them; the owned files hold facts `the-cook` computes.
+- A recipe in `.cook/recipes/<name>/` belongs to the repository from the moment it is written. `the-cook` writes one
+  only when a person adds, updates or creates it (`the-cook recipe add`, `recipe update`, `recipe create`) or applies a
+  station that adds it where its directory is absent, and every write but `recipe create`'s skeleton is shown as a diff
+  and confirmed first. `the-cook remove` deletes `.cook/recipes/` with the seeded files in `.cook/`, after listing each
+  recipe in its plan, so a person can keep a copy first. Why: a recipe is the repository's own description of its work,
+  which `the-cook` must not change unasked, and it means nothing without `the-cook`, so it does not outlive it.
 - When `the-cook` writes one of these files, it preserves comments, key order and blank lines that it does not need to
   change, because people annotate them.
 - Every entry adoption imports carries a provenance comment naming its source file and scope
@@ -161,6 +169,10 @@ the ingredients it pins by hash, and by nothing else ([ADR 0013](../adrs/0013-or
   when its archive matches the committed `sha256`. Why: what arrives from any of them takes effect only as the content
   the repository pinned and reviewed. Shared skills arrive the same way as any other file: the team installs them with
   the tool of its choice and commits `.agents/skills/`.
+- A recipe's `origin` records the cookbook, tag and sha256 a copied recipe came from, and names no source for what
+  runs: `the-cook make` runs the copy in `.cook/recipes/`, and only `the-cook recipe update` and `the-cook fetch` read
+  `origin`, to merge a newer version into the copy. Why: a copy the repository owns is read and reviewed where it acts,
+  while a recipe resolved from its cookbook at run time would act from outside the repository.
 - Machine-level files (the fleet file, the cache under `$COOK_HOME`) never affect what is rendered into a
   repository: a cached ingredient or station is loaded only when it matches the hash the repository pins, so two
   machines render the same bytes.
@@ -215,10 +227,10 @@ Migration UX:
 New behaviour enters the files in this order of preference, because each step costs repositories more than the one
 before:
 
-1. Data in the existing formats: an ingredient, a station or a declared action. Support for any program takes the form
-   of an ingredient or a declared action, and a way of running the lifecycle with several programs the form of a
-   station. It changes no schema of the repository files, and a repository that does not use the program carries
-   nothing.
+1. Data in the existing formats: an ingredient, a station, a recipe or a declared action. Support for any program takes
+   the form of an ingredient or a declared action, what a way of working needs in place the form of a station, and a
+   kind of change a repository makes many times the form of a recipe. It changes no schema of the repository files,
+   and a repository that does not use the program or the practice carries nothing.
 2. A new optional key whose absence keeps the existing behaviour. This is not a breaking change and does not bump the
    schema.
 3. A new value in an existing enumerated key, under the same condition.
@@ -264,6 +276,9 @@ the-cook: .cook/config.yaml:14:5: unknown key "verify.lanes.e2e.requried_when"
   placeholder it accepts; any other placeholder is a validation error, and a new value is added as an environment
   variable, never as a new placeholder. Why: substitution into command text is an injection path, so it stays limited
   to two quoted values.
+- A recipe's `{<input>}` and `{task}` placeholders are substituted only into argument lists that no shell parses, into
+  paths and into plain text ([below](#recipes)), never into a command string, so the rule above holds for every string
+  a shell reads.
 - Actions receive values per kind
   ([cli-standards.md](cli-standards.md#values-passed-to-user-declared-commands-and-actions)):
   - `run`: only through environment variables, which the shell expands; `the-cook` substitutes nothing.
@@ -474,21 +489,25 @@ context:
 
 `the-cook` is a declared software development lifecycle that knows no program: a stage that needs one reaches it through
 a contract an ingredient fills, or through an action the repository declares ([lifecycle](../features/lifecycle.md)). A
-cookbook publishes two kinds of unit. An **ingredient** is a named, versioned description of one program: the version
+cookbook publishes three kinds of unit. An **ingredient** is a named, versioned description of one program: the version
 control system, a worker such as a coding agent, a loop runner, a task tracker, a task runner or a skills installer
-([ingredients](../features/ingredients.md)). A **station** is a named, versioned description of one way of running the
-lifecycle, built from ingredients: agentic coding, or the commands and lanes of one stack
-([stations](../features/stations.md)). The binary contains code and data for no program and ships no ingredient and no
-station; every one comes from a cookbook. This section governs how a repository pins them and what each part may write.
+([ingredients](../features/ingredients.md)). A **station** is what one way of working needs in place: the ingredients
+to pin, the workers and their roles, entries for the repository's files, templates and the recipes to add, such as
+agentic coding, or the commands and lanes of one stack ([stations](../features/stations.md)). A **recipe** is one kind
+of change, made many times ([below](#recipes)). The binary contains code and data for no program and ships no
+ingredient, no station and no recipe; every one comes from a cookbook, or, for a recipe, from the repository itself.
+This section governs how a repository pins ingredients and applies stations, and what each part may write.
 Why: each team picks different programs and each program changes on its own schedule, so a program's description changes
 with the program and not with the binary, while each repository keeps the final say over its own files
 ([ADR 0022](../adrs/0022-tool-integration.md), [ADR 0023](../adrs/0023-core-and-contracts.md),
 [ADR 0013](../adrs/0013-organization-content.md)).
 
-What a repository needs from a program is rendered every time, and what it needs from a way of working is applied once
-and becomes its own. So an ingredient holds only what is rendered or run, and a station only what is applied. Why: in
-one unit, the part the repository owns and the part `the-cook` renders would share one pin, so moving or deleting that
-pin would mean something different for each part ([ADR 0024](../adrs/0024-ingredients-and-stations.md)).
+One rule separates the three: facts about programs are pinned and rendered; practices are copied and become the
+repository's own. What a repository needs from a program is rendered every time, what it needs from a way of working is
+applied once, and a kind of change is copied once and then run many times. So an ingredient holds only what is rendered
+or run, a station only what is applied, and a recipe only the steps of one kind of change. Why: in one unit, the part
+the repository owns and the part `the-cook` renders would share one pin, so moving or deleting that pin would mean
+something different for each part ([ADR 0024](../adrs/0024-ingredients-and-stations.md)).
 
 ### The ingredients and stations in use
 
@@ -567,10 +586,10 @@ workers:
 ### What each part writes
 
 An ingredient holds up to four parts: operations, renders, floor and checks ([ingredients](../features/ingredients.md)).
-A station holds the ingredients it pins, its stages, entries, templates and an optional detect rule
+A station holds the ingredients and the recipes it pins, its stages, entries, templates and an optional detect rule
 ([stations](../features/stations.md)). Renders and floor stay owned by `the-cook` and are written on every render; a
-station's pins, stages, entries and templates are written once, when it is applied, and become the repository's own;
-operations, checks and detect rules write nothing.
+station's pins, stages, entries and templates are written once, when it is applied, and the recipes it adds are copied
+then, and all of them become the repository's own; operations, checks and detect rules write nothing.
 
 - Entries are additions to `.cook/config.yaml` (commands, lanes, validators, module switches, workers, standing
   context), `.cook/policy.yaml` and `.cook/hooks.yaml` (post-edit hooks, lifecycle actions). A station's stages are
@@ -586,7 +605,15 @@ operations, checks and detect rules write nothing.
   uses. It is rendered once with values from the profile and written only when the file is absent; from then on it is
   the repository's own file, never rendered again and never removed by `the-cook`. When the file exists, applying
   reports `kept <path>: exists` and writes nothing to it. Why: a file another program reads is edited for that program
-  by the team, and rewriting it would undo their edits.
+  by the team, and rewriting it would undo their edits. A recipe's `template` step is a different thing: it writes a
+  file into a recipe run's workspace as part of the change the run makes ([below](#recipes)).
+- A station pins the recipes it adds under the `recipes:` key of `station.yaml`, as it pins its ingredients: each a
+  map of `name` and `sha256`, from the same cookbook tag as the station, such as
+  `recipes: [{ name: implement-task, sha256: <64 hex> }]`. Applying the station verifies each recipe against that
+  sha256 and copies it into `.cook/recipes/<name>/` with its `origin` ([below](#applying-a-station)). Why: a way of
+  working usually brings the kinds of change it is for, such as the `implement-task` recipe the `agentic-coding`
+  station adds; one tag keeps the station and its recipes consistent, and the pin means applying the station again
+  never trusts a fresh download of the tag's `checksums.txt` for its recipes.
 - Renders are files, keys and blocks `the-cook` writes on every `the-cook render` from the repository's files and an
   ingredient's render templates and floor, such as a worker ingredient's permission keys and hook entries in its
   worker's settings file, a whole rules file, or a loop runner ingredient's block in the ignore file. Renders come only
@@ -633,8 +660,14 @@ program floor comes from the ingredients the repository pins, and a station has 
   cookbook tag, or without it for a station `stations` already records, at its pinned version. No other command writes a
   station's pins, entries or templates. Why: every write to a repository's files is then one a person asked for.
 - Applying records the station in `stations`, pins in `ingredients` each ingredient the station lists, at the sha256 the
-  station lists, and writes the station's stages, entries and templates. An ingredient the repository already pins at
-  another sha256 keeps the repository's pin, and the difference is reported
+  station lists, writes the station's stages, entries and templates, and copies each recipe its `recipes:` key pins,
+  verified against the sha256 the station lists, into `.cook/recipes/<name>/` with its `origin`, exactly as
+  `the-cook recipe add` does, in the same diff. It checks the `requires` of each recipe it copies against the profile as
+  that diff leaves it, so the workers and lanes the station adds count, and a missing contract, role or lane exits 3,
+  names it and writes nothing. A recipe directory that already exists is kept and reported
+  (`kept .cook/recipes/implement-task: exists`), never overwritten, because the recipe there is the repository's own;
+  `the-cook recipe update` merges a newer version into it. An ingredient the repository already pins at another sha256
+  keeps the repository's pin, and the difference is reported
   (`kept ingredients.git: pinned at v1.1.0, station agentic-coding lists v1.2.0`). Why: moving a program's pin is its
   own reviewed decision, made with `the-cook ingredient pin`.
 - Applying adds only the entries the repository lacks, and never removes or reorders anything. Why: the repository's own
@@ -651,11 +684,12 @@ program floor comes from the ingredients the repository pins, and a station has 
     like a kept item, so nothing the station would have changed goes unmentioned.
 - Comments, key order and blank lines are preserved. Why: people annotate these files, and the diff of an application
   must show only its additions.
-- The additions, pins, entries and templates alike, are shown as one diff and confirmed before anything is written.
-  `--yes` answers the question. `--dry-run` prints the diff and writes nothing. Without a terminal and without `--yes`,
-  nothing is written and the command exits 3 ([cli-standards.md](cli-standards.md#confirmations---yes-and---force)).
-  Why: once written, the entries are the repository's own and nothing marks where they came from, so the diff before
-  writing is the one moment a person sees them as a station's additions.
+- The additions, pins, entries, templates and recipes alike, are shown as one diff and confirmed before anything is
+  written. `--yes` answers the question. `--dry-run` prints the diff and writes nothing. Without a terminal and without
+  `--yes`, nothing is written and the command exits 3
+  ([cli-standards.md](cli-standards.md#confirmations---yes-and---force)). Why: once written, the entries are the
+  repository's own and nothing marks where they came from, so the diff before writing is the one moment a person sees
+  them as a station's additions.
 - After writing, the command renders the repository as `the-cook render` does, with every ingredient the station lists
   downloaded when it is not cached and verified against the sha256 the station lists, so the additions and their
   rendered effect reach review as one diff and the drift check passes on it. A failed download or verification writes
@@ -664,20 +698,133 @@ program floor comes from the ingredients the repository pins, and a station has 
   each render. Nothing records which entries a station added: not the manifest, not a comment, not a header in a
   template. Why: each entry then has one source of truth, the file it is in, and the tool has nothing it could later use
   to change those entries by itself. A report built on such a record would also nag a repository that removed an entry
-  on purpose.
+  on purpose. A recipe the station copied carries its own `origin`, as every added recipe does, and it names the
+  cookbook tag the recipe came from, not the station.
 - Deleting a name from `stations` changes nothing rendered. Deleting a name from `ingredients`, once neither `vcs` nor a
   worker names it, and rendering removes that ingredient's renders, floor included. A station's applied entries and
   templates stay as the repository's own: they are changed or removed by editing the file, like any other entry, and
   removing `the-cook` (`the-cook remove`, `the-cook remove --eject`) deletes the seeded files in `.cook/` whatever they
-  hold, and leaves every file a template wrote, so applying a station's entries has no inverse
-  ([cli-standards.md](cli-standards.md#command-grammar)).
-- A newer version of a station may hold more entries or list newer ingredients. They reach a repository only when
-  someone applies that version: `./cook station apply node --cookbook github:acme/cookbook@v1.3.0 --dry-run` shows what
-  it would add, and applying it moves the station's entry in `stations` to that version. Ingredient pins the repository
-  holds stay where they are; `the-cook ingredient pin` moves one, and the newer ingredient's renders and floor take
-  effect in the render that moving the pin performs, under the rules for
-  [ingredients and stations across versions](compatibility-standards.md#ingredients-and-stations-across-versions). Why:
-  moving a pin changes the description a repository uses, never the entries it owns.
+  hold, deletes `.cook/recipes/` after listing each recipe, and leaves every file a template wrote, so applying a
+  station's entries has no inverse ([cli-standards.md](cli-standards.md#command-grammar)).
+- A newer version of a station may hold more entries, list newer ingredients or add more recipes. They reach a
+  repository only when someone applies that version:
+  `./cook station apply node --cookbook github:acme/cookbook@v1.3.0 --dry-run` shows what it would add, and applying it
+  moves the station's entry in `stations` to that version. Ingredient pins the repository holds stay where they are;
+  `the-cook ingredient pin` moves one, and the newer ingredient's renders and floor take effect in the render that
+  moving the pin performs, under the rules for
+  [ingredients and stations across versions](compatibility-standards.md#ingredients-and-stations-across-versions). A
+  recipe the repository already has is kept; `the-cook recipe update` merges a newer version into it
+  ([recipes across versions](compatibility-standards.md#recipes-across-versions)). Why: moving a pin changes the
+  description a repository uses, never the entries or the recipes it owns.
+
+## Recipes
+
+A recipe is one kind of change the repository makes many times, such as a database migration or a new module: its
+inputs, what it requires, its steps mapped onto the lifecycle's stages and the lanes it requires. It lives in
+`.cook/recipes/<name>/recipe.yaml`, with the sources of its `template` steps in `files/` beside it, and it is the
+repository's own: a recipe the repository wrote, or a copy added from a cookbook that records its `origin`.
+`the-cook make <name>` runs it, one change per recipe run ([recipes](../features/recipes.md)). Why: a generator that
+writes files stops before verification, and a skill alone guarantees nothing, while a recipe run carries both the
+deterministic part and the judgement of a repeated change through the same guards as any other work
+([ADR 0025](../adrs/0025-recipes.md)).
+
+```yaml
+# .cook/recipes/migration/recipe.yaml
+schema: 1
+name: migration
+description: Add a database migration
+inputs:
+  name: { type: slug, description: what the migration does }
+requires:
+  contracts: [vcs, worker]
+  roles: [unattended]
+  lanes: [unit, migrations]
+workspace: "migration-{name}"
+steps:
+  - run: [npm, run, migration:create, --, "{name}"]
+  - template: { from: down-test.ts, to: "src/migration/{name}.spec.ts" }
+  - attempt: { worker: coder, prompt: "Write the up and down steps of the migration {name}." }
+  - handoff: "Check the generated SQL against production data volumes, then continue."
+verify: { require: [unit, migrations] }
+```
+
+A recipe added from a cookbook carries one more key, which `the-cook recipe add` writes:
+
+```yaml
+# .cook/recipes/nestjs-module/recipe.yaml, beside the keys above
+origin:
+  source: github:acme/cookbook
+  version: v1.2.0
+  sha256: 9a7e3ac8721dc0655def03e198e417b1fa1a4b3c21eac59da309d06c0e6ff7d4
+```
+
+| Key | Type | Meaning |
+| --- | --- | --- |
+| `schema` | integer | the recipe format's schema; a release refuses a newer one, exit 1, naming the release needed |
+| `name` | recipe name | the recipe's name, `[a-z][a-z0-9-]*`, equal to its directory's name ([cli-standards.md](cli-standards.md#command-grammar)) |
+| `description` | string | one line, printed by `the-cook recipe list`, by `the-cook make <name> --help` and when a run starts |
+| `origin` | map: `source`, `version`, `sha256` | the cookbook, tag and archive sha256 a copied recipe came from: written by `the-cook recipe add` and by applying a station that adds the recipe, moved by `the-cook recipe update`, conflicts or not; absent for a recipe the repository wrote |
+| `inputs.<input>` | map: `type`, `description`, and `values` for an `enum` | one input, named `[a-z][a-z0-9-]*` and given to `the-cook make` as `--<input> <value>`; `type` is `string`, `slug` (`[a-z0-9][a-z0-9-]*`), `enum` (one of `values`) or `bool` |
+| `requires.contracts` | list of `vcs`, `worker` | the contracts a pinned ingredient must fill |
+| `requires.roles` | list of `interactive`, `unattended` | the roles a declared worker must have |
+| `requires.lanes` | list of lane names | the lanes the profile must declare |
+| `workspace` | string | Start: the name of the managed workspace a run creates, on branch `work/<name>` from the default branch, as `the-cook workspace create` makes them |
+| `steps` | list of steps | Implement: the steps, in order, each a map with exactly one kind key, below |
+| `verify.require` | list of lane names | Verify: lanes the run's Verify stage runs, never skipped, on top of the lanes the change selects; one the change selects nothing for runs in full; each is also in `requires.lanes` |
+
+| Step kind | Value | What it does |
+| --- | --- | --- |
+| `run` | list of strings | runs the argument list in the workspace as a child process of `the-cook`, like a `run` action, never through a shell; a non-zero exit stops the run |
+| `template` | map: `from`, `to` | writes the path `to` in the workspace from the file `from` in the recipe's `files/`, rendered in the [template language](../features/ingredients.md#the-template-language) with the inputs and `task` as its values; a path that exists stops the run |
+| `attempt` | map: `worker`, `prompt`, `model`, `effort` | starts `worker`, a declared worker with role `unattended` (by default the only one), on `prompt` (by default the prompt the caller passes on stdin), in the workspace, under the attempt contract; its edits stay for the next steps, a `the-cook verify` its worker runs is feedback for the worker and not the run's proof, and a failed attempt stops the run |
+| `handoff` | string | prints the text for whoever drives the run and exits 3: in an attended run it pauses the run and fires nothing, and `the-cook make --continue` resumes after it; in a run the caller marks `--unattended` it stops the run as blocked |
+
+- The step kinds are a closed set the binary defines; a step with any other key, or with two kind keys, is a validation
+  error. Why: each kind is a process the binary runs under its guards, and a kind a file could define would run
+  something the binary cannot bound.
+- `{<input>}`, where `<input>` is an input the recipe declares, and `{task}`, the task id given with `--task`, are the
+  only substitutions in the recipe file, and they apply in `workspace`, in each element of `run`, in `template.to`, in
+  `attempt.prompt` and in `handoff`. A placeholder that names no declared input is a validation error, and `{task}` in a
+  run without `--task` exits 1 before anything runs. Why: no element passes through a shell, so a substituted value
+  stays one argument, one path or plain text, and a misspelt placeholder fails before anything runs instead of reaching
+  a program as written. The sources in `files/` are rendered in the template language instead, because they are whole
+  files whose own text may hold braces.
+- Inputs are validated by their type before anything runs, the workspace included. An input name is lower case ASCII
+  words joined by hyphens, `[a-z][a-z0-9-]*`, and never the name of a flag of `the-cook make` (every flag it accepts,
+  global flags included: `continue`, `status`, `task`, `here`, `unattended`, `commit`, `withhold`, `dry-run`, `yes`,
+  `help`, `json`, `verbose`), because the input is itself a flag of `the-cook make`
+  ([cli-standards.md](cli-standards.md#naming)). A `run` step's environment carries it as `COOK_INPUT_` and the name in
+  upper case with hyphens as underscores: `module-path` gives `COOK_INPUT_MODULE_PATH`. A `bool` input is a boolean
+  flag, true when present and false when absent; every other input must be given, and none has a default
+  ([cli-standards.md](cli-standards.md#booleans)). `the-cook make <recipe> --help` lists the recipe's inputs with their
+  types and descriptions.
+- No input value of any type may begin with a hyphen; validation refuses one before anything runs. An input
+  substituted into a `run` element is then one argument whatever it holds, and never an option of the program it
+  reaches.
+- `template.to` is a path relative to the workspace, with forward slashes. One that, after substitution, is absolute or
+  leaves the workspace is refused before anything runs, exit 1, because a recipe run writes only its own workspace.
+- In `attempt.prompt` and `handoff`, inputs are plain-text substitution and a prompt-injection surface, as in an
+  `attempt` action's prompt ([cli-standards.md](cli-standards.md#values-passed-to-user-declared-commands-and-actions)).
+- `requires` is checked when the recipe is added and again when it runs; a missing contract, role or lane exits 3 and
+  names it ([cli-standards.md](cli-standards.md#the-make-command)).
+- A recipe can only add: steps, required lanes and requirements. It declares no lifecycle action, skips no lane,
+  weakens no guard and fires no event itself; delivery of a recipe run's work follows the repository's own lifecycle
+  actions. Why: a recipe is repository data that a worker may have written, and the guards and the delivery convention
+  hold whatever describes the work ([ADR 0015](../adrs/0015-development-lifecycle.md)).
+- A run reads its recipe once, when it starts, from the base commit of the workspace it creates, the head of the
+  default branch, and keeps the recipe's content and digest in its run record; `the-cook make --continue` runs that
+  content and never reads the file again, so no step changes the recipe of the run it is in. `the-cook make --here`
+  reads the file in the working tree instead, for drafting a recipe, and is refused with `--unattended`, so a run
+  nobody drives never follows a draft nobody reviewed ([cli-standards.md](cli-standards.md#the-make-command)). The
+  tamper check of an `attempt` step covers `.cook/recipes/` with the rest of `.cook/`, so its worker cannot change a
+  recipe a later run reads either.
+- The run's Verify stage runs the lanes itself: every lane the change selects, as the receipt a step left in the
+  workspace selects them, and every lane in `verify.require`, a required lane the change selects nothing for in full.
+  The receipt the run writes records per lane the patterns it ran or that it ran in full
+  ([verify](../features/verify.md)), and Complete replays it from the base, as for any work.
+- `origin` is a record, not a source: `the-cook make` never reads it, and `the-cook recipe update` and `the-cook fetch`
+  read it to find the version the copy came from ([Inputs](#inputs)). A recipe without `origin` has no version to merge
+  from and changes only by editing.
 
 ## No secrets
 
@@ -704,7 +851,7 @@ that decides it, because a setting that weakens them would copy along with the f
 ([ADR 0011](../adrs/0011-safety-invariants.md), [ADR 0012](../adrs/0012-write-boundary.md),
 [ADR 0013](../adrs/0013-organization-content.md), [ADR 0014](../adrs/0014-directory-layout.md),
 [ADR 0017](../adrs/0017-engine-version.md), [ADR 0021](../adrs/0021-release-trust.md),
-[ADR 0022](../adrs/0022-tool-integration.md)).
+[ADR 0022](../adrs/0022-tool-integration.md), [ADR 0025](../adrs/0025-recipes.md)).
 
 - An attempt never bypasses permissions: every argument a worker's ingredient marks as a floor bypass argument is
   refused.
@@ -734,13 +881,18 @@ that decides it, because a setting that weakens them would copy along with the f
 - The binary never reconfigures state it did not create.
 - What `the-cook` renders and runs comes only from the repository's files, its pinned release and the ingredients it
   pins by hash; no repository file names a source outside the repository for it except a release, an ingredient or a
-  station pinned by hash.
-- The binary ships no ingredient and no station and names no default cookbook; every ingredient a repository uses is
-  pinned in `ingredients`, and every station it applied is recorded in `stations`, each by cookbook, version and sha256,
-  and two entries of one list cannot share a name.
+  station pinned by hash. A recipe's `origin` records where its copy came from and is never read to run it.
+- The binary ships no ingredient, no station and no recipe and names no default cookbook; every ingredient a repository
+  uses is pinned in `ingredients`, and every station it applied is recorded in `stations`, each by cookbook, version and
+  sha256, and two entries of one list cannot share a name.
 - A station's entries are applied only on request and only add; a template is written only where its file is absent; a
   station has no renders and no floor; an ingredient's renders are recorded in the manifest under its name; nothing
   records which entries a station added.
+- The step kinds of a recipe are a closed set the binary defines. A recipe only adds steps, required lanes and
+  requirements: it never skips a lane, weakens a guard, fires an event or declares a lifecycle action. A recipe run
+  reads its recipe once, from the base commit of its workspace unless a person drafting it runs it from the working
+  tree, and never again; its Verify stage runs every lane the change selects and every lane the recipe requires; and a
+  handoff in a run the caller marks unattended stops it as blocked.
 - The managed-block marker syntax, the block classes, the generated-file header and the manifest location.
 - The locations of the configuration of `the-cook` (`.cook/`) and of the content workers read (`.agents/`); only
   state paths are settings.

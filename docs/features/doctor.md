@@ -27,6 +27,7 @@ global install, `the-cook <command>` is equivalent.
 
 - After `the-cook scaffold` or `the-cook scaffold --adopt`, to see what is left.
 - After editing the profile, policy or hooks file, as a broader check than `render --check`.
+- After adding, updating or editing a [recipe](recipes.md), to check its file and what it requires of the repository.
 - When something does not behave as expected: a hook does not fire, a [lane](verify.md) selects nothing, every
   [attempt](attempts.md) fails.
 - In CI, optionally, next to `the-cook render --check`.
@@ -48,9 +49,10 @@ global install, `the-cook <command>` is equivalent.
 | Manifest | owned paths missing, modified by hand, or present but no longer produced |
 | Links | skill links that do not resolve |
 | Contracts | a [contract](ingredients.md#contracts) no pinned ingredient fills, with the commands unavailable because of it: without a version-control ingredient, workspaces, `verify`, `attempt`, `lifecycle run` and landed branches exit 3; without a declared worker, and so without a worker ingredient, `attempt`, `attempt` actions and worker hooks are unavailable. Reported as the [unfilled contract](scaffold.md#the-to-do) to-do item, with `the-cook station apply` and `the-cook ingredient pin` as the fixes |
-| Cookbook cache | `ingredients:` pins an [ingredient](ingredients.md#fetching) that is not in the user's cache on this machine, so `render` and attempts exit 3 and hooks skip until `./cook fetch` runs; or a cached ingredient or station whose content does not match its `sha256` |
+| Cookbook cache | `ingredients:` pins an [ingredient](ingredients.md#fetching) that is not in the user's cache on this machine, so `render` and attempts exit 3 and hooks skip until `./cook fetch` runs; the version an added recipe came from, as its `origin` names it, is not cached, so `recipe update` has to download it; or a cached ingredient, station or recipe whose content does not match its `sha256` |
 | Workers | a worker with `role: unattended` whose ingredient passes `unattended.deny` neither at launch nor through rendered rules, so every attempt of it exits 3 ([worker contract](ingredients.md#the-worker-contract)) |
-| Programs | a program that a pinned ingredient, a declared command or an action names and that is not on `PATH`: the version-control ingredient's program, each worker's program, `commands`, lane `select`/`full`, `bootstrap`, validator and post-edit commands, and lifecycle `run` actions. The check needs no knowledge of the program ([ADR 0022](../adrs/0022-tool-integration.md)) |
+| Recipes | for each recipe in `.cook/recipes/`: a `recipe.yaml` that is invalid, has an unsupported `schema`, a name that differs from its directory, an input named like a flag of `make`, or a file that holds a conflict marker `recipe update` left, so `make` refuses it; a contract, role or lane its `requires` names that the repository lacks, or an `attempt` step whose worker is not declared with role `unattended`, so every run of it exits 3 ([recipes](recipes.md#the-recipe-file)) |
+| Programs | a program that a pinned ingredient, a declared command, an action or a recipe's `run` step names and that is not on `PATH`: the version-control ingredient's program, each worker's program, `commands`, lane `select`/`full`, `bootstrap`, validator and post-edit commands, lifecycle `run` actions, and the program each recipe's `run` steps start. The check needs no knowledge of the program ([ADR 0022](../adrs/0022-tool-integration.md)) |
 | Globs | `verify.app_paths`, `verify.lint_paths`, lane `required_when`, validator `when` and post-edit `paths` that match no tracked file |
 | Default branch | the version-control ingredient reports no default branch, so a floor rule that names the default branch, such as a deny of a force push to it, cannot name the branch |
 | Program versions | a program whose version, read with its ingredient's version command, is outside the range the ingredient's checks declare. Every pinned ingredient is checked the same way. A program no pinned ingredient describes has no version check |
@@ -109,9 +111,9 @@ the-cook doctor [--json]
 | 2 | At least one finding or open to-do item |
 
 Files read: the three repository files, `.cook/wrapper.yaml`, the manifest and every owned path (`cook` included), the
-workers' native files, `PATH`, the version command of every pinned ingredient, the cookbook cache, the index and
-branches as the version-control ingredient reports them, `.agents/skills/`, the files `context` entries name, the
-session records and `lifecycle.jsonl` under the state directory (default `.work/`), `$COOK_HOME` (default
+workers' native files, `.cook/recipes/`, `PATH`, the version command of every pinned ingredient, the cookbook cache, the
+index and branches as the version-control ingredient reports them, `.agents/skills/`, the files `context` entries name,
+the session records and `lifecycle.jsonl` under the state directory (default `.work/`), `$COOK_HOME` (default
 `$XDG_CACHE_HOME/the-cook`, or `~/.cache/the-cook`), and online the pinned release's signed checksum file. Files
 written: nothing in the clone; only the update-check and signature-check results under `$COOK_HOME`.
 
@@ -123,6 +125,8 @@ programs
   .cook/hooks.yaml lifecycle.deliver open-pr names acme-review, which is not on PATH: install it, or remove the action
 cookbook cache
   acme-tasks v1.2.0 (github:acme/cookbook) is not cached on this machine: run ./cook fetch
+recipes
+  nestjs-module requires lane e2e, which verify.lanes does not declare: declare the lane, or remove the recipe
 globs
   verify.lanes.e2e.required_when: src/**/routes/** matches no tracked file
 context
@@ -174,7 +178,10 @@ CI step, after `./cook fetch` and `render --check`:
 | program version unsupported | the installed program is older or newer than its ingredient supports | install a supported version, or move the pin with `./cook ingredient pin <name> --cookbook <source>@<version>` to a version of the ingredient that supports it |
 | an unfilled contract | no pinned ingredient fills the version-control contract, or no worker is declared | `./cook station apply <name> --cookbook <source>@<version>` with a station whose stages fill it, or `./cook ingredient pin <name> --cookbook <source>@<version>` and name it in `vcs:` or a worker |
 | an ingredient is not cached | nothing on this machine has fetched it since `ingredients:` pinned it, or the cache was cleared | `./cook fetch` |
-| an ingredient's or a station's hash does not match | the content at its `source` differs from the `sha256` the profile pins | do not use it; check the source and the pinned hash with the cookbook's publisher |
+| an ingredient's or a station's hash does not match, or a recipe's origin | the content at its `source` differs from the `sha256` the profile pins or the recipe's `origin` records | do not use it; check the source and the hash with the cookbook's publisher |
+| a recipe is invalid | a typo, a key from a newer schema, or a conflict `recipe update` left | fix the file; for a conflict, resolve the markers, which is all that is left: `origin` already names the newer version |
+| a recipe's requirement is not met | the recipe requires a contract, role or lane the repository lacks | pin or declare what the finding names, or apply a station that provides it; or remove the recipe |
+| a recipe's origin is not cached | nothing on this machine has fetched the version the recipe came from | `./cook fetch` |
 | an unattended worker cannot run attempts | its ingredient passes `unattended.deny` neither at launch nor through rendered rules | use an ingredient that does, or declare the worker `role: interactive` |
 | `wrapper.yaml` invalid | hand-edited, or a `version` without matching `checksums` | re-pin with `./cook wrapper --version <tag>` and review the diff |
 | `cook` differs from the template | the script was edited by hand | `./cook render` |

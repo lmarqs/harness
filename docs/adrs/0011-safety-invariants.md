@@ -19,8 +19,9 @@ own permissions, and cannot be recorded as done without a verification that pass
 - An unattended coding agent can claim its task is complete, and one that can write both its work and the configuration
   of its verification can weaken the verification.
 - A worker left unattended writes in a tree that also holds the rendered permission rules, the hook entries, the wrapper
-  that starts the tool and the guidance files the worker reads. An edit to them changes what the next attempt may do or
-  is told, without passing through the policy.
+  that starts the tool, the guidance files the worker reads and the recipes the repository runs
+  ([0025](0025-recipes.md)). An edit to them changes what the next attempt may do or is told, without passing through
+  the policy.
 - A loop runner can run its tasks one after another in one working copy, each starting from what the previous one
   committed, and can start the same command again after a failed attempt. ralph-tui 0.12 does both in its default
   sequential mode. A task whose commit changed the repository's rules would then set the rules for every later task,
@@ -28,8 +29,9 @@ own permissions, and cannot be recorded as done without a verification that pass
 - Lifecycle actions and notification actions ([0015](0015-development-lifecycle.md), [0019](0019-action-kinds.md)) run
   as child processes of the binary, outside the per-command permission checks of any worker, with the credentials in the
   environment.
-- An action may start a worker ([0019](0019-action-kinds.md)). Its prompt can contain values written by people and
-  workers, such as task titles and a worker's messages, and nobody watches the session.
+- An action, or a step of a recipe, may start a worker ([0019](0019-action-kinds.md), [0025](0025-recipes.md)). Its
+  prompt can contain values written by people and workers, such as task titles and a worker's messages, and nobody
+  watches the session.
 - Delivery publishes work outside the clone, for example by pushing a branch or opening a pull request. Publishing from
   the default branch, publishing uncommitted work, or publishing work whose verification did not pass is never a
   legitimate choice.
@@ -70,25 +72,42 @@ bound it are the attempt contract.
 6. The binary never writes knowledge (prose, memory, domain skills) and never writes the team's record of work
    ([0012](0012-write-boundary.md)).
 7. The binary never reconfigures state it did not create ([0012](0012-write-boundary.md)).
-8. An attempt cannot change the rules it runs under. Before every attempt starts its worker, the binary resolves the
-   ingredients the attempt uses from the verified cache, and restores the tool-owned files (rendered rules, owned
-   settings keys, hook entries, the wrapper and its pin) from the base commit of the attempt. After the worker exits, it
-   compares them with the base, together with the repository data that drives the replay and the guidance injected into
-   the worker ([0020](0020-standing-context.md)). Any difference fails the attempt, withholds completion and is
+8. An attempt cannot change the rules it runs under. Its baseline is the checkout as it was when the attempt began: the
+   base commit for an attempt run on its own, which refuses uncommitted changes, and the working copy as the earlier
+   steps left it for a recipe's attempt step, which runs on their edits. Before every attempt starts its worker, the
+   binary resolves the ingredients the attempt uses from the verified cache, and restores the tool-owned files (rendered
+   rules, owned settings keys, hook entries, the wrapper and its pin) to that baseline. After the worker exits, it
+   compares them with the baseline, together with the repository data that drives the replay and the guidance injected
+   into the worker ([0020](0020-standing-context.md)). Any difference fails the attempt, withholds completion and is
    reported. The repository data and the guidance are read from the base commit. A base that cannot be read fails the
-   attempt. A failed attempt leaves the working copy at its base commit, with the attempt's changes kept aside for a
-   person to read.
+   attempt. A failed attempt that the attempt command runs on its own, where a loop runner retries, leaves the working
+   copy at its base commit, with the attempt's changes kept aside for a person to read; a recipe's attempt step that
+   fails follows invariant 13 instead.
 9. Lifecycle actions and notification actions never run inside a worker the binary starts unattended. The binary fires
    lifecycle events in its own process after the worker exits, and a worker it starts unattended is denied triggering
    events.
 10. Delivery is refused from the default branch and with uncommitted changes and, when verification is enabled,
     without a valid proof of verification for the work's base. A refused delivery runs none of its actions.
-11. An action that starts a worker runs it under the same contract as an attempt: the binary pins its permission mode,
-    applies the deny rules for unattended work, refuses bypass and runs the tamper check of invariant 8. The worker
-    cannot commit, push or trigger events.
+11. An action or a recipe's step that starts a worker runs it under the same contract as an attempt: the binary pins its
+    permission mode, applies the deny rules for unattended work, refuses bypass and runs invariant 8's tamper check. The
+    worker cannot commit, push or trigger events.
 12. The binary enforces its guards itself. It recognises a worker it started unattended by a mark that every attempt,
-    and every action that starts a worker, sets in that worker's environment, and it checks branch and tree state before
-    acting. Permission entries that deny or ask for the tool's own commands are defence in depth, never the only guard.
+    and every action or recipe step that starts a worker, sets in that worker's environment, and it checks branch and
+    tree state before acting. Permission entries that deny or ask for the tool's own commands are defence in depth,
+    never the only guard.
+13. A recipe run holds every guard of the lifecycle ([0015](0015-development-lifecycle.md), [0025](0025-recipes.md)). A
+    recipe can only add to what a change must pass: steps, required lanes and requirements. It cannot skip a lane,
+    weaken a guard, declare an action or fire an event; the binary fires the run's events, and the run itself verifies
+    every lane the change selects and every lane the recipe requires. A run reads its recipe once, from the base commit,
+    when it starts, with the rest of the repository data, as an attempt does (invariant 8), keeps that content in its
+    record and never reads the recipe again, so no step can change the recipe of the run it is in. Only a run a person
+    drives, started to draft a recipe, reads them from the working copy instead. The caller declares whether a person or
+    a worker drives the run, and a handoff in a run a worker drives stops it and fires blocked instead of waiting. An
+    attempt step that fails, by its worker's exit or by the tamper check, leaves its changes in place and stops the run,
+    which fires blocked naming the step; continued, after a person has inspected or discarded those changes, the run
+    starts that step again under the same contract on the tree as it is. The stopped run is the retry boundary, and the
+    run's verification and the replay from the base still stand between those changes and completion. A worker the
+    binary started unattended cannot start a recipe run.
 
 ## Reasons
 
@@ -135,13 +154,34 @@ bound it are the attempt contract.
   reach to the worker. Firing events in the binary's own process after the worker exits keeps actions out of its hands.
 - **10.** Delivery leaves the clone, so its mistakes are visible to others and hard to undo, and the three refused
   states are never wanted. Refusing before any action runs keeps a partial delivery from happening.
-- **11.** A worker started by an action is unattended in every respect that matters: nobody watches it, it runs with the
-  person's credentials, and its prompt can carry injected text. The attempt contract already bounds such a worker.
-  Reusing it gives one contract to test instead of a second, weaker one. Without the commit, push and event
-  restrictions, an action could deliver past the guards of invariant 10 or chain events.
+- **11.** A worker started by an action or by a recipe's step is unattended in every respect that matters: nobody
+  watches it, it runs with the person's credentials, and its prompt can carry injected text. The attempt contract
+  already bounds such a worker. Reusing it gives one contract to test instead of a second, weaker one. Without the
+  commit, push and event restrictions, an action could deliver past the guards of invariant 10 or chain events.
 - **12.** Prefix rules match literal words, and the spellings of a tool command are open-ended. No finite rule list
   covers an absolute path or a shell running the wrapper script. A guard the binary checks holds whatever spelling
   started it. Permission rules still stop the common spellings before the binary starts and show intent in review.
+- **13.** A recipe is a file in the tree a worker writes in (Context). If a recipe could skip a lane or fire an event,
+  the guards of every change it makes would be only as strong as the last edit to it; because it can only add, the most
+  a recipe does is ask for more checks. The run verifies the lanes itself because a worker's verification covers only
+  what that worker selected ([0025](0025-recipes.md)), so the proof of a recipe run does not depend on its worker.
+  Reading the recipe once, from the base commit, and running the content the record keeps, together with the tamper
+  check over the repository data (invariant 8), means a worker cannot change the recipe that it, or a later task, runs:
+  an edit to the file reaches no step of the run it is in. A person drafting a recipe runs it before it is committed and
+  is there to watch it, while a run a worker drives never reads the working copy, so no draft nobody reviewed runs with
+  nobody watching. A handoff in a run a worker drives would wait for a person who is not there; stopping it fires the
+  event that reaches one ([0015](0015-development-lifecycle.md)). The caller declares who drives the run because a
+  worker in a person's session runs commands with no terminal ([0025](0025-recipes.md)), so a terminal cannot tell, and
+  a run whose caller declares nothing pauses at a handoff, which completes nothing. A recipe run's commands run as child
+  processes of the binary, like actions, so started from inside a worker the binary started unattended they would reach
+  what invariant 9 keeps out of that worker's hands. An attempt step works in a tree that holds the uncommitted output
+  of the steps before it, so returning it to the base, as invariant 8 does for an attempt a loop runner retries, would
+  discard that output with the attempt's edits; nothing retries a step by itself, and a person decides what to keep
+  before it runs again. What the step left can still reach completion only through the run's verification and the replay
+  from the base, the proof of invariants 3 and 4, and invariant 8's restore of the tool-owned files to the attempt's
+  baseline before every attempt starts its worker. The trade: a recipe meant for a run a worker drives cannot hand off
+  to a person, a change to a recipe reaches such a run only once it is committed, and a failed attempt step's edits stay
+  in the working copy until a person deals with them.
 
 ## Rejected alternatives
 
@@ -205,5 +245,14 @@ Must be maintained:
   path to the binary, is refused by the binary, and the event's actions run only after the worker exits.
 - Delivery fixtures on the default branch, with uncommitted changes and, with verification enabled, with an invalid
   proof are refused, and no action runs.
-- A fixture action that starts a worker runs it with the pinned permission mode, the unattended denies and the tamper
-  check, and the worker's tries to commit, push or trigger an event are refused.
+- A fixture action that starts a worker, and a fixture recipe's attempt step, each run the worker with the pinned
+  permission mode, the unattended denies and the tamper check, and the worker's tries to commit, push or trigger an
+  event are refused.
+- Validation refuses a fixture recipe that skips a lane, declares an action or fires an event. A fixture run follows the
+  recipe of its base commit as it read it when it started, after a worker edits the recipe in the working copy and after
+  it is continued. A fixture run declared as driven by a worker and asked to read its recipe from the working copy is
+  refused, and one declared so that reaches a handoff stops and fires blocked; the same run with no declaration pauses
+  there and fires nothing. A fixture run whose worker leaves a proof without a required lane still runs that lane in its
+  own verification. A fixture worker in an attempt that starts a recipe run is refused. A fixture attempt step whose
+  worker fails leaves its changes in the working copy, stops the run with the blocked event naming the step, and runs
+  again on the tree as it is when the run is continued.

@@ -24,7 +24,7 @@ expects of the skills around it. Terms such as standing context, pin and profile
 
 | Kind | Lives in | Written by | Reaches a repository by | Holds |
 | --- | --- | --- | --- | --- |
-| **shipped skill** | the binary; installed at `.agents/skills/the-cook/` | `the-cook` maintainers | `the-cook render` (tool-owned, listed in the manifest) | how to run `the-cook` (`./cook <command>`), edit the repository files in `.cook/`, finish an adoption, read `doctor` findings, when to run `the-cook lifecycle run <event>`, and why the invariants exist |
+| **shipped skill** | the binary; installed at `.agents/skills/the-cook/` | `the-cook` maintainers | `the-cook render` (tool-owned, listed in the manifest) | how to run `the-cook` (`./cook <command>`), edit the repository files in `.cook/`, finish an adoption, read `doctor` findings, when to run `the-cook lifecycle run <event>`, how to drive a recipe run through its handoffs, and why the invariants exist |
 | **Organization skill** | an organization's skills repository | the organization | installed by the team with the skills installer of its choice and committed under `.agents/skills/`; the binary has no code for the installer, which an ingredient the repository pins can describe ([ADR 0022](../adrs/0022-tool-integration.md)) | conventions shared by one organization's repositories, and how to write them into one repository's files: delivery actions, policy entries (observability read patterns, deploy denies), review, domain vocabulary |
 | **Repository skill** | `.agents/skills/<name>/` in the repository | people and workers in that repository | committed directly | knowledge of one repository: its modules, risks, procedures |
 
@@ -46,6 +46,7 @@ share, so a skills installer, the workers and people find them in one place. The
 | A procedure or body of knowledge is specific to one repository | repository skill | it is reviewed where it applies |
 | Known guidance must apply every session, or whenever certain files or words appear | an existing skill plus a standing-context entry ([configuration-standards.md](configuration-standards.md#standing-context)) | the trigger is deterministic; the skill stays the single text |
 | The behaviour is deterministic and organization neutral | not a skill: a command, flag, profile field, [ingredient](../features/ingredients.md) or [station](../features/stations.md) | prose would drift from the behaviour |
+| A kind of change a repository makes many times, part deterministic and part judgement (a migration, a new module) | a [recipe](../features/recipes.md), whose `attempt` steps name the skill that guides the judgement ([below](#skills-a-recipe-step-names)) | the recipe makes the change the same way and verified every time, and the skill keeps the guidance in one text |
 | A one-off instruction for a single session | not a skill: the prompt | a skill outlives the session it was written for |
 
 The shipped skill names no organization, vendor or company convention, because it ships to every user of an open-source
@@ -92,6 +93,22 @@ for standing context:
 A directive that must apply even without the binary is declared `static`, so it is written into `AGENTS.md` and does
 not depend on a hook.
 
+## Skills a recipe step names
+
+A recipe's `attempt` step names, in its prompt, the skill that guides the judgement it asks for, such as a migration
+skill for the step that writes a migration's up and down steps, or a monitoring skill for a recipe that acts on an
+alert. The recipe holds the steps and the skill holds the guidance, so neither repeats the other
+([when-cli-when-skill.md](when-cli-when-skill.md#recipes)). Such a skill:
+
+- is written for an unattended worker: it asks no question and waits for no answer, because nobody replies inside an
+  attempt; a check a person must make is a handoff in the recipe, not a question in the skill;
+- ends, like every procedure, with the check: `./cook verify` with the lanes and patterns the change needs, which tells
+  the worker whether its edits pass; that receipt is feedback, not the proof, because the recipe run's Verify stage
+  runs every lane the change selects and every lane the recipe requires itself; completion and delivery are the run's,
+  so it never tells the worker to commit, deliver or fire an event, which the attempt contract refuses anyway;
+- reads correctly in an interactive session too, because the same skill guides a person's coding agent making the same
+  kind of change by hand.
+
 ## Organization skills that write repository entries
 
 An organization's choices that `the-cook` enforces (which observability tools coding agents may read without asking, a
@@ -134,6 +151,9 @@ running the command skips the command's checks.
 
 - A skill calls a command; it never lists the steps the command performs so that a coding agent could perform them by
   hand.
+- A skill whose task is a kind of change a recipe in the repository makes runs that recipe
+  (`./cook make <recipe> --<input> <value>`) instead of listing its steps, so the change takes the recipe's steps and
+  required lanes, and the skill does not drift from the recipe.
 - A skill never tells a coding agent to edit a rendered file, edit inside a managed block, or bypass permissions,
   because each of those is undone by the next render or refused by the invariants.
 - A skill that ends in delivery does its judgement steps (grouping commits, wording messages), then runs

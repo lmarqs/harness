@@ -61,6 +61,10 @@ in every repository, while a guess made by code is wrong in the first repository
 - Every judgement step a person or a worker performs ends in a deterministic check the binary owns
   (`the-cook render --check`, `the-cook doctor`, `the-cook verify --check`), so the outcome of judgement is still
   verified.
+- A recipe keeps the same split inside one kind of change a repository makes many times: the binary runs its `run` and
+  `template` steps, a worker in an `attempt` step or a person at a handoff does the judgement, and the recipe run is
+  verified with the lanes the recipe requires before it completes
+  ([when-cli-when-skill.md](when-cli-when-skill.md#recipes)).
 
 [when-cli-when-skill.md](when-cli-when-skill.md) decides where a given behaviour belongs.
 
@@ -82,8 +86,9 @@ them would carry credentials and cost, and a loop of its own to maintain ([ADR 0
   the user's behalf, because knowledge needs judgement. It writes rendered files, managed blocks whose text is derived
   from the repository files (fixed sentences stating a convention with its configured values, tables, lists), the
   repository files (`config.yaml`, `policy.yaml`, `hooks.yaml`) only when seeding them, migrating them, pinning an
-  ingredient or applying a station a person asked for, and the owned pin `wrapper.yaml` only when scaffolding or
-  re-pinning.
+  ingredient or applying a station a person asked for, a recipe in `.cook/recipes/` only when a person adds, updates or
+  creates it or applies a station that adds it, the owned pin `wrapper.yaml` only when scaffolding or re-pinning, and,
+  in a recipe run's workspace, the files the recipe's `template` steps render.
 - The binary contains no logic for any hosting platform and never writes the team's record of work: no issues,
   projects, boards, comments, reviews or labels. Why: the team's record already has writers under the team's own
   conventions, and platform logic in the binary binds every release to one platform. Everything that leaves the
@@ -102,9 +107,9 @@ them would carry credentials and cost, and a loop of its own to maintain ([ADR 0
 ## 4. Least surprise
 
 - A command does what its name says and nothing else. Read commands (`doctor`, `explain`, `version`, `context show`,
-  `lifecycle list`, `ingredient list`, `ingredient show`, `station list`, `station show`, `render --check`,
-  `verify --check`) MUST NOT modify the repository, fire lifecycle events or run actions. Why: workers and CI call read
-  commands freely, so a side effect there happens without anyone deciding it.
+  `lifecycle list`, `ingredient list`, `ingredient show`, `station list`, `station show`, `recipe list`, `recipe show`,
+  `make --status`, `render --check`, `verify --check`) MUST NOT modify the repository, fire lifecycle events or run
+  actions. Why: workers and CI call read commands freely, so a side effect there happens without anyone deciding it.
 - The same invocation in the same state gives the same result. Running a mutation twice changes nothing the second
   time and says so, because workers and scripts retry and a retry must be safe.
 - Environment and machine affect presentation (color, notices, verbosity), never the bytes written into a repository,
@@ -116,16 +121,18 @@ them would carry credentials and cost, and a loop of its own to maintain ([ADR 0
   makes on its own are: the wrapper's download of the version pinned in `.cook/wrapper.yaml` (on an explicit invocation
   only, over HTTPS, verified against the pinned checksum); the release's signed checksum file, fetched by
   `the-cook scaffold` (not with `--offline`) and `the-cook wrapper` before they write a pin and re-verified by
-  `the-cook doctor` at most daily; the download of a cookbook tag's `checksums.txt` and of ingredient and station
-  archives by `the-cook ingredient pin`, `the-cook station apply` (with `--cookbook`, or for a pin that is not cached),
-  `the-cook fetch`, `scaffold --cookbook` and the `--cookbook` reads of `ingredient list`, `ingredient show`,
-  `station list` and `station show` (over HTTPS, each archive verified against its `sha256`); and the daily release
-  check ([update notices](compatibility-standards.md#update-notices)). Each is documented and the release check can be
+  `the-cook doctor` at most daily; the download of a cookbook tag's `checksums.txt` and of ingredient, station and
+  recipe archives by `the-cook ingredient pin`, `the-cook station apply` (with `--cookbook`, or for a pin that is not
+  cached), `the-cook recipe add`, `the-cook recipe update`, `the-cook fetch`, `scaffold --cookbook` and the
+  `--cookbook` reads of `ingredient list`, `ingredient show`, `station list`, `station show`, `recipe list` and
+  `recipe show` (over HTTPS, each archive verified against its `sha256`); and the daily release check
+  ([update notices](compatibility-standards.md#update-notices)). Each is documented and the release check can be
   disabled. Rendering needs none of them once the pinned ingredients are cached, and neither does applying a cached
-  station again, because their only inputs are the repository's files, the pinned release and what the repository pins
-  by hash ([principle 9](#9-everything-a-repository-does-is-in-its-own-files)). Any other network access is a declared
-  action (an `http` action, a `run` action whose command reaches the network, or an `attempt` action whose worker does),
-  visible in `the-cook lifecycle list` and in `.cook/hooks.yaml`.
+  station again or running a recipe, because their only inputs are the repository's files, the pinned release and what
+  the repository pins by hash ([principle 9](#9-everything-a-repository-does-is-in-its-own-files)). Any other network
+  access is declared: an `http` action, a `run` action or a recipe's `run` step whose program reaches the network, or
+  an `attempt` action or `attempt` step whose worker does, visible in `the-cook lifecycle list`, in `.cook/hooks.yaml`
+  and in `.cook/recipes/`.
 - Names, flags and output look the same across commands ([cli-standards.md](cli-standards.md)), so what a user learns
   on one command holds on the next.
 
@@ -137,14 +144,17 @@ Why: a repository is the team's work, and a tool that loses part of it is remove
 - Every mutating command accepts `--dry-run` and prints exactly the change set it would apply, so the change can be
   judged before it happens.
 - `the-cook` writes only inside content it owns: files and blocks recorded in the manifest, and the native keys it owns.
-  The one other write is a station's template, and only where its file is absent. Everything else is preserved byte for
-  byte, because content outside the manifest is somebody else's.
+  The other writes are a station's template, only where its file is absent; a recipe copied into
+  `.cook/recipes/<name>/`, only where that directory is absent, or merged into the repository's copy by
+  `the-cook recipe update`, after a diff a person confirmed; and, inside a recipe run's own workspace, the files its
+  steps write, a `template` step only where its file is absent. Everything else is preserved byte for byte, because
+  content outside the manifest is somebody else's.
 - When owned content has been edited by hand, `the-cook remove` refuses to delete it unless `--force` is given, and
   names each path it refused, because the hand edit may be the only copy of someone's work.
 - Every change `the-cook` makes outside its state directories (the gitignored paths the profile sets, under `.work/` by
   default) lands in versioned files, so it reaches review as a diff.
-- Removal is deterministic in both modes: undo and eject act only on what the manifest lists, so what removal deletes
-  can be known before it runs.
+- Removal is deterministic in both modes: undo and eject act only on what the manifest lists and on the recipes in
+  `.cook/recipes/`, which they list before deleting, so what removal deletes can be known before it runs.
 
 ## 6. One way to do each thing
 
@@ -153,8 +163,9 @@ Why: two ways to do one thing drift apart, and a reader cannot tell which one is
 - Each operation has one command and one spelling. There are no command aliases. The wrapper and a global install are
   entry points to the same command, not spellings of different ones.
 - Each fact lives in one file: permissions in `policy.yaml`; hooks on worker events, notification actions and lifecycle
-  actions in `hooks.yaml`; the pinned version and its checksums in `wrapper.yaml`; everything else `the-cook` needs,
-  standing context included, in `config.yaml`. Rendered files are outputs, never a second place to edit.
+  actions in `hooks.yaml`; the pinned version and its checksums in `wrapper.yaml`; each kind of change in its own recipe
+  under `.cook/recipes/`; everything else `the-cook` needs, standing context included, in `config.yaml`. Rendered files
+  are outputs, never a second place to edit.
 - The version of `the-cook` is pinned in exactly one place, `.cook/wrapper.yaml`, because two pins disagree as soon as
   one of them moves. `the-cook` reads no other file for it.
 - Each kind of content has one home: the configuration of `the-cook` in `.cook/`, the skills, memory, commands and
@@ -178,8 +189,9 @@ and hard to undo, so it must be written down, reviewed and guarded before it can
 
 - **Declared.** Actions live in `.cook/hooks.yaml`, and no action runs that the repository does not declare there. A
   station's actions, such as the tracker actions of an `agentic-coding` station, reach the file only when a person
-  applies the station and reads its diff; stack stations hold none. So what "deliver" means is decided in the
-  repository, where an organization's delivery convention is written like any other entry.
+  applies the station and reads its diff; stack stations hold none. A recipe declares none: the work of a recipe run
+  is delivered by the repository's own actions. So what "deliver" means is decided in the repository, where an
+  organization's delivery convention is written like any other entry.
 - **Three kinds.** An action is a shell command (`run`), an HTTP request `the-cook` performs itself (`http`), or a
   worker started unattended on a prompt (`attempt`). Notification events accept `run` and `http` only, so a worker's
   hook never starts another worker.
@@ -213,7 +225,9 @@ as child processes of `the-cook`, outside the worker's per-command permission ch
 therefore seeds `[the-cook, lifecycle, run, deliver]` under `ask`, rendered for every rendered spelling (`the-cook`,
 `./cook` and `cook`). It is a seeded entry: the repository owns it and MAY change it
 ([ADR 0015](../adrs/0015-development-lifecycle.md)). The rendered entries are defence in depth. Other spellings, such as
-an absolute path to the binary, match no prefix rule, and the binary enforces the guards itself.
+an absolute path to the binary, match no prefix rule, and the binary enforces the guards itself. Permission to start
+`the-cook make` is, for the same reason, permission for every step of the recipe and for the automatic actions its
+events fire.
 
 ## 8. Conventions outlive the tool
 
@@ -250,18 +264,22 @@ cannot be read by anyone working there, and a reviewer sees its effect without i
 
 - The same commit renders the same bytes on every machine and every day, with no network, because no input can change
   without a commit in the repository: the release and every ingredient are pinned by hash in its files, and the binary
-  ships no ingredient and no station of its own.
+  ships no ingredient, no station and no recipe of its own.
 - No repository file has a key that names a source outside the repository for what `the-cook` renders or runs, except a
   release, an ingredient or a station pinned by hash ([configuration-standards.md](configuration-standards.md#inputs)),
-  so reading the repository is enough to predict what it does.
+  so reading the repository is enough to predict what it does. A recipe's `origin` records where its copy came from and
+  is never read to run it.
 - Every write to the repository files is one a person or a worker asked for: seeding them, migrating them, pinning an
-  ingredient with `the-cook ingredient pin`, applying a station with `the-cook station apply`, or an edit. Why: a file
-  that changes by itself holds decisions nobody made.
+  ingredient with `the-cook ingredient pin`, applying a station with `the-cook station apply`, adding, updating or
+  creating a recipe with `the-cook recipe add`, `recipe update` or `recipe create`, or an edit. Why: a file that changes
+  by itself holds decisions nobody made.
 - A program reaches a repository only through an ingredient the repository pins in `ingredients:`, as renders the
-  manifest records under the ingredient's name. A way of running the lifecycle reaches it only when a person applies a
-  station: as entries written into its files, files its templates write, and the ingredient pins it lists, all in one
-  reviewed diff. `stations:` records the pin a station was applied at; nothing records where an entry or a template file
-  came from, so each has one source of truth: the file it is in
+  manifest records under the ingredient's name. A way of working reaches it only when a person applies a station: as
+  entries written into its files, files its templates write, the ingredient pins it lists and the recipes it adds, all
+  in one reviewed diff. A kind of change reaches it as a recipe in `.cook/recipes/`, written there or copied from a
+  cookbook, which runs as the repository's own file. `stations:` records the pin a station was applied at, and a
+  recipe's `origin` the version its copy came from; nothing records where an entry or a template file came from, so each
+  has one source of truth: the file it is in
   ([configuration-standards.md](configuration-standards.md#ingredients-and-stations)).
 - An organization's choices reach its repositories as changes to each repository's files, written by a person or by a
   coding agent following the organization's skill, and reviewed there as a diff. The cost is that a choice shared by

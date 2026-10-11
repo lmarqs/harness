@@ -127,6 +127,10 @@ because it enters a worker's session.
   from its template, because no binary is present.
 - An injected standing-context pointer is exactly one line: `Apply the <name> skill now: read <path>`, so the worker
   learns what applies and where to read it, at the cost of one line.
+- A handoff prints the recipe's text as the recipe wrote it, inputs substituted, followed by the exact command that
+  resumes the run (`./cook make --continue <workspace>`). Why: the text is the repository's instruction to whoever
+  drives the run, a person or a worker, and the command is the one next step `the-cook` itself can name. A recipe writes
+  its handoffs and prompts by the voice rules above, because a worker reads them as literally as any message.
 
 ## Generated text in human files
 
@@ -226,9 +230,9 @@ A section with no content is omitted rather than left empty.
   `ingredient: claude` pinned from `github:acme/cookbook`, never as a description of that program's behaviour, flags,
   file keys, versions or pitfalls; that knowledge belongs to the page of the cookbook that describes the program. An ADR
   names a product only in its Context, as checkable evidence of what exists. Why: the binary contains code and data for
-  no program and ships no ingredient and no station, so a page that describes a program's behaviour documents something
-  `the-cook` does not hold and goes stale with that program's releases ([ingredients](../features/ingredients.md),
-  [ADR 0022](../adrs/0022-tool-integration.md)).
+  no program and ships no ingredient, no station and no recipe, so a page that describes a program's behaviour documents
+  something `the-cook` does not hold and goes stale with that program's releases
+  ([ingredients](../features/ingredients.md), [ADR 0022](../adrs/0022-tool-integration.md)).
 - What `the-cook` does with a program is attributed to the ingredient that fills its role: "the version-control
   ingredient reports the default branch", "a floor rule of the version-control ingredient". Why: a page that says
   `the-cook` runs a particular program describes a binary that does not exist.
@@ -253,15 +257,36 @@ other page the same way:
 | a worker session that drives `the-cook` commands for a person | a **coordinating worker** |
 | the events a worker fires in a session: session start, post edit, prompt submit, attention, turn end | **worker events** |
 | a named, versioned description of one program | an **ingredient**: a worker ingredient, the version-control ingredient, a loop runner's ingredient |
-| a named, versioned description of one way of running the lifecycle, built from ingredients | a **station**, which a repository applies once |
-| a source that publishes ingredients and stations by tag | a **cookbook** |
+| what one way of working needs in place: the ingredients to pin, workers and their roles, entries, templates and the recipes to add | a **station**, which a repository applies once |
+| one kind of change, made many times: inputs, requirements, steps mapped onto the lifecycle's stages, required lanes | a **recipe**, which a repository holds as its own copy in `.cook/recipes/<name>/` and runs |
+| one pass of one change through the lifecycle's stages, as a recipe describes it | a **recipe run**, or the run, started by `the-cook make <recipe>` |
+| a recipe run a person drives, at a terminal or through the worker in their session | an **attended** recipe run, the default |
+| a recipe run nobody drives, which its caller, such as a loop runner, marks `--unattended` | an **unattended** recipe run |
+| one entry of a recipe's `steps`, at Implement | a **step**, of kind `run`, `template`, `attempt` or `handoff` |
+| a step that hands the recipe run to whoever drives it, a person or the interactive worker | a **handoff** |
+| a source that publishes ingredients, stations and recipes by tag | a **cookbook** |
 
 - The concept is a worker whatever kind of program fills it, because the core treats a coding agent, a bot and a
   codemod the same way. "Coding agent" names the main example, and a product name appears only in a short example of a
   worker declared with an ingredient pinned from `github:acme/cookbook`.
-- An ingredient renders and runs; a station is applied. A page never says that a station renders, denies or runs
-  anything, because a station has no renders and no floor: what it wrote is the repository's own, and the ingredients it
-  pinned do the rendering.
+- An ingredient renders and runs; a station is applied; a recipe is added, updated or created, and made: `make` runs
+  it, and one execution is a recipe run. A page never says that a station renders, denies or runs anything, because a
+  station has no renders and no floor: what it wrote is the repository's own, and the ingredients it pinned do the
+  rendering. A page never says that a repository pins or applies a recipe, because the repository holds a copy of it,
+  not a pin, and a recipe adds no entries; a station pins the recipes it adds only so that the copies it writes are
+  verified.
+- "Recipe" names only that unit. The one other use is the kitchen sentence that explains the tool's name. Why: in a tool
+  named `the-cook`, a reader takes every "recipe" as a term, and a figurative one would send them to the wrong page.
+- A recipe run is a "recipe run", or "the run" where nothing else on the page runs; a loop runner's pass over many
+  tasks, the scope `run`, is "a loop runner's run". The command is `make`, never "run": `the-cook make <recipe>`.
+  Why: `run` also names a step kind, an action kind, a scope and `lifecycle run`, so the noun needs its qualifier
+  wherever two of them meet.
+- Stages belong to the lifecycle and steps to a recipe: a recipe's steps run at the Implement stage, and its
+  `workspace` and `verify` keys map onto Start and Verify. A page never calls a stage a step, or a step a stage. Why: a
+  reader who mixes them looks for guards on a step or for a recipe's keys on a stage.
+- A handoff pauses an attended run, or stops an unattended one as blocked; a page never says that a handoff fails,
+  because it is a step the recipe asks for, not an error. Whether a run is attended is what its caller declares, never
+  whether a terminal is attached.
 - `AGENTS.md`, `.agents/`, model and effort keep their names. `AGENTS.md` and `.agents/` are file conventions of the
   agent ecosystem that a worker ingredient names; model and effort are settings a worker ingredient maps, and a worker
   whose program has no model ignores them. Why: a reader looks for these names where other tools already use them.

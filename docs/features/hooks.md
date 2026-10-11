@@ -172,6 +172,11 @@ If a command or validator fails, `the-cook hook` exits 2 with the command's outp
 shows a hook's stderr to its model as feedback, as its ingredient's page states, fixes the problem in its next step.
 The edit itself is never undone, and no tool call is blocked.
 
+Post-edit hooks run on a worker's edits only. The files that the `run` and `template` steps of a
+[recipe](recipes.md#step-kinds) write fire no hook, because no worker event reports them; the lint command and the lanes
+of the run's Verify stage check them ([verify](verify.md#the-run)). The worker of an `attempt` step gets post-edit
+feedback as in any attempt.
+
 ### Prompt submission
 
 When the person's message contains a word or phrase of a `when.prompt` [context](context.md) entry, compared
@@ -212,10 +217,11 @@ Values reach the actions as environment variables, with the same rules as [lifec
   error, so a worker hook never starts an attempt.
 - `the-cook hook` exits 0 on these events whatever the actions return, so a failed notification never keeps a worker
   working or interrupts it. A failure is printed on stderr.
-- They do nothing in an attempt: `the-cook attempt` and `attempt` actions set `COOK_ATTEMPT=1` for the worker they
-  start. An unattended run reports through [lifecycle events](lifecycle.md#trigger-points) instead: in a workspace
-  bound to a task, `the-cook attempt` fires `completed` after a verified attempt, and whatever drives the run fires
-  `blocked` and the events of scope `run`.
+- They do nothing in an attempt: `the-cook attempt`, `attempt` actions and a recipe's `attempt` steps set
+  `COOK_ATTEMPT=1` for the worker they start. An unattended run reports through
+  [lifecycle events](lifecycle.md#trigger-points) instead: in a workspace bound to a task, `the-cook attempt` fires
+  `completed` after a verified attempt; `the-cook make` fires `completed` after its replay, and `blocked` when it
+  stops; whatever drives a loop runner's run fires `blocked` and the events of scope `run`.
 - Like every worker hook, they do nothing on a machine where the pinned release is not cached
   ([the missing-binary guard](#the-missing-binary-guard)).
 - A native setting that holds a single notification program is owned by the worker ingredient's renders only when they
@@ -260,10 +266,11 @@ In short:
 - secrets for `http` come only from the variables `url_env` and `headers_env` name;
 - `auto: true` runs the action at the event's automatic trigger point; every action also runs when a person or a
   coordinating worker fires the event with `the-cook lifecycle run <event>`;
-- lifecycle actions never run inside the worker of an attempt, whether `the-cook attempt` or an `attempt` action
-  started it;
-- every action is one the repository declares in this file: the seeded files hold none, and a
-  [station](stations.md#entries) that declares actions writes them here, as entries, only when a person applies it.
+- lifecycle actions never run inside the worker of an attempt, whether `the-cook attempt`, an `attempt` action or a
+  recipe's `attempt` step started it;
+- every action is one the repository declares in this file: the seeded files hold none, a
+  [station](stations.md#entries) that declares actions writes them here, as entries, only when a person applies it,
+  and a recipe declares none: a recipe run fires the events, and the actions here run at them.
 
 An action runs with the permissions of the process that fired it, outside any worker's permission checks. Review
 lifecycle actions like code; see [safety](safety.md).
@@ -403,6 +410,7 @@ that have that event.
 | No `attention` notification from one worker | Its ingredient maps no native event to waiting for a person; `doctor` notes it | Use `turn_end`, where the worker reports it |
 | No `turn_end` from one worker; `doctor` notes a notification program of the repository's own | The program's single-program notification setting already names another program | Move that program into a `turn_end` `run` action, remove the setting, then `the-cook render` |
 | No notification on one machine | The variable in `url_env` is not set there, or the pinned release is not cached there | Set the variable in that shell; run `./cook version` once |
+| A file a recipe's `run` or `template` step wrote was never linted on write | Post-edit hooks run on worker edits only; no worker event reports a step's files | Expected: the run's Verify stage lints each changed file that matches `verify.lint_paths` |
 | A notification arrives for every turn of an unattended run | It cannot: notification hooks do nothing in an attempt (`COOK_ATTEMPT=1`) | Declare `completed` and `blocked` lifecycle actions for unattended runs, and have whatever drives the run fire `blocked` and the events of scope `run` |
 
 ## Coexistence

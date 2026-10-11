@@ -17,8 +17,8 @@ nothing installed beforehand, and a release runs only if its publisher signed it
 repository pins in `.cook/wrapper.yaml`. The first time a machine needs that release, the wrapper downloads it over
 HTTPS, checks its sha256 against the pinned checksum, caches it and runs it. Afterwards it runs it from the cache,
 offline. People, workers, worker hooks and other tools, such as a loop runner whose command for each task is
-`./cook attempt <worker>`, all reach `the-cook` through it, so every machine runs the same release in a given
-repository, and nobody installs anything to work in one.
+`./cook make implement-task --task <id> --unattended`, all reach `the-cook` through it, so every machine runs the same
+release in a given repository, and nobody installs anything to work in one.
 
 `.cook/wrapper.yaml` is the only place a repository pins `the-cook`. It is
 [owned content](concepts.md#ownership-and-the-manifest): `.cook/manifest.json` records it, and a hand edit is drift,
@@ -88,7 +88,7 @@ only through a commit, so a cached release never needs a network check.
 | Entry point | When the pinned release is not cached |
 | --- | --- |
 | `./cook <command>`, typed by a person or a worker | downloads, verifies, runs |
-| another tool's command, such as a loop runner's `./cook attempt <worker>` or a team's own task | the same: it is `./cook <command>` |
+| another tool's command, such as a loop runner's `./cook make implement-task --task <id> --unattended` or a team's own task | the same: it is `./cook <command>` |
 | A global `the-cook` typed in a pinned repository | the same verified download, then runs the pinned release |
 | Worker hooks | never download: they run the [hook command](render.md#the-hook-command), `cook --no-download hook <event>` at the repository root, print one line on stderr and exit 0 |
 
@@ -298,7 +298,7 @@ Files read: `.cook/wrapper.yaml`, `$COOK_HOME/versions/<version>/the-cook`. File
 
 | Variable | Read by | Effect |
 | --- | --- | --- |
-| `COOK_HOME` | `cook`, `the-cook` | The per-user cache directory, default `$XDG_CACHE_HOME/the-cook`, or `~/.cache/the-cook` when `XDG_CACHE_HOME` is unset. It holds pinned releases at `<COOK_HOME>/versions/<version>/the-cook`, [ingredients and stations](ingredients.md#fetching) at `cookbook/<sha256>.tar.gz`, the update-check result and the signed-checksum check of `doctor`, nothing else |
+| `COOK_HOME` | `cook`, `the-cook` | The per-user cache directory, default `$XDG_CACHE_HOME/the-cook`, or `~/.cache/the-cook` when `XDG_CACHE_HOME` is unset. It holds pinned releases at `<COOK_HOME>/versions/<version>/the-cook`, [ingredient and station archives](ingredients.md#fetching), and the versions the repository's recipes came from, at `cookbook/<sha256>.tar.gz`, the update-check result and the signed-checksum check of `doctor`, nothing else |
 | `COOK_BINARY` | `cook` | A path to a `the-cook` binary to exec instead of the pinned release. No download and no checksum check: it bypasses the pin, and `the-cook doctor` notes that the running release is not the pinned one |
 | `COOK_NO_UPDATE_CHECK=1` | `the-cook` | Turns off the daily newer-release check on explicit commands and in `doctor` |
 
@@ -411,7 +411,8 @@ jobs:
 
 The cache step is optional; it saves the download on later runs. CI runs the release the pull request pins, so an
 upgrade and the files it re-rendered are checked together. `./cook fetch` caches the
-[ingredients and stations](ingredients.md#fetching) the profile pins, which `render` reads only from the cache.
+[ingredients and stations](ingredients.md#fetching) the profile pins, which `render` reads only from the cache, and the
+versions the repository's recipes came from.
 
 ## Air-gapped machines
 

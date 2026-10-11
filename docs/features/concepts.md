@@ -18,11 +18,14 @@ needs judgement.
 
 `the-cook` enforces the software development lifecycle a repository declares: the stages a change goes through, the
 events fired between them, the guards that hold between them and the proof a change carries. The binary keeps that
-lifecycle and the process around it. [Ingredients](ingredients.md) describe the programs the stages reach, the version
-control system and the workers included, and [stations](stations.md) describe ways of running the lifecycle with them.
-The binary ships neither: a repository pins each one it uses from a cookbook. Around the lifecycle, `the-cook` divides a
-repository into layers and directories, records which files it owns, writes down the conventions it sets up and adapts
-to repositories in different starting states, and an adopted repository keeps working without it.
+lifecycle and the process around it. What a repository adds to it comes in three units, and one rule separates them:
+facts about programs are pinned and rendered; practices are copied and become the repository's own.
+[Ingredients](ingredients.md) hold the facts about the programs the stages reach, the version control system and the
+workers included; [stations](stations.md) hold what one way of working needs in place; [recipes](recipes.md) hold the
+kinds of change a repository makes again and again, and each run of one takes one change through the stages. The binary
+ships none of them. Around the lifecycle, `the-cook` divides a repository into layers and directories, records which
+files it owns, writes down the conventions it sets up and adapts to repositories in different starting states, and an
+adopted repository keeps working without it.
 
 Examples on this page run commands as `./cook <command>`, through the repository's [wrapper](wrapper.md); with a
 global install, `the-cook <command>` is equivalent.
@@ -30,8 +33,8 @@ global install, `the-cook <command>` is equivalent.
 ## The lifecycle at the centre
 
 The one abstraction `the-cook` implements is the [development lifecycle](lifecycle.md). Every other part of this page
-serves it: the repository files declare it, rendering and ownership deliver what each stage needs, and ingredients reach
-the programs that do the work.
+serves it: the repository files declare it, rendering and ownership deliver what each stage needs, ingredients reach the
+programs that do the work, and recipes take one kind of change through it.
 
 | Stage | Who acts | What the core does | Reached through |
 | --- | --- | --- | --- |
@@ -50,15 +53,38 @@ The facts that make a particular worker safe, such as the arguments that start a
 permission checks, are data in that worker's ingredient ([ADR 0015](../adrs/0015-development-lifecycle.md),
 [ADR 0023](../adrs/0023-core-and-contracts.md)).
 
+### A recipe run: one pass of one change
+
+A [recipe](recipes.md) maps one kind of change onto the stages, and [`the-cook make <recipe>`](recipes.md#the-cook-make)
+takes one change through them, the same way every time it runs:
+
+| Stage | What the recipe declares | What the run does |
+| --- | --- | --- |
+| Plan | its `inputs` and `requires` | takes the task id (`--task <id>`) and the inputs from whoever runs it; before anything else, validates each input by type and checks the contracts, roles and lanes the recipe requires |
+| Start | `workspace`, a name built from the inputs | creates a managed workspace and its branch `work/<name>` from the default branch, as `the-cook workspace create` does, or uses the current managed workspace with `--here` |
+| Implement | `steps`, in order | runs each [step](recipes.md#step-kinds): a command, a template written from the inputs, an attempt by an unattended worker, or a handoff to whoever drives the run |
+| Verify | `verify.require`, the lanes it requires | runs the lanes itself: every lane the change selects and every required lane, never skipped and run in full when the change selects nothing for it; then writes the receipt |
+| Complete | nothing | replays the proof from the base and, in a run with a task, fires `completed`, as for any work |
+| Deliver, Review and merge, Landed | nothing: a recipe declares no lifecycle actions | as for any work: the repository's own actions, under the same guards |
+
+The caller declares whether someone drives the run: a run is attended unless it is started with `--unattended`, as a
+loop runner starts one. A handoff pauses an attended run until `the-cook make --continue`; in an unattended run it
+stops the run as blocked instead, because it needs a person. A failed step, lane or replay stops the run too: it fires
+`blocked` with the step and the reason and keeps the workspace, and `the-cook make --continue` resumes where it stopped
+once a person has fixed what stopped it. A recipe can only add steps, required lanes and requirements: it cannot skip a
+lane, weaken a guard or fire an event itself. A run reads its recipe once, from the base commit of the workspace it
+creates, and follows that content to the end, so no step can change the recipe of the run it is in
+([guards](recipes.md#guards), [ADR 0025](../adrs/0025-recipes.md)).
+
 ### Events and actions
 
 `the-cook` fires each [lifecycle event](lifecycle.md#events) at fixed trigger points in its own commands, and a person,
 a coordinating worker or a script around a loop runner can fire one by hand with `the-cook lifecycle run <event>`;
-nothing in the binary knows when an unattended run starts or ends. `the-cook` fires `blocked` itself when a command run
-without a terminal stops with exit 3 for a person to act, and whoever drives an unattended run fires it when the run
-stops unfinished. What happens at an event is the actions the repository declares in `.cook/hooks.yaml`; the binary
-ships none. Everything that leaves the clone, such as a push, a pull request or a chat notification, is one of those
-actions.
+nothing in the binary knows when a loop runner's run starts or ends. `the-cook` fires `blocked` itself when a command
+run without a terminal stops with exit 3 for a person to act, and when a recipe run stops; whoever drives a loop
+runner's run fires it when the run stops unfinished. What happens at an event is the actions the repository declares in
+`.cook/hooks.yaml`; the binary ships none. Everything that leaves the clone, such as a push, a pull request or a chat
+notification, is one of those actions.
 
 Every action has one kind ([action kinds](lifecycle.md#action-kinds)):
 
@@ -81,21 +107,22 @@ needs an MCP tool is an `attempt` action, or the coordinating worker's job.
 ## One split: deterministic work and variable work
 
 `the-cook` does the work that has one right answer: moving a change between stages and holding the guards between them,
-scaffolding, importing, rendering, checking drift, verifying, running one worker for one task under the attempt
-contract ([`the-cook attempt`](attempts.md)), firing lifecycle events, removing what it wrote. People and workers do the
-work that needs judgement: writing `AGENTS.md` prose, deciding which commands belong in the [policy](policy.md)'s
-`allow` list, reviewing the [to-do](scaffold.md#the-to-do) an adoption leaves, choosing the loop runner and tracker the
-team uses and wiring them into the repository's files (a [station](stations.md) writes a starting point), arranging an
-unattended run's commits for review, writing memory and skills. For example, rendering the policy into a coding agent's
-settings file has one right answer; deciding whether workers may run `terraform plan` without asking does not. The
-embedded [shipped skill](skills.md#the-shipped-skill) and [`the-cook explain`](explain.md) teach coding agents how to do
-that part.
+scaffolding, importing, rendering, checking drift, verifying, running a recipe's commands and templates, running one
+worker for one task under the attempt contract ([`the-cook attempt`](attempts.md)), firing lifecycle events, removing
+what it wrote. People and workers do the work that needs judgement: writing `AGENTS.md` prose, deciding which commands
+belong in the [policy](policy.md)'s `allow` list, reviewing the [to-do](scaffold.md#the-to-do) an adoption leaves,
+choosing the loop runner and tracker the team uses and wiring them into the repository's files (a [station](stations.md)
+writes a starting point), arranging an unattended run's commits for review, writing memory, skills and recipes, and the
+work a recipe hands to a worker in an attempt step or to a person in a handoff. For example, rendering the policy into a
+coding agent's settings file has one right answer; deciding whether workers may run `terraform plan` without asking does
+not. The embedded [shipped skill](skills.md#the-shipped-skill) and [`the-cook explain`](explain.md) teach coding agents
+how to do that part.
 
 ## Two directories, two owners
 
 | Directory | Belongs to | Holds | After `the-cook` is removed |
 | --- | --- | --- | --- |
-| `.cook/` | `the-cook`: its own versioned configuration | `config.yaml` (the profile), `policy.yaml`, `hooks.yaml`, `wrapper.yaml`, `manifest.json` | every file `the-cook` recorded there is deleted by both [removal modes](remove.md), and the directory once nothing else is in it; a file there that `the-cook` neither owns nor seeded, such as a `README.md` a person added, is listed and left for you to delete |
+| `.cook/` | `the-cook`: its own versioned configuration | `config.yaml` (the profile), `policy.yaml`, `hooks.yaml`, `wrapper.yaml`, `manifest.json`, and `recipes/<name>/`, one directory per recipe | every file `the-cook` recorded there is deleted by both [removal modes](remove.md), and so is `recipes/`, each recipe listed in the plan first so a person can keep a copy; the directory goes once nothing else is in it; a file there that `the-cook` neither owns nor seeded, such as a `README.md` a person added, is listed and left for you to delete |
 | `.agents/` | the cross-tool agent-content convention, shared with skills installers and the `AGENTS.md` ecosystem | `skills/` (including the tool-owned `skills/the-cook/`), `memory/`, `commands/`, `REVIEW.md` | kept, except the shipped skill and, on undo, memory skeleton files nobody edited: other tools and workers read the rest |
 
 Nothing in `.cook/` is state, and nothing in it is ignored: every file there is committed and reviewed. State lives at
@@ -107,11 +134,12 @@ into, such as a coding agent's instruction file or the version control system's 
 
 | Layer | Who writes it | Committed | In an adopted repository |
 | --- | --- | --- | --- |
-| Engine | nobody in the repository; the release the pin names, downloaded per machine by `cook` | no | the `the-cook` binary in `$COOK_HOME` (default `$XDG_CACHE_HOME/the-cook`, or `~/.cache/the-cook` when `XDG_CACHE_HOME` is unset); it holds no ingredient and no station |
-| Ingredients and stations | nobody in the repository; each cookbook's authors. The commands that pin, apply or fetch download, per machine, the cookbook, version and sha256 the profile pins | no | `$COOK_HOME/cookbook/<sha256>.tar.gz` ([fetching](ingredients.md#fetching)) |
+| Engine | nobody in the repository; the release the pin names, downloaded per machine by `cook` | no | the `the-cook` binary in `$COOK_HOME` (default `$XDG_CACHE_HOME/the-cook`, or `~/.cache/the-cook` when `XDG_CACHE_HOME` is unset); it holds no ingredient, station or recipe |
+| Cookbook archives | nobody in the repository; each cookbook's authors. The commands that pin, apply, add, update or fetch download, per machine, each ingredient and station the profile pins and the version each added recipe came from | no | `$COOK_HOME/cookbook/<sha256>.tar.gz` ([fetching](ingredients.md#fetching)) |
 | Pin | `scaffold` and [`the-cook wrapper`](wrapper.md#the-cook-wrapper), after the running binary verifies the release's signed checksum file (`scaffold --offline` writes a [pending pin](wrapper.md#a-pending-pin)); owned, never edited by hand | yes | `.cook/wrapper.yaml` |
 | Profile, policy, hooks | people and workers; seeded once by `scaffold`, which applies the [stations](stations.md) it is given: their entries become the repository's own and the ingredients they list are pinned under `ingredients:`. `the-cook station apply` does the same on request, and `the-cook ingredient pin` adds or moves one ingredient pin | yes | `.cook/config.yaml`, `.cook/policy.yaml`, `.cook/hooks.yaml` |
 | Templates | written once by `the-cook station apply` or `scaffold` when the file is absent, then people and workers; never re-rendered or removed by `the-cook` | yes | a station's whole templates, such as a loop runner's configuration file from the `agentic-coding` station |
+| Recipes | copied in by `the-cook recipe add`, `station apply` or `scaffold`, with their `origin`, or written by `the-cook recipe create`; then people and workers. `the-cook recipe update` merges a newer version into the copy; `render` never rewrites one | yes | `.cook/recipes/<name>/recipe.yaml` and the templates in its `files/` |
 | Rendered | `the-cook render`, from the repository files, the binary's own templates and the renders of the [ingredients](ingredients.md) in use; never edited by hand | yes | `cook`, `.agents/skills/the-cook/SKILL.md` and `.cook/manifest.json`, which the binary renders itself; the owned keys, entries, files and skill links in each worker's native files, which its ingredient renders |
 | Managed blocks | `the-cook render`, only between markers | yes | blocks inside `AGENTS.md` and `README.md`, which the binary renders; inside a coding agent's instruction file or the version control system's ignore file, which the ingredients in use render |
 | Knowledge | people and workers; never generated | yes | `AGENTS.md` prose, `.agents/memory/*`, domain skills, `.agents/commands/`, `.agents/REVIEW.md` |
@@ -125,6 +153,9 @@ The three repository files are the contract between a repository and the tool. E
 | `.cook/policy.yaml` (the policy) | What may workers run without asking, only after asking, or never? | [policy](policy.md) |
 | `.cook/hooks.yaml` (the hooks file) | What runs when a worker starts a session, edits a file, waits for a person or ends a turn, and what runs at each lifecycle event? | [hooks](hooks.md), [lifecycle](lifecycle.md) |
 
+Beside them, each directory under `.cook/recipes/` answers one more question: what does one kind of change go through
+here ([recipes](recipes.md))?
+
 What `the-cook` renders and runs in a repository comes from the repository's own files, the release `.cook/wrapper.yaml`
 pins and the ingredients `ingredients:` pins, and from nothing else: no inheritance, no includes, no sources outside the
 repository ([ADR 0013](../adrs/0013-organization-content.md)). Rendering reads nothing else and needs no network once
@@ -134,19 +165,27 @@ every program it starts, calls or writes files for, the version control system a
 an [ingredient](ingredients.md) ([ADR 0022](../adrs/0022-tool-integration.md),
 [ADR 0023](../adrs/0023-core-and-contracts.md)).
 
-### Ingredients, stations and cookbooks
+### Ingredients, stations, recipes and cookbooks
 
-A cookbook publishes two kinds of unit, each named and versioned
-([ADR 0024](../adrs/0024-ingredients-and-stations.md)):
+A cookbook publishes three kinds of unit, each named and versioned, and one rule separates them: facts about programs
+are pinned and rendered; practices are copied and become the repository's own
+([ADR 0024](../adrs/0024-ingredients-and-stations.md), [ADR 0025](../adrs/0025-recipes.md)).
 
-| Unit | Describes | Holds | Reaches the repository |
+| Unit | What it is | How a repository holds it | When it acts |
 | --- | --- | --- | --- |
-| [Ingredient](ingredients.md) | one program | operations that fill the version-control or the worker contract, or none; renders; floor; checks | on every render, for as long as `ingredients:` pins it |
-| [Station](stations.md) | one way of running the lifecycle | the ingredients it uses, each pinned; which ingredient fills version control and which workers it declares; entries for the profile, the policy, the hooks file and standing context; templates; an optional detect rule | once, when it is applied: its entries and templates become the repository's own, and the ingredients it lists are pinned |
+| [Ingredient](ingredients.md) | facts about one program: the contract it fills, its renders, its floor, its checks | pinned by cookbook, version and sha256 in `ingredients:` | on every render and every launch |
+| [Station](stations.md) | what one way of working needs in place: the ingredients to pin, workers and their roles, entries for the profile, the policy and the hooks file, standing context and lifecycle actions included, templates, and the recipes to add | applied once: its entries, templates and recipes become the repository's own; recorded in `stations:` for provenance and for applying a newer version | once, and again to take a newer version |
+| [Recipe](recipes.md) | one kind of change, made many times: inputs, requirements, steps mapped onto the stages, required lanes | copied into `.cook/recipes/<name>/`, its origin recorded in the file, or written there by the repository; the repository's own to edit | every time someone runs it |
+
+For example, the `agentic-coding` station pins ingredients for git, two coding agents, a loop runner and a tracker,
+declares an interactive and an unattended worker, and adds the `implement-task` recipe. Beside it a repository keeps a
+`migration` recipe of its own, and a `nestjs-module` recipe added from a cookbook. A station and a recipe may share a
+name.
 
 A [cookbook](stations.md#cookbooks) is a source such as `github:acme/cookbook`. Each of its tags publishes one archive
-per ingredient and per station, `<name>.tar.gz`, and one `checksums.txt` with the sha256 of every archive. A repository
-may pin from any number of cookbooks; `the-cook` ships no ingredient or station and names no default cookbook.
+per unit, named by kind, `ingredient-<name>.tar.gz`, `station-<name>.tar.gz` and `recipe-<name>.tar.gz`, and one
+`checksums.txt` with the sha256 of every archive. A repository may take units from any number of cookbooks; `the-cook`
+ships none and names no default cookbook.
 
 ```yaml
 # .cook/config.yaml
@@ -161,27 +200,33 @@ workers:
 ```
 
 `ingredients:` is what renders and runs depend on. `stations:` records which stations were applied and at which pin, for
-provenance and for applying a newer version later; deleting an entry from it changes nothing rendered.
+provenance and for applying a newer version later; deleting an entry from it changes nothing rendered. A recipe records
+its own origin in its file, `.cook/recipes/<name>/recipe.yaml`, and the repository's own recipes have none.
 
 `./cook station apply agentic-coding --cookbook github:acme/cookbook@v1.2.0` downloads the tag's `checksums.txt` and the
-station and verifies them, then plans the station's pin, the pins of the ingredients it lists, its entries and its
-templates, and shows them as one diff. It asks, writes, fetches the ingredients and renders, so the declaration and its
-rendered effect are one change to review. That review is the trust decision for everything the ingredients run.
-`./cook ingredient pin <name> --cookbook <source>@<version>` adds or moves one ingredient pin the same way, such as a
-newer version of the git ingredient. From then on the binary checks every archive against its pin on every download and
-every load. Only those commands, `scaffold --cookbook` and `the-cook fetch` download
-([fetching](ingredients.md#fetching)); everything else reads the per-user cache, so a clone works offline once its
-ingredients are cached. A command that needs a contract no pinned ingredient fills, or an ingredient that is not cached,
-exits 3 and names the command that supplies it.
+station and verifies them, then plans the station's pin, the pins of the ingredients it lists, its entries, its
+templates and the recipes it adds, and shows them as one diff. It asks, writes, fetches the ingredients and renders, so
+the declaration and its rendered effect are one change to review. That review is the trust decision for everything the
+ingredients run. `./cook ingredient pin <name> --cookbook <source>@<version>` adds or moves one ingredient pin the same
+way, such as a newer version of the git ingredient, and `./cook recipe add <name> --cookbook <source>@<version>` copies
+one recipe in, after checking that the repository has what it requires. From then on the binary checks every archive
+against the sha256 the repository recorded for it, on every download and every load. Only those commands,
+`recipe update`, `scaffold --cookbook` and `the-cook fetch` download ([fetching](ingredients.md#fetching)); everything
+else reads the per-user cache, so a clone works offline once its ingredients are cached. A command that needs a contract
+no pinned ingredient fills, or an ingredient that is not cached, exits 3 and names the command that supplies it.
 
 A station reaches a repository once: its entries and templates are the repository's own from then on, and applying a
-newer version adds only what the repository lacks. An ingredient's renders and [floor](ingredients.md#the-floor) come
+newer version adds only what the repository lacks. A recipe is a copy the repository edits like any other file:
+`./cook recipe update <name> --cookbook <source>@<version>` merges a newer version into it, three ways from the version
+the copy came from: it applies the clean hunks, leaves conflicts marked for a person or a worker, moves `origin` to the
+newer version, and shows the diff before it writes. An ingredient's renders and [floor](ingredients.md#the-floor) come
 from the ingredient on every render, as long as `ingredients:` pins it. A loop runner or a tracker is wired the same
-way, by a command the profile declares, a lifecycle action, or the entries and templates of a station. An organization's
-choices reach a repository the same way, as a reviewed change to its files, usually written by a coding agent following
-a skill the organization publishes. For example, when acme decides that no worker runs `terraform apply`, it publishes a
-skill saying so; in each of its Terraform repositories a coding agent following that skill adds `[terraform, apply]` to
-`shared.deny` in `.cook/policy.yaml`, and the team reviews that change like any other.
+way, by a command the profile declares, a lifecycle action, or the entries, templates and recipes of a station. An
+organization's choices reach a repository the same way, as a reviewed change to its files, usually written by a coding
+agent following a skill the organization publishes. For example, when acme decides that no worker runs
+`terraform apply`, it publishes a skill saying so; in each of its Terraform repositories a coding agent following that
+skill adds `[terraform, apply]` to `shared.deny` in `.cook/policy.yaml`, and the team reviews that change like any
+other.
 
 Rendered files are committed on purpose: a clone works before its pinned release is downloaded, and reviewers see
 every permission change as a diff.
@@ -196,6 +241,7 @@ cook                    the wrapper: runs the pinned release (owned)
   hooks.yaml                worker hooks, notification hooks and lifecycle actions
   wrapper.yaml              the pinned release, its source and checksums
   manifest.json             ownership record
+  recipes/<name>/           one recipe: recipe.yaml and the templates in files/ (the repository's own)
 .agents/                    agent content: meaningful without the-cook
   skills/the-cook/SKILL.md   the shipped skill (owned)
   skills/<name>/            domain skills and shared skills the team installs (knowledge)
@@ -211,7 +257,8 @@ AGENTS.md  README.md        managed blocks, one or more per module
 ```
 
 A repository that applies a [station](stations.md) with templates also holds them as its own files, such as a loop
-runner's configuration file from the `agentic-coding` station.
+runner's configuration file from the `agentic-coding` station, and the recipes the station adds sit in `.cook/recipes/`
+beside the repository's own.
 
 ## Ownership and the manifest
 
@@ -312,9 +359,10 @@ The profile's `modules:` map turns features on and off. Each module is opt-in an
 
 Always present, whatever the modules: the lifecycle with its events, guards and declared actions, the `.cook/` files,
 `cook`, the rendered policy, the shipped skill and its links, the manifest, the [`the-cook workspace`](workspaces.md)
-commands with task binding, the [`the-cook attempt`](attempts.md) command, and these blocks: `commands`, `layout`,
-`workspaces`, `lifecycle` and `policy` in `AGENTS.md`; `commands` in `README.md`; and the blocks the ingredients in use
-render, such as the version-control ingredient's `state` and `workspaces` blocks in its ignore file.
+commands with task binding, the [`the-cook make`](recipes.md#the-cook-make) and `the-cook recipe` commands, the
+[`the-cook attempt`](attempts.md) command, and these blocks: `commands`, `layout`, `workspaces`, `lifecycle` and
+`policy` in `AGENTS.md`; `commands` in `README.md`; and the blocks the ingredients in use render, such as the
+version-control ingredient's `state` and `workspaces` blocks in its ignore file.
 
 [Standing context](context.md) is declared in the profile's `context` section. Entries delivered by hook need the
 `hooks` module; `static` entries go into the `context` block of `AGENTS.md` whatever the modules.
@@ -345,7 +393,7 @@ judgement, from a person or a coding agent.
 | --- | --- | --- | --- |
 | Greenfield | no permissions or hooks in any worker's native files, no workflow engine of its own | `the-cook scaffold` | review the seeded profile; write `AGENTS.md` prose |
 | Brownfield, simple | permissions and hooks hand-written in a worker's native files | `the-cook scaffold --adopt` | imported personal entries and allow/deny conflicts to review; `raw` hooks worth modelling |
-| Brownfield, complex | its own workflow around its workers: verification scripts, a loop runner's configuration, a task tracker's data | `the-cook scaffold --adopt` | lane definitions from the verification scripts; pointing the loop runner's command for each task at `./cook attempt` and the tracker's updates at lifecycle actions, which a [station](stations.md) such as `agentic-coding` can write |
+| Brownfield, complex | its own workflow around its workers: verification scripts, a loop runner's configuration, a task tracker's data | `the-cook scaffold --adopt` | lane definitions from the verification scripts; pointing the loop runner's command for each task at `./cook make <recipe> --task <id> --unattended` or `./cook attempt`, and the tracker's updates at lifecycle actions, which a [station](stations.md) such as `agentic-coding` can write, with the `implement-task` recipe the runner runs |
 
 `scaffold --adopt` imports every permission rule and hook losslessly, proves it with an equivalence check, and prints
 a to-do of the leftovers; [`the-cook doctor`](doctor.md) keeps reporting open items until they are resolved. See
@@ -406,6 +454,10 @@ from their own loop-runner configuration, is outside them: `the-cook` neither de
     invariant 8. It cannot commit, push or fire lifecycle events.
 12. Guards are enforced by the binary itself. Policy entries for `the-cook` commands are defence in depth: a command
     has more spellings (an absolute path, `sh cook`) than prefix rules can list.
+
+A recipe's `attempt` step runs its worker under the same attempt contract as an `attempt` action, and nothing in a
+recipe turns an invariant off: a recipe can only add steps, required lanes and requirements
+([guards](recipes.md#guards)).
 
 A floor rule holds while its ingredient is in use. `the-cook ingredient list --cookbook <source>@<version>` shows which
 ingredients of a cookbook tag detect their program in the repository, such as a task runner whose configuration file is

@@ -46,6 +46,8 @@ Commands are named `the-cook <command>` on this page. The examples run `fleet` t
 | Pick up a schema change everywhere | `the-cook fleet render --yes --deliver` |
 | Move every repository to a new `the-cook` release | `the-cook fleet wrapper --version <tag> --deliver` |
 | Bring a way of working, such as `agentic-coding`, to a set of repositories | `the-cook fleet station apply agentic-coding --cookbook github:acme/cookbook@v1.2.0 --yes --deliver --repos <file>` |
+| Give every repository that makes one kind of change a recipe for it, delivered for review | `the-cook fleet recipe add nestjs-module --cookbook github:acme/cookbook@v1.2.0 --yes --deliver --repos <file>` |
+| Take a newer version of an added recipe in every repository that has it | `the-cook fleet recipe update nestjs-module --cookbook github:acme/cookbook@v1.3.0 --yes --deliver --repos <file>` |
 | Adopt `the-cook` in a set of repositories | `the-cook fleet scaffold --adopt --cookbook github:acme/cookbook@v1.2.0 --yes --deliver` |
 | Withdraw a module everywhere | `the-cook fleet remove --module memory --yes --deliver` |
 
@@ -90,7 +92,7 @@ fleet runs ([lifecycle](lifecycle.md#an-organization-convention-a-ci-trigger-com
    `scaffold` is adopting, it runs the fleet's own binary. A command that exits 3 there fires that repository's
    `blocked` [event](lifecycle.md), with the refusal in `COOK_REASON`. A repository the fleet refuses in step 1 or 2
    runs nothing, `blocked` included.
-4. With `--deliver`, if the command changed files:
+4. With `--deliver`, if the command exited 0 and changed files:
    1. commit them on the new branch with `commit_message`;
    2. run `the-cook verify` (no lanes are needed for a change outside `app_paths`), because the
       [`deliver` guards](lifecycle.md#built-in-guards) require a committed, clean branch that is not the default branch
@@ -98,7 +100,8 @@ fleet runs ([lifecycle](lifecycle.md#an-organization-convention-a-ci-trigger-com
    3. fire `deliver` with scope `change`, which runs every `deliver` action declared for that scope, in order,
       whatever its `auto` flag.
 
-   No change means no branch, commit or delivery.
+   No change means no branch, commit or delivery. A command that exits non-zero is never delivered: this step does not
+   run, and the summary shows the exit code.
 5. Switch back to the branch the repository was on. The new branch stays in the clone.
 6. Record the result.
 
@@ -130,7 +133,7 @@ the-cook fleet <command> [command args...] [--repos <file>] [--deliver] [--conti
 
 | Flag | Default | Meaning |
 | --- | --- | --- |
-| `<command> [command args...]` | required | Any repository-level `the-cook` command and its arguments: `scaffold`, `render`, `station`, `ingredient`, `fetch`, `remove`, `doctor`, `wrapper`, `explain`, `version` |
+| `<command> [command args...]` | required | Any repository-level `the-cook` command and its arguments: `scaffold`, `render`, `station`, `recipe`, `ingredient`, `fetch`, `remove`, `doctor`, `wrapper`, `explain`, `version` |
 | `--repos <file>` | `~/.config/the-cook/fleet.yaml` | Fleet file |
 | `--deliver` | off | Commit each changed repository on a new local branch and fire its `deliver` event (scope `change`) |
 | `--continue-on-error` | off | Keep going after a repository fails or is blocked |
@@ -178,10 +181,37 @@ repos: [~/src/acme-api, ~/src/acme-web]
   --repos ~/fleets/node.yaml
 ```
 
-Each repository receives the entries and templates of that version that it lacks, and its `stations:` entry for `node`
-moves to v1.3.0. Every ingredient the station lists is pinned; an ingredient the repository already pins at another
-sha256 keeps the repository's pin, and the command reports the difference. Every entry and item the repository already
-holds stays as it is ([stations](stations.md#how-apply-works)).
+Each repository receives the entries, templates and recipes of that version that it lacks, and its `stations:` entry for
+`node` moves to v1.3.0. A recipe the repository already holds in `.cook/recipes/` is kept and reported, never
+overwritten; `fleet recipe update` takes a newer version of it. Every ingredient the station lists is pinned; an
+ingredient the repository already pins at another sha256 keeps the repository's pin, and the command reports the
+difference. Every entry and item the repository already holds stays as it is ([stations](stations.md#how-apply-works)).
+
+A recipe is copied, not pinned: `recipe add` writes it into each repository's `.cook/recipes/<name>/` with its
+`origin`, and from then on each copy is that repository's own ([recipes](recipes.md#the-cook-recipe-add)). Give a
+recipe to the repositories that make its kind of change, then take a newer version of it everywhere:
+
+```yaml
+# ~/fleets/nestjs.yaml
+repos: [~/src/acme-api, ~/src/acme-billing]
+```
+
+```sh
+./cook fleet recipe add nestjs-module --cookbook github:acme/cookbook@v1.2.0 --yes --deliver \
+  --repos ~/fleets/nestjs.yaml
+./cook fleet recipe update nestjs-module --cookbook github:acme/cookbook@v1.3.0 --dry-run --repos ~/fleets/nestjs.yaml
+./cook fleet recipe update nestjs-module --cookbook github:acme/cookbook@v1.3.0 --yes --deliver --continue-on-error \
+  --repos ~/fleets/nestjs.yaml
+```
+
+`recipe add` checks the recipe's requirements in each repository first: a repository that lacks a contract, role or
+lane it requires exits 3 and gets nothing. `recipe update` merges three ways, per repository: that repository's copy,
+the version it came from and the newer version. Clean hunks apply, and `origin` moves to the newer version in every
+repository. A repository that edited its copy where the newer version changed too gets the conflicts marked in its
+files, and `recipe update` exits 3 there, so the fleet never delivers that repository
+([`recipe update`](recipes.md#the-cook-recipe-update)). A recipe with conflict markers cannot run (exit 1) until a
+person or a worker resolves them in that repository and delivers the result; nothing else is left to do there, because
+`origin` already names the newer version.
 
 To move only what renders, such as a newer `git` ingredient, move its pin:
 
@@ -207,10 +237,10 @@ commit_message: "chore: adopt the-cook"
 ```
 
 Each repository applies the stations of that cookbook tag whose detect rule matches in it, such as `agentic-coding` and
-the station for its stack, and pins the ingredients they list. No action runs that a repository does not declare: a
-repository whose applied stations hold no `deliver` action declares none, and ends as **committed, not delivered**.
-Deliver those branches by hand, or declare `deliver` actions in each branch's `.cook/hooks.yaml`, commit them, and run
-`the-cook lifecycle run deliver` there.
+the station for its stack, pins the ingredients they list and adds the recipes they list, such as `implement-task`. No
+action runs that a repository does not declare: a repository whose applied stations hold no `deliver` action declares
+none, and ends as **committed, not delivered**. Deliver those branches by hand, or declare `deliver` actions in each
+branch's `.cook/hooks.yaml`, commit them, and run `the-cook lifecycle run deliver` there.
 
 Health check before a release:
 
@@ -222,6 +252,8 @@ Health check before a release:
 
 - Do keep the fleet file to repositories you are responsible for.
 - Do run a command once by hand in one repository before running it across the fleet.
+- Do list in a fleet file for `fleet recipe add` only the repositories that make the recipe's kind of change: the
+  recipe becomes each one's own file, and a repository that never runs it carries it for nothing.
 - Do keep one fleet file per stack for a stack station: it holds one stack's commands, lanes and hooks, and in a
   repository on another stack its entries do not fit. Any other station fits a repository that works the way it
   describes, and an ingredient fits a repository that uses its program, so their fleet files list those repositories.
@@ -247,3 +279,6 @@ Health check before a release:
 | A `deliver` action fails | The action's own tool failed, for example an unauthenticated CLI | Read the action's output in the summary or the lifecycle log; fix it, then `the-cook lifecycle run deliver` on that branch |
 | A repository fails right after `fleet wrapper` | The new release cannot be downloaded or fails its checksum on this machine | See [pitfalls](pitfalls.md#the-first-run-needs-the-network) and [the checksum entry](pitfalls.md#a-checksum-mismatch-refuses-the-download) |
 | The fleet stopped after the first failure | Default behaviour | Add `--continue-on-error` |
+| `recipe add` exits 3 in a repository | The repository lacks a contract, role or lane the recipe requires; the message names it | Pin or declare what it names in that repository, or leave the repository out of the fleet file |
+| `recipe update` exits 3 in a repository, which is not delivered | That repository edited its copy where the newer version changed too, and the merge left the conflicts marked, with `origin` already moved; `the-cook make` refuses the recipe with exit 1 until they are resolved | Resolve the conflicts in that repository, then commit and deliver the result there; no further `recipe update` is needed |
+| `recipe add` exits 1 in a repository, naming `recipe update` | The repository already holds a recipe of that name, added before or by a station | Leave it out of the fleet file, or take the newer version with `fleet recipe update` |

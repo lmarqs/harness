@@ -20,6 +20,8 @@ through the [version-control contract](ingredients.md#the-version-control-contra
 configured workspaces directory (`workspaces.dir`, default `.work/workspaces`), each on its own branch, with a recorded
 starting commit, an actor identity and an optional task id. The task id binds the workspace to one task of the team's
 tracker: every event fired there carries the id in `COOK_TASK` and the actor in `COOK_ACTOR` ([tasks](tasks.md)).
+[`the-cook make`](recipes.md#the-cook-make) creates one the same way for each [recipe](recipes.md) run, the workspace
+of one change ([created by a recipe run](#created-by-a-recipe-run)).
 
 Commands are named `the-cook <command>` on this page. The examples run them through the repository's wrapper,
 `./cook <command>`, from the root of a checkout; with a global install, `the-cook <command>` is equivalent
@@ -31,6 +33,8 @@ Commands are named `the-cook <command>` on this page. The examples run them thro
 - You work on tasks of a tracker, such as a local task database or the hosting platform's issues, and want each task in
   its own checkout, with the tracker updated by the repository's lifecycle actions ([tasks](tasks.md)).
 - You want a [verification receipt](verify.md) whose base is fixed at the moment the work started.
+- You run a recipe: `the-cook make` creates the workspace the recipe names, and keeps it while the run is paused or
+  stopped.
 
 You do not need them for ordinary work: `the-cook verify` also works in the primary checkout.
 
@@ -57,6 +61,33 @@ You do not need them for ordinary work: `the-cook verify` also works in the prim
 
 The workspace starts from committed code only. Uncommitted changes, credentials, dependency directories and personal
 configuration are not copied.
+
+### Created by a recipe run
+
+`the-cook make <recipe>` is the Start stage of one change ([the run](recipes.md#the-run)). After it validates the inputs
+and the recipe's requirements, it creates the workspace the recipe's `workspace` key names, with the inputs substituted,
+such as `migration-add-invoice-index` for `migration-{name}` with `--name add-invoice-index`. It creates it the way
+`the-cook workspace create` does: at `<workspaces.dir>/<name>`, on a new branch `work/<name>`, with a session, an actor
+and `bootstrap`, and it fires `start`. Its base is the head commit of the default branch the version-control
+ingredient reports, not the checkout's head commit, and the run reads the recipe from there too, so a recipe runs in a
+new workspace only once it is committed on the default branch. With `--task <id>` the workspace is bound to the task
+([tasks](tasks.md#a-task-run-by-a-recipe)).
+
+With `--here`, the run uses the managed workspace it is started in and creates none, and reads the recipe from that
+workspace's working tree, for drafting one: that workspace's base and branch are the run's, and its task unless
+`--task` gives one; no `bootstrap` runs and no `start` fires. It refuses `--unattended`, a checkout that is not a
+managed workspace, and a workspace that holds a run that is not completed.
+
+The run records itself in `run.json` in the workspace's state directory (by default
+`.work/workspaces/<name>/.work/run.json`): the recipe's name, its content and digest as the run read them when it
+started, the inputs, whether the run is unattended, each step's result and the current stage.
+`the-cook make --status [<workspace>]` prints it. A paused or stopped run keeps its workspace with whatever its steps
+left in it, the changes of a failed `attempt` step included: nothing resets the workspace to its base.
+`the-cook make --continue [<workspace>]` resumes it with the recipe content the record holds, and after a failed step
+runs that step again on the tree as it is, so inspect or discard those changes first. To abandon the run, discard the
+workspace's changes and remove it with `the-cook workspace remove`, which refuses uncommitted changes as for any
+workspace. The branch `work/<name>` stays, as after every removal, so a later run that would create the same workspace
+needs it deleted first.
 
 ### Nesting
 
@@ -146,6 +177,7 @@ Paths below show the defaults, `state.dir: .work` and `workspaces.dir: .work/wor
 | `.work/workspaces/<name>/` | the checkout |
 | branch `work/<name>` | the branch |
 | `.work/workspaces/<name>/.work/session.json` | the session |
+| `.work/workspaces/<name>/.work/run.json` | the run record, written by `the-cook make`, not by `create` |
 | `.work/workspaces.lock` | held while creating |
 | `.work/lifecycle.jsonl` | `create` and `remove`, for the events they fire |
 
@@ -201,6 +233,9 @@ git branch -d work/fix-invoice-rounding           # when the branch is merged
 | `branch work/<name> already exists` | A previous workspace with that name kept its branch | Delete the branch, or choose another name |
 | Build in the workspace uses the primary checkout's dependencies | Bootstrap was skipped or failed | Run the profile's bootstrap commands in the workspace |
 | `remove` refuses | Uncommitted changes | Commit, stash or discard them first |
+| `remove` refuses the workspace of a stopped recipe run | Its steps left uncommitted changes | `the-cook make --continue` to finish the run; to abandon it, discard the changes, then remove |
+| `the-cook make --here` exits 1 | It was started with `--unattended`, outside a managed workspace, or in one whose run is not completed | Run it in a managed workspace, or without `--here` so the run creates its own; resume an unfinished run with `the-cook make --continue` |
+| `the-cook make` exits 1: the branch `work/<name>` exists | An earlier run with the same inputs, or a workspace of that name, kept its branch | Delete the branch if its work is done, or run with other inputs |
 | A worker in the workspace prompts for every command | The worker does not trust the folder | Trust the primary checkout; nested workspaces inherit it |
 
 ## Coexistence

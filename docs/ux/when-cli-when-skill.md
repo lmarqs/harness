@@ -30,7 +30,8 @@ They apply to proposals for `the-cook` itself and to the advice `the-cook` gives
 | **Standing-context entry** | a declared trigger (`always`, `when.paths`, `when.prompt`) that puts an existing skill or repository file in front of a worker, under `context:` in `config.yaml` | the repository |
 | **shipped skill or explain topic** | guidance a coding agent follows to do judgement work around `the-cook` | `the-cook` (embedded, shipped with the binary) |
 | **Ingredient** | a named, versioned description of one program ([ingredients](../features/ingredients.md)): renders and floor written on every render, operations that fill the version-control or worker contract, and checks. Ingredients describe the version control system, a worker such as a coding agent, a loop runner, a task tracker, a task runner or a skills installer | the maintainers of the cookbook that publishes it; the repository pins it |
-| **Station** | a named, versioned description of one way of running the lifecycle, built from ingredients ([stations](../features/stations.md)): the ingredients it pins, the stages they fill, entries for the repository's files, and templates, which `the-cook scaffold` and `the-cook station apply` write once, on request. `agentic-coding` sets up the lifecycle with a coding agent in sessions and in attempts, a loop runner and a tracker; a stack station (`go`, `node`, `terraform`, `python`) holds the starting commands, test lanes, validators, module switches and post-edit hooks of one stack | the maintainers of the cookbook that publishes it; once applied, its pins, entries and files are the repository's |
+| **Station** | what one way of working needs in place ([stations](../features/stations.md)): the ingredients it pins, the stages they fill, entries for the repository's files, templates and the recipes it adds, which `the-cook scaffold` and `the-cook station apply` write once, on request. `agentic-coding` sets up the lifecycle with a coding agent in sessions and in attempts, a loop runner and a tracker, and adds the `implement-task` recipe; a stack station (`go`, `node`, `terraform`, `python`) holds the starting commands, test lanes, validators, module switches and post-edit hooks of one stack | the maintainers of the cookbook that publishes it; once applied, its pins, entries, files and recipes are the repository's |
+| **Recipe** | one kind of change the repository makes many times, in `.cook/recipes/<name>/` ([recipes](../features/recipes.md)): inputs, requirements, steps mapped onto the lifecycle's stages and required lanes, run by `the-cook make`. Its `run` and `template` steps do the part with one right answer, its `attempt` steps and handoffs carry the judgement, and the guidance for that judgement stays in a skill a step names | the repository; a recipe added from a cookbook, or by a station, is the repository's own copy, with its `origin` recorded |
 | **Organization or personal skill** | guidance a coding agent follows for judgement work specific to an organization's conventions, including writing the organization's choices (policy entries, actions, standing-context entries) into a repository's files | the organization; the entries it leads to are the repository's |
 | **Left to the repository** | a task in the repository's own task runner (a task-runner task, a `Makefile` target), a repository skill, prose in `AGENTS.md`, memory | the repository |
 
@@ -48,6 +49,7 @@ They apply to proposals for `the-cook` itself and to the advice `the-cook` gives
 | Guidance timing | Is it known guidance that applies at a predictable moment: every session, when certain files are touched, or when certain words appear? |
 | Model or tool server | Does it need a model, or a tool that only an MCP server provides? |
 | Program | Does it exist to describe or connect one program: a version control system, a worker, a loop runner, a task tracker, a skills installer, a task runner or a hosting platform? |
+| Kind of change | Is it one kind of change a repository makes many times, with the same shape each time, that should arrive verified like any other work? |
 
 ## Decision table
 
@@ -67,6 +69,11 @@ They apply to proposals for `the-cook` itself and to the advice `the-cook` gives
 When guidance already exists as a skill or a file and the only question is when a worker should read it, the
 destination is a standing-context entry, whatever the other columns say ([below](#standing-context)). Why: the timing
 is deterministic even when the guidance is not.
+
+When the capability is one kind of change a repository makes many times, with the same shape each time, the
+destination is a recipe, whatever the other columns say ([below](#recipes)). Why: the columns sort the parts of a
+change, and a recipe is where the parts of one repeated change meet: what has one right answer as steps the binary
+runs, the judgement as steps a worker or a person takes, and the proof as lanes Verify requires.
 
 Support for any program, the version control system and the workers included, is an ingredient or a declared action,
 whatever the other columns say, and never a command, a flag, a profile field or code in the binary; a way of running
@@ -117,7 +124,7 @@ flag that pushes, opens a pull request or calls a hosting platform is a design e
 | Run a CLI the repository already uses (`git`, the hosting platform's CLI) | `run` | the CLI carries its own authentication and conventions |
 | Notify a person or a service: a chat message, an incident, a status page | `http` | `the-cook` performs the request itself, reads the URL and headers from environment variables and JSON-encodes values, so no `curl`, no shell quoting and no secret on a command line |
 | Tell a person the worker is waiting for them, or has finished a turn | `http` (or `run` for a local notifier) on `attention` or `turn_end` | notification events accept `run` and `http` only, so a worker's hook never starts another worker |
-| Tell a person an unattended run stopped or a task was skipped | `http` on `blocked` | `blocked` fires when a command without a terminal exits 3, and whoever drives an unattended run fires it when the run stops, with the reason in `COOK_REASON` |
+| Tell a person an unattended run stopped or a task was skipped | `http` on `blocked` | `blocked` fires when a command without a terminal exits 3 for a person, when a recipe run stops, and when whoever drives a loop runner's run fires it as that run stops, with the reason in `COOK_REASON` |
 | Judgement after an event: summarise a merged change, write lessons into memory, triage a failure | `attempt` | the worker does the judgement under the [attempt contract](../features/attempts.md#the-attempt-contract); its edits stay uncommitted for review |
 | Use a tool only an MCP server provides | `attempt`, or leave it to the coordinating worker | `the-cook` is never an MCP client; the worker owns the connection, its credentials and its permissions |
 
@@ -143,6 +150,35 @@ Always-on content has a budget per role (`context.budget`), because every always
 dilutes attention. A long directive that applies to few tasks is a `when` entry or a plain skill, not an `always`
 entry.
 
+## Recipes
+
+Use a recipe when a repository makes the same kind of change many times and each one should arrive verified, like any
+other work ([recipes](../features/recipes.md), [ADR 0025](../adrs/0025-recipes.md)). A recipe run is one pass of one
+change through the lifecycle's stages: Start creates its workspace, its steps run at Implement, Verify runs every lane
+the change selects and every lane the recipe requires, and the repository's own actions deliver it. Within the recipe,
+each part of the change has one place:
+
+| Part of the change | Goes in | Because |
+| --- | --- | --- |
+| what has one right answer: running a generator, writing a file from a template | a `run` or `template` step | the binary does it the same way on every run, before any judgement |
+| what needs judgement: writing the logic, naming, fitting the change to the code around it | an `attempt` step | a worker does it under the [attempt contract](../features/attempts.md#the-attempt-contract), and the lanes check it |
+| what a person must check or decide before the run goes on | a handoff | it pauses an attended run for whoever drives it, and stops a run its caller marks unattended as blocked, because it needs a person |
+| how to do the judgement well: the team's conventions for that kind of change | a skill the `attempt` step's prompt names, or a standing-context entry that matches the files the step touches | the guidance keeps one text, which reaches a worker in any recipe or session |
+| what proves the change | `verify.require` | Verify runs those lanes on every run, in full when the change selects nothing for one, and never skips them |
+| what happens to the result: a push, a pull request, a notification | the repository's own lifecycle actions | a recipe declares none, so delivery means the same for a recipe run as for any other work |
+
+These are not recipes:
+
+- Work that changes nothing in the repository, such as watching a running system: it has no workspace, receipt or
+  delivery. Watching is a coding agent's job, following a monitoring skill. Acting on what it found is a recipe: the
+  alert is an input, and the worker of an `attempt` step follows the monitoring skill.
+- A generator whose output needs no verification or delivery: a task in the repository's own task runner. When its
+  output should arrive verified, the generator becomes the `run` step of a recipe.
+- A change made once: a person or a coordinating worker in a managed workspace, because a recipe pays for itself only
+  over many runs.
+- Setting up a way of working: a station, applied once, because its result is the repository's files, not a change
+  made again and again.
+
 ## Choosing among command, flag and profile field
 
 For deterministic, repeated, organization-neutral behaviour:
@@ -157,7 +193,8 @@ For deterministic, repeated, organization-neutral behaviour:
    behaviour that changes what an existing command writes is a flag or a field, not a new command, because two
    commands writing the same files compete.
 
-None of the three serves a single program: that is an ingredient or a declared action ([above](#decision-table)).
+None of the three serves a single program: that is an ingredient or a declared action ([above](#decision-table)). None
+holds one kind of change a repository makes many times either: that is a recipe ([above](#recipes)).
 
 ## When behaviour splits
 
@@ -183,6 +220,10 @@ Repository content follows the same split ([ADR 0013](../adrs/0013-organization-
 - Either way the entries end in the repository's own files and reach review as a diff. The binary never reads an
   organization's conventions from anywhere else.
 
+A recipe makes the same split inside one repeated change: the binary runs its `run` and `template` steps, a worker in
+an `attempt` step or a person at a handoff does the judgement, guided by a skill the step names, and Verify checks the
+result with the lanes the recipe requires.
+
 ## Worked examples
 
 | Request | Analysis | Destination |
@@ -194,7 +235,12 @@ Repository content follows the same split ([ADR 0013](../adrs/0013-organization-
 | Read-only patterns for an organization's observability MCP server | deterministic entries, organization specific, applied with judgement per repository | `shared.allow` entries in each repository's `policy.yaml`, written by a coding agent following the organization's skill |
 | Open a pull request when work is concluded | deterministic command, leaves the clone, hosting-platform specific, belongs at `deliver` | a `deliver` action of kind `run` in `hooks.yaml` (push, then the hosting platform's pull-request command) |
 | Add a CI trigger commit before the pull request | deterministic, leaves the clone with the push, organization convention, belongs at `deliver` | a `deliver` action in each repository's `hooks.yaml`, declared before the pull-request action and written there by a coding agent following the organization's skill |
-| Set up agentic coding: a coding agent in sessions and in attempts, a loop runner and a tracker | a way of running the lifecycle with several programs, deterministic wiring | station `agentic-coding`: `the-cook station apply agentic-coding --cookbook github:acme/cookbook@v1.2.0` pins its ingredients and writes its workers, lanes, unattended denies, lifecycle actions and the loop runner's configuration |
+| Set up agentic coding: a coding agent in sessions and in attempts, a loop runner and a tracker | what a way of working with several programs needs in place, deterministic wiring | station `agentic-coding`: `the-cook station apply agentic-coding --cookbook github:acme/cookbook@v1.2.0` pins its ingredients, writes its workers, lanes, unattended denies, lifecycle actions and the loop runner's configuration, and adds the `implement-task` recipe |
+| Add a database migration the same way every time | one kind of change, made many times: a generator (one right answer), the up and down steps (judgement), a check against production data volumes (a person's), lanes `unit` and `migrations` | the repository's own recipe `migration`, started with `the-cook recipe create migration`: a `run` step for the generator, a `template` step for the down test, an `attempt` step for the up and down steps, a handoff for the check, and `verify.require: [unit, migrations]`; each migration is `./cook make migration --name add-invoice-index` |
+| Add a NestJS module the way the organization's cookbook describes | one kind of change, the same in each of the organization's NestJS repositories | recipe `nestjs-module`, added with `the-cook recipe add nestjs-module --cookbook github:acme/cookbook@v1.2.0`, which copies it into `.cook/recipes/nestjs-module/` with its `origin`; the repository edits its copy, and `the-cook recipe update nestjs-module --cookbook github:acme/cookbook@v1.3.0` merges a newer version into it |
+| Implement tracker tasks with a loop runner, each verified and completed | one kind of change per task, driven by a third-party loop runner | the `implement-task` recipe the `agentic-coding` station adds, which the loop runner's configuration names as `./cook make implement-task --task <id> --unattended --commit`: each task gets a workspace of its own, its required lanes and one verified commit |
+| Watch production for errors | changes nothing in the repository: no workspace, receipt or delivery | not a recipe: a coding agent following a monitoring skill |
+| Fix what a production alert points at | one kind of change, with the alert as its input | a recipe with the alert as an input and an `attempt` step whose worker follows the monitoring skill |
 | Give a Node repository its lint, build and test commands and a lint-on-edit hook | deterministic, the same in every Node repository | stack station `node`: applied by `the-cook scaffold --cookbook <source>@<version>` when its detect rule finds `package.json`, or by `the-cook station apply node --cookbook <source>@<version>` |
 | Add a stack's entries to a repository that took it up after adoption | deterministic, stack facts | `the-cook station apply <name> --cookbook <source>@<version>`; the additions are shown as a diff and confirmed |
 | Take a newer version's additions to a station | deterministic, on request | `./cook station apply node --cookbook github:acme/cookbook@v1.3.0 --dry-run` shows them, and the same command without `--dry-run` writes them; across repositories, `the-cook fleet station apply node --cookbook github:acme/cookbook@v1.3.0 --yes --deliver` |
@@ -226,7 +272,7 @@ Repository content follows the same split ([ADR 0013](../adrs/0013-organization-
 | Open an issue for each to-do item | judgement, writes to the record of work | a coding agent with its own tools; the binary never writes issues |
 | Report workspaces whose branch was merged | deterministic, every repository | a `doctor` check |
 | Install an organization's shared skills in a repository | a third-party installer, organization data | the team's own step with the skills installer of its choice, then a commit of `.agents/skills/` and the installer's lock file; an ingredient for the installer describes it, and standing context names the skills it injects |
-| Run a loop runner over a task list with every result verified | a third-party loop runner, deterministic wiring | the loop runner's ingredient and a station that uses it, such as `agentic-coding`, whose template names `./cook attempt <worker> --commit` as the command the loop runner runs for each task; the person runs the loop runner in a managed workspace, never through a `the-cook` command |
+| Run a loop runner over a task list with every result verified | a third-party loop runner, deterministic wiring | the loop runner's ingredient and a station that uses it, such as `agentic-coding`, whose template names the command the loop runner runs for each task: `./cook make <recipe> --task <id> --unattended --commit` for a recipe run, or `./cook attempt <worker> --commit`, the primitive, for one attempt; the person runs the loop runner in a managed workspace, never through a `the-cook` command |
 | Update a task tracker when work starts, completes or stops | a third-party tracker, deterministic, at lifecycle points | the tracker's ingredient, and the lifecycle actions a station such as `agentic-coding` applies: actions on `start`, `completed` and `blocked`, scope `task`, `auto: true`, which run the tracker's commands with `$COOK_TASK` |
 | Support another loop runner or task tracker | a third-party program | an ingredient pinned from a cookbook, or declared actions and a configuration that names `the-cook attempt`; never a command, flag or profile field |
 | Pin the version of `the-cook` a repository runs | deterministic, every repository, affects what every machine runs | binary: `.cook/wrapper.yaml`, the only pin, and the committed wrapper `cook`; `the-cook wrapper --version <tag>` changes the pin after verifying the release's signed checksum file |
@@ -257,6 +303,26 @@ Each of these breaks a principle, for the reason given after it.
 - A station's entries applied by a command that was not asked to apply them (a render, an upgrade), or a record of which
   entries a station added: every write to a repository's files is one someone asked for, and a record would tie the
   repository's own entries to a definition outside its files.
+- A recipe step that runs a shell string with an input substituted into it, such as
+  `run: [sh, -c, "npm run migration:create {name}"]`: the input reaches a shell parser, so a `string` input such as
+  `x; rm -rf src` adds a command, and what the step does depends on quoting nobody reviews. A step runs one program by
+  its argument list. A step that needs a shell passes each input as a positional parameter, outside the string the
+  shell parses (`run: [sh, -c, 'npm run migration:create -- "$1"', sh, "{name}"]`), and a longer pipeline is a script
+  the repository commits, run as `run: [./scripts/new-migration.sh, "{name}"]`.
+- A recipe that declares lifecycle actions, skips a lane or fires an event: a recipe only adds steps, lanes and
+  requirements, so the guards and the meaning of delivery stay the same for every change, whoever wrote the recipe.
+- A recipe read from its cookbook when it runs, instead of from the repository's copy: the steps that run would sit
+  outside the repository, where nobody working there reads them, and a cookbook's new tag would change what runs
+  without a diff.
+- A recipe read again from the working tree while its run goes on: the worker of an `attempt` step could rewrite the
+  steps after its own and the lanes that judge them, so a run reads its recipe once, when it starts.
+- The guidance an `attempt` step needs written out in its prompt instead of in a skill the prompt names: the guidance
+  then lives in every recipe that needs it and drifts, while a skill keeps one text for recipes and sessions alike.
+- A step kind for one program or one organization, or a step kind a recipe defines: each kind is a process the binary
+  runs under its guards, and what a program does is a `run` step that calls it.
+- A recipe for work that changes nothing in the repository, such as watching a running system, or for setting up a way
+  of working: the first has no workspace, receipt or delivery for a recipe run to carry, and the second is applied once,
+  which is a station.
 - A program's safety fact kept as a policy entry instead of a floor rule of its ingredient: an entry gets lost when the
   configuration is copied or edited.
 - An ingredient fetched during a hook or an attempt: the attempt would run whatever the source serves at that moment,

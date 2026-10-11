@@ -38,7 +38,8 @@ controls the facts only it knows.
    file has one concern and one audience: the repository's facts for the engine, including its standing-context
    declarations ([0020](0020-standing-context.md)); the permission policy; and the worker-neutral hook declarations
    together with the lifecycle and notification actions ([0015](0015-development-lifecycle.md),
-   [0019](0019-action-kinds.md)).
+   [0019](0019-action-kinds.md)). Each recipe the repository holds is one more file of that data, for one kind of
+   change, with the template files it carries beside it ([0025](0025-recipes.md)).
 3. Each file carries a schema version and is validated before use ([0005](0005-schema-compatibility.md)).
 4. No engine code is copied into a repository. The tool-owned executable content in a repository is limited to the
    wrapper ([0017](0017-engine-version.md)), which only resolves, verifies and executes the pinned binary, and to hook
@@ -48,7 +49,8 @@ controls the facts only it knows.
    ([0022](0022-tool-integration.md), [0023](0023-core-and-contracts.md), [0024](0024-ingredients-and-stations.md)). The
    repository's data names every ingredient it uses and the stations it applied, and pins each one from the cookbook
    that publishes it, by version and content hash; neither is stored in the repository
-   ([0014](0014-directory-layout.md)).
+   ([0014](0014-directory-layout.md)). A recipe is stored in the repository: once copied, it is data the repository
+   owns, and the binary runs it ([0013](0013-organization-content.md), [0025](0025-recipes.md)).
 
 ## Reasons
 
@@ -76,8 +78,12 @@ controls the facts only it knows.
   lives in its data and changes by a reviewed diff. An ingredient is shared by every repository that uses the program
   (Context) and fixed by its hash, so a copy in each repository would be one more copy to edit locally, the way the
   `acme/web` renderer in Context forks; what a station adds is in the repository's own files once it is applied
-  ([0024](0024-ingredients-and-stations.md)), so a copy of the station would hold it twice. The trade: a reader of the
-  repository sees which ingredient is pinned, not its description.
+  ([0024](0024-ingredients-and-stations.md)), so a copy of the station would hold it twice. A recipe is a practice the
+  repository adapts, and its copy is the only one that acts ([0025](0025-recipes.md)), so it lives with the repository's
+  other data. It holds data, not engine code: how a recipe runs, its stages, its kinds of step and its guards, is in the
+  binary, so a fix to that reaches every repository with one release (point 1), and a newer version of a recipe's own
+  content reaches a copy through a merge that keeps the repository's changes ([0013](0013-organization-content.md)). The
+  trade: a reader of the repository sees which ingredient is pinned, not its description.
 
 ## Rejected alternatives
 
@@ -120,6 +126,7 @@ Must be maintained:
 
 - Validation fixtures cover each file, including invalid content and an unknown schema.
 - A fixture that uses an ingredient and has applied a station holds the name, cookbook, version and hash of each in the
-  repository's data and no copy of either.
+  repository's data and no copy of either. A fixture that added a recipe holds the copy, with its origin, in the tool's
+  configuration directory.
 - A test asserts that the manifest of an adopted fixture lists no executable file other than the wrapper, and that every
   owned hook entry is one command that calls it.

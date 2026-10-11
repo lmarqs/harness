@@ -4,13 +4,15 @@
 
 **Problem.** The tool runs content it downloads with the person's credentials, on every machine and in every repository
 that pins it: the release the wrapper script committed in each repository downloads, the ingredients the repository
-pins, whose commands the binary starts, and the stations it applies, whose entries become its own commands and rules. A
-release compromised before anyone recorded its checksum, or replaced on the download host, would run everywhere, and
-checksums alone cannot tell. An ingredient or a station replaced at its source, or fetched while nobody watches, would
-change what a worker runs without any change to the repository.
+pins, whose commands the binary starts, the stations it applies, whose entries become its own commands and rules, and
+the recipes it copies, whose steps it runs. A release compromised before anyone recorded its checksum, or replaced on
+the download host, would run everywhere, and checksums alone cannot tell. An ingredient or a station replaced at its
+source, or fetched while nobody watches, would change what a worker runs without any change to the repository, and a
+recipe replaced at its source would enter the repository as if its cookbook had published it.
 
-**Goal.** Only releases their publisher signed run, on every machine, whoever recorded the pin, and an ingredient or a
-station acts only as the exact bytes a reviewed change to the repository pinned.
+**Goal.** Only releases their publisher signed run, on every machine, whoever recorded the pin, an ingredient or a
+station acts only as the exact bytes a reviewed change to the repository pinned, and a recipe enters a repository only
+as the bytes its cookbook published, through a reviewed change.
 
 ## Context
 
@@ -32,12 +34,16 @@ station acts only as the exact bytes a reviewed change to the repository pinned.
 - An ingredient describes commands the binary starts, such as the launch of a worker and the version control operations
   ([0022](0022-tool-integration.md)), so its content decides what runs with the person's credentials, as a release's
   does. A station's entries, lifecycle actions and deny rules among them, become the repository's own data when it is
-  applied, and a station lists the ingredients it uses, each with its content hash
+  applied, and a station lists the ingredients it uses and the recipes it adds, each with its content hash
   ([0024](0024-ingredients-and-stations.md)).
-- The binary ships no ingredient and no station ([0022](0022-tool-integration.md)). Both are published in cookbooks by
-  organizations and people other than the tool's publisher, and a binary can embed only the keys known when it is built.
-- Ingredients and stations are data: a reviewer can read all of one before pinning it, which a compiled binary does not
-  allow.
+- The binary ships no ingredient, no station and no recipe ([0022](0022-tool-integration.md)). All are published in
+  cookbooks by organizations and people other than the tool's publisher, and a binary can embed only the keys known when
+  it is built.
+- Ingredients, stations and recipes are data: a reviewer can read all of one before pinning or copying it, which a
+  compiled binary does not allow.
+- A recipe's command steps run with the person's credentials. Once copied, a recipe is a file of the repository that its
+  team edits, and every change to it is a change to the repository, reviewed like any other
+  ([0013](0013-organization-content.md), [0025](0025-recipes.md)).
 - A per-user cache can be written by every process the person runs.
 - A hook runs on every matching worker event, and an attempt runs with nobody watching
   ([0011](0011-safety-invariants.md)).
@@ -65,6 +71,16 @@ station acts only as the exact bytes a reviewed change to the repository pinned.
    every download and every load, and refuses content that does not match before anything it describes runs or is
    written. It fetches one only on a person's explicit command, never during a hook or an attempt. No release key
    vouches for any ingredient or station, and the wrapper never fetches or loads one.
+8. A recipe is admitted when a person adds it, updates it or applies a station that adds it. When a person adds or
+   updates it, the binary downloads, over HTTPS, the cookbook's checksum file for the version named and the recipe, and
+   verifies the recipe against that file. A recipe a station adds is verified against the content hash the station gives
+   for it, as an ingredient the station lists is, so applying the station again never trusts a checksum file downloaded
+   again. The binary presents the copy, or the merge, as a diff that enters the repository only through review
+   ([0013](0013-organization-content.md)). No content hash pins the copy the repository holds: it is the repository's
+   own file, and it acts as the repository holds it. The origin the copy records names the cookbook, the version and the
+   content hash of the recipe it came from; an update takes that version, cached or downloaded, as the common ancestor
+   of its merge and verifies it against that hash. The binary fetches a recipe only on a person's explicit command,
+   never during a hook, an attempt or a recipe run, and no release key vouches for one.
 
 ## Reasons
 
@@ -101,6 +117,18 @@ station acts only as the exact bytes a reviewed change to the repository pinned.
   knows only the release (point 4). The trade: an ingredient or a station compromised at its source before someone
   pinned it passes every check, and because none comes from the release ([0022](0022-tool-integration.md)), the floor of
   every program is only as good as the review of its pin.
+- **8.** A recipe's steps run with the person's credentials (Context), so the bytes that enter the repository need the
+  guarantee of point 7 at that moment: the cookbook's checksum file ties them to what the cookbook published. A recipe a
+  station adds takes its hash from the station, whose own bytes are verified as point 7 decides, as an ingredient a
+  station lists does: applying the station again then copies exactly the recipe the station was published with, whatever
+  the checksum file at its source says by then. After that, a recipe differs from an ingredient. The copy is in the
+  repository, a reviewer reads all of it in the diff that adds it, and every later change to it is a reviewed change
+  like any other (Context). A hash pin would turn each of the team's edits into a mismatch, so the copy's trust rests on
+  the review of the changes that hold it, as the entries a station writes do. The origin's hash serves the merge:
+  verifying the version an update starts from means the merge compares against exactly the bytes that were copied, so
+  the diff it shows separates the team's changes from the cookbook's. Fetching only on a person's command keeps a
+  recipe's source out of every moment nobody watches, as point 7 does for ingredients and stations. The trade: a recipe
+  compromised at its source before it was added passes every check, and the review of its diff is the whole defence.
 
 ## Rejected alternatives
 
@@ -153,6 +181,8 @@ Costs:
 - The release process holds a signing key that must be protected.
 - Every ingredient and station, and with them the floor of every program, is only as good as the review of its pin: one
   compromised at its source before it was pinned passes every check.
+- A recipe is only as good as the review of the diff that adds or updates it, and no hash catches a later change to the
+  copy: every such change is the repository's own and goes through its review.
 - Every machine, CI included, fetches each pinned ingredient in an explicit step before a hook or an attempt can use it.
 
 Must be maintained:
@@ -161,6 +191,8 @@ Must be maintained:
 - Verification of every ingredient and station a person names against the cookbook's checksum file when it is pinned, of
   every ingredient a station lists against the hash the station gives, and of each against its pin on every download and
   every load.
+- Verification of every recipe added or updated against the cookbook's checksum file, of every recipe a station adds
+  against the hash the station gives, and of an update's common ancestor against the hash its origin records.
 
 ## Confirmation
 
@@ -178,3 +210,10 @@ Must be maintained:
   describes starts; a fixture station whose cached bytes differ from its pin is refused, and applying it writes nothing.
 - A pin fixture of a station pins the ingredients it lists at the hashes it gives, in the same diff.
 - A fixture hook and a fixture attempt that need an uncached ingredient make no network request.
+- An add fixture whose downloaded recipe differs from the cookbook's checksum file is refused, and the repository's
+  files stay byte-identical.
+- Applying a fixture station whose recipe differs from the hash the station gives is refused, and writes nothing, even
+  when a checksum file downloaded again lists the changed recipe.
+- An update fixture whose cached common ancestor differs from the hash its origin records is refused, and the copy stays
+  byte-identical.
+- A fixture recipe edited after it was added runs as edited, and nothing compares it with its origin.

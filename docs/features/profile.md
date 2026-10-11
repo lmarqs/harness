@@ -20,7 +20,8 @@ verification lanes (named families of test commands) exist, which workers it dec
 [attempt](attempts.md) may write, and the standing context workers receive. It is seeded and then repository-owned.
 `scaffold` seeds it once, with the stations of a cookbook tag it applies. From then on people and workers edit it,
 `the-cook station apply` adds a station's pins, stages and entries, `the-cook ingredient pin` adds or moves an
-ingredient's pin, and `the-cook render` reads it.
+ingredient's pin, and `the-cook render` reads it. [Recipes](recipes.md), those a station adds included, live beside it
+in `.cook/recipes/`, not in the profile.
 
 Examples on this page run commands as `./cook <command>`, through the repository's [wrapper](wrapper.md); with a
 global install, `the-cook <command>` is equivalent.
@@ -30,6 +31,7 @@ global install, `the-cook <command>` is equivalent.
 | You want to | Edit |
 | --- | --- |
 | Take up a way of working or a stack's starting entries | nothing by hand: `./cook station apply <name> --cookbook <source>@<version>` writes `ingredients`, `stations`, `vcs`, `workers` and the entries ([stations](stations.md)) |
+| Make one kind of change the same way every time | nothing here: a [recipe](recipes.md) in `.cook/recipes/<name>/`, whose `requires` names lanes of `verify.lanes` and roles of `workers` |
 | Use a program, move it to a newer version, or stop using it | `ingredients` ([ingredients](ingredients.md)); `./cook ingredient pin <name> --cookbook <source>@<version>` adds or moves a pin; deleting the pin stops it |
 | Use another version control system | `vcs`, after pinning its ingredient |
 | Turn a feature on or off | `modules` |
@@ -87,7 +89,7 @@ and by `the-cook ingredient pin`:
 | --- | --- | --- |
 | `name` | string | The ingredient's name; unique within `ingredients` |
 | `source` | string | The [cookbook](stations.md#cookbooks): `github:<owner>/<repo>`, or an HTTPS base URL laid out like the [release source](wrapper.md#release-source) |
-| `version` | string | The cookbook tag, `<source>/download/<version>/<name>.tar.gz` |
+| `version` | string | The cookbook tag, `<source>/download/<version>/ingredient-<name>.tar.gz` |
 | `sha256` | string | The archive's sha256, 64 hexadecimal characters, from the tag's `checksums.txt` or the station that lists the ingredient; checked on download and on every load |
 
 ```yaml
@@ -112,11 +114,13 @@ removes that ingredient's renders and its floor.
 ### `stations`
 
 The [stations](stations.md) the repository applied, each with the pin it was applied at: the same four fields as an
-entry of `ingredients`, written by `the-cook station apply` and `scaffold --cookbook`. `stations` is a record, so a
+entry of `ingredients`, for the archive `station-<name>.tar.gz`, written by `the-cook station apply` and
+`scaffold --cookbook`. `stations` is a record, so a
 person can tell where the repository started from and apply a newer version later
 ([applying again](stations.md#applying-again)). Nothing rendered or run depends on it: deleting an entry changes
-nothing rendered, and the station's applied entries and templates stay ([stations](stations.md#after-applying)). Names
-are unique within `stations`; an ingredient and a station may share a name.
+nothing rendered, and the station's applied entries, templates and recipes stay
+([stations](stations.md#after-applying)). Names are unique within `stations`; an ingredient, a station and a recipe may
+share a name.
 
 ```yaml
 stations:
@@ -167,8 +171,9 @@ A validator:
 | `when` | list of globs | Run when any changed file matches |
 | `run` | command | The check |
 
-Lane names are free: `unit`, `e2e`, `validate`, `plan`, `glue`. They appear in the receipt, in `--lane` and `--skip`,
-and in the `commands` block. The rules that use them are on the [verify](verify.md#lane-rules) page.
+Lane names are free: `unit`, `e2e`, `validate`, `plan`, `glue`. They appear in the receipt, in `--lane` and `--skip`, in
+the `commands` block, and in a recipe's `requires.lanes` and `verify.require` ([recipes](recipes.md#verify)). The rules
+that use them are on the [verify](verify.md#lane-rules) page.
 
 ### `workers`
 
@@ -181,7 +186,7 @@ applied ([stations](stations.md#stages)).
 | Field | Type | Default | Meaning |
 | --- | --- | --- | --- |
 | `ingredient` | ingredient name | the worker's name | The ingredient that serves the worker; it must be in `ingredients` and fill the worker contract. Example: `reviewer: { ingredient: claude, role: interactive }` |
-| `role` | `interactive` \| `unattended` | required | `interactive`: people use the worker in this repository; its native files carry the shared policy. `unattended`: the worker runs here only in attempts, started by [`the-cook attempt`](attempts.md#the-attempt-contract) or an `attempt` action; its native files also carry `unattended.deny`. See [workers](workers.md#roles) |
+| `role` | `interactive` \| `unattended` | required | `interactive`: people use the worker in this repository; its native files carry the shared policy. `unattended`: the worker runs here only in attempts, started by [`the-cook attempt`](attempts.md#the-attempt-contract), an `attempt` action or a recipe's [`attempt` step](recipes.md#attempt); its native files also carry `unattended.deny`. See [workers](workers.md#roles) |
 | `writable_roots` | list of paths | `[]` | Only for a worker whose ingredient opens sandbox roots (`launch.sandbox_roots`). Directories its attempts may write besides the task checkout and the clone's state directory, relative to the root of the primary checkout. Example: a tracker's database directory in the clone. No other directory is writable in its attempts |
 | `model` | string | none | The model the binary starts the worker with, in attempts and `attempt` actions, passed as its ingredient's `launch.model` says; an action's `attempt.model` overrides it. A worker whose ingredient maps no model ignores it, and `doctor` notes it |
 | `effort` | string | none | The effort level, passed and overridden like `model`, through `launch.effort` and `attempt.effort` |
@@ -255,7 +260,7 @@ workspaces:
 
 | Field | Type | Default | Holds | Blocks it produces |
 | --- | --- | --- | --- | --- |
-| `state.dir` | path | `.work` | in the primary checkout: `lifecycle.jsonl` and the locks shared by every workspace; in each checkout: `session.json`, `verified.json` (the [receipt](verify.md) of a passing `the-cook verify`), `hook-checks.json`, and in a checkout an attempt runs in, the record that `bootstrap` ran, `last-attempt-output` and `last-attempt.patch` | `.gitignore` `state` (`/.work/`); named in the `AGENTS.md` `layout` block |
+| `state.dir` | path | `.work` | in the primary checkout: `lifecycle.jsonl` and the locks shared by every workspace; in each checkout: `session.json`, `verified.json` (the [receipt](verify.md) of a passing `the-cook verify`), `hook-checks.json`, in a workspace a recipe runs in, `run.json` ([the run record](recipes.md#the-run-record)), and in a checkout an attempt runs in, the record that `bootstrap` ran, `last-attempt-output` and `last-attempt.patch` | `.gitignore` `state` (`/.work/`); named in the `AGENTS.md` `layout` block |
 | `workspaces.dir` | path | `.work/workspaces` | each managed workspace, at `<dir>/<name>` | `AGENTS.md` `workspaces` (where workspaces are created, their `work/<name>` branch, that they start from committed code); `.gitignore` `workspaces` (`/.work/workspaces/`) |
 
 Rules for the paths:

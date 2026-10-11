@@ -47,11 +47,11 @@ stays the team's.
    actions writes them into those files only when a person applies it.
 4. The binary never reconfigures state it did not create:
    - an existing third-party database is left as found;
-   - another program's configuration and files are written only as a template of a station a person applies, where the
-     file is absent, or as content an ingredient renders and the manifest records ([0007](0007-ownership.md),
-     [0013](0013-organization-content.md), [0022](0022-tool-integration.md)), and are never read beyond the files an
-     ingredient renders into and the rules adoption imports ([0008](0008-native-configuration.md),
-     [0016](0016-permission-adoption.md));
+   - another program's configuration and files are written only as a template, of a station a person applies or of a
+     recipe being run ([0025](0025-recipes.md)), where the file is absent, or as content an ingredient renders and the
+     manifest records ([0007](0007-ownership.md), [0013](0013-organization-content.md),
+     [0022](0022-tool-integration.md)), and are never read beyond the files an ingredient renders into and the rules
+     adoption imports ([0008](0008-native-configuration.md), [0016](0016-permission-adoption.md));
    - the version control system's configuration, such as its hooks path, is not changed; a setting an operation needs is
      passed on that operation's own command, never written into the configuration ([0022](0022-tool-integration.md));
    - content outside managed blocks is never written ([0007](0007-ownership.md));
@@ -124,8 +124,8 @@ Costs:
 
 - A repository that declares no delivery actions delivers by hand or through a worker; the binary leaves committed work
   in the clone.
-- The guarantee covers the binary's own behaviour. A declared action can write anywhere its credentials reach,
-  including the team's record; that choice belongs to whoever declares and reviews it.
+- The guarantee covers the binary's own behaviour. A declared action, or a recipe's command step, can write anywhere its
+  credentials reach, including the team's record; that choice belongs to whoever declares and reviews it.
 - A repository whose root already holds a directory of the configuration directory's name, created by something
   else, cannot adopt the tool until it is moved.
 
@@ -143,6 +143,7 @@ Must be maintained:
 - A fixture whose root and per-user loop-runner configurations set a bypass runs every command of the tool without
   opening either file, and both are byte-identical afterwards.
 - Applying a station whose template names a loop-runner configuration that already exists leaves that file
-  byte-identical and reports it as kept.
+  byte-identical and reports it as kept, and a recipe run whose template step names it stops and leaves it
+  byte-identical.
 - Review rejects any hosting-platform client library, platform API endpoint or platform credential in the binary.
 - A fixture with no declared lifecycle actions, taken through every lifecycle event, leaves its remote unchanged.

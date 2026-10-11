@@ -18,8 +18,8 @@ program may do, the checks a change must pass, when work counts as done, how it 
 workers unattended. Across many repositories, that produces five problems.
 
 1. **A practice spreads only by hand.** Something learned in one repository, such as a permission policy, a
-   verification step or a way to run workers unattended, reaches another only when someone visits it and copies it.
-   Withdrawing it is another visit to each.
+   verification step, the way one kind of change is made or a way to run workers unattended, reaches another only when
+   someone visits it and copies it. Withdrawing it is another visit to each.
 2. **Copies drift.** Each hand-made copy becomes its own dialect: the same command does different things in different
    repositories, and a fix made in one never reaches the others. For example, suppose acme copies its coding-agent
    workflow by hand into `acme/api`, `acme/web` and `acme/infra`. A year later the verification step also lints in
@@ -36,8 +36,9 @@ workers unattended. Across many repositories, that produces five problems.
 ## The goals
 
 - A practice learned once reaches every repository through one reviewed change in each, and is withdrawn the same way.
-- A fix to the lifecycle the tool enforces reaches every adopted repository through one release, and a fix to how a
-  program is described through one reviewed pin move in each.
+- A fix to the lifecycle the tool enforces reaches every adopted repository through one release, a fix to how a program
+  is described through one reviewed pin move in each, and a better way to make one kind of change through one reviewed
+  merge in each.
 - Every change passes the same stages and guards in every adopted repository, whether a person or a worker makes it.
 - Wherever workers run unattended, they cannot bypass permissions or be recorded as done without a verification that
   passed.
@@ -62,16 +63,22 @@ standard.
 The lifecycle knows no program. Each stage that needs one reaches it through a contract or a declared action: the
 version-control contract for workspaces, bases, history and landed work, the worker contract for the programs that
 change the repository for someone, such as coding agents, bots and codemods, and lifecycle actions for everything else.
-The binary contains code and data for no program. An [ingredient](features/ingredients.md) describes one: the files
-rendered for it, the operations that fill a contract, and the arguments and commands that are never safe. A
-[station](features/stations.md) is one way of running the lifecycle: the ingredients it uses and the entries and
-templates a repository starts from, applied once ([ADR 0022](adrs/0022-tool-integration.md),
-[ADR 0023](adrs/0023-core-and-contracts.md), [ADR 0024](adrs/0024-ingredients-and-stations.md)). semantic-release
-reaches its release steps through plugins in the same way, and it and ESLint keep plugins, which add what a tool can do,
-apart from shareable configurations, which set how a project uses it; Chef, Ansible and Terraform describe what they
-manage as data. A repository pins each ingredient and station it uses from a cookbook. Agentic coding, with an
-interactive coding agent, an unattended one and the loop runner that hands it tasks, is the first station and the main
-example; it is one way of running the lifecycle, not its definition.
+The binary contains code and data for no program. What a repository adds to the lifecycle comes in three units, and one
+rule separates them: facts about programs are pinned and rendered; practices are copied and become the repository's own.
+An [ingredient](features/ingredients.md) holds the facts about one program: the files rendered for it, the operations
+that fill a contract, and the arguments and commands that are never safe; a repository pins it, and it acts on every
+render and every launch. A [station](features/stations.md) holds what one way of working needs in place: the ingredients
+to pin, the workers and their roles, the entries and templates a repository starts from, and the recipes to add; a
+repository applies it once. A [recipe](features/recipes.md) is one kind of change, made many times, such as adding a
+database migration or implementing a task: its inputs, its steps mapped onto the stages, and the lanes it requires; a
+repository copies it from a cookbook or writes its own, and each run takes one change through the stages
+([ADR 0022](adrs/0022-tool-integration.md), [ADR 0023](adrs/0023-core-and-contracts.md),
+[ADR 0024](adrs/0024-ingredients-and-stations.md), [ADR 0025](adrs/0025-recipes.md)). semantic-release reaches its
+release steps through plugins in the same way, and it and ESLint keep plugins, which add what a tool can do, apart from
+shareable configurations, which set how a project uses it; Chef, Ansible and Terraform describe what they manage as
+data. A repository takes each ingredient and station it uses from a cookbook in a reviewed change. Agentic coding, with
+an interactive coding agent, an unattended one, the loop runner that hands it tasks and the recipe each task runs, is
+the first station and the main example; it is one way of working, not the lifecycle's definition.
 
 It is not a worker, not a client of hosting platforms or tool servers, not a source of configuration that lives outside
 your repository, not a launcher for any loop runner, and not a replacement for your task runner, skills installer or
@@ -117,9 +124,10 @@ before it happens.
 
 **Problem.** Problems 1 and 2.
 
-**Tenet.** A practice is built once, as a guard of the lifecycle in the tool or as an ingredient or a station in a
-cookbook, and reaches each repository as data in that repository's files. Adopting it, upgrading it and removing it
-take one command per repository, or one operation across many, and removal leaves nothing the tool owns.
+**Tenet.** What is learned once is built once, as a guard of the lifecycle in the tool, as an ingredient that holds a
+fact about a program, or as a station or a recipe that holds a practice, and reaches each repository as data in that
+repository's files. Adopting it, upgrading it and removing it take one command per repository, or one operation across
+many, and removal leaves nothing the tool owns.
 
 **Bound by.** [ADR 0006](adrs/0006-repository-contract.md), [ADR 0007](adrs/0007-ownership.md),
 [ADR 0017](adrs/0017-engine-version.md).
@@ -140,7 +148,9 @@ exactly as before adoption, and a repository adopts or withdraws one practice at
 
 **Tenet.** Work with one right answer is done by the binary, the same way every time, and can be checked: moving a
 change between stages, rendering, verifying, replaying. Work that needs judgement is done by people, and by workers
-such as coding agents guided by documentation and skills; the binary never guesses.
+such as coding agents guided by documentation and skills; the binary never guesses. A recipe draws the same line inside
+one change: its commands and templates run the same way every time, and its attempts and handoffs give the judgement to
+a worker or a person.
 
 **Bound by.** [ADR 0002](adrs/0002-division-of-work.md),
 [principle 2](ux/principles.md#2-the-binary-is-deterministic-judgement-belongs-to-people-and-workers),
@@ -168,15 +178,34 @@ program's releases.
 included, is described by an ingredient. The binary keeps the lifecycle and the process around it: stages, events,
 guards, proof, attempts, ownership, rendering and removal. Ingredients keep the program facts: the files a program
 reads, the commands that answer the binary's questions, the arguments that start it unattended and the ones that are
-never safe. Stations keep ways of working: which ingredients fill the stages, and the entries and templates a repository
-starts from, which become its own once applied. The binary ships no ingredient or station and names no default source of
-one: a repository pins every one it uses from a cookbook, by version and hash, and the reviewed pin is the trust
-decision for everything it runs. Any number of cookbooks may exist, and none is official. A team switches a program by
-switching its ingredient, which changes only the repository's files, and other programs call `the-cook` through a
-stable command interface.
+never safe. Stations and recipes keep practices, which the next tenet sets apart from facts. The binary ships no
+ingredient, station or recipe and names no default source of one: a repository takes every ingredient and station it
+uses from a cookbook, and takes each recipe from one or writes its own, each in a reviewed change, and that review is
+the trust decision for everything it runs. Any number of cookbooks may exist, and none is official. A team switches a
+program by switching its ingredient, which changes only the repository's files, and other programs call `the-cook`
+through a stable command interface.
 
 **Bound by.** [ADR 0022](adrs/0022-tool-integration.md), [ADR 0023](adrs/0023-core-and-contracts.md),
 [ADR 0024](adrs/0024-ingredients-and-stations.md).
+
+### Facts are pinned, practices are copied
+
+**Problem.** Problems 2 and 3, and the opposite trap: a setup inherited live from a shared source changes under a
+repository that changed nothing, and a repository cannot shape a practice it does not own.
+
+**Tenet.** Facts about programs are pinned and rendered; practices are copied and become the repository's own. A fact
+about a program is the same in every repository that uses it, such as the files it reads or the arguments that bypass
+its checks, so an ingredient holds it, a repository pins the ingredient by version and hash, and every render writes the
+fact again: no copy can drift from it or lose it, and a fix reaches each repository as one reviewed pin move. A practice
+differs from one repository to the next, such as the lanes a change must pass, what unattended runs must never do or the
+steps that add a migration, so a station or a recipe holds it and a repository copies it in: a station's entries and
+templates once, a recipe whole. The copy records where it came from, is the repository's to edit, and takes a newer
+version only through a reviewed change: applying the newer station again, or merging the newer recipe into the copy. A
+practice only adds: a station adds only what the repository lacks, a recipe only steps, lanes and requirements, and
+neither reaches the floor or the guards.
+
+**Bound by.** [ADR 0013](adrs/0013-organization-content.md), [ADR 0024](adrs/0024-ingredients-and-stations.md),
+[ADR 0025](adrs/0025-recipes.md).
 
 ### A safety floor nobody can lower
 

@@ -17,7 +17,7 @@ and what that protection does not stop, and every gap left open is one they chos
 `the-cook` lets [workers](workers.md), coding agents above all, work in a repository, attended or not, without handing
 them more than the work needs. The guidelines cover what it defends against, which layers do the defending, and how to
 configure a repository so the layers hold. That configuration covers where to place a policy entry, what changes when
-nobody is watching, why lifecycle actions are code, what an `attempt` action may do, where
+nobody is watching, why lifecycle actions are code, what an `attempt` action may do, what a recipe run may do, where
 [standing context](context.md) may come from, where secrets must not go, and what to read in a rendered diff. A
 checklist for unattended runs closes the page.
 
@@ -40,9 +40,10 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 | Lifecycle actions, notification actions, raw hooks, validators, lane commands | code | they run with the person's credentials; `the-cook` runs them without judging them |
 | An `attempt` action | an unattended worker | it starts a worker on a prompt, often with values written by people and workers in it; it runs under the [attempt contract](attempts.md#the-attempt-contract) |
 | Standing context: the skills and files `context` entries name | instructions | every matching session reads them as guidance; whoever can change them steers the workers |
-| `COOK_MESSAGE`, `COOK_REASON`, task titles and summaries | untrusted input | workers and task text shape them; they reach notifications and `attempt` prompts |
+| `COOK_MESSAGE`, `COOK_REASON`, task titles and summaries, a recipe's inputs | untrusted input | workers, task text and whoever starts a run shape them; they reach notifications, `attempt` prompts and a recipe's prompts and handoff text |
 | An [ingredient](ingredients.md), pinned from a cookbook | data from an outside source, pinned in the profile by version and sha256 | pinning trusts the cookbook's `checksums.txt` as downloaded over HTTPS at that moment, and the pin enters the repository only through a reviewed diff; from then on every archive is verified against its pin on download and on every load, and no hook or attempt fetches one. Its operations, renders and floor are what its author wrote, and no release key vouches for them: reading the ingredient (`the-cook ingredient show`) before approving the pin is the trust decision for everything it runs |
 | A [station](stations.md), applied from a cookbook | data from an outside source, applied once | its entries and templates enter the repository only through the one diff `the-cook station apply` shows, together with the ingredient pins it lists, and become the repository's own files. They write commands, lanes, validators, post-edit hooks and lifecycle actions, which run with the credentials of whoever triggers them. After that the station has no effect on what renders |
+| A [recipe](recipes.md), in `.cook/recipes/<name>/` | code and instructions, the repository's own | its `run` steps run programs with the credentials of whoever starts the run, like `run` actions, and its prompts and handoff text instruct workers and people. One added from a cookbook enters the repository through the diff `the-cook recipe add`, `recipe update` or `station apply` shows, and from then on it is the repository's own file. An unattended run reads it from its workspace's base commit |
 | The pinned release: `cook` and `.cook/wrapper.yaml` | code fetched from the network | the wrapper downloads the release the pin names and runs it with your credentials; the checksums committed next to the pin are what make the download trustworthy |
 
 What must stay safe:
@@ -70,11 +71,11 @@ that can edit a test and run the test runner runs code it wrote
 | Layer | Stops | Does not stop |
 | --- | --- | --- |
 | Native permissions rendered from the [policy](policy.md) | commands the policy denies or asks about, in every worker that renders them | commands no entry matches (the worker's default decides), spellings a prefix does not match, settings outside the policy, entries a worker's ingredient cannot render |
-| Invariants in the binary ([concepts](concepts.md#built-in-invariants)) | completion without a replayed proof, delivery of unsafe work, lifecycle actions inside attempts, `attempt` actions outside the attempt contract, an attempt started on ingredients resolved from its own checkout | anything a repository allows on purpose |
+| Invariants in the binary ([concepts](concepts.md#built-in-invariants)) | completion without a replayed proof, delivery of unsafe work, lifecycle actions inside attempts, `attempt` actions and steps outside the attempt contract, an attempt started on ingredients resolved from its own checkout, a recipe that skips a lane, weakens a guard or fires an event | anything a repository allows on purpose, a recipe's `run` steps included |
 | Floor rules of the ingredients in use ([policy](policy.md#the-floor)) | permission bypass in attempts (each worker ingredient's bypass arguments), force push to the default branch (a version-control ingredient), command chaining a task runner offers (a task runner's ingredient), whatever a policy entry tries to weaken them with | a program whose ingredient is not in the profile's `ingredients:`; `doctor` reports one it detects |
 | Guards in the binary ([spellings](#guards-live-in-the-binary)) | `the-cook lifecycle run` inside an attempt, unsafe `deliver`, whatever spelling of the command a worker uses | a command `the-cook` does not run |
 | The attempt contract ([attempts](attempts.md#the-attempt-contract)) | the floor bypass arguments of the worker's ingredient among the arguments `the-cook attempt` receives, whoever calls it; `unattended.deny` commands; a worker committing or integrating its own work; a loop runner reading a failed attempt as done | commands `unattended.deny` does not list; a worker started without `the-cook attempt` |
-| The tamper check ([below](#the-attempt-contract-and-the-tamper-check)) | a worker editing rendered rules, owned settings keys, hook entries, `cook`, `.cook/wrapper.yaml`, any file under `.cook/` or a file or skill `context` names, to widen its next attempt or rewrite its rules | edits to other files, which the replay and review judge |
+| The tamper check ([below](#the-attempt-contract-and-the-tamper-check)) | a worker editing rendered rules, owned settings keys, hook entries, `cook`, `.cook/wrapper.yaml`, any file under `.cook/`, the recipes in `.cook/recipes/` included, or a file or skill `context` names, to widen its next attempt or rewrite its rules | edits to other files, which the replay and review judge |
 | Receipt replay ([verify](verify.md#who-relies-on-it)) | a worker claiming checks it did not run, or weakening the checks it is measured by | tests that pass without exercising the change |
 | Lifecycle guards ([lifecycle](lifecycle.md#built-in-guards)) | delivery from the default branch or of uncommitted work and, when the verify module is enabled, of work without a valid receipt; completion of a task without a valid receipt; actions run by an attempt's worker | what a declared action does once it runs |
 | The pinned, verified binary ([wrapper](wrapper.md)) | a download that does not match the checksums committed in the repository; a pin of a release its publisher did not sign; a worker hook fetching code; two versions of `the-cook` in one repository | a compromised signing key; `COOK_BINARY`, which bypasses the pin by design |
@@ -124,11 +125,11 @@ A worker can invoke `the-cook` as `./cook <command>`, `the-cook <command>` or `c
 spellings ([policy](policy.md#entries-for-the-cook-commands)). A prefix rule still matches leading words only, so an
 absolute path to the wrapper or `sh cook …` matches none of them.
 
-The guards that matter therefore never rest on policy entries. The binary refuses `the-cook lifecycle run` inside an
-attempt on its own: `the-cook attempt` and `attempt` actions set `COOK_ATTEMPT=1` for the worker they start, and the
-binary checks it. The binary also enforces the `deliver` guards whoever runs the command and however it is spelled. The
-entries are defence in depth: they make a worker stop or ask before it runs the command at all
-([ADR 0011](../adrs/0011-safety-invariants.md)).
+The guards that matter therefore never rest on policy entries. The binary refuses `the-cook lifecycle run` and
+`the-cook make` inside an attempt on its own: `the-cook attempt`, `attempt` actions and `attempt` steps set
+`COOK_ATTEMPT=1` for the worker they start, and the binary checks it. The binary also enforces the `deliver` guards
+whoever runs the command and however it is spelled. The entries are defence in depth: they make a worker stop or ask
+before it runs the command at all ([ADR 0011](../adrs/0011-safety-invariants.md)).
 
 ## Unattended runs
 
@@ -137,7 +138,8 @@ entries are defence in depth: they make a worker stop or ask before it runs the 
 | Interactive | the mode the person chooses | the shared policy |
 | Coordinating worker left alone | its program's unattended mode, as its ingredient's page describes it | `allow` entries for everything the agreed delivery needs; the boundary of delivery stated by the person at the start (branch, pull request, CI trigger, auto-merge) |
 | Attempt | pinned by `the-cook attempt` ([workers](workers.md#attempt-launch)) | the shared policy plus `unattended.deny` |
-| Loop runner | its own process, started by a person, a coordinating worker or a script | a configuration whose command for every task is `./cook attempt` ([how a loop runner calls it](attempts.md#how-a-loop-runner-calls-it)) |
+| Loop runner | its own process, started by a person, a coordinating worker or a script | a configuration whose command for every task is `./cook attempt` or `./cook make <recipe> --task <id> --unattended` ([how a loop runner calls it](attempts.md#how-a-loop-runner-calls-it)) |
+| Recipe run, unattended | `the-cook make --unattended`, which its caller passes when nobody drives the run, as a loop runner does; never started by the worker of an attempt; its `attempt` steps pinned as attempts | a recipe with no `handoff` step, which stops an unattended run as blocked ([recipe runs](#recipe-runs)) |
 
 Two properties of a worker's program decide how an unattended session behaves, when the program has a permission
 system; its ingredient's page in its cookbook states both:
@@ -194,6 +196,16 @@ worker cannot be trusted with. A change to the rules reaches a run only through 
 fails an attempt that changed them. And what runs outside `the-cook attempt` is yours: a worker a loop runner, a script
 or a person starts any other way runs without this contract, and `the-cook` does not look for it.
 
+A recipe's `attempt` step keeps the parts of the contract that bound the worker: the pinned launch, the unattended
+denies, the refused bypass arguments and the tamper check. Its tamper check compares `.cook/` and the tool-owned files
+with their state when the step began, the uncommitted edits of the steps before it included, and restores that state;
+for `the-cook attempt` run on its own that state is the base commit's, because the checkout is clean. Its edits stay for
+the recipe's next steps, and the replay and the completion belong to the run. It never resets the workspace: a failed
+step leaves its changes in place and stops the run as blocked, naming the step, and `the-cook make --continue` runs the
+step again on the tree as it is, so a person inspects or discards those changes first. The reset to the base and
+`last-attempt.patch` (step 9) belong only to `the-cook attempt` run on its own
+([attempts](attempts.md#in-a-recipe-step)).
+
 ## Lifecycle actions are code
 
 Lifecycle actions ([lifecycle](lifecycle.md)) run as child processes of `the-cook`, with the environment of the process
@@ -203,12 +215,12 @@ that fired them, outside the worker's per-command permission checks.
   `deliver` action, including commands the policy denies to the worker itself.
 - **Permitting a trigger point permits its automatic actions.** A worker allowed to run `the-cook attempt` in a
   workspace bound to a task fires every `completed` and `deliver` action with `auto: true`; the same holds for
-  `the-cook verify`, `the-cook workspace create`, `the-cook workspace remove` and `the-cook fleet --deliver`.
-  `the-cook doctor` never fires events ([lifecycle](lifecycle.md#trigger-points)).
+  `the-cook make`, `the-cook verify`, `the-cook workspace create`, `the-cook workspace remove` and
+  `the-cook fleet --deliver`. `the-cook doctor` never fires events ([lifecycle](lifecycle.md#trigger-points)).
 - **The hooks file is the complete list.** Every action is declared in the repository's own `.cook/hooks.yaml`, and
   nothing outside the repository adds one ([ADR 0013](../adrs/0013-organization-content.md)). A station that declares
-  actions writes them there as entries only when a person applies it, and the diff shows them. Reviewing that file
-  reviews everything an event can run.
+  actions writes them there as entries only when a person applies it, and the diff shows them. A recipe declares
+  none. Reviewing that file reviews everything an event can run.
 - **Every action sees the whole environment.** A webhook URL exported for one `http` action is visible to every `run`
   and `attempt` action of every event fired from that shell.
 
@@ -253,6 +265,50 @@ The contract bounds what the worker can do with it; the prompt decides how much 
 `attention` and `turn_end` accept only `run` and `http`, so no worker hook starts an attempt. `COOK_MESSAGE`, the
 worker's own notification text, is untrusted: send it to a person, never into a worker's prompt.
 
+A recipe's `attempt` steps and `handoff` text substitute inputs the same way ([recipe runs](#recipe-runs)).
+
+## Recipe runs
+
+A [recipe](recipes.md) is a file in the repository, `.cook/recipes/<name>/recipe.yaml`, and `the-cook make` follows it
+through the stages of one change ([the run](recipes.md#the-run)). It is the repository's own, whether a person wrote it
+or it was added from a cookbook, so it is reviewed like code:
+
+- **`run` steps are repository code.** A `run` step runs a program the way a `run` action does: as a child process of
+  the binary, in the run's workspace, with the environment and the credentials of whoever started the run, outside any
+  worker's permission checks. Permitting a worker to run `the-cook make` permits every `run` step of every recipe the
+  repository holds.
+- **Inputs never pass through a shell.** A `run` step is an argument list. Each input is validated by its type before
+  anything runs (a `slug` is `[a-z0-9][a-z0-9-]*`), and no input, whatever its type, may begin with a hyphen, so a
+  program never takes one for an option. Inputs are substituted into the elements of the list, and the list is started
+  directly, so an input stays one argument and cannot add shell syntax. A program that interprets its arguments, such
+  as a shell started with `-c`, can still be steered by them: prefer `slug` and `enum` inputs wherever a value reaches
+  a path, a command or a query.
+- **Inputs in prompts are a prompt-injection surface.** In `attempt` prompts and `handoff` text, inputs are plain-text
+  substitution, as `$NAME` is in [`attempt` actions](#attempt-actions-and-prompt-injection). Whoever chooses an input
+  addresses the worker or the person who reads the text. The attempt contract bounds what the worker can do with it.
+- **A run reads its recipe once, from the base.** When it starts, a run reads the recipe from the base commit of the
+  workspace it creates, the default branch's head, and keeps its content and digest in the run record; every stage and
+  `the-cook make --continue` follow that content and never read the files again, so no step can change the recipe of
+  the run it is in. The tamper check also fails a step whose worker edited a file under `.cook/`, so a worker cannot
+  change a recipe a later run reads either. `--here` reads the recipe from the working tree of the current workspace,
+  for drafting one, and is refused with `--unattended`: read a draft before running it with `--here`.
+- **A recipe can only add.** It adds steps, required lanes and requirements. It cannot skip a lane, weaken a guard,
+  declare a lifecycle action or fire an event; every guard of the lifecycle holds for its work as for any other
+  ([guards](recipes.md#guards)). Inside a step no `the-cook` command fires an event.
+- **A worker started unattended cannot start a run.** Inside the worker of `the-cook attempt`, of an `attempt` action
+  or of an `attempt` step (`COOK_ATTEMPT=1`), and inside a step, `the-cook make` refuses with exit 3, as
+  `the-cook lifecycle run` does, so an attempt can neither start a recipe's `run` steps nor reach a run's events.
+- **A `template` step never overwrites.** It writes a file from the recipe's `files/` and refuses a path that exists.
+
+In practice:
+
+- Review a change to `.cook/recipes/` like a change to `.cook/hooks.yaml`: the programs its `run` steps start, the
+  inputs each one receives, and every prompt and handoff text.
+- Read the diff `the-cook recipe add` or `recipe update` shows before confirming. An update that leaves conflicts
+  marked exits 3, and a recipe with conflict markers cannot run (exit 1) until a person or a worker resolves them
+  ([`recipe update`](recipes.md#the-cook-recipe-update)).
+- Keep `handoff` steps out of a recipe a loop runner runs: an unattended run stops at one as blocked.
+
 ## Standing context
 
 Every session that [standing context](context.md) reaches reads it as instructions, so its sources are controlled:
@@ -295,6 +351,11 @@ Every clone runs the release of `the-cook` that `.cook/wrapper.yaml` pins, throu
   Review a change to a pin's `source`, `version` or `sha256` like a dependency bump, and read an ingredient with
   `./cook ingredient show <name>`, or a station with `./cook station show <name>`, before approving it. Two entries with
   the same name in `ingredients:`, or in `stations:`, are a validation error.
+- **Recipes are copied, with their origin.** A recipe added from a cookbook is downloaded the same way, by
+  `./cook recipe add`, `recipe update` or `station apply`, verified against the tag's `checksums.txt`, and copied into
+  `.cook/recipes/<name>/` with its cookbook, version and sha256 written as its `origin`. From then on the copy is the
+  repository's own file; `fetch` caches the version it came from only so that `recipe update` can merge offline
+  ([`recipe add`](recipes.md#the-cook-recipe-add)).
 - **Workers cannot swap the binary.** The tamper check restores `cook` and `wrapper.yaml` before the worker starts
   and fails an attempt that changed them, and a failed attempt returns the checkout to the base commit, so the next
   attempt a loop runner starts through `./cook` runs the pinned release.
@@ -334,7 +395,7 @@ files are only read; the person's own settings keep applying to them.
 ## Reviewing rendered diffs
 
 Rendered files are committed so every permission change is a diff. After `the-cook render`, `the-cook station apply`,
-`the-cook ingredient pin` or an upgrade, read:
+`the-cook ingredient pin`, `the-cook recipe add`, `the-cook recipe update` or an upgrade, read:
 
 | File | Look for |
 | --- | --- |
@@ -344,8 +405,9 @@ Rendered files are committed so every permission change is a diff. After `the-co
 | `.cook/hooks.yaml` | new or changed `post_edit` hooks and `lifecycle`, `attention` and `turn_end` actions, especially `auto: true`, `attempt` actions and their prompts, and the variables `http` actions read |
 | `commands`, `verify.lanes` and `verify.validators` in `.cook/config.yaml` | new or changed lint and build commands, lanes and validators, such as those `the-cook station apply` adds: `the-cook verify` and the worker hooks run them with the credentials of the person or worker at work |
 | `context` in `.cook/config.yaml`, the `context` block in `AGENTS.md` | new or changed entries, the files and skills they inject, and which roles they reach |
+| `.cook/recipes/` | a recipe added or changed: its `run` steps and the programs they start, where each input goes, its `attempt` prompts and `handoff` text, its `requires`, and an `origin` that moved, with no conflict left marked after `recipe update`; for a station applied, the sha256 it lists for each recipe it adds |
 | `.agents/skills/` | a skill's content changing, from the source you expect |
-| A file a station's template seeded, such as a loop runner's configuration | every task's command still runs `./cook attempt`, and no setting turns permission checks off. `the-cook` reads none of it, so this review is the check before the first task |
+| A file a station's template seeded, such as a loop runner's configuration | every task's command still runs `./cook attempt` or `./cook make <recipe> --task <id> --unattended`, and no setting turns permission checks off. `the-cook` reads none of it, so this review is the check before the first task |
 | `.cook/wrapper.yaml` | a version change you intended, with checksums that match the release's published checksum file; a `source` that moved |
 | `cook` | changes only together with an upgrade whose release brings a new wrapper |
 
@@ -361,8 +423,11 @@ instead of shipping.
       control program and the workers included; a contract no pinned ingredient fills; programs the declared commands
       and actions name; a program detected while its ingredient, and so its floor, is not in use; drift.
 - [ ] Every ingredient the run uses is in the cache (`./cook fetch`); an attempt never fetches.
-- [ ] The loop runner's configuration names `./cook attempt` as the command for every task and adds no bypass flag.
-      What runs outside `the-cook attempt` is yours to check; `the-cook` does not.
+- [ ] The loop runner's configuration names `./cook attempt`, or `./cook make <recipe> --task <id> --unattended`, as
+      the command for every task and adds no bypass flag. What runs outside `the-cook attempt` and `the-cook make` is
+      yours to check; `the-cook` does not.
+- [ ] A recipe the run uses is committed on the default branch, which its workspaces start from, and holds no
+      `handoff` step; its `run` steps and prompts were reviewed.
 - [ ] The folder is trusted by the worker's program; the run's workspaces are nested in the primary checkout.
 - [ ] Settings outside the policy are known: local override files, user and managed settings neither widen nor
       narrow what the run needs.

@@ -24,17 +24,19 @@ install, `the-cook <command>` is equivalent.
 ### Does `the-cook` call a model or host coding agents?
 
 No. It enforces the lifecycle the workers work in, coding agents among them, and does no stage's work itself: it never
-calls a model. When a loop runner needs a worker for a task, it calls `./cook attempt <worker>`, which starts the
-worker's own program under the [attempt contract](attempts.md#the-attempt-contract); an
-[`attempt` action](lifecycle.md#attempt) does the same.
+calls a model. When a loop runner needs a worker for a task, it calls `./cook make <recipe> --task <id> --unattended` or
+`./cook attempt <worker>`, and either one starts the worker's own program under the
+[attempt contract](attempts.md#the-attempt-contract); an [`attempt` action](lifecycle.md#attempt) and a recipe's
+[`attempt` step](recipes.md#step-kinds) do the same.
 
 ### Is `the-cook` a coding-agent tool?
 
 It is a software development lifecycle a repository declares, and the binary that enforces it: the stages a change goes
 through, the events between them, the guards that hold and the proof a change carries ([lifecycle](lifecycle.md)).
 Coding agents are the workers it is used with most, and agentic coding is the first station, but the lifecycle knows no
-program: a bot, a codemod or a person moves a change through the same stages, and each program is described by an
-[ingredient](ingredients.md) the repository pins.
+program: a bot, a codemod or a person moves a change through the same stages, each program is described by an
+[ingredient](ingredients.md) the repository pins, and a [recipe](recipes.md) whose steps run no worker at all, only
+commands and templates, goes through the same verification as one that does.
 
 ### Does it use MCP servers?
 
@@ -77,9 +79,10 @@ No. Nothing in a repository's build, test, deploy or release depends on it. `./c
 
 ### Does it work offline?
 
-Yes, once the pinned release and the pinned ingredients are cached: the wrapper makes no network request after the
-first download, and only the commands that pin, apply, fetch or read a cookbook tag download ingredients and stations
-([fetching](ingredients.md#fetching)). A machine that never has network access uses `COOK_BINARY` or a pre-filled cache
+Yes, once the pinned release and the pinned ingredients are cached: the wrapper makes no network request after the first
+download, and only the commands that pin, apply, add, update, fetch or read a cookbook tag download from a cookbook
+([fetching](ingredients.md#fetching)). Running a recipe downloads nothing from a cookbook: it is a file in the
+repository. A machine that never has network access uses `COOK_BINARY` or a pre-filled cache
 ([wrapper](wrapper.md#air-gapped-machines)). Adoption works offline too: `the-cook scaffold --offline` writes everything
 and leaves the pin [pending](wrapper.md#a-pending-pin) until a later `the-cook wrapper --version <tag>` with network
 access verifies the release and records its checksums. Complete it before you push.
@@ -91,15 +94,52 @@ ingredient fills the [worker contract](workers.md#the-worker-contract), and a wo
 a worker `reviewer` declared with `ingredient: claude`, pinned from `github:acme/cookbook`. Which programs and versions
 a cookbook covers, and how it tests them, is that cookbook's to say.
 
-### Where do ingredients and stations come from?
+### Where do ingredients, stations and recipes come from?
 
-From cookbooks. Each tag of a cookbook publishes one archive per ingredient and per station, `<name>.tar.gz`, and a
-`checksums.txt` listing their sha256. A repository pins every ingredient it uses in `ingredients:` with its `name`,
-`source` (the cookbook), `version` (the tag) and `sha256`, and records every station it applied in `stations:` the same
-way. `./cook station apply <name>... --cookbook <source>@<version>` verifies the stations against that tag's checksums
-and shows their entries, templates and ingredient pins as one diff to review; `./cook ingredient pin` adds or moves one
-ingredient pin. `the-cook` ships no ingredient or station and names no default cookbook, so a repository may pin from
-any number of cookbooks, its own included ([cookbooks](stations.md#cookbooks), [ingredients](ingredients.md)).
+From cookbooks, and recipes also from the repository itself. Each tag of a cookbook publishes one archive per unit,
+named by kind, `ingredient-<name>.tar.gz`, `station-<name>.tar.gz` and `recipe-<name>.tar.gz`, and a `checksums.txt`
+listing their sha256. A repository pins every ingredient it uses in `ingredients:` with its `name`, `source` (the
+cookbook), `version` (the tag) and `sha256`, and records every station it applied in `stations:` the same way.
+`./cook station apply <name>... --cookbook <source>@<version>` verifies the stations against that tag's checksums and
+shows their entries, templates, recipes and ingredient pins as one diff to review; `./cook ingredient pin` adds or moves
+one ingredient pin; `./cook recipe add <name>... --cookbook <source>@<version>` copies recipes into `.cook/recipes/`,
+each with its `origin`. `the-cook` ships no ingredient, station or recipe and names no default cookbook, so a repository
+may take them from any number of cookbooks, its own included ([cookbooks](stations.md#cookbooks),
+[ingredients](ingredients.md), [recipes](recipes.md)).
+
+### Can a repository have several recipes?
+
+Yes, one for each kind of change it makes again and again, each in its own directory under `.cook/recipes/`. Some are
+the repository's own, written with `./cook recipe create <name>`, such as a `migration` recipe that creates a database
+migration, writes its down test, has a worker write the up and down steps and requires the `migrations` lane. Some are
+added from a cookbook with `./cook recipe add`, such as a `nestjs-module` recipe from `github:acme/cookbook`, and some
+come with a station, such as `implement-task`, which the `agentic-coding` station adds for a loop runner to run for each
+task. Once in the repository they are all alike: its own files, edited and reviewed like any other. `./cook recipe list`
+lists them. A recipe's name is unique in the repository, and a station and a recipe may share a name. A recipe runs
+only as `./cook make <name>`, so its name never meets a command's ([recipes](recipes.md)).
+
+### Is monitoring a recipe?
+
+No. A recipe is one kind of change to the repository, taken through the stages: a workspace, steps, a verification and
+the repository's delivery. Watching a running system changes nothing in the repository, so there is no workspace to
+start, no receipt to write and nothing to deliver; it is the work of the monitoring system, and of a person or a worker
+following a monitoring skill. What monitoring finds can start a recipe: a recipe whose input is the alert, with an
+`attempt` step whose worker follows the monitoring skill to find the cause and fix it, and the lanes the fix must pass.
+Give such a recipe the alert's id as a `slug` input rather than the alert's text, since an input in a prompt is text the
+worker reads as instructions ([pitfalls](pitfalls.md#an-input-in-a-prompt-addresses-the-worker)).
+
+### Why are recipes copied but ingredients pinned?
+
+Because they hold different things. An ingredient holds facts about a program, such as the files it reads and the
+arguments that bypass its checks: the same in every repository that uses the program, and wrong to change in one of
+them. Pinned and rendered on every render, those facts cannot drift between repositories, and their floor cannot be
+edited away. A recipe holds a practice: how this repository makes one kind of change, its commands, paths, prompts and
+lanes, which differ from one repository to the next and which the team keeps improving. Inherited live, a recipe would
+change what a repository's changes go through without any change to the repository; pinned, nobody could fit it to the
+repository. Copied, it is the repository's own, its `origin` records where it came from, and
+`./cook recipe update <name> --cookbook <source>@<version>` merges a newer version into the copy as a diff to review.
+Copying loses no safety: a recipe can only add steps, lanes and requirements, and the guards and the floor stay in the
+binary and the ingredients ([ADR 0024](../adrs/0024-ingredients-and-stations.md), [ADR 0025](../adrs/0025-recipes.md)).
 
 ### Can I use my own version control system or worker?
 
@@ -114,10 +154,12 @@ included.
 ### Does `the-cook` work with my loop runner or tracker?
 
 Yes, with any that runs a command. The binary contains code for no external program; every program reaches a repository
-as data: an ingredient's renders, a station's entries and templates, a declared command or a lifecycle action
-([ADR 0022](../adrs/0022-tool-integration.md)). A loop runner names `./cook attempt <worker>` as the command it runs for
-each task. A tracker is updated by lifecycle actions on `start`, `completed` and `blocked` that read `COOK_TASK` and
-`COOK_ACTOR` in a workspace created with `--task`. A station can write those entries for you, as `agentic-coding` does:
+as data: an ingredient's renders, a station's entries and templates, a recipe's steps, a declared command or a lifecycle
+action ([ADR 0022](../adrs/0022-tool-integration.md)). A loop runner names
+`./cook make <recipe> --task <id> --unattended`, or `./cook attempt <worker>`, as the command it runs for each task. A
+tracker is updated by lifecycle actions on `start`, `completed` and `blocked` that read `COOK_TASK` and `COOK_ACTOR` in
+a workspace created with `--task`. A station can write those entries for you, and add the recipe the loop runner runs,
+as `agentic-coding` does with `implement-task`:
 `./cook station apply agentic-coding --cookbook github:acme/cookbook@v1.2.0` ([stations](stations.md)). Otherwise
 declare the action yourself, for example a `completed` action that runs `./scripts/close-task "$COOK_TASK"`, or write a
 station that holds it.
@@ -174,17 +216,19 @@ review.
 Two ways ([remove](remove.md)). `./cook remove` undoes the adoption: it deletes what `the-cook` added and writes back
 the permission rules and hooks adoption imported. `./cook remove --eject` stops `the-cook` managing the repository and
 keeps the result: the conventions in `AGENTS.md` and the ignore file, the permissions and the `raw` hooks stay as
-hand-owned files. Both delete `cook` and the files in `.cook/` that `the-cook` owns or seeded, then `.cook/` once it is
-empty. A file the manifest does not record, such as a `README.md` a person added to `.cook/`, is listed and left.
+hand-owned files. Both delete `cook`, the files in `.cook/` that `the-cook` owns or seeded and every recipe in
+`.cook/recipes/`, which the plan lists first so you can keep a copy, then `.cook/` once it is empty. A file the
+manifest does not record, such as a `README.md` a person added to `.cook/`, is listed and left.
 
 ### Does anything keep working after an eject?
 
 Yes. Workers keep their permissions and `raw` hooks from the native files, and the convention blocks stay in `AGENTS.md`
 and the ignore file as plain text, so people and workers still find workspaces and state where they were. The tool
 blocks, which describe how to use `the-cook`, are removed, so nothing left names a command that is gone. What stops is
-everything `the-cook` runs: the wrapper, verification receipts, the lifecycle's events and guards, `the-cook attempt`
-and its contract, injected standing context and the hooks that called `the-cook`. Templates a station wrote stay as they
-are, so a loop runner's configuration whose command for each task is `./cook attempt` needs a new one.
+everything `the-cook` runs: the wrapper, verification receipts, the lifecycle's events and guards, recipe runs,
+`the-cook attempt` and its contract, injected standing context and the hooks that called `the-cook`. Templates a station
+wrote stay as they are, so a loop runner's configuration whose command for each task is `./cook make` or
+`./cook attempt` needs a new one.
 
 ## Policy
 
@@ -327,7 +371,9 @@ person or a coordinating worker arranges the commits with a skill, then runs
 `./cook lifecycle run completed --scope run` and `./cook lifecycle run deliver --scope run`; the `deliver` actions do
 the rest, for example a push and a pull request declared in `.cook/hooks.yaml` ([attempts](attempts.md#delivery)). In a
 workspace created with `--task`, `the-cook attempt` fires `completed` and, when the work is concluded, `deliver` itself,
-both with scope `task`.
+both with scope `task`. When the loop runner's command for each task is `./cook make <recipe> --task <id> --unattended`,
+each task runs in a workspace of its own bound to the task, and the run fires those events for it
+([attempts](attempts.md#through-a-recipe)).
 
 ### I run my loop runner directly with my own configuration. Does `the-cook` interfere?
 
@@ -343,8 +389,8 @@ no attempt contract.
 Every repository set up with `the-cook scaffold` is pinned: `.cook/wrapper.yaml` names one release and the checksums of
 its binaries, and both `./cook` and a global install run that release. Within one repository, every machine and CI job
 runs the same version ([wrapper](wrapper.md)). `wrapper.yaml` is the only pin of the release: a global install, however
-it was installed, defers to it. Each ingredient has its own pin in `ingredients:`, and each applied station its record
-in `stations:`.
+it was installed, defers to it. Each ingredient has its own pin in `ingredients:`, each applied station its record
+in `stations:`, and each recipe added from a cookbook its `origin` in its own file.
 
 ### How do I upgrade?
 
@@ -361,6 +407,15 @@ station would add. Without `--dry-run` it shows the same diff, asks, adds only w
 station's record in `stations:` and the ingredient pins it lists, and renders ([stations](stations.md)). An ingredient's
 renders and floor rules follow its pin on every render, so `./cook ingredient pin <name> --cookbook <source>@<version>`
 alone updates them. Upgrading the release moves no pin.
+
+### A cookbook has a newer version of a recipe we added.
+
+Run `./cook recipe update <name> --cookbook <source>@<version>`. It merges three versions: the copy the repository has,
+the version the copy came from, which its `origin` names, and the newer one. Clean hunks apply, conflicts are left
+marked in the recipe's files for a person or a worker to resolve, and `origin` moves to the newer version either way; it
+shows the diff and asks before writing. Until every conflict is resolved, `./cook make` refuses the recipe, and
+resolving them is all that is left to do ([pitfalls](pitfalls.md#a-recipe-update-leaves-conflicts-in-the-recipe)). A
+recipe of the repository's own has no origin and nothing to update ([recipes](recipes.md)).
 
 ### A teammate's `the-cook` refuses our repository.
 

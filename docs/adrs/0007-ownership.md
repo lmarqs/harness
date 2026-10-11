@@ -52,8 +52,9 @@ output is detected.
      removed. Rendered native configuration stays as hand-owned content without its headers. Hooks, entry points and
      permission entries that call or name the tool's commands are removed and listed. The tool's configuration directory
      ([0014](0014-directory-layout.md)), the wrapper ([0017](0017-engine-version.md)) and the manifest are deleted.
-   - In both modes, a file the manifest does not record is listed and left, even inside the tool's configuration
-     directory, which is deleted once nothing else is in it ([0012](0012-write-boundary.md)).
+   - In both modes, the recipes the repository holds in the tool's configuration directory ([0025](0025-recipes.md)) are
+     listed first and deleted with it. Any other file the manifest does not record is listed and left, even inside the
+     tool's configuration directory, which is deleted once nothing else is in it ([0012](0012-write-boundary.md)).
 
 ## Reasons
 
@@ -83,7 +84,11 @@ output is detected.
   instead of deleting it. Eject serves the other outcome: conventions, permissions and hooks keep working without the
   tool ([0018](0018-conventions.md)), while tool blocks, hooks, entry points and permission entries that would call or
   name the absent tool are removed. Refusing hand-edited owned content in both modes protects a change a person made,
-  even against the rules. A file nobody recorded is someone's, wherever it sits, so removal leaves it and says so
+  even against the rules. A recipe is data in the tool's format that only the tool runs, so like the seeded data files
+  beside it, it means nothing once the tool is gone, and it goes with the configuration directory; listing each one
+  first lets a person keep a copy of a recipe the team wrote. Removal finds recipes by their place in the repository's
+  data ([0006](0006-repository-contract.md)), inside a directory the tool created ([0012](0012-write-boundary.md)), not
+  by a name pattern. Any other file nobody recorded is someone's, wherever it sits, so removal leaves it and says so
   ([0012](0012-write-boundary.md)).
 
 ## Rejected alternatives
@@ -133,6 +138,7 @@ Must be maintained:
 - Both removal modes refuse a path whose hash changed unless forced.
 - A fixture with an unrecorded file in the configuration directory keeps that file, and the directory, after either
   removal, and lists it.
+- A fixture that holds a recipe lists it before either removal deletes anything, and holds no recipe afterwards.
 - After an eject, no marker, wrapper or manifest remains, nor a configuration directory without unrecorded files;
   every convention block's text remains and no tool block does; the fixture's own workflow commands and its native
   hooks that do not call the binary run with the binary absent.

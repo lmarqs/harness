@@ -20,7 +20,9 @@ change's base commit and to the exact content of every changed file. Any later e
 lint command, validators, build and test **lanes** the [profile](profile.md#verify) declares; a lane is a named family
 of test commands, such as `unit` or `e2e`, run with the test patterns you give it (`--lane unit=invoice`). The
 [`completed` guard](tasks.md#the-completed-guard) on a task and [`the-cook attempt`](attempts.md), which runs a worker
-unattended, require a valid receipt; `the-cook verify --check` tells you whether you have one.
+unattended, require a valid receipt; `the-cook verify --check` tells you whether you have one. A
+[recipe run](recipes.md#the-run) runs the lanes itself at its Verify stage: every lane the change selects and every lane
+its recipe requires ([lanes a recipe requires](#lanes-a-recipe-requires)).
 
 Commands are named `the-cook <command>` on this page. The examples run them through the repository's wrapper,
 `./cook <command>`, from the root of a checkout; with a global install, `the-cook <command>` is equivalent
@@ -34,6 +36,11 @@ Commands are named `the-cook <command>` on this page. The examples run them thro
 - In a worker that [`the-cook attempt`](attempts.md) runs, as the last step before the worker exits: the attempt
   replays what the receipt selects.
 - With `--full`, before merging a change that needs every suite.
+
+In a recipe run, the worker of an `attempt` step or a person at a handoff runs `the-cook verify` with the lanes the
+change needs, as for any change: it is feedback for them, and the selection the run starts from. After the recipe's
+last step, the run's Verify stage runs those lanes itself, with every lane the recipe requires added, and that run,
+replayed from the base, is the proof ([recipes](recipes.md#verify)).
 
 While you iterate, run single tests with the repository's own commands, and run `the-cook verify` once the change is
 ready.
@@ -101,13 +108,38 @@ build; lint and validators still run, and you may still select lanes.
 
 A lane named twice, both selected and skipped, or not declared in the profile is an error.
 
+### Lanes a recipe requires
+
+A [recipe](recipes.md#the-recipe-file) names the lanes its kind of change always needs under `verify.require`, such as
+`unit` and `migrations` for a migration. At its Verify stage a recipe run runs the lanes itself, as this command does:
+every lane the change selects and every one of those, and the lane rules above hold for it as for any change:
+
+- the change's selection, the lanes with their patterns and the skip reasons, is the one of the receipt a step left in
+  the workspace, and with no such receipt the change selects no lane. A `verify` a worker runs inside an `attempt` step
+  is feedback for the worker, not the proof;
+- a required lane runs and is never skipped, whatever its `required_when` says and whether or not the change is an
+  application change: with the patterns the selection gives it, or in full, with its `full` command, when the
+  selection gives it none or skips it;
+- when the lane rules demand a lane the selection neither selects nor skips, or a required lane without patterns has
+  no `full` command, the run stops at Verify with exit 3 and names the lane: run `./cook verify` with it selected in
+  the workspace, then `./cook make --continue`;
+- a required lane the profile does not declare is a missing requirement: the run exits 3 naming it before any step
+  runs, and `the-cook recipe add` refuses the recipe the same way;
+- a lane that fails, at Verify or in the replay, stops the run with exit 2.
+
+The run's receipt records, for each lane, the patterns it ran or that it ran in full ([the receipt](#the-receipt)), and
+the run's Complete stage replays it from the base.
+
+A recipe can only add lanes to what the rules above demand; it cannot skip one or loosen a rule
+([guards](recipes.md#guards)).
+
 ### The receipt
 
 ```json
 {
   "base": "4f1c2a9e0b7d3c5a8e6f1b2d4c7a9e0f3b5d8c1a",
   "fingerprint": "a3f5…",
-  "lanes": { "unit": ["invoice", "rounding"] },
+  "lanes": { "unit": { "patterns": ["invoice", "rounding"], "full": false } },
   "skipped": { "e2e": "no route, controller or guard changed" },
   "full": false
 }
@@ -117,9 +149,10 @@ A lane named twice, both selected and skipped, or not declared in the profile is
 | --- | --- |
 | `base` | the commit the change was measured against |
 | `fingerprint` | the hash of the change's content at verification time |
-| `lanes` | for each selected lane, the patterns run |
+| `lanes` | for each lane that ran: `patterns`, the patterns it ran, and `full`, whether it ran its `full` command instead, with `--full` or as a lane a recipe requires that the change selected nothing for; `patterns` is absent when `full` is true |
 | `skipped` | for each skipped lane, the reason given |
-| `full` | whether `--full` ran |
+| `full` | whether `--full` ran: the build, and every lane that has a `full` command in full |
+| `recipe` | for a receipt a recipe run recorded: the recipe's name and digest and the run's inputs, which actions read as `COOK_RECIPE` and `COOK_INPUT_<NAME>` ([lifecycle environment](lifecycle.md#environment)) |
 
 The receipt lives in the checkout's state directory, which the version-control ingredient's renders ignore, so it is
 local to that checkout.
@@ -147,6 +180,7 @@ local to that checkout.
 | The [`completed` guard](tasks.md#the-completed-guard) | refuse `completed` with scope `task` without a valid receipt, when the verify module is enabled |
 | [`the-cook attempt`](attempts.md#the-attempt-contract) | read which lanes and skip reasons the worker chose, then **replay** them itself from a tree the worker cannot write. The receipt only selects the checks, and the replay is the proof |
 | The [`deliver` guard](lifecycle.md#built-in-guards) | refuse delivery of work without a valid receipt for its base, when the verify module is enabled |
+| [`the-cook make`](recipes.md#the-run) | read the selection a step's receipt left, then run every lane it selects and every lane the recipe requires itself, write the run's receipt, and complete the run only once that receipt is replayed from the base, like an attempt's |
 
 ### The `verify` block in `AGENTS.md`
 
@@ -256,6 +290,8 @@ write.
 | `--base` refused in a workspace | The ref is later than the workspace's recorded start | Use the start commit or an earlier one |
 | A lane passes with zero tests | The test runner exits 0 when nothing matches | Configure the runner to fail on no tests, or fix the pattern |
 | The build runs for a docs change | A doc path matches `verify.app_paths` | Narrow `app_paths` |
+| A recipe run stops at Verify naming a lane | The lane rules demand a lane no step's receipt selected or skipped, or a lane the recipe requires has no patterns and no `full` command | Run `./cook verify` in the workspace with that lane selected, then `./cook make --continue` |
+| A recipe run exits 3 naming a lane | The recipe requires a lane the profile does not declare | Declare the lane in the profile, or change the recipe's `requires.lanes` and `verify.require` |
 
 ## Coexistence
 

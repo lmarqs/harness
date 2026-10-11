@@ -28,9 +28,15 @@ signal the caller expects is text the caller hands to `the-cook attempt`, which 
 works through a list of tasks and starts a worker for each. `the-cook` has no code for any loop runner: it does not
 start one, read its configuration or know when a run starts or ends ([ADR 0022](../adrs/0022-tool-integration.md)). An
 unattended run of a loop runner whose command for each task is `the-cook attempt` is called a Ralph run. A station that
-uses a loop runner, applied from a cookbook, seeds its configuration with `./cook attempt` as that command
+uses a loop runner, applied from a cookbook, seeds its configuration with `./cook attempt`, or with
+`./cook make <recipe> --task <id> --unattended`, as that command
 ([how a loop runner calls it](#how-a-loop-runner-calls-it)). A team's own script calls `the-cook attempt` the same way
 ([example](#a-teams-own-loop-script)).
+
+A loop runner may instead name `the-cook make <recipe> --task <id> --unattended` as its command for each task, with the
+same caller-protocol arguments, so each task becomes one [recipe run](recipes.md#the-run): one pass of one change
+through the stages ([through a recipe](#through-a-recipe)). `the-cook attempt` stays the primitive for scripts, and it
+is what a recipe's `attempt` step runs, under the same contract ([in a recipe step](#in-a-recipe-step)).
 
 Commands are named `the-cook <command>` on this page. The examples run them through the repository's wrapper,
 `./cook <command>`, from the root of a checkout; with a global install, `the-cook <command>` is equivalent
@@ -42,7 +48,9 @@ Commands are named `the-cook <command>` on this page. The examples run them thro
 - You want the work done while you are away, on a local branch you review and deliver afterwards.
 - You want the same safety rules for every worker the repository declares, whichever loop runner starts them.
 
-Use an interactive session instead when the work needs decisions only a person can make as it goes.
+Use an interactive session instead when the work needs decisions only a person can make as it goes. When every task
+should go through the same steps and lanes, each in its own workspace and on its own branch, have the loop runner run a
+[recipe](recipes.md) for each task ([through a recipe](#through-a-recipe)).
 
 Prerequisites:
 
@@ -85,7 +93,8 @@ For each attempt, `the-cook attempt <worker>`:
    result is checked against or rewrite its own instructions between attempts.
 5. Runs the **tamper check**, first half: restores every tool-owned file in the checkout (the renders of every
    ingredient in use, such as rendered rule files, owned keys of native settings files and `the-cook hook` entries,
-   and the wrapper `cook` and its pin `.cook/wrapper.yaml`) from the base commit.
+   and the wrapper `cook` and its pin `.cook/wrapper.yaml`) from the base commit, which is their state when the attempt
+   began, because the checkout is clean.
 6. Pins the launch with the worker's ingredient: its unattended arguments, its sandbox-root arguments, the way it
    passes `unattended.deny`, as launch arguments or through the rendered rules the tamper check keeps intact, and the
    declared model and effort. For a worker with a sandbox, the writable roots are the checkout, the clone's state
@@ -113,7 +122,9 @@ For each attempt, `the-cook attempt <worker>`:
     as `last-attempt-output` in the checkout's state directory, returns the checkout to the base commit through the
     version-control ingredient (it was clean when the attempt started, so every change is the attempt's), removes
     every occurrence of the `--withhold` text from the output, prints the rest, and exits 1. The next attempt
-    therefore starts from files `the-cook attempt` checked, including the `./cook` it is started through.
+    therefore starts from files `the-cook attempt` checked, including the `./cook` it is started through. Only
+    `the-cook attempt` run on its own resets the checkout this way; a recipe's `attempt` step leaves its changes in
+    place ([in a recipe step](#in-a-recipe-step)).
 
 Stopping `the-cook attempt` stops the worker and any replayed checks, with every process they started.
 
@@ -125,7 +136,31 @@ CLI, which a station may add as [entries](stations.md#entries) when it is applie
 reports the task as blocked in its output.
 
 An [`attempt` lifecycle action](lifecycle.md#attempt) runs under the same contract and sets the same `COOK_ATTEMPT=1`
-mark.
+mark, and so does a recipe's `attempt` step ([in a recipe step](#in-a-recipe-step)).
+
+### In a recipe step
+
+A recipe's `attempt` step ([step kinds](recipes.md#step-kinds)) starts a worker the profile declares with role
+`unattended` on the step's prompt, in the run's workspace. It keeps every part of the attempt contract that bounds the
+worker: the launch pinned by the worker's ingredient, the unattended denies, the floor bypass arguments refused, the
+tamper check around the worker, its rules read from the workspace's head commit, and `COOK_ATTEMPT=1` in the worker's
+environment. The tamper check compares `.cook/` and the tool-owned files with their state when the step began, the
+uncommitted edits of the steps before it included, and restores that state, so a `--here` run of an uncommitted draft
+recipe keeps its draft. Its prompt is the step's own, or the one the caller of `the-cook make` passes on stdin; the
+arguments given to `the-cook make` after `--` reach its worker after those the ingredient pins, and a floor bypass
+argument among them is refused. The recipe's inputs reach the prompt as plain text, a prompt-injection surface as in
+`attempt` actions ([safety](safety.md#recipe-runs)).
+
+What concerns the end of the work belongs to the run. The step's edits stay in the workspace for the next steps, and the
+step neither replays a receipt, commits nor fires events. A worker that runs `./cook verify` gets feedback on its change
+and leaves the selection the run's Verify stage starts from; that stage runs the lanes itself, with every lane the
+recipe requires added, and the run's Complete stage replays its receipt from the base.
+
+A failed attempt step, where the worker exits non-zero or the tamper check finds a difference, stops the run as
+blocked, naming the step. It does not reset the workspace: the worker's changes stay in it, with those of the steps
+before, and nothing is set aside in `last-attempt.patch`. A person inspects them, keeps or discards them, and
+`the-cook make --continue` runs the step again on the tree as it is ([the run](recipes.md#the-run)). The reset to the
+base and the saved patch belong only to `the-cook attempt` run on its own.
 
 ### The completion signal
 
@@ -155,6 +190,10 @@ person, a [coordinating worker](#running-it-from-a-coordinating-worker) or a scr
 | the run finished every task | `completed` | `run` | the caller: `./cook lifecycle run completed --scope run` |
 | the run stopped with tasks left open | `blocked` | `run` | the caller: `./cook lifecycle run blocked --scope run` |
 | `the-cook attempt` exits 3 without a terminal | `blocked` | as for [any command that exits 3](lifecycle.md#scopes) | the binary |
+
+When the loop runner's command for each task is `the-cook make <recipe> --task <id> --unattended` instead, each task has
+its own workspace bound to it, and its `start`, `completed`, `deliver` and `blocked` come from the run
+([through a recipe](#through-a-recipe)); the events of scope `run` stay the caller's.
 
 At the trigger points of `the-cook attempt` only actions declared with `auto: true` run, read from the base commit, so
 a worker cannot add or change an action its own task triggers. A failing action is reported on stderr and recorded in
@@ -202,7 +241,7 @@ to keep:
 
 | Property | Why |
 | --- | --- |
-| the command for every task is `./cook attempt <worker>`, with `--commit` and `--withhold <signal>`, followed by the loop runner's own arguments for the worker | `the-cook attempt` reads its own flags and passes the rest to the worker ([argument passing](#argument-passing)) |
+| the command for every task is `./cook attempt <worker>`, with `--commit` and `--withhold <signal>`, followed by the loop runner's own arguments for the worker; or `./cook make <recipe> --task <id> --unattended` with the same caller-protocol arguments, the worker's after `--` ([through a recipe](#through-a-recipe)) | `the-cook attempt` reads its own flags and passes the rest to the worker ([argument passing](#argument-passing)) |
 | no option adds a permission-bypass argument | `the-cook attempt` refuses it at the first task |
 | an exit status other than 0 counts as a failed attempt | `the-cook attempt` exits 1 on a failed attempt |
 | the loop runner does not commit in sequential mode | `the-cook attempt` commits a verified task |
@@ -218,6 +257,35 @@ setting.
 The prompt each worker receives is the loop runner's. A worker that reads `AGENTS.md` learns how to verify from its
 `verify` block ([verify](verify.md#the-verify-block-in-agentsmd)), and every worker that receives standing context
 gets the entries of the `unattended` role.
+
+### Through a recipe
+
+A loop runner may name `./cook make <recipe> --task <id> --unattended` as its command for each task, in place of
+`./cook attempt <worker>`, with the same caller-protocol arguments as `the-cook attempt`: `--commit`;
+`--withhold <signal>`, whose text is printed only for completed work; and the loop runner's own arguments for the
+worker, after `--`, because `the-cook make` reads the flags before it as the recipe's inputs. `--unattended` declares
+that nobody drives the run, so a handoff stops it as blocked. Without it the run is attended: a handoff pauses it with
+exit 3 and no completion text, and the loop runner never counts the task done. Any exit status other than 0 is a task
+that is not done ([`the-cook make`](recipes.md#the-cook-make)). The loop runner fills in the task id, and the
+task's prompt it passes on stdin reaches every `attempt` step that has no prompt of its own. Each task is then one
+recipe run, one pass of one change through the stages:
+
+| Stage | For each task |
+| --- | --- |
+| Start | its own managed workspace, from the default branch, bound to the task; `start` (scope `task`) runs the tracker's automatic actions |
+| Implement | the recipe's steps, in order; an `attempt` step runs the worker it names under the attempt contract ([in a recipe step](#in-a-recipe-step)) |
+| Verify | the run runs every lane the change selects and every lane the recipe requires itself, none of the required ones skipped, and writes the receipt |
+| Complete | the replay from the base; with `--commit`, the commit; then `completed` (scope `task`), and `deliver` (scope `task`) when the work is concluded |
+| A stop | `blocked` (scope `task`), fired by the run itself, with the stage, the step and the reason; the workspace stays for a person |
+
+Each run reads its recipe once, from its new workspace's base commit, the default branch's head, and follows that
+content to the end, so no worker changes the recipe of the run it is in or of the next task's
+([guards](recipes.md#guards)). A station that uses a loop runner can add a recipe for this, such as the `implement-task`
+recipe of `agentic-coding` ([stations](stations.md)).
+
+Each task is delivered on its own, by the repository's `deliver` actions with scope `task` and `auto: true`, or by a
+person afterwards. `the-cook attempt` stays the command for a loop runner whose tasks share one workspace and one
+branch, and the primitive for scripts.
 
 ## Reference
 
@@ -359,6 +427,9 @@ for that command asks a person first ([policy](policy.md#the-seeded-entry)).
   at its base.
 - Do keep every option that adds a permission bypass off in every configuration of the loop runner that names
   `the-cook attempt`, a per-user one included.
+- Don't give a recipe a loop runner runs for each task a `handoff` step: in an unattended run a handoff stops the task
+  as blocked, because it needs a person.
+- Do commit a recipe before a loop runner runs it: an unattended run reads it from its workspace's base commit.
 - Don't edit the run's task list by hand during a run.
 - Don't fire lifecycle events from inside the worker's task: fire run-scope events from the session that started the
   loop runner.
@@ -377,6 +448,9 @@ for that command asks a person first ([policy](policy.md#the-seeded-entry)).
 | An attempt fails before the worker starts: the base cannot be read | The version-control ingredient could not read the checkout's head commit | Check the checkout with its version control program, then start the attempt again |
 | No `completed` or `deliver` action runs after a verified task in a loop runner's run | The run's workspace is bound to no task, so `the-cook attempt` fires no event | Expected: the loop runner's task source records the task's status; fire run-scope events after the run ([lifecycle events](#lifecycle-events)) |
 | `the-cook lifecycle run` refused during a run | It ran under `COOK_ATTEMPT=1`, inside the worker | Fire it from the session that started the loop runner |
+| Every task a loop runner starts through `the-cook make` fails with exit 3 | The recipe requires a contract, role or lane the repository lacks, which the message names, or a step stopped the run, such as a handoff, which an unattended run cannot pass | Pin or declare what the message names; `./cook make --status <workspace>` shows the step that stopped; keep handoffs out of a recipe a loop runner runs |
+| A loop runner counts no task done, and each run ends paused at a handoff | Its command lacks `--unattended`, so each run is attended: it pauses at the handoff, exits 3 and prints no completion text | Add `--unattended` to the command for each task; keep handoffs out of a recipe a loop runner runs |
+| An `attempt` step stopped a recipe run | Its worker exited non-zero, or the tamper check found a changed tool-owned file, file under `.cook/` or context file | `./cook make --status <workspace>` names the step; its changes stay in the workspace, unlike after `the-cook attempt` on its own: inspect them, keep or discard them, then `./cook make --continue <workspace>` runs the step again |
 | One pull request per task, too many to review | A task-scope `deliver` action with `auto: true`, fired by attempts in workspaces bound to a task | Remove `auto` from that action and deliver after judgement |
 
 ## Coexistence with direct loop runner use

@@ -18,7 +18,9 @@ A **worker** is any program that changes the repository for someone: a coding ag
 the [Implement](lifecycle.md#implement) stage of the [lifecycle](lifecycle.md), in one of two roles: interactively, in
 a session with a person, or unattended, as an [attempt](attempts.md), one run on one task under the guards of the
 attempt contract. A repository declares its workers in the profile's [`workers`](profile.md#workers), each with its
-role and the ingredient that describes its program.
+role and the ingredient that describes its program. A [recipe](recipes.md) names the roles it requires and, in each
+`attempt` step, a declared worker with role `unattended` to start, so a recipe's steps reach a program only through
+the workers the repository declares ([attempts](attempts.md#in-a-recipe-step)).
 
 A worker's ingredient fills the [worker contract](#the-worker-contract): how the binary starts the program and, when
 the program has them, where it reads its configuration, how its permissions and hooks are expressed, what its hook
@@ -81,16 +83,16 @@ each spelling, such as `the-cook lifecycle` and `./cook lifecycle` ([policy](pol
 | Role | Meaning | Native files carry | Under `the-cook attempt` |
 | --- | --- | --- | --- |
 | `interactive` | a session with a person: people work with this worker in the repository | the shared policy (`shared.*`) and the floor rules of every ingredient in use | allowed when the ingredient passes `unattended.deny` as launch arguments, which add it, `[the-cook, lifecycle]` in each spelling included, at launch; refused when the ingredient passes `unattended.deny` only through rendered rules, or in neither way |
-| `unattended` | an attempt: the worker runs here only under `the-cook attempt` or an [`attempt` action](lifecycle.md#attempt) | the shared policy, the floor rules of every ingredient in use, and `unattended.deny`, including `[the-cook, lifecycle]` in each spelling `the-cook` renders | allowed when the ingredient passes `unattended.deny` at launch or renders permissions; otherwise refused, exit 3 |
+| `unattended` | an attempt: the worker runs here only under `the-cook attempt`, an [`attempt` action](lifecycle.md#attempt) or a recipe's [`attempt` step](attempts.md#in-a-recipe-step) | the shared policy, the floor rules of every ingredient in use, and `unattended.deny`, including `[the-cook, lifecycle]` in each spelling `the-cook` renders | allowed when the ingredient passes `unattended.deny` at launch or renders permissions; otherwise refused, exit 3 |
 
 How an ingredient passes `unattended.deny` is part of its [launch](#the-worker-contract). A worker whose ingredient
-passes it as launch arguments can be declared `interactive` and still run attempts. A worker whose ingredient passes
-it only through rendered rules is one or the other: a repository where people use it in sessions and also want it for
+passes it as launch arguments can be declared `interactive` and still run attempts. A worker whose ingredient passes it
+only through rendered rules is one or the other: a repository where people use it in sessions and also want it for
 attempts chooses one. A worker whose ingredient neither passes deny arguments at launch nor renders permissions has no
-way to receive `unattended.deny`, so it cannot run attempts: `the-cook attempt` and `attempt` actions refuse it with
-exit 3, naming the gap, because the binary's own deny on lifecycle actions and the repository's unattended denies hold
-in every attempt ([ADR 0011](../adrs/0011-safety-invariants.md)). Such a worker may still be declared `interactive`, and
-the `policy` block marks the entries it does not receive as not enforced in it.
+way to receive `unattended.deny`, so it cannot run attempts: `the-cook attempt`, `attempt` actions and `attempt` steps
+refuse it with exit 3, naming the gap, because the binary's own deny on lifecycle actions and the repository's
+unattended denies hold in every attempt ([ADR 0011](../adrs/0011-safety-invariants.md)). Such a worker may still be
+declared `interactive`, and the `policy` block marks the entries it does not receive as not enforced in it.
 
 A worker whose unattended denies live in rendered rules reads them from files inside its own checkout, which it can
 write. The [tamper check](attempts.md#the-attempt-contract) closes that gap. Before every launch it restores the
@@ -144,8 +146,8 @@ ingredient:
 | Standing context | entries for the `unattended` role, read from the base commit |
 | Writable outside the checkout | for a worker with a sandbox, only what the ingredient's sandbox-root arguments name: the clone's state directory (`state.dir`, default `.work/`) and the directories the profile lists in `workers.<name>.writable_roots` ([profile](profile.md#workers)); otherwise what its permissions permit |
 | Refused arguments, among those `the-cook attempt` receives | the ingredient's [floor](ingredients.md#the-floor) bypass arguments |
-| Model and effort | `workers.<name>.model` and `effort`, or an `attempt` action's `attempt.model` and `attempt.effort`, which take precedence, passed as the ingredient's launch says |
-| Prompt | read from stdin or from the worker arguments, whichever the caller uses; an `attempt` action's prompt passed as the ingredient's launch says |
+| Model and effort | `workers.<name>.model` and `effort`, or an `attempt` action's `attempt.model` and `attempt.effort`, or a recipe `attempt` step's `model` and `effort`, which take precedence, passed as the ingredient's launch says |
+| Prompt | read from stdin or from the worker arguments, whichever the caller uses; the prompt of an `attempt` action or of a recipe's `attempt` step passed as the ingredient's launch says |
 
 `the-cook attempt` passes the worker the arguments it does not recognise itself, after those the launch pins, so a
 loop runner's model and effort flags reach the worker as the loop runner wrote them. It reads no loop runner's
@@ -177,10 +179,10 @@ lacks.
 | --- | --- | --- | --- |
 | Launch | `launch.command` | the program the binary starts | required: the ingredient fails validation, exit 1 |
 | Unattended arguments | `launch.unattended` | the arguments that start the program unattended with its permission checks on | the program starts with `launch.command` and its caller's arguments only, which suits a program with no permission checks |
-| Unattended denies | `launch.unattended_deny` | how `unattended.deny` reaches the program as arguments at launch | `unattended.deny` reaches the program only through the rendered rules, which then require `role: unattended`; with no rendered permissions either, it cannot reach the program, and the worker cannot run attempts: `the-cook attempt` and `attempt` actions refuse it with exit 3, naming the gap. The worker may still be `interactive` |
+| Unattended denies | `launch.unattended_deny` | how `unattended.deny` reaches the program as arguments at launch | `unattended.deny` reaches the program only through the rendered rules, which then require `role: unattended`; with no rendered permissions either, it cannot reach the program, and the worker cannot run attempts: `the-cook attempt`, `attempt` actions and `attempt` steps refuse it with exit 3, naming the gap. The worker may still be `interactive` |
 | Sandbox roots | `launch.sandbox_roots` | the arguments that open a directory beyond the checkout for writing: the clone's state directory and `workers.<name>.writable_roots` | the binary opens no directory for the program, and `writable_roots` on the worker is a validation error |
-| Model and effort | `launch.model`, `launch.effort` | how a model and an effort, from `workers.<name>` or an `attempt` action, are passed | a model or an effort set for the worker is ignored, and `doctor` notes it |
-| Prompt | `launch.prompt` | how the binary passes the prompt of an `attempt` action: on stdin, as arguments, or both | an `attempt` action that names the worker fails validation |
+| Model and effort | `launch.model`, `launch.effort` | how a model and an effort, from `workers.<name>`, an `attempt` action or a recipe's `attempt` step, are passed | a model or an effort set for the worker is ignored, and `doctor` notes it |
+| Prompt | `launch.prompt` | how the binary passes the prompt of an `attempt` action or of a recipe's `attempt` step: on stdin, as arguments, or both | an `attempt` action or step that names the worker fails validation |
 | Floor bypass arguments | `floor.bypass` | the arguments that would turn the program's permission checks off, refused at every launch ([the floor](ingredients.md#the-floor)) | nothing is refused for that worker |
 | Hook payload mapping | `payload` | the JSON paths to the neutral event, the session, the tool, the edited and read files, the working directory, the person's prompt text and the program's notification message; which tools are edits or reads; which native events carry `session-start`, `post-tool-use`, `prompt-submit`, `attention` and `turn-end` | no hook entry is rendered for the worker: no post-edit feedback, hook-delivered standing context or notifications, and `doctor` notes the gap |
 | Instructions file | `instructions` | the import line, in a block of the program's own instruction file, through which it reaches `AGENTS.md` | nothing is rendered: the program reads `AGENTS.md` directly, or reads no instruction file and so receives neither the `AGENTS.md` blocks nor static context |

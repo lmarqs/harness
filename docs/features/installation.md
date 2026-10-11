@@ -84,8 +84,11 @@ mise exec github:lmarqs/the-cook@<tag> -- the-cook scaffold    # one-off, nothin
 the-cook scaffold                                            # with a global install
 ```
 
-From then on the repository uses `./cook`. Replace `<tag>` with a release tag from the project's GitHub releases
-page, such as `v0.9.0`.
+From then on the repository uses `./cook`. Replace `<tag>` with a release tag from the project's GitHub releases page,
+such as `v0.9.0`. Given a cookbook tag and a station, as in
+`the-cook scaffold --cookbook github:acme/cookbook@v1.2.0 --station agentic-coding`, the same plan pins the station's
+ingredients, writes its entries and templates, and copies the recipes it adds into `.cook/recipes/`
+([scaffold](scaffold.md), [stations](stations.md)).
 
 ## Global install (optional)
 
@@ -132,9 +135,10 @@ git add -A && git commit -m "chore: upgrade the-cook"
 `wrapper` writes nothing until the running release has verified the target release's signed checksum file with its
 embedded release keys, downloaded the binary for this platform and matched it against that file. The new release then
 renders the repository: `cook`, `wrapper.yaml`, every file it renders differently, and a migration of the repository
-files when it reads a newer `schema`. The release carries no ingredient or station: the [ingredients](ingredients.md)
-keep their own pins, and `./cook ingredient pin` or `./cook station apply` moves them. A step that fails leaves
-everything untouched. The pin and its effect are one diff ([upgrading](wrapper.md#upgrading)).
+files when it reads a newer `schema`. The release carries no ingredient, station or recipe: the
+[ingredients](ingredients.md) keep their own pins, which `./cook ingredient pin` or `./cook station apply` moves, and
+the [recipes](recipes.md) are the repository's own files. A step that fails leaves everything untouched. The pin and its
+effect are one diff ([upgrading](wrapper.md#upgrading)).
 
 Many repositories at once: `the-cook fleet wrapper --version <tag> --deliver`
 ([wrapper](wrapper.md#many-repositories)).
@@ -216,9 +220,9 @@ apply or fetch make it. Until it is cached on the machine, `render` and attempts
 ## Uninstall
 
 To take `the-cook` out of a repository, see [remove](remove.md): `./cook remove` undoes the adoption, and
-`./cook remove --eject` stops managing the repository and keeps the result. Both delete `cook` and every file
-`the-cook` recorded in `.cook/`; a file it did not record is listed and left, and `.cook/` goes once nothing else
-is in it.
+`./cook remove --eject` stops managing the repository and keeps the result. Both delete `cook`, every file
+`the-cook` recorded in `.cook/` and the recipes in `.cook/recipes/`, each listed in the plan first; a file it did not
+record is listed and left, and `.cook/` goes once nothing else is in it.
 
 Remove a global install:
 
@@ -236,7 +240,7 @@ rm -rf "${COOK_HOME:-${XDG_CACHE_HOME:-$HOME/.cache}/the-cook}" ~/.config/the-co
 
 | Path | Holds |
 | --- | --- |
-| `$COOK_HOME` (default `$XDG_CACHE_HOME/the-cook`, else `~/.cache/the-cook`) | `versions/<version>/the-cook` for each downloaded release, each ingredient and station at `cookbook/<sha256>.tar.gz`, the update-check result, the signature-check result of `doctor` |
+| `$COOK_HOME` (default `$XDG_CACHE_HOME/the-cook`, else `~/.cache/the-cook`) | `versions/<version>/the-cook` for each downloaded release, each ingredient and station, and the version each recipe came from, at `cookbook/<sha256>.tar.gz`, the update-check result, the signature-check result of `doctor` |
 | `~/.config/the-cook/fleet.yaml` | your default [fleet](fleet.md) file |
 
 ## Troubleshooting

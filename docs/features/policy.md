@@ -17,11 +17,11 @@ whatever anyone edits.
 
 The policy says what [workers](workers.md) may do without asking (`allow`), only after a person confirms (`ask`), or
 never (`deny`), plus what is denied only to [attempts](attempts.md#the-attempt-contract), the unattended runs
-`the-cook attempt` and `attempt` actions start, one per task. It is written once, neutrally where the workers allow it,
-and each worker's [ingredient](workers.md#the-worker-contract) renders it into that program's native permission
-format. The [floor](#the-floor) is always added and cannot be removed or weakened: the floor rules of the ingredients
-in use, such as a version-control ingredient's deny of a force push to the default branch, and the binary's own entries
-for its commands.
+`the-cook attempt`, `attempt` actions and the `attempt` steps of [recipes](recipes.md#step-kinds) start, one per task.
+It is written once, neutrally where the workers allow it, and each worker's [ingredient](workers.md#the-worker-contract)
+renders it into that program's native permission format. The [floor](#the-floor) is always added and cannot be removed
+or weakened: the floor rules of the ingredients in use, such as a version-control ingredient's deny of a force push to
+the default branch, and the binary's own entries for its commands.
 
 Commands are named `the-cook <command>` on this page. Run them through the repository's wrapper,
 `./cook <command>`, from the root of a checkout; with a global install, `the-cook <command>` is equivalent
@@ -143,7 +143,7 @@ worker's output on every render, as long as the ingredient is in the profile's `
 | --- | --- | --- |
 | Whatever an ingredient marks as floor about its program, such as no force push to the default branch | the floor rules of each ingredient in use, here a version-control ingredient | `shared.deny` or `unattended.deny` entries the ingredient declares, with values the ingredient's operations report, such as the default branch the version-control ingredient reports |
 | Lifecycle actions never run inside an attempt's worker | the binary | `unattended.deny`: `[the-cook, lifecycle]`, rendered for each spelling `the-cook` renders. The binary refuses `the-cook lifecycle run` inside the worker on its own; `the-cook attempt` fires `completed` and `deliver` in its own process ([lifecycle](lifecycle.md#built-in-guards)) |
-| Attempts never bypass permissions | the floor bypass arguments of each worker ingredient | not a policy entry: `the-cook attempt` and `attempt` actions refuse them among the arguments they receive; see [attempts](attempts.md#the-attempt-contract) |
+| Attempts never bypass permissions | the floor bypass arguments of each worker ingredient | not a policy entry: `the-cook attempt`, `attempt` actions and recipes' `attempt` steps refuse them among the arguments they receive; see [attempts](attempts.md#the-attempt-contract) |
 
 Every floor rule an ingredient marks comes from the cookbook the repository pinned it from; a reviewer reads them with
 `./cook ingredient show <name>` before approving the pin. A floor rule exists only while its ingredient is pinned in the
@@ -233,7 +233,7 @@ settings file has to be made by hand in the other worker's file and in this text
 | `shared.allow` | list of entries | `[]` | Run without a prompt, in every session |
 | `shared.ask` | list of entries | `[]` | Always ask a person first |
 | `shared.deny` | list of entries | `[]` | Never run |
-| `unattended.deny` | list of entries | `[]` | Never run in an attempt (`the-cook attempt` or an `attempt` action), on top of `shared` |
+| `unattended.deny` | list of entries | `[]` | Never run in an attempt (`the-cook attempt`, an `attempt` action or a recipe's `attempt` step), on top of `shared` |
 
 `scaffold` seeds the file as:
 
@@ -314,6 +314,9 @@ More:
 - Do express a rule as a prefix list whenever every worker must enforce it.
 - Do write an entry for a `the-cook` command once, as `[the-cook, …]`; `render` writes it for each spelling it renders,
   and the binary's own guards catch the others.
+- Do allow workers only the recipes you have read, by name, such as `[the-cook, make, migration]`: a recipe's `run`
+  steps run as child processes of `the-cook`, outside the worker's per-command checks, like lifecycle actions
+  ([pitfalls](pitfalls.md#permitting-the-cook-make-permits-its-steps)).
 - Don't use `allow` entries broader than the reason you wrote for them.
 
 [Safety guidelines](safety.md) explains the threat model behind these rules.

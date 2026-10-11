@@ -24,6 +24,11 @@ contains no code for any skills installer: shared skills are installed by the te
 committed like any other file ([ADR 0022](../adrs/0022-tool-integration.md)). An [ingredient](ingredients.md) can
 describe such an installer, as it describes any program.
 
+A skill guides a worker and guarantees nothing about what the worker does with it. A [recipe](recipes.md) takes one kind
+of change through the lifecycle's stages, and its steps, its required lanes and the guards hold whatever the worker
+does. The two meet in a recipe's `attempt` step, whose prompt can tell its worker to follow a skill, such as a
+monitoring skill in a recipe that fixes the cause of an alert.
+
 Commands are named `the-cook <command>` on this page. The examples run them through the repository's wrapper,
 `./cook <command>`, from the root of a checkout; with a global install, `the-cook <command>` is equivalent
 ([wrapper](wrapper.md)).
@@ -47,6 +52,10 @@ It teaches a worker to:
 - place a policy entry in `allow`, `ask`, `deny` or `unattended.deny`, and explain why;
 - finish an adoption from the `the-cook doctor --json` to-do ([doctor](doctor.md));
 - choose lanes and write skip reasons for [`the-cook verify`](verify.md);
+- run a [recipe](recipes.md) with `./cook make <recipe>`, do what a handoff step asks and resume the run with
+  `./cook make --continue`, and pick up a run that stopped as blocked;
+- write a recipe for a kind of change the repository makes again and again, or add one from a cookbook, and resolve
+  what `./cook recipe update` leaves marked;
 - run unattended work through [`the-cook attempt`](attempts.md), and report blocked work;
 - fire lifecycle events with `the-cook lifecycle run <event>`, including `completed` or `blocked` when a loop runner's
   run ends, and delivering the run's commits after arranging them for review;

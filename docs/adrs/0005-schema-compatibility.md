@@ -26,6 +26,9 @@ release to run, and an upgrade by itself never shows as drift.
   writes into the repository's files when the station is applied, can hold deny rules and guards
   ([0024](0024-ingredients-and-stations.md)). Each is pinned by its content hash, so its bytes cannot change without a
   new pin ([0021](0021-release-trust.md)).
+- A recipe is published in cookbooks and, once copied, is a file of the repository that its team edits; no hash fixes
+  its bytes there ([0013](0013-organization-content.md), [0025](0025-recipes.md)). Its steps and requirements include
+  the lanes a change must pass.
 - An ingredient that fills a contract relies on that contract's operations and output kinds
   ([0023](0023-core-and-contracts.md)). A contract can gain an operation while the ingredient format stays the same.
 - Most releases change behaviour without changing the shape of any file. For example, a release that fixes a bug in a
@@ -43,6 +46,9 @@ release to run, and an upgrade by itself never shows as drift.
    fills a contract, the version of that contract it fills. The binary refuses an ingredient or a station whose schema
    or contract version is newer than it supports, naming the release needed, and reads one of an older schema or
    contract version inside the support window without rewriting it.
+7. Every recipe carries the schema version of its format. Copied into a repository, it is a repository file, under
+   points 1 to 3. The binary refuses to copy a published recipe, or to merge one into a copy, when its schema is newer
+   than it supports, naming the release needed.
 
 ## Reasons
 
@@ -68,6 +74,11 @@ release to run, and an upgrade by itself never shows as drift.
   because the hash its repository pins fixes its bytes (Context); reading older schemas and contract versions keeps it
   usable across releases until its cookbook publishes a newer version. The trade: the binary keeps a reader for every
   ingredient and station schema and every contract version in the support window.
+- **7.** A binary that misread a newer recipe could drop a required lane or a requirement, the way it could drop a guard
+  from a repository file, so the refusal of point 2 applies, before the recipe's bytes enter the repository. Once
+  copied, nothing fixes a recipe's bytes (Context), so unlike an ingredient or a station it migrates in place with a
+  diff, like any file the repository holds. The trade: the binary keeps a migration for every recipe schema in the
+  support window, as it does for every repository file.
 
 ## Rejected alternatives
 
@@ -107,3 +118,5 @@ Must be maintained:
 - A fixture ingredient and a fixture station at a newer schema, and a fixture ingredient that declares a newer contract
   version, are each refused with a message that names the release; a fixture ingredient and a fixture station at the
   oldest schema and contract version in the support window load and stay byte-identical.
+- A published fixture recipe at a newer schema is refused when it is added and when it is merged, with a message that
+  names the release; a copied fixture recipe at the previous schema migrates and prints a diff.

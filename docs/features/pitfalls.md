@@ -14,13 +14,13 @@ and can check a setup against the known traps before relying on it.
 
 ## Overview
 
-Each entry below is a place where workers, permission systems, workspaces or trackers behave differently from what a
-reasonable person expects, with what `the-cook` does about it. Every entry has four parts: the **symptom** you see,
-**why** it happens, what **`the-cook` does** about it, and what **you do**.
+Each entry below is a place where workers, permission systems, workspaces, trackers or recipes behave differently from
+what a reasonable person expects, with what `the-cook` does about it. Every entry has four parts: the **symptom** you
+see, **why** it happens, what **`the-cook` does** about it, and what **you do**.
 
 For the principles behind these entries, read [safety](safety.md). For the terms, see the [glossary](glossary.md). The
-entries below are about the core: the lifecycle, its guards and proof, and the two contracts. A trap of one particular
-program, a coding agent, a loop runner, a task tracker or a task runner, is documented with the
+entries below are about the core: the lifecycle, its guards and proof, the two contracts and recipe runs. A trap of one
+particular program, a coding agent, a loop runner, a task tracker or a task runner, is documented with the
 [ingredient](ingredients.md) that describes it, in the cookbook that publishes that ingredient.
 
 Commands are named `the-cook <command>` on this page. Run them through the repository's wrapper,
@@ -31,6 +31,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 - [Workers and trust](#workers-and-trust)
 - [Workspaces and environment](#workspaces-and-environment)
 - [Attempts, trackers and verification](#attempts-trackers-and-verification)
+- [Recipe runs](#recipe-runs)
 - [Delivery](#delivery)
 - [Notifications and attempt actions](#notifications-and-attempt-actions)
 - [Standing context](#standing-context)
@@ -173,6 +174,19 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 - **What you do.** Read `the-cook lifecycle list` before allowing the command, and review every change to the actions
   like code ([safety](safety.md#lifecycle-actions-are-code)).
 
+### Permitting `the-cook make` permits its steps
+
+- **Symptom.** A worker allowed to run `the-cook make <recipe>` runs, through it, a command the policy denies to it.
+- **Why.** A recipe's `run` steps run as the binary, in the workspace, like `run` actions: as child processes of
+  `the-cook`, outside the worker's per-command checks. The permission to run the recipe is the permission for every
+  `run` step in it.
+- **What `the-cook` does.** Runs only the steps the recipe declares, runs its `attempt` steps under the
+  [attempt contract](attempts.md#the-attempt-contract) whoever started the run, and refuses `the-cook make` inside an
+  attempt or a step.
+- **What you do.** Read a recipe before allowing a worker to run it, review every change under `.cook/recipes/` like
+  code, and allow the recipes you have read by name, such as `[the-cook, make, migration]`, rather than
+  `[the-cook, make]`.
+
 ### Permitting a command with a trigger point permits its automatic actions
 
 - **Symptom.** A worker allowed to run `the-cook attempt` in a workspace bound to a task also pushes a branch and opens
@@ -313,6 +327,105 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 - **What `the-cook` does.** Prints the output after a passing replay; keeps it in `last-attempt-output`, in the state
   directory of the checkout it ran in, after a failure.
 - **What you do.** Watch the loop runner's progress, not the worker's output.
+
+## Recipe runs
+
+### A handoff stops an unattended run
+
+- **Symptom.** A loop runner's task stops as blocked at the same step every time, with the text of a handoff step as
+  the reason, and `the-cook make` exits 3.
+- **Why.** A handoff pauses an attended run for whoever drives it, a person or the interactive worker in their
+  session. A run started with `--unattended`, as a loop runner's command starts it, has nobody to hand off to, so a
+  handoff stops it as blocked: it needs a person.
+- **What `the-cook` does.** Stops at the handoff, fires `blocked` with the step and its text, and keeps the workspace
+  ([the run](recipes.md#the-run)).
+- **What you do.** Keep handoffs out of recipes a loop runner runs for every task, such as `implement-task`, and turn
+  the check a handoff asks for into a lane when a command can make it. When a run does stop at one, a person does what
+  it says in the kept workspace and runs `the-cook make --continue <workspace>`.
+
+### A loop runner's command without `--unattended` waits at every handoff
+
+- **Symptom.** A loop runner never counts a task done: each run ends at the same handoff with exit 3 and no completion
+  text, and no `blocked` fires, so no notification arrives either.
+- **Why.** The caller declares whether someone drives a run. Without `--unattended` a run is attended, whatever starts
+  it and whether or not a terminal is attached, so a handoff pauses it for a person who is not there.
+- **What `the-cook` does.** Pauses the run at the handoff, prints its text and the command that resumes it, fires
+  nothing, exits 3, and prints no completion text, which only a completed run prints
+  ([attended and unattended runs](recipes.md#attended-and-unattended-runs)).
+- **What you do.** Name `./cook make <recipe> --task <id> --unattended` as the loop runner's command for each task, as
+  a station's template writes it, and keep handoffs out of recipes a loop runner runs.
+
+### A recipe requires a lane the profile does not declare
+
+- **Symptom.** `the-cook recipe add` or `the-cook make` exits 3 naming a lane, such as `migrations`, a worker role, such
+  as `unattended`, or a contract.
+- **Why.** A recipe's `requires` lists the contracts, roles and lanes it needs, and its verify stage runs its required
+  lanes by name. A recipe written for another repository can name a lane this profile lacks or calls something else, and
+  a profile change that renames or removes a lane breaks a recipe that passed when it was added.
+- **What `the-cook` does.** Checks `requires` when the recipe is added and every time it runs, before any step, and
+  names what is missing; `the-cook doctor` lists every recipe's unmet requirements. It never skips a required lane
+  ([guards](recipes.md#guards)).
+- **What you do.** Declare the lane in the profile, with commands that prove what the recipe needs, or edit the
+  recipe's copy to require the lane this repository uses for it; review and commit the change either way.
+
+### A recipe update leaves conflicts in the recipe
+
+- **Symptom.** After `the-cook recipe update`, `the-cook make` refuses the recipe with exit 1, naming a conflict
+  marker, and `the-cook doctor` reports the recipe as invalid.
+- **Why.** `recipe update` merges three versions: the repository's copy, the version the copy came from and the newer
+  one. Where the repository and the newer version changed the same lines, the merge cannot choose, so it leaves both
+  sides marked in the file, and it moves `origin` to the newer version all the same.
+- **What `the-cook` does.** Applies the clean hunks, leaves each conflict marked for a person or a worker, moves
+  `origin`, and shows the whole diff, every conflict included, and asks before writing. A recipe with a conflict
+  marker in any of its files is invalid, so it never runs half merged.
+- **What you do.** Read the diff before confirming. Resolve every marker under `.cook/recipes/<name>/`, the templates in
+  `files/` included, then review and commit the result. Because `origin` already names the newer version, running the
+  update again does not redo the merge; to start over, restore the recipe's directory from version control, which
+  restores its `origin` too, and update again.
+
+### An input in a prompt addresses the worker
+
+- **Symptom.** An `attempt` step does something its recipe never asked for, following text that came in through an
+  input, such as a task title or an alert message passed as a `string`.
+- **Why.** Inputs are substituted into prompts and handoff text as plain text, and the worker reads that text as part of
+  its instructions. Whoever supplies an input, a person, a loop runner passing a task's fields or a script relaying an
+  alert, can address the worker through it.
+- **What `the-cook` does.** Validates every input by type before anything runs, so a `slug` holds only
+  `[a-z0-9][a-z0-9-]*`, an `enum` only its listed values and no value begins with `-`, and runs the step under the
+  attempt contract, which bounds what the worker can do ([safety](safety.md#attempt-actions-and-prompt-injection)).
+- **What you do.** Declare inputs that reach a prompt as `slug`, `enum` or `bool`, and point the worker at what to
+  read, such as a task id or a file path, instead of pasting text into the prompt. Keep `string` inputs for `run` steps,
+  which pass each one as a single argument and never through a shell, and for templates, whose output is reviewed in
+  the diff.
+
+### A recipe edit reaches a new run only once it is on the default branch
+
+- **Symptom.** You changed a recipe, and the next run still follows its old steps, prompt or lanes; a paused or stopped
+  run you continue after the edit follows the old version too; or `the-cook make` exits 1 finding no recipe of a name
+  you just wrote.
+- **Why.** A run reads its recipe once, when it starts: a run that creates its workspace reads it from the default
+  branch's head commit, which the new workspace starts from, and keeps that content in its run record, which
+  `the-cook make --continue` runs. It never reads the files again, so no step can change the recipe of the run it is
+  in. An edit that is not committed on the default branch, or that comes after the run started, is not what runs.
+- **What `the-cook` does.** Runs the recipe as that commit held it when the run started, and fails an `attempt` step
+  whose worker changes a file under `.cook/`, the recipes included ([concepts](concepts.md#built-in-invariants)).
+- **What you do.** Commit a recipe change on the default branch before running it in a new workspace, and review it
+  like any change to the policy. Try a draft with `the-cook make <recipe> --here` in a managed workspace that holds it.
+
+### A stopped run keeps its workspace
+
+- **Symptom.** Workspaces such as `.work/workspaces/migration-add-invoice-due-date` remain after runs that stopped, each
+  on its own `work/<name>` branch, and a new run of the same recipe with the same inputs exits 1 because the workspace
+  or its branch exists.
+- **Why.** A run that stops, on a failed step, a failed lane or replay, a Verify that cannot select a lane the lane
+  rules demand, or a handoff in an unattended run, fires `blocked` and keeps the workspace so a person can fix what
+  stopped it and continue. The workspace's name comes from the recipe's `workspace` and the inputs, so the same inputs
+  name the same workspace again.
+- **What `the-cook` does.** Keeps the workspace and its branch, records the stopped step in the run record, and never
+  removes a workspace on its own.
+- **What you do.** For each stopped run, read `the-cook make --status <workspace>`, then fix what stopped it and run
+  `the-cook make --continue <workspace>`. To abandon one, discard its uncommitted changes, remove it with
+  `the-cook workspace remove <workspace>`, and delete its branch `work/<name>` before a run with the same inputs.
 
 ## Delivery
 
@@ -506,7 +619,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 
 ### A command that needs a contract no ingredient fills refuses
 
-- **Symptom.** `./cook workspace create` or `./cook attempt` exits 3 naming `the-cook station apply` and
+- **Symptom.** `./cook workspace create`, `./cook make` or `./cook attempt` exits 3 naming `the-cook station apply` and
   `the-cook ingredient pin`, while `./cook doctor` works and lists the unfilled contract with the commands it makes
   unavailable.
 - **Why.** The binary has no code for any program. Workspaces, bases and history need an ingredient that fills the
@@ -523,8 +636,9 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 
 - **Symptom.** On a new machine or in a CI job, `./cook render` exits 3 and `./cook doctor` reports a finding, each
   naming `./cook fetch`, and worker hooks print one stderr line.
-- **Why.** Only `ingredient pin`, `station apply`, `fetch` and `scaffold --cookbook` download ingredients and stations.
-  Every other command reads them from the per-user cache, which a fresh clone or a new CI runner does not have.
+- **Why.** Only `ingredient pin`, `station apply`, `recipe add`, `recipe update`, `fetch` and `scaffold --cookbook`
+  download from a cookbook. Every other command reads the per-user cache, which a fresh clone or a new CI runner does
+  not have.
 - **What `the-cook` does.** Downloads nothing implicitly; verifies every archive against its pin when it is
   downloaded and every time it is loaded, and refuses a mismatch with exit 1.
 - **What you do.** Run `./cook fetch` once per machine while online, and as the first step of a CI job that renders or
@@ -532,17 +646,18 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 
 ### Pinning trusts the cookbook at that moment
 
-- **Symptom.** A pinned ingredient runs a command, renders a rule or marks a floor nobody on the team read, or an
-  applied station wrote entries nobody read.
-- **Why.** `the-cook station apply` and `the-cook ingredient pin` trust the cookbook's `checksums.txt` as it is
-  downloaded over HTTPS at that moment. No release key vouches for an ingredient or a station. From then on the binary
-  verifies each archive against its pin, so the pin fixes its bytes, but the pin itself is only as trustworthy as the
-  review of the diff that added it.
-- **What `the-cook` does.** Shows the pins, and a station's entries and templates, as one diff and asks before writing
-  them, and renders in the same change, so the declaration and its effect are one diff.
-- **What you do.** Read each one with `./cook ingredient show <name> --cookbook <source>@<version>` or
-  `./cook station show <name> --cookbook <source>@<version>` before approving the pin, and review a pin move like any
-  change to the policy.
+- **Symptom.** A pinned ingredient runs a command, renders a rule or marks a floor nobody on the team read, an applied
+  station wrote entries nobody read, or an added recipe runs steps nobody read.
+- **Why.** `the-cook station apply`, `the-cook ingredient pin` and `the-cook recipe add` trust the cookbook's
+  `checksums.txt` as it is downloaded over HTTPS at that moment. No release key vouches for an ingredient, a station or
+  a recipe. From then on the binary verifies each archive against its pin, so the pin fixes its bytes, but the pin
+  itself is only as trustworthy as the review of the diff that added it.
+- **What `the-cook` does.** Shows the pins, a station's entries and templates and a recipe's files as one diff and asks
+  before writing them; a pin is rendered in the same change, so the declaration and its effect are one diff.
+- **What you do.** Read each one with `./cook ingredient show <name> --cookbook <source>@<version>`,
+  `./cook station show <name> --cookbook <source>@<version>` or
+  `./cook recipe show <name> --cookbook <source>@<version>` before approving it, and review a pin move or a recipe
+  update like any change to the policy.
 
 ## The wrapper
 

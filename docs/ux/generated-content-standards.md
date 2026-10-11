@@ -24,6 +24,8 @@ These rules apply to anything `the-cook` writes into a repository.
 | Owned whole file that allows no comments | `.cook/manifest.json` and other JSON files | the manifest |
 | Seeded file | `.cook/config.yaml`, `.cook/policy.yaml`, `.cook/hooks.yaml`, the `.agents/memory/` skeleton | the manifest records it as seeded, with the hash it was created with: written once, then the repository's |
 | Template file | a file a station's template wrote, such as a loop runner's configuration file from a station that uses the loop runner | nothing: seeded content the manifest does not record, written once and only where the file was absent, then the repository's |
+| Recipe | `.cook/recipes/<name>/`, written by `the-cook recipe add`, `recipe update` or `recipe create`, or by applying a station that adds the recipe | nothing but the recipe's own `origin`, when it was copied from a cookbook: the repository's from the moment it is written; removal deletes `.cook/recipes/`, listing each recipe first |
+| Files a recipe run writes | the files a recipe's `run` and `template` steps write in the run's workspace, such as a migration and its test | nothing: ordinary changes on the run's branch, verified and delivered as the change they belong to |
 | Managed block inside a human file | the [block ids](#block-ids) in `AGENTS.md`, `README.md`, and the files ingredients render blocks into, such as a worker's instructions file and the version control system's ignore file | opening and closing markers, plus the manifest |
 | Owned keys inside a native file | the permission keys, `the-cook hook` entries (hooks on worker events, notification and context hooks) and rendered raw hook entries in a worker's settings files, as its ingredient names them | the manifest |
 | Link | a link from a worker's native skill directory to `.agents/skills/the-cook`, as its ingredient names it | the manifest |
@@ -46,8 +48,9 @@ the record tells a render which content leaves with the ingredient ([ADR 0007](.
 Owned content is rendered and replaced on every render, and a hand edit to it is drift. Seeded content is written once
 and then edited by people and workers. `the-cook` never re-renders it. It writes to the repository files again only when
 a person pins an ingredient (`the-cook ingredient pin`), which adds or moves that pin, or applies a station
-(`the-cook station apply`), which adds only what they lack. Why: the seeded files hold the repository's choices and
-knowledge, which `the-cook` cannot recompute.
+(`the-cook station apply`), which adds only what they lack, and it writes a recipe only when a person adds, updates or
+creates it (`the-cook recipe add`, `recipe update`, `recipe create`) or applies a station that adds it. Why: the seeded
+files hold the repository's choices and knowledge, which `the-cook` cannot recompute.
 
 A template is seeded content of its own kind: a whole file in a station or in `scaffold`, rendered once with values from
 the profile, written only when the file is absent, and from then on the repository's own file. `the-cook` never renders
@@ -56,11 +59,19 @@ reads, such as a loop runner's configuration, which the team then edits for that
 owned, and removing it with the station's record would then delete a file the team edited
 ([configuration-standards.md](configuration-standards.md#what-each-part-writes)).
 
+A recipe is the repository's own from the moment it is written, like a seeded file, but the manifest does not record
+it: the recipe's own `origin` says where a copy came from, and a recipe the repository wrote has none. A recipe's
+`template` step is not a template in the sense above: it writes a file into a recipe run's workspace, refusing a path
+that exists, as part of the change that run makes, which reaches review with the rest of that change. Why: a recipe is
+the repository's description of its own work, which it edits, updates and deletes like any file it owns, and what a
+recipe run writes is the change itself ([configuration-standards.md](configuration-standards.md#recipes)).
+
 `the-cook scaffold` seeds the repository files and, with `--cookbook`, applies the stations whose detect rule matches
-the repository as it seeds them ([configuration-standards.md](configuration-standards.md#applying-a-station)). The
-`.agents/memory/` skeleton is seeded when the memory module is enabled, by `the-cook scaffold` or by the first
-`the-cook render` after the module is enabled, and is never re-rendered. The recorded creation hash is what lets undo
-(`the-cook remove`) tell an untouched skeleton from content someone wrote ([ADR 0007](../adrs/0007-ownership.md)).
+the repository as it seeds them, the recipes they add included
+([configuration-standards.md](configuration-standards.md#applying-a-station)). The `.agents/memory/` skeleton is seeded
+when the memory module is enabled, by `the-cook scaffold` or by the first `the-cook render` after the module is enabled,
+and is never re-rendered. The recorded creation hash is what lets undo (`the-cook remove`) tell an untouched skeleton
+from content someone wrote ([ADR 0007](../adrs/0007-ownership.md)).
 
 ## Header
 
@@ -226,11 +237,11 @@ Why: two teammates rendering the same commit must produce the same diff, or ever
 - The same repository files, pinned release and ingredients pinned by hash produce the same bytes on every supported
   operating system, with no network access, because nothing else is an input
   ([ADR 0013](../adrs/0013-organization-content.md), [ADR 0022](../adrs/0022-tool-integration.md)). The per-user cache
-  supplies only ingredients whose archive matches their `sha256`, and a station is not an input to rendering. A new
-  release may render differently, the shipped skill and `cook` included; a new version of an ingredient may render
-  differently, its floor included. Moving either pin (`the-cook wrapper --version <tag>`, `the-cook ingredient pin`)
-  renders the repository in the same change, so every such difference reaches review in that diff
-  ([compatibility-standards.md](compatibility-standards.md#rendered-output-across-releases),
+  supplies only ingredients whose archive matches their `sha256`, and neither a station nor a recipe is an input to
+  rendering. A new release may render differently, the shipped skill and `cook` included; a new version of an ingredient
+  may render differently, its floor included. Moving either pin (`the-cook wrapper --version <tag>`,
+  `the-cook ingredient pin`) renders the repository in the same change, so every such difference reaches review in that
+  diff ([compatibility-standards.md](compatibility-standards.md#rendered-output-across-releases),
   [ADR 0017](../adrs/0017-engine-version.md)). Rendered content never records the release that rendered it
   ([ADR 0005](../adrs/0005-schema-compatibility.md)).
 - Generated content contains no timestamps, binary versions, usernames, hostnames, absolute paths or random values.
@@ -256,18 +267,23 @@ Why: two teammates rendering the same commit must produce the same diff, or ever
 - Generated content is committed so that every change reaches review as a diff and a clone works without the binary.
 - A change to one repository file produces the smallest rendered diff that expresses it; unrelated lines do not move,
   so a reviewer reads only the effect of the change.
-- The binary commits in a repository in two cases only: `the-cook attempt --commit` commits a task's verified work in
-  the checkout it ran in, and `the-cook fleet <command> --deliver`, which runs a command across a listed set of
-  repositories, commits the tool-owned changes on a new local branch `<branch_prefix><command>`, cut from the fetched
-  default branch, then fires that repository's `deliver` actions. Any other commit, push or pull request is a declared
-  action. Why: a commit is the start of delivery, and delivery is the repository's decision. The two exceptions commit
-  only work the binary itself verified or rendered, in a checkout its caller chose for that work or on a branch it
-  created.
+- The binary commits in a repository in three cases only: `the-cook attempt --commit` commits a task's verified work in
+  the checkout it ran in; `the-cook make --commit` commits a recipe run's work, after its replay passes, on the branch
+  of the run's workspace, with the recipe and its inputs in the commit body; and `the-cook fleet <command> --deliver`,
+  which runs a command across a listed set of repositories, commits the tool-owned changes on a new local branch
+  `<branch_prefix><command>`, cut from the fetched default branch, then fires that repository's `deliver` actions. Any
+  other commit, push or pull request is a declared action. Why: a commit is the start of delivery, and delivery is the
+  repository's decision. The three exceptions commit only work the binary itself verified or rendered, in a checkout
+  its caller chose for that work or on a branch it created.
 - Reviewers judge the source change (`policy.yaml`, `hooks.yaml`, `config.yaml`); the rendered diff shows its effect
   on each worker.
 - `the-cook station apply` writes its additions and renders them in the same change, so the station and ingredient pins,
-  the entries, the files its templates wrote and their rendered effect reach review as one diff, and the drift check
-  passes on it. `the-cook ingredient pin` does the same for the pins it writes.
+  the entries, the files its templates wrote, the recipes it added and their rendered effect reach review as one diff,
+  and the drift check passes on it. `the-cook ingredient pin` does the same for the pins it writes.
+- `the-cook recipe add` and `the-cook recipe update` show the recipe they copy or merge as a diff before writing it, and
+  `recipe update` writes each conflict into the copy with conflict markers and moves `origin` at once, so the person or
+  worker who resolves the markers does so in the same change and nothing else is left to do. What a recipe run writes
+  reaches review as the change it makes, delivered like any other work.
 - A version upgrade reaches review as one diff: `wrapper.yaml` (the version and its checksums) and every artefact the
   new release renders differently, `cook` and the shipped skill included. The checksums were written only after
   the running binary verified the release's signed checksum file, so reviewers confirm that the version is the one
@@ -282,14 +298,17 @@ rely on.
 
 Both modes:
 
-- act only on what the manifest lists, and never delete any other file: a file the manifest does not record, even
-  inside `.cook/`, is listed and left, and `.cook/` is deleted once
-  nothing else is in it, so what removal touches is known before it runs ([ADR 0007](../adrs/0007-ownership.md));
+- act only on what the manifest lists and on `.cook/recipes/`, and never delete any other file: a file the manifest
+  does not record, elsewhere in `.cook/`, is listed and left, and `.cook/` is deleted once nothing else is in it, so
+  what removal touches is known before it runs ([ADR 0007](../adrs/0007-ownership.md));
+- list each recipe in `.cook/recipes/` in their plan before deleting it, so a person can keep a copy first. Why: a
+  recipe is the repository's own description of its work and means nothing without `the-cook`, so it goes with the
+  other repository files in `.cook/`, and the plan is the last moment to keep it;
 - refuse a listed owned file whose content no longer matches its recorded hash (it was edited by hand), name it, and
   exit 3 unless `--force` is given, because the edit may be someone's only copy of their work;
 - accept `--dry-run`, which lists every path, block, entry and key they would change;
 - leave text and keys outside owned content byte for byte, so `git status` afterwards shows only changes to content
-  `the-cook` owned or seeded.
+  `the-cook` owned or seeded and the deleted recipes.
 
 ### Undo: `the-cook remove`
 
@@ -297,10 +316,10 @@ Both modes:
 without `the-cook`:
 
 - It deletes the owned files and links, removes every managed block including its markers and text, and removes owned
-  keys and entries from native files. Without `--module`, it also deletes `cook`, `wrapper.yaml`, the manifest and
-  the seeded repository files in `.cook/`, listing the seeded files first, and then `.cook/` once nothing else
-  is in it. Their history stays in version control. Entries a station added are part of those files and go with them.
-  Why: the seeded files have no meaning without `the-cook`.
+  keys and entries from native files. Without `--module`, it also deletes `cook`, `wrapper.yaml`, the manifest, the
+  seeded repository files in `.cook/` and the recipes in `.cook/recipes/`, listing them first, and then `.cook/` once
+  nothing else is in it. Their history stays in version control. Entries a station added are part of those files and go
+  with them, and so do the recipes it added. Why: the seeded files and the recipes have no meaning without `the-cook`.
 - A seeded file outside `.cook/` (the `.agents/memory/` skeleton) is deleted only while it still matches the hash
   the manifest recorded when it was seeded; an edited one is kept and listed. Why: an untouched skeleton is generated
   output, while a file someone wrote into is the repository's knowledge, which `the-cook` never removes
@@ -323,8 +342,9 @@ without `the-cook`:
 - It removes hook entries that call `the-cook`, and permission entries that name a `the-cook` command in any rendered
   spelling, and lists them; raw hooks keep working. Why: they name a program that no longer exists in the repository.
 - It removes the shipped skill and its links, because the skill teaches commands that no longer exist.
-- It deletes `cook` and the owned and seeded files in `.cook/`, the manifest included, then `.cook/` once
-  nothing else is in it.
+- It deletes `cook`, the owned and seeded files in `.cook/`, the manifest included, and the recipes in
+  `.cook/recipes/`, listed first, then `.cook/` once nothing else is in it. Why: a recipe runs only through `the-cook`,
+  so after eject it would describe a command that no longer exists.
 - It keeps the `.agents/memory/` skeleton and whatever people wrote into it, because it is the repository's knowledge.
 
 After eject, the repository keeps its conventions, permissions, hooks and static standing directives, and every file a

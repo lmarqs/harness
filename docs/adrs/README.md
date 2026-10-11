@@ -90,8 +90,8 @@ One ADR holds one decision. If its points serve two decisions, it is two ADRs.
 - Present tense, no hedges.
 - No names of the tool's commands, flags, settings, environment variables, exit codes or files. Mechanisms are named
   generically: the wrapper, the manifest, the drift check, the health check, the repository's data, an ingredient, a
-  station. The [glossary](../features/glossary.md) and the [features](../features/) pages give the tool's own name for
-  each. The directory layout ADR names directories because the layout is its decision.
+  station, a recipe. The [glossary](../features/glossary.md) and the [features](../features/) pages give the tool's own
+  name for each. The directory layout ADR names directories because the layout is its decision.
 - A third-party product whose behaviour a decision depends on is named with the version that behaviour was checked
   against. Prior art and rejected tools are named without a version, because nothing depends on their behaviour.
 - Organizations appear only as the makers of third-party products whose behaviour matters; examples use `acme`.
@@ -169,4 +169,5 @@ Must be maintained:
 | [0021](0021-release-trust.md) | How is downloaded content trusted? | Only an already trusted binary admits downloaded content |
 | [0022](0022-tool-integration.md) | How does the binary reach external programs? | Every program the binary uses is described by an ingredient |
 | [0023](0023-core-and-contracts.md) | How is the binary's code divided? | The binary is a core behind contracts it declares |
-| [0024](0024-ingredients-and-stations.md) | What does a cookbook publish? | An ingredient describes one program, a station one way of working |
+| [0024](0024-ingredients-and-stations.md) | What separates a program's description from a way of working? | An ingredient describes one program, a station one way of working |
+| [0025](0025-recipes.md) | How does a repository make a kind of change it repeats? | A recipe is one kind of change, run through the lifecycle |
