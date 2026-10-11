@@ -29,6 +29,9 @@ The same worker hooks also deliver the repository's [standing context](context.m
 and directives injected when a session starts, when the worker touches matching files, or when the person's message
 contains a listed word.
 
+Jump to [field reference](#reference), [examples](#examples), [guidelines](#guidelines),
+[troubleshooting](#troubleshooting).
+
 Commands are named `the-cook <command>` on this page. Run them through the repository's wrapper,
 `./cook <command>`, from the root of a checkout; with a global install, `the-cook <command>` is equivalent
 ([wrapper](wrapper.md)).
@@ -259,8 +262,8 @@ In short:
 - an action is a shell command (`run`), an HTTP request `the-cook` makes (`http`), or an attempt of a worker on a
   prompt, under the [attempt contract](attempts.md#the-attempt-contract) (`attempt`)
   ([action kinds](lifecycle.md#action-kinds));
-- actions run in the work's checkout, in declaration order, and the first failure stops the event with exit 2 unless
-  the action says `on_failure: continue`, in which case the remaining actions run and the event still exits 2;
+- actions run in the work's checkout, in declaration order; the first failure stops the event with exit 2 unless the
+  action says `on_failure: continue`;
 - values reach an action only as environment variables, never substituted into `run`, so a task title or a branch
   name cannot inject a command;
 - secrets for `http` come only from the variables `url_env` and `headers_env` name;

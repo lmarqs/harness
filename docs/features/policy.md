@@ -17,11 +17,14 @@ whatever anyone edits.
 
 The policy says what [workers](workers.md) may do without asking (`allow`), only after a person confirms (`ask`), or
 never (`deny`), plus what is denied only to [attempts](attempts.md#the-attempt-contract), the unattended runs
-`the-cook attempt`, `attempt` actions and the `attempt` steps of [recipes](recipes.md#step-kinds) start, one per task.
-It is written once, neutrally where the workers allow it, and each worker's [ingredient](workers.md#the-worker-contract)
-renders it into that program's native permission format. The [floor](#the-floor) is always added and cannot be removed
-or weakened: the floor rules of the ingredients in use, such as a version-control ingredient's deny of a force push to
-the default branch, and the binary's own entries for its commands.
+`the-cook attempt`, `attempt` actions and the `attempt` steps of [recipes](recipes.md#step-kinds) start. Each worker's
+[ingredient](workers.md#the-worker-contract) renders it into that program's native permission format. The
+[floor](#the-floor) is always added and cannot be removed or weakened: the floor rules of the ingredients in use, such
+as a version-control ingredient's deny of a force push to the default branch, and the binary's own entries for its
+commands.
+
+Jump to [field reference](#reference), [examples](#examples), [guidelines](#guidelines),
+[troubleshooting](#troubleshooting).
 
 Commands are named `the-cook <command>` on this page. Run them through the repository's wrapper,
 `./cook <command>`, from the root of a checkout; with a global install, `the-cook <command>` is equivalent
@@ -76,7 +79,7 @@ three, and [safety](safety.md#unattended-runs) explains what they mean for an un
 | --- | --- | --- | --- |
 | 1. Prefix list | `[git, push]` | every shell command whose leading words are `git push` | every worker whose ingredient renders permissions |
 | 1. Prefix list with alternatives | `[gh, pr, [view, list, diff]]` | `gh pr view …`, `gh pr list …`, `gh pr diff …` | every worker whose ingredient renders permissions |
-| 2. Native rule string | `"Read(./secrets/**)"`, `"WebSearch"`, `"mcp__acme-observability__search_*"` | what the program's own rule syntax matches, globs included | each worker whose ingredient declares a `native_rules` pattern the string matches, verbatim or converted as its renders say; no other worker |
+| 2. Native rule string | `"Read(./secrets/**)"`, `"WebSearch"`, `"mcp__acme_observability__search_*"` | what the program's own rule syntax matches, globs included | each worker whose ingredient declares a `native_rules` pattern the string matches, verbatim or converted as its renders say; no other worker |
 | 3. Bare string | `"gh pr merge *--admin*"` | a whole shell command, where `*` matches anything anywhere | each worker whose program matches whole shell commands by glob, as its ingredient's renders say; no other worker |
 
 A nested list is a set of alternatives for one word, one level deep. Use quotes for words YAML would otherwise parse,
@@ -92,7 +95,7 @@ Declaring or removing a worker can therefore change a string's form; the [`polic
 shows the result.
 
 For example, the `claude` ingredient of `github:acme/cookbook` declares patterns for its program's tool rules and MCP
-tool names, so `"Read(./secrets/**)"`, `"WebSearch"` and `"mcp__acme-observability__search_*"` are native rule
+tool names, so `"Read(./secrets/**)"`, `"WebSearch"` and `"mcp__acme_observability__search_*"` are native rule
 strings for a `claude` worker, while `"gh pr merge *--admin*"` matches none of its patterns and is a bare string.
 `./cook ingredient show <name>` prints an ingredient's patterns.
 
@@ -106,7 +109,9 @@ file; its page in its cookbook shows the exact output:
 | prefix list under `shared.allow`, `shared.ask`, `shared.deny` | a rule with the program's allow, ask or deny decision, one per combination of alternatives |
 | native rule string | for a worker whose ingredient's pattern it matches, the rule verbatim, or converted into the program's own form; otherwise not rendered for that worker |
 | bare string | a whole-command glob rule, when the program has one; otherwise not rendered for that worker |
-| `unattended.deny` | as the ingredient's launch passes it: as launch arguments `the-cook attempt` adds, and in the deny rules when the worker's role is `unattended`; or only in the rendered deny rules, when the worker's role is `unattended`; an ingredient that does neither describes a worker that cannot run attempts: `the-cook attempt` and `attempt` actions refuse it with exit 3 |
+| `unattended.deny`, when the ingredient passes it as launch arguments | as launch arguments `the-cook attempt` adds, and in the deny rules when the worker's role is `unattended` |
+| `unattended.deny`, when the ingredient passes it only through rendered rules | only in the rendered deny rules, when the worker's role is `unattended` |
+| `unattended.deny`, when the ingredient does neither | the worker cannot run attempts: `the-cook attempt` and `attempt` actions refuse it with exit 3 |
 
 Every entry a worker does not enforce is listed as such in the [`policy` block](#the-convention-in-agentsmd) of
 `AGENTS.md`, so a reader sees which rules each worker leaves out. See [workers](workers.md#roles) for what roles
@@ -235,18 +240,8 @@ settings file has to be made by hand in the other worker's file and in this text
 | `shared.deny` | list of entries | `[]` | Never run |
 | `unattended.deny` | list of entries | `[]` | Never run in an attempt (`the-cook attempt`, an `attempt` action or a recipe's `attempt` step), on top of `shared` |
 
-`scaffold` seeds the file as:
-
-```yaml
-schema: 1
-shared:
-  allow: []
-  ask:
-    - [the-cook, lifecycle, run, deliver]
-  deny: []
-unattended:
-  deny: []
-```
+`scaffold` seeds the file with the structure above, an empty `allow` and `deny`, and
+[the seeded entry](#the-seeded-entry) in `ask`.
 
 ## Examples
 
