@@ -132,8 +132,9 @@ Workspaces in this project are created in `.work/workspaces/<name>`, on branch `
   outside the repository adds text to a block, because text there acts in every session while its source would sit
   where nobody working in the repository reads it ([ADR 0013](../adrs/0013-organization-content.md)).
 - A `.gitignore` block omits any path the repository tracks, so ignoring never hides a committed file.
-- Each module writes its own `.gitignore` entries, even when another module's entry already covers them (for example
-  `/.work/` and `/.work/workspaces/`). Why: removing one module must never un-ignore another module's paths.
+- The version-control ingredient writes `.gitignore` entries for each module, even when one entry already covers another
+  (for example `/.work/` and `/.work/workspaces/`). Why: removing one module must never un-ignore another module's
+  paths.
 
 ### Block classes
 
@@ -236,14 +237,15 @@ Why: two teammates rendering the same commit must produce the same diff, or ever
 
 - The same repository files, pinned release and ingredients pinned by hash produce the same bytes on every supported
   operating system, with no network access, because nothing else is an input
-  ([ADR 0013](../adrs/0013-organization-content.md), [ADR 0022](../adrs/0022-tool-integration.md)). The per-user cache
-  supplies only ingredients whose archive matches their `sha256`, and neither a station nor a recipe is an input to
-  rendering. A new release may render differently, the shipped skill and `cook` included; a new version of an ingredient
-  may render differently, its floor included. Moving either pin (`the-cook wrapper --version <tag>`,
+  ([ADR 0013](../adrs/0013-organization-content.md), [ADR 0022](../adrs/0022-tool-integration.md)).
+- The per-user cache supplies only ingredients whose archive matches their `sha256`. Neither a station nor a recipe is
+  an input to rendering.
+- A new release may render differently, the shipped skill and `cook` included. A new version of an ingredient may
+  render differently, its floor included. Moving either pin (`the-cook wrapper --version <tag>`,
   `the-cook ingredient pin`) renders the repository in the same change, so every such difference reaches review in that
   diff ([compatibility-standards.md](compatibility-standards.md#rendered-output-across-releases),
-  [ADR 0017](../adrs/0017-engine-version.md)). Rendered content never records the release that rendered it
-  ([ADR 0005](../adrs/0005-schema-compatibility.md)).
+  [ADR 0017](../adrs/0017-engine-version.md)).
+- Rendered content never records the release that rendered it ([ADR 0005](../adrs/0005-schema-compatibility.md)).
 - Generated content contains no timestamps, binary versions, usernames, hostnames, absolute paths or random values.
 - Order follows the source file's declaration order where one exists, and a documented sort otherwise.
 - Text files are UTF-8, use LF line endings and end with one newline.

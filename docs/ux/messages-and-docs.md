@@ -224,12 +224,13 @@ A section with no content is omitted rather than left empty.
 - No organization names in examples or in content `the-cook` carries; examples use `acme` for an organization and
   `acme/api` for a repository, and cookbooks in examples are `github:acme/cookbook`, because `the-cook` is open source
   and its docs must fit any organization.
-- Feature and standards pages describe the lifecycle, its core and its three contracts, and name programs by role: the
-  version control system, a worker, a jail, a loop runner, a task tracker, a task runner, a skills installer. A product
-  appears only in a short example that plainly uses an ingredient from a cookbook, such as a worker `claude` declared
-  with `ingredient: claude` pinned from `github:acme/cookbook`, never as a description of that program's behaviour,
-  flags, file keys, versions or pitfalls; that knowledge belongs to the page of the cookbook that describes the program.
-  An ADR names a product only in its Context, as checkable evidence of what exists. Why: the binary contains code and
+- Feature and standards pages describe the lifecycle, its core and its three contracts. They name programs by role: the
+  version control system, a worker, a jail, a loop runner, a task tracker, a task runner, a skills installer.
+- A product appears only in a short example that plainly uses an ingredient from a cookbook, such as a worker `claude`
+  declared with `ingredient: claude` pinned from `github:acme/cookbook`, never as a description of that program's
+  behaviour, flags, file keys, versions or pitfalls. That knowledge belongs to the page of the cookbook that describes
+  the program.
+- An ADR names a product only in its Context, as checkable evidence of what exists. Why: the binary contains code and
   data for no program and ships no ingredient, no station and no recipe, so a page that describes a program's behaviour
   documents something `the-cook` does not hold and goes stale with that program's releases
   ([ingredients](../features/ingredients.md), [ADR 0022](../adrs/0022-tool-integration.md)).
@@ -237,11 +238,11 @@ A section with no content is omitted rather than left empty.
   ingredient reports the default branch", "a floor rule of the version-control ingredient". Why: a page that says
   `the-cook` runs a particular program describes a binary that does not exist.
 - Version control is described in the contract's terms: the shared default line of work, what is shared, learning what
-  is shared, the default revision. One system's terms, such as a remote, `origin` or a fetch, appear only in an example
-  of that system's ingredient, such as the `origin/<branch>` a git ingredient answers as the default revision. Why:
-  `the-cook` depends on no version control system and asks as little of one as it can, and a page written in one
-  system's words describes a contract the others seem unable to fill
-  ([the version-control contract](../features/ingredients.md#the-version-control-contract)).
+  is shared, the default revision.
+- One system's terms, such as a remote, `origin` or a fetch, appear only in an example of that system's ingredient, such
+  as the `origin/<branch>` a git ingredient answers as the default revision. Why: `the-cook` depends on no version
+  control system and asks as little of one as it can, and a page written in one system's words describes a contract the
+  others seem unable to fill ([the version-control contract](../features/ingredients.md#the-version-control-contract)).
 - Example commands are complete and run as written; example output is copied from a real run of the documented
   release, so a reader can trust what they copy.
 - Commands that run inside a repository are written as `./cook <command>`, with `the-cook <command>` shown as the

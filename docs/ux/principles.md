@@ -117,24 +117,20 @@ them would carry credentials and cost, and a loop of its own to maintain ([ADR 0
   under the rules in [compatibility-standards.md](compatibility-standards.md#rendered-output-across-releases), and an
   ingredient's renders change only when its pin moves
   ([ingredients and stations across versions](compatibility-standards.md#ingredients-and-stations-across-versions)).
-- No hidden network access, because a user must be able to say what a command contacted. The network calls `the-cook`
-  makes on its own are: the wrapper's download of the version pinned in `.cook/wrapper.yaml` (on an explicit invocation
-  only, over HTTPS, verified against the pinned checksum); the release's signed checksum file, fetched by
-  `the-cook scaffold` (not with `--offline`) and `the-cook wrapper` before they write a pin and re-verified by
-  `the-cook doctor` at most daily; the download of a cookbook tag's `checksums.txt` and of ingredient, station and
-  recipe archives by `the-cook ingredient pin`, `the-cook station apply` (with `--cookbook`, or for a pin that is not
-  cached), `the-cook recipe add`, `the-cook recipe update`, `the-cook fetch`, `scaffold --cookbook` and the
-  `--cookbook` reads of `ingredient list`, `ingredient show`, `station list`, `station show`, `recipe list` and
-  `recipe show` (over HTTPS, each archive verified against its `sha256`); and the daily release check
-  ([update notices](compatibility-standards.md#update-notices)). Each is documented and the release check can be
-  disabled. Rendering needs none of them once the pinned ingredients are cached, and neither does applying a cached
-  station again or running a recipe, because their only inputs are the repository's files, the pinned release and what
-  the repository pins by hash ([principle 9](#9-everything-a-repository-does-is-in-its-own-files)). Any other network
-  access is declared: an `http` action, a `run` action or a recipe's `run` step whose program reaches the network, or
-  an `attempt` action or `attempt` step whose worker does, as `workers.<name>.network` and the program's own defaults
-  allow, visible in `the-cook lifecycle list`, in `.cook/hooks.yaml`, in `.cook/recipes/` and in the profile; and the
-  version-control contract's `update`, which learns what is shared, run by `the-cook fleet --deliver` and, when the
-  profile sets `workspaces.update_before_landed`, by `the-cook workspace remove`.
+- No hidden network access, because a user must be able to say what a command contacted.
+  - `the-cook` network calls: the wrapper's download of the pinned version (on explicit invocations, verified against
+    the pinned checksum); the release's signed checksum file (fetched by `scaffold` and `wrapper` before writing a pin,
+    re-verified by `doctor` at most daily); cookbook downloads by `ingredient pin`, `station apply`, `recipe add`,
+    `recipe update`, `fetch`, and the `--cookbook` reads of list and show commands (each archive verified against its
+    `sha256`); the daily release check ([update notices](compatibility-standards.md#update-notices)).
+  - Each is documented and the release check can be disabled.
+  - Rendering needs none of them once the pinned ingredients are cached, and neither does applying a cached station
+    again or running a recipe, because their only inputs are the repository's files, the pinned release and what the
+    repository pins by hash ([principle 9](#9-everything-a-repository-does-is-in-its-own-files)).
+  - Declared network access: an `http` action, a `run` action or recipe `run` step whose program reaches the network,
+    an `attempt` action or step whose worker does (as `workers.<name>.network` and the program's defaults allow), and
+    the version-control contract's `update` (run by `fleet --deliver` and, when the profile sets
+    `workspaces.update_before_landed`, by `workspace remove`).
 - Names, flags and output look the same across commands ([cli-standards.md](cli-standards.md)), so what a user learns
   on one command holds on the next.
 
@@ -295,14 +291,15 @@ Apply them in this order, because each earlier principle protects something hard
 
 1. The built-in invariants and the floor of the ingredients in use ([ADR 0011](../adrs/0011-safety-invariants.md),
    [ADR 0022](../adrs/0022-tool-integration.md)). No principle, setting or flag weakens them.
-2. Never destroy.
-3. Nothing leaves the clone undeclared.
-4. Optional and transparent.
-5. Conventions outlive the tool.
-6. Everything a repository does is in its own files.
-7. Deterministic in the binary, judgement to people and workers.
-8. Least surprise.
-9. One way to do each thing.
+2. Never destroy (principle 5).
+3. Nothing leaves the clone undeclared (principle 7).
+4. Optional and transparent (principle 1).
+5. Conventions outlive the tool (principle 8).
+6. Everything a repository does is in its own files (principle 9).
+7. The binary is deterministic; judgement belongs to people and workers (principle 2).
+8. Sets the rules, never plays (principle 3).
+9. Least surprise (principle 4).
+10. One way to do each thing (principle 6).
 
 Example: a convenient default that would overwrite a hand-edited file loses to "never destroy", so the command refuses
 and names `--force` instead. A shared source that would let an organization change a rule once for all its

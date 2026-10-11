@@ -14,8 +14,9 @@ agents who can exercise it.
 
 ## Overview
 
-Every new capability has exactly one home, chosen by the rules below ([ADR 0002](../adrs/0002-division-of-work.md)).
-They apply to proposals for `the-cook` itself and to the advice `the-cook` gives repositories through its skill.
+These rules choose where each capability belongs ([ADR 0002](../adrs/0002-division-of-work.md)). They apply to proposals
+for `the-cook` itself and to the advice `the-cook` gives repositories through its skill. A capability is placed whole,
+or split when it has both a deterministic half and a judgement half ([below](#when-behaviour-splits)).
 
 ## Destinations
 
@@ -356,6 +357,6 @@ Each of these breaks a principle, for the reason given after it.
 - An implicit entry point (a rendered hook) that downloads the binary: a hook must never stall or fail a session.
 - `the-cook` configuration or state in `.agents/`, or state in `.cook/`: each directory has one owner.
 - A convention that exists only in the configuration of `the-cook`, without a plain-language statement in `AGENTS.md`:
-  it would not survive the tool.
-- A convention block that names a `the-cook` command: eject keeps convention blocks, so the command would no longer
-  exist.
+  it does not survive the tool.
+- A convention block that names a `the-cook` command: eject keeps convention blocks, so the command does not exist after
+  eject.

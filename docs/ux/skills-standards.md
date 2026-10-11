@@ -70,8 +70,8 @@ tool. Anything that would need one belongs in an organization skill, and from th
   needed only in some cases moves to `references/` with a one-line pointer saying when to read it. Why: the body is
   loaded in full whenever the skill is used.
 - Procedures are numbered steps. Each step that changes state names the command that performs it. The last step is the
-  check that proves the result (`the-cook render --check`, `the-cook doctor`, `the-cook verify --check`), so the outcome
-  of the coding agent's judgement is verified by the binary.
+  check that confirms the result (`the-cook render --check`, `the-cook doctor`, `the-cook verify --check`), so the
+  outcome of the coding agent's judgement is checked by the binary.
 
 ## Skills used as standing context
 
@@ -102,10 +102,12 @@ alert. The recipe holds the steps and the skill holds the guidance, so neither r
 
 - is written for an unattended worker: it asks no question and waits for no answer, because nobody replies inside an
   attempt; a check a person must make is a handoff in the recipe, not a question in the skill;
-- ends, like every procedure, with the check: `./cook verify` with the lanes and patterns the change needs, which tells
-  the worker whether its edits pass; that receipt is feedback, not the proof, because the recipe run's Verify stage
-  runs every lane the change selects and every lane the recipe requires itself; completion and delivery are the run's,
-  so it never tells the worker to commit, deliver or fire an event, which the attempt contract refuses anyway;
+- ends with the check: `./cook verify` with the lanes and patterns the change needs.
+  - The check tells the worker whether its edits pass.
+  - That receipt is feedback, not the proof, because the recipe run's Verify stage runs every lane the change selects
+    and every lane the recipe requires itself.
+  - Completion and delivery are the run's, so the skill never tells the worker to commit, deliver or fire an event,
+    which the attempt contract refuses anyway.
 - reads correctly in an interactive session too, because the same skill guides a person's coding agent making the same
   kind of change by hand.
 
@@ -187,7 +189,7 @@ the text does not show that.
 | --- | --- | --- |
 | Trigger | prompts that should load the skill, and near-miss prompts that should not | the skill loads for the first set and not for the second |
 | Task | realistic requests run by a coding agent in fixture repositories of each supported stack ("allow the deploy tasks", "finish the adoption", "add a lane for integration tests") | the binary's own checks pass afterwards (`render --check`, `doctor`, `verify --check`) and no file outside the expected ones changed |
-| Regression | the task set from the previous release | no task that passed now fails |
+| Regression | the task set from the previous release | no task that passed before fails |
 
 Evaluations judge outcomes by deterministic checks wherever possible, not by reading the coding agent's prose, because
 the same prose can come with a wrong result.
