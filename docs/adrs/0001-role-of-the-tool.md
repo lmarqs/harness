@@ -9,9 +9,9 @@ around one kind of program, it is rebuilt for the next one. Built to do the work
 agent, chasing every model and API change the vendors of coding agents already follow and holding credentials and costs
 that belong to each organization.
 
-**Goal.** Every change in every repository passes the same stages under the same guards, whatever program does its
-work, and the programs that do the work keep the capabilities, model access and credentials their vendors and
-organizations give them.
+**Goal.** Every change made through the tool, in every repository, passes the same stages under the same guards,
+whatever program does its work, and the programs that do the work keep the capabilities, model access and credentials
+their vendors and organizations give them.
 
 ## Context
 

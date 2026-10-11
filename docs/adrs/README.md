@@ -173,3 +173,4 @@ Must be maintained:
 | [0025](0025-recipes.md) | How does a repository make a kind of change it repeats? | A recipe is one kind of change, run through the lifecycle |
 | [0026](0026-cookbook-trust.md) | How is a cookbook's content trusted? | A cookbook's content is admitted by a reviewed pin |
 | [0027](0027-worker-jails.md) | How are a worker's attempts confined? | A worker's attempts run inside the jail its declaration names |
+| [0028](0028-place-of-the-tool.md) | What place does the tool take among the people who use it? | The tool helps people work together without controlling how anyone works |

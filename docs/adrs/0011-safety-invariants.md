@@ -6,8 +6,8 @@
 that has lost them runs unattended coding agents with permission checks turned off. A coding agent left alone that can
 edit its own rules or its own verification can also give itself more permissions and claim work it did not do.
 
-**Goal.** In every repository, every worker the tool starts unattended runs with permission checks on, cannot widen its
-own permissions, and cannot be recorded as done without a verification that passed.
+**Goal.** In every repository, every worker the tool starts unattended runs with permission checks on, cannot change
+the rules its repository committed, and cannot be recorded as done without a verification that passed.
 
 ## Context
 
@@ -228,8 +228,10 @@ tool by an absolute path would pass.
 Costs:
 
 - Teams that run unattended workers with permission bypass cannot do so through the tool.
-- A worker in an attempt cannot change its own permissions, hooks or guidance during a session; the change goes through
-  a person and a commit.
+- A worker in an attempt cannot change the permissions, hooks or guidance its repository committed during a session;
+  the change goes through a person and a commit.
+- The configuration a person keeps for a worker program outside the repository, which the tool neither reads nor
+  restores, can differ between machines and between attempts ([0028](0028-place-of-the-tool.md)).
 - An action that starts a worker gets the unattended permissions only; work that needs more is a command action or a
   person's job.
 - Changing an invariant takes a release and applies everywhere at once.
