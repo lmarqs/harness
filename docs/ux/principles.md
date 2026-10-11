@@ -45,6 +45,11 @@ the committed files of those that did, so anything `the-cook` requires of them i
   because a repository may want one practice without the others. Removal has two modes, undo (`the-cook remove`) and
   eject (`the-cook remove --eject`), and either leaves a repository that works with what remains (see
   [generated-content-standards.md](generated-content-standards.md#removal)).
+- A person's own setup is theirs: their editor, the settings, plugins and skills they keep for a worker program outside
+  the repository, and the loop runner and task list they use. `the-cook` MUST NOT require, write or check it, reads it
+  only when that person asks, and it applies in every session, those `the-cook` starts included. Why: a tool that
+  overrides a person's way of working takes it from people who never chose to give it up, and anyone can work around
+  it anyway ([ADR 0028](../adrs/0028-place-of-the-tool.md)).
 
 ## 2. The binary is deterministic; judgement belongs to people and workers
 
@@ -68,11 +73,12 @@ in every repository, while a guess made by code is wrong in the first repository
 
 [when-cli-when-skill.md](when-cli-when-skill.md) decides where a given behaviour belongs.
 
-## 3. Sets the rules, never plays
+## 3. Runs the game, never plays
 
 `the-cook` is a declared software development lifecycle: the stages a change goes through, the events it fires between
-them, the guards that hold between stages and the proof a change carries. It sets those rules for whoever does the work
-of a change, people and the workers they choose, such as coding agents, and it never takes a worker's place. Why: the
+them, the guards that hold between stages and the proof a change carries. It runs those rules for the work that goes
+through it, whoever does that work, people and the workers they choose, such as coding agents, and it never takes a
+worker's place. Why: the
 coding agents people already use are developed by their vendors and follow every model change. A tool that competed with
 them would carry credentials and cost, and a loop of its own to maintain ([ADR 0001](../adrs/0001-role-of-the-tool.md),
 [ADR 0015](../adrs/0015-development-lifecycle.md)).
@@ -297,7 +303,7 @@ Apply them in this order, because each earlier principle protects something hard
 5. Conventions outlive the tool (principle 8).
 6. Everything a repository does is in its own files (principle 9).
 7. The binary is deterministic; judgement belongs to people and workers (principle 2).
-8. Sets the rules, never plays (principle 3).
+8. Runs the game, never plays (principle 3).
 9. Least surprise (principle 4).
 10. One way to do each thing (principle 6).
 

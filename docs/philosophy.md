@@ -36,29 +36,32 @@ workers unattended. Across many repositories, that produces five problems.
 ## The goals
 
 - A practice learned once reaches every repository through one reviewed change in each, and is withdrawn the same way.
-- A fix to the lifecycle the tool enforces reaches every adopted repository through one release, a fix to how a program
+- A fix to the lifecycle the tool runs reaches every adopted repository through one release, a fix to how a program
   is described through one reviewed pin move in each, and a better way to make one kind of change through one reviewed
   merge in each.
-- Every change passes the same stages and guards in every adopted repository, whether a person or a worker makes it.
-- Wherever workers run unattended, they cannot bypass permissions or be recorded as done without a verification that
-  passed.
-- Adoption is optional per repository and per person, and removal leaves a working repository.
+- Every change made through the tool passes the same stages and guards in every adopted repository, whether a person or
+  a worker makes it.
+- Every worker the tool starts unattended runs with its permission checks on, and is recorded as done only after a
+  verification that passed.
+- Adoption is optional per repository and per person, takes no way of working from anyone, and removal leaves a working
+  repository.
 - Anyone reading a repository can tell what its workers may do, what a change must pass, and why.
 - The tool's own repository is developed with the tool.
 
 ## What `the-cook` is
 
-`the-cook` is a declared software development lifecycle, and the binary that enforces it. A change goes through fixed
+`the-cook` is a declared software development lifecycle, and the binary that runs it. A change goes through fixed
 stages: plan, start, implement, verify, complete, deliver, review and merge, and landed, with an out-of-band stop,
 blocked, at any of them. The binary fires an event between stages, at which the repository's declared actions run; it
 holds the guards between stages, so delivery never runs for work that is uncommitted, on the default branch or, with
 verification on, unverified; and it binds the proof a change carries to the change's base and content, and replays that
 proof from the base before an unattended attempt counts as done ([development lifecycle](features/lifecycle.md),
 [ADR 0015](adrs/0015-development-lifecycle.md)). It does no stage's work itself: it never calls a model and never edits
-the code. It sets the rules and never plays ([the game master](features/README.md#the-game-master),
-[ADR 0001](adrs/0001-role-of-the-tool.md)). The name comes from the kitchen: a cook follows the recipe exactly and lets
-nothing leave the kitchen until it passes the check. The workers do the cooking, and `the-cook` holds them to that
-standard.
+the code. It runs the game and never plays ([the game master](features/README.md#the-game-master),
+[ADR 0001](adrs/0001-role-of-the-tool.md)). Nobody has to work through it: each person keeps their own editor, coding
+agents, settings and tools, and work done another way is theirs ([ADR 0028](adrs/0028-place-of-the-tool.md)). The name
+comes from the kitchen: a cook follows the recipe exactly and lets nothing leave the kitchen until it passes the check.
+The workers do the cooking, and `the-cook` holds them to that standard.
 
 The lifecycle knows no program. Each stage that needs one reaches it through a contract or a declared action: the
 version-control contract for workspaces, bases, history and landed work, the worker contract for the programs that
@@ -107,6 +110,22 @@ measures.
 
 **Bound by.** [ADR structure](adrs/README.md#the-objective-comes-first),
 [documentation structure](ux/messages-and-docs.md#documentation-structure).
+
+### Helps, never controls
+
+**Problem.** Problem 4, turned on the tool itself: a tool that makes everyone work one way charges every person for a
+choice they did not make. It also stops nobody, because anyone can start a program directly, keep settings of their
+own or write a wrapper of their own.
+
+**Tenet.** `the-cook` helps people who work together, each their own way, by taming what they share: it sets up what
+the repository shares, runs the steps it is asked to run and reports what it did. Nobody has to go through it, and
+working around it is a supported use: it neither detects nor prevents work done another way. Each person's own choices
+stay theirs, such as their editor, the settings and plugins they keep for a coding agent, and the loop runner and task
+list they use. The tool never writes or checks them, reads them only when that person asks, and they apply in the
+sessions it starts for that person too. Every guarantee it states is about what it does itself.
+
+**Bound by.** [ADR 0028](adrs/0028-place-of-the-tool.md), [ADR 0010](adrs/0010-dependence-on-the-binary.md),
+[principle 1](ux/principles.md#1-optional-and-transparent).
 
 ### Everything is explicit
 
@@ -160,17 +179,17 @@ a worker or a person.
 [principle 2](ux/principles.md#2-the-binary-is-deterministic-judgement-belongs-to-people-and-workers),
 [when to use the CLI and when a skill](ux/when-cli-when-skill.md).
 
-### Sets the rules, never plays
+### Runs the game, never plays
 
 **Problem.** A tool that does a stage's work itself has to follow every change of the programs that do that work, such
 as every model and API change of a coding agent, and to hold credentials and costs that belong to each organization.
 
-**Tenet.** `the-cook` enforces the lifecycle: the stages, the guards between them and the proof a change carries. It
-configures and constrains the workers that do the work and never does it itself. It never calls a model, holds no model
-credentials and makes no decision that needs one.
+**Tenet.** `the-cook` runs the lifecycle: the stages, the guards between them and the proof a change carries. It
+configures the workers that do the work, sets the terms of those it starts, and never does the work itself. It never
+calls a model, holds no model credentials and makes no decision that needs one.
 
 **Bound by.** [ADR 0001](adrs/0001-role-of-the-tool.md), [ADR 0015](adrs/0015-development-lifecycle.md),
-[principle 3](ux/principles.md#3-sets-the-rules-never-plays).
+[principle 3](ux/principles.md#3-runs-the-game-never-plays).
 
 ### Knows no program
 
@@ -213,16 +232,18 @@ neither reaches the floor or the guards.
 **Bound by.** [ADR 0013](adrs/0013-organization-content.md), [ADR 0024](adrs/0024-ingredients-and-stations.md),
 [ADR 0025](adrs/0025-recipes.md).
 
-### A safety floor nobody can lower
+### A safety floor the tool never lowers
 
 **Problem.** Problem 3.
 
 **Tenet.** The rules that are never a legitimate choice, such as running unattended workers without permission checks,
-hold in every repository, and no repository, copy or edit can remove them. The process invariants, such as refusing
-bypass arguments before a launch, replaying proof from the base and withholding completion, are built into the binary.
-The program facts they apply, such as which arguments bypass a coding agent's checks or that a force push to the
-default branch is denied, are floor rules of the ingredients the repository pins: rendered on every render and out of
-reach of the repository's policy.
+hold in everything `the-cook` renders and in every worker it starts, and no repository file, copy or edit makes it drop
+them. A person who starts a program another way, or keeps their own configuration for it, is outside them by design
+([ADR 0028](adrs/0028-place-of-the-tool.md)). The process invariants, such as refusing bypass arguments before a
+launch, replaying proof from the base and withholding completion, are built into the binary. The program facts they
+apply, such as which arguments bypass a coding agent's checks or that a force push to the default branch is denied,
+are floor rules of the ingredients the repository pins: rendered on every render and out of reach of the repository's
+policy.
 
 **Bound by.** [ADR 0011](adrs/0011-safety-invariants.md), [ADR 0022](adrs/0022-tool-integration.md).
 

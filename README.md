@@ -11,20 +11,20 @@ clone. A practice learned in one repository reaches the others only by copying, 
 their safety settings, and nobody can tell from a repository what its programs may do or why.
 
 **Goal.** A way of working learned once reaches every repository through one reviewed change in each and is withdrawn
-the same way; every change, whoever or whatever makes it, passes the same declared stages and guards; and people who do
-not use the tool never notice it.
+the same way; every change made through the tool, whoever or whatever makes it, passes the same declared stages and
+guards; and everyone keeps their own way of working, while people who do not use the tool never notice it.
 
 ## What it is
 
-`the-cook` is a single command-line binary that enforces the software development lifecycle a repository declares.
+`the-cook` is a single command-line binary that runs the software development lifecycle a repository declares.
 
 Every change goes through the same stages: plan, start, implement, verify, complete, deliver, review and merge, and
 landed.
 
 Between stages the binary fires events, at which the actions the repository declares run.
 
-It holds the guards between stages, so delivery never runs for uncommitted work, work on the default branch or, with
-verification on, unverified work.
+It holds the guards between stages, so it never runs delivery for uncommitted work, work on the default branch or,
+with verification on, unverified work.
 
 It binds the proof a change carries, a verification receipt, to the change's base and exact content.
 
@@ -32,8 +32,10 @@ An unattended attempt is reported done only after that proof is replayed from th
 ([development lifecycle](docs/features/lifecycle.md), [ADR 0015](docs/adrs/0015-development-lifecycle.md)).
 
 Everything it does in a repository is written in that repository's own files and pinned to one verified release. It
-does no stage's work itself and never calls a model: like a game master, it sets the rules of the world and leaves the
-turns to the players, who are the developers, and their characters, the workers.
+does no stage's work itself and never calls a model: like a game master, it runs the game the table agreed on and
+leaves the turns to the players, who are the developers, and their characters, the workers. Nobody has to work through
+it: each person keeps their own editor, coding agents, settings and tools, and work done another way is theirs
+([ADR 0028](docs/adrs/0028-place-of-the-tool.md)).
 
 The name comes from the kitchen: a cook follows the recipe exactly and lets nothing leave the kitchen until it passes
 the check. The workers do the cooking, and `the-cook` holds them to that standard.
@@ -64,8 +66,8 @@ coding agents, a loop runner and a tracker, declares an interactive worker and a
 `implement-task` recipe. `./cook station apply agentic-coding --cookbook github:acme/cookbook@v1.2.0` writes all of it
 into the repository's files on request. `the-cook` is not a launcher for any loop runner: a loop runner names
 `./cook make implement-task --task <id> --unattended` as the command it runs for each task, and that run starts the
-unattended coding agent under rules it cannot bypass and reports the task done only after the proof is replayed from the
-base. The same repository keeps recipes of its own beside it, such as one that adds a database migration.
+unattended coding agent with its permission checks on and reports the task done only after the proof is replayed from
+the base. The same repository keeps recipes of its own beside it, such as one that adds a database migration.
 
 For a cookbook to read or start from, see [lmarqs/the-cookbook](https://github.com/lmarqs/the-cookbook), the author's
 personal cookbook, starting with the `agentic-coding` station, the ingredients it pins and the `implement-task` recipe

@@ -29,7 +29,7 @@ expects of the skills around it. Terms such as standing context, pin and profile
 | **Repository skill** | `.agents/skills/<name>/` in the repository | people and workers in that repository | committed directly | knowledge of one repository: its modules, risks, procedures |
 
 The binary writes only the shipped skill. Organization and repository skills are knowledge; the binary never creates,
-edits or deletes them ([principles.md](principles.md#3-sets-the-rules-never-plays)), because knowledge needs judgement
+edits or deletes them ([principles.md](principles.md#3-runs-the-game-never-plays)), because knowledge needs judgement
 the binary does not have.
 
 In a repository, every skill lives under `.agents/skills/`, the directory of content workers read that other tools
