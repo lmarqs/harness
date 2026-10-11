@@ -461,8 +461,11 @@ or reaches a shell. An operation that needs a shell names `sh` and passes values
 | --- | --- | --- |
 | `whole` | `whole: true`, `template` | the whole file |
 | `keys` | a map from a dotted key path to `{ each, item }`, a list with one `item` per element of the model list `each`, or to `{ value }` | those keys of a JSON or TOML file; every other key is preserved byte for byte ([render](render.md#merge-rendering-native-files)) |
-| `entries` | a dotted path to a list, and `{ each, item }` | its own entries in a list the file shares with others, such as a worker's hook entries |
+| `entries` | a dotted path to a list, and `{ each, item }`; the path may name values of the element, such as `"hooks.{{event}}"`, so the entries spread over lists keyed by a value | its own entries in the lists the file shares with others, such as a worker's hook entries kept in one list per event |
 | `block` | a block id, and `template` | a [managed block](render.md#managed-blocks) between the `cook:<id>` markers |
+
+In `keys` and `entries`, `item` is a template string or a YAML value whose strings are templates, rendered once per
+element of `each`, so an entry can be an object such as `{ matcher: "{{matcher}}", command: "{{command}}" }`.
 
 #### The template language
 
