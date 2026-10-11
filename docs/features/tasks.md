@@ -149,12 +149,12 @@ lifecycle:
       scope: [task]
   completed:
     - name: issue-verified
-      run: gh issue comment "$COOK_TASK" --body "Verified on $COOK_BRANCH: $COOK_SUMMARY"
+      run: 'gh issue comment "$COOK_TASK" --body "Verified on $COOK_BRANCH: $COOK_SUMMARY"'
       auto: true
       scope: [task]
   blocked:
     - name: issue-blocked
-      run: gh issue comment "$COOK_TASK" --body "Blocked: $COOK_REASON"
+      run: 'gh issue comment "$COOK_TASK" --body "Blocked: $COOK_REASON"'
       auto: true
       scope: [task]
 ```

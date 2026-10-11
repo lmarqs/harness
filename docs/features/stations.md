@@ -549,10 +549,10 @@ entries:
       app_paths: [src/**, test/**, package.json, package-lock.json]
       lint_paths: ["src/**/*.{ts,js}", "test/**/*.{ts,js}"]
       lanes:
-        unit: { select: npm test -- {pattern}, full: npm test }
+        unit: { select: "npm test -- {pattern}", full: npm test }
   .cook/hooks.yaml:
     post_edit:
-      - { paths: ["src/**/*.{ts,js}"], run: npm run lint -- {file} }
+      - { paths: ["src/**/*.{ts,js}"], run: "npm run lint -- {file}" }
 ```
 
 The commands run the project's own scripts, so the station guesses only their names; the repository edits them to its
@@ -598,7 +598,7 @@ verified against agentic-coding: 5 ingredients, recipe implement-task
 +  claude: { ingredient: claude, role: interactive }
 +  acme-agent: { ingredient: acme-agent, role: unattended, writable_roots: [.tasks] }
 +  lint: npm run lint -- {file}
-+    unit: { select: npm test -- {pattern}, full: npm test }
++    unit: { select: "npm test -- {pattern}", full: npm test }
    ... the module switches, the validator, the context entry, bootstrap and the path globs
 .cook/policy.yaml
 +    - [git, push]

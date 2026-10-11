@@ -286,6 +286,10 @@ the-cook: .cook/config.yaml:14:5: unknown key "verify.lanes.e2e.requried_when"
     so a value can never break the document's structure; an unset variable becomes an empty string and a note.
   - `attempt`: in `prompt`, every `$NAME` becomes the variable's value as plain text.
 - Lists are YAML lists, never comma-separated strings, because values may contain commas.
+- A string that holds `: ` or ` #`, or that holds `{`, `}`, `[`, `]` or `,` inside a flow collection (`{ ... }` or
+  `[ ... ]`), is quoted in every file `the-cook` writes and every example its documentation shows. Why: YAML stops a
+  plain value there. `unit: { select: npm test -- {pattern} }` does not parse, and `run: git commit -m "release #12"`
+  parses as `git commit -m "release`, because ` #` starts a comment.
 
 ## Policy entries
 

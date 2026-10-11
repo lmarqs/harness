@@ -281,7 +281,7 @@ unattended:
   deny:
     # An attempt's result is verified after the worker exits, then committed by the-cook attempt --commit.
     # Anything that leaves the attempt's workspace before that cannot be checked or undone.
-    - [git, [am, cherry-pick, commit, merge, push, rebase, reset, stash, tag, update-ref, workspace]]
+    - [git, [am, cherry-pick, commit, merge, push, rebase, reset, stash, tag, update-ref, worktree]]
     - [git, ["-C", "-c"]]
     - [gh]
     - [the-cook, workspace]

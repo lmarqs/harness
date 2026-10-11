@@ -643,7 +643,8 @@ lifecycle:
   deliver:
     - name: ci-trigger
       # acme CI runs only when the tip commit message contains #ci
-      run: git log -1 --format=%B | grep -q '#ci' || git commit --allow-empty -m "chore: trigger ci #ci"
+      run: >-
+        git log -1 --format=%B | grep -q '#ci' || git commit --allow-empty -m "chore: trigger ci #ci"
     - name: push
       run: git push -u origin "$COOK_BRANCH"
     - name: open-pr
@@ -806,7 +807,7 @@ only publishes the branch:
 # .cook/hooks.yaml
 schema: 1
 post_edit:
-  - { paths: ["**/*.tf"], run: terraform fmt {file} }
+  - { paths: ["**/*.tf"], run: "terraform fmt {file}" }
 lifecycle:
   deliver:
     - name: push

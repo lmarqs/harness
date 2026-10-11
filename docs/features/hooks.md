@@ -366,7 +366,7 @@ native event before a tool runs:
 ```yaml
 schema: 1
 post_edit:
-  - { paths: ["**/*.tf"], run: ./scripts/format-file.sh {file} }
+  - { paths: ["**/*.tf"], run: "./scripts/format-file.sh {file}" }
 validators:
   - { when: [modules/**/variables.tf], run: ./scripts/check-variable-docs.sh }
 session_start: { context: true }

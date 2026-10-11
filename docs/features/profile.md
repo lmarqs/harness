@@ -303,9 +303,9 @@ commands:
   build: npm run build
 verify:
   app_paths: [src/**, test/**, package.json, package-lock.json, tsconfig*.json, Dockerfile]
-  lint_paths: [src/**/*.{ts,js}, test/**/*.ts]
+  lint_paths: ["src/**/*.{ts,js}", "test/**/*.ts"]
   lanes:
-    unit: { select: npx vitest run {pattern}, full: npx vitest run }
+    unit: { select: "npx vitest run {pattern}", full: npx vitest run }
     e2e:
       select: npx vitest run --config vitest.e2e.config.ts {pattern}
       full: npx vitest run --config vitest.e2e.config.ts
@@ -393,14 +393,14 @@ vcs: git
 modules: { hooks: true, verify: true, memory: true }
 bootstrap: [go mod download]
 commands:
-  lint: gofmt -l {file} | (! grep .)
+  lint: gofmt -d {file}
   build: go build ./...
 verify:
   app_paths: ["**/*.go", go.mod, go.sum]
   lint_paths: ["**/*.go"]
   lanes:
-    test: { select: go test {pattern}, full: go test ./... }
-    vet: { select: go vet {pattern}, full: go vet ./... }
+    test: { select: "go test {pattern}", full: go test ./... }
+    vet: { select: "go vet {pattern}", full: go vet ./... }
 workers: { claude: { role: interactive }, codex: { role: interactive } }
 ```
 
