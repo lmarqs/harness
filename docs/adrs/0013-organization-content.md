@@ -71,7 +71,7 @@ choices, stack facts and the wiring of a tool still reach each repository throug
 5. An organization's stations and ingredients reach its repositories the way every station and ingredient does: the
    organization publishes them in a cookbook of its own, never inside the binary, and a repository that uses one pins it
    in its data by version and content hash ([0022](0022-tool-integration.md), [0024](0024-ingredients-and-stations.md)).
-   Each acts only as the bytes its pin names ([0021](0021-release-trust.md)). A station's entries and templates reach
+   Each acts only as the bytes its pin names ([0026](0026-cookbook-trust.md)). A station's entries and templates reach
    the repository as point 3 describes. An ingredient for one of the organization's own programs renders on every render
    while the repository pins it, and its floor can make the organization's own deny rules about that program a floor. An
    organization's recipes reach its repositories from its cookbook as point 6 describes.

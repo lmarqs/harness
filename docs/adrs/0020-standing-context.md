@@ -35,6 +35,11 @@ the sessions that do not need it.
   ([0011](0011-safety-invariants.md)).
 - A hook invocation adds at most 50 ms at p95 ([0003](0003-implementation-language.md)), and hooks do nothing on a
   machine where the pinned release is not cached ([0017](0017-engine-version.md)).
+- A worker program may run no hook when it runs unattended. Codex CLI 0.160 runs a project's hook only after a person
+  has reviewed and trusted it, and in an attempt nobody is there to review anything.
+- A worker in an attempt receives its task as a prompt, which the caller passes either on standard input or among the
+  worker's arguments. The binary reads a prompt on standard input before the worker starts and passes it on; among the
+  arguments, which are the caller's, it cannot tell the prompt from the rest.
 
 ## Decision
 
@@ -45,8 +50,9 @@ the sessions that do not need it.
    both, and is delivered either as its content or as a one-line pointer to it. A path or prompt entry is delivered at
    most once per session.
 2. Entries are delivered through the hooks of worker programs, which each worker ingredient renders and maps onto the
-   native events that carry each trigger ([0009](0009-agent-support.md)). Where a worker program lacks the event a
-   trigger needs, nothing is rendered for it and the health check reports the gap.
+   native events that carry each trigger ([0009](0009-agent-support.md)), except where point 7 places them in an
+   attempt's prompt. Where a worker program lacks the event a trigger needs, nothing is rendered for it and the health
+   check reports the gap.
 3. An entry may be declared static. A static entry is written as a convention block in `AGENTS.md`
    ([0018](0018-conventions.md)), works without the binary, and is not also delivered by hook.
 4. Entries come only from versioned repository files, skills included: a skill is delivered as the file committed under
@@ -57,6 +63,12 @@ the sessions that do not need it.
    the size of each entry.
 6. A deterministic preview shows what would be delivered for a role, a set of files and a prompt, and which trigger
    matched each entry.
+7. In every attempt whose prompt reaches the worker through the binary on standard input, whether the attempt is run
+   on its own, for a lifecycle action or as a recipe step, the binary places the always entries of the unattended role
+   before the task's text, each headed by the line that names it, and the session-start hook of that attempt delivers
+   no always entry. When the caller passes the prompt among the worker's arguments, the binary adds nothing to it, and
+   the session-start hook delivers the always entries. Path and prompt entries are delivered by hooks in every case.
+   Entries placed in the prompt count against the budget of point 5, and turning delivery off turns off both channels.
 
 ## Reasons
 
@@ -66,9 +78,9 @@ the sessions that do not need it.
   the sessions where it applies. The role split serves the two audiences with their own directives. A pointer costs one
   line and leaves the reading to the worker; content costs its full length and guarantees the text is present.
   Delivering a path or prompt entry once per session keeps repeated matches from repeating the same text.
-- **2.** A hook is the only point where text enters a worker's context without the person typing it, and worker
-  ingredients already render hooks per worker program ([0009](0009-agent-support.md)). Reporting a missing event,
-  instead of emulating it, keeps the difference between programs visible.
+- **2.** In a session a person drives, a hook is the only point where text enters a worker's context without the
+  person typing it, and worker ingredients already render hooks per worker program ([0009](0009-agent-support.md)).
+  Reporting a missing event, instead of emulating it, keeps the difference between programs visible.
 - **3.** Hook delivery depends on the binary being cached on the machine ([0017](0017-engine-version.md)). A directive
   that must reach every worker in every clone belongs where workers read without the tool, and as a convention block it
   survives an eject. Delivering it by hook as well would pay its cost twice.
@@ -85,6 +97,14 @@ the sessions that do not need it.
   A report rather than a refusal leaves the trade to the repository.
 - **6.** What a hook adds to a session is invisible from outside it. A preview computed by the same rules lets a person
   or a worker check the triggers before relying on them.
+- **7.** A worker program may run no hook unattended (Context), so hook delivery alone would leave an attempt without
+  its unattended directives, the guidance written for exactly the sessions nobody watches. A prompt on standard input
+  passes through the binary before the worker starts (Context), so the binary can place the entries there, where the
+  worker reads its task. Withholding the hook's always entries in that attempt keeps the text from arriving twice, as
+  point 3 does for static entries. The caller's arguments are opaque to the binary (Context), so a prompt passed there
+  is left as it is and the hook remains the channel. Path and prompt triggers fire on what happens inside the session,
+  which the binary cannot know when it writes the prompt, so they stay with hooks. The trade: an attempt whose caller
+  passes the prompt among the arguments, to a worker program that runs no hook unattended, receives no always entry.
 
 ## Rejected alternatives
 
@@ -106,6 +126,13 @@ Some coding agents scope rule files by path or load memory files per directory. 
 programs that have them. It loses because the mechanisms differ between programs and some have none, so one declaration
 would become one configuration per program ([0009](0009-agent-support.md)).
 
+### Hooks only, in attempts too
+
+The always entries reach an attempt through the session-start hook, as in a session a person drives. At its best, one
+channel serves every session, and the prompt stays exactly what the caller wrote. It loses because a worker program
+that runs no hook unattended (Context) would receive no always entry in any attempt, and nothing the repository or the
+binary can do makes the program run it.
+
 ## Consequences
 
 Costs:
@@ -117,6 +144,9 @@ Costs:
 - On a machine where the pinned release is not cached, hook-delivered guidance is absent
   ([0017](0017-engine-version.md)); static entries cover the directives that must always be present.
 - Guidance differs between worker programs where their hook events differ.
+- An attempt's prompt is longer than the caller's text by the always entries of the unattended role, and an attempt
+  whose caller passes the prompt among the worker's arguments, to a worker program that runs no hook unattended,
+  receives no always entry.
 
 Must be maintained:
 
@@ -136,3 +166,9 @@ Must be maintained:
 - In a fixture attempt whose worker edits a directive file, the next attempt receives the base commit's content.
 - The preview's output equals what the hooks deliver for the same role, files and prompt.
 - The health check reports a role whose always-on content exceeds its budget.
+- In a fixture attempt whose prompt arrives on standard input, from the binary's own attempt, a lifecycle action and a
+  recipe step alike, the worker's prompt starts with the always entries of the unattended role, each headed by its
+  naming line, followed by the task's text, and the session-start hook of that attempt delivers no always entry.
+- In a fixture attempt whose prompt is among the worker's arguments, the arguments reach the worker unchanged, and the
+  session-start hook delivers the always entries.
+- In both fixtures, a path entry is delivered by the hook that matches its file.

@@ -166,8 +166,9 @@ Must be maintained:
 | [0018](0018-conventions.md) | What remains when the tool is gone? | Conventions the tool establishes are written to outlive it |
 | [0019](0019-action-kinds.md) | What can a declared action do? | Declared actions are commands, HTTP requests or worker attempts |
 | [0020](0020-standing-context.md) | How does known guidance reach a worker? | Guidance enters worker context through declared deterministic triggers |
-| [0021](0021-release-trust.md) | How is downloaded content trusted? | Only an already trusted binary admits downloaded content |
+| [0021](0021-release-trust.md) | How is a release trusted? | Only an already trusted binary admits a release |
 | [0022](0022-tool-integration.md) | How does the binary reach external programs? | Every program the binary uses is described by an ingredient |
 | [0023](0023-core-and-contracts.md) | How is the binary's code divided? | The binary is a core behind contracts it declares |
 | [0024](0024-ingredients-and-stations.md) | What separates a program's description from a way of working? | An ingredient describes one program, a station one way of working |
 | [0025](0025-recipes.md) | How does a repository make a kind of change it repeats? | A recipe is one kind of change, run through the lifecycle |
+| [0026](0026-cookbook-trust.md) | How is a cookbook's content trusted? | A cookbook's content is admitted by a reviewed pin |

@@ -137,7 +137,7 @@ before it runs the command at all ([ADR 0011](../adrs/0011-safety-invariants.md)
 | --- | --- | --- |
 | Interactive | the mode the person chooses | the shared policy |
 | Coordinating worker left alone | its program's unattended mode, as its ingredient's page describes it | `allow` entries for everything the agreed delivery needs; the boundary of delivery stated by the person at the start (branch, pull request, CI trigger, auto-merge) |
-| Attempt | pinned by `the-cook attempt` ([workers](workers.md#attempt-launch)) | the shared policy plus `unattended.deny` |
+| Attempt | pinned by `the-cook attempt` ([workers](workers.md#attempt-launch)) | the shared policy plus `unattended.deny`; `workers.<name>.network: true` only when its attempts must reach the network |
 | Loop runner | its own process, started by a person, a coordinating worker or a script | a configuration whose command for every task is `./cook attempt` or `./cook make <recipe> --task <id> --unattended` ([how a loop runner calls it](attempts.md#how-a-loop-runner-calls-it)) |
 | Recipe run, unattended | `the-cook make --unattended`, which its caller passes when nobody drives the run, as a loop runner does; never started by the worker of an attempt; its `attempt` steps pinned as attempts | a recipe with no `handoff` step, which stops an unattended run as blocked ([recipe runs](#recipe-runs)) |
 
@@ -174,12 +174,17 @@ contract is enforced inside `the-cook attempt`, so it holds whoever calls it: a 
 4. It pins the permission mode with the ingredient's unattended arguments, and applies `unattended.deny` as the
    ingredient passes it: as launch arguments, or in the rendered rules the tamper check keeps intact. A worker that can
    receive the denies in neither way cannot run attempts: `the-cook attempt` refuses it with exit 3, naming the gap.
+   It passes the ingredient's network arguments only for a worker the profile declares with `network: true`; for any
+   other, it says nothing about the network, and what the program reaches is its own default, which the ingredient's
+   page in its cookbook states.
 5. Before the worker starts it restores the tool-owned files (rendered rules, owned settings keys, hook entries, the
    wrapper `cook` and its pin `.cook/wrapper.yaml`) from the base commit. After the worker exits it compares with the
    base those files, every file under `.cook/` and every file and skill a `context` entry names; any difference fails
    the attempt, withholds completion and is reported by path.
 6. It reads the profile, the policy, the hooks file and the [standing context](#standing-context) from the base
-   commit, so the checks it replays and the instructions the worker receives are the ones committed there.
+   commit, so the checks it replays and the instructions the worker receives are the ones committed there. A prompt on
+   stdin carries the `always` entries of the `unattended` role before the task text, so they reach the worker even
+   when its program runs no hook unattended ([context](context.md#delivery-in-the-prompt)).
 7. It replays the lanes and skip reasons the worker's receipt selected. The receipt lives in the worker's writable
    tree, so it only selects; the replay is the proof.
 8. The worker never commits or integrates its own work: `the-cook attempt --commit` commits a verified attempt in its
@@ -287,11 +292,12 @@ or it was added from a cookbook, so it is reviewed like code:
   substitution, as `$NAME` is in [`attempt` actions](#attempt-actions-and-prompt-injection). Whoever chooses an input
   addresses the worker or the person who reads the text. The attempt contract bounds what the worker can do with it.
 - **A run reads its recipe once, from the base.** When it starts, a run reads the recipe from the base commit of the
-  workspace it creates, the default branch's head, and keeps its content and digest in the run record; every stage and
-  `the-cook make --continue` follow that content and never read the files again, so no step can change the recipe of
-  the run it is in. The tamper check also fails a step whose worker edited a file under `.cook/`, so a worker cannot
-  change a recipe a later run reads either. `--here` reads the recipe from the working tree of the current workspace,
-  for drafting one, and is refused with `--unattended`: read a draft before running it with `--here`.
+  workspace it creates, the revision of the shared default line of work that the version-control ingredient's
+  `default_revision` reports, and keeps its content and digest in the run record; every stage and
+  `the-cook make --continue` follow that content and never read the files again, so no step can change the recipe of the
+  run it is in. The tamper check also fails a step whose worker edited a file under `.cook/`, so a worker cannot change
+  a recipe a later run reads either. `--here` reads the recipe from the working tree of the current workspace, for
+  drafting one, and is refused with `--unattended`: read a draft before running it with `--here`.
 - **A recipe can only add.** It adds steps, required lanes and requirements. It cannot skip a lane, weaken a guard,
   declare a lifecycle action or fire an event; every guard of the lifecycle holds for its work as for any other
   ([guards](recipes.md#guards)). Inside a step no `the-cook` command fires an event.
@@ -318,6 +324,9 @@ Every session that [standing context](context.md) reaches reads it as instructio
   added it, the commit is what a reviewer reads ([skills](skills.md)).
 - For an attempt, the declarations and every file they name are read from its base commit, so a worker cannot rewrite
   its own instructions between attempts.
+- In an attempt whose prompt arrives on stdin, the binary puts the `always` entries in the prompt, before the task
+  text, and the session-start hook adds none; with the prompt in the worker's arguments, they depend on that hook,
+  which a worker program may not run unattended ([context](context.md#delivery-in-the-prompt)).
 - A change to an injected file or skill is a change to every worker session's instructions. Review it like policy.
 - Do not inject files untrusted text can reach, such as generated reports or copies of issue text.
 
@@ -401,7 +410,7 @@ Rendered files are committed so every permission change is a diff. After `the-co
 | --- | --- |
 | Each worker's rendered permissions and hook entries, as its ingredient's [renders](ingredients.md#renders) name them | new `allow` entries and their breadth; entries that left `deny` or `ask`; new hook commands and the keys that enable them; a deny present in one worker's file and missing in another's is an entry that worker cannot express |
 | The `policy` block in `AGENTS.md` | entries marked as not enforced in a worker; the floor rules, each with the ingredient it comes from |
-| `ingredients`, `stations`, `vcs` and `workers` in `.cook/config.yaml` | an ingredient added or removed: removing one removes its renders and its floor rules; a pin's `source`, `version` or `sha256` changing, read with `./cook ingredient show <name>` before approving; a worker added or its role changed. A `stations:` entry records which station was applied and changes nothing rendered |
+| `ingredients`, `stations`, `vcs` and `workers` in `.cook/config.yaml` | an ingredient added or removed: removing one removes its renders and its floor rules; a pin's `source`, `version` or `sha256` changing, read with `./cook ingredient show <name>` before approving; a worker added, its role changed or its `network` turned on. A `stations:` entry records which station was applied and changes nothing rendered |
 | `.cook/hooks.yaml` | new or changed `post_edit` hooks and `lifecycle`, `attention` and `turn_end` actions, especially `auto: true`, `attempt` actions and their prompts, and the variables `http` actions read |
 | `commands`, `verify.lanes` and `verify.validators` in `.cook/config.yaml` | new or changed lint and build commands, lanes and validators, such as those `the-cook station apply` adds: `the-cook verify` and the worker hooks run them with the credentials of the person or worker at work |
 | `context` in `.cook/config.yaml`, the `context` block in `AGENTS.md` | new or changed entries, the files and skills they inject, and which roles they reach |
@@ -426,8 +435,12 @@ instead of shipping.
 - [ ] The loop runner's configuration names `./cook attempt`, or `./cook make <recipe> --task <id> --unattended`, as
       the command for every task and adds no bypass flag. What runs outside `the-cook attempt` and `the-cook make` is
       yours to check; `the-cook` does not.
-- [ ] A recipe the run uses is committed on the default branch, which its workspaces start from, and holds no
-      `handoff` step; its `run` steps and prompts were reviewed.
+- [ ] A recipe the run uses is on the shared default line of work (for git, pushed and merged), which its workspaces
+      start from, the checkout has learned it, and it holds no `handoff` step; its `run` steps and prompts were
+      reviewed.
+- [ ] The loop runner passes each task's prompt on stdin, so every attempt receives the `always` entries of the
+      `unattended` role in its prompt.
+- [ ] Each worker the run starts has `network: true` only if its attempts must reach the network.
 - [ ] The folder is trusted by the worker's program; the run's workspaces are nested in the primary checkout.
 - [ ] Settings outside the policy are known: local override files, user and managed settings neither widen nor
       narrow what the run needs.

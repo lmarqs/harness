@@ -84,8 +84,11 @@ fleet runs ([lifecycle](lifecycle.md#an-organization-convention-a-ci-trigger-com
 
 1. If the working tree has uncommitted changes, refuse it: the result is **blocked**, nothing runs there.
 2. With `--deliver`: through the version-control contract, which the repository's version-control ingredient fills,
-   update from the remote and create a local branch `<branch_prefix><command>` from the default branch the ingredient
-   reports. An existing branch with that name blocks the repository.
+   learn what is shared with its `update` operation, then create a local branch `<branch_prefix><command>` at the
+   revision of the shared default line of work that its `default_revision` reports. When the ingredient has no
+   `update`, the fleet prints one note for the repository and starts the branch from what the checkout knows. When
+   `update` fails, the repository is **blocked**, with the failure as the reason, so no branch is delivered from a
+   stale base. An existing branch with that name blocks the repository.
 3. Run `the-cook <command> [command args...]` with the repository as its working directory and no terminal, so commands
    that confirm need `--yes`. In a repository with `.cook/wrapper.yaml`, the command runs the version that repository
    pins, downloaded and verified when this machine has not cached it yet. In a repository without one, such as one

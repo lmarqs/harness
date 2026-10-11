@@ -78,9 +78,11 @@ Notes never change the exit code:
 ### Landed branches
 
 `doctor` looks at every branch `the-cook` recorded in `.work/`: managed workspaces and fleet deliveries. A branch whose
-patches are all on the default branch (compared by patch equivalence through the version-control ingredient's `landed`
-operation, so a cherry-pick, a rebase or a squash of the same patches counts) has
-**landed**. `doctor` lists each landed branch with the command that fires the `landed` event for it, such as
+patches are all in the revision of the shared default line of work that the version-control ingredient's
+`default_revision` reports (compared by patch equivalence through its `landed` operation, so a cherry-pick, a rebase or
+a squash of the same patches counts) has **landed**. `doctor` never runs `update`: it compares with what the checkout
+last learned of the shared default line of work, so a merge made elsewhere shows once the checkout has learned it.
+`doctor` lists each landed branch with the command that fires the `landed` event for it, such as
 `the-cook workspace remove <name>`. It fires nothing itself: `landed` fires from `the-cook workspace remove` and
 `the-cook lifecycle run landed` ([lifecycle](lifecycle.md#events)). A landed branch is not a finding and does not change
 the exit code. A CI clone has no recorded branches, so `doctor` in CI lists none.

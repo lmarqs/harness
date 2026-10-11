@@ -66,7 +66,14 @@ after showing them as a diff. A station that declares workers in its [stages](st
 | `ingredient` | the ingredient that describes the program, by default the ingredient named like the worker. It must be pinned in `ingredients:` and fill the worker contract |
 | `role` | `interactive` or `unattended` ([roles](#roles)) |
 | `writable_roots` | for a worker whose ingredient opens sandbox roots, the directories an attempt may write besides its checkout and the clone's state directory, relative to the primary checkout's root |
+| `network` | whether the worker's attempts may use the network, default `false`; `true` passes the ingredient's network arguments at every unattended launch |
 | `model`, `effort` | passed at every launch the binary makes, as the ingredient's launch says; a worker whose ingredient passes no model or effort ignores them, and `doctor` notes it |
+
+`network` is the repository's practice, and the arguments that carry it are the program's fact: the worker's
+ingredient maps `network: true` to its `launch.network` arguments, as it maps a model or an effort. A worker declared
+with `network: true` whose ingredient has no `launch.network` is a validation error, exit 1, as `writable_roots` is
+without `launch.sandbox_roots`. With `network: false` the binary passes nothing about the network, and the program does
+what it does by default, which the ingredient's page in its cookbook explains.
 
 A worker whose ingredient is not pinned in `ingredients:`, or whose ingredient fills no worker contract, is a
 validation error, exit 1. Only declared workers get native files. Removing a worker from `workers` and running
@@ -143,8 +150,9 @@ ingredient:
 | Unattended denies | `unattended.deny` as the ingredient passes it: as launch arguments, or in the rendered rules, which then require `role: unattended`. A worker that can receive it in neither way is refused, exit 3, naming the gap |
 | Tamper check restores | the renders of every ingredient in use; `cook`; `.cook/wrapper.yaml` |
 | Environment | `COOK_ATTEMPT=1`: `the-cook` refuses lifecycle events, and notification hooks do nothing |
-| Standing context | entries for the `unattended` role, read from the base commit |
+| Standing context | entries for the `unattended` role, read from the base commit; when the prompt arrives on stdin, the `always` entries go in the prompt, before the task text, and `when` entries come through hooks ([context](context.md#delivery-in-the-prompt)) |
 | Writable outside the checkout | for a worker with a sandbox, only what the ingredient's sandbox-root arguments name: the clone's state directory (`state.dir`, default `.work/`) and the directories the profile lists in `workers.<name>.writable_roots` ([profile](profile.md#workers)); otherwise what its permissions permit |
+| Network | with `workers.<name>.network: true`, the ingredient's `launch.network` arguments; with `false`, nothing, and the program's default holds |
 | Refused arguments, among those `the-cook attempt` receives | the ingredient's [floor](ingredients.md#the-floor) bypass arguments |
 | Model and effort | `workers.<name>.model` and `effort`, or an `attempt` action's `attempt.model` and `attempt.effort`, or a recipe `attempt` step's `model` and `effort`, which take precedence, passed as the ingredient's launch says |
 | Prompt | read from stdin or from the worker arguments, whichever the caller uses; the prompt of an `attempt` action or of a recipe's `attempt` step passed as the ingredient's launch says |
@@ -181,6 +189,7 @@ lacks.
 | Unattended arguments | `launch.unattended` | the arguments that start the program unattended with its permission checks on | the program starts with `launch.command` and its caller's arguments only, which suits a program with no permission checks |
 | Unattended denies | `launch.unattended_deny` | how `unattended.deny` reaches the program as arguments at launch | `unattended.deny` reaches the program only through the rendered rules, which then require `role: unattended`; with no rendered permissions either, it cannot reach the program, and the worker cannot run attempts: `the-cook attempt`, `attempt` actions and `attempt` steps refuse it with exit 3, naming the gap. The worker may still be `interactive` |
 | Sandbox roots | `launch.sandbox_roots` | the arguments that open a directory beyond the checkout for writing: the clone's state directory and `workers.<name>.writable_roots` | the binary opens no directory for the program, and `writable_roots` on the worker is a validation error |
+| Network | `launch.network` | the arguments that let the program use the network, passed at every unattended launch of a worker declared with `network: true` | `network: true` on the worker is a validation error; with `network: false` the ingredient states nothing about the network, and its page says what the program does by default |
 | Model and effort | `launch.model`, `launch.effort` | how a model and an effort, from `workers.<name>`, an `attempt` action or a recipe's `attempt` step, are passed | a model or an effort set for the worker is ignored, and `doctor` notes it |
 | Prompt | `launch.prompt` | how the binary passes the prompt of an `attempt` action or of a recipe's `attempt` step: on stdin, as arguments, or both | an `attempt` action or step that names the worker fails validation |
 | Floor bypass arguments | `floor.bypass` | the arguments that would turn the program's permission checks off, refused at every launch ([the floor](ingredients.md#the-floor)) | nothing is refused for that worker |
@@ -290,6 +299,8 @@ gap.
 | `the-cook attempt <worker>` refused, naming rendered rules | The worker has `role: interactive`, and its ingredient passes `unattended.deny` only through rendered rules | Use `role: unattended`, or a worker whose ingredient passes `unattended.deny` at launch |
 | `the-cook attempt` exits 1 naming a bypass flag | The loop runner's configuration adds the flag to the worker's arguments | Remove it from the loop runner's configuration |
 | A sandboxed worker cannot write a directory outside its checkout | Only the state directory and `workers.<name>.writable_roots` are writable | Add the directory to `writable_roots`, relative to the primary checkout's root |
+| Exit 1: `network: true` on a worker | Its ingredient has no `launch.network` arguments, so the binary cannot pass the choice to the program | Remove the field, or pin an ingredient that fills `launch.network`; its page in its cookbook says what the program does without it |
+| An attempt's worker cannot reach the network | The worker is declared with `network: false`, the default, and the program's default keeps it off the network | Set `workers.<name>.network: true` for a worker whose ingredient fills `launch.network` |
 | `the-cook attempt <worker>` exits 3 naming `unattended.deny` | Its ingredient passes no deny arguments at launch and renders no permissions, so the denies cannot reach the program | Declare the worker `interactive`, or pin an ingredient that passes the denies at launch or renders permissions |
 | `doctor` reports an unsupported program version | The program's version is outside the range its ingredient's check supports | Pin a cookbook version whose ingredient supports it, `./cook ingredient pin <name> --cookbook <source>@<version>`, or use a supported program version |
 | Exit 1: a worker's `ingredient` is not in `ingredients:` | The ingredient was never pinned, or was deleted from `ingredients:` | `./cook ingredient pin <name> --cookbook <source>@<version>` |

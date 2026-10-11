@@ -125,13 +125,15 @@ Apply stations later with `./cook station apply <name>... --cookbook <source>@<v
 add one recipe with `./cook recipe add <name>... --cookbook <source>@<version>` ([recipes](recipes.md)), or pin one
 ingredient with `./cook ingredient pin <name>... --cookbook <source>@<version>` ([ingredients](ingredients.md)).
 
-Review and edit the profile and the policy, then render and commit; a run starts from committed code:
+Review and edit the profile and the policy, then render and commit. A recipe run starts from the shared default line
+of work, so deliver the commit like any change before the first run:
 
 ```sh
 $EDITOR .cook/config.yaml .cook/policy.yaml
 ./cook render
 ./cook render --check       # exit 0: rendered files match their sources
 git add -A && git commit -m "chore: adopt the-cook"
+# deliver it like any change; once it is merged, have this clone learn it (for git: git pull)
 ```
 
 Take a change through the lifecycle with a recipe. `implement-task` creates a workspace for the task, starts the
@@ -145,12 +147,14 @@ echo "Redirect to the page the user asked for after login." | ./cook make implem
 ```
 
 A kind of change the repository makes again and again becomes a recipe of its own, such as adding a database migration.
-Write it, commit it on the default branch, which a run's workspace starts from, and run it with its inputs:
+Write it, get it onto the shared default line of work, which a run's workspace starts from, and run it with its
+inputs:
 
 ```sh
 ./cook recipe create migration                 # a skeleton at .cook/recipes/migration/recipe.yaml
 $EDITOR .cook/recipes/migration/recipe.yaml
 git add .cook/recipes && git commit -m "chore: add the migration recipe"
+# deliver it like any change; once it is merged, have this clone learn it (for git: git pull)
 ./cook make migration --name add-invoice-due-date
 ./cook make --continue migration-add-invoice-due-date   # after doing what its handoff step asked
 ```
@@ -226,12 +230,12 @@ Daily work
 
 - [Recipes](recipes.md): the kinds of change a repository makes many times, each run as one pass through the stages
   with `the-cook make`: the recipe file, inputs and step kinds, the run, its record, stopping and continuing, the
-  guards, and `the-cook recipe add`, `update`, `new`, `list` and `show`
+  guards, and `the-cook recipe add`, `update`, `create`, `list` and `show`
 - [Workspaces](workspaces.md): `the-cook workspace`
 - [Verify](verify.md): lanes and the receipt
 - [Tasks](tasks.md): task binding with `workspace create --task`, the `completed` guard, trackers wired by actions
 - [Attempts](attempts.md): unattended runs through `the-cook attempt`, the primitive behind a recipe's `attempt` steps,
-  and the attempt contract
+  the attempt contract, and loop runs
 
 Knowledge
 

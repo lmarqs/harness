@@ -124,6 +124,13 @@ workspaces:
   configuration directory. No profile key names those paths: the ingredient that describes a program renders the ignore
   entries they need, such as a block in the ignore file, because the binary contains code and data for no program
   ([ADR 0022](../adrs/0022-tool-integration.md)).
+- `workspaces` holds one key that is not a path: `update_before_landed`, a boolean, default `false`. When `true`,
+  `the-cook workspace remove` runs the version-control contract's `update` before it detects landed work; when
+  `update` fails, as it does offline, or the ingredient has none, it prints one note and detects against what the
+  checkout knows. `the-cook make`, `the-cook workspace create` and `the-cook doctor` never run `update`. Why: learning
+  what is shared asks the version control system to reach beyond the clone, which no command does unless the
+  repository asks, and whether work lands somewhere else, such as through a hosting platform's merge, is the
+  repository's practice, which a station may seed as an entry ([profile](../features/profile.md#workspaces)).
 
 ## Ownership
 
@@ -419,10 +426,10 @@ single meaning.
   lifecycle log and the output. Why: a worker started by an event is as unattended as one `the-cook attempt` starts, so
   it gets the same bounds.
 - Actions run in the workspace of the work the event concerns. On `landed`, `run` and `http` actions run in the primary
-  checkout. An `attempt` action runs in a fresh workspace of the default branch, which `the-cook` creates under
-  `workspaces.dir` as `landed-<name>-<n>` and records. `the-cook` leaves that workspace with the worker's uncommitted
-  edits for a person to review, commit or remove with `the-cook workspace remove`. Why: once work has landed its
-  workspace is about to go, and the primary checkout holds whatever a person is doing there
+  checkout. An `attempt` action runs in a fresh workspace at the revision of the shared default line of work, which
+  `the-cook` creates under `workspaces.dir` as `landed-<name>-<n>` and records. `the-cook` leaves that workspace with
+  the worker's uncommitted edits for a person to review, commit or remove with `the-cook workspace remove`. Why: once
+  work has landed its workspace is about to go, and the primary checkout holds whatever a person is doing there
   ([ADR 0019](../adrs/0019-action-kinds.md)).
 - Prompts that include untrusted values (task titles, worker messages) are a prompt-injection surface; the attempt
   contract bounds what an injected instruction can do.
@@ -481,6 +488,14 @@ context:
   ([ADR 0022](../adrs/0022-tool-integration.md)).
 - For a worker in an attempt, injected content is read from the base commit the attempt recorded, so a worker cannot
   change its own instructions between attempts.
+- In every attempt whose prompt arrives on stdin, `the-cook attempt`, an `attempt` action or a recipe's `attempt` step,
+  the binary puts the `always` entries of the `unattended` role before the task text, each headed by its naming line,
+  and the session-start hook of that attempt injects no `always` entry. A prompt the caller passes in the worker's
+  arguments is left as it is, and the session-start hook delivers the entries. `when` entries are always
+  hook-delivered. `context.budget` and `COOK_NO_CONTEXT=1` apply to prompt delivery as to hooks. Why: a worker program
+  may run no hook unattended, since some run a project's hooks only after a person reviewed them, and nobody reviews
+  in an attempt; the binary can place text only in a prompt that passes through it
+  ([context](../features/context.md#delivery-in-the-prompt), [ADR 0020](../adrs/0020-standing-context.md)).
 - A `static` entry works without the binary and survives eject, because it is a convention block; it is not also
   injected by a hook, so it is never loaded twice. Static entries count against `context.budget`, not against the
   `AGENTS.md` block budget.
@@ -551,14 +566,21 @@ workers:
 | `ingredients[].sha256` | sha256 | required | the sha256 of the ingredient's archive, as the tag's `checksums.txt` states it; `the-cook` loads the ingredient only when its archive matches |
 | `stations` | list | empty; `the-cook scaffold --cookbook` writes the stations it applies | every station applied to the repository, with the pin it was applied at: `name` (equal to the `name` in its `station.yaml`, unique within `stations`), `source`, `version` and `sha256`, as under `ingredients` |
 | `vcs` | ingredient name | none; applying a station writes the one its stages name | the ingredient that fills the [version-control contract](../features/ingredients.md#the-version-control-contract) |
-| `workers.<name>` | map | none; applying a station adds the workers its stages declare | a worker the repository uses, with `ingredient`, `role`, `writable_roots`, `model` and `effort` ([workers](../features/workers.md)) |
+| `workers.<name>` | map | none; applying a station adds the workers its stages declare | a worker the repository uses, with `ingredient`, `role`, `writable_roots`, `network`, `model` and `effort` ([workers](../features/workers.md)) |
 | `workers.<name>.ingredient` | ingredient name | the worker's name | the ingredient that fills the [worker contract](../features/ingredients.md#the-worker-contract) for that worker |
+| `workers.<name>.network` | boolean | `false` | whether the worker's attempts may use the network; `true` passes the ingredient's `launch.network` arguments at every unattended launch |
 
 - `vcs` and every `workers.<name>.ingredient` name an ingredient listed in `ingredients` that fills the matching
   contract, the version-control contract for `vcs` and the worker contract for a worker; any other name is a validation
   error (exit 1). An ingredient fills at most one contract. Why: an answer the binary relies on, such as the
   base revision of an attempt, has exactly one source, and a name that resolves to nothing must fail before anything
   runs.
+- `workers.<name>.network: true` on a worker whose ingredient has no `launch.network` is a validation error (exit 1),
+  as `writable_roots` is without `launch.sandbox_roots`; `false` passes nothing about the network, so the program's own
+  default holds, which the ingredient's page in its cookbook states. Why: whether attempts may reach the network is the
+  repository's practice and the arguments that carry it are the program's fact, so the value is the profile's and its
+  mapping the ingredient's; a `true` the program never receives would let a reviewer believe the attempts reach the
+  network when nothing told the program ([workers](../features/workers.md#declaring-workers)).
 - Names are unique within each list: two `ingredients` entries, or two `stations` entries, with the same `name` are a
   validation error (exit 1). Why: every reference to an ingredient, from `vcs`, a worker or the manifest, must resolve
   to exactly one, and applying a station again must resolve to one pin.
@@ -772,7 +794,7 @@ origin:
 | `requires.contracts` | list of `vcs`, `worker` | the contracts a pinned ingredient must fill |
 | `requires.roles` | list of `interactive`, `unattended` | the roles a declared worker must have |
 | `requires.lanes` | list of lane names | the lanes the profile must declare |
-| `workspace` | string | Start: the name of the managed workspace a run creates, on branch `work/<name>` from the default branch, as `the-cook workspace create` makes them |
+| `workspace` | string | Start: the name of the managed workspace a run creates, on branch `work/<name>` at the revision of the shared default line of work, as `the-cook workspace create` makes them |
 | `steps` | list of steps | Implement: the steps, in order, each a map with exactly one kind key, below |
 | `verify.require` | list of lane names | Verify: lanes the run's Verify stage runs, never skipped, on top of the lanes the change selects; one the change selects nothing for runs in full; each is also in `requires.lanes` |
 
@@ -815,13 +837,14 @@ origin:
   weakens no guard and fires no event itself; delivery of a recipe run's work follows the repository's own lifecycle
   actions. Why: a recipe is repository data that a worker may have written, and the guards and the delivery convention
   hold whatever describes the work ([ADR 0015](../adrs/0015-development-lifecycle.md)).
-- A run reads its recipe once, when it starts, from the base commit of the workspace it creates, the head of the
-  default branch, and keeps the recipe's content and digest in its run record; `the-cook make --continue` runs that
-  content and never reads the file again, so no step changes the recipe of the run it is in. `the-cook make --here`
-  reads the file in the working tree instead, for drafting a recipe, and is refused with `--unattended`, so a run
-  nobody drives never follows a draft nobody reviewed ([cli-standards.md](cli-standards.md#the-make-command)). The
-  tamper check of an `attempt` step covers `.cook/recipes/` with the rest of `.cook/`, so its worker cannot change a
-  recipe a later run reads either.
+- A run reads its recipe once, when it starts, from the base commit of the workspace it creates, the revision of the
+  shared default line of work that the version-control ingredient's `default_revision` reports, and keeps the recipe's
+  content and digest in its run record, so a recipe runs in a new workspace once it is on that line (for git, pushed),
+  not merely committed in one clone; `the-cook make --continue` runs that content and never reads the file again, so no
+  step changes the recipe of the run it is in. `the-cook make --here` reads the file in the working tree instead, for
+  drafting a recipe, and is refused with `--unattended`, so a run nobody drives never follows a draft nobody reviewed
+  ([cli-standards.md](cli-standards.md#the-make-command)). The tamper check of an `attempt` step covers `.cook/recipes/`
+  with the rest of `.cook/`, so its worker cannot change a recipe a later run reads either.
 - The run's Verify stage runs the lanes itself: every lane the change selects, as the receipt a step left in the
   workspace selects them, and every lane in `verify.require`, a required lane the change selects nothing for in full.
   The receipt the run writes records per lane the patterns it ran or that it ran in full
@@ -855,7 +878,8 @@ that decides it, because a setting that weakens them would copy along with the f
 ([ADR 0011](../adrs/0011-safety-invariants.md), [ADR 0012](../adrs/0012-write-boundary.md),
 [ADR 0013](../adrs/0013-organization-content.md), [ADR 0014](../adrs/0014-directory-layout.md),
 [ADR 0017](../adrs/0017-engine-version.md), [ADR 0021](../adrs/0021-release-trust.md),
-[ADR 0022](../adrs/0022-tool-integration.md), [ADR 0025](../adrs/0025-recipes.md)).
+[ADR 0022](../adrs/0022-tool-integration.md), [ADR 0025](../adrs/0025-recipes.md),
+[ADR 0026](../adrs/0026-cookbook-trust.md)).
 
 - An attempt never bypasses permissions: every argument a worker's ingredient marks as a floor bypass argument is
   refused.

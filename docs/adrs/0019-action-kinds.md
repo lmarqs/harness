@@ -52,8 +52,9 @@ shell text, and no value written by people or workers runs as a command or instr
    cross hosts.
 5. An attempt action starts its worker through the worker's ingredient ([0009](0009-agent-support.md)), under the
    attempt contract ([0011](0011-safety-invariants.md)), in the working copy the event concerns. For work that has
-   landed, it runs in a fresh working copy of the default branch that the binary creates and records. The worker cannot
-   commit, push or trigger events; its edits stay uncommitted in that working copy and are reported.
+   landed, it runs in a fresh working copy at the revision of the shared default line of work, as the clone last learned
+   it, which holds the landed work; the binary creates and records it. The worker cannot commit, push or trigger events;
+   its edits stay uncommitted in that working copy and are reported.
 6. Notification events accept commands and HTTP requests only.
 7. No action is automatic unless it says so. The health check reports every automatic attempt action.
 8. Integrations that need a tool server a worker connects to are attempt actions; the binary is never such a client
@@ -172,8 +173,8 @@ Must be maintained:
 - Validation refuses a committed HTTP action with a literal URL or header value.
 - An attempt-action fixture with a stand-in worker program asserts that the worker starts under the attempt contract,
   that its tries to commit, push and trigger events are denied, and that its edits remain uncommitted and are listed.
-- An attempt action on the landed event works in a new, recorded working copy of the default branch; the primary
-  checkout and the task working copy are byte-identical afterwards.
+- An attempt action on the landed event works in a new, recorded working copy at the revision of the shared default line
+  of work; the primary checkout and the task working copy are byte-identical afterwards.
 - Validation refuses an attempt action declared on a notification event.
 - The health check reports an automatic attempt action.
 - Review rejects any tool-server client library in the binary.

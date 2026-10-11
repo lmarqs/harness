@@ -31,6 +31,10 @@ and supporting another worker changes no repository's declarations.
   coding agents differ in whether they report that they are waiting for a person or that a turn ended.
 - Repositories assign programs to roles differently. Example: `acme/api` uses Claude Code interactively and Codex CLI
   only for unattended work, `acme/cli` uses both interactively, and `acme/web` uses Claude Code for both.
+- Repositories also differ in whether unattended work may reach the network, and programs differ in how they are told.
+  Example: `acme/web` lets its unattended worker install packages from a registry, and `acme/infra` keeps every
+  attempt off the network. Codex CLI 0.160 reads the choice from a sandbox setting, `network_access`, which an argument
+  at launch can set; another program may take a flag of its own, or offer no such control.
 
 ## Decision
 
@@ -41,10 +45,11 @@ and supporting another worker changes no repository's declarations.
    worker has them, the ingredient also gives the arguments that start it unattended, the arguments that bypass its
    permission checks, marked as floor, the renders that turn the neutral sources into its native files under the
    ownership rules of [0008](0008-native-configuration.md), the mapping of its hook payload, the location of its
-   instructions file and of its skills, and how its native permission rules are imported. Its checks declare the
-   worker versions it supports. A worker runs attempts only when its ingredient delivers the repository's unattended
-   deny rules, as launch arguments or through the permissions it renders; one that can do neither is used
-   interactively only, and a deterministic program with neither runs as a declared command, not as a worker.
+   instructions file and of its skills, how its native permission rules are imported, and the arguments that let the
+   worker's attempts use the network. Its checks declare the worker versions it supports. A worker runs attempts only
+   when its ingredient delivers the repository's unattended deny rules, as launch arguments or through the permissions
+   it renders; one that can do neither is used interactively only, and a deterministic program with neither runs as a
+   declared command, not as a worker.
 3. Each worker ingredient maps its worker's hook payloads onto one neutral set of worker events. The set includes
    session start, a file read or edited and a prompt submitted, the points where guidance enters the worker's context
    ([0020](0020-standing-context.md)), and the notification events, waiting for a person and turn ended
@@ -56,8 +61,11 @@ and supporting another worker changes no repository's declarations.
 5. A construct the neutral model does not express may be written as a raw, worker-specific entry. An ingredient whose
    worker cannot express it skips it. Every native permission rule of every worker an ingredient describes is
    expressible this way ([0016](0016-permission-adoption.md)).
-6. Which workers a repository declares, and which role each fills, interactive or unattended, is repository data, not
-   ingredient content. A station may propose them as entries, which are the repository's own once applied
+6. Which workers a repository declares, which role each fills, interactive or unattended, and whether each one's
+   attempts may use the network, off unless the repository says otherwise, is repository data, not ingredient content.
+   The ingredient maps the network choice to its worker's arguments, as it maps the launch; a repository that lets the
+   attempts of a worker use the network, when the worker's ingredient gives no such arguments, fails validation. A
+   station may propose these as entries, which are the repository's own once applied
    ([0024](0024-ingredients-and-stations.md)).
 
 ## Reasons
@@ -84,9 +92,14 @@ and supporting another worker changes no repository's declarations.
 - **5.** The neutral model always lags the workers. Without a passthrough, a repository whose rules or hooks fall
   outside the model cannot adopt without losing them, which [0016](0016-permission-adoption.md) forbids. Skipping a
   raw entry for workers that cannot express it keeps every other ingredient's output valid.
-- **6.** Role assignments differ between repositories (Context). An ingredient that fixed one assignment would impose
-  it on every repository that uses the program. With the assignment as data, each repository states its own, and a
-  station that proposes one hands it to the repository like any other entry.
+- **6.** Role assignments differ between repositories (Context). An ingredient that fixed one assignment would impose it
+  on every repository that uses the program. With the assignment as data, each repository states its own, and a station
+  that proposes one hands it to the repository like any other entry. Network access is the same kind of choice
+  (Context): whether attempts may reach the network is the repository's practice, while the arguments that carry the
+  choice are a fact about the program, so the value is data the repository holds and its mapping is data the ingredient
+  holds. Off by default keeps an attempt from reaching the network unless someone chose it. Failing validation when the
+  ingredient cannot carry the choice keeps a repository from believing its attempts may reach the network when nothing
+  tells the program; with the choice off, the binary says nothing to the program, whose own default then holds.
 
 ## Rejected alternatives
 
@@ -124,6 +137,8 @@ Costs:
 - A behaviour declared once is absent for workers that lack its event.
 - A worker whose ingredient neither passes the unattended deny rules at launch nor renders permissions cannot run
   attempts; it is used interactively, or its program runs as a declared command ([0011](0011-safety-invariants.md)).
+- Network access left off passes nothing to the program, so what an attempt can reach is then the program's own
+  default, which its cookbook documents; a program whose default reaches the network still reaches it.
 
 Must be maintained:
 
@@ -142,3 +157,6 @@ Must be maintained:
 - A fixture worker whose ingredient fills only the launch is refused for an attempt with the missing part named, is
   accepted for interactive use, and the health check reports each part of the repository's data that cannot reach it.
 - The health check reports worker versions outside an ingredient's supported range.
+- A fixture worker whose attempts may use the network starts with its ingredient's network arguments at every
+  unattended launch; one declared without network access starts without them; and a fixture that allows network access
+  to a worker whose ingredient gives no network arguments fails validation.

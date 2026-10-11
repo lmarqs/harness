@@ -15,9 +15,10 @@ sessions where it does not.
 
 Standing context is guidance a repository declares once, as a skill or a file, that `the-cook` puts into a
 [worker](workers.md)'s context whenever a declared trigger matches: every session, the first time the worker reads or
-edits a matching file, or when the person's message contains a listed word. Worker hooks deliver the entries; an entry
-declared `static: true` is written into `AGENTS.md` instead, so it reaches every worker that reads `AGENTS.md` without
-the binary.
+edits a matching file, or when the person's message contains a listed word. Worker hooks deliver the entries, and in
+an attempt whose prompt arrives on stdin the `always` entries travel in the prompt instead
+([delivery in the prompt](#delivery-in-the-prompt)); an entry declared `static: true` is written into `AGENTS.md`, so
+it reaches every worker that reads `AGENTS.md` without the binary.
 
 The triggers are deterministic: the same session, files and words give the same context on every machine. Entries come
 only from files and skills committed in the repository, and nothing is fetched when a hook runs.
@@ -41,7 +42,8 @@ Commands are named `the-cook <command>` on this page. The examples run them thro
 | A rule that allows or denies commands | the [policy](policy.md); context never grants or removes a permission |
 
 Hook delivery needs `modules.hooks: true` in the [profile](profile.md). Static entries do not: they are part of
-`AGENTS.md`.
+`AGENTS.md`. Neither do the `always` entries an attempt's prompt carries, which the binary places itself
+([delivery in the prompt](#delivery-in-the-prompt)).
 
 ## How it works
 
@@ -98,13 +100,37 @@ that carries it:
 
 The text reaches the worker as additional context of that event. A trigger the ingredient maps to no native event gets
 nothing rendered for that worker, and [`the-cook doctor`](doctor.md) reports the gap as a note. A worker whose
-ingredient declares no hook payload mapping receives no hook-delivered entry at all. A program that reads files
-through shell commands names no file to match, so its sessions fire a `paths` entry only when they edit a matching
-file.
+ingredient declares no hook payload mapping receives no hook-delivered entry at all; in an attempt whose prompt arrives
+on stdin it still receives the `always` entries in the prompt ([delivery in the prompt](#delivery-in-the-prompt)). A
+program that reads files through shell commands names no file to match, so its sessions fire a `paths` entry only when
+they edit a matching file.
 
 In an attempt, the "person's message" is the task prompt the worker receives: what the loop runner passed to
 `the-cook attempt` or `the-cook make`, an `attempt` action's prompt, or an `attempt` step's own prompt with the recipe's
 inputs substituted, so a `when.prompt` entry can match a word an input put there.
+
+### Delivery in the prompt
+
+In every attempt whose prompt arrives on stdin, whether `the-cook attempt`, an [`attempt` action](lifecycle.md#attempt)
+or a recipe's [`attempt` step](recipes.md#attempt) started it, the binary puts the `always` entries of the `unattended`
+role before the task text, each headed by its usual line naming it, read from the attempt's base commit. Static entries
+stay in `AGENTS.md` only. The binary also sets `COOK_CONTEXT_IN_PROMPT=1` in the worker's environment, and the
+session-start hook injects no `always` entry where it is set, so nothing arrives twice. A worker program may run no hook
+at all when it runs unattended, and a prompt on stdin reaches the worker whether or not its hooks run.
+
+```text
+the-cook context: unattended-rules.md (always)
+You run unattended. Never reset or seed the shared database; e2e tests create their own fixtures.
+When a task needs a decision only a person can make, stop and say so in one line.
+
+Fix the invoice rounding described in task 7f2.
+```
+
+When the caller passes the prompt in the worker's arguments instead, the binary cannot place text in it, and the
+session-start hook delivers the `always` entries as in any other session. `when` entries are delivered by hooks in
+every case, because what triggers them happens inside the session. The [budget](#budget) counts entries delivered in
+the prompt as it counts those a hook delivers, and `COOK_NO_CONTEXT=1` turns off both
+([environment](#environment)).
 
 ### Static entries
 
@@ -139,9 +165,9 @@ and is reviewed like any other change.
 ### Budget
 
 `context.budget` caps the lines of always-on content one session receives, per role: `content` entries count their
-lines, pointer lines count one, and static entries count too. `the-cook doctor` reports a note when a role exceeds the
-budget, listing every entry with its line count. Injection does not stop at the budget. The note is the signal to trim,
-move an entry to a trigger, or switch it to a pointer.
+lines, pointer lines count one, and static entries count too, as do entries delivered in an attempt's prompt.
+`the-cook doctor` reports a note when a role exceeds the budget, listing every entry with its line count. Injection does
+not stop at the budget. The note is the signal to trim, move an entry to a trigger, or switch it to a pointer.
 
 ### When the binary is absent
 
@@ -151,7 +177,8 @@ session instead: `the-cook v0.9.0 is not cached on this machine; run ./cook vers
 ([hooks](hooks.md#the-missing-binary-guard)). Declare as `static` the directives a session must never miss.
 
 `COOK_NO_CONTEXT=1` turns injection off for every process started from that environment, for debugging a session
-without standing context. Static entries stay, because they are part of `AGENTS.md`.
+without standing context: hooks inject nothing, and an attempt puts no entry in its worker's prompt. Static entries
+stay, because they are part of `AGENTS.md`.
 
 The reasoning behind this design is in [ADR 0020](../adrs/0020-standing-context.md).
 
@@ -224,8 +251,9 @@ It reads the same files the hooks read and writes nothing.
 
 | Variable | Effect |
 | --- | --- |
-| `COOK_NO_CONTEXT=1` | Hooks inject nothing in this environment and every process started from it |
+| `COOK_NO_CONTEXT=1` | Hooks inject nothing in this environment and every process started from it, and an attempt started from it puts no entry in its worker's prompt |
 | `COOK_ATTEMPT=1` | Set by `the-cook attempt`, by `attempt` actions and by a recipe's `attempt` steps for the worker they start; selects the `unattended` role |
+| `COOK_CONTEXT_IN_PROMPT=1` | Set by the same commands when they put the `always` entries in the worker's prompt; the session-start hook injects no `always` entry |
 
 Files read: `.cook/config.yaml`, the skills and files the entries name, the hook payload, and for attempts the same
 files at the base commit. Files written: `<state.dir>/context/<session-id>.json`; by `render`, the hook entries the
@@ -348,7 +376,8 @@ always-on: 62 of 120 lines
 | A skill is never injected; `doctor` reports it missing | No `.agents/skills/<name>/SKILL.md` exists for the name in `context`, or it is not committed and the session is an attempt | Install or write the skill, commit it, or fix the name |
 | No standing context; the session shows `the-cook v0.9.0 is not cached on this machine; run ./cook version once to fetch it.` | Hooks never download, and the pinned release is not cached here | Run `./cook version` once; declare must-haves `static: true` |
 | A `paths` entry never fires for one worker | The program read the file through a shell command, which names no file | Rely on edits for that worker, or make the entry `always` |
-| A worker never receives any hook-delivered entry | Its ingredient declares no hook payload mapping | Expected for such a program; declare what it must receive as `static`, if it reads `AGENTS.md` |
+| A worker never receives any hook-delivered entry | Its ingredient declares no hook payload mapping | Expected for such a program; declare what it must receive as `static`, if it reads `AGENTS.md`, and pass attempt prompts on stdin, which carry the `always` entries |
+| An attempt's worker follows none of the `always` entries of the `unattended` role | The caller passes the prompt in the worker's arguments, and the worker program runs no hook unattended | Pass the prompt on stdin: the binary then puts the entries before the task text ([delivery in the prompt](#delivery-in-the-prompt)) |
 | A `prompt` entry fires on unrelated messages | A word that is too common | Use more specific words or phrases, or a `paths` trigger |
 | A coding agent loads a skill twice | The skill was injected and the coding agent also matched its description and loaded it | Inject it as a `pointer`, or narrow the skill's description |
 | An attempt ignores a new directive | The directive is not committed; attempts read from their base commit | Commit it, then start the run |

@@ -180,8 +180,8 @@ bound it are the attempt contract.
   before it runs again. What the step left can still reach completion only through the run's verification and the replay
   from the base, the proof of invariants 3 and 4, and invariant 8's restore of the tool-owned files to the attempt's
   baseline before every attempt starts its worker. The trade: a recipe meant for a run a worker drives cannot hand off
-  to a person, a change to a recipe reaches such a run only once it is committed, and a failed attempt step's edits stay
-  in the working copy until a person deals with them.
+  to a person, a change to a recipe reaches such a run only once it is on the shared default line of work, and a failed
+  attempt step's edits stay in the working copy until a person deals with them.
 
 ## Rejected alternatives
 

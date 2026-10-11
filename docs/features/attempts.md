@@ -27,9 +27,9 @@ signal the caller expects is text the caller hands to `the-cook attempt`, which 
 `the-cook attempt` is the command a **loop runner** runs for each task. A loop runner is a third-party program that
 works through a list of tasks and starts a worker for each. `the-cook` has no code for any loop runner: it does not
 start one, read its configuration or know when a run starts or ends ([ADR 0022](../adrs/0022-tool-integration.md)). An
-unattended run of a loop runner whose command for each task is `the-cook attempt` is called a Ralph run. A station that
-uses a loop runner, applied from a cookbook, seeds its configuration with `./cook attempt`, or with
-`./cook make <recipe> --task <id> --unattended`, as that command
+unattended run of a loop runner whose command for each task is `the-cook attempt <worker>` or
+`the-cook make <recipe> --unattended` is a **loop run**. A station that uses a loop runner, applied from a cookbook,
+seeds its configuration with `./cook attempt`, or with `./cook make <recipe> --task <id> --unattended`, as that command
 ([how a loop runner calls it](#how-a-loop-runner-calls-it)). A team's own script calls `the-cook attempt` the same way
 ([example](#a-teams-own-loop-script)).
 
@@ -95,17 +95,22 @@ For each attempt, `the-cook attempt <worker>`:
    ingredient in use, such as rendered rule files, owned keys of native settings files and `the-cook hook` entries,
    and the wrapper `cook` and its pin `.cook/wrapper.yaml`) from the base commit, which is their state when the attempt
    began, because the checkout is clean.
-6. Pins the launch with the worker's ingredient: its unattended arguments, its sandbox-root arguments, the way it
-   passes `unattended.deny`, as launch arguments or through the rendered rules the tamper check keeps intact, and the
-   declared model and effort. For a worker with a sandbox, the writable roots are the checkout, the clone's state
-   directory (`state.dir`, default `.work`) and the directories listed in `workers.<name>.writable_roots`, such as a
-   task tracker's database directory ([profile](profile.md#workers)).
+6. Pins the launch with the worker's ingredient: its unattended arguments, its sandbox-root arguments, its network
+   arguments for a worker declared with `network: true`, the way it passes `unattended.deny`, as launch arguments or
+   through the rendered rules the tamper check keeps intact, and the declared model and effort. For a worker with a
+   sandbox, the writable roots are the checkout, the clone's state directory (`state.dir`, default `.work`) and the
+   directories listed in `workers.<name>.writable_roots`, such as a task tracker's database directory
+   ([profile](profile.md#workers)). A worker declared with `network: false`, the default, gets no argument about the
+   network, and its program's default holds.
 7. Runs the profile's `bootstrap` once per checkout, and records that in the checkout's state directory, so later
    attempts in the same checkout skip it.
 8. Runs the worker with its prompt, read from stdin or from the worker arguments, whichever the caller uses, and
-   `COOK_ATTEMPT=1` in its environment. It buffers the worker's output instead of streaming it. Every `the-cook`
-   process the worker starts sees that variable and refuses `the-cook lifecycle run`, and the worker's `attention` and
-   `turn_end` [hooks](hooks.md) do nothing.
+   `COOK_ATTEMPT=1` in its environment. A prompt on stdin carries the `always` entries of the `unattended` role, read
+   from the base commit, before the task text, and the binary also sets `COOK_CONTEXT_IN_PROMPT=1`, under which the
+   session-start hook injects no `always` entry; a prompt in the worker arguments is passed as it is, and the
+   session-start hook delivers those entries ([context](context.md#delivery-in-the-prompt)). It buffers the worker's
+   output instead of streaming it. Every `the-cook` process the worker starts sees `COOK_ATTEMPT=1` and refuses
+   `the-cook lifecycle run`, and the worker's `attention` and `turn_end` [hooks](hooks.md) do nothing.
 9. Runs the tamper check, second half: compares with the base commit the tool-owned files, the files under `.cook/`
    and every file and skill a `context` entry names. Any difference fails the attempt and is reported by path: a worker
    that rewrote its own rules cannot complete, and a change to the rules reaches a run only through a commit a person
@@ -243,6 +248,7 @@ to keep:
 | --- | --- |
 | the command for every task is `./cook attempt <worker>`, with `--commit` and `--withhold <signal>`, followed by the loop runner's own arguments for the worker; or `./cook make <recipe> --task <id> --unattended` with the same caller-protocol arguments, the worker's after `--` ([through a recipe](#through-a-recipe)) | `the-cook attempt` reads its own flags and passes the rest to the worker ([argument passing](#argument-passing)) |
 | no option adds a permission-bypass argument | `the-cook attempt` refuses it at the first task |
+| the task's prompt goes on stdin | only a prompt on stdin carries the `always` entries of the `unattended` role, which then reach the worker whether or not its program runs hooks unattended ([context](context.md#delivery-in-the-prompt)) |
 | an exit status other than 0 counts as a failed attempt | `the-cook attempt` exits 1 on a failed attempt |
 | the loop runner does not commit in sequential mode | `the-cook attempt` commits a verified task |
 | the loop runner's state files inside the checkout are ignored by the version control system | otherwise `the-cook attempt` refuses the checkout as having uncommitted changes, and `--commit` would commit them |
@@ -254,9 +260,10 @@ removes; its [entries](stations.md#entries) add the `unattended.deny` rules; and
 the ignore block for its state files ([renders](ingredients.md#renders)). Their pages in their cookbook explain each
 setting.
 
-The prompt each worker receives is the loop runner's. A worker that reads `AGENTS.md` learns how to verify from its
-`verify` block ([verify](verify.md#the-verify-block-in-agentsmd)), and every worker that receives standing context
-gets the entries of the `unattended` role.
+The task text each worker receives is the loop runner's. A worker that reads `AGENTS.md` learns how to verify from its
+`verify` block ([verify](verify.md#the-verify-block-in-agentsmd)). Standing context of the `unattended` role reaches
+it as [context](context.md#delivery-in-the-prompt) describes: when the loop runner passes the prompt on stdin, the
+`always` entries go before the task text, so they reach the worker even when its program runs no hook unattended.
 
 ### Through a recipe
 
@@ -272,16 +279,16 @@ recipe run, one pass of one change through the stages:
 
 | Stage | For each task |
 | --- | --- |
-| Start | its own managed workspace, from the default branch, bound to the task; `start` (scope `task`) runs the tracker's automatic actions |
+| Start | its own managed workspace, at the revision of the shared default line of work, bound to the task; `start` (scope `task`) runs the tracker's automatic actions |
 | Implement | the recipe's steps, in order; an `attempt` step runs the worker it names under the attempt contract ([in a recipe step](#in-a-recipe-step)) |
 | Verify | the run runs every lane the change selects and every lane the recipe requires itself, none of the required ones skipped, and writes the receipt |
 | Complete | the replay from the base; with `--commit`, the commit; then `completed` (scope `task`), and `deliver` (scope `task`) when the work is concluded |
 | A stop | `blocked` (scope `task`), fired by the run itself, with the stage, the step and the reason; the workspace stays for a person |
 
-Each run reads its recipe once, from its new workspace's base commit, the default branch's head, and follows that
-content to the end, so no worker changes the recipe of the run it is in or of the next task's
-([guards](recipes.md#guards)). A station that uses a loop runner can add a recipe for this, such as the `implement-task`
-recipe of `agentic-coding` ([stations](stations.md)).
+Each run reads its recipe once, from its new workspace's base commit, the revision of the shared default line of work
+this checkout last learned, and follows that content to the end, so no worker changes the recipe of the run it is in or
+of the next task's ([guards](recipes.md#guards)). A station that uses a loop runner can add a recipe for this, such as
+the `implement-task` recipe of `agentic-coding` ([stations](stations.md)).
 
 Each task is delivered on its own, by the repository's `deliver` actions with scope `task` and `auto: true`, or by a
 person afterwards. `the-cook attempt` stays the command for a loop runner whose tasks share one workspace and one
@@ -309,7 +316,8 @@ the-cook attempt <worker> [--commit] [--withhold <text>] [-- <worker args>...]
 `the-cook attempt` reads its own flags first. The first argument it does not recognise, and everything after it, go to
 the worker unchanged, after the arguments the launch of the worker's ingredient pins. A loop runner that places its own
 arguments after the configured ones therefore needs no `--`; `--` makes the split explicit in a script. The prompt
-comes from stdin or from the worker arguments, as the caller passes it.
+comes from stdin or from the worker arguments, as the caller passes it; only a prompt on stdin carries the `always`
+entries of standing context ([context](context.md#delivery-in-the-prompt)).
 
 For example, a loop runner configured to run `./cook` with `attempt claude --commit --withhold '<task-done/>'` that
 appends its own `--model <id>` starts, with the prompt on stdin:
@@ -335,6 +343,7 @@ A bypass argument the worker's ingredient marks as floor is refused anywhere in 
 | Variable | Set for | Value |
 | --- | --- | --- |
 | `COOK_ATTEMPT` | the worker and every process it starts | `1`: `the-cook lifecycle run` refuses, and `attention` and `turn_end` hooks do nothing |
+| `COOK_CONTEXT_IN_PROMPT` | the worker and every process it starts, when the prompt arrived on stdin | `1`: the prompt carried the `always` entries, and the session-start hook injects none ([context](context.md#delivery-in-the-prompt)) |
 | `COOK_TASK` | the actions of the events the attempt fires | the task id the workspace was created with (`--task`) |
 | `COOK_ACTOR` | the actions of the events the attempt fires | the managed workspace's actor, `<user>:<workspace>:<random>` |
 
@@ -429,7 +438,8 @@ for that command asks a person first ([policy](policy.md#the-seeded-entry)).
   `the-cook attempt`, a per-user one included.
 - Don't give a recipe a loop runner runs for each task a `handoff` step: in an unattended run a handoff stops the task
   as blocked, because it needs a person.
-- Do commit a recipe before a loop runner runs it: an unattended run reads it from its workspace's base commit.
+- Do get a recipe onto the shared default line of work (for git, pushed and merged) before a loop runner runs it: an
+  unattended run reads it from its workspace's base commit, the revision of that line this checkout last learned.
 - Don't edit the run's task list by hand during a run.
 - Don't fire lifecycle events from inside the worker's task: fire run-scope events from the session that started the
   loop runner.

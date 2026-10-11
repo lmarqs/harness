@@ -146,4 +146,5 @@ Must be maintained:
   byte-identical and reports it as kept, and a recipe run whose template step names it stops and leaves it
   byte-identical.
 - Review rejects any hosting-platform client library, platform API endpoint or platform credential in the binary.
-- A fixture with no declared lifecycle actions, taken through every lifecycle event, leaves its remote unchanged.
+- A fixture with no declared lifecycle actions, taken through every lifecycle event, changes nothing its repository
+  shares.

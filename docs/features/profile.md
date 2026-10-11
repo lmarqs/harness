@@ -72,11 +72,11 @@ Run `./cook render` after every edit, and `./cook doctor` to check globs and com
 | `bootstrap` | list of commands | `[]` | Run in order in a new workspace, and once in each checkout an [attempt](attempts.md#the-attempt-contract) runs in |
 | `commands` | map | | Lint and build commands |
 | `verify` | map | | Verification paths, lanes and validators |
-| `workers` | map | | The [workers](#workers) rendered for this repository, their ingredients and roles, and what an attempt may write |
+| `workers` | map | | The [workers](#workers) rendered for this repository, their ingredients and roles, and what an attempt may write and reach |
 | `context` | map | | [Standing context](#context): directives and skills injected by declared triggers |
 | `blocks` | map | | Limits for the managed blocks `the-cook` writes |
 | `state` | map | | Where clone-local state lives; see [State paths](#state-paths) |
-| `workspaces` | map | | Where managed workspaces live; see [State paths](#state-paths) |
+| `workspaces` | map | | Where managed workspaces live, see [State paths](#state-paths), and whether removing one first learns what is shared, see [`workspaces`](#workspaces) |
 
 ### `ingredients`
 
@@ -188,6 +188,7 @@ applied ([stations](stations.md#stages)).
 | `ingredient` | ingredient name | the worker's name | The ingredient that serves the worker; it must be in `ingredients` and fill the worker contract. Example: `reviewer: { ingredient: claude, role: interactive }` |
 | `role` | `interactive` \| `unattended` | required | `interactive`: people use the worker in this repository; its native files carry the shared policy. `unattended`: the worker runs here only in attempts, started by [`the-cook attempt`](attempts.md#the-attempt-contract), an `attempt` action or a recipe's [`attempt` step](recipes.md#attempt); its native files also carry `unattended.deny`. See [workers](workers.md#roles) |
 | `writable_roots` | list of paths | `[]` | Only for a worker whose ingredient opens sandbox roots (`launch.sandbox_roots`). Directories its attempts may write besides the task checkout and the clone's state directory, relative to the root of the primary checkout. Example: a tracker's database directory in the clone. No other directory is writable in its attempts |
+| `network` | boolean | `false` | Whether the worker's attempts may use the network. `true` passes its ingredient's `launch.network` arguments at every unattended launch, and is a validation error for a worker whose ingredient has none; `false` passes nothing about the network, so the program's default holds, which the ingredient's page in its cookbook explains. See [workers](workers.md#declaring-workers) |
 | `model` | string | none | The model the binary starts the worker with, in attempts and `attempt` actions, passed as its ingredient's `launch.model` says; an action's `attempt.model` overrides it. A worker whose ingredient maps no model ignores it, and `doctor` notes it |
 | `effort` | string | none | The effort level, passed and overridden like `model`, through `launch.effort` and `attempt.effort` |
 
@@ -268,6 +269,26 @@ Rules for the paths:
 - No state path may point inside `.cook/` or `.agents/`, or be either directory: those hold committed files only.
   Such a path is a validation error.
 - Changing a path re-renders its blocks; state already under the old path is not moved.
+
+### `workspaces`
+
+Besides `dir` ([State paths](#state-paths)), `workspaces` holds whether removing a workspace first learns what is
+shared:
+
+```yaml
+workspaces:
+  update_before_landed: true
+```
+
+| Field | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `workspaces.update_before_landed` | boolean | `false` | When `true`, `the-cook workspace remove` runs the version-control contract's `update` operation before it detects whether the workspace's branch has [landed](lifecycle.md#landed), so it compares with the shared default line of work as it is, not as the checkout last learned it. When `update` fails, as it does offline, or the version-control ingredient has none, it prints one note and detects against what the checkout knows. See [workspaces](workspaces.md#remove) |
+
+Nothing else in `the-cook` learns what is shared on its own: `the-cook make`, `the-cook workspace create` and
+`the-cook doctor` never run `update`, and [`fleet`](fleet.md#for-each-repository) runs its own. A repository whose work
+lands on the shared default line of work somewhere else, such as through a hosting platform's merge, sets the field to
+`true`, so removing a workspace fires `landed` without anyone first updating the checkout by hand. A station may write
+it as one of its [entries](stations.md#entries).
 
 ## Examples
 
@@ -431,6 +452,7 @@ Patterns for the Go lanes are package paths:
 | `vcs` or a worker's `ingredient` names an ingredient that fills another contract | `vcs` needs a version-control ingredient, a worker a worker ingredient | Name an ingredient that fills the contract; `./cook ingredient list` shows each one's contract |
 | Two `ingredients` entries, or two `stations` entries, with the same name | A name is unique within each list | Delete one; `./cook ingredient pin` moves an existing pin |
 | `writable_roots` is rejected for a worker | Its ingredient opens no sandbox roots | Remove the field, or use an ingredient that fills `launch.sandbox_roots` |
+| `network: true` is rejected for a worker | Its ingredient has no `launch.network` arguments | Remove the field, or use an ingredient that fills `launch.network` |
 | `render` exits 3 naming `./cook fetch` | An ingredient in `ingredients` is not in this machine's cache | Run `./cook fetch` |
 | `doctor` says a program is not on PATH | A command, lane, validator or action names a program this machine lacks | Install the program, or fix the command in `.cook/config.yaml` or `.cook/hooks.yaml` |
 | `doctor` says a glob matches nothing | Wrong path or quoting | YAML needs quotes around globs that start with `*` |

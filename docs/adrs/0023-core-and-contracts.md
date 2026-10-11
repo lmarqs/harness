@@ -17,10 +17,11 @@ reached through an interface the rules declare.
   them is about any program in particular.
 - What the rules need from outside is small and regular. From version control: the base revision, a file at a revision,
   whether the tree is clean, whether a path is tracked, what changed since a revision, the common ancestor of two
-  revisions, whether a branch's changes already reached another, a reset, a commit, a branch, an update from the remote,
-  a workspace. From a worker: how to launch it and, where it has them, the files it owns and their content, the
-  arguments that start it unattended, the arguments that would bypass its checks, and the fields of its hook payload.
-  From any other program: run this and tell me the exit status.
+  revisions, whether a branch's changes already reached another, the name of the shared default line of work and the
+  revision it is at, a reset, a commit, a branch, learning what is shared, a workspace. From a worker: how to launch it
+  and, where it has them, the files it owns and their content, the arguments that start it unattended, the arguments
+  that would bypass its checks, the arguments that let it use the network, and the fields of its hook payload. From any
+  other program: run this and tell me the exit status.
 - A program's answers arrive as a string, lines, bytes or an exit status (Context of
   [0022](0022-tool-integration.md)). Writing in a program's format and reading structured output can be described as
   data; parsing a program's free text in general cannot.
@@ -31,6 +32,11 @@ reached through an interface the rules declare.
   ([0022](0022-tool-integration.md), [0024](0024-ingredients-and-stations.md), [0006](0006-repository-contract.md)).
 - The binary ships no ingredient, and a repository has the ingredients its data pins and nothing else
   ([0022](0022-tool-integration.md)). A newly adopted repository can have pinned none.
+- Version control systems differ in how much they share and where. Some keep a full copy of the history in every clone
+  and learn what others shared only when asked, so the revision of the shared default line of work in a clone is the one
+  it last learned, which may differ from that of its own default branch; others keep the history on a server, and some
+  share nothing beyond the one copy. Example: git answers the shared default line as `origin/main`, learns it with a
+  fetch, and a commit on the local `main` is shared only once it is pushed.
 - The repository's declared data sits in the tool's configuration directory at the repository root
   ([0014](0014-directory-layout.md)), so finding it takes only the files of a checkout. The base revision, a file's
   history and a workspace are answers only version control has.
@@ -45,10 +51,14 @@ reached through an interface the rules declare.
    names what it needs by its role, never by one program's term for it: a separate working copy for a task is a
    workspace, whatever the version control calls it.
 3. The core declares two contracts that ingredients fill with data. The version control contract is a fixed set of
-   operations, each with a declared output kind. The worker contract is the launch of one worker, its one required
-   part, and, where the worker has them, its unattended arguments, its bypass arguments, its renders, its hook payload
-   mapping, its instructions location, its skill location and its native rule import ([0009](0009-agent-support.md)).
-   One connection interprets an ingredient's operations for each contract.
+   operations, each with a declared output kind. It asks as little of a version control system as the rules allow: it
+   names the shared default line of work and the revision it is at, and learning what is shared, never one system's
+   mechanism for them; the operation that gives the revision and the one that learns what is shared are optional, and
+   for each the core declares what it does without it: it takes the line's name as the revision, or goes on with what
+   the checkout knows after one note. The worker contract is the launch of one worker, its one required part, and, where
+   the worker has them, its unattended arguments, its bypass arguments, its network arguments, its renders, its hook
+   payload mapping, its instructions location, its skill location and its native rule import
+   ([0009](0009-agent-support.md)). One connection interprets an ingredient's operations for each contract.
 4. The core declares, besides those, only generic interfaces: the files of a checkout, running a command and reading
    its exit status and output, an HTTP request, the release source, the clock, and presenting a plan, a diff, a
    finding or a question to a person. Each has one connection and an in-memory stand-in for tests.
@@ -75,7 +85,11 @@ reached through an interface the rules declare.
   more indirection to read.
 - **3.** The two things the rules rely on answers from, version control and the worker, get named contracts so that
   an ingredient can fill them with data (Context) and a test can fill them with a stand-in. A fixed operation set with
-  declared output kinds is what keeps a description possible: the binary never has to parse free text. The worker
+  declared output kinds is what keeps a description possible: the binary never has to parse free text. The version
+  control contract speaks of what is shared and of the shared default line of work, because systems differ in what a
+  clone holds and how it learns more (Context); a system that keeps no separate shared copy has no other revision to
+  give and nothing to learn, so those two operations are optional with a defined behaviour in their absence, which is
+  part of the contract, not a description of any program. The worker
   contract requires only the launch because a worker can have no configuration of its own
   ([0009](0009-agent-support.md)).
 - **4.** The remaining needs are not about any program. One generic connection for each keeps the list of connections
@@ -169,3 +183,6 @@ Must be maintained:
   makes unavailable.
 - In the same fixture, every use case that needs a contract stops as a missing prerequisite that names the contract,
   starts no program and writes nothing.
+- A stand-in version control ingredient without the optional operations runs every use case: where the core needs the
+  revision of the shared default line of work it uses the line's name, and where it would learn what is shared it
+  reports one note and goes on.

@@ -146,7 +146,7 @@ flowchart TB
 
 | | |
 | --- | --- |
-| Who acts | a person or a coordinating worker runs `the-cook workspace create`, with `--task <id>` when the work is one task of a tracker; for an unattended run, the person or a script creates the workspace the loop runner runs in; a recipe run creates the workspace its recipe names, from the default branch, as `the-cook workspace create` makes it ([workspaces](workspaces.md#created-by-a-recipe-run)) |
+| Who acts | a person or a coordinating worker runs `the-cook workspace create`, with `--task <id>` when the work is one task of a tracker; for an unattended run, the person or a script creates the workspace the loop runner runs in; a recipe run creates the workspace its recipe names, at the revision of the shared default line of work, as `the-cook workspace create` makes it ([workspaces](workspaces.md#created-by-a-recipe-run)) |
 | `the-cook` guarantees | the workspace starts from committed code, added through the version-control contract; its base commit is recorded; its actor (`COOK_ACTOR`) is unique; the task id reaches every event fired in it as `COOK_TASK`; the profile's `bootstrap` runs ([workspaces](workspaces.md)) |
 | Left to judgement | the name, the base, the task id, whether a workspace is needed at all |
 | Event | `start` |
@@ -201,7 +201,7 @@ flowchart TB
 | | |
 | --- | --- |
 | Who acts | a person or a worker runs `the-cook workspace remove`, which fires `landed` for each recorded branch that has landed; `the-cook doctor` lists landed branches and prints the command to fire `landed`; a person or a coordinating worker can also run `the-cook lifecycle run landed` |
-| `the-cook` guarantees | only branches `the-cook` recorded are considered; a branch counts as landed when the version-control ingredient finds every patch on it on the default branch, whether it was merged, rebased or cherry-picked |
+| `the-cook` guarantees | only branches `the-cook` recorded are considered; a branch counts as landed when the version-control ingredient finds every patch on it in the revision of the shared default line of work, whether it was merged, rebased or cherry-picked; that revision is the one the checkout last learned, unless the profile's `workspaces.update_before_landed` has `workspace remove` learn what is shared first ([profile](profile.md#workspaces)) |
 | Left to judgement | branches whose patches do not match, such as a squash merge of several commits |
 | Event | `landed` |
 
@@ -268,7 +268,7 @@ A trigger point is the place in a `the-cook` command where it fires an event, ru
 | `the-cook verify` (never with `--check`) | `verified` |
 | `the-cook attempt` | after a verified attempt in a workspace bound to a task: `completed` (scope `task`), then `deliver` (scope `task`) when the work is concluded. Unbound, as in the workspace a loop runner runs in, nothing |
 | [`the-cook make`](recipes.md#the-cook-make) | `start` when it creates the workspace: scope `task` with `--task`, otherwise `change`; `verified` when its Verify stage writes the receipt; in a workspace bound to a task, after the replay passes, `completed` (scope `task`), then `deliver` (scope `task`) when the work is concluded; `blocked` when the run stops (a step fails, Verify cannot select a lane the lane rules demand, a lane or the replay fails, or a handoff is reached in a run started with `--unattended`), with the stage, the step and the reason in `COOK_REASON`; nothing when a handoff pauses an attended run. Its steps fire nothing |
-| `the-cook workspace remove` | `landed` once per recorded branch whose patches are on the default branch, before removal |
+| `the-cook workspace remove` | `landed` once per recorded branch whose patches are on the shared default line of work, before removal |
 | `the-cook fleet --deliver` | `deliver` (scope `change`) per repository, after `the-cook verify` |
 | any other `the-cook` command run without a terminal that exits 3 | `blocked`, for the scope of the command's work, otherwise `change`. `the-cook make` follows `--unattended` instead of the terminal ([attended and unattended runs](recipes.md#attended-and-unattended-runs)) |
 
@@ -299,13 +299,17 @@ Details:
   `the-cook fleet --deliver`; a recipe run without a task completes when its replay passes and fires no `completed`.
 - A recipe fires no event itself and declares no action. The binary fires the events at the run's trigger points, and
   the actions that run are the repository's own ([guards](recipes.md#guards)).
-- `the-cook workspace remove` fires `landed` once per recorded branch whose patches are on the default branch, before it
-  removes its workspace. `run` and `http` actions on `landed` run in the primary checkout, because the work is already
-  on the default branch and its workspace is about to be removed; an `attempt` action on `landed` runs in a fresh
-  workspace ([`attempt`](#attempt)). Each recorded branch fires `landed` at most once successfully. A failed `landed` is
+- `the-cook workspace remove` fires `landed` once per recorded branch whose patches are in the revision the
+  version-control ingredient's `default_revision` reports, before it removes its workspace. With
+  `workspaces.update_before_landed: true` it first runs the contract's `update`, and when that fails or the ingredient
+  has none, it prints one note and detects against what the checkout knows ([profile](profile.md#workspaces)). `run`
+  and `http` actions on `landed` run in the primary checkout, because the work is already on the shared default line
+  of work and its workspace is about to be removed; an `attempt` action on `landed` runs in a fresh workspace at that
+  revision ([`attempt`](#attempt)). Each recorded branch fires `landed` at most once successfully. A failed `landed` is
   fired again by hand with `the-cook lifecycle run landed`.
-- `the-cook doctor` never fires events or runs actions. It reports recorded branches that have landed and prints the
-  command that fires `landed` for each ([doctor](doctor.md#landed-branches)).
+- `the-cook doctor` never fires events, runs actions or learns what is shared. It reports recorded branches that have
+  landed, against what the checkout knows, and prints the command that fires `landed` for each
+  ([doctor](doctor.md#landed-branches)).
 - An automatic event never undoes the command that fired it and never changes its exit code: the receipt stays written,
   the attempt's verified commit stays, the workspace is still removed. A failed or refused automatic event is reported
   on stderr and recorded in the [lifecycle log](#the-lifecycle-log). Run `the-cook lifecycle run <event>` to retry.
@@ -486,13 +490,16 @@ The shell expands the [environment](#environment); `the-cook` substitutes nothin
 - The worker runs unattended under the [attempt contract](attempts.md#the-attempt-contract): the unattended launch
   arguments of its worker ingredient, the floor and the repository's `unattended.deny`, the ingredient's floor bypass
   arguments refused, and the tamper check, with the checkout's head commit as base, as the version-control ingredient
-  reports it. It receives the `unattended` role's [standing context](context.md).
+  reports it. It receives the `unattended` role's [standing context](context.md); when its worker ingredient passes the
+  prompt on stdin, the `always` entries go in the prompt, before `attempt.prompt`
+  ([delivery in the prompt](context.md#delivery-in-the-prompt)).
 - It cannot commit, push or fire lifecycle events. Its file changes stay uncommitted in the checkout it ran in, and
   the output and the lifecycle log list the changed paths for a person to review and commit.
-- It runs in the work's workspace, except on `landed`. There, `the-cook` creates a fresh workspace of the default
-  branch, `<workspaces.dir>/landed-<name>-<n>` on branch `work/landed-<name>-<n>`, where `<name>` is the landed work's
-  workspace name and `<n>` counts from 1, records it, and runs the worker in it. The workspace of landed work is about
-  to be removed, and the primary checkout holds whatever a person is doing, so neither receives the worker's edits
+- It runs in the work's workspace, except on `landed`. There, `the-cook` creates a fresh workspace at the revision of
+  the shared default line of work that the version-control ingredient's `default_revision` reports, which holds the
+  landed work, `<workspaces.dir>/landed-<name>-<n>` on branch `work/landed-<name>-<n>`, where `<name>` is the landed
+  work's workspace name and `<n>` counts from 1, records it, and runs the worker in it. The workspace of landed work is
+  about to be removed, and the primary checkout holds whatever a person is doing, so neither receives the worker's edits
   ([ADR 0019](../adrs/0019-action-kinds.md)). The fresh workspace stays, with the edits uncommitted, until a person
   commits them or runs `the-cook workspace remove landed-<name>-<n>`.
 - `auto: true` is allowed on an `attempt` action, as on any other, and must be written explicitly. `the-cook doctor`
@@ -818,11 +825,11 @@ A person opens the pull request after reading the plan locally. An action that p
 write the team's record from a developer machine, with that developer's cloud credentials in its environment; it does
 not belong in `deliver`.
 
-### Ralph: delivery per run, or delivery after judgement
+### Loop runs: delivery per run, or delivery after judgement
 
-A Ralph run is an unattended run of a loop runner that starts `the-cook attempt` for each task, configured by hand or by
-a station's template. With `the-cook attempt --commit`, each verified task is one commit on the branch of the workspace
-the run works in.
+A loop run is an unattended run of a loop runner whose command for each task is `the-cook attempt <worker>` or
+`the-cook make <recipe> --unattended`, configured by hand or by a station's template. With `the-cook attempt --commit`,
+each verified task is one commit on the branch of the workspace the run works in.
 
 **Per task, through a recipe.** A loop runner whose command for each task is
 `./cook make implement-task --task <id> --unattended --commit --` makes each task one recipe run: its own workspace
@@ -915,6 +922,7 @@ moved that entry out of `ask`.
 | An action fails: `COOK_TASK` unset | The variable does not apply to the scope | Use `${COOK_TASK:-}`, or limit the action with `scope` |
 | The action that opens a pull request fails on the second run | The pull request exists | Make the action idempotent |
 | `landed` never fires for a merged branch | Squash merge of several commits: no patch on the default branch matches | Delete the branch and remove the workspace by hand |
+| `landed` does not fire when a merged workspace is removed | The checkout has not learned where the shared default line of work is: `workspace remove` detects against what it knows, and `workspaces.update_before_landed` is off | `the-cook lifecycle run landed`; set `workspaces.update_before_landed: true` so later removals learn what is shared first ([profile](profile.md#workspaces)) |
 | `landed` failed during `workspace remove` | An action exited non-zero; the removal went ahead | Read the lifecycle log; fix the action, then `the-cook lifecycle run landed`, with `--task` for a task's work |
 | `lifecycle run` exits 3 inside an attempt | The worker runs with `COOK_ATTEMPT=1`, and a worker in an attempt never fires lifecycle events | Nothing to fix: in a workspace bound to a task, `the-cook attempt` fires `completed` and `deliver` after the replay; whoever drives the run fires the rest |
 | One repository delivers without the organization's convention | Each repository declares its own actions, and this one was never given them | Add them to its `.cook/hooks.yaml`, by hand or with a worker following the organization's skill, and review the diff |

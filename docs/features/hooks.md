@@ -148,7 +148,7 @@ Files outside the checkout are ignored.
 | Setting | Output, as additional context for the worker |
 | --- | --- |
 | `context: true` | In a [managed workspace](workspaces.md), one line: the task id given with `--task`, when there is one, and the command to verify. Outside managed workspaces, nothing |
-| `context.always` in the profile | The `always` entries for the session's role, each headed by one line naming it ([context](context.md)) |
+| `context.always` in the profile | The `always` entries for the session's role, each headed by one line naming it ([context](context.md)). Under `COOK_CONTEXT_IN_PROMPT=1`, which an attempt sets when its prompt arrived on stdin, none: the binary put them in the prompt ([delivery in the prompt](context.md#delivery-in-the-prompt)) |
 
 Worker sessions never receive an update notice: moving the pin is a reviewed supply-chain decision, so the notice goes
 to people, on the stderr of explicit commands and in `the-cook doctor` ([update notice](installation.md#update-notice)).

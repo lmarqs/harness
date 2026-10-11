@@ -271,10 +271,11 @@ Why: two teammates rendering the same commit must produce the same diff, or ever
   the checkout it ran in; `the-cook make --commit` commits a recipe run's work, after its replay passes, on the branch
   of the run's workspace, with the recipe and its inputs in the commit body; and `the-cook fleet <command> --deliver`,
   which runs a command across a listed set of repositories, commits the tool-owned changes on a new local branch
-  `<branch_prefix><command>`, cut from the fetched default branch, then fires that repository's `deliver` actions. Any
-  other commit, push or pull request is a declared action. Why: a commit is the start of delivery, and delivery is the
-  repository's decision. The three exceptions commit only work the binary itself verified or rendered, in a checkout
-  its caller chose for that work or on a branch it created.
+  `<branch_prefix><command>`, started at the revision of the shared default line of work once the checkout has learned
+  what is shared, then fires that repository's `deliver` actions. Any other commit, push or pull request is a declared
+  action. Why: a commit is the start of delivery, and delivery is the repository's decision. The three exceptions commit
+  only work the binary itself verified or rendered, in a checkout its caller chose for that work or on a branch it
+  created.
 - Reviewers judge the source change (`policy.yaml`, `hooks.yaml`, `config.yaml`); the rendered diff shows its effect
   on each worker.
 - `the-cook station apply` writes its additions and renders them in the same change, so the station and ingredient pins,

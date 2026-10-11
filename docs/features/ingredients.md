@@ -148,7 +148,7 @@ The ingredient the profile's `vcs:` names fills this contract. Everything the bi
 repository's history goes through it: the base commit of a managed workspace or of an attempt, the files the tamper
 check restores from that base, the changes `verify` fingerprints, the branches `doctor` reports as landed, and the
 default branch a floor rule names. The binary contains none of the commands that fill it; each version control system
-is an ingredient with the same operations.
+is an ingredient with the same operations, and the contract asks as little of that system as it can.
 
 | Operation | Placeholders | Output | Answers |
 | --- | --- | --- | --- |
@@ -156,7 +156,8 @@ is an ingredient with the same operations.
 | `root` | | string | the root of the current checkout |
 | `primary_root` | | string | the root of the primary checkout, from the primary checkout or any workspace |
 | `branch` | | string | the current branch |
-| `default_branch` | | string | the repository's default branch, without a remote's prefix |
+| `default_branch` | | string | the name of the repository's default branch, the shared default line of work |
+| `default_revision` | | string | the revision the shared default line of work is at, as this checkout last learned it; optional |
 | `show` | `{rev}`, `{path}` | bytes | the content of `{path}` at `{rev}` |
 | `clean` | | status | true when no tracked file is changed and no untracked file is present that is not ignored |
 | `tracked` | `{path}` | status | true when the path is tracked |
@@ -166,7 +167,7 @@ is an ingredient with the same operations.
 | `landed` | `{branch}`, `{target}` | lines | the commits of `{branch}` whose changes are not yet in `{target}`, compared by patch, so a cherry-pick, a rebase or a squash of the same changes counts as landed |
 | `reset` | `{rev}` | status | the checkout returned to `{rev}`, untracked files removed except ignored ones, so the state directory and the `last-attempt.patch` saved there stay |
 | `commit` | `{message}` | status | every change recorded as one commit with `{message}` |
-| `update` | | status | the remote's branches fetched |
+| `update` | | status | the checkout has learned what is shared: where each shared line of work is, the default one included; optional |
 | `branch_create` | `{branch}`, `{rev}` | status | `{branch}` created at `{rev}` |
 | `switch` | `{branch}` | status | the checkout switched to `{branch}` |
 | `workspace_add` | `{path}`, `{branch}`, `{rev}` | status | a new workspace at `{path}`, on a new `{branch}` starting at `{rev}` |
@@ -178,6 +179,25 @@ is an ingredient with the same operations.
 | lines | one item per non-empty line |
 | bytes | the output as printed |
 | status | the exit status only: 0 is true, as for `clean`, or success |
+
+Every operation is required except `default_revision` and `update`. The binary uses `default_branch` where it needs the
+default branch as a name: the `{default_branch}` placeholder of floor rules and of the
+[neutral model](#the-neutral-model), `COOK_DEFAULT_BRANCH`, the [delivery guard](lifecycle.md#built-in-guards) against
+the default branch and the refusals of `deliver`. It uses `default_revision` where it needs the default branch as a
+commit: the base of the workspace a [recipe run](recipes.md#the-run) creates and the commit the run reads its recipe,
+the profile, the policy and the hooks file from; the base of the fresh workspace an `attempt` action on `landed` runs
+in; the `{target}` of `landed`, when `workspace remove` and `doctor` detect landed work; the commit `fleet --deliver`
+starts its branch from; and the commit `verify` takes the merge-base with outside a managed workspace. Without
+`default_revision`, the binary uses `default_branch` as the revision. Each ingredient answers in its own system's terms:
+a git ingredient answers `origin/<branch>`, an ingredient for a centralized system the server's head, and one for a
+system with no shared copies the branch itself.
+
+A checkout learns what is shared only through `update`, and only where a command or the repository asks for it:
+`fleet --deliver` runs it before it creates its branch ([fleet](fleet.md#for-each-repository)), and
+`workspace remove` runs it before it detects landed work when the profile sets `workspaces.update_before_landed`
+([workspaces](workspaces.md#remove)). Nothing else runs it: `make`, `workspace create` and `doctor` use what the
+checkout knows. Where a command calls `update` and the ingredient has none, the command prints one note and goes on
+with what the checkout knows.
 
 The binary finds the repository root itself, as the nearest directory upward that holds `.cook/config.yaml`, so
 reading the profile never needs this contract; workspace, base and history operations do. A command that needs the
@@ -201,10 +221,11 @@ permission prompts, hooks or instruction file still runs as a worker:
 | `launch.unattended` | the arguments that start the worker unattended with its permission checks on | the worker starts with `launch.command` and its caller's arguments only |
 | `launch.unattended_deny` | how `unattended.deny` reaches the worker as arguments at launch | it reaches the worker only through the rendered rules, which then require `role: unattended` ([workers](workers.md#roles)); with no rendered permissions either, the worker cannot run attempts: `the-cook attempt` and `attempt` actions naming it exit 3, and it may still be an interactive worker |
 | `launch.sandbox_roots` | the arguments that open a directory beyond the checkout for writing: the clone's state directory and `workers.<name>.writable_roots` | `writable_roots` on the worker is a validation error |
+| `launch.network` | the arguments that let the worker's attempts use the network, passed at every unattended launch of a worker declared with `network: true` | `network: true` on the worker is a validation error; with `network: false` the ingredient states nothing about the network, and its page in its cookbook says what the program does by default |
 | `launch.model`, `launch.effort` | how a worker's model and effort, from `workers.<name>` or an `attempt` action, are passed | a model or an effort set for the worker is ignored, and `doctor` notes it |
-| `launch.prompt` | how the binary passes the prompt of an `attempt` action | an `attempt` action naming the worker fails validation |
+| `launch.prompt` | how the binary passes the prompt of an `attempt` action or a recipe's `attempt` step | an `attempt` action or step naming the worker fails validation |
 | `floor.bypass` | the arguments that would turn the worker's permission checks off, refused at every launch ([the floor](#the-floor)) | nothing is refused beyond the binary's own rules |
-| `payload` | the JSON paths in the worker's hook payload that give the neutral event, the session, the tool, the edited and read files, the working directory, the person's prompt text and the worker's notification message; which tools are edits and which are reads; the native event that carries each worker event: `session-start`, `post-tool-use`, `prompt-submit`, `attention`, `turn-end` | no hook is rendered for the worker, standing context reaches it only through `static` entries, and `doctor` notes each event it lacks |
+| `payload` | the JSON paths in the worker's hook payload that give the neutral event, the session, the tool, the edited and read files, the working directory, the person's prompt text and the worker's notification message; which tools are edits and which are reads; the native event that carries each worker event: `session-start`, `post-tool-use`, `prompt-submit`, `attention`, `turn-end` | no hook is rendered for the worker, standing context reaches it only through `static` entries and, in an attempt whose prompt arrives on stdin, through the prompt ([context](context.md#delivery-in-the-prompt)), and `doctor` notes each event it lacks |
 | `instructions` | how the worker reaches `AGENTS.md`: through an import line in a block of its own instruction file | the worker reads `AGENTS.md` directly, or no instruction file |
 | `skills` | where the link to the shipped skill goes | no skill link |
 | `native_rules` | the patterns that recognise a policy string as one of the worker's native rule strings; which files and keys hold the worker's permission rules in each [import scope](scaffold.md#import-scopes), the native rule shape that reads back as a command prefix, and the keys that change permission behaviour without being rules, which adoption reports as notes; [`scaffold --adopt`](scaffold.md#how-each-source-becomes-an-entry) imports from them | no policy string is native for the worker, and adoption imports nothing for it |
@@ -433,8 +454,9 @@ The keys under `operations` for the worker contract:
 | `launch.unattended` | list of arguments | Added at every unattended launch |
 | `launch.unattended_deny` | `{ flag, item }` | `flag` is passed once per entry of `unattended.deny`, followed by `item`, a template rendered with that entry ([the neutral model](#the-neutral-model)) |
 | `launch.sandbox_roots` | list of arguments | Passed once per writable directory, with `{path}` replaced by it |
+| `launch.network` | list of arguments | Passed at every unattended launch of a worker declared with `network: true` |
 | `launch.model`, `launch.effort` | list of arguments | Passed when a model or an effort is set, with `{model}` or `{effort}` replaced by it |
-| `launch.prompt` | `{ stdin, args }` | `stdin: true` passes an `attempt` action's prompt on stdin; `args` are added with it |
+| `launch.prompt` | `{ stdin, args }` | `stdin: true` passes the prompt of an `attempt` action or a recipe's `attempt` step on stdin, with the `always` entries of the `unattended` role before it ([context](context.md#delivery-in-the-prompt)); `args` are added with it |
 | `payload` | map | `event`, `session`, `tool`, `file`, `cwd`, `prompt` and `message`, each a dotted JSON path in the payload; `edit_tools` and `read_tools`, lists of tool names; `events`, a map from each worker event to the native event that carries it |
 | `instructions` | `{ file, block, line }` | The worker's own instruction file, the id of the managed block rendered into it, and the import line the block holds |
 | `skills` | path | Where the link to `.agents/skills/the-cook` is rendered |
@@ -531,6 +553,7 @@ operations:
       flag: --deny
       item: &rule "{{#prefix}}Run({{words}} *){{/prefix}}{{#native}}{{string}}{{/native}}{{#bare}}Run({{string}}){{/bare}}"
     sandbox_roots: [--writable, "{path}"]
+    network: [--network, allow]
     model: [--model, "{model}"]
     effort: [--effort, "{effort}"]
     prompt: { stdin: true, args: [--print] }

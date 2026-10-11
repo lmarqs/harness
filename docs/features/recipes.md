@@ -35,7 +35,7 @@ A recipe maps onto the stages of the lifecycle like this:
 | Stage | Recipe key | What a run does |
 | --- | --- | --- |
 | [Plan](lifecycle.md#plan) | `inputs`, `requires` | takes the inputs, and the task id if there is one, from whoever runs it; before anything else, validates each input by type and checks the contracts, roles and lanes the recipe requires |
-| [Start](lifecycle.md#start) | `workspace` | creates a managed workspace and its branch `work/<name>` from the default branch, as `the-cook workspace create` does, and fires `start` ([Start](#start)) |
+| [Start](lifecycle.md#start) | `workspace` | creates a managed workspace and its branch `work/<name>` at the revision of the shared default line of work, as `the-cook workspace create` does, and fires `start` ([Start](#start)) |
 | [Implement](lifecycle.md#implement) | `steps` | runs each [step](#step-kinds) in order: a command, a template, an attempt by an unattended worker, or a handoff to whoever drives the run ([Implement](#implement)) |
 | [Verify](lifecycle.md#verify) | `verify` | runs every lane the change selects and every lane the recipe requires, a required lane the change selects nothing for in full, and writes the receipt ([Verify](#verify)) |
 | [Complete](lifecycle.md#complete) | none | replays the receipt from the base and fires `completed` for a task, as for any work ([Complete](#complete)) |
@@ -246,7 +246,9 @@ of the steps before it included, and restores that state, so a `--here` run of a
 draft. Like an [`attempt` action](lifecycle.md#attempt), the step runs on the uncommitted edits of the steps before it,
 and the worker cannot commit, push or fire lifecycle events. Its edits stay in the workspace for the next steps.
 Arguments given to `the-cook make` after `--` go to the worker of every `attempt` step, after those its ingredient pins,
-and a floor bypass argument among them is refused.
+and a floor bypass argument among them is refused. When the prompt reaches the worker on stdin, it carries the `always`
+entries of the `unattended` [standing context](context.md#delivery-in-the-prompt) before the step's text, as in every
+attempt.
 
 Completion belongs to the run, not to the step: the step passes when the worker exits 0 and the tamper check passes,
 and the receipt, the replay and `completed` come at the run's [Verify](#verify) and [Complete](#complete) stages. A
@@ -285,9 +287,12 @@ A run reads its recipe once. When it starts, the binary reads the recipe's files
 `files/`, and keeps their content and digest in the [run record](#the-run-record). Every later stage, and
 `the-cook make --continue`, runs that content and never reads the files again, so no step can change the recipe of the
 run it is in. A run that creates its workspace reads the recipe, with the profile, the policy and the hooks file, from
-that workspace's base commit, the default branch's head, so a recipe runs in a new workspace only once it is committed
-on the default branch. With `--here`, a run reads them from the working tree of the current workspace instead, for
-drafting a recipe; `--here` is refused with `--unattended`.
+that workspace's base commit: the revision the shared default line of work is at, as the version-control ingredient's
+`default_revision` reports it from what this checkout last learned
+([the version-control contract](ingredients.md#the-version-control-contract)). A recipe therefore runs in a new
+workspace once it is on the shared default line of work (for git, pushed), not merely committed in this clone. With
+`--here`, a run reads them from the working tree of the current workspace instead, which is the way to run a draft;
+`--here` is refused with `--unattended`.
 
 ### Attended and unattended runs
 
@@ -311,12 +316,12 @@ runner never counts the task done.
 ### Start
 
 1. **Check.** `the-cook make` refuses to run inside an attempt (`COOK_ATTEMPT=1`) or inside a step (`COOK_RUN`), with
-   exit 3. It reads the recipe from the default branch's head commit, as the version-control ingredient reports it, and
-   checks it: a valid recipe file, every input valid for its type, every contract, role and lane `requires` names, and
-   the worker of each `attempt` step. A failure exits 1, or 3 for a missing requirement, which the message names, and
-   creates nothing.
+   exit 3. It reads the recipe at the revision the version-control ingredient's `default_revision` reports, and checks
+   it: a valid recipe file, every input valid for its type, every contract, role and lane `requires` names, and the
+   worker of each `attempt` step. A failure exits 1, or 3 for a missing requirement, which the message names, and
+   creates nothing. It does not run `update`: the revision is the one this checkout last learned.
 2. **Create** the managed workspace the `workspace` key names, `<workspaces.dir>/<name>` on a new branch `work/<name>`
-   from the default branch, as `the-cook workspace create <name> --base <default branch>` does
+   at that revision, as `the-cook workspace create <name> --base <default revision>` does
    ([workspaces](workspaces.md#create)): the session with the base, the task given with `--task` and the actor; the
    profile's `bootstrap`; then the `start` event, with scope `task` when the run has a task and `change` otherwise.
 3. **Record** the run in `run.json` in the new workspace's state directory, with the recipe's content and digest
@@ -494,8 +499,8 @@ then on the recipe changes only through the repository's own reviewed changes.
 
 [`the-cook recipe create <name>`](#the-cook-recipe-create) writes a skeleton in `.cook/recipes/<name>/`. Edit it into
 the steps the change needs, try it with `./cook make <name> --here` in a managed workspace that holds the draft, which
-reads the recipe from the working tree, and commit it like any other file. Once it is on the default branch, every run
-of it gets a workspace of its own.
+reads the recipe from the working tree, and commit it like any other file. Once it is on the shared default line of
+work (for git, pushed and merged), every run of it gets a workspace of its own.
 
 ### Adding one from a cookbook
 
@@ -772,10 +777,10 @@ $EDITOR .cook/recipes/migration/recipe.yaml .cook/recipes/migration/files/down-t
 git add .cook/recipes/migration && git commit -m "chore: add the migration recipe"
 ```
 
-Once the commit is on the default branch, each migration is one run. The profile declares the worker `coder` with role
-`unattended` and the lanes `unit`, `e2e` and `migrations`. Each line of the run carries the icon of its kind: 🍳 the
-workspace and the `run` and `template` steps, ⏳ the `attempt` step and the handoff, 🧪 each lane, and the outcome's
-icon last ([CLI standards](../ux/cli-standards.md#icons)):
+Once the commit is pushed and on the shared default line of work, each migration is one run. The profile declares the
+worker `coder` with role `unattended` and the lanes `unit`, `e2e` and `migrations`. Each line of the run carries the
+icon of its kind: 🍳 the workspace and the `run` and `template` steps, ⏳ the `attempt` step and the handoff, 🧪 each lane,
+and the outcome's icon last ([CLI standards](../ux/cli-standards.md#icons)):
 
 ```text
 $ ./cook make migration --name add-invoice-index
@@ -889,7 +894,7 @@ For each ready task, such as `acme-api-7f2`, the loop runner, started in the pri
 
 | Stage | What happens |
 | --- | --- |
-| Start | the workspace `task-acme-api-7f2` on `work/task-acme-api-7f2`, from the default branch, bound to the task; `start` runs the station's `claim-task` action |
+| Start | the workspace `task-acme-api-7f2` on `work/task-acme-api-7f2`, at the revision of the shared default line of work, bound to the task; `start` runs the station's `claim-task` action |
 | Implement | `acme-agent` works on the task under the attempt contract and runs `./cook verify` with the lanes the change needs, for feedback |
 | Verify | the run runs the lanes of that selection itself, under the lane rules of the repository's profile, and writes the receipt |
 | Complete | the replay from the base, the commit, then `completed`, which runs `close-task`, and `deliver` for any automatic `deliver` action of scope `task` |
@@ -920,8 +925,8 @@ workspace instead.
 - Do pass `--unattended` wherever nobody drives the run, as in a loop runner's command: without it, a handoff pauses
   the run and waits for someone who is not there.
 - Do leave `worker` out of a recipe meant for a cookbook: worker names are each repository's own.
-- Do commit a recipe on the default branch before running it in a new workspace, and try a draft with `--here` in a
-  managed workspace that holds it.
+- Do get a recipe onto the shared default line of work (for git, pushed and merged) before running it in a new
+  workspace, and try a draft with `--here` in a managed workspace that holds it.
 - Do take a newer version of an added recipe with `recipe update`, and resolve the conflicts it leaves before the next
   run of the recipe.
 - Don't edit `origin` by hand: `recipe update` merges from the version it names.
@@ -932,7 +937,7 @@ workspace instead.
 
 | Symptom | Cause | Fix |
 | --- | --- | --- |
-| `make` exits 1: no recipe of that name | The recipe is not on the default branch, where a new workspace starts from, or not in the working tree a `--here` run reads | Commit it on the default branch; or create a workspace that holds it and run with `--here` |
+| `make` exits 1: no recipe of that name | The recipe is not at the revision of the shared default line of work this checkout last learned, where a new workspace starts from (for git: committed but not pushed, or pushed and not yet learned here), or not in the working tree a `--here` run reads | Get it onto the shared default line of work, and have the version control program learn what is shared; or create a workspace that holds it and run with `--here` |
 | `make` exits 1 naming an input | The input is missing, unknown, or its value does not fit its type or begins with `-`; the message gives its description | Pass `--<input> <value>`; `./cook make <name> --help` lists every input |
 | `make` exits 1: an input named like a flag | The recipe declares an input with the name of a flag of `make`, such as `task` or `here` | Rename the input in the recipe, with every placeholder that names it |
 | `make` exits 1: the branch `work/<name>` exists | An earlier run with the same inputs, or a workspace of that name, kept its branch | Delete the branch if its work is done, or run with other inputs |
@@ -945,7 +950,7 @@ workspace instead.
 | A run stopped at an `attempt` step | The worker exited non-zero, or the tamper check found a changed tool-owned file, a file under `.cook/` or a context file | Read the step's output; fix the cause, then continue |
 | A run stopped at Verify naming a lane | The lane rules demand a lane no step's receipt selected or skipped, or a required lane without patterns has no `full` command | Run `./cook verify` in the workspace with the lane selected, then continue |
 | `make` exits 2 | A lane failed at Verify or in the replay | Fix the change in the workspace, then continue: the run verifies again |
-| An edit to a recipe does not reach a paused or stopped run | A run reads its recipe once, and `make --continue` runs the content its record holds | Expected: continue or abandon the run; the next run reads the edited recipe from the default branch |
+| An edit to a recipe does not reach a paused or stopped run | A run reads its recipe once, and `make --continue` runs the content its record holds | Expected: continue or abandon the run; the next run reads the edited recipe from the shared default line of work |
 | `make` exits 1: a conflict marker | `recipe update` left a conflict in the recipe | Resolve it and commit the recipe; `origin` already names the newer version |
 | `recipe update` exits 3 listing conflicts | The repository's copy and the newer version changed the same lines differently | Resolve the markers; nothing else is needed, because `origin` already moved |
 | `recipe add` exits 1 naming `recipe update` | The repository already has a recipe of that name | `./cook recipe update <name> --cookbook <source>@<version>` |

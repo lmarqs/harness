@@ -210,6 +210,9 @@ is worse than none ([ADR 0016](../adrs/0016-permission-adoption.md)).
 - Each worker ingredient documents which worker events it renders for hooks, notifications (`attention`, `turn_end`)
   and standing context. Where a worker lacks an event, nothing is rendered for it and `the-cook doctor` reports a note,
   so a missing notification or injection is explained.
+- Each worker ingredient's page also says what its program reaches on the network by default, and which arguments its
+  `launch.network` passes, if it has one. Why: `workers.<name>.network: false` passes nothing, so the program's own
+  default decides what an attempt reaches, and a repository can only choose well when that default is written down.
 - `the-cook doctor --json` lists the range of every ingredient in use, because a range belongs to the ingredient version
   that was tested against it.
 

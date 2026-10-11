@@ -89,8 +89,8 @@ without one, such as a loop runner's, it fires no event, and whoever drives the 
 ### A task run by a recipe
 
 `the-cook make <recipe> --task <id>` takes one task through the stages in one pass of a [recipe](recipes.md)
-([the run](recipes.md#the-run)). It creates the recipe's workspace from the default branch, bound to the task, and the
-task's events come from the run:
+([the run](recipes.md#the-run)). It creates the recipe's workspace at the revision of the shared default line of
+work, bound to the task, and the task's events come from the run:
 
 | Stage of the run | Event, scope `task` | What a tracker action sees |
 | --- | --- | --- |

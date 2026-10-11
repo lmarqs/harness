@@ -178,12 +178,14 @@ program's releases.
 included, is described by an ingredient. The binary keeps the lifecycle and the process around it: stages, events,
 guards, proof, attempts, ownership, rendering and removal. Ingredients keep the program facts: the files a program
 reads, the commands that answer the binary's questions, the arguments that start it unattended and the ones that are
-never safe. Stations and recipes keep practices, which the next tenet sets apart from facts. The binary ships no
-ingredient, station or recipe and names no default source of one: a repository takes every ingredient and station it
-uses from a cookbook, and takes each recipe from one or writes its own, each in a reviewed change, and that review is
-the trust decision for everything it runs. Any number of cookbooks may exist, and none is official. A team switches a
-program by switching its ingredient, which changes only the repository's files, and other programs call `the-cook`
-through a stable command interface.
+never safe. The contracts ask as little of a program as the lifecycle needs: the version-control contract speaks of what
+is shared and of the shared default line of work, never of one system's mechanism for them, so a system with one central
+copy fills it as well as one with a copy in every clone. Stations and recipes keep practices, which the next tenet sets
+apart from facts. The binary ships no ingredient, station or recipe and names no default source of one: a repository
+takes every ingredient and station it uses from a cookbook, and takes each recipe from one or writes its own, each in a
+reviewed change, and that review is the trust decision for everything it runs. Any number of cookbooks may exist, and
+none is official. A team switches a program by switching its ingredient, which changes only the repository's files, and
+other programs call `the-cook` through a stable command interface.
 
 **Bound by.** [ADR 0022](adrs/0022-tool-integration.md), [ADR 0023](adrs/0023-core-and-contracts.md),
 [ADR 0024](adrs/0024-ingredients-and-stations.md).

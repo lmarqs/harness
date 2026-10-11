@@ -25,7 +25,7 @@ release to run, and an upgrade by itself never shows as drift.
   ingredient can mark deny rules as floor ([0022](0022-tool-integration.md)), and a station's entries, which the binary
   writes into the repository's files when the station is applied, can hold deny rules and guards
   ([0024](0024-ingredients-and-stations.md)). Each is pinned by its content hash, so its bytes cannot change without a
-  new pin ([0021](0021-release-trust.md)).
+  new pin ([0026](0026-cookbook-trust.md)).
 - A recipe is published in cookbooks and, once copied, is a file of the repository that its team edits; no hash fixes
   its bytes there ([0013](0013-organization-content.md), [0025](0025-recipes.md)). Its steps and requirements include
   the lanes a change must pass.

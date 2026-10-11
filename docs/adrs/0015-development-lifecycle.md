@@ -22,6 +22,9 @@ work that is not ready, and a stopped run reaches a person.
   ([0022](0022-tool-integration.md), [0023](0023-core-and-contracts.md)).
 - Some of a change happens outside the clone and the binary: a team plans in its tracker, and reviews and merges on its
   hosting platform, in CI and among reviewers.
+- A change lands on the shared default line of work, which a clone knows only as it last learned it. Learning what is
+  shared asks the version control system to reach beyond the clone, often over the network, so a merge made on a
+  hosting platform reaches the clone only when something asks ([0023](0023-core-and-contracts.md)).
 - What happens at those points differs between repositories and organizations. Delivery follows each team's hosting
   platform and conventions: draft or ready pull requests, a commit that triggers CI, a notification. The binary carries
   no hosting-platform logic and no organization content ([0012](0012-write-boundary.md),
@@ -69,8 +72,10 @@ work that is not ready, and a stopped run reaches a person.
    - Complete: replays the proof from the base, through the version control contract, and fires work completed.
    - Deliver: enforces the delivery guards and fires work ready for delivery, whose declared actions deliver.
    - Review and merge: nothing; the hosting platform, CI and reviewers act.
-   - Landed: detects, when a working copy is removed, that its branch's changes are on the default branch, through the
-     version control contract, and fires work landed.
+   - Landed: detects, when a working copy is removed, that its branch's changes are on the shared default line of
+     work, as the clone last learned it, through the version control contract, and fires work landed. Removal first
+     learns what is shared only when the repository's declared data asks for it, and a failure to learn leaves one
+     note and the detection against what the clone knows; no other stage learns what is shared on its own.
 
    A run of a recipe the repository holds is one pass of one change through these stages, from start to complete
    ([0025](0025-recipes.md)); it adds no stage and changes none. Every capability of the binary serves one of these
@@ -99,13 +104,13 @@ work that is not ready, and a stopped run reaches a person.
    started, at the scope of a task when the copy is bound to one and of a change otherwise; a verification run fires
    work verified; a verified attempt in a working copy bound to a task fires work completed and then, when the work is
    concluded, ready for delivery, both at the scope of that task, and fires nothing in a working copy bound to no task;
-   removing a working copy fires work landed once for each recorded branch whose changes are on the default branch; a
-   recipe run fires work started when it creates its working copy and work verified when it verifies, as those steps do,
-   and, once its proof is replayed, what a verified attempt fires, at the same scopes, and it fires blocked when a step
-   stops it; delivery across several repositories fires ready for delivery at the scope of a change in each; a command
-   run without a terminal that stops for a person fires blocked, except a recipe run, for which the caller's declaration
-   of who drives it takes the place of the terminal ([0025](0025-recipes.md)). Nothing in the binary fires an event at
-   the scope of an unattended run; its caller does.
+   removing a working copy fires work landed once for each recorded branch whose changes are on the shared default line
+   of work; a recipe run fires work started when it creates its working copy and work verified when it verifies, as
+   those steps do, and, once its proof is replayed, what a verified attempt fires, at the same scopes, and it fires
+   blocked when a step stops it; delivery across several repositories fires ready for delivery at the scope of a change
+   in each; a command run without a terminal that stops for a person fires blocked, except a recipe run, for which the
+   caller's declaration of who drives it takes the place of the terminal ([0025](0025-recipes.md)). Nothing in the
+   binary fires an event at the scope of an unattended run; its caller does.
 9. Event data reaches actions only through environment variables the binary sets for each run
    ([0019](0019-action-kinds.md)).
 10. Actions never run inside an attempt. The binary fires events in its own process after the worker exits, and a
@@ -131,7 +136,11 @@ work that is not ready, and a stopped run reaches a person.
   [0012](0012-write-boundary.md)). Requiring every capability to serve a stage, or the setup the stages read, gives each
   one a reason a reviewer can check and keeps the binary from growing into a worker ([0001](0001-role-of-the-tool.md)).
   A recipe run goes through the same stages instead of adding its own, so a kind of change a repository repeats has the
-  guards every change has ([0025](0025-recipes.md)). The trade: a step that fits no stage stays outside the tool.
+  guards every change has ([0025](0025-recipes.md)). Detecting landed work against what the clone last learned keeps
+  removal from reaching beyond the clone unasked (Context); a repository whose work lands elsewhere chooses to learn
+  first, and since a failure to learn only delays the event, it costs a note, not the removal. The trade: a step that
+  fits no stage stays outside the tool, and landed work merged elsewhere goes unseen until the clone learns it, unless
+  the repository asks removal to learn first.
 - **3, 5.** The recurring points are common to every change, so one fixed vocabulary serves every repository: actions
   written for one repository carry over to another unchanged, and the shipped documentation describes one lifecycle
   instead of one per repository. A set that repositories could extend would give each repository its own stage and
@@ -233,6 +242,8 @@ Costs:
 - A stop of an unattended run as a whole reaches a person only when the run's caller fires the blocked event.
 - A repository that declares no actions gets no delivery from the binary, and its stops reach nobody beyond the
   command's output.
+- Work merged on a hosting platform is detected as landed only once the clone has learned it, unless the repository
+  asks removal to learn what is shared first.
 
 Must be maintained:
 
@@ -262,3 +273,7 @@ Must be maintained:
   same points and scopes as the steps it performs do elsewhere, and fires the blocked event naming the step that stops
   it.
 - With no actions declared, every event runs nothing and succeeds.
+- A fixture whose shared default line of work holds a branch's changes that the clone has not learned fires no work
+  landed when its working copy is removed; with the repository asking removal to learn first, it fires work landed;
+  and when that learning fails, removal reports one note, detects against what the clone knows and still removes the
+  working copy.

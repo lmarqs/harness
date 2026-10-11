@@ -43,8 +43,8 @@ Other forces:
 - A directory name at the repository root is not reserved: any program or person may create one, so a directory the
   tool would use can already exist when it arrives.
 - Every ingredient and every station comes from a cookbook: it is fetched, verified by its content hash on every load,
-  and is the same bytes for every repository that pins that hash ([0021](0021-release-trust.md),
-  [0022](0022-tool-integration.md)).
+  and is the same bytes for every repository that pins that hash ([0022](0022-tool-integration.md),
+  [0026](0026-cookbook-trust.md)).
 - The XDG Base Directory Specification (0.8) defines a per-user cache directory, `$XDG_CACHE_HOME`, by default
   `~/.cache`, for data a program can fetch again.
 - A worker can edit anything in the working tree it works in ([0011](0011-safety-invariants.md)).

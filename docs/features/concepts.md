@@ -45,7 +45,7 @@ programs that do the work, and recipes take one kind of change through it.
 | Complete | the binary after a replay, or a person | replays the proof from the base, fires `completed` | the version-control contract, actions |
 | Deliver | declared actions | fires `deliver` only for committed work off the default branch and, with verification on, verified work | actions |
 | Review and merge | the hosting platform, CI and reviewers | nothing | nothing |
-| Landed | the binary on workspace removal, or a person | detects that the work's patches are on the default branch; fires `landed` | the version-control contract, actions |
+| Landed | the binary on workspace removal, or a person | detects that the work's patches are on the shared default line of work, as the checkout knows it; fires `landed` | the version-control contract, actions |
 
 `blocked` fires out of band, at any stage where work stops unfinished or needs a person. The guards between stages, the
 receipt, the replay, the floor and the attempt contract are the core, and none of them is about one kind of program.
@@ -61,7 +61,7 @@ takes one change through them, the same way every time it runs:
 | Stage | What the recipe declares | What the run does |
 | --- | --- | --- |
 | Plan | its `inputs` and `requires` | takes the task id (`--task <id>`) and the inputs from whoever runs it; before anything else, validates each input by type and checks the contracts, roles and lanes the recipe requires |
-| Start | `workspace`, a name built from the inputs | creates a managed workspace and its branch `work/<name>` from the default branch, as `the-cook workspace create` does, or uses the current managed workspace with `--here` |
+| Start | `workspace`, a name built from the inputs | creates a managed workspace and its branch `work/<name>` at the revision of the shared default line of work, as `the-cook workspace create` does, or uses the current managed workspace with `--here` |
 | Implement | `steps`, in order | runs each [step](recipes.md#step-kinds): a command, a template written from the inputs, an attempt by an unattended worker, or a handoff to whoever drives the run |
 | Verify | `verify.require`, the lanes it requires | runs the lanes itself: every lane the change selects and every required lane, never skipped and run in full when the change selects nothing for it; then writes the receipt |
 | Complete | nothing | replays the proof from the base and, in a run with a task, fires `completed`, as for any work |
@@ -365,7 +365,9 @@ commands with task binding, the [`the-cook make`](recipes.md#the-cook-make) and 
 version-control ingredient's `state` and `workspaces` blocks in its ignore file.
 
 [Standing context](context.md) is declared in the profile's `context` section. Entries delivered by hook need the
-`hooks` module; `static` entries go into the `context` block of `AGENTS.md` whatever the modules.
+`hooks` module; `static` entries go into the `context` block of `AGENTS.md` whatever the modules; and in an attempt
+whose prompt arrives on stdin, the `always` entries go in the prompt
+([delivery in the prompt](context.md#delivery-in-the-prompt)).
 
 ## State
 

@@ -398,19 +398,23 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
   which pass each one as a single argument and never through a shell, and for templates, whose output is reviewed in
   the diff.
 
-### A recipe edit reaches a new run only once it is on the default branch
+### A recipe edit reaches a new run only once it is on the shared default line of work
 
 - **Symptom.** You changed a recipe, and the next run still follows its old steps, prompt or lanes; a paused or stopped
   run you continue after the edit follows the old version too; or `the-cook make` exits 1 finding no recipe of a name
-  you just wrote.
-- **Why.** A run reads its recipe once, when it starts: a run that creates its workspace reads it from the default
-  branch's head commit, which the new workspace starts from, and keeps that content in its run record, which
+  you just wrote and committed.
+- **Why.** A run reads its recipe once, when it starts: a run that creates its workspace reads it at the revision the
+  version-control ingredient's `default_revision` reports, the shared default line of work as this checkout last
+  learned it, which the new workspace starts from, and keeps that content in its run record, which
   `the-cook make --continue` runs. It never reads the files again, so no step can change the recipe of the run it is
-  in. An edit that is not committed on the default branch, or that comes after the run started, is not what runs.
-- **What `the-cook` does.** Runs the recipe as that commit held it when the run started, and fails an `attempt` step
-  whose worker changes a file under `.cook/`, the recipes included ([concepts](concepts.md#built-in-invariants)).
-- **What you do.** Commit a recipe change on the default branch before running it in a new workspace, and review it
-  like any change to the policy. Try a draft with `the-cook make <recipe> --here` in a managed workspace that holds it.
+  in. An edit that is only committed in this clone (for git, not pushed), that the checkout has not learned of yet, or
+  that comes after the run started, is not what runs.
+- **What `the-cook` does.** Runs the recipe as that revision held it when the run started, learns nothing about what is
+  shared on its own, and fails an `attempt` step whose worker changes a file under `.cook/`, the recipes included
+  ([concepts](concepts.md#built-in-invariants)).
+- **What you do.** Get a recipe change onto the shared default line of work, reviewed like any change to the policy,
+  before running it in a new workspace, and have the version control program learn what is shared. Try a draft with
+  `the-cook make <recipe> --here` in a managed workspace that holds it.
 
 ### A stopped run keeps its workspace
 
@@ -437,9 +441,9 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
   reviewers.
 - **What `the-cook` does.** Keeps the result on a local branch and fires nothing that leaves the clone unless an action
   says so.
-- **What you do.** Have a coordinating worker cherry-pick the task commits onto a branch from the default branch, reword
-  them, verify, then run `the-cook lifecycle run deliver`
-  ([lifecycle](lifecycle.md#ralph-delivery-per-run-or-delivery-after-judgement)).
+- **What you do.** Have a coordinating worker cherry-pick the task commits onto a branch from the shared default line of
+  work, reword them, verify, then run `the-cook lifecycle run deliver`
+  ([lifecycle](lifecycle.md#loop-runs-delivery-per-run-or-delivery-after-judgement)).
 
 ### A run-scope deliver opens one pull request per run
 
@@ -473,6 +477,20 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
   squash of several commits produces one patch that matches none of them.
 - **What `the-cook` does.** Treats only matching patches as landed, so it never deletes unmerged work.
 - **What you do.** Delete such branches and their workspaces by hand once you have checked the merge.
+
+### Landed work is detected against what the checkout knows
+
+- **Symptom.** A branch was merged on the hosting platform, and `the-cook workspace remove` removes its workspace
+  without firing `landed`; `the-cook doctor` does not list it as landed either.
+- **Why.** Landed work is compared with the revision of the shared default line of work as this checkout last learned
+  it. Unless the repository asks for it, nothing in `the-cook` learns what is shared, so a merge made elsewhere is not
+  there yet.
+- **What `the-cook` does.** With `workspaces.update_before_landed: true`, `workspace remove` runs the version-control
+  contract's `update` first, and prints one note and goes on with what the checkout knows when that fails or the
+  ingredient has none. `doctor` never learns what is shared.
+- **What you do.** Set `workspaces.update_before_landed: true` in a repository whose work lands elsewhere
+  ([profile](profile.md#workspaces)), or have the version control program learn what is shared before removing a
+  workspace. Fire a missed `landed` with `the-cook lifecycle run landed`.
 
 ### Actions that are not idempotent fail on retry
 
@@ -521,8 +539,9 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 - **Symptom.** After `landed`, a workspace `.work/workspaces/landed-<name>-<n>`, named after the landed work's
   workspace, holds changes nobody committed, and more of them appear with every landed branch.
 - **Why.** An `attempt` action cannot commit. On `landed`, the work's own workspace is about to be removed and the
-  primary checkout holds whatever you are doing, so `the-cook` gives the worker a fresh workspace of the default branch,
-  on branch `work/landed-<name>-<n>`, and leaves the worker's edits there ([lifecycle](lifecycle.md#attempt)).
+  primary checkout holds whatever you are doing, so `the-cook` gives the worker a fresh workspace at the revision of the
+  shared default line of work, on branch `work/landed-<name>-<n>`, and leaves the worker's edits there
+  ([lifecycle](lifecycle.md#attempt)).
 - **What `the-cook` does.** Records the workspace like any managed workspace, never touches the primary checkout, and
   lists the workspace and its changed paths in the action's output and in the lifecycle log.
 - **What you do.** Review each such workspace: commit its edits and deliver them as a change, or remove it with
@@ -580,6 +599,18 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
   [static context](context.md#static-entries), which is part of `AGENTS.md`. A static entry reaches every role, so a
   directive only unattended or only interactive sessions must receive cannot be static: it reaches its role through the
   hook, and only where the pinned release is cached.
+
+### An attempt whose prompt is in the worker's arguments may get no `always` entries
+
+- **Symptom.** Attempts started by one loop runner follow the unattended directives, and attempts started by another,
+  or by a script, do not.
+- **Why.** When the prompt arrives on stdin, the binary puts the `always` entries of the `unattended` role before the
+  task text. When the caller passes the prompt among the worker's arguments, the binary cannot place text in it, and
+  the entries depend on the session-start hook, which a worker program may not run unattended.
+- **What `the-cook` does.** Delivers the `always` entries in the prompt whenever the prompt arrives on stdin, and then
+  injects none through the session-start hook, so nothing arrives twice ([context](context.md#delivery-in-the-prompt)).
+- **What you do.** Pass the prompt on stdin in every loop runner's command and every script that runs
+  `the-cook attempt` or `the-cook make`.
 
 ### A worker that reads through shell commands fires `paths` entries only on edits
 

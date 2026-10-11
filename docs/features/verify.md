@@ -55,7 +55,7 @@ The base is the commit the change is measured against. `the-cook verify` reads i
 | Where you run it | Base |
 | --- | --- |
 | A [managed workspace](workspaces.md) | the commit the workspace started from, recorded in its session |
-| Any other checkout | the merge-base of the head commit with the default branch the version-control ingredient reports |
+| Any other checkout | the merge-base of the head commit with the revision of the shared default line of work, as the version-control ingredient's `default_revision` reports it from what the checkout last learned |
 | With `--base <ref>` | that commit; in a managed workspace, only the recorded base or one of its ancestors |
 
 A base may only move earlier, never later: an earlier base adds files to the check, a later one would leave changes

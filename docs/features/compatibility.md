@@ -154,6 +154,10 @@ complete and landed stages of the lifecycle reach version control only through i
   `the-cook ingredient pin`; reading the profile does not need them, because the binary finds the repository root
   itself.
 - The floor that protects the default branch is the ingredient's.
+- `the-cook` learns what is shared only through the contract's optional `update`: `the-cook fleet --deliver` runs it,
+  and `the-cook workspace remove` runs it when the profile sets `workspaces.update_before_landed`. Otherwise every
+  command works with what the checkout knows, and the version control system's own sharing, such as a person updating
+  the clone by hand, is the team's.
 - Every command that reads history needs the program the ingredient runs; `doctor` reports it when it is missing.
 
 ## `.gitignore`

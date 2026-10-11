@@ -62,8 +62,9 @@ runners ([wrapper](wrapper.md)).
 ### Do I have to invoke guideline skills by hand in every session?
 
 No. Declare them as standing context in the profile: always on, when the worker touches matching files, or when a
-message contains certain words. `the-cook` injects them through the workers' hooks, and `./cook context show` shows
-what a session would get and why ([context](context.md)).
+message contains certain words. `the-cook` injects them through the workers' hooks, and in an attempt whose prompt
+arrives on stdin it puts the `always` entries in the prompt, so they arrive even where the worker's program runs no hook
+unattended. `./cook context show` shows what a session would get and why ([context](context.md)).
 
 ### Do I need a global install?
 
@@ -85,7 +86,10 @@ download, and only the commands that pin, apply, add, update, fetch or read a co
 repository. A machine that never has network access uses `COOK_BINARY` or a pre-filled cache
 ([wrapper](wrapper.md#air-gapped-machines)). Adoption works offline too: `the-cook scaffold --offline` writes everything
 and leaves the pin [pending](wrapper.md#a-pending-pin) until a later `the-cook wrapper --version <tag>` with network
-access verifies the release and records its checksums. Complete it before you push.
+access verifies the release and records its checksums. Complete it before you push. Only `the-cook fleet --deliver`,
+and `the-cook workspace remove` when the profile sets `workspaces.update_before_landed`, have the version control system
+learn what is shared; offline, `workspace remove` prints one note and detects landed work against what the checkout
+knows ([profile](profile.md#workspaces)).
 
 ### Which coding agents and other workers are supported?
 
@@ -146,10 +150,12 @@ binary and the ingredients ([ADR 0024](../adrs/0024-ingredients-and-stations.md)
 Yes. Nothing in the binary sets any program apart: it contains code and data for no external program
 ([ADR 0022](../adrs/0022-tool-integration.md)). A version control system needs an ingredient that fills the
 [version-control contract](ingredients.md#the-version-control-contract), named with `vcs:` in the profile; a worker
-needs an ingredient that fills the [worker contract](ingredients.md#the-worker-contract). A team writes the ingredient
-as data, publishes it in a cookbook, and each repository pins it with `./cook ingredient pin`. Reviewing the pin is the
-trust decision: `./cook ingredient show <name>` prints everything the ingredient runs and renders, its floor rules
-included.
+needs an ingredient that fills the [worker contract](ingredients.md#the-worker-contract). The version-control contract
+asks little of a system: what history a checkout has and where the shared default line of work is, and an ingredient for
+a system with no shared copies can leave out the optional `default_revision` and `update`, because there the branch
+itself is the shared line and there is nothing to learn. A team writes the ingredient as data, publishes it in a
+cookbook, and each repository pins it with `./cook ingredient pin`. Reviewing the pin is the trust decision:
+`./cook ingredient show <name>` prints everything the ingredient runs and renders, its floor rules included.
 
 ### Does `the-cook` work with my loop runner or tracker?
 

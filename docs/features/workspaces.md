@@ -68,10 +68,12 @@ configuration are not copied.
 and the recipe's requirements, it creates the workspace the recipe's `workspace` key names, with the inputs substituted,
 such as `migration-add-invoice-index` for `migration-{name}` with `--name add-invoice-index`. It creates it the way
 `the-cook workspace create` does: at `<workspaces.dir>/<name>`, on a new branch `work/<name>`, with a session, an actor
-and `bootstrap`, and it fires `start`. Its base is the head commit of the default branch the version-control
-ingredient reports, not the checkout's head commit, and the run reads the recipe from there too, so a recipe runs in a
-new workspace only once it is committed on the default branch. With `--task <id>` the workspace is bound to the task
-([tasks](tasks.md#a-task-run-by-a-recipe)).
+and `bootstrap`, and it fires `start`. Its base is the revision the shared default line of work is at, as the
+version-control ingredient's `default_revision` reports it, not the checkout's head commit, and the run reads the
+recipe from there too, so a recipe runs in a new workspace only once it is on the shared default line of work (for
+git, pushed), not merely committed in this clone. The run learns nothing new about what is shared: its base is the
+revision this checkout last learned ([the version-control contract](ingredients.md#the-version-control-contract)).
+With `--task <id>` the workspace is bound to the task ([tasks](tasks.md#a-task-run-by-a-recipe)).
 
 With `--here`, the run uses the managed workspace it is started in and creates none, and reads the recipe from that
 workspace's working tree, for drafting one: that workspace's base and branch are the run's, and its task unless
@@ -109,15 +111,20 @@ trust, configuration and tracker database.
 - removes the workspace through the version-control ingredient and never forces it, so the version control system
   refuses a locked workspace;
 - keeps the branch `work/<name>`;
+- with `workspaces.update_before_landed: true` in the profile, runs the version-control contract's `update` operation
+  before it detects landed work, so the checkout learns what is shared; when `update` fails, as it does offline, or
+  the version-control ingredient has none, it prints one note and goes on with what the checkout knows
+  ([profile](profile.md#workspaces));
 - fires the `landed` [lifecycle event](lifecycle.md) when the version-control ingredient finds every patch of
-  `work/<name>` on the default branch, after its own checks pass and before it removes the workspace; automatic `landed`
-  actions run in the primary checkout, or an `attempt` action in a fresh workspace
-  ([environment](lifecycle.md#environment)). Each recorded branch fires `landed` at most once successfully; a failed
-  `landed` is re-fired manually with `the-cook lifecycle run landed`. A failing action is reported on stderr and
-  recorded in the [lifecycle log](lifecycle.md#the-lifecycle-log). The exit code is the removal's.
+  `work/<name>` in the revision its `default_revision` reports, the shared default line of work as the checkout knows
+  it, after its own checks pass and before it removes the workspace; automatic `landed` actions run in the primary
+  checkout, or an `attempt` action in a fresh workspace at that revision ([environment](lifecycle.md#environment)).
+  Each recorded branch fires `landed` at most once successfully; a failed `landed` is re-fired manually with
+  `the-cook lifecycle run landed`. A failing action is reported on stderr and recorded in the
+  [lifecycle log](lifecycle.md#the-lifecycle-log). The exit code is the removal's.
 
-`the-cook doctor` lists managed workspaces whose branch has landed and prints the `the-cook workspace remove` command
-for each; it never fires `landed` itself.
+`the-cook doctor` lists managed workspaces whose branch has landed, against what the checkout knows, and prints the
+`the-cook workspace remove` command for each; it never runs `update` and never fires `landed` itself.
 
 Before removing a workspace, put what matters where the team can see it: deliver the branch
 (`the-cook lifecycle run deliver`), comment on the issue or the pull request. Logs, dependencies and other local state
@@ -214,8 +221,8 @@ terraform -chdir=envs/staging init -backend=false
 ### Removing
 
 ```sh
-./cook workspace remove fix-invoice-rounding   # fires landed when the branch's patches are on the default branch
-git branch -d work/fix-invoice-rounding           # when the branch is merged
+./cook workspace remove fix-invoice-rounding   # fires landed when its patches are on the shared default line of work
+git branch -d work/fix-invoice-rounding        # when the branch is merged
 ```
 
 ## Guidelines
@@ -234,6 +241,8 @@ git branch -d work/fix-invoice-rounding           # when the branch is merged
 | `branch work/<name> already exists` | A previous workspace with that name kept its branch | Delete the branch, or choose another name |
 | Build in the workspace uses the primary checkout's dependencies | Bootstrap was skipped or failed | Run the profile's bootstrap commands in the workspace |
 | `remove` refuses | Uncommitted changes | Commit, stash or discard them first |
+| `remove` fires no `landed` for a branch that was merged | The checkout has not learned where the shared default line of work is, and the profile leaves `workspaces.update_before_landed` off | Fire it with `the-cook lifecycle run landed`. For the next removals, set `workspaces.update_before_landed: true` ([profile](profile.md#workspaces)), or have the version control program learn what is shared before removing |
+| `remove` prints a note that what is shared could not be learned | `workspaces.update_before_landed` is on, and `update` failed, as it does offline, or the version-control ingredient has no `update` | Nothing: landed was detected against what the checkout knows; if that missed it, fire `landed` later with `the-cook lifecycle run landed` |
 | `remove` refuses the workspace of a stopped recipe run | Its steps left uncommitted changes | `the-cook make --continue` to finish the run; to abandon it, discard the changes, then remove |
 | `the-cook make --here` exits 1 | It was started with `--unattended`, outside a managed workspace, or in one whose run is not completed | Run it in a managed workspace, or without `--here` so the run creates its own; resume an unfinished run with `the-cook make --continue` |
 | `the-cook make` exits 1: the branch `work/<name>` exists | An earlier run with the same inputs, or a workspace of that name, kept its branch | Delete the branch if its work is done, or run with other inputs |

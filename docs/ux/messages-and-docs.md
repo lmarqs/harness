@@ -236,6 +236,12 @@ A section with no content is omitted rather than left empty.
 - What `the-cook` does with a program is attributed to the ingredient that fills its role: "the version-control
   ingredient reports the default branch", "a floor rule of the version-control ingredient". Why: a page that says
   `the-cook` runs a particular program describes a binary that does not exist.
+- Version control is described in the contract's terms: the shared default line of work, what is shared, learning what
+  is shared, the default revision. One system's terms, such as a remote, `origin` or a fetch, appear only in an example
+  of that system's ingredient, such as the `origin/<branch>` a git ingredient answers as the default revision. Why:
+  `the-cook` depends on no version control system and asks as little of one as it can, and a page written in one
+  system's words describes a contract the others seem unable to fill
+  ([the version-control contract](../features/ingredients.md#the-version-control-contract)).
 - Example commands are complete and run as written; example output is copied from a real run of the documented
   release, so a reader can trust what they copy.
 - Commands that run inside a repository are written as `./cook <command>`, with `the-cook <command>` shown as the
@@ -253,7 +259,8 @@ other page the same way:
 | what `the-cook` is | a declared software development lifecycle: the stages a change goes through, the events it fires between them, the guards that hold between stages and the proof a change carries |
 | a program that changes the repository for someone, such as a coding agent, a bot or a codemod | a **worker**, declared under `workers:` with the role `interactive` (a session with a person) or `unattended` (an attempt) |
 | one unattended run of a worker on one task, under the guards | an **attempt**, run by `the-cook attempt <worker>`; the rules it runs under are the **attempt contract** |
-| the interface a worker's ingredient fills: renders, launch, unattended arguments, bypass arguments, hook payload mapping, instructions file, skill location, native rule import | the **worker contract** |
+| the interface a worker's ingredient fills: renders, launch, unattended arguments, network arguments, bypass arguments, hook payload mapping, instructions file, skill location, native rule import | the **worker contract** |
+| an unattended run of a loop runner whose command for each task is `the-cook attempt <worker>` or `the-cook make <recipe> --unattended` | a **loop run** |
 | a worker session that drives `the-cook` commands for a person | a **coordinating worker** |
 | the events a worker fires in a session: session start, post edit, prompt submit, attention, turn end | **worker events** |
 | a named, versioned description of one program | an **ingredient**: a worker ingredient, the version-control ingredient, a loop runner's ingredient |
@@ -265,6 +272,8 @@ other page the same way:
 | one entry of a recipe's `steps`, at Implement | a **step**, of kind `run`, `template`, `attempt` or `handoff` |
 | a step that hands the recipe run to whoever drives it, a person or the interactive worker | a **handoff** |
 | a source that publishes ingredients, stations and recipes by tag | a **cookbook** |
+| the line of work every clone shares as its default | the **shared default line of work**: its name is the **default branch**, and the revision this checkout last learned it at is the **default revision** |
+| what a checkout does to find out where the shared lines of work are | it **learns what is shared**, through the version-control contract's `update` |
 
 - The concept is a worker whatever kind of program fills it, because the core treats a coding agent, a bot and a
   codemod the same way. "Coding agent" names the main example, and a product name appears only in a short example of a

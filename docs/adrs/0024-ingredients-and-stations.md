@@ -41,7 +41,7 @@ that combines several programs reaches a repository in one reviewed change.
   records which template and which version generated it, so that a later update can apply a newer version of the
   template.
 - A cookbook publishes what it holds by version, with a content hash for each unit, and a repository pins what it uses
-  through a reviewed change ([0021](0021-release-trust.md), [0022](0022-tool-integration.md)).
+  through a reviewed change ([0022](0022-tool-integration.md), [0026](0026-cookbook-trust.md)).
 - Organization choices and stack facts reach a repository by being applied once: only what is missing is added, every
   difference is reported, and every entry and file is the repository's own afterwards
   ([0013](0013-organization-content.md)).
@@ -110,7 +110,7 @@ that combines several programs reaches a repository in one reviewed change.
   such as a loop runner's configuration that runs a recipe for each task, never name a recipe the repository lacks
   (Context). Pinning each recipe by content hash, as the station pins its ingredients, ties the station to the exact
   recipes its entries were written against, and applying it again copies those bytes, verified against the station's own
-  hash rather than a checksum file downloaded again ([0021](0021-release-trust.md)). A recipe the repository already
+  hash rather than a checksum file downloaded again ([0026](0026-cookbook-trust.md)). A recipe the repository already
   holds is kept for the reason an entry already present is: the repository's version is the one its team chose
   ([0013](0013-organization-content.md)). The trade: that combination is one the station's cookbook did not test, and a
   kept recipe may differ from the one the station's entries were written against.

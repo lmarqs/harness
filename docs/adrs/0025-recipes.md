@@ -70,13 +70,14 @@ change to its repository and still takes a newer version of it in one reviewed c
    its verification must include. A cookbook may publish recipes beside its ingredients and stations
    ([0024](0024-ingredients-and-stations.md)), and a repository may write its own.
 2. A run of a recipe is one pass of one change through the stages of the lifecycle
-   ([0015](0015-development-lifecycle.md)). It creates the change's working copy, on a branch of its own from the
-   default branch, as the start stage does for any work, or runs in the managed working copy it is started in. Its
-   steps, in order, are the implement stage. The run verifies every lane the change selects and every lane the recipe
-   requires, none of them skipped, and a required lane the change selects nothing for runs in full; the proof records,
-   for each lane, what it ran. A verification that the worker of an attempt step runs informs that worker and is not the
-   run's proof. The run then completes as any work does: the proof is replayed from the base, and the events fire at the
-   binary's trigger points. Delivery follows the repository's declared actions; a recipe declares no lifecycle action.
+   ([0015](0015-development-lifecycle.md)). It creates the change's working copy, on a branch of its own at the revision
+   of the shared default line of work, as the clone last learned it, or runs in the managed working copy it is started
+   in. Its steps, in order, are the implement stage. The run verifies every lane the change selects and every lane the
+   recipe requires, none of them skipped, and a required lane the change selects nothing for runs in full; the proof
+   records, for each lane, what it ran. A verification that the worker of an attempt step runs informs that worker and
+   is not the run's proof. The run then completes as any work does: the proof is replayed from the base, and the events
+   fire at the binary's trigger points. Delivery follows the repository's declared actions; a recipe declares no
+   lifecycle action.
 3. Each step has one of four kinds, a closed set the binary defines:
    - a command: an argument list the binary runs in the working copy, never through a shell; a command that fails stops
      the run;
@@ -115,7 +116,7 @@ change to its repository and still takes a newer version of it in one reviewed c
    on: its team edits it like any of its files, and a run follows the copy as the repository holds it. The copy records
    its origin, the cookbook, version and content hash it came from, and a newer version reaches it through a merge that
    keeps the team's changes ([0013](0013-organization-content.md)). Adding and updating a recipe verify it as
-   [0021](0021-release-trust.md) decides. A station may pin recipes it adds, each by its content hash, as it pins its
+   [0026](0026-cookbook-trust.md) decides. A station may pin recipes it adds, each by its content hash, as it pins its
    ingredients, and applying it copies them in the same change ([0024](0024-ingredients-and-stations.md)).
 9. A loop runner can run a recipe for each task, through the same caller interface as the attempt command
    ([0022](0022-tool-integration.md)). Each task is then one run, in a working copy bound to that task. The attempt
@@ -139,14 +140,16 @@ change to its repository and still takes a newer version of it in one reviewed c
   worker's verification checks only the lanes the worker selected (Context), which can leave out the lane the kind of
   change needs; the worker's own verification still tells it whether its edits pass, but the proof is the run's.
   Required lanes come on top of those the change selects, so the checks of the kind of change, such as the migration
-  lane in Context, run in every instance, whatever its files select, and a required lane the change selects nothing
-  for runs in full, because run with nothing selected it would check nothing (Context). Recording what each lane ran
-  lets the replay from the base run exactly that again. A working copy and a branch of its own make each instance a
-  change of its own, like any work started in the lifecycle. Delivery stays with the repository's declared actions
-  because it is the repository's convention, the same for every change (Context): if each recipe declared its own, how a
-  change leaves the clone would depend on which recipe made it. The trade: a required lane the change selects nothing
-  for costs its full run in every such instance, and a kind of change cannot bring its own delivery; the repository's
-  delivery actions read the recipe and its inputs (point 7) and decide in the repository's own declarations.
+  lane in Context, run in every instance, whatever its files select, and a required lane the change selects nothing for
+  runs in full, because run with nothing selected it would check nothing (Context). Recording what each lane ran lets
+  the replay from the base run exactly that again. A working copy and a branch of its own make each instance a change of
+  its own, like any work started in the lifecycle. Starting it at the revision of the shared default line of work,
+  rather than at one clone's own commits, means a run follows the recipe and the repository data that were shared, and
+  so reviewed, and that every clone runs alike. Delivery stays with the repository's declared actions because it is the
+  repository's convention, the same for every change (Context): if each recipe declared its own, how a change leaves the
+  clone would depend on which recipe made it. The trade: a required lane the change selects nothing for costs its full
+  run in every such instance, and a kind of change cannot bring its own delivery; the repository's delivery actions read
+  the recipe and its inputs (point 7) and decide in the repository's own declarations.
 - **3.** The kinds follow the division of work of [0002](0002-division-of-work.md). A command does deterministic local
   work, such as running the stack's generator (Context). A template writes a file that every instance adds,
   deterministically from the inputs. An attempt gives judgement to a worker, under the contract that already bounds
@@ -196,8 +199,8 @@ change to its repository and still takes a newer version of it in one reviewed c
   (Context), gives an update the version it needs to tell the team's changes from the cookbook's. A station that relies
   on a recipe, such as one whose loop runner runs a recipe for each task, adds it in the same change, so its entries
   never name a recipe the repository lacks. It pins each recipe by content hash, as it pins its ingredients, so the
-  recipe it copies is the one its own version was published with, verified as [0021](0021-release-trust.md) decides. The
-  trade: a cookbook's fix to a recipe reaches a repository only when someone there updates the copy.
+  recipe it copies is the one its own version was published with, verified as [0026](0026-cookbook-trust.md) decides.
+  The trade: a cookbook's fix to a recipe reaches a repository only when someone there updates the copy.
 - **9.** A loop runner runs one command for each task, and through the attempt command an attempt fires nothing in a
   working copy bound to no task (Context). Through the same caller interface, a recipe run gives each task its own
   working copy bound to it, its lanes, its events and its stop, so the work around the attempt is the lifecycle's
@@ -296,8 +299,9 @@ Costs:
 - A failed attempt step's edits stay in the working copy until a person inspects or discards them.
 - A run a worker drives cannot pass a handoff, so a recipe meant for a loop runner holds none, and a caller that drives
   runs with nobody watching must declare it, or its runs pause at their first handoff.
-- A change to a recipe reaches a run a worker drives only once it is committed on the default branch, and a stopped run
-  continues with the recipe it started with ([0011](0011-safety-invariants.md)).
+- A change to a recipe reaches a run a worker drives only once it is on the shared default line of work, not merely
+  committed in one clone, and only once the clone has learned it; a stopped run continues with the recipe it started
+  with ([0011](0011-safety-invariants.md)).
 - A required lane the change selects nothing for runs in full in every instance.
 - A stopped run keeps its working copy until a person continues it or removes it.
 - A kind of change cannot declare its own delivery; a repository that delivers some kinds of change differently says so
@@ -313,9 +317,9 @@ Must be maintained:
 
 ## Confirmation
 
-- A fixture run creates its working copy from the default branch, runs its steps in order, and completes only after
-  its own verification, whose proof records every lane the change selects and every lane the recipe requires; a
-  required lane the fixture change selects nothing for runs in full, and the proof records it.
+- A fixture run creates its working copy at the revision of the shared default line of work, runs its steps in order,
+  and completes only after its own verification, whose proof records every lane the change selects and every lane the
+  recipe requires; a required lane the fixture change selects nothing for runs in full, and the proof records it.
 - A proof that a fixture worker's verification leaves inside an attempt step, without a required lane, does not stop
   the fixture run from running that lane itself.
 - A fixture run whose recipe file changes after the run starts, between a stop and its continuation, follows the recipe

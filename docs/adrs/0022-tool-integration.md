@@ -48,7 +48,7 @@ description of that program, and neither the tool's code nor its release names a
   installs. It says nothing about whether a team should use that program.
 - A description read from the repository's own working tree can be edited by the worker that runs in that tree, and a
   description fetched during an unattended run can be swapped by whoever controls the source
-  ([0011](0011-safety-invariants.md), [0021](0021-release-trust.md)).
+  ([0011](0011-safety-invariants.md), [0026](0026-cookbook-trust.md)).
 - semantic-release, a release tool in wide use, keeps its own git commands in its core and reaches every other program
   through plugins. Chef ships resources for the common systems inside its client. Terraform's core binary contains no
   provider: a configuration declares each provider it uses by source and version constraint, providers are downloaded
@@ -75,8 +75,8 @@ description of that program, and neither the tool's code nor its release names a
    it uses by name, cookbook, version and content hash, each name at most once, and a declaration enters the repository
    only through a reviewed change. The binary fetches a declared ingredient only on an explicit command, caches it
    outside the repository and verifies it against its hash on every fetch and every load
-   ([0021](0021-release-trust.md)). The project tests the binary with stand-in ingredients and stations that describe no
-   real program; each cookbook tests its own against the programs they describe.
+   ([0026](0026-cookbook-trust.md)). The project tests the binary with stand-in ingredients and stations that describe
+   no real program; each cookbook tests its own against the programs they describe.
 4. Nothing fetches during a hook or an attempt. An ingredient the attempt needs and does not have is a missing
    prerequisite, reported before any worker starts. An attempt resolves the ingredients it needs before the worker
    starts and uses that resolution for every read, comparison, reset and launch of the attempt.
@@ -122,12 +122,12 @@ description of that program, and neither the tool's code nor its release names a
   no source keeps the binary from choosing a cookbook for anyone: whatever a repository uses, it named. Pinning by hash
   in a reviewed change makes every ingredient an input the repository fixes exactly, as a committed dependency lock file
   does for an infrastructure tool's providers (Context), and verifying on every load catches a cached copy that changed
-  ([0021](0021-release-trust.md)). A name declared twice would make the description that fills a contract depend on
+  ([0026](0026-cookbook-trust.md)). A name declared twice would make the description that fills a contract depend on
   order, so each name appears once. Testing the binary with stand-ins tests the rules and the contracts, which are what
   the project owns ([0023](0023-core-and-contracts.md)). The trade: adoption takes a step that names a cookbook, a
   repository that has pinned no ingredient can run nothing that needs a contract ([0023](0023-core-and-contracts.md)),
   every machine fetches its ingredients before first use, and the floor of every program is only as good as the review
-  of its pin ([0021](0021-release-trust.md)).
+  of its pin ([0026](0026-cookbook-trust.md)).
 - **4.** An attempt that fetched would hand the attempt to whoever controls the source, and a description resolved
   from the working tree during the attempt would hand it to the worker (Context). Resolving once, before the worker
   starts, from the verified cache, keeps every operation of the attempt the one a person pinned.
@@ -138,7 +138,7 @@ description of that program, and neither the tool's code nor its release names a
   ingredient's floor. The process that applies them, refusing before launch, rendering a deny in every output,
   replaying proof from the base, is what must not depend on any program, and it stays in the binary. The trade: a
   program's floor is what its ingredient marks, so it is as strong as the cookbook that wrote it and the review that
-  pinned it, in the open, in data a reviewer reads ([0021](0021-release-trust.md)).
+  pinned it, in the open, in data a reviewer reads ([0026](0026-cookbook-trust.md)).
 - **6.** A tool that reads other programs' configuration to catch overrides has to follow every format, and it still
   misses a script a person writes around the program (Context). The tool's job is to run the lifecycle and to keep its
   own promises, not to police what people run outside it. The trade: a person whose loop-runner configuration turns
@@ -166,7 +166,7 @@ whole release to get it (Context). The project's tests then vouch for choices te
 shipped become the setup every page assumes, which is the imposed choice of point 1 in data form. The documentation
 and the decision records fill with product knowledge, the file keys, versions and pitfalls of programs the project does
 not own, which go stale on those programs' schedules. A release's signature adds nothing a reviewed pin lacks for data
-a reviewer can read in full ([0021](0021-release-trust.md)).
+a reviewer can read in full ([0026](0026-cookbook-trust.md)).
 
 ### A default cookbook the binary names
 
@@ -224,7 +224,7 @@ Costs:
 - Every machine, CI included, fetches a repository's ingredients in an explicit step before a hook or an attempt can
   use them ([0010](0010-dependence-on-the-binary.md)).
 - The floor of every program is as strong as the cookbook that describes it and the review of its pin
-  ([0021](0021-release-trust.md)).
+  ([0026](0026-cookbook-trust.md)).
 - The project's tests show that the core interprets ingredients correctly, not that any ingredient works with its
   program; showing that is each cookbook's work.
 - A repository that wants a tracker updated, a loop runner configured or shared skills installed carries the entries

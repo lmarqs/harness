@@ -131,8 +131,10 @@ them would carry credentials and cost, and a loop of its own to maintain ([ADR 0
   station again or running a recipe, because their only inputs are the repository's files, the pinned release and what
   the repository pins by hash ([principle 9](#9-everything-a-repository-does-is-in-its-own-files)). Any other network
   access is declared: an `http` action, a `run` action or a recipe's `run` step whose program reaches the network, or
-  an `attempt` action or `attempt` step whose worker does, visible in `the-cook lifecycle list`, in `.cook/hooks.yaml`
-  and in `.cook/recipes/`.
+  an `attempt` action or `attempt` step whose worker does, as `workers.<name>.network` and the program's own defaults
+  allow, visible in `the-cook lifecycle list`, in `.cook/hooks.yaml`, in `.cook/recipes/` and in the profile; and the
+  version-control contract's `update`, which learns what is shared, run by `the-cook fleet --deliver` and, when the
+  profile sets `workspaces.update_before_landed`, by `the-cook workspace remove`.
 - Names, flags and output look the same across commands ([cli-standards.md](cli-standards.md)), so what a user learns
   on one command holds on the next.
 

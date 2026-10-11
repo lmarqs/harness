@@ -110,7 +110,7 @@ The stages say which ingredient serves each stage of the lifecycle that needs a 
   Start, Verify, Complete and Landed reach;
 - `workers`: the workers that act at Implement, each with its ingredient, which fills the
   [worker contract](ingredients.md#the-worker-contract), its role, `interactive` or `unattended`, and optionally its
-  `writable_roots`, `model` and `effort` ([profile](profile.md#workers)).
+  `writable_roots`, `network`, `model` and `effort` ([profile](profile.md#workers)).
 
 Applying writes them into the profile as `vcs:` and one `workers.<name>` item each, under the
 [merge rules](#merge-rules). Stages are what make a station a way of running the lifecycle. A stack station declares
@@ -408,7 +408,7 @@ A station is a directory:
 | `description` | string | no | One line, printed by `station list` |
 | `ingredients` | list of pins | no | [Ingredients](#ingredients): each with `name`, `source`, `version` and `sha256`, as an entry of `ingredients:` has them ([pinning](ingredients.md#pinning)); a name appears once |
 | `stages.vcs` | ingredient name | no | [Stages](#stages): an ingredient of `ingredients` that fills the version-control contract; written as `vcs:` |
-| `stages.workers` | map of worker name to declaration | no | Each declaration has the fields of a profile [worker](profile.md#workers): `ingredient`, an ingredient of `ingredients` that fills the worker contract, by default the one named like the worker; `role`; and optionally `writable_roots`, `model` and `effort` |
+| `stages.workers` | map of worker name to declaration | no | Each declaration has the fields of a profile [worker](profile.md#workers): `ingredient`, an ingredient of `ingredients` that fills the worker contract, by default the one named like the worker; `role`; and optionally `writable_roots`, `network`, `model` and `effort` |
 | `entries` | map of file to YAML | no | [Entries](#entries), grouped by the file they go into: `.cook/config.yaml`, `.cook/policy.yaml`, `.cook/hooks.yaml`. Each value has the shape of that file; entries for `.cook/config.yaml` hold no `schema`, `name`, `ingredients`, `stations`, `vcs` or `workers`, which pins and stages write |
 | `templates` | list | no | [Templates](#templates): `path`, where the file is written, relative to the repository root, and `source`, a file under `files/` |
 | `recipes` | list of `{ name, sha256 }` | no | [Recipes](#recipes): the recipes the station adds, each with `name`, a recipe published under the same cookbook tag as `recipe-<name>.tar.gz`, and `sha256`, the sha256 of that archive; a name appears once |
@@ -424,8 +424,10 @@ so are `renders`, `floor`, `operations` and `checks`, which only an ingredient h
 
 `agentic-coding` runs the lifecycle with an interactive coding agent and an unattended one that a loop runner starts
 for each task of a tracker. Applied, it pins five ingredients, declares two workers and writes the module switches, a
-validator, a standing-context entry, the unattended denies and the tracker's lifecycle actions, and two templates, and
-it adds the `implement-task` recipe, which the loop runner runs for each task.
+validator, a standing-context entry, `workspaces.update_before_landed`, the unattended denies and the tracker's
+lifecycle actions, and two templates, and it adds the `implement-task` recipe, which the loop runner runs for each
+task. Its work lands through pull requests merged on the hosting platform, so removing a workspace learns what is
+shared before it detects landed work ([profile](profile.md#workspaces)).
 
 ```text
 agentic-coding/
@@ -476,6 +478,8 @@ entries:
     context:
       always:
         - { file: .agents/directives/unattended.md, for: [unattended] }
+    workspaces:
+      update_before_landed: true
   .cook/policy.yaml:
     unattended:
       deny:
@@ -599,7 +603,7 @@ verified against agentic-coding: 5 ingredients, recipe implement-task
 +  acme-agent: { ingredient: acme-agent, role: unattended, writable_roots: [.tasks] }
 +  lint: npm run lint -- {file}
 +    unit: { select: "npm test -- {pattern}", full: npm test }
-   ... the module switches, the validator, the context entry, bootstrap and the path globs
+   ... the module switches, the validator, the context entry, update_before_landed, bootstrap and the path globs
 .cook/policy.yaml
 +    - [git, push]
 +    - [acme-tasks, sync]
