@@ -475,9 +475,10 @@ includes. A template's text is inline in `ingredient.yaml` or in a file under `f
 
 A tag `{{=<% %>=}}` sets other delimiters for the rest of the template, as in Mustache, here `<%name%>` and
 `<%#name%>...<%/name%>`, so a template whose output itself holds `{{`, such as a CI workflow with `${{ ... }}` or
-another program's prompt template, writes those braces as text. A name that the template's values do not define is an
-error that names the template and the tag, so a misspelt name fails when the ingredient, the station or the recipe is
-read, never by writing an empty value.
+another program's prompt template, writes those braces as text. A section or delimiter tag alone on its line leaves no
+blank line in the output, as in Mustache. A name that the template's values do not define is an error that names the
+template and the tag, so a misspelt name fails when the ingredient, the station or the recipe is read, never by writing
+an empty value.
 
 #### The neutral model
 
