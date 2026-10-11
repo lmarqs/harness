@@ -71,7 +71,7 @@ settings file, its rules file, or an ingredient's `.gitignore` block.
 | The `.agents/memory/` skeleton | a file whose content still matches the hash it was seeded with is deleted; an edited file is knowledge and stays, listed | kept |
 | Knowledge: `AGENTS.md` prose, edited memory, domain skills, `.agents/commands/`, `.agents/REVIEW.md` | kept | kept |
 | Templates a [station](stations.md#templates) wrote, such as a loop runner's configuration: the repository's own files | kept | kept |
-| State: the [state paths](profile.md#state-paths) (default under `.work/`) | left in place and listed; not ignored | left in place, still ignored |
+| State: the [state paths](profile.md#state-paths) (default under `.work/`) | left in place and listed; their ignore entries removed | left in place, still ignored |
 
 Neither mode touches a worker's local or user-level settings, other tools' files such as a tracker's data, or anything
 `the-cook` did not create. The manifest records no template a station wrote, so removal never deletes one. Recipes are

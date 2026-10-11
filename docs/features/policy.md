@@ -17,11 +17,11 @@ whatever anyone edits.
 
 The policy says what [workers](workers.md) may do without asking (`allow`), only after a person confirms (`ask`), or
 never (`deny`), plus what is denied only to [attempts](attempts.md#the-attempt-contract), the unattended runs
-`the-cook attempt`, `attempt` actions and the `attempt` steps of [recipes](recipes.md#step-kinds) start. Each worker's
-[ingredient](workers.md#the-worker-contract) renders it into that program's native permission format. The
-[floor](#the-floor) is always added and cannot be removed or weakened: the floor rules of the ingredients in use, such
-as a version-control ingredient's deny of a force push to the default branch, and the binary's own entries for its
-commands.
+`the-cook attempt`, `attempt` actions and the `attempt` steps of [recipes](recipes.md#step-kinds) start. It is written
+once, neutrally where the workers allow it, and each worker's [ingredient](workers.md#the-worker-contract) renders it
+into that program's native permission format. The [floor](#the-floor) is always added and cannot be removed or weakened:
+the floor rules of the ingredients in use, such as a version-control ingredient's deny of a force push to the default
+branch, and the binary's own entries for its commands.
 
 Jump to [field reference](#reference), [examples](#examples), [guidelines](#guidelines),
 [troubleshooting](#troubleshooting).
