@@ -78,18 +78,21 @@ output is detected.
   change ([0017](0017-engine-version.md)), so the pinned release's output and the repository agree. An exemption for any
   artefact would hide exactly the edits the check exists to catch.
 - **5.** Undo makes withdrawal as cheap as adoption by deleting exactly what the manifest lists, and restoring imported
-  settings returns the permissions the repository had. Seeded files in the configuration directory mean nothing without
-  the tool, so they go. A seeded file elsewhere that someone edited, such as a memory file, is knowledge the binary
-  never removes ([0011](0011-safety-invariants.md)). Clone-local state can hold uncommitted work, so undo lists it
-  instead of deleting it. Eject serves the other outcome: conventions, permissions and hooks keep working without the
-  tool ([0018](0018-conventions.md)), while tool blocks, hooks, entry points and permission entries that would call or
-  name the absent tool are removed. Refusing hand-edited owned content in both modes protects a change a person made,
-  even against the rules. A recipe is data in the tool's format that only the tool runs, so like the seeded data files
-  beside it, it means nothing once the tool is gone, and it goes with the configuration directory; listing each one
-  first lets a person keep a copy of a recipe the team wrote. Removal finds recipes by their place in the repository's
-  data ([0006](0006-repository-contract.md)), inside a directory the tool created ([0012](0012-write-boundary.md)), not
-  by a name pattern. Any other file nobody recorded is someone's, wherever it sits, so removal leaves it and says so
-  ([0012](0012-write-boundary.md)).
+  settings returns the permissions the repository had.
+  - Seeded files in the configuration directory mean nothing without the tool, so they go. A seeded file elsewhere that
+    someone edited, such as a memory file, is knowledge the binary never removes ([0011](0011-safety-invariants.md)).
+    Clone-local state can hold uncommitted work, so undo lists it instead of deleting it.
+  - Eject serves the other outcome: conventions, permissions and hooks keep working without the tool
+    ([0018](0018-conventions.md)), while tool blocks, hooks, entry points and permission entries that would call or name
+    the absent tool are removed. Refusing hand-edited owned content in both modes protects a change a person made, even
+    against the rules.
+  - A recipe is data in the tool's format that only the tool runs, so like the seeded data files beside it, it means
+    nothing once the tool is gone, and it goes with the configuration directory. Listing each one first lets a person
+    keep a copy of a recipe the team wrote. Removal finds recipes by their place in the repository's data
+    ([0006](0006-repository-contract.md)), inside a directory the tool created ([0012](0012-write-boundary.md)), not by
+    a name pattern.
+  - Any other file nobody recorded is someone's, wherever it sits, so removal leaves it and says so
+    ([0012](0012-write-boundary.md)).
 
 ## Rejected alternatives
 

@@ -124,38 +124,42 @@ choices, stack facts and the wiring of a tool still reach each repository throug
   the diff, together with every difference point 3 reports. Each repository reviews the change as it reviews any other,
   and afterwards the change is in its files.
 - **5.** An organization's own program (Context) needs an ingredient like any other program, and an organization's way
-  of working a station like any other; inside the binary, either loses for the reasons of point 1. Publishing them in
-  the organization's own cookbook gives them the path every ingredient and station takes
-  ([0022](0022-tool-integration.md), [0024](0024-ingredients-and-stations.md)), so no organization's content is special.
-  Pinning by content hash makes each an input like the release: the repository's files fix exactly which bytes act, a
-  newer version reaches a repository only through a reviewed change of the pin, and publishing a version breaks no check
-  anywhere (Context). A station's entries and templates follow point 3, and a recipe point 6, so the organization's
-  choices of what workers may do still land in each repository's own files. What an ingredient adds on every render is
-  what any ingredient renders: the repository's own data in the program's format, and floor rules, which only deny or
-  refuse ([0022](0022-tool-integration.md)). The trade, shared by every ingredient: the description sits in a per-user
-  cache, not among the repository's files (Context), so a reader sees its renders in the committed output under its name
-  but reads the description itself at its source; an organization's floor rules bind every repository that pins its
-  ingredient, which lets the organization make its own deny rules a floor; and every machine that renders such a
-  repository, CI included, fetches the ingredient before it can render.
+  of working a station like any other. Inside the binary, either loses for the reasons of point 1.
+  - Publishing them in the organization's own cookbook gives them the path every ingredient and station takes
+    ([0022](0022-tool-integration.md), [0024](0024-ingredients-and-stations.md)), so no organization's content is
+    special. Pinning by content hash makes each an input like the release: the repository's files fix exactly which
+    bytes act, a newer version reaches a repository only through a reviewed change of the pin, and publishing a version
+    breaks no check anywhere (Context).
+  - A station's entries and templates follow point 3, and a recipe point 6, so the organization's choices of what
+    workers may do still land in each repository's own files. What an ingredient adds on every render is what any
+    ingredient renders: the repository's own data in the program's format, and floor rules, which only deny or refuse
+    ([0022](0022-tool-integration.md)).
+  - The trade, shared by every ingredient: the description sits in a per-user cache, not among the repository's files
+    (Context), so a reader sees its renders in the committed output under its name but reads the description itself at
+    its source. An organization's floor rules bind every repository that pins its ingredient, which lets the
+    organization make its own deny rules a floor. Every machine that renders such a repository, CI included, fetches the
+    ingredient before it can render.
 - **6.** A recipe is a practice a team adapts to its repository ([0025](0025-recipes.md)), so, like a station's content,
   it is written once into the repository's files and is the repository's own afterwards, read where every reader of the
-  repository reads it (point 2). Unlike a station's entries, it stays one whole unit in files of its own, so it can
-  carry the record of where it came from in its own file, in view of every reader, and that record names one version of
-  the whole recipe, not which entries of shared files came from where, the per-entry record rejected below. With that
-  version as the common ancestor, a three-way merge tells the team's changes from the cookbook's, as a project template
-  tool's update does ([0025](0025-recipes.md)): the update brings only the cookbook's changes, a deliberate edit by the
-  team, such as a step it removed, survives, and only lines both changed need a person. A station's entries are spread
-  through files that also hold the repository's own entries and other stations', and nothing records which station or
-  version wrote a template (point 3), so neither has a copy whose ancestor is known, and both keep the rule that
-  applying only adds. Adding never replaces a recipe the repository holds, for the reason an entry already present
-  stays: the repository's version is the one its team chose. A recipe with conflicts left in it would run steps nobody
-  chose, half the repository's and half the cookbook's, so it is invalid until a person or a worker resolves them.
-  Moving the origin with the merge, conflicts or not, keeps the whole state of the update in the copy's own file: the
-  markers say what is left to decide and the origin which version the copy follows, so resolving the markers is an
-  ordinary edit and nothing else has to happen afterwards. A record of a merge in progress would be state outside the
-  repository's files that the next update would have to honour (point 2). The trade: an update can leave conflicts that
-  a person or a worker resolves before the recipe runs again, and a cookbook's fix reaches a copy only when someone
-  updates it.
+  repository reads it (point 2).
+  - Unlike a station's entries, it stays one whole unit in files of its own, so it can carry the record of where it came
+    from in its own file, in view of every reader. That record names one version of the whole recipe, not which entries
+    of shared files came from where, the per-entry record rejected below. With that version as the common ancestor, a
+    three-way merge tells the team's changes from the cookbook's, as a project template tool's update does
+    ([0025](0025-recipes.md)). The update brings only the cookbook's changes, a deliberate edit by the team, such as a
+    step it removed, survives, and only lines both changed need a person.
+  - A station's entries are spread through files that also hold the repository's own entries and other stations', and
+    nothing records which station or version wrote a template (point 3), so neither has a copy whose ancestor is known,
+    and both keep the rule that applying only adds. Adding never replaces a recipe the repository holds, for the reason
+    an entry already present stays: the repository's version is the one its team chose.
+  - A recipe with conflicts left in it would run steps nobody chose, half the repository's and half the cookbook's, so
+    it is invalid until a person or a worker resolves them. Moving the origin with the merge, conflicts or not, keeps
+    the whole state of the update in the copy's own file: the markers say what is left to decide and the origin which
+    version the copy follows, so resolving the markers is an ordinary edit and nothing else has to happen afterwards. A
+    record of a merge in progress would be state outside the repository's files that the next update would have to
+    honour (point 2).
+  - The trade: an update can leave conflicts that a person or a worker resolves before the recipe runs again, and a
+    cookbook's fix reaches a copy only when someone updates it.
 
 ## Rejected alternatives
 

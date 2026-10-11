@@ -6,8 +6,8 @@
 fires on every file edit. A language whose programs start slowly, or need a runtime a machine lacks, makes every action
 of that coding agent slower or makes hooks fail. The language is also the hardest part of the tool to change later.
 
-**Goal.** A hook call stays within 50 ms at p95, and the tool runs on every supported machine with nothing else
-installed, for the life of the project.
+**Goal.** A hook invocation adds at most 50 ms at p95 on a developer workstation, and the tool runs on every supported
+machine with nothing else installed, for the life of the project.
 
 ## Context
 
@@ -94,6 +94,6 @@ Must be maintained:
 ## Confirmation
 
 - Release CI produces the four platform binaries.
-- CI benchmarks a hook invocation through the wrapper and fails above 50 ms at p95.
+- CI benchmarks a hook invocation through the wrapper on a developer workstation and fails above 50 ms at p95.
 - Every invariant in [0011](0011-safety-invariants.md) maps to a contract test written before or with the code that
   enforces it.

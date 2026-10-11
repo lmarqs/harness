@@ -46,7 +46,8 @@ told apart.
 ## Reasons
 
 - **1.** A whole file is the clearest ownership there is: one path, one hash, and removal deletes one file. Where the
-  program reads a directory, this costs nothing, because people's files in the same directory are never opened.
+  program reads a directory, this costs nothing, because people's files in the same directory are opened only during
+  adoption.
 - **2.** A worker program whose project settings cannot include another file keeps everything in that one file, and
   people keep permissions, hooks, environment, model, plugin and status-line keys in it (Context). Owning the whole file
   would destroy those keys in every repository that has one, and owning nothing would leave the policy without effect.

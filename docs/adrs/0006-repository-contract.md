@@ -73,17 +73,18 @@ controls the facts only it knows.
 - **6.** An ingredient describes a program as data the binary interprets, and a station is data too, so the engine stays
   in the binary for every program a repository uses and every way of working it applies
   ([0022](0022-tool-integration.md)). Executable ingredients or stations would be engine code beside the binary, with
-  the divergence of point 4 and a runtime the binary does not have ([0004](0004-runtime-dependencies.md)). Which
-  ingredients and stations a repository uses, and at which version and hash, is a fact only that repository knows, so it
-  lives in its data and changes by a reviewed diff. An ingredient is shared by every repository that uses the program
-  (Context) and fixed by its hash, so a copy in each repository would be one more copy to edit locally, the way the
-  `acme/web` renderer in Context forks; what a station adds is in the repository's own files once it is applied
-  ([0024](0024-ingredients-and-stations.md)), so a copy of the station would hold it twice. A recipe is a practice the
-  repository adapts, and its copy is the only one that acts ([0025](0025-recipes.md)), so it lives with the repository's
-  other data. It holds data, not engine code: how a recipe runs, its stages, its kinds of step and its guards, is in the
-  binary, so a fix to that reaches every repository with one release (point 1), and a newer version of a recipe's own
-  content reaches a copy through a merge that keeps the repository's changes ([0013](0013-organization-content.md)). The
-  trade: a reader of the repository sees which ingredient is pinned, not its description.
+  the divergence of point 4 and a runtime the binary does not have ([0004](0004-runtime-dependencies.md)).
+  - Which ingredients and stations a repository uses, and at which version and hash, is a fact only that repository
+    knows, so it lives in its data and changes by a reviewed diff. An ingredient is shared by every repository that uses
+    the program (Context) and fixed by its hash, so a copy in each repository would be one more copy to edit locally,
+    the way the `acme/web` renderer in Context forks. What a station adds is in the repository's own files once it is
+    applied ([0024](0024-ingredients-and-stations.md)), so a copy of the station would hold it twice.
+  - A recipe is a practice the repository adapts, and its copy is the only one that acts ([0025](0025-recipes.md)), so
+    it lives with the repository's other data. It holds data, not engine code: how a recipe runs, its stages, its kinds
+    of step and its guards, is in the binary, so a fix to that reaches every repository with one release (point 1). A
+    newer version of a recipe's own content reaches a copy through a merge that keeps the repository's changes
+    ([0013](0013-organization-content.md)).
+  - The trade: a reader of the repository sees which ingredient is pinned, not its description.
 
 ## Rejected alternatives
 

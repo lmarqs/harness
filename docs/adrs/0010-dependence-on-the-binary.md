@@ -21,8 +21,8 @@ withdraw one practice at a time.
   ([0017](0017-engine-version.md)). Until then, a machine has no binary to run.
 - Entry points are called in two ways. Worker programs call hooks implicitly, on events, without anyone asking for a
   result. People and workers call the wrapper explicitly, to obtain a result such as a check, and so do other tools
-  configured to call it, such as a loop runner that starts each task through the tool's attempt command
-  ([0022](0022-tool-integration.md)).
+  configured to call it, such as a loop runner that starts each task through an invocation that starts an unattended
+  worker ([0022](0022-tool-integration.md)).
 - A repository may want one practice without the others, and must be able to withdraw one without withdrawing all.
 
 ## Decision

@@ -98,19 +98,21 @@ bound it are the attempt contract.
     through the jail of a worker that runs in one, as it passes every mark it sets ([0027](0027-worker-jails.md)); and
     it checks branch and tree state before acting. Permission entries that deny or ask for the tool's own commands are
     defence in depth, never the only guard.
-13. A recipe run holds every guard of the lifecycle ([0015](0015-development-lifecycle.md), [0025](0025-recipes.md)). A
-    recipe can only add to what a change must pass: steps, required lanes and requirements. It cannot skip a lane,
-    weaken a guard, declare an action or fire an event; the binary fires the run's events, and the run itself verifies
-    every lane the change selects and every lane the recipe requires. A run reads its recipe once, from the base commit,
-    when it starts, with the rest of the repository data, as an attempt does (invariant 8), keeps that content in its
-    record and never reads the recipe again, so no step can change the recipe of the run it is in. Only a run a person
-    drives, started to draft a recipe, reads them from the working copy instead. The caller declares whether a person or
-    a worker drives the run, and a handoff in a run a worker drives stops it and fires blocked instead of waiting. An
-    attempt step that fails, by its worker's exit or by the tamper check, leaves its changes in place and stops the run,
-    which fires blocked naming the step; continued, after a person has inspected or discarded those changes, the run
-    starts that step again under the same contract on the tree as it is. The stopped run is the retry boundary, and the
-    run's verification and the replay from the base still stand between those changes and completion. A worker the
-    binary started unattended cannot start a recipe run.
+13. A recipe run holds every guard of the lifecycle ([0015](0015-development-lifecycle.md), [0025](0025-recipes.md)).
+    - A recipe can only add to what a change must pass: steps, required lanes and requirements. It cannot skip a lane,
+      weaken a guard, declare an action or fire an event. The binary fires the run's events, and the run itself verifies
+      every lane the change selects and every lane the recipe requires.
+    - A run reads its recipe once, from the base commit, when it starts, with the rest of the repository data, as an
+      attempt does (invariant 8). It keeps that content in its record and never reads the recipe again, so no step can
+      change the recipe of the run it is in. Only a run a person drives, started to draft a recipe, reads them from the
+      working copy instead.
+    - The caller declares whether a person or a worker drives the run. A handoff in a run a worker drives stops it and
+      fires blocked instead of waiting.
+    - An attempt step that fails, by its worker's exit or by the tamper check, leaves its changes in place and stops the
+      run, which fires blocked naming the step. Continued, after a person has inspected or discarded those changes, the
+      run starts that step again under the same contract on the tree as it is. The stopped run is the retry boundary,
+      and the run's verification and the replay from the base still stand between those changes and completion.
+    - A worker the binary started unattended cannot start a recipe run.
 
 ## Reasons
 
@@ -170,26 +172,29 @@ bound it are the attempt contract.
   explicitly; otherwise every guard that rests on the mark would fall away for the very workers a repository chose to
   confine.
 - **13.** A recipe is a file in the tree a worker writes in (Context). If a recipe could skip a lane or fire an event,
-  the guards of every change it makes would be only as strong as the last edit to it; because it can only add, the most
+  the guards of every change it makes would be only as strong as the last edit to it. Because it can only add, the most
   a recipe does is ask for more checks. The run verifies the lanes itself because a worker's verification covers only
   what that worker selected ([0025](0025-recipes.md)), so the proof of a recipe run does not depend on its worker.
-  Reading the recipe once, from the base commit, and running the content the record keeps, together with the tamper
-  check over the repository data (invariant 8), means a worker cannot change the recipe that it, or a later task, runs:
-  an edit to the file reaches no step of the run it is in. A person drafting a recipe runs it before it is committed and
-  is there to watch it, while a run a worker drives never reads the working copy, so no draft nobody reviewed runs with
-  nobody watching. A handoff in a run a worker drives would wait for a person who is not there; stopping it fires the
-  event that reaches one ([0015](0015-development-lifecycle.md)). The caller declares who drives the run because a
-  worker in a person's session runs commands with no terminal ([0025](0025-recipes.md)), so a terminal cannot tell, and
-  a run whose caller declares nothing pauses at a handoff, which completes nothing. A recipe run's commands run as child
-  processes of the binary, like actions, so started from inside a worker the binary started unattended they would reach
-  what invariant 9 keeps out of that worker's hands. An attempt step works in a tree that holds the uncommitted output
-  of the steps before it, so returning it to the base, as invariant 8 does for an attempt a loop runner retries, would
-  discard that output with the attempt's edits; nothing retries a step by itself, and a person decides what to keep
-  before it runs again. What the step left can still reach completion only through the run's verification and the replay
-  from the base, the proof of invariants 3 and 4, and invariant 8's restore of the tool-owned files to the attempt's
-  baseline before every attempt starts its worker. The trade: a recipe meant for a run a worker drives cannot hand off
-  to a person, a change to a recipe reaches such a run only once it is on the shared default line of work, and a failed
-  attempt step's edits stay in the working copy until a person deals with them.
+  - Reading the recipe once, from the base commit, and running the content the record keeps, together with the tamper
+    check over the repository data (invariant 8), means a worker cannot change the recipe that it, or a later task,
+    runs. An edit to the file reaches no step of the run it is in. A person drafting a recipe runs it before it is
+    committed and is there to watch it, while a run a worker drives never reads the working copy, so no draft nobody
+    reviewed runs with nobody watching.
+  - A handoff in a run a worker drives would wait for a person who is not there; stopping it fires the event that
+    reaches one ([0015](0015-development-lifecycle.md)). The caller declares who drives the run because a worker in a
+    person's session runs commands with no terminal ([0025](0025-recipes.md)), so a terminal cannot tell, and a run
+    whose caller declares nothing pauses at a handoff, which completes nothing.
+  - A recipe run's commands run as child processes of the binary, like actions, so started from inside a worker the
+    binary started unattended they would reach what invariant 9 keeps out of that worker's hands.
+  - An attempt step works in a tree that holds the uncommitted output of the steps before it, so returning it to the
+    base, as invariant 8 does for an attempt a loop runner retries, would discard that output with the attempt's edits.
+    Nothing retries a step by itself, and a person decides what to keep before it runs again. What the step left can
+    still reach completion only through the run's verification and the replay from the base, the proof of invariants 3
+    and 4, and invariant 8's restore of the tool-owned files to the attempt's baseline before every attempt starts its
+    worker.
+  - The trade: a recipe meant for a run a worker drives cannot hand off to a person, a change to a recipe reaches such a
+    run only once it is on the shared default line of work, and a failed attempt step's edits stay in the working copy
+    until a person deals with them.
 
 ## Rejected alternatives
 

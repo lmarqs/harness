@@ -1,4 +1,4 @@
-# 0014. Tool configuration, agent content and state have separate homes
+# 0014. The tool's configuration, agent content and state each have a separate home
 
 ## Objective
 
@@ -56,11 +56,11 @@ Other forces:
    whole-directory links stay as they are.
 2. `.agents/` holds agent content only: skills, including the skill the tool ships ([0002](0002-division-of-work.md)),
    memory, commands and review guidance. It stays meaningful to people, coding agents and other tools without the tool.
-3. `.cook/` holds the tool's committed configuration: the repository's data ([0006](0006-repository-contract.md)),
-   the manifest ([0007](0007-ownership.md)) and the pin of the engine release ([0017](0017-engine-version.md)). Every
-   path in it is tracked; none is ignored.
-4. The tool's clone-local state lives at paths the repository's data sets, with defaults under `.work/`. No state path
-   is inside `.cook/` or `.agents/`, and state is never committed.
+3. The tool's configuration directory holds the tool's committed configuration: the repository's data
+   ([0006](0006-repository-contract.md)), the manifest ([0007](0007-ownership.md)) and the pin of the engine release
+   ([0017](0017-engine-version.md)). Every path in it is tracked; none is ignored.
+4. The tool's clone-local state lives at paths the repository's data sets, with defaults under the clone's state
+   directory. No state path is inside the tool's configuration directory or `.agents/`, and state is never committed.
 5. Third-party state and configuration stay where their tool requires them and are never relocated through environment
    variables or path overrides: the task tracker's directory at the root of the primary checkout, found by its upward
    walk from nested working copies; the loop runner's configuration in the fixed directory it reads.
@@ -86,9 +86,9 @@ Other forces:
 - **4.** People and third-party tools work directly in the tool's state, chiefly its working copies, and repositories
   have their own conventions for where those go (some keep a coding agent's working copies under its native directory,
   as Context shows). A configurable path with a default lets each repository keep its convention, while the default
-  gives one root to ignore. State inside `.cook/` would put ignored paths into the committed configuration directory,
-  contradicting point 3. State inside `.agents/` would show clone-local files to every tool that reads agent content.
-  Committed state would publish one clone's uncommitted work.
+  gives one root to ignore. State inside the configuration directory would put ignored paths into the committed
+  configuration directory, contradicting point 3. State inside `.agents/` would show clone-local files to every tool
+  that reads agent content. Committed state would publish one clone's uncommitted work.
 - **5.** The loop runner's configuration location cannot be moved, so its configuration, whether a person wrote it or a
   station's template wrote it ([0013](0013-organization-content.md)), lives where the loop runner looks, and a committed
   file reaches every working copy through version control. Relocating the task tracker through an override would make
@@ -147,19 +147,19 @@ At its best, each directory needs one link. It loses because where a native skil
 
 Costs:
 
-- The repository root holds several dot-directories, `.cook/` among them.
+- The repository root holds several dot-directories, including the tool's configuration directory.
 - The layout is set from outside; a change in a third-party tool's discovery rule forces a change here.
 - Per-entry links need a filesystem with symbolic links.
 - An ingredient or a station is absent on a machine until someone fetches it there.
 - Configurable state paths multiply the layouts the tool renders and tests.
-- A `.cook/` the tool did not create is foreign and refused ([0012](0012-write-boundary.md)), so a repository whose
-  root already holds one cannot adopt this tool until it is moved.
+- A configuration directory the tool did not create is foreign and refused ([0012](0012-write-boundary.md)), so a
+  repository whose root already holds one cannot adopt this tool until it is moved.
 
 Must be maintained:
 
 - The table of third-party locations and the tool versions they were checked against.
-- The rule that `.cook/` holds no state and no ignored path, and the validation that rejects a state path inside
-  `.cook/` or `.agents/`.
+- The rule that the configuration directory holds no state and no ignored path, and the validation that rejects a state
+  path inside the configuration directory or `.agents/`.
 
 ## Confirmation
 
@@ -167,9 +167,10 @@ Must be maintained:
 - Fixtures with each of the three skills-directory shapes keep their shape after adoption.
 - A test asserts that no command of the tool sets an environment variable or path override that moves a third-party
   tool's directory or configuration.
-- A test asserts that every path under `.cook/` of an adopted fixture is tracked and none is ignored.
+- A test asserts that every path under the tool's configuration directory of an adopted fixture is tracked and none is
+  ignored.
 - A fixture with non-default state paths writes state only at those paths.
-- Validation refuses a fixture whose state path points inside `.cook/` or `.agents/`.
+- Validation refuses a fixture whose state path points inside the tool's configuration directory or `.agents/`.
 - A fixture that commits a directory the tool would ignore gets no ignore entry for it.
 - A test asserts that fetching an ingredient or a station writes only under the user's cache directory, and that an
   adopted fixture holds none of the ingredients and stations it pins.
