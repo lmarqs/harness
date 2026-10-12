@@ -194,6 +194,7 @@ better way learned in one reaches the others only by copying.
 | P8 | Ingredients are copied into the repository with their origin and sha256. Nothing is fetched or cached when rendering | 2026-10-11, #4 | a copy reviewed as a diff | low |
 | P9 | Files the tool derives may be committed. They are derived from sources the repository declares, and the tool writes them | 2026-10-11; ADR 0006, ADR 0008 | committed renders that teammates and agents read without the tool | low |
 | P10 | The kit and the cookbook are one thing: the cook's own repository, which others may copy from | 2026-10-11, #5 | one repository per cook | low |
+| P11 | The tool is not a safety tool; it helps a team and a cook achieve safety and compliance. Most safety comes from recipes, ingredients and groups, and some recipes are safer than others | 2026-10-12, #3 | no safety floor in the core; its fixed rules cover only what it writes itself (F7, F10, F15, F16) | low |
 
 Six choices about the kitchen were agreed in #4. They are choices of how to meet the requirements below, so they are
 evaluated in the design and the trade-off analysis rather than recorded here:
@@ -243,8 +244,8 @@ This does not block the kitchen. It blocks any push of a kit.
 **What was reclassified.**
 
 - **Prior decisions.** "Help, not control", "a thin layer", "three parts", "may not depend on git", "Go binary",
-  "program knowledge is data", "derived files may be committed, and the tool writes them" and "documentation first"
-  were decided by the maintainer. They are prior decisions (P1 to P10), not requirements.
+  "program knowledge is data", "derived files may be committed, and the tool writes them", "documentation first" and
+  "not a safety tool" were decided by the maintainer. They are prior decisions (P1 to P11), not requirements.
 - **Design choices.** "Ban `.vscode` and `.claude`, with config to allow", "generate `.gitignore` entries", "group
   rules like an ESLint ruleset", "no symlinks between agent directories", "readers and writers built into the binary"
   and "init asks nothing" are ways of meeting a requirement. They are evaluated in the design.
