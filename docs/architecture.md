@@ -518,6 +518,12 @@ session, then hands its process to the recipe's entry script with `exec`. The sc
 `the-cook cook --end <id>`, which deletes the session's state (F8). dash runs no exit trap on SIGTERM or SIGHUP unless
 those are trapped too, and nothing survives SIGKILL, so a start that finds a stale session ends it first (measured).
 
+The core's only lifecycle is the session's two ends: `cook` starts it and `cook --end` ends it. Everything between
+belongs to the recipe (P2): its stages, such as plan, implement, verify and deliver, their order, their events and any
+record of verification. A recipe's stages are its scripts, and a gate between stages is a check in a script. The
+binary knows no stage name and no event, and two recipes share a stage by copying the same script or ingredient from a
+cookbook.
+
 A recipe is data, not a language:
 
 - parameters with choices and defaults, tables from a choice to files or values, and conditions that test equality;
