@@ -358,13 +358,13 @@ flowchart LR
 | `the-cook kitchen init` | creates the kitchen | `.cook/` only; no target file | F1, N2, P6 |
 | `the-cook kitchen import [<target>...]` | target to kitchen | the config, and each target's existing content moved into its marked part | F12, F7, F5 |
 | `the-cook kitchen apply` | kitchen to targets | marked sections, named keys, owned files | F1, F3 to F7, F14 to F16, N4 |
-| `the-cook kitchen copy <path>...` | cookbook to kitchen | each item with its origin and sha256; copying again is the update | F11, P8 |
+| `the-cook kitchen copy [<source> <item>...]` | cookbook to kitchen | each item with its origin and sha256; copying again is the update | F11, P8 |
 | `the-cook kitchen remove <item>...` | one item out of the kitchen | the parts the item wrote, then the item | F11 |
 | `the-cook kitchen eject` | the tool out of the repository | deletes `.cook/` and every marker, keeps every line and key as the team's | F13 |
 | `the-cook kit init` | creates the kit | the kit's config in the cook's kit repository; no home file | F9 |
 | `the-cook kit import [<target>...]` | home to kit | the picked files and keys, never a credential or transcript | F10, G5 |
 | `the-cook kit apply` | kit to home | marked blocks and picked files and keys | F9, G4 |
-| `the-cook kit copy <path>...` | cookbook to kit | each item with its origin and sha256 | none yet; #5 |
+| `the-cook kit copy [<source> <item>...]` | cookbook to kit | each item with its origin and sha256 | none yet; #5 |
 | `the-cook kit remove <item>...` | one item out of the kit | the parts the item wrote in the home directory, then the item | none yet; #5 |
 | `the-cook kit eject` | the tool out of the home directory | deletes every marker in home files, keeps every line and key as the cook's, keeps the kit repository | none yet; #5 |
 | `the-cook cook <recipe>` | cooking | a session directory outside the clone | F8 |
@@ -451,13 +451,25 @@ does not exist means nothing to import, exit 0. A program's file is importable o
 the mapping is data (P7). Claude Code saves "don't ask again" approvals to `.claude/settings.local.json`, a personal
 file (documented), so a cook's accumulated allow rules belong to `kit import`, not to the kitchen.
 
-**kitchen copy, remove and eject.** `kitchen copy` takes an item from a cookbook checkout with its origin and sha256,
-and copying again is the update, reviewed as a diff (F11, P8). `kitchen copy --check` compares the copy with the
-checkout. A three-way merge would need the earlier version, which means fetching it or reading git's history (P6, P8),
+**kitchen copy, remove and eject.** `kitchen copy <source> <item>...` copies items from a cookbook archive and records,
+for each, its origin and its sha256 (F11, P8). An origin is the source as given plus the item's path inside it, such
+as `https://example.com/cookbook-v3.tar.gz` and `groups/node.yaml`, never a path in someone's home directory, which
+would be personal. The binary fetches `file://` and `https://` sources with Go's standard library. Any other scheme,
+such as `ssh://` or `s3://`, arrives on standard input as an archive fetched by the person's own tool, with the origin
+named by `--origin`, so the binary calls no git, ssh or cloud program (P6, N3):
+
+```sh
+aws s3 cp s3://acme-cookbook/v3.tar.gz - | the-cook kitchen copy --from - --origin s3://acme-cookbook/v3.tar.gz groups/node.yaml
+```
+
+`kitchen copy --check` with no operand fetches each origin the binary can reach, lists every item whose bytes differ,
+and exits 2; a piped origin needs its archive piped again. `kitchen copy` with no operand copies every changed item
+again, and the team reviews the diff; pointing an item at a newer tag is the same command with the new source.
+Fetching happens only in `copy`, never in a render (P8). A three-way merge would need the earlier version as well,
 so copied items stay as copied and the team's choices live in the config. `kitchen remove <item>` deletes the parts an
 item wrote, read from its own declarations, and then the item, so no key is left behind. `kitchen eject` deletes
-`.cook/` and every marker and keeps every line and key as the team's (F13). `copy` is the verb of P8; `add` is also the
-verb of tools that record a reference (cargo, uv), which promises an update channel the tool does not have.
+`.cook/` and every marker and keeps every line and key as the team's (F13). `copy` is the verb of P8: the bytes live
+in the repository, while `add` in cargo and uv records a reference resolved later.
 
 ```mermaid
 sequenceDiagram
@@ -492,10 +504,10 @@ kit are public, and where the private ones go, is the blocking question in Conte
 
 The kit takes the kitchen's six verbs with the same meaning on its own side. `kit init` writes the kit's config in
 the cook's kit repository and no home file. `kit copy` takes an item from another cookbook, an organization's
-included, with its origin and sha256. `kit remove <item>` deletes the parts the item wrote in home files, then the
-item. `kit eject` deletes every marker in home files and keeps every line and key as the cook's; the kit repository
-stays, because it is also the cook's cookbook (P10). No requirement asks for `kit copy`, `kit remove` or `kit eject`
-yet, and #5 confirms or drops each.
+included, with its origin and sha256, and checks and updates the same way as `kitchen copy`. `kit remove <item>`
+deletes the parts the item wrote in home files, then the item. `kit eject` deletes every marker in home files and
+keeps every line and key as the cook's; the kit repository stays, because it is also the cook's cookbook (P10). No
+requirement asks for `kit copy`, `kit remove` or `kit eject` yet, and #5 confirms or drops each.
 
 ### Cooking (designed in #6)
 
