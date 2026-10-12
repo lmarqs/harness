@@ -335,8 +335,8 @@ flowchart LR
     targets -- "kitchen import" --> cook
     kit -- "kit apply" --> homefiles
     homefiles -- "kit import" --> kit
-    cook -- "cook" --> session
-    kit -- "cook" --> session
+    cook -- "a recipe, by name" --> session
+    kit -- "a recipe, by name" --> session
     targets --> readers["git, Docker, Claude Code, Codex, CI"]
     session -- "exec" --> programs["the recipe's script, which starts<br/>the loop runner, tracker and agents"]
 ```
@@ -370,7 +370,9 @@ flowchart LR
 | `the-cook kit copy [<source> <item>...]` | cookbook to kit | each item with its origin and sha256 | none yet; #5 |
 | `the-cook kit remove <item>...` | one item out of the kit | the parts the item wrote in the home directory, then the item | none yet; #5 |
 | `the-cook kit eject` | the tool out of the home directory | deletes every marker in home files, keeps every line and key as the cook's, keeps the kit repository | none yet; #5 |
-| `the-cook cook <recipe>` | cooking | a session directory outside the clone | F8 |
+| `the-cook <recipe>` | cooking | a session directory outside the clone | F8 |
+| `the-cook end <id>` | ends a session | deletes the session's state | F8 |
+| `the-cook recipe list` | reads | nothing; lists the recipes in the kitchen and the kit, with their parameters | F8 |
 
 Rules for every command:
 
@@ -385,8 +387,10 @@ Rules for every command:
   would write the repository and the home directory in one run (F16). It would also have to guess: a `.mcp.json` is
   committed in one repository and personal in another, where `.git/info/exclude` holds it, and a wrong guess is
   contamination (G1).
-- **`cook` is the one verb taken from the kitchen's vocabulary**, because no plain verb names the third part. Tools
-  with a kitchen vocabulary keep it in nouns: Test Kitchen and Homebrew use plain verbs.
+- **A recipe runs by its name**, as `the-cook grill` runs the recipe `grill`, so recipes are the verbs of cooking and the
+  kitchen's vocabulary stays in nouns. Tools with a kitchen vocabulary keep it in nouns too: Test Kitchen and Homebrew
+  use plain verbs. The names `kitchen`, `kit`, `recipe`, `end`, `help` and `version` are the tool's, and `copy`
+  reports a recipe that takes one and does not copy it, as a fault in the item, not a refusal of a caller (P1).
 - **`--check`** does every read and every check, writes nothing, prints the change set, and exits 2 when something
   would change. `--json` gives the same report as one document. `-C <dir>` runs as if started in that directory.
 - **Exit codes:** 0 done or nothing to do; 1 the command could not do its job; 2 only with `--check`; 3 the command
@@ -518,14 +522,14 @@ requirement asks for `kit copy`, `kit remove` or `kit eject` yet, and #5 confirm
 
 ### Cooking (designed in #6)
 
-`the-cook cook <recipe> [--set <param>=<value>]...` writes a session directory outside the clone, such as
+`the-cook <recipe> [--set <param>=<value>]...` writes a session directory outside the clone, such as
 `$XDG_STATE_HOME/the-cook/sessions/<id>/`. It holds the recipe's scripts byte for byte with their sha256, the prompt
 files, the programs' settings files and an environment file. It prints what it wrote and a line that repeats the
 session, then hands its process to the recipe's entry script with `exec`. The script traps exit and signals and calls
-`the-cook cook --end <id>`, which deletes the session's state (F8). dash runs no exit trap on SIGTERM or SIGHUP unless
+`the-cook end <id>`, which deletes the session's state (F8). dash runs no exit trap on SIGTERM or SIGHUP unless
 those are trapped too, and nothing survives SIGKILL, so a start that finds a stale session ends it first (measured).
 
-The core's only lifecycle is the session's two ends: `cook` starts it and `cook --end` ends it. Everything between
+The core's only lifecycle is the session's two ends: `the-cook <recipe>` starts it and `end` ends it. Everything between
 belongs to the recipe (P2): its stages, such as plan, implement, verify and deliver, their order, their events and any
 record of verification. A recipe's stages are its scripts, and a gate between stages is a check in a script. The
 binary knows no stage name and no event, and two recipes share a stage by copying the same script or ingredient from a
@@ -552,7 +556,8 @@ copied like any recipe or ingredient; the core has no jail, no tamper check and 
 
 ### Open in the design
 
-The maintainer confirmed the command line's shape: two scopes, `kitchen` and `kit`, with the same verbs, and `cook`.
+The maintainer confirmed the command line's shape: two scopes, `kitchen` and `kit`, with the same verbs,
+and recipes run by name.
 
 1. Each command's meaning, as written above, and for the kit, which of `kit copy`, `kit remove` and `kit eject` stay.
 2. F12 restated for any target: a team brings the existing content of any file the kitchen writes under the kitchen,
