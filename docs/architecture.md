@@ -464,12 +464,16 @@ aws s3 cp s3://acme-cookbook/v3.tar.gz - | the-cook kitchen copy --from - --orig
 
 `kitchen copy --check` with no operand fetches each origin the binary can reach, lists every item whose bytes differ,
 and exits 2; a piped origin needs its archive piped again. `kitchen copy` with no operand copies every changed item
-again, and the team reviews the diff; pointing an item at a newer tag is the same command with the new source.
-Fetching happens only in `copy`, never in a render (P8). A three-way merge would need the earlier version as well,
-so copied items stay as copied and the team's choices live in the config. `kitchen remove <item>` deletes the parts an
-item wrote, read from its own declarations, and then the item, so no key is left behind. `kitchen eject` deletes
-`.cook/` and every marker and keeps every line and key as the team's (F13). `copy` is the verb of P8: the bytes live
-in the repository, while `add` in cargo and uv records a reference resolved later.
+again, and the team reviews the diff; pointing an item at a newer tag is the same command with the new source. Fetching
+happens only in `copy`, never in a render (P8). Trust in a copied item comes from the team's review of its diff; the
+item's sha256 shows a later local edit, not who wrote it. `--sha256 <archive hash>` pins a source: it is recorded with
+the origin, and a later copy from that source with other bytes exits 1, which catches a moved tag. Each release of the
+binary publishes a sha256 checksums file. Signatures are not part of the core, and adding them later is a two-way door.
+A three-way merge would need the earlier version as well, so copied items stay as copied and the team's choices live in
+the config. `kitchen remove <item>` deletes the parts an item wrote, read from its own declarations, and then the item,
+so no key is left behind. `kitchen eject` deletes `.cook/` and every marker and keeps every line and key as the team's
+(F13). `copy` is the verb of P8: the bytes live in the repository, while `add` in cargo and uv records a reference
+resolved later.
 
 ```mermaid
 sequenceDiagram
