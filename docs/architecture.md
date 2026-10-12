@@ -510,6 +510,10 @@ directory above it (its code, read on 2026-10-12). A recipe that runs it writes 
 `.ralph-tui/` out of a repository that does not commit it. A repository that does, such as ports 1 and 2, has it
 allowed by init like every committed entry, so its committed config keeps winning until the team removes it.
 
+How safe a session is depends on its recipe (P11). A recipe that wants a jail, such as a container or a sandbox,
+starts it from its own script, and a recipe's own checks are its scripts. Jails and checks are cookbook content,
+copied like any recipe or ingredient; the core has no jail, no tamper check and no invariant of a recipe.
+
 ### Open in the design
 
 The maintainer confirmed the command line's shape: two scopes, `kitchen` and `kit`, with the same verbs, and `cook`.
