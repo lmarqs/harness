@@ -436,6 +436,13 @@ over allow; Codex lets forbidden win over prompt and prompt over allow (both doc
 combine the same way, the most restrictive decision winning, while ignore groups keep the last match. With one
 combination rule per kind, an import followed by an apply gives back the same decisions.
 
+**Hooks** are agent settings like any other, placed by the two axes. A team's hook is declared by a group or an
+ingredient, and `kitchen apply` writes it as a named key into each agent's settings, with its script copied as an
+item. A cook's own hook lives in the kit and `kit apply` writes it into the home directory. A session's hook is
+written by its recipe into the session directory and ends with the session. What a hook means to each agent, its
+events, matchers and file format, is data in that agent's ingredient (P7). The binary writes the keys and never runs
+a hook; hooks such as linting after an edit are cookbook content.
+
 **kitchen import** takes the existing content of a target into the kitchen without changing how the target reads (F12,
 F7). The check compares meaning, not bytes: the ordered pattern lines of an ignore file, and the parsed value of each
 JSON, TOML or YAML key. A rewrite with equal values had different bytes (measured). Every named target passes or nothing
