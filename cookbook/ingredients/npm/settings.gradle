@@ -1,0 +1,3 @@
+pluginManagement { includeBuild('../../../core') }
+rootProject.name = 'npm'
+includeBuild('../../../core')

@@ -1,0 +1,5 @@
+plugins { id 'dev.thecook.recipe' }
+dependencies {
+    api 'dev.thecook.ingredients:git:0.1.0'
+    api 'dev.thecook.ingredients:ralph-tui:0.1.0'
+}

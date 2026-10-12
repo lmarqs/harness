@@ -1,0 +1,5 @@
+pluginManagement { includeBuild('../../../../core') }
+rootProject.name = 'agentic-runtime'
+includeBuild('../../../../core')
+includeBuild('../../../ingredients/git')
+includeBuild('../../../ingredients/ralph-tui')

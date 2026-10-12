@@ -1,0 +1,84 @@
+name: Test
+
+on:
+  workflow_call:
+    secrets:
+      AWS_ACCESS_KEY_ID:
+        required: true
+      AWS_SECRET_ACCESS_KEY:
+        required: true
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest-large
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard:
+          - 1
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v5
+
+      - uses: Medprev/medprev-github-actions/configure-aws-credentials@main
+        with:
+          awsAccessKeyId: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          awsSecretAccessKey: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - uses: Medprev/medprev-github-actions/amazon-ecr-login@main
+
+      - uses: Medprev/medprev-github-actions/docker-setup@main
+
+      - name: Start Test Environment
+        id: start_env
+        env:
+          GIT_COMMIT_SHA: ${{ github.sha }}
+        run: |
+          docker compose --profile ci up --detach
+          docker compose --profile ci exec medprev-rest-api dockerize -wait tcp://db:5432 -timeout 60s
+
+      - name: Run E2E tests
+        id: e2e
+        if: ${{ !cancelled() && steps.start_env.conclusion == 'success' }}
+        run: |
+          TEST_EXIT_CODE=0
+          docker compose --profile ci exec -e TEST_MAX_WORKERS=100% medprev-rest-api npm run test:e2e -- --logHeapUsage --shard=${{ matrix.shard }}/${{ strategy.job-total }} || TEST_EXIT_CODE=$?
+
+          echo "Test Result: $TEST_EXIT_CODE"
+
+          docker compose --profile ci cp medprev-rest-api:/usr/src/app/.test-reports .test-reports-shard${{ matrix.shard }}
+
+          exit $TEST_EXIT_CODE
+
+      - name: Publish E2E Test Report
+        uses: mikepenz/action-junit-report@v5
+        if: ${{ !cancelled() && steps.e2e.conclusion != 'skipped' }}
+        with:
+          report_paths: '.test-reports-shard${{ matrix.shard }}/medprev-rest-api_all_junit.xml'
+          check_name: 'E2E Tests (shard ${{ matrix.shard }})'
+          require_tests: true
+          fail_on_failure: true
+
+      - name: Stop Test Environment
+        if: always()
+        run: |
+          docker compose --profile ci down --volumes --rmi all --remove-orphans
+
+  main:
+    needs: e2e
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check shard results
+        run: |
+          RESULT="${{ needs.e2e.result }}"
+          echo "E2E shards result: $RESULT"
+          echo
+          echo "This job only aggregates — it runs no tests and names no shard."
+          echo "Per-shard logs:  the 'test / e2e (N)' jobs of this run."
+          echo "Per-test detail: the 'E2E Tests (shard N)' checks."
+          if [[ "$RESULT" != "success" ]]; then
+            exit 1
+          fi

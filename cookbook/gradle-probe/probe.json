@@ -1,0 +1,49 @@
+{
+  "status": "disposable-feasibility-probe",
+  "question": "Can Gradle replace the proposed Cook execution engine while retaining useful repository migrations?",
+  "prerequisites": [
+    "JDK 17 or newer compatible with Gradle 9.8.1",
+    "Node 22",
+    "npm 10.9.8",
+    "Yarn 4.17.0",
+    "git",
+    "Python 3 for verification"
+  ],
+  "commands": [
+    "mise exec -- ./gradlew --version",
+    "./gradlew resetDemo plan -Pcase=node",
+    "./gradlew applyPlan -Pcase=node",
+    "./gradlew plan -Pcase=node -Pmanager=npm",
+    "./gradlew resetDemo plan -Pcase=aws",
+    "./gradlew resetDemo plan -Pcase=combined",
+    "python3 verify.py"
+  ],
+  "inputs": {
+    "repo": "Explicit target path; otherwise build/demo/<case>",
+    "yarnExecutable": "Yarn executable path, default yarn",
+    "npmExecutable": "npm executable path, default npm",
+    "offlineInstall": "true for the local dependency fixture",
+    "awsRole": "Role ARN or GitHub expression; default vars.BUILD_AWS_ROLE_ARN"
+  },
+  "fixtures": {
+    "node": "Minimal runnable project with a local dependency; not a copy of a production manifest",
+    "aws": "medprev-rest-api workflows, with explicit permissions added to the selected job and caller for this experiment",
+    "aws-legacy": "Unchanged workflow copies used to prove implicit permissions are rejected",
+    "combined": "Synthetic independent Node and AWS jobs; composed from node plus combined fixtures"
+  },
+  "scope": [
+    "Native Gradle plugin, task graph, lazy providers and incremental task inputs/outputs",
+    "Two concrete migrations with native files",
+    "Saved diff, separate apply, drift rejection",
+    "No AWS calls; role and trust policy must exist separately",
+    "New lockfile resolved by target package manager; equivalence to previous dependency resolution is not guaranteed"
+  ],
+  "limitations": [
+    "Known layouts only; not a general repository migrator",
+    "Snapshot includes only explicit file patterns from build.gradle",
+    "No migration of Dockerfiles, arbitrary shell scripts, monorepos or private registry auth",
+    "No automatic ownership discovery, rollback after a process crash, or personal setup/session lifecycle",
+    "No assumption that the chosen AWS permission baseline fits every repository",
+    "Combining the Node switch with the existing medprev AWS build is refused: it still uses npm and npm-specific CodeArtifact authentication"
+  ]
+}

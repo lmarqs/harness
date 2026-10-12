@@ -1,0 +1,11 @@
+{
+  "name": "@the-cook/projen-probe-mise",
+  "version": "0.1.0",
+  "main": "index.cjs",
+  "files": [
+    "index.cjs"
+  ],
+  "peerDependencies": {
+    "projen": "0.104.5"
+  }
+}

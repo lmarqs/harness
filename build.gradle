@@ -1,0 +1,49 @@
+plugins {
+    id 'dev.thecook'
+}
+
+repositories {
+    mavenCentral()
+}
+
+configurations {
+    cookbookIngredients
+}
+
+def ingredientBuilds = file('cookbook/ingredients').listFiles().findAll { new File(it, 'build.gradle').isFile() }.sort { it.name }
+dependencies {
+    ingredientBuilds.each { ingredient ->
+        def release = new Properties()
+        new File(ingredient, 'gradle.properties').withInputStream { release.load(it) }
+        cookbookIngredients "${release.group}:${ingredient.name}:${release.version}"
+    }
+    cookbookIngredients 'dev.thecook.recipes:agentic-runtime:0.1.0'
+}
+
+cook.repository = file(providers.gradleProperty('repo').getOrElse('build/example'))
+cook.recipe = providers.gradleProperty('recipe').getOrElse('development')
+cook.cookbookDirectory = file('cookbook')
+
+if (providers.gradleProperty('script').isPresent()) {
+    cook.script = file(providers.gradleProperty('script').get())
+}
+
+cook.parameters = gradle.startParameter.projectProperties.findAll { !(it.key in ['repo', 'recipe', 'script']) }
+
+cook.ingredientArtifacts = configurations.cookbookIngredients
+
+tasks.register('check') {
+    dependsOn gradle.includedBuild('core').task(':check'), gradle.includedBuild('cli').task(':check')
+}
+
+tasks.register('cliBuild') { dependsOn gradle.includedBuild('cli').task(':installDist') }
+
+tasks.register('ingredientsBuild') {
+    dependsOn(ingredientBuilds.collect {
+        gradle.includedBuild(it.name == rootProject.name ? 'ingredient-' + it.name : it.name).task(':build')
+    })
+}
+
+tasks.register('cookbookBuild') {
+    dependsOn 'ingredientsBuild', gradle.includedBuild('agentic-runtime').task(':build')
+}

@@ -1,0 +1,4 @@
+.gradle/
+build/
+build-logic/.gradle/
+build-logic/build/

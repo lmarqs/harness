@@ -1,0 +1,43 @@
+import cook.PackageManagerMigration
+import cook.AwsOidcMigration
+
+plugins { id 'dev.thecook.migrations' }
+
+// Disposable feasibility probe. These are ordinary Gradle tasks and providers.
+def example = providers.gradleProperty('case').getOrElse('node')
+if (!(example in ['node', 'aws', 'combined'])) throw new GradleException('case must be node, aws or combined')
+def target = file(providers.gradleProperty('repo').getOrElse("build/demo/${example}"))
+
+tasks.named('snapshot') {
+    from(target)
+    include 'package.json', 'package-lock.json', 'yarn.lock', '.yarnrc.yml', '.gitignore'
+    include 'mise.toml', 'packages/**', 'test.js', '.github/workflows/*.yaml'
+}
+
+def node = tasks.register('switchPackageManager', PackageManagerMigration) {
+    sourceDirectory = layout.dir(tasks.named('snapshot').map { it.destinationDir })
+    destinationDirectory = layout.buildDirectory.dir('stages/node')
+    manager = providers.gradleProperty('manager').orElse('yarn')
+    yarnExecutable = providers.gradleProperty('yarnExecutable').orElse('yarn')
+    npmExecutable = providers.gradleProperty('npmExecutable').orElse('npm')
+    offline = providers.gradleProperty('offlineInstall').map { it.toBoolean() }.orElse(false)
+}
+def aws = tasks.register('migrateAwsCredentials', AwsOidcMigration) {
+    sourceDirectory = example == 'combined' ? node.flatMap { it.destinationDirectory } : layout.dir(tasks.named('snapshot').map { it.destinationDir })
+    destinationDirectory = layout.buildDirectory.dir('stages/aws')
+    role = providers.gradleProperty('awsRole').orElse('${{ vars.BUILD_AWS_ROLE_ARN }}')
+}
+tasks.named('plan') {
+    repository = target
+    beforeDirectory = layout.dir(tasks.named('snapshot').map { it.destinationDir })
+    afterDirectory = example == 'node' ? node.flatMap { it.destinationDirectory } : aws.flatMap { it.destinationDirectory }
+}
+tasks.named('applyPlan') { repository = target }
+
+tasks.register('resetDemo', Sync) {
+    description = 'Reset the disposable example under build/demo; use before plan.'
+    from("fixtures/${example == 'combined' ? 'node' : example}")
+    if (example == 'combined') from('fixtures/combined')
+    into(layout.buildDirectory.dir("demo/${example}"))
+}
+tasks.named('snapshot') { mustRunAfter('resetDemo') }

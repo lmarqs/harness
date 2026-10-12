@@ -1,0 +1,17 @@
+plugins {
+    id 'groovy'
+    id 'java-gradle-plugin'
+}
+repositories { mavenCentral() }
+dependencies {
+    implementation localGroovy()
+    implementation 'org.yaml:snakeyaml:2.4'
+}
+gradlePlugin {
+    plugins {
+        migrations {
+            id = 'dev.thecook.migrations'
+            implementationClass = 'cook.MigrationsPlugin'
+        }
+    }
+}

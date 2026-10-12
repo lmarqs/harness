@@ -1,0 +1,85 @@
+name: Main
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types:
+      - opened
+      - synchronize
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      should_run: ${{ steps.check.outputs.should_run }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+
+      - name: Check if CI should run
+        id: check
+        run: |
+          # #ci must be a whitespace-delimited token, not a substring: a plain `grep '#ci'`
+          # also fires on `#cicd` and on any commit that merely *mentions* `#ci` in prose or
+          # backticks, arming the pipeline nobody asked to spend.
+          COMMIT_MSG=$(git log -1 --format='%B')
+          if [[ "${{ github.event_name }}" == "push" ]] || echo "$COMMIT_MSG" | grep -Eq '(^|[[:space:]])#ci([[:space:]]|$)'; then
+            echo "should_run=true" >> $GITHUB_OUTPUT
+          else
+            echo "should_run=false" >> $GITHUB_OUTPUT
+          fi
+
+  build:
+    permissions:
+      contents: write
+      checks: write
+    needs: gate
+    if: needs.gate.outputs.should_run == 'true'
+    uses: ./.github/workflows/build.yaml
+    secrets:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+  test:
+    needs: [gate, build]
+    if: needs.gate.outputs.should_run == 'true'
+    uses: ./.github/workflows/test.yaml
+    secrets:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+  monitoring-gates:
+    needs: gate
+    if: needs.gate.outputs.should_run == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+
+      - name: Validate the monitoring checks
+        run: |
+          python3 -m pip install --quiet --disable-pip-version-check \
+            -r requirements.txt
+          python3 .agents/skills/prd-monitoring/validate.py
+
+      - name: Test the monitoring rules against recorded replies
+        run: python3 -m unittest discover -s .agents/skills/prd-monitoring/tests
+
+      - name: Check shared development workflow contracts
+        run: |
+          python3 -m unittest discover -s scripts/workflow/tests
+          python3 .agents/permissions/render.py --check

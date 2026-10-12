@@ -1,0 +1,13 @@
+/.gradle/
+/build/
+/core/.gradle/
+/core/build/
+/cli/.gradle/
+/cli/build/
+/cookbook/ingredients/*/.gradle/
+/cookbook/ingredients/*/build/
+/cookbook/recipes/**/.gradle/
+/cookbook/recipes/**/build/
+# cook:begin git/ignore
+/.cook/
+# cook:end git/ignore

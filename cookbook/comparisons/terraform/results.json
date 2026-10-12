@@ -1,0 +1,66 @@
+{
+  "terraform_version": "1.15.5",
+  "local_provider_version": "2.9.1",
+  "execution": "offline filesystem provider mirror; all fixtures under /tmp; no cloud resources",
+  "cases": [
+    {
+      "case": "existing_manual_file_at_first_apply",
+      "observed": "replaced_by_complete_resource_content",
+      "manual_prefix_preserved": false
+    },
+    {
+      "case": "unchanged_second_plan",
+      "exit_code": 0,
+      "actions": [
+        [
+          "no-op"
+        ]
+      ]
+    },
+    {
+      "case": "manual_addition_then_normal_plan_apply",
+      "actions": [
+        [
+          "create"
+        ]
+      ],
+      "observed": "resource_recreated_and_manual_addition_overwritten"
+    },
+    {
+      "case": "module_disabled_with_unchanged_file",
+      "observed": "whole_file_deleted"
+    },
+    {
+      "case": "module_disabled_after_manual_addition_with_refresh",
+      "actions": [],
+      "observed": "modified_file_left_unmanaged_with_generated_block_still_present"
+    },
+    {
+      "case": "manual_edit_after_saved_module_removal_plan",
+      "actions": [
+        [
+          "delete"
+        ]
+      ],
+      "observed": "whole_file_deleted_including_edit_after_preview"
+    },
+    {
+      "case": "manual_edit_after_saved_recreation_plan",
+      "actions": [
+        [
+          "create"
+        ]
+      ],
+      "observed": "complete_content_overwritten_without_file_drift_rejection"
+    },
+    {
+      "case": "native_local_file_import",
+      "observed": "provider_rejects_import",
+      "diagnostic": "Error: Resource Import Not Implemented\n\nThis resource does not support import. Please contact the provider developer\nfor additional information."
+    }
+  ],
+  "sources": [
+    "https://registry.terraform.io/providers/hashicorp/local/latest/docs/resources/file",
+    "https://github.com/hashicorp/terraform-provider-local/blob/main/internal/provider/resource_local_file.go"
+  ]
+}

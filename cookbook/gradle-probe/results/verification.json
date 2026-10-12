@@ -1,0 +1,25 @@
+{
+  "passed": 12,
+  "checks": [
+    "Plan stages a real Yarn lockfile without changing the source repository",
+    "Drift rejects the entire apply before any file is written",
+    "Applied Yarn project installs offline and runs its dependency test; custom content survives",
+    "Repeat planning is idempotent; Gradle skips an unchanged migration",
+    "Gradle tracks subsequent .gitignore edits and carries them into the staged result",
+    "Yarn to npm takes plan and apply; regenerated npm lockfile installs and tests offline",
+    "OIDC updates the workflow and selected caller while retaining other secret consumers",
+    "OIDC migration is idempotent",
+    "Unmodified production workflow is rejected because its permission baseline is implicit",
+    "Unknown legacy credential options require review without touching the source",
+    "Independent Node and AWS workflows migrate together through Gradle task outputs",
+    "Composition rejects the existing AWS build that would retain npm and npm-specific registry auth"
+  ],
+  "warm_unchanged_plan_seconds": 1.139,
+  "scope": "Local fixtures; no AWS authentication, live CI, or private package registry execution",
+  "status": "disposable feasibility probe",
+  "gradle": "9.8.1",
+  "plugin_source_lines": 395,
+  "conclusion": "Gradle supplies task composition, plugin loading, wrapper pinning and incremental execution. Domain migrations and drift protection remain custom plugin code.",
+  "production_repositories_modified": false,
+  "external_execution": "No AWS requests or coding agent sessions were started."
+}

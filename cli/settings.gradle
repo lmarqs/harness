@@ -1,0 +1,7 @@
+rootProject.name = 'the-cook-cli'
+includeBuild('../core')
+includeBuild('../cookbook/ingredients/git')
+includeBuild('../cookbook/ingredients/ralph-tui')
+includeBuild('../cookbook/ingredients/skills')
+includeBuild('../cookbook/ingredients/agent-policy')
+includeBuild('../cookbook/ingredients/the-cook') { name = 'ingredient-the-cook' }

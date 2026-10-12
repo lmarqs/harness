@@ -1,0 +1,238 @@
+{
+  "title": "Go and Terraform shared-file feasibility specification",
+  "date": "2026-10-12",
+  "status": "proposed",
+  "goal": "Determine whether a small Go CLI and a custom Terraform provider can preserve Cook's shared-file lifecycle while reusing Terraform composition, saved plans and state.",
+  "decision_boundary": {
+    "proposed_probe": "Go CLI -> terraform-exec -> pinned Terraform executable -> generic cook_managed_blocks provider resource -> native repository files",
+    "existing_baseline": "Executable Groovy ingredients and recipes; Gradle currently launches Cook. Its current report records 108 passing behavioral checks.",
+    "selected_language": null,
+    "interpretation": "A successful block probe establishes a useful integration boundary. It does not prove parity with the entire Groovy model or authorize a rewrite.",
+    "alternative_after_probe": "Retain Groovy with a standalone JVM launcher, or plan a Go core with an embedded HCL authoring layer."
+  },
+  "constraints": [
+    "Use main branch and do not commit.",
+    "Keep plan, specification and evidence as JSON and native source files under cookbook; create no Markdown files.",
+    "Keep the current Groovy core and ingredient builds available throughout the comparison.",
+    "Use only temporary target repositories and local providers; execute no cloud resources or agent sessions.",
+    "Go toolchain: 1.26.7. Terraform executable: 1.15.5. Existing local_file baseline provider: hashicorp/local 2.9.1.",
+    "Probe dependencies: terraform-exec v0.25.3 and terraform-plugin-framework v1.18.0; record transitive dependencies in go.sum.",
+    "Probe provider artifact: registry.terraform.io/the-cook/cook 0.1.0, installed from a local filesystem mirror.",
+    "Supported probe build targets: linux/amd64, linux/arm64, darwin/amd64, darwin/arm64; CGO_ENABLED=0.",
+    "Ingredient versions remain independent from engine and provider versions.",
+    "owns defaults to false; Git is an explicit consumer of exported paths.",
+    "Codex and Claude are not classified as ingredients by this probe."
+  ],
+  "requirements": [
+    {
+      "id": "R1",
+      "behavior": "Ingredients export values; a recipe explicitly aggregates them into a single file writer. Selecting npm or Yarn without a Git module creates no .gitignore.",
+      "proof": "HCL fixtures select npm/Yarn, mount/unmount Git, and assert exact native output and resource counts."
+    },
+    {
+      "id": "R2",
+      "behavior": "A shared file keeps manual bytes outside its named blocks, including CRLF, Unicode, lack of a final newline and manual changes made before a fresh plan.",
+      "proof": "Run identical byte-level fixtures through Groovy and the Go reconciler, then through the real provider."
+    },
+    {
+      "id": "R3",
+      "behavior": "Existing blocks require explicit adopt=true. Adoption records original bytes once; subsequent updates preserve that baseline; unmount restores it. A created file is removed only when no manual content remains.",
+      "proof": "Adoption, update, unmount, preexisting empty-file and created-file-with-manual-suffix fixtures."
+    },
+    {
+      "id": "R4",
+      "behavior": "Editing or deleting managed content fails explicitly. Any observed target change after a saved plan, including a pending destroy, fails before that target is written.",
+      "proof": "Tests distinguish a managed edit before planning from a manual edit after a saved update, creation or removal plan."
+    },
+    {
+      "id": "R5",
+      "behavior": "One Terraform resource writes each destination file. Concurrent resources or independent states claiming the same file must not silently overwrite each other.",
+      "proof": "Real CLI tests use duplicate resources, provider aliases and two independent Terraform state directories."
+    },
+    {
+      "id": "R6",
+      "behavior": "Planning leaves the target repository unchanged. Filesystem adapters reject path escapes, reserved control paths, symbolic links and mode changes after preview.",
+      "proof": "Compare target byte/mode inventories before and after plan and each rejected apply."
+    },
+    {
+      "id": "R7",
+      "behavior": "npm and Yarn lockfiles are durable input artifacts. The probe preserves package-lock.json and yarn.lock and never adds them to .gitignore.",
+      "proof": "Seed both lockfiles, switch manager selection and compare their bytes."
+    },
+    {
+      "id": "R8",
+      "behavior": "The SDK facade applies an explicitly saved Terraform plan, without replanning. A developer can build the provider; a user can run the built probe without Go, Java or Gradle installed.",
+      "proof": "Real tfexec integration, rejected stale plans and a runtime PATH containing the three delivered executables and required OS facilities."
+    },
+    {
+      "id": "R9",
+      "behavior": "Measure a two-file apply with the second write failing. Report whether the first file and Terraform state remain changed; do not attribute repository rollback to Terraform.",
+      "proof": "Failure injection on the filesystem adapter and a real two-resource apply; decision evidence records the resulting bytes and state."
+    },
+    {
+      "id": "R10",
+      "behavior": "Malformed ownership state, unknown schema versions and malformed block markers fail without modifying files. Removal must not turn a drifted resource into an untracked file silently.",
+      "proof": "Provider private-state validation tests and real refresh/removal lifecycle fixtures."
+    }
+  ],
+  "contract": {
+    "format": "blocks only",
+    "markers": [
+      "# cook:begin <block-id>",
+      "# cook:end <block-id>"
+    ],
+    "example_id": "git/ignore",
+    "owned_defaults": {
+      "owns": false,
+      "adopt": false
+    },
+    "errors": [
+      "managed_edit",
+      "unmanaged_block",
+      "invalid_markers",
+      "unsupported_state",
+      "preview_drift",
+      "unsafe_path",
+      "file_claim_conflict"
+    ],
+    "fixture_shape": {
+      "name": "manual-suffix-survives-unmount",
+      "initial": {
+        "exists": true,
+        "content": "# personal\n",
+        "mode": 420
+      },
+      "steps": [
+        {
+          "operation": "apply",
+          "blocks": [
+            {
+              "id": "git/ignore",
+              "lines": [
+                "node_modules/"
+              ],
+              "adopt": false
+            }
+          ]
+        },
+        {
+          "operation": "append_manual",
+          "content": "local-only/\n"
+        },
+        {
+          "operation": "unmount"
+        },
+        {
+          "operation": "assert",
+          "exists": true,
+          "content": "# personal\nlocal-only/\n",
+          "mode": 420
+        }
+      ]
+    },
+    "minimum_cases": [
+      "create-and-idempotence",
+      "manual-prefix-and-suffix",
+      "crlf-and-unicode",
+      "missing-final-newline",
+      "preexisting-empty-file",
+      "created-file-with-manual-suffix",
+      "adopt-update-restore",
+      "unmanaged-existing-block",
+      "managed-edit",
+      "managed-deletion",
+      "malformed-markers",
+      "saved-create-drift",
+      "saved-update-drift",
+      "saved-delete-drift",
+      "mode-drift",
+      "symlink-replacement",
+      "duplicate-writer",
+      "independent-state-claim",
+      "unknown-private-state-version",
+      "lockfiles-preserved",
+      "git-not-mounted"
+    ],
+    "baseline_cases": [
+      "create-and-idempotence",
+      "manual-prefix-and-suffix",
+      "crlf-and-unicode",
+      "missing-final-newline",
+      "preexisting-empty-file",
+      "created-file-with-manual-suffix",
+      "unmanaged-existing-block",
+      "managed-edit",
+      "managed-deletion",
+      "malformed-markers",
+      "saved-create-drift",
+      "saved-update-drift",
+      "saved-delete-drift",
+      "mode-drift",
+      "symlink-replacement"
+    ],
+    "baseline_unsupported": [
+      {
+        "case": "adopt-update-restore",
+        "reason": "Current public Output.block(String, Closure) has no adopt option; native key/whole-file adoption does not prove block adoption. Record this gap; do not mutate internal declaration maps to manufacture API parity."
+      }
+    ]
+  },
+  "out_of_scope": [
+    "Porting lossless JSON, TOML or YAML reconciliation, whole-file ownership, stations, recipe variants, eject or crash recovery.",
+    "Regenerating npm/Yarn lockfiles, installing project tools or enforcing bans on tracked files.",
+    "Migrating the seven existing Groovy ingredients or introducing Codex/Claude ingredient classifications.",
+    "Publishing registry artifacts, automatic binary installation, cloud resources or production CLI UX."
+  ],
+  "evidence": [
+    {
+      "path": "core/build/reports/model-checks.json",
+      "observed": "108 passed, 0 failed"
+    },
+    {
+      "path": "cookbook/comparisons/terraform/results.json",
+      "observed": "8 actual local_file lifecycle assertions, Terraform 1.15.5 and local provider 2.9.1"
+    },
+    {
+      "path": "docs/adrs/0003-implementation-language.md",
+      "observed": "Historic Go/single-executable decision; newer conversation authorizes the Groovy exploration. Its 50 ms hook budget is not imposed on this recipe probe."
+    },
+    {
+      "path": "core/src/main/groovy/thecook/rendering/Output.groovy",
+      "observed": "Public block(String, Closure) lacks region-level adoption options; block adoption is an explicit probe requirement beyond this baseline API."
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://github.com/hashicorp/terraform-exec",
+      "supports": "Supported Go SDK invokes an external Terraform executable."
+    },
+    {
+      "url": "https://developer.hashicorp.com/terraform/language/modules/develop/composition",
+      "supports": "Module outputs and inputs provide ingredient/recipe composition."
+    },
+    {
+      "url": "https://developer.hashicorp.com/terraform/plugin/framework/resources/private-state",
+      "supports": "Provider state can store ownership baselines and plan metadata."
+    },
+    {
+      "url": "https://developer.hashicorp.com/terraform/plugin/framework/resources/plan-modification",
+      "supports": "Plan modification is the proposed place to capture a file proposal; destroy delivery must be verified."
+    },
+    {
+      "url": "https://developer.hashicorp.com/terraform/tutorials/cli/apply",
+      "supports": "Failed Terraform apply does not automatically roll back completed resource changes."
+    },
+    {
+      "url": "https://github.com/hashicorp/terraform-provider-local/blob/v2.9.1/internal/provider/resource_local_file.go",
+      "supports": "Existing local_file baseline uses whole-file replacement."
+    },
+    {
+      "url": "https://groovy-lang.org/integrating.html",
+      "supports": "Groovy can run embedded in a JVM launcher without Gradle at runtime."
+    },
+    {
+      "url": "https://github.com/hashicorp/terraform-plugin-framework/blob/v1.18.0/internal/fwserver/server_deleteresource.go",
+      "supports": "Framework forwards PlannedPrivate provider data to DeleteRequest.Private."
+    }
+  ]
+}

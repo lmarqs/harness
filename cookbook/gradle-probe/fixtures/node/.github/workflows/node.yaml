@@ -1,0 +1,20 @@
+name: Node
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: jdx/mise-action@v2
+      # Cache details are deliberately part of the migration fixture.
+      - id: cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('package-lock.json') }}
+      - id: install
+        run: npm ci
+      - run: node test.js
+      # Keep this project-specific step byte-for-byte.
+      - name: Custom step
+        run: echo "team customization"
