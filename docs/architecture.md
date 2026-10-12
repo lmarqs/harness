@@ -195,6 +195,7 @@ better way learned in one reaches the others only by copying.
 | P9 | Files the tool derives may be committed. They are derived from sources the repository declares, and the tool writes them | 2026-10-11; ADR 0006, ADR 0008 | committed renders that teammates and agents read without the tool | low |
 | P10 | The kit and the cookbook are one thing: the cook's own repository, which others may copy from | 2026-10-11, #5 | one repository per cook | low |
 | P11 | The tool is not a safety tool; it helps a team and a cook achieve safety and compliance. Most safety comes from recipes, ingredients and groups, and some recipes are safer than others | 2026-10-12, #3 | no safety floor in the core; its fixed rules cover only what it writes itself (F7, F10, F15, F16) | low |
+| P12 | Each repository runs the tool through a committed wrapper, `./cook`, which pins one release with its sha256 for each platform and fetches that release into a per-user directory on first use | 2026-10-12, #3; ADR 0017 | a wrapper script, so every machine and pipeline gives the same answer for the same commit and a newcomer installs nothing; the download is the wrapper's, and the binary still needs no other program (N3) | low |
 
 Six choices about the kitchen were agreed in #4. They are choices of how to meet the requirements below, so they are
 evaluated in the design and the trade-off analysis rather than recorded here:
@@ -222,7 +223,6 @@ This does not block the kitchen. It blocks any push of a kit.
   The kitchen's design settles it.
 - Whether the parts each ingredient says it writes are enough to remove the tool, so that no separate record of
   ownership is needed (ADR 0007). Assumed: enough. A removal test on a fixture closes it.
-- Whether a committed wrapper that pins the tool's version stays (ADR 0017). Assumed: it leaves the core.
 - How a session runs a program that keeps its state in its working directory with no way to move it, such as
   ralph-tui (C1). Assumed: in a workspace that the session removes. The design of cooking settles it.
 - Where personal state that must outlive a session lives when it belongs to one project, such as a tracker's
@@ -244,8 +244,9 @@ This does not block the kitchen. It blocks any push of a kit.
 **What was reclassified.**
 
 - **Prior decisions.** "Help, not control", "a thin layer", "three parts", "may not depend on git", "Go binary",
-  "program knowledge is data", "derived files may be committed, and the tool writes them", "documentation first" and
-  "not a safety tool" were decided by the maintainer. They are prior decisions (P1 to P11), not requirements.
+  "program knowledge is data", "derived files may be committed, and the tool writes them", "documentation first",
+  "not a safety tool" and "a committed wrapper" were decided by the maintainer. They are prior decisions (P1 to P12),
+  not requirements.
 - **Design choices.** "Ban `.vscode` and `.claude`, with config to allow", "generate `.gitignore` entries", "group
   rules like an ESLint ruleset", "no symlinks between agent directories", "readers and writers built into the binary"
   and "init asks nothing" are ways of meeting a requirement. They are evaluated in the design.
@@ -350,6 +351,8 @@ flowchart LR
 - **The kit** is the cook's own repository, which is also their cookbook (P10). Its parts reach the home directory,
   never a committed file (F9, F16).
 - **A session** lives in a directory outside the clone and ends with its state deleted (F8).
+- **The wrapper** `./cook` is committed at the repository root, written by `kitchen apply` as a file the tool owns, and
+  runs the pinned release, so every command below runs as `./cook <command>` in an adopted repository (P12, N4, G7).
 
 ### Command line
 
