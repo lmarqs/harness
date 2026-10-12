@@ -393,6 +393,9 @@ Rules for every command:
 - **The binary starts no program** (P6, N3). Whoever wants git's verdict runs git; a session hands its process to the
   recipe's script. So the binary never commits: it writes files and reports the change set, and committing belongs to
   the person or to a recipe's script.
+- **The tool checks only its own work.** `--check` reports drift in what the tool writes. A recipe's script checks the
+  programs it needs and stops with its own message, so the core never asks a teammate to install a program they do
+  not use (G7) and holds no list of programs (P7).
 
 ### The kitchen
 
