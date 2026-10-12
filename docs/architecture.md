@@ -185,7 +185,7 @@ better way learned in one reaches the others only by copying.
 | --- | --- | --- | --- | --- |
 | P1 | Help, never control. The tool does its part and reports truthfully what it did. It refuses no caller and judges nobody, and a person or agent who ignores the settings they are given is acting on their own | 2026-10-11, #3; philosophy, ADR 0028 | a core without policing: no bypass refusal, tamper check, jails or untouchable floor | low: documents only |
 | P2 | The tool becomes a thin layer that sets up a session for one way of working and leaves the repository clean. The development lifecycle moves out of the core into recipes | 2026-10-11, #3 | the three parts below, in place of the lifecycle core of ADR 0015 | low now: no code, no adopters |
-| P3 | Three parts, designed and built in order: the repository's rules (kitchen), the person's own setup (kit), the session (cook) | 2026-10-11, #3 | this order of work | low |
+| P3 | Three parts, designed and built in order: the repository's rules (kitchen), the person's own setup (kit), the session (cooking) | 2026-10-11, #3 | this order of work | low |
 | P4 | Documentation and architecture are finished before any implementation starts | 2026-10-11, #4 | this document, then the ADRs, then code | low |
 | P5 | One executable written in Go, needing only the operating system at runtime | 2026-10-09; ADR 0003, ADR 0004 | a single binary | high once released |
 | P6 | The tool does not depend on git | 2026-10-11 | git is reached like any other program, and whoever wants git's verdict runs git | low |
@@ -222,11 +222,11 @@ This does not block the kitchen. It blocks any push of a kit.
   ownership is needed (ADR 0007). Assumed: enough. A removal test on a fixture closes it.
 - Whether a committed wrapper that pins the tool's version stays (ADR 0017). Assumed: it leaves the core.
 - How a session runs a program that keeps its state in its working directory with no way to move it, such as
-  ralph-tui (C1). Assumed: in a workspace that the session removes. The cook's design settles it.
+  ralph-tui (C1). Assumed: in a workspace that the session removes. The design of cooking settles it.
 - Where personal state that must outlive a session lives when it belongs to one project, such as a tracker's
   database. Assumed: in the kit, with the program pointed there where it allows it (bd's `BEADS_DIR`). The kit's
   design settles it.
-- Whether a recipe can bring its own kitchen rules. The cook's design settles it.
+- Whether a recipe can bring its own kitchen rules. The design of cooking settles it.
 
 ### Out of scope
 
@@ -270,6 +270,8 @@ This does not block the kitchen. It blocks any push of a kit.
   where a committed file is rendered from.
 
 **What was assumed.** The 1-second init target (N2) has no measurement behind it, and it is measured first.
+
+**What was confirmed.** The maintainer confirmed F1 to F13, F15 and F16. F14 and N1 to N4 are unconfirmed.
 
 ### Functional
 
