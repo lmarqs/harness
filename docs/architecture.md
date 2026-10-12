@@ -391,7 +391,8 @@ Rules for every command:
 - **No command asks a question**, except cooking at a terminal, and none refuses a caller (P1). Reports never change
   the exit code.
 - **The binary starts no program** (P6, N3). Whoever wants git's verdict runs git; a session hands its process to the
-  recipe's script.
+  recipe's script. So the binary never commits: it writes files and reports the change set, and committing belongs to
+  the person or to a recipe's script.
 
 ### The kitchen
 
