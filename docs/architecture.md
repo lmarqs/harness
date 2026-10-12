@@ -308,8 +308,8 @@ This does not block the kitchen. It blocks any push of a kit.
 
 The kitchen is designed here in full, because P3 builds it first. The kit and cooking get their boundary and the shape
 of their commands; #5 and #6 design them. Every element names the requirements it answers. A render is what the tool
-computes from the kitchen's sources; `apply` is the command that writes it. Points still open for the maintainer are
-listed at the end of this section.
+computes from the kitchen's sources; `kitchen apply` is the command that writes it. Points still open for the maintainer
+are listed at the end of this section.
 
 ### Parts and files
 
@@ -327,9 +327,10 @@ flowchart LR
         homefiles["git's global ignore and user config,<br/>picked agent and editor files"]
         session["a session directory, outside the clone"]
     end
-    items -- "copy" --> cook
-    cook -- "apply" --> targets
-    targets -- "import" --> cook
+    items -- "kitchen copy" --> cook
+    items -- "kit copy" --> kit
+    cook -- "kitchen apply" --> targets
+    targets -- "kitchen import" --> cook
     kit -- "kit apply" --> homefiles
     homefiles -- "kit import" --> kit
     cook -- "cook" --> session
@@ -353,23 +354,35 @@ flowchart LR
 
 | Command | Direction | Writes | Answers |
 | --- | --- | --- | --- |
-| `the-cook init` | creates the kitchen | `.cook/` only; no target file | F1, N2, P6 |
-| `the-cook import [<target>...]` | target to kitchen | the config, and each target's existing content moved into its marked part | F12, F7, F5 |
-| `the-cook apply` | kitchen to targets | marked sections, named keys, owned files | F1, F3 to F7, F14 to F16, N4 |
-| `the-cook copy <path>...` | cookbook to kitchen | each item with its origin and sha256; copying again is the update | F11, P8 |
-| `the-cook remove <item>...` | one item out | the parts the item wrote, then the item | F11 |
-| `the-cook eject` | the tool out | deletes `.cook/` and every marker, keeps every line and key as the team's | F13 |
+| `the-cook kitchen init` | creates the kitchen | `.cook/` only; no target file | F1, N2, P6 |
+| `the-cook kitchen import [<target>...]` | target to kitchen | the config, and each target's existing content moved into its marked part | F12, F7, F5 |
+| `the-cook kitchen apply` | kitchen to targets | marked sections, named keys, owned files | F1, F3 to F7, F14 to F16, N4 |
+| `the-cook kitchen copy <path>...` | cookbook to kitchen | each item with its origin and sha256; copying again is the update | F11, P8 |
+| `the-cook kitchen remove <item>...` | one item out of the kitchen | the parts the item wrote, then the item | F11 |
+| `the-cook kitchen eject` | the tool out of the repository | deletes `.cook/` and every marker, keeps every line and key as the team's | F13 |
+| `the-cook kit init` | creates the kit | the kit's config in the cook's kit repository; no home file | F9 |
 | `the-cook kit import [<target>...]` | home to kit | the picked files and keys, never a credential or transcript | F10, G5 |
 | `the-cook kit apply` | kit to home | marked blocks and picked files and keys | F9, G4 |
+| `the-cook kit copy <path>...` | cookbook to kit | each item with its origin and sha256 | none yet; #5 |
+| `the-cook kit remove <item>...` | one item out of the kit | the parts the item wrote in the home directory, then the item | none yet; #5 |
+| `the-cook kit eject` | the tool out of the home directory | deletes every marker in home files, keeps every line and key as the cook's, keeps the kit repository | none yet; #5 |
 | `the-cook cook <recipe>` | cooking | a session directory outside the clone | F8 |
 
 Rules for every command:
 
-- **One verb per meaning, in both scopes.** `apply` writes declared state into targets and `import` takes targets'
-  content into declared state, for the kitchen and for the kit, the pair chezmoi and mise `dotfiles` use. The
-  kitchen's verbs sit at the top level because the repository is the default scope, as for git and terraform. `cook`
-  is the one verb taken from the kitchen's vocabulary, because no plain verb names the third part. Tools with a
-  kitchen vocabulary keep it in nouns: Test Kitchen and Homebrew use plain verbs.
+- **Two scopes, one set of verbs.** `kitchen` names the repository's side and `kit` names the cook's own side, the kit
+  and the home directory it writes. Each takes the same six verbs: `init`, `import`, `apply`, `copy`, `remove` and
+  `eject`. Every command that writes names the side it writes, because keeping the personal side and the project side
+  apart is the tool's job (G1, F16), and the noun shows a command's reach before it runs. Docker 29.8.1 groups commands
+  the same way, with `container` and `image` listed as management commands (`docker --help`; measured). `apply` writes
+  declared state into targets and `import` takes targets' content into declared state, the pair chezmoi and mise
+  `dotfiles` use.
+- **No command routes a file to a scope by guessing.** One `import` that sent each file to the scope it belongs to
+  would write the repository and the home directory in one run (F16). It would also have to guess: a `.mcp.json` is
+  committed in one repository and personal in another, where `.git/info/exclude` holds it, and a wrong guess is
+  contamination (G1).
+- **`cook` is the one verb taken from the kitchen's vocabulary**, because no plain verb names the third part. Tools
+  with a kitchen vocabulary keep it in nouns: Test Kitchen and Homebrew use plain verbs.
 - **`--check`** does every read and every check, writes nothing, prints the change set, and exits 2 when something
   would change. `--json` gives the same report as one document. `-C <dir>` runs as if started in that directory.
 - **Exit codes:** 0 done or nothing to do; 1 the command could not do its job; 2 only with `--check`; 3 the command
@@ -381,17 +394,17 @@ Rules for every command:
 
 ### The kitchen
 
-**init** writes `.cook/` and nothing else: the default ban on hidden top-level entries, an allow for each committed one
-and for the tool's own files, and the targets (F1, N2). The first write of a team file is `apply`, so the diff of an
-adoption shows the config apart from its effect. No benchmarked `init` edits an existing `.gitignore`: uv 0.11.25
-writes one only when it also runs `git init` (measured).
+**kitchen init** writes `.cook/` and nothing else: the default ban on hidden top-level entries, an allow for each
+committed one and for the tool's own files, and the targets (F1, N2). The first write of a team file is `kitchen apply`,
+so the diff of an adoption shows the config apart from its effect. No benchmarked `init` edits an existing `.gitignore`:
+uv 0.11.25 writes one only when it also runs `git init` (measured).
 
 Init needs to know which hidden top-level entries are committed. When the directory holds none besides `.git` and the
-tool's own files, a bare `the-cook init` works. Otherwise the list is required, and without it init exits 1, naming
-each entry and the line that supplies it:
+tool's own files, a bare `the-cook kitchen init` works. Otherwise the list is required, and without it init exits 1,
+naming each entry and the line that supplies it:
 
 ```sh
-git ls-files -z | the-cook init --committed -
+git ls-files -z | the-cook kitchen init --committed -
 ```
 
 The two ways of guessing both fail. Allowing every hidden entry present un-ignores what `.git/info/exclude` holds,
@@ -399,8 +412,8 @@ such as a personal `.mcp.json` (measured in a scratch repository, git 2.43.0), w
 hidden entry present ignores each new file under a committed `.github/`, and `git add -A` skips it without a word
 (C2), which breaks F1. Reading git's index would put knowledge of git in the binary (P6, P7).
 
-**apply** writes every target's derived parts and changes nothing else (F7). It creates a missing target with only
-its own part, which is how F1 holds in a repository without a `.gitignore`. It reads only `.cook/` and the targets,
+**kitchen apply** writes every target's derived parts and changes nothing else (F7). It creates a missing target with
+only its own part, which is how F1 holds in a repository without a `.gitignore`. It reads only `.cook/` and the targets,
 never the kit, the home directory or an environment variable (F16), and a second run changes nothing (N4). It reports
 each rule an agent cannot express (F5) and each hand edit to a derived part it replaced (F6).
 
@@ -418,21 +431,21 @@ over allow; Codex lets forbidden win over prompt and prompt over allow (both doc
 combine the same way, the most restrictive decision winning, while ignore groups keep the last match. With one
 combination rule per kind, an import followed by an apply gives back the same decisions.
 
-**import** takes the existing content of a target into the kitchen without changing how the target reads (F12, F7).
-The check compares meaning, not bytes: the ordered pattern lines of an ignore file, and the parsed value of each JSON,
-TOML or YAML key. A rewrite with equal values had different bytes (measured). Every named target passes or nothing is
-written, and the report names each target. With no operand it takes every target the config declares; a target that
+**kitchen import** takes the existing content of a target into the kitchen without changing how the target reads (F12,
+F7). The check compares meaning, not bytes: the ordered pattern lines of an ignore file, and the parsed value of each
+JSON, TOML or YAML key. A rewrite with equal values had different bytes (measured). Every named target passes or nothing
+is written, and the report names each target. With no operand it takes every target the config declares; a target that
 does not exist means nothing to import, exit 0. A program's file is importable once its ingredient is copied, because
 the mapping is data (P7). Claude Code saves "don't ask again" approvals to `.claude/settings.local.json`, a personal
 file (documented), so a cook's accumulated allow rules belong to `kit import`, not to the kitchen.
 
-**copy, remove and eject.** `copy` takes an item from a cookbook checkout with its origin and sha256, and copying again
-is the update, reviewed as a diff (F11, P8). `copy --check` compares the copy with the checkout. A three-way merge
-would need the earlier version, which means fetching it or reading git's history (P6, P8), so copied items stay as
-copied and the team's choices live in the config. `remove <item>` deletes the parts an item wrote, read from its own
-declarations, and then the item, so no key is left behind. `eject` deletes `.cook/` and every marker and keeps every
-line and key as the team's (F13). `copy` is the verb of P8; `add` is also the verb of tools that record a reference
-(cargo, uv), which promises an update channel the tool does not have.
+**kitchen copy, remove and eject.** `kitchen copy` takes an item from a cookbook checkout with its origin and sha256,
+and copying again is the update, reviewed as a diff (F11, P8). `kitchen copy --check` compares the copy with the
+checkout. A three-way merge would need the earlier version, which means fetching it or reading git's history (P6, P8),
+so copied items stay as copied and the team's choices live in the config. `kitchen remove <item>` deletes the parts an
+item wrote, read from its own declarations, and then the item, so no key is left behind. `kitchen eject` deletes
+`.cook/` and every marker and keeps every line and key as the team's (F13). `copy` is the verb of P8; `add` is also the
+verb of tools that record a reference (cargo, uv), which promises an update channel the tool does not have.
 
 ```mermaid
 sequenceDiagram
@@ -442,14 +455,14 @@ sequenceDiagram
     participant R as repository
     T->>G: git ls-files -z
     G-->>C: committed paths (stdin)
-    C->>R: init writes .cook/ (ban, allows, targets)
-    T->>C: import
+    C->>R: kitchen init writes .cook/ (ban, allows, targets)
+    T->>C: kitchen import
     C->>R: read .gitignore and agent settings
     C->>C: same lines and values after the move?
     C->>R: config, and team lines moved into marked parts
-    T->>C: apply --check
+    T->>C: kitchen apply --check
     C-->>T: change set, exit 2
-    T->>C: apply
+    T->>C: kitchen apply
     C->>R: marked sections, named keys, owned files
     T->>G: git ls-files -ci --exclude-standard
     G-->>T: nothing listed
@@ -464,6 +477,13 @@ transcript an ingredient names, at the level of files and of keys inside JSON or
 writes a marked section into git's global ignore file, a marked block with `core.hooksPath` into git's user config,
 and the picked agent and editor files (F9). The cook moves the kit to and from its remote with git. Which parts of a
 kit are public, and where the private ones go, is the blocking question in Context.
+
+The kit takes the kitchen's six verbs with the same meaning on its own side. `kit init` writes the kit's config in
+the cook's kit repository and no home file. `kit copy` takes an item from another cookbook, an organization's
+included, with its origin and sha256. `kit remove <item>` deletes the parts the item wrote in home files, then the
+item. `kit eject` deletes every marker in home files and keeps every line and key as the cook's; the kit repository
+stays, because it is also the cook's cookbook (P10). No requirement asks for `kit copy`, `kit remove` or `kit eject`
+yet, and #5 confirms or drops each.
 
 ### Cooking (designed in #6)
 
@@ -491,11 +511,14 @@ allowed by init like every committed entry, so its committed config keeps winnin
 
 ### Open in the design
 
-1. The command set above, as a whole.
+The maintainer confirmed the command line's shape: two scopes, `kitchen` and `kit`, with the same verbs, and `cook`.
+
+1. Each command's meaning, as written above, and for the kit, which of `kit copy`, `kit remove` and `kit eject` stay.
 2. F12 restated for any target: a team brings the existing content of any file the kitchen writes under the kitchen,
    and the file reads the same afterwards; otherwise nothing is written.
 3. Agent rules combine with the most restrictive decision winning. This narrows #4's "ordered groups of rules, the
    last match winning" to ignore groups.
-4. A clause in F11 for `remove <item>`.
-5. Whether apply reports lines outside the marked section that re-include a banned path, as a requirement of its own.
+4. A clause in F11 for `kitchen remove <item>`.
+5. Whether `kitchen apply` reports lines outside the marked section that re-include a banned path, as a requirement of
+   its own.
 6. N1 to N4 are unconfirmed, and N3 then reads: programs the binary starts, 0.
