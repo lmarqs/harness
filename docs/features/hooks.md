@@ -257,7 +257,7 @@ lifecycle:
       auto: true
 ```
 
-In short:
+The rules for actions:
 
 - an action is a shell command (`run`), an HTTP request `the-cook` makes (`http`), or an attempt of a worker on a
   prompt, under the [attempt contract](attempts.md#the-attempt-contract) (`attempt`)
@@ -388,7 +388,7 @@ that have that event.
 - Do use `raw` for path guards before a tool runs, and keep them small and declared in this file, not hidden in scripts
   wired by hand.
 - Don't use hooks to allow or deny commands; put that in the [policy](policy.md).
-- Don't depend on hooks for correctness: they skip on any machine where the pinned binary is not cached yet.
+- Don't depend on hooks for correctness: they skip on any machine where the pinned binary is not cached yet, and
   `the-cook verify` is the proof.
 - Do keep lifecycle actions short and readable in the file itself; a script an action calls is part of the action
   and is reviewed with it.

@@ -85,9 +85,9 @@ the sessions that do not need it.
   that must reach every worker in every clone belongs where workers read without the tool, and as a convention block it
   survives an eject. Delivering it by hook as well would pay its cost twice.
 - **4.** Delivered text acts as instructions, so it may come only from sources that are reviewed: files committed in the
-  repository, which a skill is like any other. How a skill got there is the team's own step, and the binary reads no
-  other tool's files, such as an installer's lock file ([0022](0022-tool-integration.md)), so the commit is what makes a
-  skill reviewed. Fetching at hook time would make each hook depend on the network and the 50 ms budget
+  repository, and a committed skill is one like any other. How a skill got there is the team's own step, and the binary
+  reads no other tool's files, such as an installer's lock file ([0022](0022-tool-integration.md)), so the commit is
+  what makes a skill reviewed. Fetching at hook time would make each hook depend on the network and the 50 ms budget
   ([0003](0003-implementation-language.md)), and would deliver content no one reviewed. Reading from the base commit for
   unattended workers means a worker cannot rewrite the instructions of its next attempt at a task, as with the rest of
   the data that drives it ([0011](0011-safety-invariants.md)). Reporting a named skill that does not exist tells the

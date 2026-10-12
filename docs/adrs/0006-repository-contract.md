@@ -3,8 +3,8 @@
 ## Objective
 
 **Problem.** When a practice spreads by copying its engine code into each repository, every copy becomes a fork: a fix
-made in one never reaches the others. Each repository also has facts only it knows, which must live with it. Where that
-line falls decides whether a fix reaches every repository.
+made in one never reaches the others. Each repository also has facts only it knows, which must live with it. Where the
+line between shared engine and local facts falls decides whether a fix reaches every repository.
 
 **Goal.** A fix to a practice's engine reaches every repository through one release, while each repository keeps and
 controls the facts only it knows.
@@ -80,8 +80,8 @@ controls the facts only it knows.
     the way the `acme/web` renderer in Context forks. What a station adds is in the repository's own files once it is
     applied ([0024](0024-ingredients-and-stations.md)), so a copy of the station would hold it twice.
   - A recipe is a practice the repository adapts, and its copy is the only one that acts ([0025](0025-recipes.md)), so
-    it lives with the repository's other data. It holds data, not engine code: how a recipe runs, its stages, its kinds
-    of step and its guards, is in the binary, so a fix to that reaches every repository with one release (point 1). A
+    it lives with the repository's other data. It holds data, not engine code: how a recipe runs (its stages, its kinds
+    of step and its guards) is in the binary, so a fix to that reaches every repository with one release (point 1). A
     newer version of a recipe's own content reaches a copy through a merge that keeps the repository's changes
     ([0013](0013-organization-content.md)).
   - The trade: a reader of the repository sees which ingredient is pinned, not its description.

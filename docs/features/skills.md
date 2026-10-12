@@ -66,7 +66,7 @@ It teaches a worker to:
   what `./cook recipe update` leaves marked;
 - run unattended work through [`the-cook attempt`](attempts.md), and report blocked work;
 - fire lifecycle events with `the-cook lifecycle run <event>`, including `completed` or `blocked` when a loop runner's
-  run ends, and delivering the run's commits after arranging them for review;
+  run ends, and deliver the run's commits after arranging them for review;
 - declare lifecycle and notification actions of the right kind (`run`, `http` or `attempt`), with secrets read from
   environment variables;
 - declare standing context: which skill or directive applies always, on which paths, or on which words, and preview
@@ -125,8 +125,8 @@ context:
 A skill a `context` entry names that does not exist under `.agents/skills/` is a [`the-cook doctor`](doctor.md)
 finding, and nothing is injected for it. A skill is injected as it is committed under `.agents/skills/`, whoever wrote
 it; for an attempt, as it is in the base commit. `the-cook` reads no installer's lock file, so a reviewer approves a
-skill's content in the diff that adds or changes it ([ADR 0022](../adrs/0022-tool-integration.md)). Nothing is fetched
-when a hook runs: a skill is injected only once it is installed and committed.
+skill's content in the diff that adds or changes it ([ADR 0022](../adrs/0022-tool-integration.md)). A hook fetches
+nothing when it runs: a skill is injected only once it is installed and committed.
 
 Skills written to be injected follow the [skills standards](../ux/skills-standards.md): a short body, self-contained,
 instructions first, so they read correctly as a pointer or as injected content.

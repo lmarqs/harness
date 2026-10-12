@@ -77,11 +77,10 @@ in every repository, while a guess made by code is wrong in the first repository
 
 `the-cook` is a declared software development lifecycle: the stages a change goes through, the events it fires between
 them, the guards that hold between stages and the proof a change carries. It runs those rules for the work that goes
-through it, whoever does that work, people and the workers they choose, such as coding agents, and it never takes a
-worker's place. Why: the
-coding agents people already use are developed by their vendors and follow every model change. A tool that competed with
-them would carry credentials and cost, and a loop of its own to maintain ([ADR 0001](../adrs/0001-role-of-the-tool.md),
-[ADR 0015](../adrs/0015-development-lifecycle.md)).
+through it, whoever does that work (people and the workers they choose, such as coding agents), and it never takes a
+worker's place. Why: the coding agents people already use are developed by their vendors and follow every model change.
+A tool that competed with them would carry credentials and cost, and a loop of its own to maintain
+([ADR 0001](../adrs/0001-role-of-the-tool.md), [ADR 0015](../adrs/0015-development-lifecycle.md)).
 
 - The binary never calls a model and is never a client of a tool server (MCP). Work that needs a model or an MCP tool
   is done by a worker: the [coordinating worker](../features/lifecycle.md#the-lifecycle-stage-by-stage), or an
@@ -100,8 +99,8 @@ them would carry credentials and cost, and a loop of its own to maintain ([ADR 0
   conventions, and platform logic in the binary binds every release to one platform. Everything that leaves the
   clone, a pull request included, is a declared action ([principle 7](#7-nothing-leaves-the-clone-undeclared);
   [ADR 0012](../adrs/0012-write-boundary.md)).
-- The binary contains code for no external program, the version control system, the workers and the jails included, and
-  reads no program's own configuration. A stage that needs a program reaches it through a contract that an
+- The binary contains no code for any external program, including the version control system, the workers and the
+  jails, and reads no program's own configuration. A stage that needs a program reaches it through a contract that an
   [ingredient](../features/ingredients.md) fills, or through the commands the profile declares and the actions lifecycle
   events fire. Why: each team picks different programs, and code for one would follow every release of a program the
   project does not own while serving no team that chose another ([ADR 0022](../adrs/0022-tool-integration.md),
@@ -194,7 +193,7 @@ and hard to undo, so it must be written down, reviewed and guarded before it can
 - **Declared.** Actions live in `.cook/hooks.yaml`, and no action runs that the repository does not declare there. A
   station's actions, such as the tracker actions of an `agentic-coding` station, reach the file only when a person
   applies the station and reads its diff; stack stations hold none. A recipe declares none: the work of a recipe run
-  is delivered by the repository's own actions. So what "deliver" means is decided in the repository, where an
+  is delivered by the repository's own actions. What "deliver" means is therefore decided in the repository, where an
   organization's delivery convention is written like any other entry.
 - **Three kinds.** An action is a shell command (`run`), an HTTP request `the-cook` performs itself (`http`), or a
   worker started unattended on a prompt (`attempt`). Notification events accept `run` and `http` only, so a worker's
@@ -205,8 +204,8 @@ and hard to undo, so it must be written down, reviewed and guarded before it can
 - **Recorded.** Every run appends its event, scope, and each action's name, kind, exit status and duration to the
   lifecycle log, `lifecycle.jsonl` in the state directory of the primary checkout (`.work/lifecycle.jsonl` by
   default). The log never records URLs, headers, bodies or prompts, because they can carry secrets and untrusted
-  text. Dry runs are not recorded. A failing automatic event never changes the exit code of the command that fired it.
-  `the-cook` reports it on stderr and records it.
+  text. Dry runs are not recorded. A failing automatic event never changes the exit code of the command that fired it;
+  `the-cook` reports the failure on stderr and records it.
 - **One action, three triggers.** A person runs `the-cook lifecycle run <event>`; a coordinating worker runs the same
   command; or `the-cook` fires the action at the event's trigger point when the action sets `auto: true`. `auto`
   defaults to false, so nothing leaves the clone automatically unless a committed file says so.

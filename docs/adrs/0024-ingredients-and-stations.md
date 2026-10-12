@@ -89,8 +89,8 @@ that combines several programs reaches a repository in one reviewed change.
   unit it belongs to.
 - **2.** What a repository writes once about a program depends on how its team works, not on the program: `acme/api`
   and `acme/infra` need one coding agent described the same way and start from different lanes, deny rules and actions
-  (Context). Without entries and templates, one ingredient serves both, and the difference lives where it belongs, in
-  what each repository applied. Everything an ingredient holds acts while it is pinned and stops when it is not, so the
+  (Context). Without entries and templates, one ingredient serves both, and the difference is in what each repository
+  applied. Everything an ingredient holds acts while it is pinned and stops when it is not, so the
   pin alone says what the ingredient does to the repository ([0007](0007-ownership.md)).
 - **3.** A way of working is a combination of programs and repository facts (Context), so it needs a unit that names
   all of them. Listing each ingredient by hash ties the station to the exact program descriptions its entries were

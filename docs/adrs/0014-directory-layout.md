@@ -96,7 +96,7 @@ Other forces:
 - **6.** One set of ignore blocks per capability lets one capability be removed without un-ignoring another's paths
   ([0018](0018-conventions.md)). A tracked path in an ignore rule would stop new files in a committed directory, such as
   the task tracker's directory in a repository that commits it, from being added.
-- **7.** An ingredient in the working tree would be a description the worker working there can edit before the next
+- **7.** An ingredient in the working tree would be a description that the worker in that tree can edit before the next
   attempt reads it ([0022](0022-tool-integration.md)), and a copy of an ingredient or a station in every repository that
   uses it would be one more copy to keep equal (Context). The user's cache directory is where data a program can fetch
   again belongs (Context), outside every working tree, and a copy there that anyone changes, a worker included, fails

@@ -138,11 +138,11 @@ description of that program, and neither the tool's code nor its release names a
   ingredient's floor. The process that applies them, refusing before launch, rendering a deny in every output,
   replaying proof from the base, is what must not depend on any program, and it stays in the binary. The trade: a
   program's floor is what its ingredient marks, so it is as strong as the cookbook that wrote it and the review that
-  pinned it, in the open, in data a reviewer reads ([0026](0026-cookbook-trust.md)).
+  pinned it. That floor is open data that a reviewer reads ([0026](0026-cookbook-trust.md)).
 - **6.** A tool that reads other programs' configuration to catch overrides has to follow every format, and it still
-  misses a script a person writes around the program (Context). The tool's job is to run the lifecycle and to keep its
-  own promises, not to police what people run outside it. The trade: a person whose loop-runner configuration turns
-  permission checks off learns it when the attempt command refuses the argument at the first task.
+  misses a script a person writes around the program (Context). The tool's job is to run the lifecycle and keep its own
+  promises, and policing what people run outside it is not part of that job. The trade: a person whose loop-runner
+  configuration turns permission checks off learns it when the attempt command refuses the argument at the first task.
 - **7.** Every program in Context accepts a command line, so a stable command interface is enough for any of them to
   call. Passing the completion signal in as text keeps one loop runner's protocol out of the binary while still
   withholding it from an attempt that failed. A recipe run takes the same caller arguments so that a loop runner

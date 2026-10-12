@@ -15,11 +15,11 @@ and what that protection does not stop, and every gap left open is one they chos
 ## Overview
 
 `the-cook` lets [workers](workers.md), coding agents above all, work in a repository, attended or not, without handing
-them more than the work needs. The guidelines cover what it defends against, which layers do the defending, and how to
-configure a repository so the layers hold. That configuration covers where to place a policy entry, what changes when
-nobody is watching, why lifecycle actions are code, what an `attempt` action may do, what a recipe run may do, where
-[standing context](context.md) may come from, where secrets must not go, and what to read in a rendered diff. A
-checklist for unattended runs closes the page.
+them more than the work needs. This page covers what it defends against, which layers defend, and how to configure a
+repository so the layers hold: where to place a policy entry, what changes when nobody is watching, why lifecycle
+actions are code, what an `attempt` action may do, what a recipe run may do, where [standing context](context.md) may
+come from, where secrets must not go, and what to read in a rendered diff. It ends with a checklist for unattended
+runs.
 
 [Pitfalls](pitfalls.md) describes the traps behind many of these guidelines one by one.
 

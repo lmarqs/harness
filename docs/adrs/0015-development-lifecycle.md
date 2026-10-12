@@ -189,8 +189,8 @@ work that is not ready, and a stopped run can reach a person through an event.
   applies the guards to the result, so judgement never bypasses them.
 - **13.** Permitting a worker to trigger delivery permits every action declared for it, and those actions run outside
   the worker's per-command checks. Until a team has seen what its delivery actions do, a person confirms each one. The
-  choice is the repository's and not an invariant, because a team that trusts its actions may let its coordinating
-  worker deliver unattended. The entry is therefore seeded instead of an invariant ([0011](0011-safety-invariants.md)).
+  entry is seeded rather than made an invariant ([0011](0011-safety-invariants.md)) because the choice is the
+  repository's: a team that trusts its actions may let its coordinating worker deliver unattended.
 
 ## Rejected alternatives
 

@@ -95,8 +95,8 @@ first command works with nothing installed beforehand.
 
 ## Reasons
 
-- **1, 4.** A committed wrapper is the one entry point every clone has without an installation step, which is why build
-  tools use the same pattern: a newcomer runs the command the repository's instructions name and gets the right
+- **1, 4.** Build tools use the same pattern (Context): a committed wrapper is the one entry point every clone has
+  without an installation step, so a newcomer runs the command the repository's instructions name and gets the right
   release. Rendering it from a template in the binary keeps it consistent with the release that wrote it, and recording
   it as owned makes a hand edit visible as drift ([0007](0007-ownership.md)). Downloading on first explicit use into a
   per-user cache costs the network once per release per machine; every later run is offline.
@@ -144,8 +144,8 @@ first command works with nothing installed beforehand.
 - **13.** A binary cannot carry its own checksums, so an adoption that cannot reach the release source cannot verify
   them. Refusing such an adoption would block it on every machine that is offline or reaches neither the release host
   nor a mirror, although nothing else in adoption needs the network. A pending pin defers the verification without
-  skipping it; no download happens against it, so it fails closed with its cost being availability on machines that lack
-  the release, never an unverified binary. A release already in the cache was verified against a committed checksum when
+  skipping it. No download happens against it, so it fails closed: the cost is availability on machines that lack the
+  release, never an unverified binary. A release already in the cache was verified against a committed checksum when
   it was downloaded (point 4), so running it under a pending pin trusts nothing new. Writing a pending pin only on
   request keeps a network failure from producing, unnoticed, a pin that other machines cannot use. Completing it through
   the upgrade operation keeps one operation that writes checksums. Every committed checksum is then one a trusted binary

@@ -387,9 +387,9 @@ Rules for every command:
   would write the repository and the home directory in one run (F16). It would also have to guess: a `.mcp.json` is
   committed in one repository and personal in another, where `.git/info/exclude` holds it, and a wrong guess is
   contamination (G1).
-- **A recipe runs by its name**, as `the-cook grill` runs the recipe `grill`, so recipes are the verbs of cooking and the
-  kitchen's vocabulary stays in nouns. Tools with a kitchen vocabulary keep it in nouns too: Test Kitchen and Homebrew
-  use plain verbs. The names `kitchen`, `kit`, `recipe`, `end`, `help` and `version` are the tool's, and `copy`
+- **A recipe runs by its name**, as `the-cook grill` runs the recipe `grill`, so recipes are the verbs of cooking and
+  the kitchen's vocabulary stays in nouns. Tools with a kitchen vocabulary keep it in nouns too: Test Kitchen and
+  Homebrew use plain verbs. The names `kitchen`, `kit`, `recipe`, `end`, `help` and `version` are the tool's, and `copy`
   reports a recipe that takes one and does not copy it, as a fault in the item, not a refusal of a caller (P1).
 - **`--check`** does every read and every check, writes nothing, prints the change set, and exits 2 when something
   would change. `--json` gives the same report as one document. `-C <dir>` runs as if started in that directory.

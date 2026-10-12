@@ -162,13 +162,13 @@ What `the-cook` renders and runs in a repository is determined by the repository
 the ingredients it pins by hash, and by nothing else ([ADR 0013](../adrs/0013-organization-content.md),
 [ADR 0022](../adrs/0022-tool-integration.md)).
 
-- No repository file has a key that names a source outside the repository for what `the-cook` renders or runs: no
-  inheritance, no includes, no remote sources. Validation rejects such a key like any other unknown key. Why: people and
-  workers learn what a repository does from its files. A rule resolved from elsewhere acts in the repository while its
-  source sits outside it, so a worker in the repository cannot read it and a reviewer sees its effect without its
-  reason. With the repository's files and the content they pin by hash as the only inputs, the same commit renders the
-  same bytes on every machine and every day. Rendering fetches nothing and caches nothing, and no check fails because
-  someone else published a change.
+- No repository file has a key that names a source outside the repository for what `the-cook` renders or runs,
+  whether by inheritance, an include or a remote source. Validation rejects such a key like any other unknown key.
+  Why: people and workers learn what a repository does from its files. A rule resolved from elsewhere acts in the
+  repository while its source sits outside it, so a worker in the repository cannot read it and a reviewer sees its
+  effect without its reason. With the repository's files and the content they pin by hash as the only inputs, the
+  same commit renders the same bytes on every machine and every day. Rendering fetches nothing and caches nothing, and
+  no check fails because someone else published a change.
 - Three keys name a source outside the repository, and each is pinned by hash. `source` in `wrapper.yaml` is where the
   wrapper downloads the pinned release, which it runs only when the download matches the committed checksums. `source`
   of each entry under `ingredients:` and under `stations:` is the cookbook the ingredient or station is downloaded from,
@@ -736,7 +736,7 @@ program floor comes from the ingredients the repository pins, and a station has 
   rendered effect reach review as one diff and the drift check passes on it. A failed download or verification writes
   nothing.
 - `stations` records which stations were applied and at which pin, and the manifest records the ingredient that owns
-  each render. Nothing records which entries a station added: not the manifest, not a comment, not a header in a
+  each render. Nothing records which entries a station added, neither the manifest nor a comment nor a header in a
   template. Why: each entry then has one source of truth, the file it is in, and the tool has nothing it could later use
   to change those entries by itself. A report built on such a record would also nag a repository that removed an entry
   on purpose. A recipe the station copied carries its own `origin`, as every added recipe does, and it names the

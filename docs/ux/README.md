@@ -19,9 +19,9 @@ architecture decision records, but they govern how `the-cook` is experienced rat
 
 `the-cook` is a declared software development lifecycle: the stages a change goes through, the events it fires between
 them, the guards that hold between stages and the proof a change carries ([lifecycle](../features/lifecycle.md)). It
-knows no program. A stage that needs one, such as a coding agent at Implement, reaches it through a contract an
-ingredient fills or through an action the repository declares. Work enters the lifecycle through a person, a worker, a
-loop runner or a recipe run.
+has no built-in knowledge of any program. A stage that needs one, such as a coding agent at Implement, reaches it
+through a contract an ingredient fills or through an action the repository declares. Work enters the lifecycle through
+a person, a worker, a loop runner or a recipe run.
 
 A standard here applies to every feature, present and future. When the binary, a generated file, the shipped skill or
 a features page disagrees with a standard, that artifact is wrong and is corrected to match the standard. **When a
@@ -98,5 +98,5 @@ Steps:
 3. Edit the behaviour (CLI, skill, generated content) to match the standard.
 4. Typo fixes and clarifications that do not change a rule need no stated reason.
 
-The pages hold no status, date or record of earlier rules. Version control keeps the past; the page states what is
-true.
+The pages hold no status, date or record of earlier rules. Version control keeps the past, and each page states what
+is true.

@@ -65,7 +65,7 @@ bound it are the attempt contract.
    repository policy cannot remove or weaken them. Which rules an ingredient marks as floor is part of the ingredient
    the repository pinned and a reviewer read; examples are a force push to the default branch the version control
    ingredient reports, and chaining several tasks in one task-runner invocation.
-3. Proof of verification, the record a verification run leaves of the checks it ran, is replayed by the binary with
+3. Proof of verification (the record a verification run leaves of the checks it ran) is replayed by the binary with
    configuration read from the committed base, outside any tree the worker can write.
 4. Completion is withheld until the replay passes. A malformed proof counts as failed.
 5. Hooks never decide permissions; permissions come only from the rendered policy.
@@ -266,8 +266,8 @@ Must be maintained:
 - Delivery fixtures on the default branch, with uncommitted changes and, with verification enabled, with an invalid
   proof are refused, and no action runs.
 - A fixture action that starts a worker, and a fixture recipe's attempt step, each run the worker with the pinned
-  permission mode, the unattended denies and the tamper check, and the worker's tries to commit, push or trigger an
-  event are refused.
+  permission mode, the unattended denies and the tamper check, and the worker is refused when it tries to commit, push
+  or trigger an event.
 - Validation refuses a fixture recipe that skips a lane, declares an action or fires an event. A fixture run follows the
   recipe of its base commit as it read it when it started, after a worker edits the recipe in the working copy and after
   it is continued. A fixture run declared as driven by a worker and asked to read its recipe from the working copy is

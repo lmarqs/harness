@@ -138,9 +138,9 @@ Because they hold different things. An ingredient holds facts about a program, s
 arguments that bypass its checks: the same in every repository that uses the program, and wrong to change in one of
 them. Pinned and rendered on every render, those facts cannot drift between repositories, and their floor cannot be
 edited away. A recipe holds a practice: how this repository makes one kind of change, its commands, paths, prompts and
-lanes, which differ from one repository to the next and which the team keeps improving. Inherited live, a recipe would
-change what a repository's changes go through without any change to the repository; pinned, nobody could fit it to the
-repository. Copied, it is the repository's own, its `origin` records where it came from, and
+lanes, which differ from one repository to the next and which the team keeps improving. A recipe inherited live would
+change what a repository's changes go through without any change to the repository, and nobody could fit a pinned one to
+the repository. A copied recipe is the repository's own: its `origin` records where it came from, and
 `./cook recipe update <name> --cookbook <source>@<version>` merges a newer version into the copy as a diff to review.
 Copying loses no safety: a recipe can only add steps, lanes and requirements, and the guards and the floor stay in the
 binary and the ingredients ([ADR 0024](../adrs/0024-ingredients-and-stations.md), [ADR 0025](../adrs/0025-recipes.md)).
@@ -243,7 +243,7 @@ wrote stay as they are, so a loop runner's configuration whose command for each 
 
 No. It is a [floor rule](ingredients.md#the-floor) of the version-control ingredient that marks it: rendered into every
 worker's output on every render, never written into `.cook/policy.yaml`, and out of reach of every repository file.
-Floor rules are deliberately few: only what is unsafe in every repository that uses the program.
+Floor rules are few by design: they cover only what is unsafe in every repository that uses the program.
 
 ### Why is my organization's deny list not built in?
 

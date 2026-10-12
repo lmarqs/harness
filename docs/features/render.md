@@ -111,9 +111,8 @@ not rendered either: `the-cook` reads them from `hooks.yaml` and runs them itsel
 
 ### Merge-rendering native files
 
-Programs read their configuration from fixed paths that people also edit. A worker ingredient's renders therefore own
-only specific keys and entries inside those files, never the whole file; which keys is part of the ingredient, not of
-the binary:
+Programs read their configuration from fixed paths that people also edit, so a worker ingredient's renders own only
+specific keys and entries inside those files, never the whole file. The ingredient, not the binary, defines which keys:
 
 | What the ingredient's renders name | Owned | Everything else |
 | --- | --- | --- |

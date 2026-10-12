@@ -12,8 +12,8 @@ teammate inherits it. A way of working learned in one repository reaches the oth
 copies drift.
 
 **Goal.** A way of working learned once reaches every repository through one reviewed change, and is withdrawn the same
-way. Everyone keeps their own way of working, nothing of it remains when they are done but the work, and people who do
-not use the tool never notice it.
+way. Everyone keeps their own way of working, and when they are done only the work remains. People who do not use
+the tool never notice it.
 
 ## What it is
 
@@ -22,7 +22,7 @@ not use the tool never notice it.
   - the **kit**: a person's own setup, kept in their own repository;
   - **cooking**: one session for one way of working, which leaves only the work behind.
 
-  It writes files and reports what it did. It starts no program, commits nothing and controls nobody.
+  It writes files and reports what it did. It does not start programs or make commits, and it controls nobody.
 - **The wrapper**, `./cook`, is committed in each repository. It pins one release with its checksums, so every machine
   and pipeline gives the same answer for the same commit, and a newcomer installs nothing.
 - **Cookbooks** publish ways of working as groups of rules, ingredients and recipes. A repository or a kit copies what

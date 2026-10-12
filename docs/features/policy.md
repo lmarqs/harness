@@ -326,8 +326,8 @@ hook-based allow or deny.
 
 | Symptom | Cause | Fix |
 | --- | --- | --- |
-| An allowed command still prompts in a worker | An `ask` or a `deny` also matches; or the folder is not trusted by the program | Check the `policy` block in `AGENTS.md`; trust the folder |
-| `/abs/path/cook lifecycle run deliver` or `sh cook lifecycle run deliver` runs without the prompt | Prefix rules match leading words; those spellings match none of the rendered ones | Expected: the `deliver` guards are enforced by the binary whatever the spelling. Keep workers on `./cook`, the form `AGENTS.md` teaches |
+| An allowed command still prompts in a worker | An `ask` or a `deny` also matches; or the program does not trust the folder | Check the `policy` block in `AGENTS.md`; trust the folder |
+| `/abs/path/cook lifecycle run deliver` or `sh cook lifecycle run deliver` runs without the prompt | Prefix rules match leading words; those spellings match none of the rendered ones | Expected: the binary enforces the `deliver` guards whatever the spelling. Keep workers on `./cook`, the form `AGENTS.md` teaches |
 | A deny works in one worker but not in another | The entry is a bare string the other worker's program cannot match, or a native rule string only the first worker's ingredient declares a pattern for; the `policy` block marks it | Express it as a prefix list too |
 | A string meant as a shell command is marked as a native rule string | It matches a `native_rules` pattern of a declared worker's ingredient | Write it as a prefix list |
 | `render` rejects an entry | A nested list is deeper than one level, or an entry is neither a list nor a string | Use one level of alternatives per word |

@@ -338,7 +338,7 @@ Rules:
   class of typos that workers and people both make.
 - Names are full words. Abbreviations are limited to terms users already type elsewhere (`--json`, `-C`),
   because an invented abbreviation must be looked up.
-- No aliases. Each command and flag has exactly one spelling
+- Commands and flags have no aliases: each has exactly one spelling
   ([principles.md](principles.md#6-one-way-to-do-each-thing)), because an alias doubles what documentation, policy
   entries and workers must know.
 - A flag means the same thing on every command that accepts it. `--base <ref>` is always a revision the version-control
@@ -445,8 +445,8 @@ deliberate the choice it expresses.
 - The first line of each message `the-cook` writes for a person (a result, a refusal, a finding, a prompt) starts with
   the icon of its kind ([Icons](#icons)) and one space under the same conditions as color. Otherwise a message on stderr
   starts with `the-cook: `, so every line still says who wrote it, and a result on stdout carries no prefix, so a pipe
-  receives only the result ([messages-and-docs.md](messages-and-docs.md#cli-messages)). Why: the icons give the tool its
-  voice in a person's terminal, and the TTY rule keeps logs, CI, workers and parsers byte-stable, as it does for color.
+  receives only the result ([messages-and-docs.md](messages-and-docs.md#cli-messages)). Why: the icons are for a person
+  at a terminal, and the TTY rule keeps logs, CI, workers and parsers byte-stable, as it does for color.
 - No icon appears in `--json` output, in hook output or anything else that enters a worker's context (a hook's
   stderr line, the session-start context line), in `the-cook attempt` output and the worker output a recipe run prints
   from its `attempt` steps, in rendered files, or in documentation prose. Why: a worker or a loop runner reads those
@@ -456,8 +456,8 @@ deliberate the choice it expresses.
 
 ### Icons
 
-The icons come from the kitchen and the lab, the tool's name. Each one marks exactly one kind of message, so a person
-who learns the set reads a terminal at a glance, and a message never carries two icons.
+The icons come from the kitchen and the lab, in keeping with the tool's name. Each one marks exactly one kind of
+message, so a person who learns the set reads a terminal at a glance, and a message never carries two icons.
 
 | Icon | Kind | Examples |
 | --- | --- | --- |
@@ -581,7 +581,7 @@ the-cook: make migration: blocked at step 1/4: npm exited 1
   runs. Why: continuing past a failure is a choice about the remaining actions, not a reason to report success.
 - A failing automatic event never changes the exit code of the command that fired it: it is reported on stderr and
   recorded in the lifecycle log (`lifecycle.jsonl` in the state directory of the primary checkout). Dry runs are not
-  recorded. Why: the command did its own job; the action's failure belongs to the action.
+  recorded. Why: the command did its own job, and the failure is reported as the action's.
 - `the-cook hook` follows the calling worker's hook protocol for its exit code and output, as its ingredient maps it,
   because the worker interprets them.
 - Entry points without the binary ([principles.md](principles.md#1-optional-and-transparent)): an explicit entry point

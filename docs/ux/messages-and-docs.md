@@ -218,9 +218,9 @@ A section with no content is omitted rather than left empty.
 - Pages link to each other with relative links, use tables for reference material, and put commands, YAML and output in
   fenced code blocks with a language tag, because a relative link keeps working wherever the pages are read, a table is
   where a reader looks up a value, and a tagged block renders and copies exactly as written.
-- Prose names the tool `the-cook`, code-formatted, wherever it means the tool, because that is the name a reader types:
-  the same word reads the same in a sentence and in a command, and it never takes a capital letter, even at the start of
-  a sentence. Its other parts take the names [below](#names-for-the-parts-of-the-lifecycle).
+- Prose names the tool `the-cook`, code-formatted, wherever it means the tool, and never capitalises it, even at the
+  start of a sentence. Why: that is the name a reader types, so the word reads the same in a sentence and in a command.
+  Its other parts take the names [below](#names-for-the-parts-of-the-lifecycle).
 - No organization names in examples or in content `the-cook` carries; examples use `acme` for an organization and
   `acme/api` for a repository, and cookbooks in examples are `github:acme/cookbook`, because `the-cook` is open source
   and its docs must fit any organization.

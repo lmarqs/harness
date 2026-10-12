@@ -29,7 +29,7 @@ tool itself does.
 
 ## Decision
 
-1. The tool helps. It sets up what a repository shares, runs the steps a person or a worker asks of it, and reports
+1. The tool helps: it sets up what a repository shares, runs the steps a person or a worker asks of it, and reports
    what it did. Nobody has to work through it, and it neither detects nor prevents work done any other way.
 2. Each person's own choices stay theirs: their editor, the settings and extensions they keep for a worker program, the
    skills and plugins installed for them, and the loop runner and task list they use. The tool never requires one, never

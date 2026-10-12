@@ -155,8 +155,8 @@ running binary has verified the target release's checksum file against those key
 script, then checks each download against the checksums committed in `wrapper.yaml`. `the-cook doctor`, when online,
 re-verifies the pinned release's signed checksum file against `wrapper.yaml`.
 
-Trust starts with the first binary you install, from the project's releases or a package manager. From then on,
-every pin change is verified by a binary you already trust, and shows in review as a diff of `.cook/wrapper.yaml`
+Trust starts with the first binary you install, from the project's releases or a package manager. From then on, a
+binary you already trust verifies every pin change, and the change shows in review as a diff of `.cook/wrapper.yaml`
 ([wrapper](wrapper.md#security)).
 
 ## Update notice
@@ -176,8 +176,8 @@ pinned and the newer version and the exact command that moves the pin:
 the-cook v0.10.0 is available (this repository pins v0.9.0): run ./cook wrapper --version v0.10.0
 ```
 
-Worker sessions never get the notice, and hooks never check: moving the pin is a supply-chain decision a person
-reviews, not a step a worker takes on its own.
+Worker sessions never get the notice, and hooks never check: moving the pin is a supply-chain decision, and a person
+reviews it.
 
 `./cook version --check-update` checks immediately, ignoring the daily cache.
 

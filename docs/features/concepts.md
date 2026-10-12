@@ -24,7 +24,7 @@ facts about programs are pinned and rendered; practices are copied and become th
 workers included; [stations](stations.md) hold what one way of working needs in place; [recipes](recipes.md) hold the
 kinds of change a repository makes again and again, and each run of one takes one change through the stages. The binary
 ships none of them. Around the lifecycle, `the-cook` divides a repository into layers and directories, records which
-files it owns, writes down the conventions it sets up and adapts to repositories in different starting states, and an
+files it owns, writes down the conventions it sets up and adapts to repositories in different starting states. An
 adopted repository keeps working without it.
 
 Examples on this page run commands as `./cook <command>`, through the repository's [wrapper](wrapper.md); with a
@@ -32,9 +32,9 @@ global install, `the-cook <command>` is equivalent.
 
 ## The lifecycle at the centre
 
-The one abstraction `the-cook` implements is the [development lifecycle](lifecycle.md). Every other part of this page
-serves it: the repository files declare it, rendering and ownership deliver what each stage needs, ingredients reach the
-programs that do the work, and recipes take one kind of change through it.
+`the-cook` implements one abstraction, the [development lifecycle](lifecycle.md), and everything else on this page
+supports it: the repository files declare it, rendering and ownership deliver what each stage needs, ingredients reach
+the programs that do the work, and recipes take one kind of change through it.
 
 | Stage | Who acts | What the core does | Reached through |
 | --- | --- | --- | --- |
@@ -228,7 +228,7 @@ agent following a skill the organization publishes. For example, when acme decid
 skill adds `[terraform, apply]` to `shared.deny` in `.cook/policy.yaml`, and the team reviews that change like any
 other.
 
-Rendered files are committed on purpose: a clone works before its pinned release is downloaded, and reviewers see
+Rendered files are committed so that a clone works before its pinned release is downloaded, and so that reviewers see
 every permission change as a diff.
 
 ### Repository layout after adoption
@@ -334,7 +334,7 @@ Managed blocks come in two classes:
 | Convention block | a fact that stays true without `the-cook`; it never names a `the-cook` command | `AGENTS.md`: `workspaces`, `policy`, `memory`, `context`; every block an ingredient renders, such as the block that makes a coding agent's instruction file import `AGENTS.md` and every ignore-file block | markers removed, text kept |
 | Tool block | how to use `the-cook` in this repository; it may name `./cook` commands | `AGENTS.md`: `commands`, `layout`, `verify`, `lifecycle`; `README.md`: `commands` | removed |
 
-So after an eject, what is left in `AGENTS.md` and `.gitignore` is true and usable without the tool, and nothing in
+After an eject, what is left in `AGENTS.md` and `.gitignore` is true and usable without the tool, and nothing in
 them points at a command that does not exist.
 
 Block ids are per module and per ingredient, so a module or an ingredient owns its blocks and removing it removes them
@@ -415,11 +415,11 @@ A repository adopts `the-cook` without forcing anyone else to.
 ## Built-in invariants
 
 These hold in every repository, for what the binary renders and for every worker the binary starts, and cannot be
-turned off by any repository file ([ADR 0011](../adrs/0011-safety-invariants.md)). They are the process, built into the
-binary. The facts about a program they apply, such as which arguments bypass a worker's permission checks or which
-command rewrites the default branch, are [floor](ingredients.md#the-floor) rules of that program's ingredient: rendered
-on every render, never written into the policy and out of its reach. A worker a person starts some other way, such as
-from their own loop-runner configuration, is outside them: `the-cook` neither detects nor prevents it
+turned off by any repository file ([ADR 0011](../adrs/0011-safety-invariants.md)). They are rules of the process, built
+into the binary. The facts about a program they apply, such as which arguments bypass a worker's permission checks or
+which command rewrites the default branch, are [floor](ingredients.md#the-floor) rules of that program's ingredient:
+rendered on every render, never written into the policy and out of its reach. A worker a person starts some other way,
+such as from their own loop-runner configuration, is outside them: `the-cook` neither detects nor prevents it
 ([ADR 0022](../adrs/0022-tool-integration.md)). The numbers match ADR 0011.
 
 1. Workers `the-cook attempt` starts never run with permission bypass: every argument the worker's ingredient marks as a

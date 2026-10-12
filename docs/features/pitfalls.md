@@ -5,9 +5,8 @@
 **Problem.** Workers such as coding agents, their permission systems, version-control workspaces and task trackers
 each have behaviours that surprise a careful developer at some stage of the lifecycle: a rule that reads as forbidding a
 command lets a variant of it through, an unattended run stalls on a question nobody answers, a check passes without
-testing the change. A developer or reviewer usually meets
-each of these alone and after something has gone wrong, with the explanation spread across several vendors'
-documentation, or written nowhere.
+testing the change. A developer or reviewer usually meets each of these alone and after something has gone wrong, and
+the explanation is spread across several vendors' documentation or written nowhere.
 
 **Goal.** A reader who meets a surprising behaviour finds it in one place, with why it happens and what to do about it,
 and can check a setup against the known traps before relying on it.
@@ -465,7 +464,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 - **Symptom.** A finished run becomes a single pull request with every task in it.
 - **Why.** `deliver` actions for scope `run` deliver the run's branch as one unit when the caller fires
   `the-cook lifecycle run deliver --scope run`.
-- **What `the-cook` does.** Exactly that, when declared and fired.
+- **What `the-cook` does.** Runs those `deliver` actions when they are declared and the event fires.
 - **What you do.** Fire run-scope delivery only when one run is one reviewable unit. Otherwise deliver after judgement,
   or deliver per task.
 
@@ -785,15 +784,15 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 ### After eject, nothing enforces the conventions
 
 - **Symptom.** After `the-cook remove --eject`, `AGENTS.md` still describes where workspaces go and what workers may
-  run, yet a worker commits its own work, delivery has no guard, and lint-on-edit,
-  notifications and hook-delivered standing context have stopped.
+  run, yet a worker commits its own work, delivery has no guard, and lint-on-edit, notifications and hook-delivered
+  standing context have stopped.
 - **Why.** Eject stops managing and keeps the result. Convention blocks (`workspaces`, `policy`, `memory`, `context`)
-  keep their text without markers, and the `.gitignore` entries, the rendered permissions and the
-  raw hooks stay as the repository's own. Tool blocks (`commands`, `layout`, `verify`, `lifecycle`) are removed, because
+  keep their text without markers, and the `.gitignore` entries, the rendered permissions and the raw hooks stay as
+  the repository's own. Tool blocks (`commands`, `layout`, `verify`, `lifecycle`) are removed, because
   they describe `the-cook` commands that do not exist after the eject, and so are the hooks that called `the-cook`.
   Receipts, the attempt contract, the tamper check, the lifecycle guards and the drift check need the binary, so they
   stop.
-- **What `the-cook` does.** Lists every block and hook it removed ([remove](remove.md#eject)), and nothing after
+- **What `the-cook` does.** Lists every block and hook it removed ([remove](remove.md#eject)), and does nothing after
   that.
 - **What you do.** Decide which guarantees the repository still needs and move each one where something enforces it:
   CI for the checks, branch protection for what lands, the workers' own permissions for what they may run. Edit the

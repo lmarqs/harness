@@ -41,8 +41,8 @@ Facts:
    checks the result.
 3. The binary embeds the documentation a coding agent needs (the rules, their reasons and the file contracts) and ships
    it both as a skill written into the repository and as printable documentation.
-4. When the binary meets input it cannot map deterministically, it leaves the input untouched and lists it as
-   unresolved in a machine-readable list. It never guesses.
+4. When the binary meets input it cannot map deterministically, it leaves the input untouched and adds it to a
+   machine-readable list of unresolved items instead of guessing.
 
 ## Reasons
 

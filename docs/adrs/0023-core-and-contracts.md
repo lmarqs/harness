@@ -114,11 +114,10 @@ reached through an interface the rules declare.
 - **7.** A repository can have pinned no ingredient (Context), and it is exactly then that a person needs the binary
   to read its data and say what is missing. If finding the root went through version control, every use case,
   validation and the health check included, would need the version control ingredient before it could report that the
-  ingredient is absent. The
-  data's location is a fact of the tool's own layout, not of any program (Context), so the core finds it with the files
-  interface alone, and only the answers version control alone has go through its contract. The trade: the root is where
-  the tool's configuration directory is, which a person can place below the top of a version control checkout, and the
-  binary then treats that directory as the repository.
+  ingredient is absent. The data's location is a fact of the tool's own layout, not of any program (Context), so the
+  core finds it with the files interface alone, and only the answers that version control alone has go through its
+  contract. The trade: the root is where the tool's configuration directory is, which a person can place below the top
+  of a version control checkout, and the binary then treats that directory as the repository.
 - **8.** A fallback for an unfilled contract would be a description of a program inside the binary, which
   [0022](0022-tool-integration.md) excludes, acting on the repository without any pin a reviewer accepted, and wrong in
   every repository that uses another program. Running the use case without the contract, or reporting success, would

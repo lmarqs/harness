@@ -440,7 +440,7 @@ Patterns for the Go lanes are package paths:
 
 - Do make `select` commands fail when they select zero tests, if the test runner allows it; a lane that "passes" with
   no tests proves nothing.
-- Do keep `required_when` narrow and meaningful: the files whose change the lane is the only real evidence for.
+- Do keep `required_when` narrow: list only the files whose change the lane is the only real evidence for.
 - Do use the repository's own task runner in commands when it has one (`npm run build`, `make test`), so people and
   workers run the same thing.
 - Do keep the state paths out of what your linters, test runners and compilers scan (exclude `.work/**`, or the

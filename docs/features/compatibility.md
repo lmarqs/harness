@@ -13,14 +13,14 @@ reader can check that for each tool before adopting.
 
 ## Overview
 
-`the-cook` runs the lifecycle a repository declares, and shares the repository with the tools, settings and records
-below while staying out of their way. It never reconfigures state it did not create and never writes knowledge. The
-binary contains code for no external program and ships no ingredient, station or recipe: version control, every worker
-and every other program are described by the [ingredients](ingredients.md) the repository pins from a cookbook, and the
-binary has no code for any loop runner, task tracker, skills installer, task runner or hosting platform
-([ADR 0022](../adrs/0022-tool-integration.md)). A program reaches a repository as data: an ingredient's renders, a
-station's entries and templates, a recipe's steps, a command the profile declares, or a lifecycle action. What
-`the-cook` sets up does not depend on it either: every convention is written down in plain text, and an eject keeps it.
+`the-cook` runs the lifecycle a repository declares and shares the repository with the tools, settings and records
+below. It never reconfigures state it did not create and never writes knowledge. The binary contains code for no
+external program and ships no ingredient, station or recipe: the [ingredients](ingredients.md) the repository pins from
+a cookbook describe version control, every worker and every other program, and the binary has no code for any loop
+runner, task tracker, skills installer, task runner or hosting platform ([ADR 0022](../adrs/0022-tool-integration.md)).
+A program reaches a repository as data: an ingredient's renders, a station's entries and templates, a recipe's steps, a
+command the profile declares, or a lifecycle action. What `the-cook` sets up does not depend on it either: every
+convention is written down in plain text, and an eject keeps it.
 
 How each program behaves next to `the-cook`, and what its ingredient does about it, is documented with that ingredient,
 in the cookbook that publishes it. This page states the rules the binary and every ingredient, station and recipe
@@ -187,7 +187,7 @@ sessions started in a subdirectory are out of scope; see [pitfalls](pitfalls.md)
 
 ## CI/CD
 
-A repository's CI/CD is unchanged by adopting `the-cook`:
+Adopting `the-cook` leaves a repository's CI/CD unchanged:
 
 - no build, test, deploy or release step requires the binary or the wrapper;
 - rendered files add no dependency and change no build output;

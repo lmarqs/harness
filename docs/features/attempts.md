@@ -175,8 +175,8 @@ argument among them is refused. The recipe's inputs reach the prompt as plain te
 then on the run's later `run` steps, its Verify stage and the replay of its Complete stage run in the same jail, because
 they run code the worker wrote ([what runs in the jail](ingredients.md#what-runs-in-the-jail)).
 
-What concerns the end of the work belongs to the run. The step's edits stay in the workspace for the next steps, and the
-step neither replays a receipt, commits nor fires events. A worker that runs `./cook verify` gets feedback on its change
+The run concludes the work. The step's edits stay in the workspace for the next steps, and the step neither replays a
+receipt, commits nor fires events. A worker that runs `./cook verify` gets feedback on its change
 and leaves the selection the run's Verify stage starts from; that stage runs the lanes itself, with every lane the
 recipe requires added, and the run's Complete stage replays its receipt from the base.
 

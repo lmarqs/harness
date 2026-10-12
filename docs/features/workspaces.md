@@ -59,8 +59,8 @@ You do not need them for ordinary work: `the-cook verify` also works in the prim
    the id when `--task` is given, with scope `change` otherwise. Actions declared with `auto: true` run, such as
    [tracker actions from a station](tasks.md#tracker-actions-from-a-station).
 
-The workspace starts from committed code only. Uncommitted changes, credentials, dependency directories and personal
-configuration are not copied.
+The workspace starts from committed code only. `create` copies no uncommitted changes, credentials, dependency
+directories or personal configuration.
 
 ### Created by a recipe run
 
@@ -265,7 +265,7 @@ git branch -d work/fix-invoice-rounding        # when the branch is merged
 
 ## Coexistence
 
-`the-cook` manages only the workspaces it recorded in the configured workspaces directory. Workspaces a worker program
-creates in its own directories, by other tools or by hand are never listed, cleaned or modified. Branch names start
-with `work/`, so they stay apart from the branches a loop runner creates for its own sessions; a loop runner can run in
-a managed workspace ([attempts](attempts.md)).
+`the-cook` manages only the workspaces it recorded in the configured workspaces directory. It never lists, cleans or
+modifies a workspace that a worker program creates in its own directories, that another tool creates, or that someone
+makes by hand. Branch names start with `work/`, so they stay apart from the branches a loop runner creates for its own
+sessions; a loop runner can run in a managed workspace ([attempts](attempts.md)).

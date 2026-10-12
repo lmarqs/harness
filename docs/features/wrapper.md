@@ -158,21 +158,21 @@ flowchart LR
   p2 -->|"v0.10.0 verifies the next release"| p3["..."]
 ```
 
-- **The trust root** is the first binary a person installs, from a release download or a package manager. From then on
+- The trust root is the first binary a person installs, from a release download or a package manager. From then on
   every pin is verified by a binary that was itself pinned through a verified step, and every pin change is a
   `wrapper.yaml` diff a reviewer sees.
-- **`the-cook scaffold`** pins the running binary's own release the same way: it fetches that release's `checksums.txt`
+- `the-cook scaffold` pins the running binary's own release the same way: it fetches that release's `checksums.txt`
   and signature and verifies them, because a binary cannot embed its own checksums. With `--offline` it writes a
   [pending pin](#a-pending-pin) instead, which admits no download until a binary verifies the release and completes
   it.
-- **`the-cook wrapper --version <tag>`** verifies the target release's signed checksum file before it downloads or
+- `the-cook wrapper --version <tag>` verifies the target release's signed checksum file before it downloads or
   writes anything ([`the-cook wrapper`](#the-cook-wrapper)). A release whose signature does not verify is refused with
   exit 1, and nothing is written.
-- **Key rotation.** A release signed by the current key introduces the next key. Later binaries trust both until the
+- On key rotation, a release signed by the current key introduces the next key. Later binaries trust both until the
   old key is retired; after that, a binary refuses releases signed only with the retired key.
-- **`the-cook doctor`**, when online, re-verifies the pinned release's signed checksum file and compares it with the
+- `the-cook doctor`, when online, re-verifies the pinned release's signed checksum file and compares it with the
   checksums in `wrapper.yaml`, at most once a day, cached. A difference is a finding.
-- **The wrapper itself** stays a plain `sh` script: it checks only the sha256 the verified pin committed.
+- The wrapper itself stays a plain `sh` script: it checks only the sha256 the verified pin committed.
 
 The reasoning behind this design is in [ADR 0017](../adrs/0017-engine-version.md) and
 [ADR 0021](../adrs/0021-release-trust.md).

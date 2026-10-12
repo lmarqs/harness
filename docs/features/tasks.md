@@ -20,7 +20,7 @@ work on it. It contains no code for any task tracker: it never reads or writes a
 task id exists. A tracker is wired by actions the repository declares on the events `start`, `completed` and `blocked`,
 which read the task id and the actor from the environment ([ADR 0022](../adrs/0022-tool-integration.md)).
 
-Three pieces make this work:
+The feature has three parts:
 
 - **Task binding.** `the-cook workspace create <name> --task <id>` records a free-form task id, and so does
   `the-cook make <recipe> --task <id>` for the workspace it creates. Every event fired in that workspace carries it in
@@ -126,7 +126,7 @@ with the rest of the station and writes them into `.cook/hooks.yaml` ([stations]
 then on they are the repository's own. Such a station usually also holds:
 
 - an `unattended.deny` entry for the tracker's close command, so a task closes only through the guarded `completed`
-  event, never from inside an attempt;
+  event and a worker inside an attempt cannot close it;
 - a `writable_roots` value on each worker its [stages](stations.md#stages) declare whose ingredient opens sandbox
   roots, naming the tracker's data directory, so the tracker commands a sandboxed worker runs can update it
   ([profile](profile.md#workers)).

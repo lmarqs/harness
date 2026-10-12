@@ -332,11 +332,11 @@ The binary starts the jail in the attempt's checkout, with every variable it pas
 too, so a jail whose `env.pass` names a variable without `{value}` and takes the value from its environment gets the
 right one. The checkout is the jail's working directory and never a `share.write`: the writable set is the checkout
 and `writable_roots`, and the clone's state directory is not in it ([attempts](attempts.md#the-attempt-contract)). It
-refuses the floor bypass arguments
-of both ingredients wherever they appear in the whole launch, the caller's arguments and `jail.args` included: a jail
-bypass argument in the profile's `jail.args` is a validation error, exit 1, and any other bypass argument is refused at
-launch with exit 1, naming it. Nothing else of the person's home is shared: how the worker program's own login and
-settings reach the jail is the jail's own configuration or `jail.args`, which the jail ingredient's page explains.
+refuses the floor bypass arguments of both ingredients wherever they appear in the whole launch, the caller's arguments
+and `jail.args` included: a jail bypass argument in the profile's `jail.args` is a validation error, exit 1, and any
+other bypass argument is refused at launch with exit 1, naming it. Nothing else of the person's home is shared: how the
+worker program's own login and settings reach the jail is the jail's own configuration or `jail.args`, which the jail
+ingredient's page explains.
 
 Inside a jail the cache is read-only. `the-cook` commands run there, such as `./cook verify` and the hooks, skip the
 update check and every other cache write, and never need a download, because the attempt resolved every ingredient
@@ -431,8 +431,8 @@ acme-jail run \
 
 The workspace's `.git` file is a read share inside the read-write checkout, so it stays read-only there. The replay of
 the receipt the worker leaves runs each lane command in the place of the `acme-agent` part, after the same `--`, with
-the same shares, variables and options. `--unconfined`, the jail's floor bypass argument, fails
-validation in `jail.args` and is refused at launch among the caller's arguments.
+the same shares, variables and options. `--unconfined`, the jail's floor bypass argument, fails validation in
+`jail.args` and is refused at launch among the caller's arguments.
 
 ## Pinning
 
@@ -885,8 +885,8 @@ git clone https://github.com/acme/acme-web && cd acme-web
 ./cook render --check
 ```
 
-Until a teammate runs `./cook fetch`, their `render` exits 3 naming it, their worker hooks skip with one line, and
-nothing is fetched behind their back.
+Until a teammate runs `./cook fetch`, their `render` exits 3 naming it and their worker hooks skip with one line;
+neither downloads anything.
 
 ### Stop using a program
 
@@ -910,7 +910,7 @@ git diff             # the lifecycle actions a station wrote for it stay, as the
   editable, which is what the floor exists to avoid. Keep the ingredient pinned.
 - Don't change a pin's `sha256` by hand to match a download: the hash is what the review approved.
 - Don't put a program's facts into the repository's own files to avoid an ingredient: a bypass argument written as a
-  policy entry is one edit away from gone.
+  policy entry is removed by a single edit.
 
 ## Troubleshooting
 

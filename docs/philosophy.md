@@ -74,8 +74,8 @@ assumes. It cannot be changed safely, and it outlives the reason it was made.
 
 **Tenet.** Everything starts from its objective: the problem it solves or the need it meets, and the goal that holds
 once it is solved. Every document states its objective first, in a few plain sentences that a reader understands
-without any data. The data and examples come after it, to make it concrete and checkable. When the objective cannot be
-named, the thing is not built. When the problem goes away, the thing goes with it.
+without any data. The data and examples come after it, to make it concrete and checkable. A thing whose objective
+cannot be named is not built, and a thing whose problem goes away is removed.
 
 **Bound by.** [ADR structure](adrs/README.md#the-objective-comes-first).
 

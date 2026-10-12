@@ -70,8 +70,9 @@ Commands are named `the-cook <command>` on this page. The examples run them thro
 
 ### Writing one
 
-**Authoring path:** [the station file](#the-station-file) (ingredients, stages, entries, templates, recipes, detect) →
-test by applying to sample repositories → [cookbooks](#cookbooks) (build archive, checksums.txt, publish under tag).
+Write [the station file](#the-station-file) (ingredients, stages, entries, templates, recipes, detect), test it by
+applying it to sample repositories, then publish it in one of the [cookbooks](#cookbooks): build the archive and
+`checksums.txt` and publish them under a tag.
 
 ### Organization choices
 
@@ -250,11 +251,11 @@ added it.
 
 To stop using what a station set up, delete the entries that no longer apply from the files, the recipes it added that
 the repository no longer runs, and the ingredient pins nothing else uses, with the `vcs:` or workers that name them,
-then run `./cook render`. The render removes those
-ingredients' renders and floor, which the manifest records under their names. An ingredient that `vcs:` or a worker
-names cannot leave `ingredients:` while it is named: the profile fails validation with exit 1. Both removal modes of
-[`the-cook remove`](remove.md) delete the seeded `.cook/` files whatever they hold, so applied entries go with them, and
-`.cook/recipes/` with the rest of `.cook/`; a template a station wrote stays.
+then run `./cook render`. The render removes those ingredients' renders and floor, which the manifest records under
+their names. An ingredient that `vcs:` or a worker names cannot leave `ingredients:` while it is named: the profile
+fails validation with exit 1. Both removal modes of [`the-cook remove`](remove.md) delete the seeded `.cook/` files
+whatever they hold, so applied entries go with them, and `.cook/recipes/` with the rest of `.cook/`; a template a
+station wrote stays.
 
 ## Cookbooks
 
@@ -546,7 +547,7 @@ the station: they are the renders of the ingredients it pins, and they follow th
 
 #### The `node` station
 
-`node` is a stack station: no ingredients, no stages, entries only.
+`node` is a stack station: it lists no ingredients and declares no stages, only entries.
 
 ```yaml
 schema: 1

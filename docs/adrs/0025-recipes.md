@@ -107,12 +107,11 @@ change to its repository and still takes a newer version of it in one reviewed c
 7. A run that stops fires the blocked event with the step and the reason ([0015](0015-development-lifecycle.md)) and
    keeps its working copy. It stops at a step that fails, at a verification that lacks a lane the repository's lane
    rules demand, or at a handoff in a run a worker drives. Continued, after a person has inspected or discarded what the
-   step
-   left, it runs the step that stopped again on the tree as it is. Abandoning it is removing its working copy. Every run
-   keeps a record in the clone's state: the recipe's content as the run read it and a hash of that content, the inputs,
-   each step's result and the current stage. Continuing a run follows the recipe content in its record. The proof of
-   verification a run writes records the recipe, its hash and its inputs, and the declared actions of its events receive
-   them.
+   step left, it runs the step that stopped again on the tree as it is. Abandoning it is removing its working copy.
+   Every run keeps a record in the clone's state: the recipe's content as the run read it and a hash of that content,
+   the inputs, each step's result and the current stage. Continuing a run follows the recipe content in its record. The
+   proof of verification a run writes records the recipe, its hash and its inputs, and the declared actions of its
+   events receive them.
 8. A recipe reaches a repository as a copy, made on a person's request, and the copy is the repository's own from then
    on: its team edits it like any of its files, and a run follows the copy as the repository holds it. The copy records
    its origin, the cookbook, version and content hash it came from, and a newer version reaches it through a merge that
@@ -164,9 +163,9 @@ change to its repository and still takes a newer version of it in one reviewed c
   handoff pauses instead of failing because a person is expected there. The caller declares who drives the run because
   a worker in a person's session runs commands with no terminal, as a loop runner does (Context), so only the caller
   knows whether anyone will continue after a handoff. A run whose caller declares nothing pauses there, so a loop runner
-  that omits the declaration gets a task that never completes, never one completed without the person the handoff asks
-  for. The trade: work that fits none of the four kinds is a command the recipe's author writes, and every caller that
-  drives runs with nobody watching has to declare it.
+  that omits the declaration gets a task that never completes rather than one completed without the person the handoff
+  asks for. The trade: work that fits none of the four kinds is a command the recipe's author writes, and every caller
+  that drives runs with nobody watching has to declare it.
 - **4.** Validating every input before the first step means a run never stops halfway on an input it could have refused
   at the start. Substituting an input into whole elements of an argument list run with no shell passes it to a generator
   as the argument the generator expects, and it cannot add a command (Context); the environment values serve commands

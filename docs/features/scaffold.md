@@ -6,12 +6,12 @@
 has to set up permissions, hooks, instructions and working conventions, and done by hand, each repository comes out
 different. Many repositories already have such a setup, built up by hand, and moving it to a new arrangement risks
 losing a rule: a coding agent gains a permission someone denied, or unattended runs stall on a prompt for a command
-someone had allowed, and nobody notices until it matters. Part of what is already there needs a person's judgement to
-carry over, not a mechanical copy.
+someone had allowed, and nobody notices until it matters. Some of what is already there takes a person's judgement to
+carry over, and a mechanical copy is not enough.
 
 **Goal.** Any repository, with or without a setup of its own, gets a working one in one reviewed change, in which every
 permission rule and hook that applied before still applies, and anything that cannot be kept is named before anything is
-written. Whatever needs a person's judgement is listed as work to do, not guessed.
+written. Whatever needs a person's judgement is listed as work to do instead of being guessed.
 
 ## Overview
 
@@ -38,8 +38,9 @@ with a global install, `the-cook <command>` is equivalent.
 | The repository already has `.cook/config.yaml` | Not `scaffold`: edit the files and run [`./cook render`](render.md) |
 | Many repositories at once | [`the-cook fleet scaffold`](fleet.md) |
 
-Not sure which class a repository is in? Run `the-cook scaffold --cookbook <source>@<version> --adopt --dry-run`: on
-a greenfield repository it finds nothing to import and behaves like a plain scaffold.
+When it is unclear which class a repository is in, run
+`the-cook scaffold --cookbook <source>@<version> --adopt --dry-run`: on a greenfield repository it finds nothing to
+import and behaves like a plain scaffold.
 
 ## How it works
 

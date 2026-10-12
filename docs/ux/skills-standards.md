@@ -104,9 +104,9 @@ alert. The recipe holds the steps and the skill holds the guidance, so neither r
   attempt; a check a person must make is a handoff in the recipe, not a question in the skill;
 - ends with the check: `./cook verify` with the lanes and patterns the change needs.
   - The check tells the worker whether its edits pass.
-  - That receipt is feedback, not the proof, because the recipe run's Verify stage runs every lane the change selects
-    and every lane the recipe requires itself.
-  - Completion and delivery are the run's, so the skill never tells the worker to commit, deliver or fire an event,
+  - That receipt is feedback for the worker. The proof comes from the recipe run's Verify stage, which itself runs
+    every lane the change selects and every lane the recipe requires.
+  - Completion and delivery belong to the run, so the skill never tells the worker to commit, deliver or fire an event,
     which the attempt contract refuses anyway.
 - reads correctly in an interactive session too, because the same skill guides a person's coding agent making the same
   kind of change by hand.

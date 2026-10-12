@@ -199,7 +199,7 @@ is worse than none ([ADR 0016](../adrs/0016-permission-adoption.md)).
   an unsupported version, because output rendered for a format the program no longer reads fails without a message.
 - `the-cook doctor` also reports, as a finding, a program that an ingredient, a declared command, lane, validator or
   action, or a recipe's `run` step, names and that is not on `PATH`. Why: a declared command that names a missing
-  program fails for everyone who runs it, which needs no knowledge of the program to report.
+  program fails for everyone who runs it, and reporting that needs no knowledge of the program.
 - `the-cook ingredient list --cookbook <source>@<version>` shows which ingredients of a tag detect their program in the
   repository. Why: a program in use without its ingredient runs without that ingredient's floor, so a person needs to
   see the gap before choosing what to pin.

@@ -30,7 +30,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 - Reviews keep correcting the same mistake.
 - Knowledge is too detailed for `AGENTS.md` but should be one link away from it.
 
-Needs `modules.memory: true` in the [profile](profile.md).
+The module needs `modules.memory: true` in the [profile](profile.md).
 
 ## How it works
 

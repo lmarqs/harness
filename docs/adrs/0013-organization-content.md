@@ -21,9 +21,9 @@ choices, stack facts and the wiring of a tool still reach each repository throug
 - Repositories on the same technology stack start from the same facts: how to lint an edited file, how to run the tests,
   how to build. For example, `acme/api` and `acme/web` are both Node repositories and lint, test and build the same way,
   while acme's Terraform repositories need other entries, and one repository can use several stacks.
-- Repositories that use the same third-party tool wire it to the tool the same way. Example: `acme/api` and `acme/web`
-  both run ralph-tui (0.12) with each agent entry naming the same attempt command, and both mark a Beads (1.3.1) task in
-  progress when work on it starts and close it when it is verified ([0022](0022-tool-integration.md)).
+- Repositories that use the same third-party tool wire it to the tool the same way. For example, `acme/api` and
+  `acme/web` both run ralph-tui (0.12) with each agent entry naming the same attempt command, and both mark a Beads
+  (1.3.1) task in progress when work on it starts and close it when it is verified ([0022](0022-tool-integration.md)).
 - Some starting content is a whole file rather than entries, such as a loop runner's configuration file, and the team
   edits it to its needs from then on.
 - Some programs a team uses are run by no other organization, such as an organization's internal command-line
@@ -146,8 +146,8 @@ choices, stack facts and the wiring of a tool still reach each repository throug
     from in its own file, in view of every reader. That record names one version of the whole recipe, not which entries
     of shared files came from where, the per-entry record rejected below. With that version as the common ancestor, a
     three-way merge tells the team's changes from the cookbook's, as a project template tool's update does
-    ([0025](0025-recipes.md)). The update brings only the cookbook's changes, a deliberate edit by the team, such as a
-    step it removed, survives, and only lines both changed need a person.
+    ([0025](0025-recipes.md)). The update brings only the cookbook's changes: a deliberate edit by the team, such as a
+    step it removed, survives, and only lines that both changed need a person.
   - A station's entries are spread through files that also hold the repository's own entries and other stations', and
     nothing records which station or version wrote a template (point 3), so neither has a copy whose ancestor is known,
     and both keep the rule that applying only adds. Adding never replaces a recipe the repository holds, for the reason

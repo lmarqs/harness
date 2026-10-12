@@ -242,9 +242,9 @@ flowchart TD
 | `landed` | the work's patches are on the default branch | `task`, `run`, `change` |
 | `blocked` | work stopped unfinished, or needs a person; out of band, at any stage | `task`, `run`, `change` |
 
-The set and its order are fixed. Repositories declare actions on these events; they cannot add events.
-The first five follow the order of the work; `blocked` can fire between any two of them, and its actions receive the
-reason in `COOK_REASON`.
+The set and its order are fixed. Repositories declare actions on these events; they cannot add events. The first five
+follow the order of the work; `blocked` can fire between any two of them, and its actions receive the reason in
+`COOK_REASON`.
 
 ### Scopes
 

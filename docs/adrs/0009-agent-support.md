@@ -52,17 +52,17 @@ and supporting another worker changes no repository's declarations.
    declared command, not as a worker.
 3. Each worker ingredient maps its worker's hook payloads onto one neutral set of worker events. The set includes
    session start, a file read or edited and a prompt submitted, the points where guidance enters the worker's context
-   ([0020](0020-standing-context.md)), and the notification events, waiting for a person and turn ended
+   ([0020](0020-standing-context.md)), and the notification events (waiting for a person and turn ended)
    ([0019](0019-action-kinds.md)). Where a worker lacks an event, or a part of the contract the repository's data
-   relies on, its ingredient renders nothing for it and the health check, the tool's read-only report on a repository's
-   setup, reports the gap.
+   relies on, its ingredient renders nothing for it and the health check (the tool's read-only report on a repository's
+   setup) reports the gap.
 4. The worker contract is public and documented. Adding a worker means a repository pinning a worker ingredient from a
    cookbook and declaring the worker; the sources and the other ingredients do not change.
 5. A construct the neutral model does not express may be written as a raw, worker-specific entry. An ingredient whose
    worker cannot express it skips it. Every native permission rule of every worker an ingredient describes is
    expressible this way ([0016](0016-permission-adoption.md)).
-6. Which workers a repository declares, which role each fills, interactive or unattended, and whether each one's
-   attempts may use the network, off unless the repository says otherwise, is repository data, not ingredient content.
+6. Which workers a repository declares, which role each fills (interactive or unattended) and whether each one's
+   attempts may use the network (off unless the repository says otherwise) are repository data, not ingredient content.
    The ingredient maps the network choice to its worker's arguments, as it maps the launch; a repository that lets the
    attempts of a worker use the network, when the worker's ingredient gives no such arguments, fails validation. The
    declaration may also name a jail that confines the worker's attempts, with the jail's options the repository chooses;

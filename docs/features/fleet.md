@@ -185,8 +185,8 @@ repos: [~/src/acme-api, ~/src/acme-web]
 ```
 
 Each repository receives the entries, templates and recipes of that version that it lacks, and its `stations:` entry for
-`node` moves to v1.3.0. A recipe the repository already holds in `.cook/recipes/` is kept and reported, never
-overwritten; `fleet recipe update` takes a newer version of it. Every ingredient the station lists is pinned; an
+`node` moves to v1.3.0. A recipe the repository already holds in `.cook/recipes/` stays as it is, and the command
+reports it; `fleet recipe update` takes a newer version of it. Every ingredient the station lists is pinned; an
 ingredient the repository already pins at another sha256 keeps the repository's pin, and the command reports the
 difference. Every entry and item the repository already holds stays as it is ([stations](stations.md#how-apply-works)).
 

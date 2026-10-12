@@ -70,8 +70,8 @@ after showing them as a diff. A station that declares workers in its [stages](st
 | `jail` | the [jail](#jails) the worker's attempts run in: `ingredient`, a pinned ingredient that fills the jail contract, and `args`, the jail's options this repository chooses; absent: the attempts run unconfined by a jail |
 | `model`, `effort` | passed at every launch the binary makes, as the ingredient's launch says; a worker whose ingredient passes no model or effort ignores them, and `doctor` notes it |
 
-`network` is the repository's practice, and the arguments that carry it are the program's fact: the worker's
-ingredient maps `network: true` to its `launch.network` arguments, as it maps a model or an effort. A worker declared
+The repository decides `network`, and the program defines the arguments that carry it: the worker's ingredient maps
+`network: true` to its `launch.network` arguments, as it maps a model or an effort. A worker declared
 with `network: true` whose ingredient has no `launch.network` is a validation error, exit 1, as `writable_roots` is
 without `launch.sandbox_roots`. With `network: false` the binary passes nothing about the network, and the program does
 what it does by default, which the ingredient's page in its cookbook explains. For a worker with a jail, `network: true`

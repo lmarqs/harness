@@ -4,10 +4,10 @@
 
 **Problem.** Teams want every change to pass the same steps under the same guards, whether a person, a coding agent or
 another program does the work, and the usual way to get it is copying a workflow by hand from repository to repository,
-where the copies drift into dialects that lose safety settings. A tool that fixes this has to know what it is. Built
-around one kind of program, it is rebuilt for the next one. Built to do the work itself, it grows into a second coding
-agent, chasing every model and API change the vendors of coding agents already follow and holding credentials and costs
-that belong to each organization.
+where the copies drift into dialects that lose safety settings. A tool that fixes this needs a clear role. If it is
+built around one kind of program, it is rebuilt for the next one. If it does the work itself, it grows into a second
+coding agent that chases every model and API change the vendors of coding agents already follow and holds credentials
+and costs that belong to each organization.
 
 **Goal.** Every change made through the tool, in every repository, passes the same stages under the same guards,
 whatever program does its work, and the programs that do the work keep the capabilities, model access and credentials
@@ -43,8 +43,8 @@ their vendors and organizations give them.
 ## Decision
 
 1. The tool's role is the software development lifecycle of a repository's changes, whose stages, events, guards and
-   proof [0015](0015-development-lifecycle.md) decides. Everything else it does, rendering, checking and removing the
-   setup that the programs in those stages read, serves that lifecycle.
+   proof [0015](0015-development-lifecycle.md) decides. Everything else it does (rendering, checking and removing the
+   setup that the programs in those stages read) serves that lifecycle.
 2. The work inside a stage belongs to people and to workers: programs that change the repository for someone, such as a
    coding agent, a bot or a codemod. The tool's code names no worker and no other program; every program it writes for
    or starts is one an ingredient describes ([0022](0022-tool-integration.md)).
@@ -127,7 +127,7 @@ Costs:
 - A change to a worker's configuration format breaks the tool's output for that worker until its ingredient is updated
   ([0009](0009-agent-support.md)).
 - Integrations that exist only as tool-server tools need an attempt.
-- The stages that need judgement, planning and review, get nothing from the tool beyond the events around them.
+- The stages that need judgement (planning and review) get nothing from the tool beyond the events around them.
 
 Must be maintained:
 

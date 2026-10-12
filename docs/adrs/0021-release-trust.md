@@ -51,15 +51,16 @@ unmodified.
 - **3.** This moves the trust decision from whatever the person upgrading downloaded to what a binary already trusted
   verified, which closes the gap that checksums alone leave. Writing nothing on failure keeps the repository on its last
   verified pin, and every accepted change still arrives as a diff for review. A pin without checksums gives the wrapper
-  nothing to compare a download with, so it admits none: verification can be deferred, never skipped.
+  nothing to compare a download with, so it admits none. Verification can be deferred, but it cannot be skipped.
 - **4.** A shell script cannot verify signatures portably, and the binary can with no runtime dependency
   ([0004](0004-runtime-dependencies.md)). Because a verifying binary wrote the committed checksums (point 3), the
   wrapper's checksum comparison carries that verification over to each download.
 - **5.** Some first binary has to be trusted without a prior one. Installing it from the release page over HTTPS or
   through a package manager is the one step that rests on host authentication alone. Every later release is admitted by
   a verified binary.
-- **6.** A checksum edited by hand in the pin, or a checksum file replaced on the host after the pin was written, is
-  found. Running online only, and as part of the health check, costs nothing to a machine without network access.
+- **6.** The re-verification finds a checksum edited by hand in the pin, or a checksum file replaced on the host after
+  the pin was written. Because it runs only online, as part of the health check, it costs a machine without network
+  access nothing.
 
 ## Rejected alternatives
 

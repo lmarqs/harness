@@ -59,10 +59,10 @@ anything is written.
 
 - **1.** Ownership of a native permission key replaces its content ([0008](0008-native-configuration.md)), so any rule
   the source cannot hold is lost at the moment of adoption, and a hand-written rule set such as the one in Context holds
-  a hundred rules that include domains, paths and tool-server rules. A source that holds every native rule makes
-  adoption safe for every repository instead of only those whose rules fit a common subset. The trade is that the source
-  admits entries that apply to one worker program only; the rendered summary makes those visible instead of hiding the
-  difference.
+  about a hundred rules, including domain, path and tool-server rules. A source that holds every native rule makes
+  adoption safe for every repository, not only for those whose rules fit a common subset. The trade is that the source
+  admits entries that apply to one worker program only, and the rendered summary lists them so the difference stays
+  visible.
 - **2.** With different precedence per worker program, the same policy would grant different things to different
   workers. Deny-first is the order in which a conflict resolves toward the narrower permission.
 - **3.** The project scope is what the team already shares, so importing it changes nothing about who sees what.

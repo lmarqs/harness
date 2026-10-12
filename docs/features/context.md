@@ -166,8 +166,8 @@ and is reviewed like any other change.
 
 `context.budget` caps the lines of always-on content one session receives, per role: `content` entries count their
 lines, pointer lines count one, and static entries count too, as do entries delivered in an attempt's prompt.
-`the-cook doctor` reports a note when a role exceeds the budget, listing every entry with its line count. Injection does
-not stop at the budget. The note is the signal to trim, move an entry to a trigger, or switch it to a pointer.
+`the-cook doctor` reports a note when a role exceeds the budget, listing every entry with its line count. Injection
+continues past the budget; the note is the signal to trim an entry, move it to a trigger or switch it to a pointer.
 
 ### When the binary is absent
 
@@ -270,8 +270,8 @@ context:
     - skill: coding-guidelines
 ```
 
-Every session, interactive or unattended, starts with the skill's instructions, and receives them again whenever its
-program fires the session-start event after a compaction. Nobody types the skill's name.
+Every session, interactive or unattended, starts with the skill's instructions and receives them again whenever its
+program fires the session-start event after a compaction, without anyone typing the skill's name.
 
 ### A SQL skill when a worker touches migrations
 

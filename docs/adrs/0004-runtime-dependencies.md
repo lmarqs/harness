@@ -39,7 +39,7 @@ no hook fails for lack of a runtime.
    ingredient, a command or an action the repository uses names it (point 4, [0022](0022-tool-integration.md)).
 4. Commands the repository declares, programs its ingredients name and worker programs the tool starts belong to the
    repository and the user; they are not dependencies of the binary. The health check reports each one that is missing.
-5. The wrapper's first-run requirements, a POSIX shell, a downloader and a checksum tool, are requirements of the
+5. The wrapper's first-run requirements (a POSIX shell, a downloader and a checksum tool) are requirements of the
    wrapper ([0017](0017-engine-version.md)), not of the binary.
 
 ## Reasons
@@ -58,7 +58,7 @@ no hook fails for lack of a runtime.
   keeps the tool's runtime off the binary's list of needs (point 4). The trade: work such as installing shared skills is
   a step the team takes with that tool, on a machine that has its runtime.
 - **4.** The repository's commands are its own data ([0006](0006-repository-contract.md)), and the programs its
-  ingredients describe, the worker programs and the version control system included, are the team's choice
+  ingredients describe (the worker programs and the version control system included) are the team's choice
   ([0022](0022-tool-integration.md)). Counting them as the binary's dependencies would make its requirements unbounded.
   Reporting the missing ones turns a failure in the middle of a command into a finding before it.
 - **5.** The wrapper runs before any binary exists on the machine, so it can rely only on what a POSIX system provides.

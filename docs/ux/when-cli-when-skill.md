@@ -123,7 +123,7 @@ flag that pushes, opens a pull request or calls a hosting platform is a design e
 | Need | Kind | Because |
 | --- | --- | --- |
 | Run a CLI the repository already uses (`git`, the hosting platform's CLI) | `run` | the CLI carries its own authentication and conventions |
-| Notify a person or a service: a chat message, an incident, a status page | `http` | `the-cook` performs the request itself, reads the URL and headers from environment variables and JSON-encodes values, so no `curl`, no shell quoting and no secret on a command line |
+| Notify a person or a service: a chat message, an incident, a status page | `http` | `the-cook` performs the request itself, reads the URL and headers from environment variables and JSON-encodes values, so the action needs no `curl` or shell quoting and puts no secret on a command line |
 | Tell a person the worker is waiting for them, or has finished a turn | `http` (or `run` for a local notifier) on `attention` or `turn_end` | notification events accept `run` and `http` only, so a worker's hook never starts another worker |
 | Tell a person an unattended run stopped or a task was skipped | `http` on `blocked` | `blocked` fires when a command without a terminal exits 3 for a person, when a recipe run stops, and when whoever drives a loop runner's run fires it as that run stops, with the reason in `COOK_REASON` |
 | Judgement after an event: summarise a merged change, write lessons into memory, triage a failure | `attempt` | the worker does the judgement under the [attempt contract](../features/attempts.md#the-attempt-contract); its edits stay uncommitted for review |
@@ -143,7 +143,7 @@ of relying on someone to invoke it ([ADR 0020](../adrs/0020-standing-context.md)
 | applies to every session (house rules, coding guidelines) | `context.always`, injected as content | the worker sees it before its first action, and again after compaction |
 | must hold even on a machine without `the-cook` | `context.always` with `static: true` | it is written into `AGENTS.md`, which coding agents read without the binary |
 | applies only to attempts (or only to interactive sessions) | the entry with `for: [unattended]` (or `[interactive]`) | each role pays only for what applies to it |
-| applies when certain files are touched (SQL, migrations, a payment module) | `context.when.paths` | the trigger is the file, not the person's memory |
+| applies when certain files are touched (SQL, migrations, a payment module) | `context.when.paths` | the file is the trigger, so it does not depend on anyone remembering |
 | applies when certain words appear in the person's message (time zones, a domain term) | `context.when.prompt`, usually `inject: pointer` | a one-line pointer costs one line; the worker reads the skill only when it applies |
 | applies only when the coding agent judges it relevant | a plain skill, loaded by its description | no deterministic trigger exists, so the worker's own matching is the right mechanism |
 
@@ -336,7 +336,7 @@ Each of these breaks a principle, for the reason given after it.
   command.
 - An organization name, vendor or convention as a binary default: the binary is open source and serves every
   organization.
-- A new command whose only difference from an existing one is a default value: one operation, one command.
+- A new command whose only difference from an existing one is a default value: an operation has one command.
 - A command or flag that pushes, opens a pull request, or calls a hosting platform's API instead of a declared action:
   side effects outside the clone are declared, reviewed and guarded.
 - A command, flag or profile field for one program, binary code that names a program, or binary code that reads a
