@@ -271,7 +271,7 @@ This does not block the kitchen. It blocks any push of a kit.
 
 **What was assumed.** The 1-second init target (N2) has no measurement behind it, and it is measured first.
 
-**What was confirmed.** The maintainer confirmed F1 to F13, F15 and F16. F14 and N1 to N4 are unconfirmed.
+**What was confirmed.** The maintainer confirmed F1 to F16. N1 to N4 are unconfirmed.
 
 ### Functional
 
