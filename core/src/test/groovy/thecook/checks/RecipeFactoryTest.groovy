@@ -16,7 +16,7 @@ class RecipeFactoryTest {
       def init = book.recipe('agentic/init', kitchen)
       assert init.definition.children*.id*.value == ['permission', 'context']
       init.mount()
-      assert kitchen.mounted().size() == 3
+      assert kitchen.mounted().size() == 5
     } finally {
       directory.deleteDir()
     }

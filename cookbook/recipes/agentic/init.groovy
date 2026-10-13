@@ -7,6 +7,6 @@ return new DeclaredRecipe(new RecipeDeclaration('agentic/init', []), { kitchen, 
   def permissions = kitchen.recipe('permission')
   permissions.application('agentic.permissions/default')
   host.includes(permissions)
-  host.includes(book.recipe('agentic/context', kitchen))
+  host.includes(book.recipe('agentic/context', kitchen, [harness: ['codex', 'claude']]))
   host
 })

@@ -100,6 +100,7 @@ sealed class RenderedFile(
                 ContributionIdentity(spec.owner, spec.region),
                 BlockLocation(),
                 spec.content.get(),
+                adopt = spec.adopt,
                 definitionIdentity = provenance,
               ),
             ),

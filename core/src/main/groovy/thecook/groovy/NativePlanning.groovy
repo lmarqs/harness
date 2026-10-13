@@ -34,6 +34,7 @@ class NativePlanning implements Planning {
     String name = file == 'recipe.groovy' ? recipe.parent.fileName.toString() : file.replaceFirst(/\.groovy$/, '')
     boolean init = name in ['cookbook', 'init']
     boolean permission = name in ['permission', 'permissions', 'claude', 'codex'] || init
+    boolean context = name == 'context'
     List<String> selectedHarnesses = name in ['claude', 'codex'] ? [name] : (harnesses ?: ['claude', 'codex'])
     Set<String> initApplications = ['agentic.init/cookbook', 'agentic.init/the-cook', 'agentic.init/git',
         'agentic.init/skills', 'agentic.init/claude-skills', 'agentic.init/agent-policy'] as Set<String>
@@ -43,6 +44,7 @@ class NativePlanning implements Planning {
     Set<String> selected = membership.keySet().findAll { String id ->
       (init && initApplications.contains(id)) ||
           (permission && selectedHarnesses.any { String harness -> id == 'agentic.permissions/' + harness }) ||
+          (context && selectedHarnesses.any { String harness -> id == 'agentic.context/' + harness }) ||
           (provenance[id]?.get('recipe') in [path, source] && harnesses.isEmpty())
     }
     if (selected.isEmpty()) return new NoChangePlan()
