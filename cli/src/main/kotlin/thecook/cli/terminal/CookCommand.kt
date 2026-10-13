@@ -1,7 +1,10 @@
 package thecook.cli.terminal
 
 import thecook.application.CookService
+import thecook.cookbook.Cookbook
+import thecook.model.RecipeInput
 import java.io.PrintWriter
+import java.nio.file.Files
 import java.nio.file.InvalidPathException
 import java.nio.file.Path
 
@@ -29,6 +32,10 @@ class CookCommand(
       when (command) {
         Help -> {
           stdout.println(USAGE)
+        }
+
+        is RecipeHelp -> {
+          stdout.println(recipeHelp(command))
         }
 
         is Init -> {
@@ -74,14 +81,18 @@ class CookCommand(
     if (args.contentEquals(arrayOf("--help"))) return Help
     val entrypoint = args.firstOrNull() ?: throw UsageError("A command is required")
     val localScript = entrypoint.endsWith(".groovy") && !entrypoint.contains("://")
+    if (localScript && !Files.isRegularFile(path(entrypoint, "recipe"))) {
+      throw IllegalArgumentException("Recipe file not found: $entrypoint")
+    }
     val builtins = setOf("init", "cook", "plan", "apply")
     val namedRecipe = !localScript && entrypoint !in builtins
     if (namedRecipe && !entrypoint.matches(Regex("[a-z][a-z0-9-]*(/[a-z][a-z0-9-]*)*"))) {
       throw UsageError("Invalid recipe name: $entrypoint")
     }
     val action = if (localScript || namedRecipe) "cook" else entrypoint
-    val recipeInput = namedRecipe || (localScript && Path.of(entrypoint).fileName.toString() == "recipe.groovy")
-    if (args.size == 2 && args[1] == "--help") return Help
+    val recipeInput = namedRecipe || localScript
+    val wantsHelp = args.drop(1).contains("--help")
+    if (wantsHelp && !localScript && !namedRecipe) return Help
 
     var repository = Path.of("").toAbsolutePath()
     var script: Path? = if (localScript) path(entrypoint, "recipe") else null
@@ -103,13 +114,17 @@ class CookCommand(
         continue
       }
       val recipeOption =
-        namedRecipe && option.matches(Regex("--[a-z][a-z0-9-]*")) &&
+        recipeInput && option.matches(Regex("--[a-z][a-z0-9-]*")) &&
           option !in setOf("--repo", "--script", "--plan", "--library", "--set", "--help", "--remove")
       val allowed =
-        recipeOption || option == "--repo" ||
+        recipeOption || option == "--repo" || option == "--help" ||
           (action in setOf("plan", "apply") && option == "--plan") ||
           (action in setOf("cook", "plan") && option in setOf("--script", "--library", "--set"))
       if (!allowed) throw UsageError("Unknown option for $action: $option")
+      if (option == "--help") {
+        if (inlineValue != null) throw UsageError("--help does not take a value")
+        continue
+      }
       if (option != "--set" && option != "--library" && !recipeOption && !seen.add(option)) {
         throw UsageError("Option may only be supplied once: $option")
       }
@@ -154,6 +169,7 @@ class CookCommand(
           script
             ?: repository.resolve("cook.groovy")
         }
+      if (wantsHelp) return if (recipeInput) RecipeHelp(recipe) else Help
       return Cook(repository, recipe, libraries, inputs, dryRun)
     }
     val file = savedPlan ?: repository.resolve(".cook/plan.json")
@@ -177,7 +193,34 @@ class CookCommand(
   private fun findRecipe(
     repository: Path,
     name: String,
-  ): Path = repository.resolve("cookbook/recipes/$name/recipe.groovy")
+  ): Path {
+    val directory = repository.resolve("cookbook/recipes/$name/recipe.groovy")
+    val flat = repository.resolve("cookbook/recipes/$name.groovy")
+    if (Files.isRegularFile(directory) && Files.isRegularFile(flat)) {
+      throw IllegalArgumentException("Ambiguous recipe $name: $directory and $flat")
+    }
+    return if (Files.isRegularFile(flat)) flat else directory
+  }
+
+  private fun recipeHelp(command: RecipeHelp): String {
+    val source = command.script.toAbsolutePath()
+    val parts = source.iterator().asSequence().toList()
+    val recipesIndex = parts.indexOfLast { it.toString() == "recipes" }
+    val cookbook = if (recipesIndex < 0) source.parent else
+      source.root.resolve(parts.take(recipesIndex).fold(Path.of("")) { path, part -> path.resolve(part) })
+    val relative = if (recipesIndex < 0) source.fileName.toString() else parts.drop(recipesIndex).joinToString("/")
+    val name = if (recipesIndex < 0) null else
+      relative.removePrefix("recipes/").removeSuffix("/recipe.groovy").removeSuffix(".groovy")
+    val declaration = Cookbook(cookbook.toFile()).declarationFile(relative, name)
+    val arguments = declaration.arguments.joinToString("\n") { input ->
+      when (input) {
+        is RecipeInput.RequiredPath -> "  --${input.name} PATH  required, once"
+        is RecipeInput.RequiredChoices ->
+          "  --${input.name} CHOICE  required, repeatable; choices: ${input.choices.joinToString(", ")}"
+      }
+    }
+    return "Usage: cook ${declaration.name} [options]\n$arguments\n  --repo PATH  destination repository\n  --dry-run  preview without writing\n  --set name=value  legacy argument form\n  --help  show this help"
+  }
 
   private fun path(
     value: String,
@@ -192,6 +235,8 @@ class CookCommand(
   private sealed interface Command
 
   private data object Help : Command
+
+  private data class RecipeHelp(val script: Path) : Command
 
   private data class Init(
     val repository: Path,
@@ -229,15 +274,17 @@ class CookCommand(
         cook <recipe> [--name value | --name=value] [--dry-run] [--repo path]
         the-cook init [--repo path]
         the-cook cook [--dry-run] [--repo path] [--script path] [--set name=value] [--library path]
-        the-cook path/to/recipe.groovy [--dry-run] [--repo path] [--set name=value] [--library path]
+        the-cook path/to/recipe.groovy [--name value | --name=value] [--dry-run] [--repo path] [--set name=value] [--library path]
         the-cook plan [--repo path] [--script path] [--plan path] [--set name=value] [--library path]
         the-cook apply [--repo path] [--plan path]
         the-cook --help
 
       --repo defaults to the current directory.
-      Named recipes resolve to cookbook/recipes/<name>/recipe.groovy, then packaged cookbook resources.
+      Named recipes resolve to cookbook/recipes/<name>.groovy or cookbook/recipes/<name>/recipe.groovy, then packaged cookbook resources.
+      Both local forms for one name are ambiguous and rejected.
       Nested names such as agentic/codex are supported.
       Declared recipes validate required paths and repeatable choices before rendering.
+      Use <recipe> --help to inspect required inputs and execution options.
       Undeclared factories continue to receive scalar string options.
       --script defaults to cook.groovy in the repository.
       --plan defaults to .cook/plan.json in the repository.

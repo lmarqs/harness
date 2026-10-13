@@ -59,15 +59,24 @@ class Cookbook {
     factory("stations/${name}/station.groovy", kitchen, options)
   }
   RecipeDeclaration declaration(String name) {
-    def definition = script("recipes/${name}/recipe.groovy")
+    declarationFile("recipes/${name}/recipe.groovy", name)
+  }
+  RecipeDeclaration declarationFile(String relative, String name) {
+    def definition = script(relative)
     if (!(definition instanceof DeclaredRecipe))
       throw new IllegalArgumentException("Recipe has no argument declaration: ${name}")
-    if (definition.declaration.name != name)
+    if (name != null && definition.declaration.name != name)
       throw new IllegalArgumentException("Recipe identity does not match: ${name}")
     definition.declaration
   }
   Component recipe(String name, Kitchen kitchen, Map config = [:]) {
-    recipeComponent(factory("recipes/${name}/recipe.groovy", kitchen, config), kitchen)
+    recipeFile("recipes/${name}/recipe.groovy", name, kitchen, config)
+  }
+  Component recipeFile(String relative, String name, Kitchen kitchen, Map config = [:]) {
+    recipeComponent(factory(relative, name, kitchen, config), kitchen)
+  }
+  Component recipeValue(Object definition, Kitchen kitchen, Map config = [:]) {
+    recipeComponent(factoryDefinition(definition, '<direct recipe>', null, kitchen, config), kitchen)
   }
   private Component recipeComponent(Object result, Kitchen kitchen) {
     if (!(result instanceof Component) || !result.kitchen.is(kitchen))
@@ -75,10 +84,14 @@ class Cookbook {
     result
   }
   private Object factory(String relative, Kitchen kitchen, Map options) {
-    def definition = script(relative)
+    factory(relative, null, kitchen, options)
+  }
+  private Object factory(String relative, String name, Kitchen kitchen, Map options) {
+    factoryDefinition(script(relative), relative, name, kitchen, options)
+  }
+  private Object factoryDefinition(Object definition, String relative, String name, Kitchen kitchen, Map options) {
     if (definition instanceof DeclaredRecipe) {
-      def name = relative.substring('recipes/'.length(), relative.length() - '/recipe.groovy'.length())
-      if (definition.declaration.name != name)
+      if (name != null && definition.declaration.name != name)
         throw new IllegalArgumentException("Recipe identity does not match: ${name}")
       def raw = options.collectEntries { key, value ->
         [(key.toString()): value instanceof List ? value.collect { it.toString() } : [value.toString()]]

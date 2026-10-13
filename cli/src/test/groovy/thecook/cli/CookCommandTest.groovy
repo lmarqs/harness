@@ -176,6 +176,93 @@ class CookCommandTest {
     }
   }
 
+  @Test void flatRecipeWorksByLocalPathAndNestedNameWithRepeatedArguments() {
+    workspace { root, repo, ignored ->
+      Fixtures.copy('flat-recipe', repo)
+      def source = new File(repo, 'cookbook/recipes/agentic/permission.groovy')
+      def policy = new File(repo, '.agents/policy.yaml'); policy.parentFile.mkdirs(); policy.text = 'destination\n'
+      def out = new ByteArrayOutputStream(); def err = new ByteArrayOutputStream()
+      def cli = command(out, err)
+      def options = ['--repo', repo.path, '--policy=.agents/policy.yaml', '--harness=codex', '--harness', 'claude']
+      assert cli.execute(([source.path] + options + ['--dry-run']) as String[]) == 0 : err.toString('UTF-8')
+      assert !new File(repo, 'selection.json').exists()
+      assert !new File(repo, '.cook').exists()
+      assert cli.execute(([source.path] + options) as String[]) == 0 : err.toString('UTF-8')
+      assert new JsonSlurper().parse(new File(repo, 'selection.json')).harness == 'codex,claude'
+      out.reset()
+      assert cli.execute((['agentic/permission'] + options) as String[]) == 0 : err.toString('UTF-8')
+      assert out.toString('UTF-8').trim() == 'Already cooked.'
+      out.reset()
+      assert cli.execute(['agentic/permission', '--repo', repo.path, '--set', 'policy=.agents/policy.yaml',
+          '--set', 'harness=codex', '--set', 'harness=claude'] as String[]) == 0 : err.toString('UTF-8')
+      assert out.toString('UTF-8').trim() == 'Already cooked.'
+    }
+  }
+
+  @Test void flatRecipeHelpAndInvalidInputsDoNotReadPolicyOrChangeOwnership() {
+    workspace { root, repo, ignored ->
+      Fixtures.copy('flat-recipe', repo)
+      def source = new File(repo, 'cookbook/recipes/agentic/permission.groovy')
+      def out = new ByteArrayOutputStream(); def err = new ByteArrayOutputStream()
+      def cli = command(out, err)
+      assert cli.execute([source.path, '--repo', repo.path, '--help'] as String[]) == 0 : err.toString('UTF-8')
+      assert out.toString('UTF-8').contains('--policy')
+      assert out.toString('UTF-8').contains('required')
+      assert out.toString('UTF-8').contains('codex, claude')
+      assert out.toString('UTF-8').contains('--dry-run')
+      out.reset()
+      assert cli.execute(['agentic/permission', '--repo', repo.path, '--help'] as String[]) == 0 : err.toString('UTF-8')
+      assert out.toString('UTF-8').contains('--harness')
+      assert !new File(repo, '.cook').exists()
+      def policy = new File(repo, '.agents/policy.yaml'); policy.parentFile.mkdirs(); policy.text = 'destination\n'
+      def valid = [source.path, '--repo', repo.path, '--policy=.agents/policy.yaml', '--harness=codex']
+      assert cli.execute(valid as String[]) == 0 : err.toString('UTF-8')
+      def before = new File(repo, 'selection.json').text
+      def ownership = new File(repo, '.cook/state.json').text
+      for (args in [
+          valid + ['--set', 'policy=other'],
+          valid + ['--harness=invalid'],
+          [new File(repo, 'missing.groovy').path, '--repo', repo.path, '--policy=x']
+        ]) {
+        err.reset()
+        assert cli.execute(args as String[]) != 0 : args
+        assert new File(repo, 'selection.json').text == before
+        assert new File(repo, '.cook/state.json').text == ownership
+      }
+      assert err.toString('UTF-8').contains('missing.groovy')
+    }
+  }
+
+  @Test void ambiguousFlatAndDirectoryRecipeSourcesAreReported() {
+    workspace { root, repo, ignored ->
+      Fixtures.copy('flat-recipe', repo)
+      def directory = new File(repo, 'cookbook/recipes/agentic/permission')
+      directory.mkdirs()
+      new File(directory, 'recipe.groovy').text = new File(repo, 'cookbook/recipes/agentic/permission.groovy').text
+      def err = new ByteArrayOutputStream()
+      def cli = command(new ByteArrayOutputStream(), err)
+      assert cli.execute(['agentic/permission', '--repo', repo.path, '--help'] as String[]) == 1
+      assert err.toString('UTF-8').toLowerCase().contains('ambiguous')
+      assert !new File(repo, '.cook').exists()
+    }
+  }
+
+  @Test void directFactoryCanLiveOutsideCookbookRecipes() {
+    workspace { root, repo, ignored ->
+      Fixtures.copy('flat-recipe', repo)
+      def source = new File(root, 'permission.groovy')
+      source.text = new File(repo, 'cookbook/recipes/agentic/permission.groovy').text
+      def policy = new File(repo, '.agents/policy.yaml'); policy.parentFile.mkdirs(); policy.text = 'destination\n'
+      def out = new ByteArrayOutputStream(); def err = new ByteArrayOutputStream()
+      def cli = command(out, err)
+      assert cli.execute([source.path, '--repo', repo.path, '--help'] as String[]) == 0 : err.toString('UTF-8')
+      assert out.toString('UTF-8').contains('--harness')
+      assert cli.execute([source.path, '--repo', repo.path, '--policy=.agents/policy.yaml',
+          '--harness=codex', '--harness=claude'] as String[]) == 0 : err.toString('UTF-8')
+      assert new JsonSlurper().parse(new File(repo, 'selection.json')).harness == 'codex,claude'
+    }
+  }
+
   @Test void localRecipeOverridesPackagedFactory() {
     workspace { root, repo, script ->
       Fixtures.copy('recipe-override', repo)
