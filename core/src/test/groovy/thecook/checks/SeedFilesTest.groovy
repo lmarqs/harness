@@ -11,7 +11,11 @@ class SeedFilesTest {
   private static def seed(Kitchen kitchen, String path = 'policy.yaml', String value = 'version: 1\n') {
     def recipe = kitchen.recipe('starter')
     recipe.application('example/starter')
-    recipe.output(path, [seed: true]) { text { value } }
+    recipe.output(path, [seed: true]) {
+      text {
+        value
+      }
+    }
     recipe.mount()
     recipe
   }
@@ -37,7 +41,9 @@ class SeedFilesTest {
       removal.application('example/starter'); removal.mount()
       removal.kitchen.plan().apply()
       assert source.isFile() && source.length() == 0
-    } finally { root.deleteDir() }
+    } finally {
+      root.deleteDir()
+    }
   }
 
   @Test void rejectsDirectorySymlinkAndManagedPathWithoutChangingAnything() {
@@ -45,20 +51,32 @@ class SeedFilesTest {
       def root = Files.createTempDirectory('cook-seed-shape-').toFile()
       try {
         def destination = new File(root, 'policy.yaml')
-        if (shape == 'directory') destination.mkdir()
-        if (shape == 'symlink') Files.createSymbolicLink(destination.toPath(), new File(root, 'elsewhere').toPath())
+        if (shape == 'directory') {
+          destination.mkdir()
+        }
+        if (shape == 'symlink') {
+          Files.createSymbolicLink(destination.toPath(), new File(root, 'elsewhere').toPath())
+        }
         if (shape == 'managed') {
           def managed = new Kitchen(root).recipe('managed')
           managed.application('example/managed')
-          managed.output('policy.yaml', [owns: true]) { text { 'managed\n' } }
+          managed.output('policy.yaml', [owns: true]) {
+            text {
+              'managed\n'
+            }
+          }
           managed.mount(); managed.kitchen.plan().apply()
         }
         def before = ModelChecks.snapshot(root)
         def kitchen = new Kitchen(root); seed(kitchen)
-        try { kitchen.plan(); assert false: "Accepted ${shape}" }
+        try {
+          kitchen.plan(); assert false: "Accepted ${shape}"
+        }
         catch (IllegalArgumentException | IllegalStateException expected) { }
         assert ModelChecks.snapshot(root) == before
-      } finally { root.deleteDir() }
+      } finally {
+        root.deleteDir()
+      }
     }
   }
 
@@ -69,12 +87,22 @@ class SeedFilesTest {
         def kitchen = new Kitchen(root); seed(kitchen)
         def other = kitchen.recipe('other')
         other.application('example/other')
-        other.output('policy.yaml', second == 'seed' ? [seed: true] : [owns: true]) { text { 'other\n' } }
+        other.output('policy.yaml', second == 'seed' ? [seed: true] : [owns: true]) {
+          text {
+            'other\n'
+          }
+        }
         other.mount()
-        try { kitchen.plan(); assert false: 'Accepted duplicate destination' }
-        catch (IllegalArgumentException expected) { assert expected.message.contains('policy.yaml') }
+        try {
+          kitchen.plan(); assert false: 'Accepted duplicate destination'
+        }
+        catch (IllegalArgumentException expected) {
+          assert expected.message.contains('policy.yaml')
+        }
         assert ModelChecks.snapshot(root).isEmpty()
-      } finally { root.deleteDir() }
+      } finally {
+        root.deleteDir()
+      }
     }
   }
 
@@ -84,22 +112,34 @@ class SeedFilesTest {
       def kitchen = new Kitchen(root); seed(kitchen)
       def other = kitchen.recipe('other')
       other.application('example/other')
-      other.output('other.txt', [owns: true]) { text { 'managed' } }
+      other.output('other.txt', [owns: true]) {
+        text {
+          'managed'
+        }
+      }
       other.mount()
       def preview = kitchen.plan()
       assert preview.changes*.path == ['other.txt', 'policy.yaml']
       assert !new File(root, 'policy.yaml').exists()
       new File(root, 'policy.yaml').text = 'user edit\n'
-      try { preview.apply(); assert false: 'Accepted stale seed snapshot' }
-      catch (IllegalStateException expected) { assert expected.message.contains('Changed since preview') }
+      try {
+        preview.apply(); assert false: 'Accepted stale seed snapshot'
+      }
+      catch (IllegalStateException expected) {
+        assert expected.message.contains('Changed since preview')
+      }
       assert new File(root, 'policy.yaml').text == 'user edit\n'
       assert !new File(root, 'other.txt').exists()
       new File(root, 'policy.yaml').delete()
       new File(root, 'other.txt').text = 'foreign'
-      try { kitchen.plan(); assert false: 'Accepted conflicting managed output' }
+      try {
+        kitchen.plan(); assert false: 'Accepted conflicting managed output'
+      }
       catch (IllegalStateException expected) { }
       assert !new File(root, 'policy.yaml').exists()
-    } finally { root.deleteDir() }
+    } finally {
+      root.deleteDir()
+    }
   }
 
   @Test void initValidatesAbsentPolicySeedBeforeWritingAnyOutput() {
@@ -111,10 +151,16 @@ class SeedFilesTest {
       }
       def kitchen = new Kitchen(root)
       def book = new Cookbook(new File('../cookbook'))
-      ['ingredients/agent-policy/Policy.groovy', 'ingredients/agent-policy/PolicyFile.groovy',
-       'ingredients/agent-policy/AgentInstructions.groovy', 'ingredients/git/Git.groovy',
-       'ingredients/skills/Skills.groovy', 'ingredients/the-cook/TheCook.groovy',
-       'recipes/agentic/claude/ClaudeFiles.groovy', 'recipes/agentic/codex/CodexFiles.groovy'].each { book.type(it) }
+      [
+        'ingredients/agent-policy/Policy.groovy',
+        'ingredients/agent-policy/PolicyFile.groovy',
+        'ingredients/agent-policy/AgentInstructions.groovy',
+        'ingredients/git/Git.groovy',
+        'ingredients/skills/Skills.groovy',
+        'ingredients/the-cook/TheCook.groovy',
+        'recipes/agentic/claude/ClaudeFiles.groovy',
+        'recipes/agentic/codex/CodexFiles.groovy'
+      ].each { book.type(it) }
       book.recipe('cookbook', kitchen, [policy: '.agents/policy.yaml', 'skills-home': skills.path]).mount()
       assert !new File(root, '.agents/policy.yaml').exists()
       assert kitchen.plan().changes*.path.contains('.agents/policy.yaml')
@@ -127,10 +173,14 @@ class SeedFilesTest {
       rerun.plan().apply()
       assert source.text == 'version: 1\ninstructions:\n  - Keep local notes.\n'
       source.text = ''
-      try { book.recipe('cookbook', new Kitchen(root), [policy: '.agents/policy.yaml', 'skills-home': skills.path]); assert false: 'Accepted empty policy' }
+      try {
+        book.recipe('cookbook', new Kitchen(root), [policy: '.agents/policy.yaml', 'skills-home': skills.path]); assert false: 'Accepted empty policy'
+      }
       catch (IllegalArgumentException expected) { }
       assert source.text == ''
-    } finally { root.deleteDir() }
+    } finally {
+      root.deleteDir()
+    }
   }
 
   @Test void seedCreationRollsBackWhenLaterTransactionWriteFails() {
@@ -139,21 +189,33 @@ class SeedFilesTest {
       def kitchen = new Kitchen(root); seed(kitchen)
       def other = kitchen.recipe('other')
       other.application('example/other')
-      other.output('z-other.txt', [owns: true]) { text { 'managed' } }
+      other.output('z-other.txt', [owns: true]) {
+        text {
+          'managed'
+        }
+      }
       other.mount()
       def plan = kitchen.plan()
       def failingFiles = new AtomicFiles() {
-        @Override void write(File file, String content, String mode) {
-          if (file.name == 'z-other.txt' && content != null) throw new IOException('Injected write failure')
-          super.write(file, content, mode)
-        }
+            @Override void write(File file, String content, String mode) {
+              if (file.name == 'z-other.txt' && content != null) {
+                throw new IOException('Injected write failure')
+              }
+              super.write(file, content, mode)
+            }
+          }
+      try {
+        new Transaction(kitchen.repository, failingFiles).apply(plan.proposal); assert false: 'Expected write failure'
       }
-      try { new Transaction(kitchen.repository, failingFiles).apply(plan.proposal); assert false: 'Expected write failure' }
-      catch (IOException expected) { assert expected.message == 'Injected write failure' }
+      catch (IOException expected) {
+        assert expected.message == 'Injected write failure'
+      }
       assert !new File(root, 'policy.yaml').exists()
       assert !new File(root, 'z-other.txt').exists()
       assert !new File(root, '.cook/state.json').exists()
       assert !new File(root, '.cook/transaction.json').exists()
-    } finally { root.deleteDir() }
+    } finally {
+      root.deleteDir()
+    }
   }
 }

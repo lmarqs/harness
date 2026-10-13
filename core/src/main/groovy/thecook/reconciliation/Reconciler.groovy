@@ -21,7 +21,7 @@ class Reconciler {
     if (!remove) tree.applications.each { id, files ->
       nextApplications[id] = files.collectEntries { file ->
         file.kind == FileKind.SEED ? [:] :
-            [(file.path.value): file.kind.exclusive ? ['*'] : ((thecook.rendering.PartialFile) file).regions.collect { it.identity.toString() }]
+        [(file.path.value): file.kind.exclusive ? ['*'] : ((thecook.rendering.PartialFile) file).regions.collect { it.identity.toString() }]
       }
     }
     def previousSelected = previousApplications.findAll { id, paths -> selected.contains(id) }
@@ -31,7 +31,7 @@ class Reconciler {
     def nextState = [version: 3, files: [:], applications: nextApplications, legacy: [:], provenance: [:]]
     paths.each { path ->
       boolean affected = desired.containsKey(path) || previousSelected.values().any { it.containsKey(path) } ||
-          (selected.isEmpty() && (state.legacy[path] ?: []).size() > 0)
+      (selected.isEmpty() && (state.legacy[path] ?: []).size() > 0)
       if (!affected) {
         observed[path] = repository.snapshot(repository.target(path, owned[path].kind == FileKind.SYMLINK),
             owned[path].kind == FileKind.SYMLINK)
@@ -44,43 +44,49 @@ class Reconciler {
       observed[path] = snapshot
       if (desired[path]?.kind == FileKind.SEED) {
         if (owned.containsKey(path)) throw new IllegalStateException(path + ': Seed conflicts with managed output')
-        if (!snapshot.exists)
+        if (!snapshot.exists) {
           changes.add([path: path, before: snapshot, content: ((thecook.rendering.SeedFile) desired[path]).content,
-              mode: 'rw-r--r--'])
+            mode: 'rw-r--r--'])
+        }
         return
       }
       def result
       try {
         def withdrawn = previousSelected.values().collectMany { it[path] ?: [] }.toSet()
         def requested = desired[path]?.kind?.exclusive ? ['*'].toSet() :
-          (desired[path] instanceof thecook.rendering.PartialFile ? desired[path].regions.collect { it.identity.toString() }.toSet() : [] as Set)
+        (desired[path] instanceof thecook.rendering.PartialFile ? desired[path].regions.collect { it.identity.toString() }.toSet() : [] as Set)
         def other = previousApplications.findAll { id, membership -> !selected.contains(id) }
-            .values().collectMany { it[path] ?: [] }.toSet()
+        .values().collectMany { it[path] ?: [] }.toSet()
         if (requested && other &&
             (requested.contains('*') || other.contains('*') || requested.intersect(other) ||
-              (desired[path] instanceof thecook.rendering.PartialFile && owned[path] instanceof PartialRecord &&
-                ((thecook.rendering.PartialFile) desired[path]).regions.any { region ->
-                  owned[path].regions.any { identity, old ->
-                    other.contains(identity.toString()) && region.location instanceof thecook.rendering.KeyLocation &&
-                      old.location instanceof thecook.rendering.KeyLocation && region.location.overlaps(old.location)
-                  }
-                })))
+            (desired[path] instanceof thecook.rendering.PartialFile && owned[path] instanceof PartialRecord &&
+            ((thecook.rendering.PartialFile) desired[path]).regions.any { region ->
+              owned[path].regions.any { identity, old ->
+                other.contains(identity.toString()) && region.location instanceof thecook.rendering.KeyLocation &&
+                    old.location instanceof thecook.rendering.KeyLocation && region.location.overlaps(old.location)
+              }
+            }))) {
           throw new IllegalArgumentException("Application contribution already selected elsewhere: ${path}")
+        }
         def legacy = (state.legacy[path] ?: []).toSet()
         if (selected && requested && legacy &&
-            (requested.contains('*') || legacy.contains('*') || requested.intersect(legacy)))
+            (requested.contains('*') || legacy.contains('*') || requested.intersect(legacy))) {
           throw new IllegalStateException('Legacy ownership overlaps this application; unmount the legacy contribution before applying the application')
+        }
         def preserved = [] as Set
         if (owned[path] instanceof PartialRecord) {
           preserved = owned[path].regions.keySet().findAll {
             (selected ? !withdrawn.contains(it.toString()) : other.contains(it.toString())) &&
                 !requested.contains(it.toString())
           }.toSet()
-          if (selected) preserved.addAll(owned[path].regions.keySet().findAll { legacy.contains(it.toString()) })
+          if (selected) {
+            preserved.addAll(owned[path].regions.keySet().findAll { legacy.contains(it.toString()) })
+          }
         }
         def target = desired[path]
-        if (preserved && target == null)
+        if (preserved && target == null) {
           target = new thecook.rendering.PartialFile(thecook.filesystem.TargetPath.of(path), owned[path].kind, [])
+        }
         result = files.reconcile(snapshot, owned[path], target, eject, preserved)
       }
       catch (IllegalStateException error) {
@@ -91,16 +97,22 @@ class Reconciler {
       }
       if (snapshot.content != result.content || snapshot.mode != result.mode) {
         def change = [path: path, before: snapshot, content: result.content, mode: result.mode]
-        if (link) change.kind = 'symlink'
+        if (link) {
+          change.kind = 'symlink'
+        }
         changes.add(change)
       }
-      if (result.state) nextState.files[path] = OwnershipCodec.encode(result.state)
+      if (result.state) {
+        nextState.files[path] = OwnershipCodec.encode(result.state)
+      }
     }
     nextState.files.each { path, file ->
       def addresses = file.kind in ['whole', 'symlink'] ? ['*'] : file.regions.keySet().toList()
       def claimed = nextApplications.values().collectMany { it[path] ?: [] }.toSet()
       def unclaimed = addresses.findAll { !claimed.contains(it) }
-      if (unclaimed) nextState.legacy[path] = unclaimed
+      if (unclaimed) {
+        nextState.legacy[path] = unclaimed
+      }
     }
     nextState.provenance = (state.provenance ?: [:]).findAll { id, source -> nextApplications.containsKey(id) }
     nextState.provenance.putAll(tree.provenance)

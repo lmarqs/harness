@@ -61,7 +61,9 @@ object RecipeArguments {
     val values = linkedMapOf<String, Any>()
     for (argument in declaration.arguments) {
       val supplied = raw[argument.name]
-      if (argument is RecipeInput.OptionalChoices && supplied == null) continue
+      if (argument is RecipeInput.OptionalChoices && supplied == null) {
+        continue
+      }
       require(!supplied.isNullOrEmpty()) { "Required argument: --${argument.name}" }
       require(supplied.all { it.isNotEmpty() }) { "Missing value for --${argument.name}" }
       when (argument) {
@@ -73,7 +75,9 @@ object RecipeArguments {
         is RecipeInput.RequiredChoices -> {
           val unsupported = supplied.firstOrNull { it !in argument.choices }
           require(unsupported == null) {
-            "Unsupported value for --${argument.name}: $unsupported. Allowed choices: ${argument.choices.joinToString(", ")}"
+            "Unsupported value for --${argument.name}: $unsupported. Allowed choices: ${argument.choices.joinToString(
+              ", ",
+            )}"
           }
           values[argument.name] = supplied.distinct()
         }
@@ -81,7 +85,8 @@ object RecipeArguments {
         is RecipeInput.OptionalChoices -> {
           require(supplied.size == 1) { "Argument may only be supplied once: ${argument.name}" }
           require(supplied.single() in argument.choices) {
-            "Unsupported value for --${argument.name}: ${supplied.single()}. Allowed choices: ${argument.choices.joinToString(", ")}"
+            "Unsupported value for --${argument.name}: ${supplied.single()}. " +
+              "Allowed choices: ${argument.choices.joinToString(", ")}"
           }
           values[argument.name] = supplied.single()
         }

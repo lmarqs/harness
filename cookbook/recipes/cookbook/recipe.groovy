@@ -25,8 +25,9 @@ return { kitchen, book, Map preferences ->
   if (!source.isAbsolute()) source = new File(repository, source.path)
   def names = ['solid', 'hexagonal-layout', 'effective-java-core']
   names.each { name ->
-    if (!new File(source, name + '/SKILL.md').isFile())
+    if (!new File(source, name + '/SKILL.md').isFile()) {
       throw new IllegalArgumentException('Shared skill is missing SKILL.md: ' + new File(source, name))
+    }
   }
 
   def skills = new Skills()
@@ -63,7 +64,11 @@ return { kitchen, book, Map preferences ->
   def host = kitchen.recipe('cookbook')
   host.application('agentic.init/cookbook')
   def relativePolicy = repository.toPath().relativize(selectedPolicy.toPath().toAbsolutePath().normalize()).toString().replace('\\', '/')
-  host.output(relativePolicy, [seed: true]) { text { policySeed } }
+  host.output(relativePolicy, [seed: true]) {
+    text {
+      policySeed
+    }
+  }
   def include = { component, contributor ->
     component.contribute { contributor }
     host.includes(component)

@@ -1,0 +1,10 @@
+# cook:begin cookbook.codex/commands
+# Generated from the selected policy by ./cook cookbook.
+# These literal prefix rules govern execution outside the Codex sandbox.
+# They do not inspect the contents of scripts or enforce instructions as OS controls.
+prefix_rule(pattern = ["git","status"], decision = "allow")
+prefix_rule(pattern = ["git","diff"], decision = "allow")
+prefix_rule(pattern = ["git","log"], decision = "allow")
+prefix_rule(pattern = ["git","push"], decision = "forbidden")
+prefix_rule(pattern = ["git","reset","--hard"], decision = "forbidden")
+# cook:end cookbook.codex/commands

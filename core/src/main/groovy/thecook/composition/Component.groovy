@@ -63,7 +63,9 @@ class Component {
     List<RenderedFile> rendered = outputs.collect { it.render(definition.definitionIdentity) }
     for (Closure supplier : definition.contributors + view.definition.contributors) {
       Contributor contributor = (Contributor) supplier.call()
-      if (contributor.id != id) throw new IllegalArgumentException('Contributor identity differs from its mounted declaration')
+      if (contributor.id != id) {
+        throw new IllegalArgumentException('Contributor identity differs from its mounted declaration')
+      }
       rendered.addAll(RenderedFile.evaluate([contributor]))
     }
     rendered

@@ -14,11 +14,19 @@ class ApplicationRemovalTest {
       settings.text = '{"claude":"original","manual":true}\n'
       def claude = new Kitchen(root).recipe('claude')
       claude.application('agentic.permissions/claude')
-      claude.output('settings.json', [format: 'json']) { key(['claude'], [adopt: true]) { 'managed' } }
+      claude.output('settings.json', [format: 'json']) {
+        key(['claude'], [adopt: true]) {
+          'managed'
+        }
+      }
       claude.mount(); claude.kitchen.plan().apply()
       def codex = new Kitchen(root).recipe('codex')
       codex.application('agentic.permissions/codex')
-      codex.output('settings.json', [format: 'json']) { key(['codex']) { 'kept' } }
+      codex.output('settings.json', [format: 'json']) {
+        key(['codex']) {
+          'kept'
+        }
+      }
       codex.mount(); codex.kitchen.plan().apply()
       def planner = new NativePlanning()
       def preview = planner.remove(root.toPath(), new File(root, 'permission.groovy').toPath(), ['claude'])
@@ -34,7 +42,9 @@ class ApplicationRemovalTest {
       absent.apply()
       assert new File(root, '.cook/state.json').bytes == stateBytes
       assert state.files['settings.json'].regions.size() == 1
-    } finally { root.deleteDir() }
+    } finally {
+      root.deleteDir()
+    }
   }
 
   @Test void driftRejectsRemovalBeforeAnyWriteAndInitSelectsKnownChildren() {
@@ -42,12 +52,20 @@ class ApplicationRemovalTest {
     try {
       def init = new Kitchen(root).recipe('init')
       init.application('agentic.init/git')
-      init.output('managed.txt', [owns: true]) { text { 'original' } }
+      init.output('managed.txt', [owns: true]) {
+        text {
+          'original'
+        }
+      }
       init.mount(); init.kitchen.plan().apply()
       ['claude', 'codex'].each { name ->
         def child = new Kitchen(root).recipe(name)
         child.application('agentic.permissions/' + name)
-        child.output(name + '.txt', [owns: true]) { text { name } }
+        child.output(name + '.txt', [owns: true]) {
+          text {
+            name
+          }
+        }
         child.mount(); child.kitchen.plan().apply()
       }
       def planner = new NativePlanning()
@@ -55,11 +73,17 @@ class ApplicationRemovalTest {
       assert planner.remove(root.toPath(), source, ['claude']).changes == ['claude.txt', 'managed.txt']
       new File(root, 'managed.txt').text = 'edited'
       def state = new File(root, '.cook/state.json').text
-      try { planner.remove(root.toPath(), source, ['claude']); assert false: 'Expected drift rejection' }
-      catch (IllegalStateException expected) { assert expected.message.contains('Edited managed whole file') }
+      try {
+        planner.remove(root.toPath(), source, ['claude']); assert false: 'Expected drift rejection'
+      }
+      catch (IllegalStateException expected) {
+        assert expected.message.contains('Edited managed whole file')
+      }
       assert new File(root, 'managed.txt').text == 'edited'
       assert new File(root, 'codex.txt').text == 'codex'
       assert new File(root, '.cook/state.json').text == state
-    } finally { root.deleteDir() }
+    } finally {
+      root.deleteDir()
+    }
   }
 }

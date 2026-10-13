@@ -137,7 +137,9 @@ sealed class RenderedFile(
           )
         }
 
-        is SeedOutput -> SeedFile(spec.path, spec.content.get())
+        is SeedOutput -> {
+          SeedFile(spec.path, spec.content.get())
+        }
 
         is SymbolicLinkOutput -> {
           ExclusiveFile(spec.path, FileKind.SYMLINK, spec.owner, spec.target, null, spec.adopt, provenance)
@@ -177,4 +179,7 @@ class PartialFile(
   }
 }
 
-class SeedFile(path: TargetPath, val content: String) : RenderedFile(path, FileKind.SEED)
+class SeedFile(
+  path: TargetPath,
+  val content: String,
+) : RenderedFile(path, FileKind.SEED)

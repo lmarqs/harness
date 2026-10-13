@@ -117,8 +117,12 @@ class AgentRecipesTest {
         config: [model: 'selected-model'], hooks: [hooks: [:]], instructions: 'Use project tasks.',
         rules: ['project.rules': 'custom_rule()\n']])
       legacy.mount()
-      try { kitchen.plan(); assert false: 'Legacy ownership was claimed' }
-      catch (IllegalStateException expected) { assert expected.message.contains('Legacy ownership') }
+      try {
+        kitchen.plan(); assert false: 'Legacy ownership was claimed'
+      }
+      catch (IllegalStateException expected) {
+        assert expected.message.contains('Legacy ownership')
+      }
       new Reconciler().plan(new Repository(root), new RenderTree([])).apply()
       kitchen.plan().apply()
       assert kitchen.plan().changes.empty
@@ -152,8 +156,12 @@ class AgentRecipesTest {
       legacy.settings.from(source.settings)
       source.rules = [allow: ['Bash(check *)']]
       legacy.mount()
-      try { kitchen.plan(); assert false: 'Legacy ownership was claimed' }
-      catch (IllegalStateException expected) { assert expected.message.contains('Legacy ownership') }
+      try {
+        kitchen.plan(); assert false: 'Legacy ownership was claimed'
+      }
+      catch (IllegalStateException expected) {
+        assert expected.message.contains('Legacy ownership')
+      }
       new Reconciler().plan(new Repository(root), new RenderTree([])).apply()
       kitchen.plan().apply()
       assert kitchen.plan().changes.empty

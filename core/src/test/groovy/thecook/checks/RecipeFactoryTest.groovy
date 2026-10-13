@@ -12,8 +12,12 @@ class RecipeFactoryTest {
       def book = new Cookbook(new File('../cookbook'))
       assert book.declaration('agentic/permission').name == 'agentic/permission'
       assert book.declaration('agentic/context').name == 'agentic/context'
-      ['ingredients/agent-policy/Policy.groovy', 'ingredients/agent-policy/PolicyFile.groovy',
-       'recipes/agentic/claude/ClaudeFiles.groovy', 'recipes/agentic/codex/CodexFiles.groovy'].each { book.type(it) }
+      [
+        'ingredients/agent-policy/Policy.groovy',
+        'ingredients/agent-policy/PolicyFile.groovy',
+        'recipes/agentic/claude/ClaudeFiles.groovy',
+        'recipes/agentic/codex/CodexFiles.groovy'
+      ].each { book.type(it) }
       def kitchen = new Kitchen(directory)
       def init = book.recipe('agentic/init', kitchen, [harness: ['codex', 'claude']])
       assert init.definition.children*.id*.value == ['permission', 'context']

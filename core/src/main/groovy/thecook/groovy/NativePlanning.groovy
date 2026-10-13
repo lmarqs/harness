@@ -36,8 +36,14 @@ class NativePlanning implements Planning {
     boolean permission = name in ['permission', 'permissions', 'claude', 'codex'] || init
     boolean context = name == 'context'
     List<String> selectedHarnesses = name in ['claude', 'codex'] ? [name] : (harnesses ?: ['claude', 'codex'])
-    Set<String> initApplications = ['agentic.init/cookbook', 'agentic.init/the-cook', 'agentic.init/git',
-        'agentic.init/skills', 'agentic.init/claude-skills', 'agentic.init/agent-policy'] as Set<String>
+    Set<String> initApplications = [
+      'agentic.init/cookbook',
+      'agentic.init/the-cook',
+      'agentic.init/git',
+      'agentic.init/skills',
+      'agentic.init/claude-skills',
+      'agentic.init/agent-policy'
+    ] as Set<String>
     String path = recipe.toString().replace('\\', '/')
     int recipesIndex = path.lastIndexOf('/recipes/')
     String source = recipesIndex < 0 ? path : path.substring(recipesIndex + 1)
@@ -47,17 +53,23 @@ class NativePlanning implements Planning {
           ((context || init) && selectedHarnesses.any { String harness -> id == 'agentic.context/' + harness }) ||
           (provenance[id]?.get('recipe') in [path, source] && harnesses.isEmpty())
     }
-    if (selected.isEmpty()) return new NoChangePlan()
+    if (selected.isEmpty()) {
+      return new NoChangePlan()
+    }
     Map<String, List<thecook.rendering.RenderedFile>> applications = selected.collectEntries { String id -> [(id): []] }
     new NativePlan(new Reconciler().plan(target, new RenderTree([], applications), false, true))
   }
 
   private static class NoChangePlan implements PlanHandle {
     @Override
-    List<String> getChanges() { [] }
+    List<String> getChanges() {
+      []
+    }
 
     @Override
-    void save(Path file) { throw new UnsupportedOperationException('Nothing to save') }
+    void save(Path file) {
+      throw new UnsupportedOperationException('Nothing to save')
+    }
 
     @Override
     void apply() { }

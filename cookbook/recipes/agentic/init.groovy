@@ -3,9 +3,7 @@ import thecook.model.RecipeDeclaration
 import thecook.model.RecipeInput
 import thecook.reconciliation.StateSchema
 
-return new DeclaredRecipe(new RecipeDeclaration('agentic/init', [
-  new RecipeInput.RequiredChoices('harness', ['codex', 'claude'])
-]), { kitchen, book, options ->
+return new DeclaredRecipe(new RecipeDeclaration('agentic/init', [new RecipeInput.RequiredChoices('harness', ['codex', 'claude'])]), { kitchen, book, options ->
   def configured = StateSchema.current(kitchen.repository.state()).applications.keySet()
   def unconfigured = options.harness.findAll { !configured.contains('agentic.permissions/' + it) }
   def policySeed = 'version: 1\ninstructions: []\ncommands: {}\n'
@@ -25,7 +23,11 @@ return new DeclaredRecipe(new RecipeDeclaration('agentic/init', [
   host.application('agentic.init/default')
   if (unconfigured) {
     if (!policyFile.exists()) {
-      host.output('.agents/policy.yaml', [seed: true]) { text { policySeed } }
+      host.output('.agents/policy.yaml', [seed: true]) {
+        text {
+          policySeed
+        }
+      }
     }
     def permissions = kitchen.recipe('permission')
     permissions.application('agentic.permissions/default')

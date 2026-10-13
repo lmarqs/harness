@@ -70,10 +70,12 @@ class Cookbook {
   }
   RecipeDeclaration declarationFile(String relative, String name) {
     def definition = script(relative)
-    if (!(definition instanceof DeclaredRecipe))
+    if (!(definition instanceof DeclaredRecipe)) {
       throw new IllegalArgumentException("Recipe has no argument declaration: ${name}")
-    if (name != null && definition.declaration.name != name)
+    }
+    if (name != null && definition.declaration.name != name) {
       throw new IllegalArgumentException("Recipe identity does not match: ${name}")
+    }
     definition.declaration
   }
   Component recipe(String name, Kitchen kitchen, Map config = [:]) {
@@ -91,19 +93,28 @@ class Cookbook {
   }
   private static Map provenance(String recipe, Map config) {
     [recipe: recipe, inputs: config.keySet().sort().collectEntries { key ->
-      def value = config[key]
-      [(key.toString()): value instanceof Map || value instanceof List ?
+        def value = config[key]
+        [(key.toString()): value instanceof Map || value instanceof List ?
           JsonOutput.toJson(canonicalInput(value)) : String.valueOf(value)]
-    }]
+      }]
   }
   private static Object canonicalInput(Object value) {
-    if (value instanceof Map) return value.keySet().sort().collectEntries { key -> [(key.toString()): canonicalInput(value[key])] }
-    if (value instanceof List) return value.collect { canonicalInput(it) }
+    if (value instanceof Map) {
+      return value.keySet().sort().collectEntries { key ->
+        [(key.toString()): canonicalInput(value[key])]
+      }
+    }
+    if (value instanceof List) {
+      return value.collect {
+        canonicalInput(it)
+      }
+    }
     value
   }
   private Component recipeComponent(Object result, Kitchen kitchen) {
-    if (!(result instanceof Component) || !result.kitchen.is(kitchen))
+    if (!(result instanceof Component) || !result.kitchen.is(kitchen)) {
       throw new IllegalArgumentException('Recipe factory must return a component from its kitchen')
+    }
     result
   }
   private Object factory(String relative, Kitchen kitchen, Map options) {
@@ -114,18 +125,25 @@ class Cookbook {
   }
   private Object factoryDefinition(Object definition, String relative, String name, Kitchen kitchen, Map options) {
     if (definition instanceof DeclaredRecipe) {
-      if (name != null && definition.declaration.name != name)
+      if (name != null && definition.declaration.name != name) {
         throw new IllegalArgumentException("Recipe identity does not match: ${name}")
+      }
       def raw = options.collectEntries { key, value ->
         [(key.toString()): value instanceof List ? value.collect { it.toString() } : [value.toString()]]
       }
       return definition.factory.call(kitchen, this, RecipeArguments.validate(definition.declaration, raw))
     }
-    if (!(definition instanceof Closure)) throw new IllegalArgumentException("Cookbook definition must return a factory: ${relative}")
-    if (!(options instanceof RawRecipeArguments)) return definition.call(kitchen, this, options)
+    if (!(definition instanceof Closure)) {
+      throw new IllegalArgumentException("Cookbook definition must return a factory: ${relative}")
+    }
+    if (!(options instanceof RawRecipeArguments)) {
+      return definition.call(kitchen, this, options)
+    }
     def scalar = options.collectEntries { key, value ->
       if (value instanceof List) {
-        if (value.size() != 1) throw new IllegalArgumentException("Argument may only be supplied once: ${key}")
+        if (value.size() != 1) {
+          throw new IllegalArgumentException("Argument may only be supplied once: ${key}")
+        }
         return [(key): value[0]]
       }
       [(key): value]

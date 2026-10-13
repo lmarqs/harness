@@ -13,7 +13,11 @@ import thecook.reconciliation.StateSchema
 class ApplicationStateTest {
   private static void workspace(Closure test) {
     def root = Files.createTempDirectory('cook-application-state-').toFile()
-    try { test(root) } finally { root.deleteDir() }
+    try {
+      test(root)
+    } finally {
+      root.deleteDir()
+    }
   }
 
   private static Map readState(File root) {
@@ -31,7 +35,11 @@ class ApplicationStateTest {
       new File(root, '.claude').mkdirs()
       new File(root, '.claude/settings.json').text = '{"permissions":{"mode":"original"},"manual":true}\n'
       def old = new Kitchen(root)
-      def git = old.ingredient('git'); git.output('.gitignore') { block('ignore') { 'cache/' } }; git.mount()
+      def git = old.ingredient('git'); git.output('.gitignore') {
+        block('ignore') {
+          'cache/'
+        }
+      }; git.mount()
       def agent = old.ingredient('agent'); agent.output('.claude/settings.json', [format: 'json']) {
         key(['permissions', 'mode'], [adopt: true]) { 'managed' }
       }; agent.mount()
@@ -41,7 +49,11 @@ class ApplicationStateTest {
 
       def next = new Kitchen(root)
       def recipe = next.recipe('new'); recipe.application('agentic.permissions/new')
-      recipe.output('.claude/settings.json', [format: 'json']) { key(['permissions', 'allow']) { ['build'] } }
+      recipe.output('.claude/settings.json', [format: 'json']) {
+        key(['permissions', 'allow']) {
+          ['build']
+        }
+      }
       recipe.mount()
       def plan = next.plan()
       assert new File(root, '.cook/state.json').bytes == before
@@ -61,7 +73,11 @@ class ApplicationStateTest {
   @Test void matchingLegacyContentAndRecipeNameCannotClaimOwnership() {
     workspace { root ->
       def old = new Kitchen(root)
-      def writer = old.ingredient('git'); writer.output('.gitignore') { block('ignore') { 'cache/' } }; writer.mount()
+      def writer = old.ingredient('git'); writer.output('.gitignore') {
+        block('ignore') {
+          'cache/'
+        }
+      }; writer.mount()
       old.plan().apply()
       downgradeToVersionTwo(root)
       def beforeState = new File(root, '.cook/state.json').bytes
@@ -69,9 +85,17 @@ class ApplicationStateTest {
       def next = new Kitchen(root)
       def recipe = next.recipe('git'); recipe.application('agentic.permissions/git')
       recipe.definition.provenance = [recipe: 'recipes/git/recipe.groovy', inputs: [policy: '.agents/policy.yaml']]
-      recipe.output('.gitignore') { block('ignore') { 'cache/' } }; recipe.mount()
-      try { next.plan(); assert false: 'Legacy contribution was reassigned' }
-      catch (IllegalStateException expected) { assert expected.message.contains('Legacy ownership') && expected.message.contains('unmount') }
+      recipe.output('.gitignore') {
+        block('ignore') {
+          'cache/'
+        }
+      }; recipe.mount()
+      try {
+        next.plan(); assert false: 'Legacy contribution was reassigned'
+      }
+      catch (IllegalStateException expected) {
+        assert expected.message.contains('Legacy ownership') && expected.message.contains('unmount')
+      }
       assert new File(root, '.cook/state.json').bytes == beforeState
       assert new File(root, '.gitignore').bytes == beforeOutput
     }
@@ -81,9 +105,17 @@ class ApplicationStateTest {
     workspace { root ->
       def old = new Kitchen(root)
       def known = old.recipe('known'); known.application('fixture/known')
-      known.output('.gitignore') { block('known') { 'known/' } }; known.mount()
+      known.output('.gitignore') {
+        block('known') {
+          'known/'
+        }
+      }; known.mount()
       def unknown = old.ingredient('unknown')
-      unknown.output('.gitignore') { block('unknown') { 'unknown/' } }; unknown.mount()
+      unknown.output('.gitignore') {
+        block('unknown') {
+          'unknown/'
+        }
+      }; unknown.mount()
       old.plan().apply()
       def stateFile = new File(root, '.cook/state.json')
       def state = readState(root)
@@ -131,14 +163,25 @@ class ApplicationStateTest {
     workspace { root ->
       new File(root, 'keep.txt').text = 'manual'
       def state = new File(root, '.cook/state.json'); state.parentFile.mkdirs()
-      ['{"version":4,"files":{}}', '{"version":3,"files":{},"applications":{},"legacy":{"keep.txt":["*"]},"provenance":{}}',
-       '{"version":3,"files":{},"applications":{},"legacy":{},"provenance":{},"unknown":true}'].each { invalid ->
+      [
+        '{"version":4,"files":{}}',
+        '{"version":3,"files":{},"applications":{},"legacy":{"keep.txt":["*"]},"provenance":{}}',
+        '{"version":3,"files":{},"applications":{},"legacy":{},"provenance":{},"unknown":true}'
+      ].each { invalid ->
         state.text = invalid
         def kitchen = new Kitchen(root)
         def recipe = kitchen.recipe('new'); recipe.application('fixture/new')
-        recipe.output('new.txt', [owns: true]) { text { 'new' } }; recipe.mount()
-        try { kitchen.plan(); assert false: 'Invalid state was accepted' }
-        catch (IllegalArgumentException expected) { assert expected.message.contains('Unsupported or malformed') }
+        recipe.output('new.txt', [owns: true]) {
+          text {
+            'new'
+          }
+        }; recipe.mount()
+        try {
+          kitchen.plan(); assert false: 'Invalid state was accepted'
+        }
+        catch (IllegalArgumentException expected) {
+          assert expected.message.contains('Unsupported or malformed')
+        }
         assert state.text == invalid
         assert new File(root, 'keep.txt').text == 'manual'
         assert !new File(root, 'new.txt').exists()

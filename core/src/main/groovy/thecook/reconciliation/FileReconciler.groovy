@@ -75,10 +75,15 @@ class FileReconciler {
     String next = desired?.content
     if (before && snapshot.content != before.rendered && (desired == null || snapshot.content != next))
       throw new IllegalStateException('Edited managed whole file')
-    if (!before && snapshot.exists && !desired.adopt)
+    if (!before && snapshot.exists && !desired.adopt) {
       throw new IllegalStateException('Unmanaged whole file already exists; explicit adopt required')
-    if (eject) return new FileResult(snapshot.content, snapshot.mode, null)
-    if (!desired) return new FileResult(before.original.content, before.original.mode, null)
+    }
+    if (eject) {
+      return new FileResult(snapshot.content, snapshot.mode, null)
+    }
+    if (!desired) {
+      return new FileResult(before.original.content, before.original.mode, null)
+    }
     def mode = desired.mode ? Permissions.parse(desired.mode) : (snapshot.mode ?: 'rw-r--r--')
     new FileResult(next, mode, new ExclusiveRecord(FileKind.WHOLE, desired.owner, next,
         before ? before.original : snapshot, mode, desired.definitionIdentity ?: before?.definitionIdentity))

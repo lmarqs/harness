@@ -7,10 +7,7 @@ import thecook.model.RecipeDeclaration
 import thecook.model.RecipeInput
 
 class RecipeArgumentsTest {
-  private final RecipeDeclaration declaration = new RecipeDeclaration('declared', [
-    new RecipeInput.RequiredPath('policy'),
-    new RecipeInput.RequiredChoices('harness', ['codex', 'claude'])
-  ])
+  private final RecipeDeclaration declaration = new RecipeDeclaration('declared', [new RecipeInput.RequiredPath('policy'), new RecipeInput.RequiredChoices('harness', ['codex', 'claude'])])
 
   @Test void normalizesScalarAndRepeatableValuesWithoutLosingOrder() {
     def values = RecipeArguments.validate(declaration,
@@ -18,7 +15,7 @@ class RecipeArgumentsTest {
     assert values.policy == '.agents/policy.yaml'
     assert values.harness == ['claude', 'codex']
     assert RecipeArguments.validate(declaration,
-        [policy: ['.agents/policy.yaml'], harness: ['codex']]).harness == ['codex']
+    [policy: ['.agents/policy.yaml'], harness: ['codex']]).harness == ['codex']
   }
 
   @Test void optionalChoiceIsAbsentByDefaultAndAcceptsOneSupportedValue() {

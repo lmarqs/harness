@@ -116,8 +116,12 @@ class RenderTree {
         if (!components.contains(dependency)) throw new IllegalArgumentException("${component.id} requires mounted ${((Component) dependency).id}")
       }
       Object slot = ((Map) component.definition.parameters).get('slot')
-      if (slot && slots.containsKey(slot)) throw new IllegalArgumentException("Multiple components in slot ${slot}")
-      if (slot) slots[slot] = component
+      if (slot && slots.containsKey(slot)) {
+        throw new IllegalArgumentException("Multiple components in slot ${slot}")
+      }
+      if (slot) {
+        slots[slot] = component
+      }
     }
   }
 }

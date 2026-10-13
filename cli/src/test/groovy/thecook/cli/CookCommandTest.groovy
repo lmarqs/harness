@@ -177,8 +177,10 @@ class CookCommandTest {
       def cli = command(stdout, stderr)
       def base = ['declared', '--repo', repo.path, '--policy=.agents/policy.yaml']
       for (invalid in [
-            ['--harness=other'], ['--harness=codex', '--policy=again'],
-            ['--harness=codex', '--unknown=x'], []
+            ['--harness=other'],
+            ['--harness=codex', '--policy=again'],
+            ['--harness=codex', '--unknown=x'],
+            []
           ]) {
         stderr.reset()
         assert cli.execute((base + invalid) as String[]) == 1 : invalid
@@ -198,8 +200,17 @@ class CookCommandTest {
       def externalPolicy = new File(externalRepo, '.agents/policy.yaml'); externalPolicy.parentFile.mkdirs()
       externalPolicy.text = 'destination\n'
       stderr.reset()
-      assert cli.execute([external.path, '--repo', externalRepo.path, '--set',
-          'policy=.agents/policy.yaml', '--set', 'harness=codex', '--set', 'harness=claude'] as String[]) == 0 : stderr.toString('UTF-8')
+      assert cli.execute([
+        external.path,
+        '--repo',
+        externalRepo.path,
+        '--set',
+        'policy=.agents/policy.yaml',
+        '--set',
+        'harness=codex',
+        '--set',
+        'harness=claude'
+      ] as String[]) == 0 : stderr.toString('UTF-8')
       output = new JsonSlurper().parse(new File(externalRepo, 'selection.json'))
       assert output.policy == 'destination'
       assert output.harness == 'codex,claude'
@@ -235,8 +246,17 @@ class CookCommandTest {
       assert cli.execute((['agentic/permission'] + options) as String[]) == 0 : err.toString('UTF-8')
       assert out.toString('UTF-8').trim() == 'Already cooked.'
       out.reset()
-      assert cli.execute(['agentic/permission', '--repo', repo.path, '--set', 'policy=.agents/policy.yaml',
-          '--set', 'harness=codex', '--set', 'harness=claude'] as String[]) == 0 : err.toString('UTF-8')
+      assert cli.execute([
+        'agentic/permission',
+        '--repo',
+        repo.path,
+        '--set',
+        'policy=.agents/policy.yaml',
+        '--set',
+        'harness=codex',
+        '--set',
+        'harness=claude'
+      ] as String[]) == 0 : err.toString('UTF-8')
       assert out.toString('UTF-8').trim() == 'Already cooked.'
     }
   }
@@ -262,10 +282,10 @@ class CookCommandTest {
       def before = new File(repo, 'selection.json').text
       def ownership = new File(repo, '.cook/state.json').text
       for (args in [
-          valid + ['--set', 'policy=other'],
-          valid + ['--harness=invalid'],
-          [new File(repo, 'missing.groovy').path, '--repo', repo.path, '--policy=x']
-        ]) {
+            valid + ['--set', 'policy=other'],
+            valid + ['--harness=invalid'],
+            [new File(repo, 'missing.groovy').path, '--repo', repo.path, '--policy=x']
+          ]) {
         err.reset()
         assert cli.execute(args as String[]) != 0 : args
         assert new File(repo, 'selection.json').text == before
@@ -299,8 +319,7 @@ class CookCommandTest {
       def cli = command(out, err)
       assert cli.execute([source.path, '--repo', repo.path, '--help'] as String[]) == 0 : err.toString('UTF-8')
       assert out.toString('UTF-8').contains('--harness')
-      assert cli.execute([source.path, '--repo', repo.path, '--policy=.agents/policy.yaml',
-          '--harness=codex', '--harness=claude'] as String[]) == 0 : err.toString('UTF-8')
+      assert cli.execute([source.path, '--repo', repo.path, '--policy=.agents/policy.yaml', '--harness=codex', '--harness=claude'] as String[]) == 0 : err.toString('UTF-8')
       assert new JsonSlurper().parse(new File(repo, 'selection.json')).harness == 'codex,claude'
     }
   }

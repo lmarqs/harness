@@ -8,8 +8,8 @@ import thecook.model.RecipeInput
 class Declaration {
   static RecipeDeclaration describe() {
     new RecipeDeclaration('declared', [
-        new RecipeInput.RequiredPath('policy'),
-        new RecipeInput.RequiredChoices('harness', ['codex', 'claude'])
+      new RecipeInput.RequiredPath('policy'),
+      new RecipeInput.RequiredChoices('harness', ['codex', 'claude'])
     ])
   }
 }

@@ -102,7 +102,11 @@ class StateSchema {
       [(key): item instanceof Map ? sorted(item) : item instanceof List ? item.collect { it instanceof Map ? sorted(it) : it } : item]
     }
     if (value.version == 3 && value.files instanceof Map) {
-      result.applications.each { id, paths -> paths.each { path, addresses -> paths[path] = addresses.toList().sort() } }
+      result.applications.each { id, paths ->
+        paths.each { path, addresses ->
+          paths[path] = addresses.toList().sort()
+        }
+      }
       result.legacy.each { path, addresses -> result.legacy[path] = addresses.toList().sort() }
     }
     result
@@ -123,6 +127,8 @@ class StateSchema {
     require(value instanceof String && value && !value.toCharArray().any { it < 32 || it == 127 })
   }
   private static void require(boolean condition) {
-    if (!condition) throw new IllegalArgumentException('Invalid state shape')
+    if (!condition) {
+      throw new IllegalArgumentException('Invalid state shape')
+    }
   }
 }
