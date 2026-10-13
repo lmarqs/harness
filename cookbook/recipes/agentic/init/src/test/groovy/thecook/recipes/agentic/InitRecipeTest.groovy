@@ -44,6 +44,10 @@ class InitRecipeTest {
       assert new File(root, 'CLAUDE.md').text.contains('@AGENTS.md')
       assert new File(root, '.codex/config.toml').text.contains('sandbox_mode = "workspace-write"')
       assert new JsonSlurper().parse(new File(root, '.claude/settings.json')).permissions.allow == []
+      def state = new JsonSlurper().parse(new File(root, '.cook/state.json'))
+      assert state.provenance['agentic.permissions/claude'].recipe == 'recipes/agentic/permission/recipe.groovy'
+      assert state.provenance['agentic.permissions/codex'].inputs.policy == '.agents/policy.yaml'
+      assert state.provenance['agentic.context/claude'].recipe == 'recipes/agentic/context/recipe.groovy'
       assert !new File(root, 'cook.groovy').exists()
       def kitchen = new Kitchen(root)
       book.recipe('agentic/init', kitchen, [harness: ['codex', 'claude']]).mount()
@@ -60,9 +64,11 @@ class InitRecipeTest {
       permission(root, book, 'unattended.yaml', ['codex'])
       def claude = new File(root, '.claude/settings.json').bytes
       def codex = new File(root, '.codex/rules/cookbook.rules').bytes
+      def provenance = new JsonSlurper().parse(new File(root, '.cook/state.json')).provenance
       apply(root, book, ['claude', 'codex'])
       assert new File(root, '.claude/settings.json').bytes == claude
       assert new File(root, '.codex/rules/cookbook.rules').bytes == codex
+      assert new JsonSlurper().parse(new File(root, '.cook/state.json')).provenance['agentic.permissions/claude'] == provenance['agentic.permissions/claude']
       assert !new File(root, '.agents/policy.yaml').exists()
       assert new File(root, 'CLAUDE.md').text.contains('@AGENTS.md')
     }

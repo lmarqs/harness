@@ -8,15 +8,18 @@ return new DeclaredRecipe(new RecipeDeclaration('agentic/permission', [
   new RecipeInput.RequiredPath('policy'),
   harnessInput,
   new RecipeInput.OptionalChoices('adopt', ['true', 'false'])
-], new RecipeRemoval(harnessInput, [codex: ['agentic.permissions/codex'], claude: ['agentic.permissions/claude']], ['policy'] as Set)), { kitchen, book, options ->
-  def policyFile = new File(options.policy)
-  if (!policyFile.isAbsolute()) {
-    policyFile = new File(kitchen.repository.directory, policyFile.path)
+], new RecipeRemoval(harnessInput, [codex: ['agentic.permissions/codex'], claude: ['agentic.permissions/claude']], ['policy'] as Set)), { kitchen, book, options, suppliedPolicy = null ->
+  def policy = suppliedPolicy
+  if (policy == null) {
+    def policyFile = new File(options.policy)
+    if (!policyFile.isAbsolute()) {
+      policyFile = new File(kitchen.repository.directory, policyFile.path)
+    }
+    if (java.nio.file.Files.isSymbolicLink(policyFile.toPath())) {
+      throw new IllegalArgumentException('Policy source must be a regular file: ' + policyFile)
+    }
+    policy = book.type('ingredients/agent-policy/PolicyFile.groovy').read(policyFile)
   }
-  if (java.nio.file.Files.isSymbolicLink(policyFile.toPath())) {
-    throw new IllegalArgumentException('Policy source must be a regular file: ' + policyFile)
-  }
-  def policy = book.type('ingredients/agent-policy/PolicyFile.groovy').read(policyFile)
   boolean adopt = options.adopt == 'true'
   def host = kitchen.recipe('permission')
   host.application('agentic.permissions/default')

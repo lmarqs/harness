@@ -395,6 +395,42 @@ return new DeclaredRecipe(new RecipeDeclaration('custom', [target],
     }
   }
 
+  @Test void relocatedPermissionFactoryKeepsDeclaredIdentityAndRemoval() {
+    workspace { root, repo, ignored ->
+      def original = new File(repo, 'cookbook/recipes/agentic/permission.groovy')
+      original.parentFile.mkdirs()
+      original.text = new File('../cookbook/recipes/agentic/permission.groovy').text
+      def source = new File(repo, 'cookbook/recipes/renamed.groovy')
+      source.parentFile.mkdirs()
+      source.text = original.text
+      def policy = new File(repo, '.agents/interactive.yaml')
+      policy.parentFile.mkdirs()
+      policy.text = 'version: 1\ncommands:\n  allow:\n    - [git, status]\n'
+      def out = new ByteArrayOutputStream(); def err = new ByteArrayOutputStream()
+      def cli = command(out, err)
+      def args = [source.path, '--repo', repo.path, '--policy=.agents/interactive.yaml', '--harness=claude']
+      assert cli.execute((['agentic/permission'] + args.tail()) as String[]) == 0 : err.toString('UTF-8')
+      def previous = new JsonSlurper().parse(new File(repo, '.cook/state.json')).applications['agentic.permissions/claude']
+      assert cli.execute([source.path, '--repo', repo.path, '--help'] as String[]) == 0 : err.toString('UTF-8')
+      assert out.toString('UTF-8').contains('agentic/permission')
+      assert cli.execute(args as String[]) == 0 : err.toString('UTF-8')
+      assert new File(repo, '.claude/settings.json').exists()
+      def state = new JsonSlurper().parse(new File(repo, '.cook/state.json'))
+      assert state.applications.containsKey('agentic.permissions/claude')
+      assert state.applications['agentic.permissions/claude'] == previous
+      assert state.provenance['agentic.permissions/claude'].recipe == 'recipes/renamed.groovy'
+      assert state.provenance['agentic.permissions/claude'].inputs.policy == '.agents/interactive.yaml'
+      out.reset()
+      assert cli.execute(args as String[]) == 0 : err.toString('UTF-8')
+      assert out.toString('UTF-8').trim() == 'Already cooked.'
+      err.reset()
+      assert cli.execute(['renamed', '--repo', repo.path, '--help'] as String[]) == 1
+      assert err.toString('UTF-8').contains('Recipe identity does not match')
+      assert cli.execute([source.path, '--repo', repo.path, '--harness=claude', '--remove'] as String[]) == 0
+      assert !new File(repo, '.claude/settings.json').exists()
+    }
+  }
+
   @Test void localRecipeOverridesPackagedFactory() {
     workspace { root, repo, script ->
       Fixtures.copy('recipe-override', repo)

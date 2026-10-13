@@ -32,7 +32,7 @@ class RepositoryScript {
       String source = 'recipes/' + relative
       if (!script.isFile() && !book.classes.getResource('META-INF/the-cook/' + source))
         throw new IllegalArgumentException('Recipe not found: ' + name)
-      book.recipeFile(source, name, kitchen, preferences.values().every { it instanceof List } ?
+      book.recipeFile(source, null, kitchen, preferences.values().every { it instanceof List } ?
       new RawRecipeArguments(preferences) : preferences).mount()
       return kitchen.render()
     }

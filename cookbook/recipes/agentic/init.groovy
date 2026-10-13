@@ -33,20 +33,8 @@ return new DeclaredRecipe(new RecipeDeclaration('agentic/init', [harnessInput], 
         }
       }
     }
-    def permissions = kitchen.recipe('permission')
-    permissions.application('agentic.permissions/default')
-    unconfigured.each { harness ->
-      def renderer = book.type("recipes/agentic/${harness}/${harness.capitalize()}Files.groovy")
-          .newInstance(policy, false)
-      if (harness == 'claude') {
-        renderer.instructions = null
-      }
-      def child = kitchen.recipe(renderer.id.value)
-      child.application('agentic.permissions/' + harness)
-      child.contribute { renderer }
-      permissions.includes(child)
-    }
-    host.includes(permissions)
+    host.includes(book.recipeWith('agentic/permission', kitchen,
+        [policy: '.agents/policy.yaml', harness: unconfigured], policy))
   }
   host.includes(book.recipe('agentic/context', kitchen, [harness: options.harness]))
   host

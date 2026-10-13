@@ -48,6 +48,9 @@ class PermissionRecipeTest {
       def beforeClaude = claude.text
       def beforeClaudeOwner = new JsonSlurper().parse(new File(root, '.cook/state.json')).applications['agentic.permissions/claude']
       apply(root, book, 'policy.unattended.yaml', ['codex'])
+      def selected = new JsonSlurper().parse(new File(root, '.cook/state.json')).provenance
+      assert selected['agentic.permissions/claude'].inputs.policy == '.agents/policy.interactive.yaml'
+      assert selected['agentic.permissions/codex'].inputs.policy == '.agents/policy.unattended.yaml'
       assert claude.text == beforeClaude
       assert new JsonSlurper().parse(new File(root, '.cook/state.json')).applications['agentic.permissions/claude'] == beforeClaudeOwner
       assert new JsonSlurper().parse(claude).model == 'manual'
@@ -61,12 +64,20 @@ class PermissionRecipeTest {
       def beforeCodex = codex.text
       interactive.text = interactive.text.replace('check', 'test')
       apply(root, book, interactive.name, ['claude'])
+      selected = new JsonSlurper().parse(new File(root, '.cook/state.json')).provenance
+      assert selected['agentic.permissions/claude'].inputs.policy == '.agents/policy.interactive.yaml'
+      assert selected['agentic.permissions/codex'].inputs.policy == '.agents/policy.unattended.yaml'
       assert claude.text.contains('mise run test')
       assert codex.text == beforeCodex
       assert new File(root, '.codex/rules/cookbook.rules').text.contains('"status"')
-      apply(root, book, interactive.name, ['claude'])
+      policy(root, 'policy.renamed.yaml', 'mise, run, test')
+      apply(root, book, 'policy.renamed.yaml', ['claude'])
+      selected = new JsonSlurper().parse(new File(root, '.cook/state.json')).provenance
+      assert selected['agentic.permissions/claude'].inputs.policy == '.agents/policy.renamed.yaml'
+      assert selected['agentic.permissions/codex'].inputs.policy == '.agents/policy.unattended.yaml'
+      apply(root, book, 'policy.renamed.yaml', ['claude'])
       def kitchen = new Kitchen(root)
-      book.recipe('agentic/permission', kitchen, [policy: '.agents/' + interactive.name, harness: ['claude']]).mount()
+      book.recipe('agentic/permission', kitchen, [policy: '.agents/policy.renamed.yaml', harness: ['claude']]).mount()
       assert kitchen.plan().changes.empty
     }
   }

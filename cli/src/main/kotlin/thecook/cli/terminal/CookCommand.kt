@@ -181,7 +181,20 @@ class CookCommand(
           script
             ?: repository.resolve("cook.groovy")
         }
-      if (wantsHelp) return if (recipeInput) RecipeHelp(recipe) else Help
+      if (wantsHelp) return if (recipeInput) RecipeHelp(recipe, if (namedRecipe) entrypoint else null) else Help
+      if (namedRecipe) {
+        val declared = try {
+          declaration(recipe)
+        } catch (error: IllegalArgumentException) {
+          if (error.message?.startsWith("Recipe has no argument declaration:") != true &&
+            error.message?.startsWith("Cookbook source not found:") != true
+          ) throw error
+          null
+        }
+        if (declared != null && declared.name != entrypoint) {
+          throw IllegalArgumentException("Recipe identity does not match: $entrypoint")
+        }
+      }
       val removalApplications = if (remove) RecipeArguments.removal(declaration(recipe), preferences) else emptySet()
       return Cook(repository, recipe, libraries, inputs, dryRun, remove, removalApplications)
     }
@@ -217,6 +230,9 @@ class CookCommand(
 
   private fun recipeHelp(command: RecipeHelp): String {
     val declaration = declaration(command.script)
+    if (command.expectedName != null && declaration.name != command.expectedName) {
+      throw IllegalArgumentException("Recipe identity does not match: ${command.expectedName}")
+    }
     val arguments = declaration.arguments.joinToString("\n") { input ->
       when (input) {
         is RecipeInput.RequiredPath -> "  --${input.name} PATH  required, once"
@@ -236,9 +252,7 @@ class CookCommand(
     val cookbook = if (recipesIndex < 0) source.parent else
       source.root.resolve(parts.take(recipesIndex).fold(Path.of("")) { path, part -> path.resolve(part) })
     val relative = if (recipesIndex < 0) source.fileName.toString() else parts.drop(recipesIndex).joinToString("/")
-    val name = if (recipesIndex < 0) null else
-      relative.removePrefix("recipes/").removeSuffix("/recipe.groovy").removeSuffix(".groovy")
-    return Cookbook(cookbook.toFile()).declarationFile(relative, name)
+    return Cookbook(cookbook.toFile()).declarationFile(relative, null)
   }
 
   private fun path(
@@ -255,7 +269,7 @@ class CookCommand(
 
   private data object Help : Command
 
-  private data class RecipeHelp(val script: Path) : Command
+  private data class RecipeHelp(val script: Path, val expectedName: String?) : Command
 
   private data class Init(
     val repository: Path,

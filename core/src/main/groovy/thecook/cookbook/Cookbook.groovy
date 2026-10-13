@@ -83,18 +83,33 @@ class Cookbook {
   }
   Component recipeFile(String relative, String name, Kitchen kitchen, Map config = [:]) {
     def component = recipeComponent(factory(relative, name, kitchen, config), kitchen)
-    component.definition.provenance = provenance(relative, config)
+    markProvenance(component, provenance(relative, config))
+    component
+  }
+  Component recipeWith(String name, Kitchen kitchen, Map config, Object supplied) {
+    String relative = "recipes/${name}/recipe.groovy"
+    def definition = script(relative)
+    if (!(definition instanceof DeclaredRecipe)) {
+      throw new IllegalArgumentException("Recipe has no argument declaration: ${name}")
+    }
+    def component = recipeComponent(factoryDefinition(definition, relative, name, kitchen, config, supplied), kitchen)
+    markProvenance(component, provenance(relative, config))
     component
   }
   Component recipeValue(Object definition, Kitchen kitchen, Map config = [:], String source = '<direct recipe>') {
     def component = recipeComponent(factoryDefinition(definition, '<direct recipe>', null, kitchen, config), kitchen)
-    component.definition.provenance = provenance(source, config)
+    markProvenance(component, provenance(source, config))
     component
+  }
+  private static void markProvenance(Component component, Map source) {
+    if (!component.definition.provenance) component.definition.provenance = source
+    component.definition.children.each { Component child -> markProvenance(child, source) }
   }
   private static Map provenance(String recipe, Map config) {
     [recipe: recipe, inputs: config.keySet().sort().collectEntries { key ->
         def value = config[key]
-        [(key.toString()): value instanceof Map || value instanceof List ?
+        [(key.toString()): value instanceof List && value.size() == 1 ? String.valueOf(value[0]) :
+          value instanceof Map || value instanceof List ?
           JsonOutput.toJson(canonicalInput(value)) : String.valueOf(value)]
       }]
   }
@@ -123,7 +138,7 @@ class Cookbook {
   private Object factory(String relative, String name, Kitchen kitchen, Map options) {
     factoryDefinition(script(relative), relative, name, kitchen, options)
   }
-  private Object factoryDefinition(Object definition, String relative, String name, Kitchen kitchen, Map options) {
+  private Object factoryDefinition(Object definition, String relative, String name, Kitchen kitchen, Map options, Object supplied = null) {
     if (definition instanceof DeclaredRecipe) {
       if (name != null && definition.declaration.name != name) {
         throw new IllegalArgumentException("Recipe identity does not match: ${name}")
@@ -131,7 +146,9 @@ class Cookbook {
       def raw = options.collectEntries { key, value ->
         [(key.toString()): value instanceof List ? value.collect { it.toString() } : [value.toString()]]
       }
-      return definition.factory.call(kitchen, this, RecipeArguments.validate(definition.declaration, raw))
+      def validated = RecipeArguments.validate(definition.declaration, raw)
+      return supplied == null ? definition.factory.call(kitchen, this, validated) :
+          definition.factory.call(kitchen, this, validated, supplied)
     }
     if (!(definition instanceof Closure)) {
       throw new IllegalArgumentException("Cookbook definition must return a factory: ${relative}")
