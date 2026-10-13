@@ -28,6 +28,8 @@ The core and CLI use Kotlin, with Groovy document and filesystem adapters. Cookb
 ./cook cookbook --policy=.agents/policy.yaml
 ```
 
+`./gradlew check` includes `spotlessCheck`, which enforces the format of Kotlin (ktlint), Groovy and Gradle (Groovy-Eclipse, [settings](gradle/spotless/greclipse.properties)) and plain-text files, with 2-space indentation per [`.editorconfig`](.editorconfig). `./gradlew spotlessApply` fixes violations. The Groovy formatter on Java 17 cannot parse the `!in` operator; write `!(a in b)` instead.
+
 The agent setup recipe requires a policy file and shared skills; see its [README](recipes/cookbook/README.md). See [the core implementation](core/README.md) for ownership, contribution identities, migration and differences from the earlier design documents.
 
 ## Read next

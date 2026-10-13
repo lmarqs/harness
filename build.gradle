@@ -1,5 +1,6 @@
 plugins {
     id 'dev.thecook'
+    id 'com.diffplug.spotless' version '8.10.4'
 }
 
 repositories {
@@ -32,7 +33,32 @@ cook.parameters = gradle.startParameter.projectProperties.findAll { !(it.key in 
 
 cook.ingredientArtifacts = configurations.cookbookIngredients
 
-tasks.register('check') {
+spotless {
+    def generated = ['**/build/**', '**/.gradle/**', '.cook/**']
+    kotlin {
+        target '**/*.kt'
+        targetExclude generated
+        ktlint('1.8.0')
+    }
+    groovy {
+        target '**/*.groovy'
+        targetExclude generated
+        greclipse().configFile('gradle/spotless/greclipse.properties')
+    }
+    groovyGradle {
+        target '**/*.gradle'
+        targetExclude generated
+        greclipse().configFile('gradle/spotless/greclipse.properties')
+    }
+    format 'misc', {
+        target '**/*.md', '**/*.properties', '**/*.sh', '**/*.toml', '.gitignore'
+        targetExclude generated + ['gradle/wrapper/**']
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+}
+
+tasks.named('check') {
     dependsOn gradle.includedBuild('core').task(':check'), gradle.includedBuild('cli').task(':check')
 }
 

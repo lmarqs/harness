@@ -7,7 +7,7 @@ import thecook.cookbook.targets.claude.Claude
 import thecook.cookbook.targets.codex.Codex
 import thecook.model.Batch
 
-def unknown = preferences.keySet().findAll { it !in ['policy', 'skills-home', 'adopt'] }
+def unknown = preferences.keySet().findAll { !(it in ['policy', 'skills-home', 'adopt']) }
 if (unknown) throw new IllegalArgumentException('Unknown recipe argument: ' + unknown.join(', '))
 if (!preferences.policy) throw new IllegalArgumentException('Required argument: --policy')
 def adoption = preferences.containsKey('adopt') ? preferences.adopt : 'false'
