@@ -11,21 +11,7 @@ class JpackageTest {
       assert run(root, '--help').contains('Usage:')
       run(root, 'init')
       assert new File(root, 'cook.groovy').isFile()
-      new File(root, 'cook.groovy').text = '''
-        import thecook.cookbook.ingredients.git.Git
-        import thecook.cookbook.ingredients.ralphtui.*
-        import thecook.cookbook.ingredients.agentpolicy.Policy
-        import thecook.cookbook.recipes.agentic.codex.CodexFiles
-        import thecook.cookbook.recipes.agentic.claude.ClaudeFiles
-        import thecook.model.Batch
-        def ralph = new Ralph(new RalphConfig(agent: 'codex'))
-        def git = new Git()
-        git.ignore.add(ralph.files.local)
-        def policy = new Policy([], [new Policy.Command(Policy.Decision.DENY, ['git', 'reset', '--hard'])])
-        new Batch('packaged').include(git).include(ralph)
-          .include(new CodexFiles(policy)).include(new ClaudeFiles(policy))
-      '''
-      new File(root, '.gitignore').text = '# manual\n'
+      Fixtures.copy('packaged-repository', root)
       assert run(root, 'cook', '--dry-run').contains('Would cook .gitignore')
       assert !new File(root, '.ralph-tui').exists()
       assert run(root, 'cook').contains('Cooked .gitignore')
@@ -35,6 +21,9 @@ class JpackageTest {
       assert new File(root, '.claude/settings.json').text.contains('Bash(git reset --hard *)')
       assert run(root, 'cook').trim() == 'Already cooked.'
       assert run(root, 'init', '--unknown', 'x', 2).contains('Unknown option')
+      def nested = new File(root, 'nested'); nested.mkdirs()
+      assert run(nested, 'agentic/codex', '--instructions=Use tests.').contains('Cooked AGENTS.md')
+      assert run(nested, 'agentic/codex', '--instructions=Use tests.').trim() == 'Already cooked.'
     } finally {
       root.deleteDir()
     }

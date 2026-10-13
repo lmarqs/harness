@@ -22,8 +22,7 @@ class CookExtension {
   }
   RenderTree render() {
     if (!script) return kitchen().render()
-    def batch = new RepositoryScript(ingredientArtifacts.toList()).evaluate(script, repository, parameters)
-    RenderTree.from(batch)
+    new RepositoryScript(ingredientArtifacts.toList()).evaluate(script, repository, parameters)
   }
 
   def plan() {

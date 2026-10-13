@@ -2,7 +2,6 @@ package thecook.cli.terminal
 
 import thecook.application.CookService
 import java.io.PrintWriter
-import java.nio.file.Files
 import java.nio.file.InvalidPathException
 import java.nio.file.Path
 
@@ -77,7 +76,7 @@ class CookCommand(
     val localScript = entrypoint.endsWith(".groovy") && !entrypoint.contains("://")
     val builtins = setOf("init", "cook", "plan", "apply")
     val namedRecipe = !localScript && entrypoint !in builtins
-    if (namedRecipe && !entrypoint.matches(Regex("[a-z][a-z0-9-]*"))) {
+    if (namedRecipe && !entrypoint.matches(Regex("[a-z][a-z0-9-]*(/[a-z][a-z0-9-]*)*"))) {
       throw UsageError("Invalid recipe name: $entrypoint")
     }
     val action = if (localScript || namedRecipe) "cook" else entrypoint
@@ -175,14 +174,7 @@ class CookCommand(
   private fun findRecipe(
     repository: Path,
     name: String,
-  ): Path {
-    val candidates =
-      listOf(repository.resolve("recipes/$name/recipe.groovy"), repository.resolve("recipes/$name.groovy"))
-        .filter { Files.isRegularFile(it) }
-    require(candidates.size <= 1) { "Ambiguous recipe: $name; keep one entry point" }
-    return candidates.singleOrNull()
-      ?: throw IllegalArgumentException("Recipe not found: $name (looked in ${repository.resolve("recipes")})")
-  }
+  ): Path = repository.resolve("cookbook/recipes/$name/recipe.groovy")
 
   private fun path(
     value: String,
@@ -240,8 +232,9 @@ class CookCommand(
         the-cook --help
 
       --repo defaults to the current directory.
-      Named recipes resolve to recipes/<name>/recipe.groovy or recipes/<name>.groovy.
-      Recipe arguments are strings in the Groovy preferences binding; each recipe validates them.
+      Named recipes resolve to cookbook/recipes/<name>/recipe.groovy, then packaged cookbook resources.
+      Nested names such as agentic/codex are supported.
+      Recipe arguments are strings in the factory options map; each recipe validates them.
       --script defaults to cook.groovy in the repository.
       --plan defaults to .cook/plan.json in the repository.
       init preserves an existing cook.groovy.

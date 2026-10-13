@@ -9,31 +9,14 @@ class RepositoryRecipeTest {
   private void setup(Closure body) {
     def root = Files.createTempDirectory('cook-policy-').toFile()
     try {
-      def recipe = new File(root, 'recipes/cookbook/recipe.groovy')
+      def recipe = new File(root, 'cookbook/recipes/cookbook/recipe.groovy')
       recipe.parentFile.mkdirs()
-      def source = new File('../recipes/cookbook/recipe.groovy')
+      def source = new File('../cookbook/recipes/cookbook/recipe.groovy')
       assert source.isFile(): 'The repository cookbook recipe is missing'
       recipe.text = source.text
-      def policy = new File(root, '.agents/policy.yaml'); policy.parentFile.mkdirs()
-      policy.text = '''
-version: 1
-instructions:
-  - Preserve unrelated work.
-commands:
-  allow:
-    - [git, status]
-    - [git, push, origin, main]
-  ask:
-    - [terraform, apply]
-  deny:
-    - [git, reset, --hard]
-    - [git, push, origin, main, --force]
-'''
+      Fixtures.copy('agent-policy', root)
+      def policy = new File(root, '.agents/policy.yaml')
       def skills = new File(root, 'shared-skills')
-      ['solid', 'hexagonal-layout', 'effective-java-core'].each { name ->
-        def skill = new File(skills, name + '/SKILL.md'); skill.parentFile.mkdirs()
-        skill.text = 'Shared skill: ' + name
-      }
       def out = new ByteArrayOutputStream(); def err = new ByteArrayOutputStream()
       def loader = getClass().classLoader
       def service = loader.loadClass('thecook.application.CookService').newInstance(
@@ -78,6 +61,10 @@ commands:
       assert new File(root, '.codex/rules/cookbook.rules').text.contains('decision = "forbidden"')
       out.reset()
       assert cli.execute(args as String[]) == 0 : err.toString('UTF-8')
+      assert out.toString('UTF-8').trim() == 'Already cooked.'
+      Fixtures.copy('agent-policy-composition', root)
+      out.reset()
+      assert cli.execute(['cook', '--repo', root.path] as String[]) == 0 : err.toString('UTF-8')
       assert out.toString('UTF-8').trim() == 'Already cooked.'
     }
   }
@@ -136,9 +123,9 @@ commands:
   @Test void externalRecipeUsesDestinationPolicyAndRelativeSkills() {
     setup { root, policy, cli, args, out, err ->
       def supplier = new File(root, 'supplier')
-      def external = new File(supplier, 'recipes/cookbook/recipe.groovy')
+      def external = new File(supplier, 'cookbook/recipes/cookbook/recipe.groovy')
       external.parentFile.mkdirs()
-      external.text = new File(root, 'recipes/cookbook/recipe.groovy').text
+      external.text = new File(root, 'cookbook/recipes/cookbook/recipe.groovy').text
       def supplierPolicy = new File(supplier, '.agents/policy.yaml')
       supplierPolicy.parentFile.mkdirs()
       supplierPolicy.text = policy.text.replace('Preserve unrelated work.', 'Wrong supplier instructions.')

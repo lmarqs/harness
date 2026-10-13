@@ -2,6 +2,7 @@ package thecook.cookbook
 
 import org.codehaus.groovy.control.SourceUnit
 import thecook.composition.Kitchen
+import thecook.composition.Component
 import thecook.filesystem.TargetPath
 
 // Cookbook files are trusted executable Groovy; the core knows no tool names.
@@ -37,6 +38,7 @@ class Cookbook {
   }
   String text(String relative) {
     TargetPath.of(relative)
+    if (new File(directory, relative).isFile()) return source(relative).getText('UTF-8')
     def resource = classes.getResource('META-INF/the-cook/' + relative)
     if (resource) return resource.getText('UTF-8')
     source(relative).getText('UTF-8')
@@ -54,8 +56,13 @@ class Cookbook {
   Object station(String name, Kitchen kitchen, Map options = [:]) {
     factory("stations/${name}/station.groovy", kitchen, options)
   }
-  Object recipe(String name, Kitchen kitchen, Map config = [:]) {
-    factory("recipes/${name}/recipe.groovy", kitchen, config)
+  Component recipe(String name, Kitchen kitchen, Map config = [:]) {
+    recipeComponent(factory("recipes/${name}/recipe.groovy", kitchen, config), kitchen)
+  }
+  private Component recipeComponent(Object result, Kitchen kitchen) {
+    if (!(result instanceof Component) || !result.kitchen.is(kitchen))
+      throw new IllegalArgumentException('Recipe factory must return a component from its kitchen')
+    result
   }
   private Object factory(String relative, Kitchen kitchen, Map options) {
     def factory = script(relative)

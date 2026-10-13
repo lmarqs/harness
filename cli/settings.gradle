@@ -7,3 +7,4 @@ includeBuild('../cookbook/ingredients/agent-policy')
 includeBuild('../cookbook/ingredients/the-cook') { name = 'ingredient-the-cook' }
 includeBuild('../cookbook/recipes/agentic/codex') { name = 'agentic-codex' }
 includeBuild('../cookbook/recipes/agentic/claude') { name = 'agentic-claude' }
+includeBuild('../cookbook/recipes/agentic/runtime') { name = 'agentic-runtime' }

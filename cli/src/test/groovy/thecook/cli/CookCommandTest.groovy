@@ -26,15 +26,7 @@ class CookCommandTest {
     try {
       def repo = new File(root, 'repository'); repo.mkdirs()
       def script = new File(root, 'cook.groovy')
-      script.text = '''
-                import thecook.cookbook.ingredients.git.Git
-                import thecook.cookbook.ingredients.ralphtui.*
-                import thecook.model.Batch
-                def ralph = new Ralph(new RalphConfig(agent: preferences.agent ?: 'codex'))
-                def git = new Git()
-                git.ignore.add(ralph.files.local)
-                new Batch('personal-tools').include(git).include(ralph)
-            '''
+      Fixtures.copy('personal-tools', root)
       body(root, repo, script)
     } finally {
       root.deleteDir()
@@ -119,16 +111,50 @@ class CookCommandTest {
 
   @Test void namedRecipesReceiveArgumentsWithEitherEqualsOrSeparateValues() {
     workspace { root, repo, script ->
-      def recipe = new File(repo, 'recipes/example.groovy'); recipe.parentFile.mkdirs()
-      recipe.text = script.text
+      Fixtures.copy('composed-recipe', repo)
       def stdout = new ByteArrayOutputStream(); def stderr = new ByteArrayOutputStream()
       def cli = command(stdout, stderr)
       assert cli.execute(['example', '--repo', repo.path, '--agent=claude', '--dry-run'] as String[]) == 0 : stderr.toString('UTF-8')
-      assert !new File(repo, '.ralph-tui').exists()
+      assert !new File(repo, '.codex').exists()
       assert cli.execute(['example', '--repo', repo.path, '--agent', 'claude'] as String[]) == 0
-      assert Toml.parse(new File(repo, '.ralph-tui/config.toml').text).getString('defaultAgent') == 'claude'
+      assert Toml.parse(new File(repo, '.codex/config.toml').text).getString('model') == 'claude'
       stdout.reset()
       assert cli.execute(['example', '--repo', repo.path, '--set', 'agent=claude'] as String[]) == 0
+      assert stdout.toString('UTF-8').trim() == 'Already cooked.'
+    }
+  }
+
+  @Test void nestedPackagedRecipeIsRunnableWithoutACookbookCheckout() {
+    workspace { root, repo, script ->
+      def stdout = new ByteArrayOutputStream(); def stderr = new ByteArrayOutputStream()
+      def cli = command(stdout, stderr)
+      assert cli.execute(['agentic/codex', '--repo', repo.path, '--instructions=Use tests.'] as String[]) == 0 : stderr.toString('UTF-8')
+      assert new File(repo, 'AGENTS.md').text.contains('Use tests.')
+      stdout.reset()
+      assert cli.execute(['agentic/codex', '--repo', repo.path, '--instructions=Use tests.'] as String[]) == 0
+      assert stdout.toString('UTF-8').trim() == 'Already cooked.'
+    }
+  }
+
+  @Test void localRecipeOverridesPackagedFactory() {
+    workspace { root, repo, script ->
+      Fixtures.copy('recipe-override', repo)
+      def stdout = new ByteArrayOutputStream(); def stderr = new ByteArrayOutputStream()
+      def cli = command(stdout, stderr)
+      assert cli.execute(['agentic/codex', '--repo', repo.path] as String[]) == 0 : stderr.toString('UTF-8')
+      assert new File(repo, 'CLAUDE.md').text.contains('Local recipe override.')
+      assert !new File(repo, 'AGENTS.md').exists()
+    }
+  }
+
+  @Test void compiledRuntimeRecipeRunsThroughTheSameFactoryEntryPoint() {
+    workspace { root, repo, script ->
+      def stdout = new ByteArrayOutputStream(); def stderr = new ByteArrayOutputStream()
+      def cli = command(stdout, stderr)
+      assert cli.execute(['agentic/runtime', '--repo', repo.path, '--agent=claude'] as String[]) == 0 : stderr.toString('UTF-8')
+      assert Toml.parse(new File(repo, '.ralph-tui/config.toml').text).getString('defaultAgent') == 'claude'
+      stdout.reset()
+      assert cli.execute(['agentic/runtime', '--repo', repo.path, '--agent=claude'] as String[]) == 0
       assert stdout.toString('UTF-8').trim() == 'Already cooked.'
     }
   }
@@ -143,6 +169,9 @@ class CookCommandTest {
             ['example', '--agent=a', '--set', 'agent=b'],
             ['example', '--script', script.path],
             ['../example'],
+            ['agentic/../example'],
+            ['/example'],
+            ['agentic//codex'],
             ['example', '--dry-run=true'],
             ['example', '--policy='],
             ]) assert cli.execute(args as String[]) == 2 : args

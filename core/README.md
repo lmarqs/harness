@@ -4,7 +4,9 @@ The core declares typed Kotlin cookbook contracts and reconciles their outputs t
 
 ## Recipe execution
 
-CLI and Gradle recipes receive `repositoryDirectory` for project inputs, `scriptDirectory` for supplier assets, and `preferences` for arguments. `evaluateRecipe(relativePath, arguments)` delegates to another supplier script while preserving the destination repository. Moving a recipe does not change which project's policy it reads.
+Recipes live in `cookbook/recipes/<name>/recipe.groovy` and return `{ kitchen, book, options -> component }`. The CLI and Gradle invoke the same factory used by `book.recipe(name, kitchen, options)`. Project inputs resolve against `kitchen.repository.directory`; supplier definitions resolve through `book`. Nested recipe names and packaged factories are supported, with local definitions taking precedence.
+
+Optional repository composition scripts such as `cook.groovy` receive `book`, `kitchen`, `repositoryDirectory`, `scriptDirectory`, and `preferences`. They can return a recipe component or a typed `Batch`; both pass through the same checked rendering pipeline before planning. `evaluateRecipe(relativePath, arguments)` delegates to another script while preserving the destination repository.
 
 ## Rendering
 

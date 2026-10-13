@@ -1,6 +1,16 @@
 # Cookbook recipe factories
 
-These `recipe.groovy` files return factories for `Cookbook.recipe(name, kitchen, options)`. Their maps are Groovy values, including nested maps and lists. They are used through the composition API; the CLI's repository entry points return a `Batch` instead.
+Each `recipe.groovy` returns a factory `{ kitchen, book, options -> component }`. The same factory is executable through the CLI and composable through `book.recipe(name, kitchen, options)`.
+
+```sh
+./cook cookbook --policy=.agents/policy.yaml --dry-run
+./cook the-cook --dry-run
+./cook agentic/codex --instructions='Run tests before committing.' --dry-run
+```
+
+Names resolve to `cookbook/recipes/<name>/recipe.groovy`; when no local definition exists, the loader uses packaged cookbook resources. Explicit paths to those files work too. Local definitions take precedence. The CLI passes string options; composition code can pass typed Groovy maps and lists. Each recipe validates its options. Running a recipe mounts its returned component and reconciles the complete desired batch, including its children.
+
+A repository's optional `cook.groovy` can return `book.recipe('cookbook', kitchen, [policy: '.agents/policy.yaml'] + preferences)`. Typed scripts returning `Batch` remain supported. There is no separate root `recipes/` convention.
 
 For example, in a Groovy program with the core and required cookbook artifacts on its classpath:
 
@@ -17,6 +27,8 @@ println plan.changes
 ```
 
 Each directory documents its option map and behavior:
+
+- This repository: [agent policy and skills](cookbook/README.md), [local Cook state](the-cook/README.md).
 
 - Dependencies: [Node](add-node-dependency/README.md), [Python](add-python-dependency/README.md), [Go](add-go-dependency/README.md).
 - Environment: [development](development/README.md), [Compose service](add-compose-service/README.md), [local AWS resource](add-local-aws-resource/README.md).

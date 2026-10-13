@@ -1,6 +1,6 @@
 package thecook.application
 
-import thecook.model.Batch
+import thecook.rendering.RenderedFile
 import java.nio.file.Path
 
 interface CookbookLoader {
@@ -9,13 +9,13 @@ interface CookbookLoader {
     script: Path,
     libraries: List<Path>,
     preferences: Map<String, String>,
-  ): Batch
+  ): List<RenderedFile>
 }
 
 interface Planning {
   fun plan(
     repository: Path,
-    batch: Batch,
+    outputs: List<RenderedFile>,
   ): PlanHandle
 
   fun load(

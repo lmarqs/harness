@@ -1,6 +1,5 @@
 import thecook.cookbook.ingredients.ralphtui.RalphConfig
 import thecook.cookbook.recipes.AgenticRuntime
-import thecook.groovy.BatchAdapter
 
 return { kitchen, book, Map options ->
   RalphConfig config = new RalphConfig()
@@ -13,5 +12,11 @@ return { kitchen, book, Map options ->
   config.adopt = options.adopt?.toString()?.toBoolean() ?: false
   config.autoCommit = options.autoCommit?.toString()?.toBoolean() ?: false
   AgenticRuntime recipe = new AgenticRuntime(config, options.enabled?.toString() != 'false')
-  BatchAdapter.mount(kitchen, recipe.compose())
+  def host = kitchen.recipe(options.id ?: 'agentic-runtime')
+  recipe.compose().contributors.each { contributor ->
+    def component = kitchen.ingredient(contributor.id.value)
+    component.contribute { contributor }
+    host.includes(component)
+  }
+  host
 }

@@ -1,6 +1,6 @@
 # Cookbook agent setup
 
-`recipe.groovy` returns a `Batch` composing Git, TheCook, shared skill links, shared instructions, and the Codex and Claude recipe renderers.
+`recipe.groovy` returns a factory composing Git, TheCook, shared skill links, shared instructions, and the Codex and Claude recipe renderers.
 
 ```sh
 ./cook cookbook --policy=.agents/policy.yaml --dry-run
@@ -36,4 +36,4 @@ Outputs are `AGENTS.md`, `CLAUDE.md`, managed Codex TOML keys and rules, managed
 
 Codex rules govern requests outside its sandbox and do not inspect script contents. Claude permissions use native Bash prefix rules. Policy instructions are guidance for both agents.
 
-The root `cook.groovy` and [agent setup aliases](../agent-setup/README.md) use this recipe with a default policy of `.agents/policy.yaml`.
+The CLI and `book.recipe('cookbook', kitchen, options)` invoke the same factory. Policy and skill paths resolve from the destination repository.
