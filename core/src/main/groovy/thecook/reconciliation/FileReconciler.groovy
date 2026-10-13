@@ -9,6 +9,21 @@ class FileReconciler {
     this.documents = documents
   }
 
+  void validateRetained(Map snapshot, OwnershipRecord record) {
+    if (record instanceof ExclusiveRecord) {
+      if (!snapshot.exists || snapshot.content != record.rendered ||
+          (record.kind == FileKind.SYMLINK && snapshot.kind != 'symlink'))
+        throw new IllegalStateException('Edited managed ' + (record.kind == FileKind.SYMLINK ? 'symlink' : 'whole file'))
+      return
+    }
+    def document = documents.open(record.kind.wireName, snapshot.content ?: '')
+    document.seed(record.metadata)
+    record.regions.each { identity, region ->
+      if (document.read(identity.toString(), region.location) != region.rendered)
+        throw new IllegalStateException("Edited managed region: ${identity}")
+    }
+  }
+
   FileResult reconcile(Map snapshot, OwnershipRecord before, RenderedFile desired, boolean eject, Set preserved = []) {
     def kind = desired?.kind ?: before.kind
     if (before && desired && (before.kind != desired.kind ||
@@ -29,6 +44,8 @@ class FileReconciler {
     def nextRegions = [:]
     for (def identity : identities) {
       if (preserved.contains(identity)) {
+        if (document.read(identity.toString(), before.regions[identity].location) != before.regions[identity].rendered)
+          throw new IllegalStateException("Edited managed region: ${identity}")
         nextRegions[identity] = before.regions[identity]
         continue
       }

@@ -36,6 +36,7 @@ class Reconciler {
       if (!affected) {
         observed[path] = repository.snapshot(repository.target(path, owned[path].kind == FileKind.SYMLINK),
             owned[path].kind == FileKind.SYMLINK)
+        files.validateRetained(observed[path], owned[path])
         nextState.files[path] = OwnershipCodec.encode(owned[path])
         return
       }
@@ -49,7 +50,16 @@ class Reconciler {
           (desired[path] instanceof thecook.rendering.PartialFile ? desired[path].regions.collect { it.identity.toString() }.toSet() : [] as Set)
         def other = previousApplications.findAll { id, membership -> !selected.contains(id) }
             .values().collectMany { it[path] ?: [] }.toSet()
-        if (requested.intersect(other)) throw new IllegalArgumentException("Application contribution already selected elsewhere: ${path}")
+        if (requested && other &&
+            (requested.contains('*') || other.contains('*') || requested.intersect(other) ||
+              (desired[path] instanceof thecook.rendering.PartialFile && owned[path] instanceof PartialRecord &&
+                ((thecook.rendering.PartialFile) desired[path]).regions.any { region ->
+                  owned[path].regions.any { identity, old ->
+                    other.contains(identity.toString()) && region.location instanceof thecook.rendering.KeyLocation &&
+                      old.location instanceof thecook.rendering.KeyLocation && region.location.overlaps(old.location)
+                  }
+                })))
+          throw new IllegalArgumentException("Application contribution already selected elsewhere: ${path}")
         def legacy = (state.legacy[path] ?: []).toSet()
         if (selected && requested && legacy &&
             (requested.contains('*') || legacy.contains('*') || requested.intersect(legacy)))
