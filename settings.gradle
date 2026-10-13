@@ -5,6 +5,7 @@ pluginManagement {
 rootProject.name = 'the-cook'
 
 includeBuild('cli') { name = 'cli' }
+includeBuild('gradle/lint/ktlint-rules')
 includeBuild('cookbook/recipes/agentic/codex') { name = 'agentic-codex' }
 includeBuild('cookbook/recipes/agentic/claude') { name = 'agentic-claude' }
 

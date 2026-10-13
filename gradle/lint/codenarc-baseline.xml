@@ -1,0 +1,1180 @@
+<?xml version="1.0" encoding="UTF-8"?><CodeNarc url="https://codenarc.org" version="3.7.0">
+  <Report type="baseline"/>
+  <Project title="">
+    <SourceDirectory>.</SourceDirectory>
+  </Project>
+  <File path="cli/gradle/jpackage.gradle">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="cli/src/test/groovy/thecook/cli/CookCommandTest.groovy">
+    <Violation ruleName="ForStatementBraces">
+      <Message><![CDATA[The for statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="cli/src/test/groovy/thecook/cli/Fixtures.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="cookbook/catalog.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="cookbook/examples/typed-runtime/cook.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="cookbook/ingredients/agent-policy/Policy.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="cookbook/ingredients/agent-policy/PolicyFile.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="ForStatementBraces">
+      <Message><![CDATA[The for statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="cookbook/ingredients/aws-ci-credentials/ingredient.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="ElseBlockBraces">
+      <Message><![CDATA[The else block lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="cookbook/ingredients/beads/ingredient.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="cookbook/ingredients/docker-compose/ingredient.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="cookbook/ingredients/git/Git.groovy">
+    <Violation ruleName="ForStatementBraces">
+      <Message><![CDATA[The for statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="cookbook/ingredients/git/ignore.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="cookbook/ingredients/go/ingredient.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="cookbook/ingredients/mise/ingredient.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="cookbook/ingredients/mise/mise.toml.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="cookbook/ingredients/node/ingredient.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="cookbook/ingredients/node/inputs.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="cookbook/ingredients/npm/ingredient.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="cookbook/ingredients/python/ingredient.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="cookbook/ingredients/ralph-tui/RalphConfig.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="cookbook/ingredients/ralph-tui/RalphTUI.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="cookbook/ingredients/skills/Skills.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="cookbook/ingredients/terraform/ingredient.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="cookbook/ingredients/uv-pip/ingredient.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="cookbook/ingredients/yarn/ingredient.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="cookbook/recipes/operations.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="cookbook/recipes/add-compose-service/recipe.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="cookbook/recipes/add-go-dependency/recipe.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="cookbook/recipes/add-local-aws-resource/recipe.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="cookbook/recipes/add-node-dependency/recipe.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="cookbook/recipes/add-python-dependency/recipe.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="cookbook/recipes/agentic/claude/ClaudeFiles.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="cookbook/recipes/agentic/claude/recipe.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="cookbook/recipes/agentic/codex/CodexFiles.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="cookbook/recipes/agentic/codex/recipe.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="cookbook/recipes/agentic/runtime/AgenticRuntime.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="cookbook/recipes/agentic/runtime/recipe.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="cookbook/recipes/cookbook/recipe.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="cookbook/recipes/development/recipe.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="cookbook/recipes/implement-bead/recipe.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="cookbook/recipes/implement-prd-story/recipe.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="cookbook/recipes/migrate-aws-credentials/recipe.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="cookbook/recipes/update-docker-base/recipe.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="cookbook/stations/git-repository/station.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="cookbook/stations/go-service/station.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="cookbook/stations/local-aws-stack/station.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="cookbook/stations/python-uv/station.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="core/src/main/groovy/thecook/composition/Component.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="core/src/main/groovy/thecook/composition/Connections.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="core/src/main/groovy/thecook/composition/Deferred.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="core/src/main/groovy/thecook/composition/Exports.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="core/src/main/groovy/thecook/composition/Kitchen.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="core/src/main/groovy/thecook/cookbook/Cookbook.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="core/src/main/groovy/thecook/filesystem/AtomicFiles.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="core/src/main/groovy/thecook/filesystem/Repository.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="core/src/main/groovy/thecook/filesystem/RepositoryLock.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="core/src/main/groovy/thecook/filesystem/Transaction.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="core/src/main/groovy/thecook/formats/BlockDocument.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="core/src/main/groovy/thecook/formats/Documents.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="core/src/main/groovy/thecook/formats/JsonDocument.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="core/src/main/groovy/thecook/formats/JsonSyntax.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="WhileStatementBraces">
+      <Message><![CDATA[The while statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="WhileStatementBraces">
+      <Message><![CDATA[The while statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="core/src/main/groovy/thecook/formats/TomlDocument.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="ForStatementBraces">
+      <Message><![CDATA[The for statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="core/src/main/groovy/thecook/formats/ValueSpan.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="WhileStatementBraces">
+      <Message><![CDATA[The while statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="core/src/main/groovy/thecook/formats/YamlDocument.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="core/src/main/groovy/thecook/gradle/CookExtension.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="core/src/main/groovy/thecook/groovy/RepositoryScript.groovy">
+    <Violation ruleName="ForStatementBraces">
+      <Message><![CDATA[The for statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="core/src/main/groovy/thecook/reconciliation/ChangePlan.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="core/src/main/groovy/thecook/reconciliation/FileReconciler.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="core/src/main/groovy/thecook/reconciliation/OwnershipCodec.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="core/src/main/groovy/thecook/reconciliation/PatchWriter.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="core/src/main/groovy/thecook/reconciliation/Permissions.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="ForStatementBraces">
+      <Message><![CDATA[The for statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="core/src/main/groovy/thecook/reconciliation/PlanSchema.groovy">
+    <Violation ruleName="ElseBlockBraces">
+      <Message><![CDATA[The else block lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="core/src/main/groovy/thecook/reconciliation/Reconciler.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="core/src/main/groovy/thecook/reconciliation/RegionReconciler.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="ElseBlockBraces">
+      <Message><![CDATA[The else block lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="core/src/main/groovy/thecook/reconciliation/StateSchema.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="core/src/main/groovy/thecook/reconciliation/SymbolicLinkReconciler.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="core/src/main/groovy/thecook/rendering/Output.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="core/src/main/groovy/thecook/rendering/RenderTree.groovy">
+    <Violation ruleName="ForStatementBraces">
+      <Message><![CDATA[The for statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="ForStatementBraces">
+      <Message><![CDATA[The for statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="core/src/main/resources/thecook/supplier-compiler.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="core/src/test/groovy/thecook/checks/AdversarialChecks.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="core/src/test/groovy/thecook/checks/AgentRecipesTest.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="core/src/test/groovy/thecook/checks/CookbookChecks.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="core/src/test/groovy/thecook/checks/CookbookExamplesTest.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="ElseBlockBraces">
+      <Message><![CDATA[The else block lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="core/src/test/groovy/thecook/checks/ModelChecks.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="core/src/test/groovy/thecook/checks/SharedOwnershipEdgeTest.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+    <Violation ruleName="ElseBlockBraces">
+      <Message><![CDATA[The else block lacks braces]]></Message>
+    </Violation>
+  </File>
+  <File path="core/src/test/groovy/thecook/checks/SymbolicLinksTest.groovy">
+    <Violation ruleName="IfStatementBraces">
+      <Message><![CDATA[The if statement lacks braces]]></Message>
+    </Violation>
+  </File>
+</CodeNarc>

@@ -9,6 +9,9 @@ repositories {
 
 configurations {
   cookbookIngredients
+  codenarc {
+    attributes.attribute(Bundling.BUNDLING_ATTRIBUTE, objects.named(Bundling, Bundling.EXTERNAL))
+  }
 }
 
 def ingredientBuilds = file('cookbook/ingredients').listFiles().findAll { new File(it, 'build.gradle').isFile() }.sort { it.name }
@@ -19,6 +22,7 @@ dependencies {
     cookbookIngredients "${release.group}:${ingredient.name}:${release.version}"
   }
   cookbookIngredients 'dev.thecook.recipes:agentic-runtime:0.1.0'
+  codenarc 'org.codenarc:CodeNarc:3.7.0-groovy-4.0'
 }
 
 cook.repository = file(providers.gradleProperty('repo').getOrElse('build/example'))
@@ -38,7 +42,15 @@ spotless {
   kotlin {
     target '**/*.kt'
     targetExclude generated
-    ktlint('1.8.0')
+    ktlint('1.8.0').customRuleSets(['dev.thecook.lint:ktlint-rules:0.1.0'])
+    // Baseline: files with braces violations that predate the rule.
+    ['cli/src/main/kotlin/thecook/cli/terminal/CookCommand.kt', 'core/src/main/kotlin/thecook/application/CookService.kt'].each { baselined ->
+      suppressLintsFor {
+        step = 'ktlint'
+        shortCode = 'thecook:mandatory-braces'
+        path = baselined
+      }
+    }
   }
   groovy {
     target '**/*.groovy'
@@ -58,7 +70,40 @@ spotless {
   }
 }
 
+tasks.named('spotlessKotlin') {
+  dependsOn gradle.includedBuild('ktlint-rules').task(':jar')
+}
+
+def codenarcArgs = { String report ->
+  [
+    '-basedir=.',
+    '-includes=**/*.groovy,**/*.gradle',
+    '-excludes=**/build/**,**/.gradle/**,.cook/**',
+    '-rulesetfiles=file:' + file('gradle/lint/codenarc.groovy'),
+    '-failOnError=true',
+    report,
+  ]
+}
+
+tasks.register('codenarc', JavaExec) {
+  description = 'Requires braces on Groovy and Gradle if/else/for/while bodies, except baselined violations.'
+  group = 'verification'
+  classpath = configurations.codenarc
+  mainClass = 'org.codenarc.CodeNarc'
+  args codenarcArgs('-report=console')
+  args '-excludeBaseline=file:' + file('gradle/lint/codenarc-baseline.xml'), '-maxPriority1Violations=0', '-maxPriority2Violations=0', '-maxPriority3Violations=0'
+}
+
+tasks.register('codenarcBaseline', JavaExec) {
+  description = 'Records the current CodeNarc violations as the baseline.'
+  group = 'verification'
+  classpath = configurations.codenarc
+  mainClass = 'org.codenarc.CodeNarc'
+  args codenarcArgs('-report=org.codenarc.report.BaselineXmlReportWriter:' + file('gradle/lint/codenarc-baseline.xml'))
+}
+
 tasks.named('check') {
+  dependsOn 'codenarc', gradle.includedBuild('ktlint-rules').task(':check')
   dependsOn gradle.includedBuild('core').task(':check'), gradle.includedBuild('cli').task(':check')
 }
 
