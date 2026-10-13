@@ -44,15 +44,21 @@ class CookCommand(
 
         is Cook -> {
           val changes =
-            service.cook(
-              command.repository,
-              command.script,
-              command.libraries,
-              command.preferences,
-              command.dryRun,
-            )
-          if (changes.isEmpty()) stdout.println("Already cooked.")
-          val verb = if (command.dryRun) "Would cook" else "Cooked"
+            if (command.remove) {
+              val harnesses = command.preferences["harness"]
+              val selected = when (harnesses) {
+                is List<*> -> harnesses.map { it.toString() }
+                is String -> listOf(harnesses)
+                else -> emptyList()
+              }
+              service.remove(command.repository, command.script, selected, command.dryRun)
+            } else {
+              service.cook(command.repository, command.script, command.libraries, command.preferences, command.dryRun)
+            }
+          if (changes.isEmpty()) stdout.println(if (command.remove) "Already removed." else "Already cooked.")
+          val verb = if (command.remove) {
+            if (command.dryRun) "Would remove" else "Removed"
+          } else if (command.dryRun) "Would cook" else "Cooked"
           changes.forEach { stdout.println("$verb $it") }
         }
 
@@ -85,12 +91,13 @@ class CookCommand(
       throw IllegalArgumentException("Recipe file not found: $entrypoint")
     }
     val builtins = setOf("init", "cook", "plan", "apply")
+    val removingInit = entrypoint == "init" && args.drop(1).contains("--remove")
     val namedRecipe = !localScript && entrypoint !in builtins
     if (namedRecipe && !entrypoint.matches(Regex("[a-z][a-z0-9-]*(/[a-z][a-z0-9-]*)*"))) {
       throw UsageError("Invalid recipe name: $entrypoint")
     }
-    val action = if (localScript || namedRecipe) "cook" else entrypoint
-    val recipeInput = namedRecipe || localScript
+    val action = if (localScript || namedRecipe || removingInit) "cook" else entrypoint
+    val recipeInput = namedRecipe || localScript || removingInit
     val wantsHelp = args.drop(1).contains("--help")
     if (wantsHelp && !localScript && !namedRecipe) return Help
 
@@ -98,6 +105,7 @@ class CookCommand(
     var script: Path? = if (localScript) path(entrypoint, "recipe") else null
     var savedPlan: Path? = null
     var dryRun = false
+    var remove = false
     val libraries = mutableListOf<Path>()
     val preferences = linkedMapOf<String, MutableList<String>>()
     val seen = mutableSetOf<String>()
@@ -111,6 +119,12 @@ class CookCommand(
         if (inlineValue != null) throw UsageError("--dry-run does not take a value")
         if (!seen.add(option)) throw UsageError("Option may only be supplied once: $option")
         dryRun = true
+        continue
+      }
+      if (action == "cook" && option == "--remove") {
+        if (inlineValue != null) throw UsageError("--remove does not take a value")
+        if (!seen.add(option)) throw UsageError("Option may only be supplied once: $option")
+        remove = true
         continue
       }
       val recipeOption =
@@ -163,14 +177,22 @@ class CookCommand(
     if (action == "init") return Init(repository)
     if (action == "cook") {
       val recipe =
-        if (namedRecipe) {
+        if (removingInit) {
+          repository.resolve("cookbook/recipes/init/recipe.groovy")
+        } else if (namedRecipe) {
           findRecipe(repository, entrypoint)
         } else {
           script
             ?: repository.resolve("cook.groovy")
         }
       if (wantsHelp) return if (recipeInput) RecipeHelp(recipe) else Help
-      return Cook(repository, recipe, libraries, inputs, dryRun)
+      if (remove) {
+        val supplied = inputs.keys - setOf("harness", "policy")
+        if (supplied.isNotEmpty()) throw UsageError("Removal accepts only --harness: ${supplied.first()}")
+        val selected = preferences["harness"].orEmpty()
+        if (selected.any { it !in setOf("claude", "codex") }) throw UsageError("Unsupported harness for removal")
+      }
+      return Cook(repository, recipe, libraries, inputs, dryRun, remove)
     }
     val file = savedPlan ?: repository.resolve(".cook/plan.json")
     return if (action == "plan") {
@@ -219,7 +241,7 @@ class CookCommand(
           "  --${input.name} CHOICE  required, repeatable; choices: ${input.choices.joinToString(", ")}"
       }
     }
-    return "Usage: cook ${declaration.name} [options]\n$arguments\n  --repo PATH  destination repository\n  --dry-run  preview without writing\n  --set name=value  legacy argument form\n  --help  show this help"
+    return "Usage: cook ${declaration.name} [options]\n$arguments\n  --repo PATH  destination repository\n  --dry-run  preview without writing\n  --remove  remove selected applications\n  --set name=value  legacy argument form\n  --help  show this help"
   }
 
   private fun path(
@@ -248,6 +270,7 @@ class CookCommand(
     val libraries: List<Path>,
     val preferences: Map<String, Any>,
     val dryRun: Boolean,
+    val remove: Boolean,
   ) : Command
 
   private data class Plan(
@@ -271,7 +294,7 @@ class CookCommand(
     val USAGE =
       """
       Usage:
-        cook <recipe> [--name value | --name=value] [--dry-run] [--repo path]
+        cook <recipe> [--name value | --name=value] [--dry-run] [--remove] [--repo path]
         the-cook init [--repo path]
         the-cook cook [--dry-run] [--repo path] [--script path] [--set name=value] [--library path]
         the-cook path/to/recipe.groovy [--name value | --name=value] [--dry-run] [--repo path] [--set name=value] [--library path]

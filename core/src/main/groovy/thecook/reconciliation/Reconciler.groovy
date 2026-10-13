@@ -10,7 +10,7 @@ class Reconciler {
     this.files = files
   }
 
-  ChangePlan plan(Repository repository, RenderTree tree, boolean eject = false) {
+  ChangePlan plan(Repository repository, RenderTree tree, boolean eject = false, boolean remove = false) {
     def stateSnapshot = repository.snapshot(repository.metadata('state.json'))
     def state = StateSchema.current(repository.state(stateSnapshot))
     def owned = OwnershipCodec.decode(state)
@@ -18,7 +18,7 @@ class Reconciler {
     def previousApplications = eject ? [:] : (state.applications ?: [:])
     def selected = tree.applications.keySet()
     def nextApplications = previousApplications.findAll { id, paths -> !selected.contains(id) }
-    tree.applications.each { id, files ->
+    if (!remove) tree.applications.each { id, files ->
       nextApplications[id] = files.collectEntries { file ->
         [(file.path.value): file.kind.exclusive ? ['*'] : ((thecook.rendering.PartialFile) file).regions.collect { it.identity.toString() }]
       }

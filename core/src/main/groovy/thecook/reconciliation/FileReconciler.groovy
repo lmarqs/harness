@@ -56,7 +56,7 @@ class FileReconciler {
     boolean originallyEmpty = before ? before.originallyEmpty : snapshot.exists && snapshot.content == ''
     def content = created && !desired && document.isEmpty() ? null : document.text
     if (!desired && originallyEmpty && document.isEmpty()) content = ''
-    def state = desired ? new PartialRecord(kind, created, originallyEmpty, nextRegions, document.metadata) : null
+    def state = (desired || nextRegions) ? new PartialRecord(kind, created, originallyEmpty, nextRegions, document.metadata) : null
     new FileResult(content, content == null ? null : (snapshot.mode ?: 'rw-r--r--'), state)
   }
 

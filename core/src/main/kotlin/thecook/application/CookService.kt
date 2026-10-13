@@ -22,6 +22,8 @@ interface Planning {
     repository: Path,
     savedPlan: Path,
   ): PlanHandle
+
+  fun remove(repository: Path, recipe: Path, harnesses: List<String>): PlanHandle
 }
 
 interface PlanHandle {
@@ -70,5 +72,11 @@ class CookService
       savedPlan: Path,
     ) {
       planning.load(repository, savedPlan).apply()
+    }
+
+    fun remove(repository: Path, recipe: Path, harnesses: List<String>, dryRun: Boolean): List<String> {
+      val pending = planning.remove(repository, recipe, harnesses)
+      if (!dryRun) pending.apply()
+      return pending.changes
     }
   }

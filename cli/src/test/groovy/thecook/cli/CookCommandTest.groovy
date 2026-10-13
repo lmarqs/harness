@@ -6,6 +6,48 @@ import org.tomlj.Toml
 import java.nio.file.Files
 
 class CookCommandTest {
+  @Test void removalPreviewsWithoutPolicyThenRestoresOnlySelectedApplication() {
+    workspace { root, repo, ignored ->
+      Fixtures.copy('removable-permission', root)
+      def source = new File(root, 'permission.groovy')
+      def policy = new File(repo, 'policy.yaml')
+      policy.text = 'managed\n'
+      def settings = new File(repo, 'settings.json')
+      settings.text = '{"claude":"original","manual":true}\n'
+      def out = new ByteArrayOutputStream(); def err = new ByteArrayOutputStream()
+      def cli = command(out, err)
+      def base = [source.path, '--repo', repo.path]
+      assert cli.execute((base + ['--harness=claude', '--remove']) as String[]) == 0 : err.toString('UTF-8')
+      assert !new File(repo, '.cook').exists()
+      out.reset()
+      assert cli.execute((base + ['--policy=policy.yaml', '--harness=claude']) as String[]) == 0 : err.toString('UTF-8')
+      assert cli.execute((base + ['--policy=policy.yaml', '--harness=codex']) as String[]) == 0 : err.toString('UTF-8')
+      policy.delete()
+      def sourceBytes = source.bytes
+      def before = settings.text
+      def ownership = new File(repo, '.cook/state.json').text
+      out.reset()
+      assert cli.execute((base + ['--policy=policy.yaml', '--harness=claude', '--remove', '--dry-run']) as String[]) == 0 : err.toString('UTF-8')
+      assert out.toString('UTF-8').contains('Would remove settings.json')
+      assert settings.text == before
+      assert new File(repo, '.cook/state.json').text == ownership
+      out.reset()
+      assert cli.execute((base + ['--harness=claude', '--remove']) as String[]) == 0 : err.toString('UTF-8')
+      assert new JsonSlurper().parse(settings) == [claude: 'original', manual: true, codex: 'managed']
+      assert !policy.exists()
+      assert source.bytes == sourceBytes
+      out.reset()
+      assert cli.execute((base + ['--harness=claude', '--remove']) as String[]) == 0 : err.toString('UTF-8')
+      assert out.toString('UTF-8').trim() == 'Already removed.'
+      def retained = new File(repo, '.cook/state.json').text
+      settings.text = settings.text.replace('"managed"', '"edited"')
+      err.reset()
+      assert cli.execute((base + ['--harness=codex', '--remove']) as String[]) == 1
+      assert err.toString('UTF-8').contains('Edited managed region')
+      assert new File(repo, '.cook/state.json').text == retained
+    }
+  }
+
   private Object command(ByteArrayOutputStream stdout, ByteArrayOutputStream stderr) {
     Class entrypoint
     try {

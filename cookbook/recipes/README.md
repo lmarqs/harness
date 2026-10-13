@@ -14,6 +14,8 @@ A supplier can expose metadata through `book.declaration(name)` without mounting
 
 A repository's optional `cook.groovy` can return `book.recipe('cookbook', kitchen, [policy: '.agents/policy.yaml'] + preferences)`. Typed scripts returning `Batch` remain supported. There is no separate root `recipes/` convention.
 
+`--remove` withdraws a recipe's selected applications using saved ownership. It can be combined with `--dry-run` and `--harness=claude` or `--harness=codex`. Removing `cookbook` or `init` also selects its known init children. The policy file is not read during removal; managed edits still reject the entire operation.
+
 For example, in a Groovy program with the core and required cookbook artifacts on its classpath:
 
 ```groovy
