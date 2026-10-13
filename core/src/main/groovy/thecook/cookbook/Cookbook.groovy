@@ -51,9 +51,6 @@ class Cookbook {
   Object ingredient(String name, Kitchen kitchen, Map options = [:]) {
     factory("ingredients/${name}/ingredient.groovy", kitchen, options)
   }
-  Object target(String name, Kitchen kitchen, Map options = [:]) {
-    factory("targets/${name}/target.groovy", kitchen, options)
-  }
   Object station(String name, Kitchen kitchen, Map options = [:]) {
     factory("stations/${name}/station.groovy", kitchen, options)
   }

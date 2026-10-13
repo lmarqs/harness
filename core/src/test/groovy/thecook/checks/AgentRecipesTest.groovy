@@ -10,8 +10,8 @@ import thecook.model.*
 import thecook.reconciliation.Reconciler
 import thecook.rendering.RenderTree
 
-class NativeTargetsTest {
-  @Test void artifactBackedPolicyKeepsItsClassIdentityAcrossLegacyAndTypedTargets() {
+class AgentRecipesTest {
+  @Test void artifactBackedPolicyKeepsItsClassIdentityAcrossLegacyAndTypedRecipes() {
     def root = Files.createTempDirectory('cook-policy-artifact-').toFile()
     try {
       def policySource = new File('../cookbook/ingredients/agent-policy/Policy.groovy')
@@ -35,12 +35,52 @@ class NativeTargetsTest {
       def policy = policyType.newInstance([], [])
       def destination = new File(root, 'repository'); destination.mkdirs()
       def kitchen = new Kitchen(destination)
-      book.target('codex', kitchen)
-      book.target('claude', kitchen)
-      def target = book.type('targets/claude/Claude.groovy').newInstance(policy)
+      book.recipe('agentic/codex', kitchen)
+      book.recipe('agentic/claude', kitchen)
+      def target = book.type('recipes/agentic/claude/ClaudeFiles.groovy').newInstance(policy)
       new Reconciler().plan(new Repository(destination), RenderTree.from(new Batch('policy').include(target))).apply()
       assert new File(destination, 'CLAUDE.md').text.contains('@AGENTS.md')
       assert book.type('ingredients/agent-policy/Policy.groovy').is(policyType)
+    } finally {
+      root.deleteDir()
+    }
+  }
+
+  @Test void recipesRenderFromPackagedSourcesWithoutACookbookCheckout() {
+    def root = Files.createTempDirectory('cook-recipe-artifacts-').toFile()
+    try {
+      def artifact = new File(root, 'recipes.jar')
+      artifact.withOutputStream { stream ->
+        def jar = new java.util.jar.JarOutputStream(stream)
+        def sources = ['ingredients/agent-policy/Policy.groovy']
+        ['codex', 'claude'].each { name ->
+          sources.add("recipes/agentic/${name}/recipe.groovy".toString())
+          sources.add("recipes/agentic/${name}/${name.capitalize()}Files.groovy".toString())
+        }
+        sources.each { path ->
+          jar.putNextEntry(new java.util.jar.JarEntry('META-INF/the-cook/' + path))
+          jar.write(new File('../cookbook', path).bytes); jar.closeEntry()
+        }
+        jar.close()
+      }
+      def book = new Cookbook(new File(root, 'absent'), [artifact])
+      def destination = new File(root, 'repository')
+      def kitchen = new Kitchen(destination)
+      book.recipe('agentic/codex', kitchen, [config: [[model: 'example'], [model: 'example']]]).mount()
+      def claude = book.recipe('agentic/claude', kitchen, [settings: [permissions: [allow: ['Bash(check *)']]]])
+      claude.mount()
+      kitchen.plan().apply()
+      assert new File(destination, '.codex/config.toml').text.contains('example')
+      assert new File(destination, '.claude/settings.json').text.contains('Bash(check *)')
+      assert kitchen.plan().changes.empty
+      def before = ModelChecks.snapshot(destination)
+      claude.settings.from([[permissions: [allow: ['conflicting']]]])
+      try {
+        kitchen.plan(); assert false: 'Conflicting settings were accepted'
+      } catch (IllegalArgumentException expected) {
+        assert expected.message.contains('Conflicting Claude settings: permissions')
+      }
+      assert ModelChecks.snapshot(destination) == before
     } finally {
       root.deleteDir()
     }
@@ -59,7 +99,7 @@ class NativeTargetsTest {
 
   @Test void codexDeclarationPathsShareRenderingIncludingCustomPathsHooksAndWholeRules() {
     workspace { root, book ->
-      def target = book.type('targets/codex/Codex.groovy').newInstance('selected.codex', true)
+      def target = book.type('recipes/agentic/codex/CodexFiles.groovy').newInstance('selected.codex', true)
       target.configPath = TargetPath.of('agent/config.toml')
       target.hooksPath = TargetPath.of('agent/hooks.json')
       target.instructionsPath = TargetPath.of('instructions.txt')
@@ -72,7 +112,7 @@ class NativeTargetsTest {
       config.text = original
       new Reconciler().plan(new Repository(root), RenderTree.from(new Batch('native').include(target))).apply()
       def kitchen = new Kitchen(root)
-      def legacy = book.target('codex', kitchen, [id: 'selected.codex', adopt: true,
+      def legacy = book.recipe('agentic/codex', kitchen, [id: 'selected.codex', adopt: true,
         configPath: 'agent/config.toml', hooksPath: 'agent/hooks.json', instructionsPath: 'instructions.txt',
         config: [model: 'selected-model'], hooks: [hooks: [:]], instructions: 'Use project tasks.',
         rules: ['project.rules': 'custom_rule()\n']])
@@ -89,7 +129,7 @@ class NativeTargetsTest {
 
   @Test void claudeDeclarationPathsPreserveTopLevelOwnershipAndResolveLateInputs() {
     workspace { root, book ->
-      def target = book.type('targets/claude/Claude.groovy').newInstance('selected.claude')
+      def target = book.type('recipes/agentic/claude/ClaudeFiles.groovy').newInstance('selected.claude')
       target.settingsPath = TargetPath.of('agent/settings.json')
       target.instructionsPath = TargetPath.of('instructions.txt')
       target.settings.add(new KeyContribution(['permissions'], { [allow: ['Bash(check *)']] }, true))
@@ -99,7 +139,7 @@ class NativeTargetsTest {
       settings.text = original
       new Reconciler().plan(new Repository(root), RenderTree.from(new Batch('native').include(target))).apply()
       def kitchen = new Kitchen(root)
-      def legacy = book.target('claude', kitchen, [id: 'selected.claude', adopt: true,
+      def legacy = book.recipe('agentic/claude', kitchen, [id: 'selected.claude', adopt: true,
         settingsPath: 'agent/settings.json', instructionsPath: 'instructions.txt', instructions: 'Use project tasks.'])
       def source = kitchen.ingredient('rules'); source.rules = [allow: ['wrong']]
       source.export('settings') { [[permissions: source.rules]] }

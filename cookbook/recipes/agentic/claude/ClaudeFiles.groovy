@@ -1,4 +1,4 @@
-package thecook.cookbook.targets.claude
+package thecook.cookbook.recipes.agentic.claude
 
 import groovy.transform.CompileStatic
 import thecook.cookbook.ingredients.agentpolicy.Policy
@@ -6,20 +6,20 @@ import thecook.composition.ComponentId
 import thecook.filesystem.TargetPath
 import thecook.model.*
 
-/** Native Claude file declarations, reused by policy and factory recipes. */
+/** Native Claude file declarations, used by the recipe. */
 @CompileStatic
-final class Claude implements Contributor {
+final class ClaudeFiles implements Contributor {
   final ComponentId id
   final List<KeyContribution> settings = []
   TargetPath settingsPath = TargetPath.of('.claude/settings.json')
   TargetPath instructionsPath = TargetPath.of('CLAUDE.md')
   Provider<List<String>> instructions
 
-  Claude(String name = 'claude') {
+  ClaudeFiles(String name = 'claude') {
     id = ComponentId.of(name)
   }
 
-  Claude(Policy policy, boolean adopt = false, String name = 'cookbook.claude') {
+  ClaudeFiles(Policy policy, boolean adopt = false, String name = 'cookbook.claude') {
     this(name)
     settings.addAll(ClaudePolicy.keys(Objects.requireNonNull(policy), adopt))
     instructions = { ['@AGENTS.md'] }

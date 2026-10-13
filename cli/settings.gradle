@@ -5,5 +5,5 @@ includeBuild('../cookbook/ingredients/ralph-tui')
 includeBuild('../cookbook/ingredients/skills')
 includeBuild('../cookbook/ingredients/agent-policy')
 includeBuild('../cookbook/ingredients/the-cook') { name = 'ingredient-the-cook' }
-includeBuild('../cookbook/targets/codex') { name = 'target-codex' }
-includeBuild('../cookbook/targets/claude') { name = 'target-claude' }
+includeBuild('../cookbook/recipes/agentic/codex') { name = 'agentic-codex' }
+includeBuild('../cookbook/recipes/agentic/claude') { name = 'agentic-claude' }

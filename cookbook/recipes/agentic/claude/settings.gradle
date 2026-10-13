@@ -1,0 +1,4 @@
+pluginManagement { includeBuild('../../../../core') }
+rootProject.name = 'agentic-claude'
+includeBuild('../../../../core')
+includeBuild('../../../ingredients/agent-policy')

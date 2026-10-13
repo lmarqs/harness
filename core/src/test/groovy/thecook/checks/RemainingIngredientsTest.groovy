@@ -81,10 +81,10 @@ class RemainingIngredientsTest {
       assert config.jobs.deploy.permissions['id-token'] == 'write'
       assert config.jobs.lint.steps.empty
     }
-    check('Host targets render selected native instructions and config contributions') { root ->
+    check('Agent recipes render selected native instructions and config contributions') { root ->
       def book = CookbookChecks.cookbook(); def kitchen = new Kitchen(root)
-      book.target('claude', kitchen, [instructions: 'Run the project checks.', settings: [permissions: [allow: ['Bash(mise run check)']]]]).mount()
-      book.target('codex', kitchen, [instructions: 'Use mise tasks.', config: [model: 'selected-model'],
+      book.recipe('agentic/claude', kitchen, [instructions: 'Run the project checks.', settings: [permissions: [allow: ['Bash(mise run check)']]]]).mount()
+      book.recipe('agentic/codex', kitchen, [instructions: 'Use mise tasks.', config: [model: 'selected-model'],
         hooks: [hooks: [:]], rules: ['project.rules': 'prefix_rule(pattern=["mise", "run", "check"], decision="allow")\n']]).mount()
       kitchen.plan().apply()
       assert new File(root, 'CLAUDE.md').text.contains('Run the project checks.')

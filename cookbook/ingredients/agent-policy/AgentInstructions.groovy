@@ -5,7 +5,7 @@ import thecook.composition.ComponentId
 import thecook.filesystem.TargetPath
 import thecook.model.*
 
-/** Agent guidance text. Native permission enforcement belongs to the selected target. */
+/** Agent guidance text. Native permission enforcement belongs to the selected agent recipe. */
 @CompileStatic
 final class AgentInstructions implements Contributor {
   final ComponentId id

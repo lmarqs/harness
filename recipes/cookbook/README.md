@@ -1,6 +1,6 @@
 # Cookbook agent setup
 
-`recipe.groovy` returns a `Batch` composing Git, TheCook, shared skill links, shared instructions, and the Codex and Claude targets.
+`recipe.groovy` returns a `Batch` composing Git, TheCook, shared skill links, shared instructions, and the Codex and Claude recipe renderers.
 
 ```sh
 ./cook cookbook --policy=.agents/policy.yaml --dry-run

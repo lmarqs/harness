@@ -1,4 +1,4 @@
-package thecook.cookbook.targets.codex
+package thecook.cookbook.recipes.agentic.codex
 
 import groovy.json.JsonOutput
 import groovy.transform.CompileStatic
@@ -7,9 +7,9 @@ import thecook.composition.ComponentId
 import thecook.filesystem.TargetPath
 import thecook.model.*
 
-/** Native Codex file declarations. Policy translation is a separate module below. */
+/** Native Codex file declarations. Policy translation is a separate class below. */
 @CompileStatic
-final class Codex implements Contributor {
+final class CodexFiles implements Contributor {
   final ComponentId id
   final List<KeyContribution> config = []
   final List<KeyContribution> hooks = []
@@ -20,12 +20,12 @@ final class Codex implements Contributor {
   private final List<OutputSpec> ruleOutputs = []
   private final boolean adopt
 
-  Codex(String name = 'codex', boolean adopt = false) {
+  CodexFiles(String name = 'codex', boolean adopt = false) {
     id = ComponentId.of(name)
     this.adopt = adopt
   }
 
-  Codex(Policy policy, boolean adopt = false, String name = 'cookbook.codex') {
+  CodexFiles(Policy policy, boolean adopt = false, String name = 'cookbook.codex') {
     this(name, adopt)
     config.addAll(CodexPolicy.keys(Objects.requireNonNull(policy), adopt))
     ruleBlock('cookbook.rules', 'commands', { CodexPolicy.rules(policy) })

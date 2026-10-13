@@ -1,0 +1,2 @@
+plugins { id 'dev.thecook.recipe' }
+dependencies { api 'dev.thecook.ingredients:agent-policy:0.1.0' }

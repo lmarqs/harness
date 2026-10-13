@@ -14,9 +14,6 @@ class Kitchen {
   Component ingredient(String id, Closure configure = {}) {
     component(id, 'ingredient', configure)
   }
-  Component target(String id, Closure configure = {}) {
-    component(id, 'target', configure)
-  }
   Component station(String id, Closure configure = {}) {
     component(id, 'station', configure)
   }

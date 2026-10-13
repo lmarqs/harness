@@ -5,8 +5,8 @@ pluginManagement {
 rootProject.name = 'the-cook'
 
 includeBuild('cli') { name = 'cli' }
-includeBuild('cookbook/targets/codex') { name = 'target-codex' }
-includeBuild('cookbook/targets/claude') { name = 'target-claude' }
+includeBuild('cookbook/recipes/agentic/codex') { name = 'agentic-codex' }
+includeBuild('cookbook/recipes/agentic/claude') { name = 'agentic-claude' }
 
 includeBuild('cookbook/recipes/agentic/runtime') {
   name = 'agentic-runtime'

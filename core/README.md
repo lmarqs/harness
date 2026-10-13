@@ -14,11 +14,13 @@ Compiled contributors and the dynamic composition DSL evaluate directly into the
 
 A published ingredient's annotation matches its artifact name. Its explicit instance name identifies its use in a batch. The contribution address combines that instance with its region: `git/ignore`, for example. Class packages and batch names do not change persistent ownership addresses.
 
-Packages under `thecook.cookbook.ingredients` identify supplier code; Codex and Claude code lives under `thecook.cookbook.targets`. `AgentInstructions` is a renderer within the agent-policy module, with historical default instance name `agent-policy`.
+Packages under `thecook.cookbook.ingredients` identify supplier code; Codex and Claude code lives under `thecook.cookbook.recipes.agentic`. `AgentInstructions` is a renderer within the agent-policy module, with historical default instance name `agent-policy`.
 
-## Native targets
+## Agent recipes
 
-Codex and Claude each generate their native file declarations in one compiled target. Their policy translators produce native settings and rules separately. Factory recipes adapt their named contributions to these targets; custom paths, hooks, instruction text, rule files, and deferred connections remain supported. Factory defaults retain `codex` / `claude` instance names; policy constructors retain `cookbook.codex` / `cookbook.claude`. Existing key granularity is preserved when recooking either form.
+Codex and Claude each generate their native file declarations in one compiled renderer inside its recipe module. Their policy translators produce native settings and rules separately. Factory recipes adapt their named contributions to these renderers; custom paths, hooks, instruction text, rule files, and deferred connections remain supported. Factory defaults retain `codex` / `claude` instance names; policy constructors retain `cookbook.codex` / `cookbook.claude`. Existing key granularity is preserved when recooking either form.
+
+The factories are loaded with `book.recipe('agentic/codex', kitchen, options)` or `book.recipe('agentic/claude', kitchen, options)`. Their renderer classes are `CodexFiles` and `ClaudeFiles`.
 
 The dynamic DSL can include a compiled contributor with `contribute { contributor }`. Its instance must match the mounted declaration; its outputs use the shared typed render model.
 

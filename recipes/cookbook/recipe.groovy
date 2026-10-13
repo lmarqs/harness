@@ -3,8 +3,8 @@ import thecook.cookbook.ingredients.agentpolicy.PolicyFile
 import thecook.cookbook.ingredients.git.Git
 import thecook.cookbook.ingredients.skills.Skills
 import thecook.cookbook.ingredients.thecook.TheCook
-import thecook.cookbook.targets.claude.Claude
-import thecook.cookbook.targets.codex.Codex
+import thecook.cookbook.recipes.agentic.claude.ClaudeFiles
+import thecook.cookbook.recipes.agentic.codex.CodexFiles
 import thecook.model.Batch
 
 def unknown = preferences.keySet().findAll { !(it in ['policy', 'skills-home', 'adopt']) }
@@ -63,5 +63,5 @@ new Batch('cookbook')
     .include(skills)
     .include(claudeSkills)
     .include(instructions)
-    .include(new Codex(policy, adopt))
-    .include(new Claude(policy, adopt))
+    .include(new CodexFiles(policy, adopt))
+    .include(new ClaudeFiles(policy, adopt))
