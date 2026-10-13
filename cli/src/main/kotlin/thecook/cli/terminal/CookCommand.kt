@@ -3,6 +3,8 @@ package thecook.cli.terminal
 import thecook.application.CookService
 import thecook.cookbook.Cookbook
 import thecook.model.RecipeInput
+import thecook.model.RecipeArguments
+import thecook.model.RecipeDeclaration
 import java.io.PrintWriter
 import java.nio.file.Files
 import java.nio.file.InvalidPathException
@@ -45,13 +47,7 @@ class CookCommand(
         is Cook -> {
           val changes =
             if (command.remove) {
-              val harnesses = command.preferences["harness"]
-              val selected = when (harnesses) {
-                is List<*> -> harnesses.map { it.toString() }
-                is String -> listOf(harnesses)
-                else -> emptyList()
-              }
-              service.remove(command.repository, command.script, selected, command.dryRun)
+              service.remove(command.repository, command.removalApplications, command.dryRun)
             } else {
               service.cook(command.repository, command.script, command.libraries, command.preferences, command.dryRun)
             }
@@ -186,13 +182,8 @@ class CookCommand(
             ?: repository.resolve("cook.groovy")
         }
       if (wantsHelp) return if (recipeInput) RecipeHelp(recipe) else Help
-      if (remove) {
-        val supplied = inputs.keys - setOf("harness", "policy")
-        if (supplied.isNotEmpty()) throw UsageError("Removal accepts only --harness: ${supplied.first()}")
-        val selected = preferences["harness"].orEmpty()
-        if (selected.any { it !in setOf("claude", "codex") }) throw UsageError("Unsupported harness for removal")
-      }
-      return Cook(repository, recipe, libraries, inputs, dryRun, remove)
+      val removalApplications = if (remove) RecipeArguments.removal(declaration(recipe), preferences) else emptySet()
+      return Cook(repository, recipe, libraries, inputs, dryRun, remove, removalApplications)
     }
     val file = savedPlan ?: repository.resolve(".cook/plan.json")
     return if (action == "plan") {
@@ -225,15 +216,7 @@ class CookCommand(
   }
 
   private fun recipeHelp(command: RecipeHelp): String {
-    val source = command.script.toAbsolutePath()
-    val parts = source.iterator().asSequence().toList()
-    val recipesIndex = parts.indexOfLast { it.toString() == "recipes" }
-    val cookbook = if (recipesIndex < 0) source.parent else
-      source.root.resolve(parts.take(recipesIndex).fold(Path.of("")) { path, part -> path.resolve(part) })
-    val relative = if (recipesIndex < 0) source.fileName.toString() else parts.drop(recipesIndex).joinToString("/")
-    val name = if (recipesIndex < 0) null else
-      relative.removePrefix("recipes/").removeSuffix("/recipe.groovy").removeSuffix(".groovy")
-    val declaration = Cookbook(cookbook.toFile()).declarationFile(relative, name)
+    val declaration = declaration(command.script)
     val arguments = declaration.arguments.joinToString("\n") { input ->
       when (input) {
         is RecipeInput.RequiredPath -> "  --${input.name} PATH  required, once"
@@ -244,6 +227,18 @@ class CookCommand(
       }
     }
     return "Usage: cook ${declaration.name} [options]\n$arguments\n  --repo PATH  destination repository\n  --dry-run  preview without writing\n  --remove  remove selected applications\n  --set name=value  legacy argument form\n  --help  show this help"
+  }
+
+  private fun declaration(script: Path): RecipeDeclaration {
+    val source = script.toAbsolutePath()
+    val parts = source.iterator().asSequence().toList()
+    val recipesIndex = parts.indexOfLast { it.toString() == "recipes" }
+    val cookbook = if (recipesIndex < 0) source.parent else
+      source.root.resolve(parts.take(recipesIndex).fold(Path.of("")) { path, part -> path.resolve(part) })
+    val relative = if (recipesIndex < 0) source.fileName.toString() else parts.drop(recipesIndex).joinToString("/")
+    val name = if (recipesIndex < 0) null else
+      relative.removePrefix("recipes/").removeSuffix("/recipe.groovy").removeSuffix(".groovy")
+    return Cookbook(cookbook.toFile()).declarationFile(relative, name)
   }
 
   private fun path(
@@ -273,6 +268,7 @@ class CookCommand(
     val preferences: Map<String, Any>,
     val dryRun: Boolean,
     val remove: Boolean,
+    val removalApplications: Set<String>,
   ) : Command
 
   private data class Plan(

@@ -24,8 +24,7 @@ class ContextRecipeTest {
   }
 
   private void remove(File root, List harnesses) {
-    def script = new File(root, 'cookbook/recipes/agentic/context.groovy')
-    new NativePlanning().remove(root.toPath(), script.toPath(), harnesses).apply()
+    new NativePlanning().remove(root.toPath(), harnesses.collect { 'agentic.context/' + it } as Set).apply()
   }
 
   @Test void bothInvocationOrdersShareOnlyASeedAndRerunsAreStable() {

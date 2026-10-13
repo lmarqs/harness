@@ -6,6 +6,77 @@ import org.tomlj.Toml
 import java.nio.file.Files
 
 class CookCommandTest {
+  @Test void removalRequiresDeclaredHarnessAndRejectsUnusedArgumentsBeforeWrites() {
+    workspace { root, repo, ignored ->
+      Fixtures.copy('removable-permission', root)
+      def source = new File(root, 'permission.groovy')
+      def out = new ByteArrayOutputStream(); def err = new ByteArrayOutputStream()
+      def cli = command(out, err)
+      def base = [source.path, '--repo', repo.path, '--remove']
+      [
+        [],
+        ['--harness='],
+        ['--harness=other'],
+        ['--harness=claude', '--adopt=true'],
+        ['--harness=claude', '--policy=one', '--policy=two']
+      ].each { invalid ->
+        err.reset()
+        assert cli.execute((base + invalid) as String[]) != 0
+        assert err.toString('UTF-8')
+        assert repo.listFiles().length == 0
+      }
+      assert cli.execute((base + ['--harness=claude', '--policy=missing.yaml']) as String[]) == 0
+      assert repo.listFiles().length == 0
+    }
+  }
+
+  @Test void unrelatedLegacyFilenameCannotRemoveDeclaredApplication() {
+    workspace { root, repo, ignored ->
+      Fixtures.copy('removable-permission', root)
+      def source = new File(root, 'permission.groovy')
+      def policy = new File(repo, 'policy.yaml'); policy.text = 'managed\n'
+      def out = new ByteArrayOutputStream(); def err = new ByteArrayOutputStream()
+      def cli = command(out, err)
+      assert cli.execute([source.path, '--repo', repo.path, '--policy=policy.yaml', '--harness=claude'] as String[]) == 0
+      def before = new File(repo, '.cook/state.json').text
+      def unrelated = new File(root, 'unrelated/permission.groovy')
+      unrelated.parentFile.mkdirs()
+      unrelated.text = 'return { kitchen, book, options -> def c = kitchen.recipe("unrelated"); c.application("fixture/unrelated"); c }\n'
+      assert cli.execute([unrelated.path, '--repo', repo.path, '--harness=claude', '--remove'] as String[]) == 1
+      assert err.toString('UTF-8').contains('no argument declaration')
+      assert new File(repo, '.cook/state.json').text == before
+      assert new File(repo, 'settings.json').exists()
+    }
+  }
+
+  @Test void renamedDeclaredFactoryRemovesOnlyItsOwnApplication() {
+    workspace { root, repo, ignored ->
+      def source = new File(root, 'custom.groovy')
+      source.text = '''import thecook.cookbook.DeclaredRecipe
+import thecook.model.RecipeDeclaration
+import thecook.model.RecipeInput
+import thecook.model.RecipeRemoval
+def target = new RecipeInput.RequiredChoices('target', ['one', 'two'])
+return new DeclaredRecipe(new RecipeDeclaration('custom', [target],
+    new RecipeRemoval(target, [one: ['fixture/one'], two: ['fixture/two']])), { kitchen, book, options ->
+  def child = kitchen.recipe(options.target[0])
+  child.application('fixture/' + options.target[0])
+  child.output(options.target[0] + '.txt', [owns: true]) { text { 'owned' } }
+  child
+})
+'''
+      def out = new ByteArrayOutputStream(); def err = new ByteArrayOutputStream()
+      def cli = command(out, err)
+      def base = [source.path, '--repo', repo.path]
+      assert cli.execute((base + ['--target=one']) as String[]) == 0 : err.toString('UTF-8')
+      assert cli.execute((base + ['--target=two']) as String[]) == 0 : err.toString('UTF-8')
+      assert cli.execute((base + ['--target=one', '--remove']) as String[]) == 0 : err.toString('UTF-8')
+      assert !new File(repo, 'one.txt').exists()
+      assert new File(repo, 'two.txt').text == 'owned'
+      assert new JsonSlurper().parse(new File(repo, '.cook/state.json')).applications.keySet() == ['fixture/two'] as Set
+    }
+  }
+
   @Test void removalPreviewsWithoutPolicyThenRestoresOnlySelectedApplication() {
     workspace { root, repo, ignored ->
       Fixtures.copy('removable-permission', root)

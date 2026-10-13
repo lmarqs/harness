@@ -1,9 +1,13 @@
 import thecook.cookbook.DeclaredRecipe
 import thecook.model.RecipeDeclaration
 import thecook.model.RecipeInput
+import thecook.model.RecipeRemoval
 import thecook.reconciliation.StateSchema
 
-return new DeclaredRecipe(new RecipeDeclaration('agentic/init', [new RecipeInput.RequiredChoices('harness', ['codex', 'claude'])]), { kitchen, book, options ->
+def harnessInput = new RecipeInput.RequiredChoices('harness', ['codex', 'claude'])
+return new DeclaredRecipe(new RecipeDeclaration('agentic/init', [harnessInput], new RecipeRemoval(harnessInput,
+[codex: ['agentic.permissions/codex', 'agentic.context/codex'],
+  claude: ['agentic.permissions/claude', 'agentic.context/claude']])), { kitchen, book, options ->
   def configured = StateSchema.current(kitchen.repository.state()).applications.keySet()
   def unconfigured = options.harness.findAll { !configured.contains('agentic.permissions/' + it) }
   def policySeed = 'version: 1\ninstructions: []\ncommands: {}\n'

@@ -135,8 +135,7 @@ class PermissionRecipeTest {
       policy(root, 'policy.yaml', 'git, status')
       apply(root, book, 'policy.yaml', ['claude', 'codex'])
       def rules = new File(root, '.codex/rules/cookbook.rules').text
-      def script = new File(root, 'cookbook/recipes/agentic/permission.groovy')
-      new NativePlanning().remove(root.toPath(), script.toPath(), ['claude']).apply()
+      new NativePlanning().remove(root.toPath(), ['agentic.permissions/claude'] as Set).apply()
       assert !new File(root, '.claude/settings.json').exists()
       assert new File(root, '.codex/rules/cookbook.rules').text == rules
       assert new JsonSlurper().parse(new File(root, '.cook/state.json')).applications.containsKey('agentic.permissions/codex')

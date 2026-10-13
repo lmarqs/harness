@@ -1,12 +1,11 @@
 import thecook.cookbook.DeclaredRecipe
 import thecook.model.RecipeDeclaration
 import thecook.model.RecipeInput
+import thecook.model.RecipeRemoval
 import thecook.model.Provider
 
-return new DeclaredRecipe(new RecipeDeclaration('agentic/context', [
-  new RecipeInput.RequiredChoices('harness', ['codex', 'claude']),
-  new RecipeInput.OptionalChoices('adopt', ['true', 'false'])
-]), { kitchen, book, options ->
+def harnessInput = new RecipeInput.RequiredChoices('harness', ['codex', 'claude'])
+return new DeclaredRecipe(new RecipeDeclaration('agentic/context', [harnessInput, new RecipeInput.OptionalChoices('adopt', ['true', 'false'])], new RecipeRemoval(harnessInput, [codex: ['agentic.context/codex'], claude: ['agentic.context/claude']])), { kitchen, book, options ->
   def host = kitchen.recipe('context')
   host.application('agentic.context/default')
   host.output('AGENTS.md', [seed: true]) {

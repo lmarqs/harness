@@ -1,12 +1,14 @@
 import thecook.cookbook.DeclaredRecipe
 import thecook.model.RecipeDeclaration
 import thecook.model.RecipeInput
+import thecook.model.RecipeRemoval
 
+def harnessInput = new RecipeInput.RequiredChoices('harness', ['codex', 'claude'])
 return new DeclaredRecipe(new RecipeDeclaration('agentic/permission', [
   new RecipeInput.RequiredPath('policy'),
-  new RecipeInput.RequiredChoices('harness', ['codex', 'claude']),
+  harnessInput,
   new RecipeInput.OptionalChoices('adopt', ['true', 'false'])
-]), { kitchen, book, options ->
+], new RecipeRemoval(harnessInput, [codex: ['agentic.permissions/codex'], claude: ['agentic.permissions/claude']], ['policy'] as Set)), { kitchen, book, options ->
   def policyFile = new File(options.policy)
   if (!policyFile.isAbsolute()) {
     policyFile = new File(kitchen.repository.directory, policyFile.path)

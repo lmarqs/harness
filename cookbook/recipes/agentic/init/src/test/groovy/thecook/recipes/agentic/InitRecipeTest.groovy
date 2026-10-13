@@ -107,8 +107,7 @@ class InitRecipeTest {
     workspace { root, book ->
       apply(root, book, ['codex', 'claude'])
       def rules = new File(root, '.codex/rules/cookbook.rules').text
-      def script = new File(root, 'cookbook/recipes/agentic/init.groovy')
-      new NativePlanning().remove(root.toPath(), script.toPath(), ['claude']).apply()
+      new NativePlanning().remove(root.toPath(), ['agentic.permissions/claude', 'agentic.context/claude', 'agentic.init/default'] as Set).apply()
       assert !new File(root, '.claude/settings.json').exists()
       assert !new File(root, 'CLAUDE.md').exists()
       assert new File(root, '.codex/rules/cookbook.rules').text == rules

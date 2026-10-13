@@ -5,6 +5,7 @@ import thecook.cookbook.Cookbook
 import thecook.model.RecipeArguments
 import thecook.model.RecipeDeclaration
 import thecook.model.RecipeInput
+import thecook.model.RecipeRemoval
 
 class RecipeArgumentsTest {
   private final RecipeDeclaration declaration = new RecipeDeclaration('declared', [new RecipeInput.RequiredPath('policy'), new RecipeInput.RequiredChoices('harness', ['codex', 'claude'])])
@@ -76,5 +77,29 @@ class RecipeArgumentsTest {
     } catch (IllegalArgumentException expected) {
       assert expected.message.contains('policy')
     }
+  }
+
+  @Test void removalUsesOnlyDeclaredChoicesAndExactApplications() {
+    def harness = new RecipeInput.RequiredChoices('harness', ['claude', 'codex'])
+    def declared = new RecipeDeclaration('renamed', [new RecipeInput.RequiredPath('policy'), harness],
+    new RecipeRemoval(harness, [claude: ['fixture/claude'], codex: ['fixture/codex']], ['policy'] as Set))
+    assert RecipeArguments.removal(declared, [harness: ['codex', 'claude', 'codex']]) ==
+    ['fixture/codex', 'fixture/claude'] as Set
+    [
+      [:],
+      [harness: ['']],
+      [harness: ['unknown']],
+      [harness: ['claude'], policy: ['one', 'two']],
+      [harness: ['claude'], adopt: ['true']]
+    ].each { invalid ->
+      try {
+        RecipeArguments.removal(declared, invalid)
+        assert false: "Accepted ${invalid}"
+      } catch (IllegalArgumentException expected) {
+        assert expected.message
+      }
+    }
+    assert RecipeArguments.removal(declared, [harness: ['claude'], policy: ['missing.yaml']]) ==
+    ['fixture/claude'] as Set
   }
 }

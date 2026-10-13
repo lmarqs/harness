@@ -4,9 +4,37 @@ import groovy.json.JsonSlurper
 import org.junit.Test
 import java.nio.file.Files
 import thecook.composition.Kitchen
+import thecook.cookbook.Cookbook
 import thecook.groovy.NativePlanning
+import thecook.model.RecipeArguments
 
 class ApplicationRemovalTest {
+  @Test void initDeclarationKeepsIndependentlyInstalledLegacyChild() {
+    def root = Files.createTempDirectory('cook-init-scope-').toFile()
+    try {
+      ['agentic.init/git', 'agentic.permissions/claude', 'agentic.context/claude', 'agentic.permissions/codex'].eachWithIndex { id, index ->
+        def child = new Kitchen(root).recipe('child' + index)
+        child.application(id)
+        child.output('child' + index + '.txt', [owns: true]) {
+          text {
+            id
+          }
+        }
+        child.mount(); child.kitchen.plan().apply()
+      }
+      def declaration = new Cookbook(new File('../cookbook')).declaration('agentic/init')
+      def selected = RecipeArguments.removal(declaration, [harness: ['claude']])
+      assert selected == ['agentic.permissions/claude', 'agentic.context/claude'] as Set
+      new NativePlanning().remove(root.toPath(), selected).apply()
+      assert new File(root, 'child0.txt').exists()
+      assert !new File(root, 'child1.txt').exists()
+      assert !new File(root, 'child2.txt').exists()
+      assert new File(root, 'child3.txt').exists()
+    } finally {
+      root.deleteDir()
+    }
+  }
+
   @Test void removesSelectedRegionsAndRestoresAdoptedValueWhileRetainingAnotherApplication() {
     def root = Files.createTempDirectory('cook-remove-').toFile()
     try {
@@ -29,7 +57,7 @@ class ApplicationRemovalTest {
       }
       codex.mount(); codex.kitchen.plan().apply()
       def planner = new NativePlanning()
-      def preview = planner.remove(root.toPath(), new File(root, 'permission.groovy').toPath(), ['claude'])
+      def preview = planner.remove(root.toPath(), ['agentic.permissions/claude'] as Set)
       assert preview.changes == ['settings.json']
       assert new JsonSlurper().parse(settings).claude == 'managed'
       preview.apply()
@@ -37,7 +65,7 @@ class ApplicationRemovalTest {
       def state = new JsonSlurper().parse(new File(root, '.cook/state.json'))
       assert state.applications.keySet() == ['agentic.permissions/codex'] as Set
       def stateBytes = new File(root, '.cook/state.json').bytes
-      def absent = planner.remove(root.toPath(), new File(root, 'permission.groovy').toPath(), ['claude'])
+      def absent = planner.remove(root.toPath(), ['agentic.permissions/claude'] as Set)
       assert absent.changes.empty
       absent.apply()
       assert new File(root, '.cook/state.json').bytes == stateBytes
@@ -69,12 +97,12 @@ class ApplicationRemovalTest {
         child.mount(); child.kitchen.plan().apply()
       }
       def planner = new NativePlanning()
-      def source = new File(root, 'cookbook/recipes/cookbook/recipe.groovy').toPath()
-      assert planner.remove(root.toPath(), source, ['claude']).changes == ['claude.txt', 'managed.txt']
+      def selected = ['agentic.permissions/claude', 'agentic.init/git'] as Set
+      assert planner.remove(root.toPath(), selected).changes == ['claude.txt', 'managed.txt']
       new File(root, 'managed.txt').text = 'edited'
       def state = new File(root, '.cook/state.json').text
       try {
-        planner.remove(root.toPath(), source, ['claude']); assert false: 'Expected drift rejection'
+        planner.remove(root.toPath(), selected); assert false: 'Expected drift rejection'
       }
       catch (IllegalStateException expected) {
         assert expected.message.contains('Edited managed whole file')

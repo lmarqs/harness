@@ -6,6 +6,7 @@ import org.junit.Test
 import thecook.composition.Kitchen
 import thecook.cookbook.Cookbook
 import thecook.groovy.NativePlanning
+import thecook.model.RecipeArguments
 
 class WorkflowFixtureTest {
   private final File fixtures = new File('src/test/resources/fixtures/workflow')
@@ -61,8 +62,8 @@ class WorkflowFixtureTest {
   }
 
   private void remove(File root, String recipe, List harnesses) {
-    new NativePlanning().remove(root.toPath(),
-        new File(root, 'cookbook/recipes/agentic/' + recipe + '.groovy').toPath(), harnesses).apply()
+    def selected = RecipeArguments.removal(book.declaration('agentic/' + recipe), [harness: harnesses])
+    new NativePlanning().remove(root.toPath(), selected).apply()
   }
 
   private static Map state(File root) {
