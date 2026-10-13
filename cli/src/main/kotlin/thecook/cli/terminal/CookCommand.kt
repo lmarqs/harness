@@ -239,6 +239,8 @@ class CookCommand(
         is RecipeInput.RequiredPath -> "  --${input.name} PATH  required, once"
         is RecipeInput.RequiredChoices ->
           "  --${input.name} CHOICE  required, repeatable; choices: ${input.choices.joinToString(", ")}"
+        is RecipeInput.OptionalChoices ->
+          "  --${input.name} CHOICE  optional, once; choices: ${input.choices.joinToString(", ")}"
       }
     }
     return "Usage: cook ${declaration.name} [options]\n$arguments\n  --repo PATH  destination repository\n  --dry-run  preview without writing\n  --remove  remove selected applications\n  --set name=value  legacy argument form\n  --help  show this help"

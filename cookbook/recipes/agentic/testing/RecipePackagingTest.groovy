@@ -23,7 +23,14 @@ class RecipePackagingTest {
       def book = new Cookbook(new File(workspace, 'empty-cookbook'), [artifact])
       assert book.declaration(name).name == name
       def kitchen = new Kitchen(new File(workspace, 'repository'))
-      def component = book.recipe(name, kitchen)
+      def options = [:]
+      if (fixture.getProperty('policy')) {
+        def policy = new File(kitchen.repository.directory, fixture.getProperty('policy'))
+        policy.parentFile.mkdirs()
+        policy.text = getClass().getResource('/fixtures/policy.yaml').text
+        options = [policy: fixture.getProperty('policy'), harness: fixture.getProperty('harness')]
+      }
+      def component = book.recipe(name, kitchen, options)
       assert component.definition.application == fixture.getProperty('application')
       assert component.definition.children.size() == fixture.getProperty('children').toInteger()
       component.mount()

@@ -21,6 +21,22 @@ class RecipeArgumentsTest {
         [policy: ['.agents/policy.yaml'], harness: ['codex']]).harness == ['codex']
   }
 
+  @Test void optionalChoiceIsAbsentByDefaultAndAcceptsOneSupportedValue() {
+    def withAdopt = new RecipeDeclaration('declared', declaration.arguments +
+        [new RecipeInput.OptionalChoices('adopt', ['true', 'false'])])
+    def base = [policy: ['p'], harness: ['claude']]
+    assert !RecipeArguments.validate(withAdopt, base).containsKey('adopt')
+    assert RecipeArguments.validate(withAdopt, base + [adopt: ['true']]).adopt == 'true'
+    [[adopt: ['yes']], [adopt: ['true', 'false']]].each { invalid ->
+      try {
+        RecipeArguments.validate(withAdopt, base + invalid)
+        assert false: "Accepted ${invalid}"
+      } catch (IllegalArgumentException expected) {
+        assert expected.message.contains('adopt')
+      }
+    }
+  }
+
   @Test void rejectsInvalidInputsBeforeTheyReachARecipe() {
     [
       [[policy: ['p'], harness: ['codex'], surprise: ['x']], 'surprise'],

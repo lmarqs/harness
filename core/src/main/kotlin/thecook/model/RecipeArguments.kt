@@ -17,6 +17,17 @@ sealed interface RecipeInput {
       }
     }
   }
+
+  data class OptionalChoices(
+    override val name: String,
+    val choices: List<String>,
+  ) : RecipeInput {
+    init {
+      require(choices.isNotEmpty() && choices.all { it.isNotEmpty() } && choices.distinct().size == choices.size) {
+        "Invalid choices for recipe argument: $name"
+      }
+    }
+  }
 }
 
 class RecipeDeclaration(
@@ -50,6 +61,7 @@ object RecipeArguments {
     val values = linkedMapOf<String, Any>()
     for (argument in declaration.arguments) {
       val supplied = raw[argument.name]
+      if (argument is RecipeInput.OptionalChoices && supplied == null) continue
       require(!supplied.isNullOrEmpty()) { "Required argument: --${argument.name}" }
       require(supplied.all { it.isNotEmpty() }) { "Missing value for --${argument.name}" }
       when (argument) {
@@ -64,6 +76,14 @@ object RecipeArguments {
             "Unsupported value for --${argument.name}: $unsupported. Allowed choices: ${argument.choices.joinToString(", ")}"
           }
           values[argument.name] = supplied.distinct()
+        }
+
+        is RecipeInput.OptionalChoices -> {
+          require(supplied.size == 1) { "Argument may only be supplied once: ${argument.name}" }
+          require(supplied.single() in argument.choices) {
+            "Unsupported value for --${argument.name}: ${supplied.single()}. Allowed choices: ${argument.choices.joinToString(", ")}"
+          }
+          values[argument.name] = supplied.single()
         }
       }
     }
