@@ -14,7 +14,7 @@ git.ignore.add(ralph.files.local)
 git.ignore.add(ralph.files.ephemeral)
 def excluded = preferences.excluded instanceof String ? preferences.excluded.split(',') : preferences.excluded ?: []
 for (def path : excluded) {
-    git.ignore.add(FileSet.of(FileReference.file(path.toString())))
+  git.ignore.add(FileSet.of(FileReference.file(path.toString())))
 }
 def batch = new Batch('agentic-runtime').include(git)
 if (preferences.enabled?.toString() != 'false') batch.include(ralph)

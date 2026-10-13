@@ -6,21 +6,21 @@ import thecook.groovy.BatchAdapter
 import thecook.groovy.RepositoryScript
 
 class CookExtension {
-    File repository
-    File cookbookDirectory
-    String recipe = 'development'
-    File script
-    Map parameters = [:]
-    Iterable<File> ingredientArtifacts = []
+  File repository
+  File cookbookDirectory
+  String recipe = 'development'
+  File script
+  Map parameters = [:]
+  Iterable<File> ingredientArtifacts = []
 
-    Kitchen kitchen() {
-        def kitchen = new Kitchen(repository)
-        if (script) {
-            def batch = new RepositoryScript(ingredientArtifacts.toList()).evaluate(script, parameters)
-            BatchAdapter.mount(kitchen, batch)
-            return kitchen
-        }
-        new Cookbook(cookbookDirectory, ingredientArtifacts.toList()).recipe(recipe, kitchen, parameters).mount()
-        kitchen
+  Kitchen kitchen() {
+    def kitchen = new Kitchen(repository)
+    if (script) {
+      def batch = new RepositoryScript(ingredientArtifacts.toList()).evaluate(script, parameters)
+      BatchAdapter.mount(kitchen, batch)
+      return kitchen
     }
+    new Cookbook(cookbookDirectory, ingredientArtifacts.toList()).recipe(recipe, kitchen, parameters).mount()
+    kitchen
+  }
 }

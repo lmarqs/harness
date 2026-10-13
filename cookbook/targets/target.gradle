@@ -5,12 +5,12 @@ group = 'dev.thecook.targets'
 version = '0.1.0'
 repositories { mavenCentral() }
 dependencies {
-    implementation localGroovy()
-    api 'dev.thecook:the-cook-core:0.1.0'
-    api 'dev.thecook.ingredients:agent-policy:0.1.0'
+  implementation localGroovy()
+  api 'dev.thecook:the-cook-core:0.1.0'
+  api 'dev.thecook.ingredients:agent-policy:0.1.0'
 }
 sourceSets.main.groovy {
-    setSrcDirs([projectDir])
-    include '*.groovy'
-    exclude 'build.gradle', 'settings.gradle', 'target.groovy'
+  setSrcDirs([projectDir])
+  include '*.groovy'
+  exclude 'build.gradle', 'settings.gradle', 'target.groovy'
 }

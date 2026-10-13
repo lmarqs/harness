@@ -1,5 +1,5 @@
 pluginManagement {
-    includeBuild('core')
+  includeBuild('core')
 }
 
 rootProject.name = 'the-cook'
@@ -9,10 +9,10 @@ includeBuild('cookbook/targets/codex') { name = 'target-codex' }
 includeBuild('cookbook/targets/claude') { name = 'target-claude' }
 
 includeBuild('cookbook/recipes/agentic/runtime') {
-    name = 'agentic-runtime'
+  name = 'agentic-runtime'
 }
 
 file('cookbook/ingredients').listFiles().findAll { new File(it, 'build.gradle').isFile() }.sort { it.name }.each { ingredient ->
-    def buildName = ingredient.name == rootProject.name ? 'ingredient-' + ingredient.name : ingredient.name
-    includeBuild(ingredient) { name = buildName }
+  def buildName = ingredient.name == rootProject.name ? 'ingredient-' + ingredient.name : ingredient.name
+  includeBuild(ingredient) { name = buildName }
 }

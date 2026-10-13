@@ -22,8 +22,8 @@ def source = new File(preferences['skills-home'] ?: new File(System.getProperty(
 if (!source.isAbsolute()) source = new File(repository, source.path)
 def names = ['solid', 'hexagonal-layout', 'effective-java-core']
 names.each { name ->
-    if (!new File(source, name + '/SKILL.md').isFile())
-        throw new IllegalArgumentException('Shared skill is missing SKILL.md: ' + new File(source, name))
+  if (!new File(source, name + '/SKILL.md').isFile())
+    throw new IllegalArgumentException('Shared skill is missing SKILL.md: ' + new File(source, name))
 }
 
 def skills = new Skills()
@@ -31,23 +31,23 @@ def claudeSkills = new Skills('claude-skills', '.claude/skills')
 skills.adopt = adopt
 claudeSkills.adopt = adopt
 names.each { name ->
-    skills.link(name, new File(source, name).absolutePath)
-    claudeSkills.link(name, '../../.agents/skills/' + name)
+  skills.link(name, new File(source, name).absolutePath)
+  claudeSkills.link(name, '../../.agents/skills/' + name)
 }
 
 def instructions = new AgentInstructions()
 instructions.instructions.addAll([
-    '# Working on the-cook',
-    '',
-    'Use .agents/skills/solid for implementation and review.',
-    'Use .agents/skills/hexagonal-layout for application boundaries and adapters.',
-    'Use .agents/skills/effective-java-core for Java and Groovy API design.',
-    '',
-    'Core contracts and the CLI are Kotlin; cookbook suppliers and repository recipes are Groovy.',
-    'Keep application rules independent of filesystem and terminal adapters.',
-    'Change this setup in recipes/cookbook/recipe.groovy and the selected policy YAML.',
-    'Build and verify changes with ./gradlew check cliBuild.',
-    'Preview agent setup with ./cook cookbook --policy=.agents/policy.yaml --dry-run.'
+  '# Working on the-cook',
+  '',
+  'Use .agents/skills/solid for implementation and review.',
+  'Use .agents/skills/hexagonal-layout for application boundaries and adapters.',
+  'Use .agents/skills/effective-java-core for Java and Groovy API design.',
+  '',
+  'Core contracts and the CLI are Kotlin; cookbook suppliers and repository recipes are Groovy.',
+  'Keep application rules independent of filesystem and terminal adapters.',
+  'Change this setup in recipes/cookbook/recipe.groovy and the selected policy YAML.',
+  'Build and verify changes with ./gradlew check cliBuild.',
+  'Preview agent setup with ./cook cookbook --policy=.agents/policy.yaml --dry-run.'
 ])
 instructions.instructions.addAll(policy.instructions)
 

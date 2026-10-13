@@ -1,7 +1,7 @@
 plugins {
-    id 'org.jetbrains.kotlin.jvm' version '2.4.20'
-    id 'groovy'
-    id 'java-gradle-plugin'
+  id 'org.jetbrains.kotlin.jvm' version '2.4.20'
+  id 'groovy'
+  id 'java-gradle-plugin'
 }
 
 group = 'dev.thecook'
@@ -9,40 +9,40 @@ group = 'dev.thecook'
 version = '0.1.0'
 
 repositories {
-    mavenCentral()
+  mavenCentral()
 }
 
 kotlin {
-    jvmToolchain(17)
+  jvmToolchain(17)
 }
 
 tasks.named('compileGroovy') {
-    dependsOn tasks.named('compileKotlin')
-    classpath += files(tasks.named('compileKotlin').flatMap { it.destinationDirectory })
+  dependsOn tasks.named('compileKotlin')
+  classpath += files(tasks.named('compileKotlin').flatMap { it.destinationDirectory })
 }
 
 dependencies {
-    implementation localGroovy()
-    implementation 'org.tomlj:tomlj:1.0.0'
-    implementation 'org.yaml:snakeyaml:2.4'
-    testImplementation 'junit:junit:4.13.2'
+  implementation localGroovy()
+  implementation 'org.tomlj:tomlj:1.0.0'
+  implementation 'org.yaml:snakeyaml:2.4'
+  testImplementation 'junit:junit:4.13.2'
 }
 
 gradlePlugin {
-    plugins {
-        cook { id = 'dev.thecook'; implementationClass = 'thecook.gradle.CookPlugin' }
-        ingredient { id = 'dev.thecook.ingredient'; implementationClass = 'thecook.gradle.IngredientPlugin' }
-        recipe { id = 'dev.thecook.recipe'; implementationClass = 'thecook.gradle.RecipePlugin' }
-    }
+  plugins {
+    cook { id = 'dev.thecook'; implementationClass = 'thecook.gradle.CookPlugin' }
+    ingredient { id = 'dev.thecook.ingredient'; implementationClass = 'thecook.gradle.IngredientPlugin' }
+    recipe { id = 'dev.thecook.recipe'; implementationClass = 'thecook.gradle.RecipePlugin' }
+  }
 }
 
 tasks.named('test') {
-    useJUnit()
-    systemProperty 'cook.report', layout.buildDirectory.file('reports/model-checks.json').get().asFile.absolutePath
-    systemProperty 'cook.cookbook', file('../cookbook').absolutePath
-    testLogging { events 'failed' }
+  useJUnit()
+  systemProperty 'cook.report', layout.buildDirectory.file('reports/model-checks.json').get().asFile.absolutePath
+  systemProperty 'cook.cookbook', file('../cookbook').absolutePath
+  testLogging { events 'failed' }
 }
 
 tasks.register('modelChecks') {
-    dependsOn 'test'
+  dependsOn 'test'
 }

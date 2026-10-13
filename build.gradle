@@ -1,24 +1,24 @@
 plugins {
-    id 'dev.thecook'
-    id 'com.diffplug.spotless' version '8.10.4'
+  id 'dev.thecook'
+  id 'com.diffplug.spotless' version '8.10.4'
 }
 
 repositories {
-    mavenCentral()
+  mavenCentral()
 }
 
 configurations {
-    cookbookIngredients
+  cookbookIngredients
 }
 
 def ingredientBuilds = file('cookbook/ingredients').listFiles().findAll { new File(it, 'build.gradle').isFile() }.sort { it.name }
 dependencies {
-    ingredientBuilds.each { ingredient ->
-        def release = new Properties()
-        new File(ingredient, 'gradle.properties').withInputStream { release.load(it) }
-        cookbookIngredients "${release.group}:${ingredient.name}:${release.version}"
-    }
-    cookbookIngredients 'dev.thecook.recipes:agentic-runtime:0.1.0'
+  ingredientBuilds.each { ingredient ->
+    def release = new Properties()
+    new File(ingredient, 'gradle.properties').withInputStream { release.load(it) }
+    cookbookIngredients "${release.group}:${ingredient.name}:${release.version}"
+  }
+  cookbookIngredients 'dev.thecook.recipes:agentic-runtime:0.1.0'
 }
 
 cook.repository = file(providers.gradleProperty('repo').getOrElse('build/example'))
@@ -26,7 +26,7 @@ cook.recipe = providers.gradleProperty('recipe').getOrElse('development')
 cook.cookbookDirectory = file('cookbook')
 
 if (providers.gradleProperty('script').isPresent()) {
-    cook.script = file(providers.gradleProperty('script').get())
+  cook.script = file(providers.gradleProperty('script').get())
 }
 
 cook.parameters = gradle.startParameter.projectProperties.findAll { !(it.key in ['repo', 'recipe', 'script']) }
@@ -34,43 +34,43 @@ cook.parameters = gradle.startParameter.projectProperties.findAll { !(it.key in 
 cook.ingredientArtifacts = configurations.cookbookIngredients
 
 spotless {
-    def generated = ['**/build/**', '**/.gradle/**', '.cook/**']
-    kotlin {
-        target '**/*.kt'
-        targetExclude generated
-        ktlint('1.8.0')
-    }
-    groovy {
-        target '**/*.groovy'
-        targetExclude generated
-        greclipse().configFile('gradle/spotless/greclipse.properties')
-    }
-    groovyGradle {
-        target '**/*.gradle'
-        targetExclude generated
-        greclipse().configFile('gradle/spotless/greclipse.properties')
-    }
-    format 'misc', {
-        target '**/*.md', '**/*.properties', '**/*.sh', '**/*.toml', '.gitignore'
-        targetExclude generated + ['gradle/wrapper/**']
-        trimTrailingWhitespace()
-        endWithNewline()
-    }
+  def generated = ['**/build/**', '**/.gradle/**', '.cook/**']
+  kotlin {
+    target '**/*.kt'
+    targetExclude generated
+    ktlint('1.8.0')
+  }
+  groovy {
+    target '**/*.groovy'
+    targetExclude generated
+    greclipse().configFile('gradle/spotless/greclipse.properties')
+  }
+  groovyGradle {
+    target '**/*.gradle'
+    targetExclude generated
+    greclipse().configFile('gradle/spotless/greclipse.properties')
+  }
+  format 'misc', {
+    target '**/*.md', '**/*.properties', '**/*.sh', '**/*.toml', '.gitignore'
+    targetExclude generated + ['gradle/wrapper/**']
+    trimTrailingWhitespace()
+    endWithNewline()
+  }
 }
 
 tasks.named('check') {
-    dependsOn gradle.includedBuild('core').task(':check'), gradle.includedBuild('cli').task(':check')
+  dependsOn gradle.includedBuild('core').task(':check'), gradle.includedBuild('cli').task(':check')
 }
 
 tasks.register('cliBuild') { dependsOn gradle.includedBuild('cli').task(':installDist') }
 
 tasks.register('ingredientsBuild') {
-    dependsOn(ingredientBuilds.collect {
-        gradle.includedBuild(it.name == rootProject.name ? 'ingredient-' + it.name : it.name).task(':build')
-    })
+  dependsOn(ingredientBuilds.collect {
+    gradle.includedBuild(it.name == rootProject.name ? 'ingredient-' + it.name : it.name).task(':build')
+  })
 }
 
 tasks.register('cookbookBuild') {
-    dependsOn 'ingredientsBuild', gradle.includedBuild('agentic-runtime').task(':build')
-    dependsOn gradle.includedBuild('target-codex').task(':build'), gradle.includedBuild('target-claude').task(':build')
+  dependsOn 'ingredientsBuild', gradle.includedBuild('agentic-runtime').task(':build')
+  dependsOn gradle.includedBuild('target-codex').task(':build'), gradle.includedBuild('target-claude').task(':build')
 }

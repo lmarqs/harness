@@ -8,19 +8,21 @@ import thecook.model.*
 
 @Recipe('agentic-runtime')
 class AgenticRuntime implements RecipeDefinition {
-    final RalphConfig config
-    final boolean enabled
+  final RalphConfig config
+  final boolean enabled
 
-    AgenticRuntime(RalphConfig config, boolean enabled = true) { this.config = config; this.enabled = enabled }
+  AgenticRuntime(RalphConfig config, boolean enabled = true) {
+    this.config = config; this.enabled = enabled
+  }
 
-    Batch compose() {
-        Git git = new Git()
-        Ralph ralph = new Ralph(config)
-        // Keep personal runtime data excluded even while Ralph is disabled.
-        git.ignore.add(ralph.files.local)
-        git.ignore.add(ralph.files.ephemeral)
-        Batch batch = new Batch('agentic-runtime').include(git)
-        if (enabled) batch.include(ralph)
-        batch
-    }
+  Batch compose() {
+    Git git = new Git()
+    Ralph ralph = new Ralph(config)
+    // Keep personal runtime data excluded even while Ralph is disabled.
+    git.ignore.add(ralph.files.local)
+    git.ignore.add(ralph.files.ephemeral)
+    Batch batch = new Batch('agentic-runtime').include(git)
+    if (enabled) batch.include(ralph)
+    batch
+  }
 }
