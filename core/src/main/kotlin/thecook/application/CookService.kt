@@ -1,6 +1,6 @@
 package thecook.application
 
-import thecook.rendering.RenderedFile
+import thecook.rendering.RenderedPlan
 import java.nio.file.Path
 
 interface CookbookLoader {
@@ -9,13 +9,13 @@ interface CookbookLoader {
     script: Path,
     libraries: List<Path>,
     preferences: Map<String, Any>,
-  ): List<RenderedFile>
+  ): RenderedPlan
 }
 
 interface Planning {
   fun plan(
     repository: Path,
-    outputs: List<RenderedFile>,
+    outputs: RenderedPlan,
   ): PlanHandle
 
   fun load(

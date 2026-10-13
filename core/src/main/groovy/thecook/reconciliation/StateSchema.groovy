@@ -9,6 +9,16 @@ class StateSchema {
   static void validate(Map state) {
     try {
       require(state.version in [1, 2] && state.files instanceof Map)
+      if (state.applications != null) {
+        require(state.version == 2 && state.applications instanceof Map)
+        state.applications.each { identity, paths ->
+          require(identity ==~ /[a-zA-Z0-9][a-zA-Z0-9_.:-]*\/[a-zA-Z0-9][a-zA-Z0-9_.:-]*/ && paths instanceof Map)
+          paths.each { path, addresses ->
+            TargetPath.of(path.toString())
+            require(addresses instanceof List && addresses.every { it instanceof String })
+          }
+        }
+      }
       state.files.each { path, file ->
         TargetPath.of(path.toString())
         require(file instanceof Map && file.kind in ['whole', 'blocks', 'json', 'toml', 'yaml', 'symlink'])

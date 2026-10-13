@@ -8,9 +8,15 @@ import thecook.model.Batch
 @CompileStatic
 class RenderTree {
   final List<RenderedFile> outputs
+  final Map<String, List<RenderedFile>> applications
 
   RenderTree(List<RenderedFile> outputs) {
+    this(outputs, [:])
+  }
+
+  RenderTree(List<RenderedFile> outputs, Map<String, List<RenderedFile>> applications) {
     this.outputs = List.copyOf(outputs)
+    this.applications = applications.collectEntries { String id, List<RenderedFile> files -> [(id): List.copyOf(files)] }.asImmutable()
   }
 
   static RenderTree from(Batch batch) {
@@ -20,11 +26,22 @@ class RenderTree {
   static RenderTree from(List<Component> components) {
     validateDependencies(components)
     List<RenderedFile> outputs = []
+    Map<String, List<RenderedFile>> applications = [:]
     for (Component component : components) {
       for (Object check : (List) component.definition.checks) component.evaluate((Closure) check)
     }
-    for (Component component : components) outputs.addAll(component.renderOutputs())
-    combine(outputs)
+    for (Component component : components) {
+      List<RenderedFile> files = component.renderOutputs()
+      outputs.addAll(files)
+      String application = (String) component.definition.application
+      if (application != null) {
+        if (applications.containsKey(application))
+          throw new IllegalArgumentException("Duplicate application: ${application}")
+        applications[application] = combine(files).outputs
+      }
+    }
+    RenderTree combined = combine(outputs)
+    new RenderTree(combined.outputs, applications)
   }
 
   private static RenderTree combine(List<RenderedFile> outputs) {

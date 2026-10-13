@@ -15,6 +15,11 @@ class Component {
   ComponentId getId() {
     definition.id
   }
+  void application(String identity) {
+    if (!(identity ==~ /[a-zA-Z0-9][a-zA-Z0-9_.:-]*\/[a-zA-Z0-9][a-zA-Z0-9_.:-]*/))
+      throw new IllegalArgumentException("Invalid application identity: ${identity}")
+    definition.application = identity
+  }
   Component call(Closure configure) {
     evaluate(configure); this
   }

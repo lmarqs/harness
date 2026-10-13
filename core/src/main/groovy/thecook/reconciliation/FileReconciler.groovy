@@ -9,17 +9,17 @@ class FileReconciler {
     this.documents = documents
   }
 
-  FileResult reconcile(Map snapshot, OwnershipRecord before, RenderedFile desired, boolean eject) {
+  FileResult reconcile(Map snapshot, OwnershipRecord before, RenderedFile desired, boolean eject, Set preserved = []) {
     def kind = desired?.kind ?: before.kind
     if (before && desired && (before.kind != desired.kind ||
         (before instanceof ExclusiveRecord && before.owner != ((ExclusiveFile) desired).owner)))
       throw new IllegalStateException('Output identity changed; unmount before transferring ownership')
     if (kind == FileKind.SYMLINK) return new SymbolicLinkReconciler().reconcile(snapshot, (ExclusiveRecord) before, (ExclusiveFile) desired, eject)
     if (kind == FileKind.WHOLE) return whole(snapshot, (ExclusiveRecord) before, (ExclusiveFile) desired, eject)
-    partial(snapshot, (PartialRecord) before, (PartialFile) desired, kind, eject)
+    partial(snapshot, (PartialRecord) before, (PartialFile) desired, kind, eject, preserved)
   }
 
-  private FileResult partial(Map snapshot, PartialRecord before, PartialFile desired, FileKind kind, boolean eject) {
+  private FileResult partial(Map snapshot, PartialRecord before, PartialFile desired, FileKind kind, boolean eject, Set preserved) {
     def document = documents.open(kind.wireName, snapshot.content ?: '')
     document.seed(before?.metadata ?: [:])
     checkTransfers(before, desired)
@@ -28,6 +28,10 @@ class FileReconciler {
     identities.sort { id -> (pending.containsKey(id) ? '1' : '0') + id.toString() }
     def nextRegions = [:]
     for (def identity : identities) {
+      if (preserved.contains(identity)) {
+        nextRegions[identity] = before.regions[identity]
+        continue
+      }
       def region = new RegionReconciler().reconcile(document, identity, before?.regions?.get(identity), pending[identity], eject)
       if (region) nextRegions[identity] = region
     }

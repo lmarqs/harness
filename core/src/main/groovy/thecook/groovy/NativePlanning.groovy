@@ -7,14 +7,15 @@ import thecook.application.PlanHandle
 import thecook.filesystem.Repository
 import thecook.reconciliation.Reconciler
 import thecook.rendering.RenderTree
-import thecook.rendering.RenderedFile
+import thecook.rendering.RenderedPlan
 import thecook.reconciliation.ChangePlan
 
 @CompileStatic
 class NativePlanning implements Planning {
   @Override
-  PlanHandle plan(Path repository, List<RenderedFile> outputs) {
-    new NativePlan(new Reconciler().plan(new Repository(repository.toFile()), new RenderTree(outputs)))
+  PlanHandle plan(Path repository, RenderedPlan outputs) {
+    new NativePlan(new Reconciler().plan(new Repository(repository.toFile()),
+        new RenderTree(outputs.outputs, outputs.applications)))
   }
 
   @Override

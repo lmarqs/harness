@@ -58,15 +58,20 @@ return { kitchen, book, Map preferences ->
   git.ignore.add(claudeSkills.files.local)
 
   def host = kitchen.recipe('cookbook')
+  host.application('agentic.init/cookbook')
   def include = { component, contributor ->
     component.contribute { contributor }
     host.includes(component)
   }
   [cook, git, skills, claudeSkills, instructions].each { contributor ->
-    include(kitchen.ingredient(contributor.id.value), contributor)
+    def component = kitchen.ingredient(contributor.id.value)
+    component.application('agentic.init/' + contributor.id.value)
+    include(component, contributor)
   }
   [new CodexFiles(policy, adopt), new ClaudeFiles(policy, adopt)].each { renderer ->
-    include(kitchen.recipe(renderer.id.value), renderer)
+    def component = kitchen.recipe(renderer.id.value)
+    component.application('agentic.permissions/' + (renderer instanceof CodexFiles ? 'codex' : 'claude'))
+    include(component, renderer)
   }
   host
 }

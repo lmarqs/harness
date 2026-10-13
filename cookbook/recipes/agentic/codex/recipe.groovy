@@ -5,6 +5,7 @@ import thecook.model.Provider
 return { kitchen, book, Map options ->
   boolean adopt = options.adopt?.toString()?.toBoolean() ?: false
   def host = kitchen.recipe(options.id ?: 'codex')
+  host.application('agentic.permissions/codex')
   host.program = 'codex'
   host.input('config'); host.input('hooks')
   if (options.config) host.config.from(options.config instanceof Map ? [options.config] : options.config)
