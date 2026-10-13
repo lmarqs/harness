@@ -1,39 +1,33 @@
+import thecook.filesystem.TargetPath
+import thecook.model.KeyContribution
+import thecook.model.Provider
+
 return { kitchen, book, Map options ->
   boolean adopt = options.adopt?.toString()?.toBoolean() ?: false
   def host = kitchen.target(options.id ?: 'codex')
   host.program = 'codex'
-  host.input('config')
-  host.input('hooks')
+  host.input('config'); host.input('hooks')
   if (options.config) host.config.from(options.config instanceof Map ? [options.config] : options.config)
   if (options.hooks) host.hooks.from(options.hooks instanceof Map ? [options.hooks] : options.hooks)
   host.export('nativePaths') { ['AGENTS.md', '.codex/config.toml', '.codex/rules/', '.codex/hooks.json'] }
-  if (options.instructions != null) {
-    host.output(options.instructionsPath ?: 'AGENTS.md') {
-      block('instructions') { options.instructions.toString() }
-    }
-  }
+  // Source-mode compatibility; published targets already carry these compiled classes.
+  book.type('ingredients/agent-policy/Policy.groovy')
+  def type = book.type('targets/codex/Codex.groovy')
   def merge = book.script('ingredients/mise/inputs.groovy')
-  host.view {
-    [
-      ['config', 'toml', options.configPath ?: '.codex/config.toml'],
-      ['hooks', 'json', options.hooksPath ?: '.codex/hooks.json']
-    ].each { spec ->
-      def contributions = merge(host.getProperty(spec[0]).value, "Codex ${spec[0]}")
-      if (contributions) output(spec[2], [format: spec[1]]) {
-        contributions.each { name, value ->
-          key([name], [adopt: adopt]) {
-            value
-          }
-        }
-      }
+  host.contribute {
+    def target = type.newInstance(host.id.value, adopt)
+    if (options.configPath) target.configPath = TargetPath.of(options.configPath)
+    if (options.hooksPath) target.hooksPath = TargetPath.of(options.hooksPath)
+    if (options.instructionsPath) target.instructionsPath = TargetPath.of(options.instructionsPath)
+    merge(host.config.value, 'Codex config').each { name, value ->
+      target.config.add(new KeyContribution([name], { value }, adopt))
     }
-  }
-  (options.rules ?: [:]).each { name, content ->
-    if (!(name.toString() ==~ /[a-zA-Z0-9_.-]+/) || name in ['.', '..'])
-      throw new IllegalArgumentException('Codex rule file requires a simple file name')
-    host.output('.codex/rules/' + name, [owns: true, adopt: adopt]) {
-      text { content.toString() }
+    merge(host.hooks.value, 'Codex hooks').each { name, value ->
+      target.hooks.add(new KeyContribution([name], { value }, adopt))
     }
+    if (options.instructions != null) target.instructions = { [options.instructions.toString()] } as Provider
+    (options.rules ?: [:]).each { name, content -> target.rule(name.toString(), { content.toString() } as Provider) }
+    target
   }
   host
 }

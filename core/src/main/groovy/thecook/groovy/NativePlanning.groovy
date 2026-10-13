@@ -5,6 +5,8 @@ import java.nio.file.Path
 import thecook.application.Planning
 import thecook.application.PlanHandle
 import thecook.filesystem.Repository
+import thecook.reconciliation.Reconciler
+import thecook.rendering.RenderTree
 import thecook.model.Batch
 import thecook.reconciliation.ChangePlan
 
@@ -12,7 +14,7 @@ import thecook.reconciliation.ChangePlan
 class NativePlanning implements Planning {
   @Override
   PlanHandle plan(Path repository, Batch batch) {
-    new NativePlan(BatchAdapter.plan(repository.toFile(), batch))
+    new NativePlan(new Reconciler().plan(new Repository(repository.toFile()), RenderTree.from(batch)))
   }
 
   @Override

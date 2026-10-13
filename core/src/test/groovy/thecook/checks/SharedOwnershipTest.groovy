@@ -9,6 +9,26 @@ import thecook.filesystem.Repository
 import thecook.reconciliation.StateSchema
 
 class SharedOwnershipTest {
+  @Test void legacyInsertedSeparatorSurvivesRecookingBeforeWithdrawal() {
+    repository { root ->
+      def file = new File(root, 'ignore')
+      file.text = 'manual/\n# cook:begin git/ignore\ncache/\n# cook:end git/ignore\n'
+      def state = new File(root, '.cook/state.json'); state.parentFile.mkdirs()
+      state.text = JsonOutput.toJson([version: 1, files: [ignore: [owner: 'git', kind: 'blocks',
+            created: false, originallyEmpty: false, metadata: [:], regions: [ignore: [rendered: 'cache/\n',
+                original: null, definition: [separator: true]]]]]])
+      def kitchen = new Kitchen(root)
+      def git = kitchen.ingredient('git')
+      git.output('ignore') {
+        block('ignore') {
+          'cache/'
+        }
+      }; git.mount()
+      kitchen.plan().apply()
+      git.unmount(); kitchen.plan().apply()
+      assert file.text == 'manual/'
+    }
+  }
   private void repository(Closure test) {
     def root = Files.createTempDirectory('cook-shared-').toFile()
     try {

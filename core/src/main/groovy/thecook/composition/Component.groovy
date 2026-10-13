@@ -1,6 +1,8 @@
 package thecook.composition
 
 import thecook.rendering.Output
+import thecook.rendering.RenderedFile
+import thecook.model.Contributor
 
 class Component {
   final Kitchen kitchen
@@ -8,7 +10,7 @@ class Component {
 
   Component(Kitchen kitchen, ComponentId id, String kind) {
     this.kitchen = kitchen
-    definition = [id: id, kind: kind, parameters: [:], exports: [:], outputs: [], renderers: [], children: [], requires: [], checks: []]
+    definition = [id: id, kind: kind, parameters: [:], exports: [:], outputs: [], contributors: [], renderers: [], children: [], requires: [], checks: []]
   }
   ComponentId getId() {
     definition.id
@@ -47,14 +49,22 @@ class Component {
   void view(Closure renderer) {
     definition.renderers.add(renderer)
   }
-  List<Output> renderOutputs() {
+  List<RenderedFile> renderOutputs() {
     def view = new Component(kitchen, id, definition.kind)
     view.definition.parameters.putAll(definition.parameters)
     view.definition.exports.putAll(definition.exports)
     definition.renderers.each { view.evaluate(it) }
     def outputs = definition.outputs + view.definition.outputs
-    outputs.each { it.definitionIdentity = definition.definitionIdentity }
-    outputs
+    List<RenderedFile> rendered = outputs.collect { it.render(definition.definitionIdentity) }
+    for (Closure supplier : definition.contributors + view.definition.contributors) {
+      Contributor contributor = (Contributor) supplier.call()
+      if (contributor.id != id) throw new IllegalArgumentException('Contributor identity differs from its mounted declaration')
+      rendered.addAll(RenderedFile.evaluate([contributor]))
+    }
+    rendered
+  }
+  void contribute(Closure<Contributor> supplier) {
+    definition.contributors.add(supplier)
   }
   Output output(String path, Map options = [:], Closure configure) {
     def output = new Output(id, path, options)

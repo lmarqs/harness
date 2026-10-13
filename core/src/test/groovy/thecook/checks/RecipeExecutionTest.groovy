@@ -30,7 +30,7 @@ class RecipeExecutionTest {
       def entry = new File(supplier, 'entry.groovy')
       entry.text = "evaluateRecipe('nested/recipe.groovy', preferences + [message: 'delegated'])"
       def extension = new CookExtension(repository: repository, script: entry, parameters: [message: 'original'])
-      extension.kitchen().plan().apply()
+      extension.plan().apply()
       assert new File(repository, 'result.txt').text == 'destination:asset:delegated'
       assert !new File(supplier, 'result.txt').exists()
     } finally {

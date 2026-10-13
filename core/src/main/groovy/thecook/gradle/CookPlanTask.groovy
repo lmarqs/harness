@@ -18,12 +18,11 @@ abstract class CookPlanTask extends DefaultTask {
   @OutputFile abstract RegularFileProperty getTreeFile()
 
   @TaskAction void preview() {
-    def kitchen = configuration.kitchen()
-    def tree = kitchen.render()
-    def plan = new Reconciler().plan(kitchen.repository, tree)
+    def tree = configuration.render()
+    def plan = new Reconciler().plan(new thecook.filesystem.Repository(configuration.repository), tree)
     plan.save(planFile.get().asFile)
     patchFile.get().asFile.setText(new PatchWriter().write(plan), 'UTF-8')
-    treeFile.get().asFile.setText(JsonOutput.prettyPrint(JsonOutput.toJson(tree.outputs)) + '\n', 'UTF-8')
+    treeFile.get().asFile.setText(JsonOutput.prettyPrint(JsonOutput.toJson(tree.describe())) + '\n', 'UTF-8')
     logger.lifecycle("${plan.changes.size()} file changes; ${patchFile.get().asFile}")
     plan.changes.each { logger.lifecycle(it.path) }
   }

@@ -1,5 +1,7 @@
 package thecook.formats
 
+import thecook.rendering.RegionLocation
+
 class BlockDocument implements Document {
   String text
   BlockDocument(String text) {
@@ -49,7 +51,7 @@ class BlockDocument implements Document {
     def finish = text.indexOf('\n', last.end())
     [first.start(), finish < 0 ? text.length() : finish + 1]
   }
-  String read(String id, Map definition) {
+  String read(String id, RegionLocation location) {
     def range = bounds(id)
     if (!range) return null
     def first = text.indexOf('\n', range[0]) + 1
@@ -64,21 +66,21 @@ class BlockDocument implements Document {
     result = result.replace('\r\n', '\n').replace('\n', newline())
     result ? result.replaceAll(/(?:\r?\n)+$/, '') + newline() : ''
   }
-  void write(String id, Map definition, String content) {
+  void write(String id, RegionLocation location, String content) {
     def range = bounds(id)
     def block = begin(id) + newline() + content + end(id) + newline()
     if (range) {
       splice(range, block); return
     }
-    definition.separator = text && !text.endsWith('\n')
-    if (definition.separator) separators.add(id)
-    text += (definition.separator ? newline() : '') + block
+    boolean separator = text && !text.endsWith('\n')
+    if (separator) separators.add(id)
+    text += (separator ? newline() : '') + block
   }
-  void remove(String id, Map definition) {
+  void remove(String id, RegionLocation location) {
     def range = bounds(id)
     if (!range) return
       boolean recorded = separators.remove(id)
-    boolean separator = definition.separator || recorded
+    boolean separator = recorded
     if (separator && range[0] > 0) {
       def following = text.substring(range[1])
       if (following.startsWith('# cook:begin ')) {
@@ -90,8 +92,8 @@ class BlockDocument implements Document {
     }
     splice(range, '')
   }
-  void release(String id, Map definition) {
-    def content = read(id, definition)
+  void release(String id, RegionLocation location) {
+    def content = read(id, location)
     def range = bounds(id)
     separators.remove(id)
     if (range) splice(range, content)

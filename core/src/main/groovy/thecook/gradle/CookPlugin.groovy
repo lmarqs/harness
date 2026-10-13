@@ -32,7 +32,7 @@ class CookPlugin implements Plugin<Project> {
     }
     project.tasks.register('cookEjectPlan') {
       group = 'cook'; description = 'Save a plan to retain native files and release Cook ownership'
-      doLast { configuration.kitchen().eject().save(saved.get().asFile) }
+      doLast { new thecook.reconciliation.Reconciler().plan(new Repository(configuration.repository), new thecook.rendering.RenderTree([]), true).save(saved.get().asFile) }
     }
     project.tasks.register('cookRecover') {
       group = 'cook'; description = 'Restore the before state of an interrupted filesystem transaction'

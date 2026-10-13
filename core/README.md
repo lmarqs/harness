@@ -6,11 +6,21 @@ The core declares typed Kotlin cookbook contracts and reconciles their outputs t
 
 CLI and Gradle recipes receive `repositoryDirectory` for project inputs, `scriptDirectory` for supplier assets, and `preferences` for arguments. `evaluateRecipe(relativePath, arguments)` delegates to another supplier script while preserving the destination repository. Moving a recipe does not change which project's policy it reads.
 
+## Rendering
+
+Compiled contributors and the dynamic composition DSL evaluate directly into the same Kotlin render records. Aggregation checks file sharing and key overlap on those records; reconciliation keeps identities and document locations typed. Ownership encoding and reporting are the places that convert records to maps. Document adapters retain their format-specific restoration metadata.
+
 ## Contribution identity
 
 A published ingredient's annotation matches its artifact name. Its explicit instance name identifies its use in a batch. The contribution address combines that instance with its region: `git/ignore`, for example. Class packages and batch names do not change persistent ownership addresses.
 
 Packages under `thecook.cookbook.ingredients` identify supplier code; Codex and Claude code lives under `thecook.cookbook.targets`. `AgentInstructions` is a renderer within the agent-policy module, with historical default instance name `agent-policy`.
+
+## Native targets
+
+Codex and Claude each generate their native file declarations in one compiled target. Their policy translators produce native settings and rules separately. Factory recipes adapt their named contributions to these targets; custom paths, hooks, instruction text, rule files, and deferred connections remain supported. Factory defaults retain `codex` / `claude` instance names; policy constructors retain `cookbook.codex` / `cookbook.claude`. Existing key granularity is preserved when recooking either form.
+
+The dynamic DSL can include a compiled contributor with `contribute { contributor }`. Its instance must match the mounted declaration; its outputs use the shared typed render model.
 
 ## Shared files
 

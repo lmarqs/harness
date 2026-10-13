@@ -1,11 +1,12 @@
 package thecook.rendering
 
 import thecook.composition.ComponentId
+import thecook.composition.ContributionIdentity
+import thecook.filesystem.TargetPath
 
 class Output {
   final ComponentId owner
   final Map declaration
-  String definitionIdentity
 
   Output(ComponentId owner, String path, Map options) {
     this.owner = owner
@@ -36,14 +37,14 @@ class Output {
   }
   void key(List<String> path, Map options = [:], Closure content) {
     if (path.empty || path.any { !it || it.contains('\n') }) throw new IllegalArgumentException('Invalid key path')
-    def identity = path.collect { it.replace('~', '~0').replace('/', '~1') }.join('/')
+    def identity = new KeyLocation(path).identity(owner).region
     add(identity, content, [path: path.toList(), adopt: options.adopt ?: false, whenPresent: options.whenPresent ?: false])
   }
   private void add(String key, Closure content, Map options = [:]) {
     if (declaration.regions.containsKey(key)) throw new IllegalArgumentException("Duplicate region: ${owner}/${key}")
     declaration.regions[key] = [supplier: content] + options
   }
-  Map render() {
+  RenderedFile render(String provenance = null) {
     def definitions = declaration.regions
     def effective = declaration
     if (declaration.renderer) {
@@ -53,11 +54,18 @@ class Output {
       definitions = view.declaration.regions
       effective = view.declaration
     }
-    def regions = definitions.collectEntries { key, definition ->
-      def value = definition.supplier.call()
-      [(key.toString()): definition.findAll { it.key != 'supplier' } + [value: value]]
+    def kind = FileKind.parse(effective.kind)
+    def path = TargetPath.of(effective.path)
+    if (kind.exclusive) {
+      def value = definitions.content.supplier.call()
+      if (kind == FileKind.SYMLINK && value == null) throw new IllegalArgumentException('Invalid symlink target')
+      return new ExclusiveFile(path, kind, owner, value.toString(), effective.mode, effective.adopt, provenance)
     }
-    effective.findAll { !(it.key in ['regions', 'renderer']) } +
-    [owner: owner.toString(), definitionIdentity: definitionIdentity, regions: regions]
+    def regions = definitions.collect { key, definition ->
+      def location = kind == FileKind.BLOCKS ? new BlockLocation() : new KeyLocation(definition.path)
+      new RenderedRegion(ContributionIdentity.of(this.owner.value, key.toString()), location,
+          definition.supplier.call(), definition.adopt ?: false, definition.whenPresent ?: false, provenance)
+    }
+    new PartialFile(path, kind, regions)
   }
 }

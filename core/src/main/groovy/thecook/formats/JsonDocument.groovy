@@ -1,5 +1,8 @@
 package thecook.formats
 
+import thecook.rendering.RegionLocation
+import thecook.rendering.KeyLocation
+
 import groovy.json.JsonOutput
 
 class JsonDocument implements Document {
@@ -29,15 +32,15 @@ class JsonDocument implements Document {
     }
     node
   }
-  String read(String id, Map definition) {
-    def node = at(definition.path)
+  String read(String id, RegionLocation location) {
+    def node = at(((KeyLocation) location).path)
     node ? text.substring(node.start, node.end) : null
   }
   String render(Object value) {
     JsonOutput.toJson(value)
   }
-  void write(String id, Map definition, String content) {
-    def path = definition.path
+  void write(String id, RegionLocation location, String content) {
+    def path = ((KeyLocation) location).path
     ensureParents(path.dropRight(1))
     def node = at(path)
     if (node) {
@@ -61,8 +64,8 @@ class JsonDocument implements Document {
     def entry = (members ? ', ' : '') + JsonOutput.toJson(path[-1]) + ':' + content
     splice(offset, offset, entry)
   }
-  void remove(String id, Map definition) {
-    deleteKey(definition.path)
+  void remove(String id, RegionLocation location) {
+    deleteKey(((KeyLocation) location).path)
     createdParents.sort { -it.size() }.toList().each { path ->
       def node = at(path)
       if (node?.kind == 'object' && node.members.isEmpty()) {
@@ -83,7 +86,7 @@ class JsonDocument implements Document {
     int end = members.size() > 1 ? members[1].keyStart : entry.value.end
     splice(entry.keyStart, end, '')
   }
-  void release(String id, Map definition) {}
+  void release(String id, RegionLocation location) {}
   private void splice(int start, int end, String replacement) {
     text = text.substring(0, start) + replacement + text.substring(end); root()
   }

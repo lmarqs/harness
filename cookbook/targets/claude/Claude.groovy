@@ -6,29 +6,45 @@ import thecook.composition.ComponentId
 import thecook.filesystem.TargetPath
 import thecook.model.*
 
-/** Claude native command controls and an import of the shared instructions. */
+/** Native Claude file declarations, reused by policy and factory recipes. */
 @CompileStatic
 final class Claude implements Contributor {
   final ComponentId id
-  private final Policy policy
-  private final boolean adopt
+  final List<KeyContribution> settings = []
+  TargetPath settingsPath = TargetPath.of('.claude/settings.json')
+  TargetPath instructionsPath = TargetPath.of('CLAUDE.md')
+  Provider<List<String>> instructions
+
+  Claude(String name = 'claude') {
+    id = ComponentId.of(name)
+  }
 
   Claude(Policy policy, boolean adopt = false, String name = 'cookbook.claude') {
-    id = ComponentId.of(name)
-    this.policy = Objects.requireNonNull(policy)
-    this.adopt = adopt
+    this(name)
+    settings.addAll(ClaudePolicy.keys(Objects.requireNonNull(policy), adopt))
+    instructions = { ['@AGENTS.md'] }
   }
 
   @Override List<OutputSpec> outputs() {
+    List<OutputSpec> outputs = []
+    if (settings) outputs.add(new StructuredOutput(id, settingsPath, DocumentFormat.JSON, List.copyOf(settings)))
+    if (instructions != null) outputs.add(new BlockOutput(id, instructionsPath, 'instructions', instructions))
+    outputs
+  }
+}
+
+/** Policy-to-native translation is independent of native file generation. */
+@CompileStatic
+final class ClaudePolicy {
+  private ClaudePolicy() {}
+
+  static List<KeyContribution> keys(Policy policy, boolean adopt) {
     List<KeyContribution> keys = [new KeyContribution(['permissions', 'defaultMode'], { 'acceptEdits' }, adopt)]
     for (Policy.Decision decision : Policy.Decision.values()) {
       List<String> rules = policy.commands.findAll { Policy.Command command -> command.decision == decision }
       .collect { Policy.Command command -> 'Bash(' + command.prefix.join(' ') + ' *)' }
       keys.add(new KeyContribution(['permissions', decision.name().toLowerCase(Locale.ROOT)], { rules }, adopt))
     }
-    [
-      new StructuredOutput(id, TargetPath.of('.claude/settings.json'), DocumentFormat.JSON, keys),
-      new BlockOutput(id, TargetPath.of('CLAUDE.md'), 'instructions', { ['@AGENTS.md'] })
-    ]
+    keys
   }
 }

@@ -4,7 +4,9 @@ import org.junit.Test
 import java.nio.file.Files
 import thecook.composition.ComponentId
 import thecook.filesystem.TargetPath
-import thecook.groovy.BatchAdapter
+import thecook.filesystem.Repository
+import thecook.reconciliation.Reconciler
+import thecook.rendering.RenderTree
 import thecook.model.*
 
 class BatchIdentityTest {
@@ -19,7 +21,7 @@ class BatchIdentityTest {
               [new BlockOutput(id, TargetPath.of('.gitignore'), 'ignore', { ['/scratch/'] } as Provider)]
             }
           }
-      def plan = BatchAdapter.plan(repository, new Batch('git').include(contributor))
+      def plan = new Reconciler().plan(new Repository(repository), RenderTree.from(new Batch('git').include(contributor)))
       assert !new File(repository, '.gitignore').exists()
       plan.apply()
       assert new File(repository, '.gitignore').text.contains('/scratch/')

@@ -2,7 +2,9 @@ package thecook.gradle
 
 import thecook.composition.Kitchen
 import thecook.cookbook.Cookbook
-import thecook.groovy.BatchAdapter
+import thecook.rendering.RenderTree
+import thecook.reconciliation.Reconciler
+import thecook.filesystem.Repository
 import thecook.groovy.RepositoryScript
 
 class CookExtension {
@@ -15,12 +17,16 @@ class CookExtension {
 
   Kitchen kitchen() {
     def kitchen = new Kitchen(repository)
-    if (script) {
-      def batch = new RepositoryScript(ingredientArtifacts.toList()).evaluate(script, repository, parameters)
-      BatchAdapter.mount(kitchen, batch)
-      return kitchen
-    }
     new Cookbook(cookbookDirectory, ingredientArtifacts.toList()).recipe(recipe, kitchen, parameters).mount()
     kitchen
+  }
+  RenderTree render() {
+    if (!script) return kitchen().render()
+    def batch = new RepositoryScript(ingredientArtifacts.toList()).evaluate(script, repository, parameters)
+    RenderTree.from(batch)
+  }
+
+  def plan() {
+    new Reconciler().plan(new Repository(repository), render())
   }
 }

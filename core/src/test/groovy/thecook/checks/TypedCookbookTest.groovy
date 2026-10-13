@@ -4,6 +4,9 @@ import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import org.junit.Test
 import org.tomlj.Toml
 import java.nio.file.Files
+import thecook.filesystem.Repository
+import thecook.reconciliation.Reconciler
+import thecook.rendering.RenderTree
 
 class TypedCookbookTest {
   private final File cookbook = new File('../cookbook')
@@ -37,6 +40,10 @@ class TypedCookbookTest {
     }
   }
 
+  private static def preview(File root, Object batch) {
+    new Reconciler().plan(new Repository(root), RenderTree.from(batch))
+  }
+
   private Object evaluate(GroovyClassLoader loader, String code, Map variables = [:]) {
     new GroovyShell(loader, new Binding(variables)).evaluate(code)
   }
@@ -50,15 +57,14 @@ class TypedCookbookTest {
                 import thecook.cookbook.recipes.AgenticRuntime
                 new AgenticRuntime(new RalphConfig()).compose()
             ''')
-      def adapter = getClass().classLoader.loadClass('thecook.groovy.BatchAdapter')
-      def compiledPlan = adapter.plan(root, compiled)
+      def compiledPlan = preview(root, compiled)
       assert !new File(root, '.ralph-tui/config.toml').exists()
       assert new File(root, '.gitignore').text == '# team entries\n.env.local\n'
       compiledPlan.apply()
       def first = ModelChecks.snapshot(root)
       def dynamic = evaluate(loader, new File(cookbook, 'examples/typed-runtime/cook.groovy').text,
           [preferences: [agent: 'codex', excluded: []]])
-      assert adapter.plan(root, dynamic).changes.empty
+      assert preview(root, dynamic).changes.empty
       assert ModelChecks.snapshot(root) == first
       assert new File(root, '.gitignore').text.startsWith('# team entries\n.env.local\n')
       assert new File(root, '.gitignore').text.contains('/.ralph-tui/session.json')
@@ -196,7 +202,7 @@ class TypedCookbookTest {
       ].each { source ->
         try {
           def batch = evaluate(loader, source)
-          getClass().classLoader.loadClass('thecook.groovy.BatchAdapter').plan(root, batch)
+          preview(root, batch)
           assert false: 'Invalid repository composition produced a plan'
         } catch (Exception expected) {
           assert ModelChecks.snapshot(root) == before
@@ -208,7 +214,6 @@ class TypedCookbookTest {
   @Test void consumingRuntimePathsDoesNotMountRalphOrCreateGitImplicitly() {
     def loader = suppliers()
     repository { root ->
-      def adapter = getClass().classLoader.loadClass('thecook.groovy.BatchAdapter')
       def gitOnly = evaluate(loader, '''
                 import thecook.model.Batch
                 import thecook.cookbook.ingredients.git.Git
@@ -218,7 +223,7 @@ class TypedCookbookTest {
                 git.ignore.add(ralph.files.local)
                 new Batch('git-only').include(git)
             ''')
-      adapter.plan(root, gitOnly).apply()
+      preview(root, gitOnly).apply()
       assert new File(root, '.gitignore').isFile()
       assert !new File(root, '.ralph-tui').exists()
     }
@@ -228,7 +233,7 @@ class TypedCookbookTest {
                 import thecook.cookbook.ingredients.ralphtui.*
                 new Batch('ralph-only').include(new Ralph(new RalphConfig()))
             ''')
-      getClass().classLoader.loadClass('thecook.groovy.BatchAdapter').plan(root, ralphOnly).apply()
+      preview(root, ralphOnly).apply()
       assert new File(root, '.ralph-tui/config.toml').isFile()
       assert !new File(root, '.gitignore').exists()
     }
@@ -244,8 +249,7 @@ class TypedCookbookTest {
                 [config: config, batch: new AgenticRuntime(config).compose()]
             ''')
       variables.config.agent = 'claude'
-      def adapter = getClass().classLoader.loadClass('thecook.groovy.BatchAdapter')
-      adapter.plan(root, variables.batch).apply()
+      preview(root, variables.batch).apply()
       assert Toml.parse(new File(root, '.ralph-tui/config.toml').text).getString('defaultAgent') == 'claude'
       new File(root, '.ralph-tui/session.json').text = '{"task":"retained"}\n'
       def disabled = evaluate(loader, '''
@@ -253,7 +257,7 @@ class TypedCookbookTest {
                 import thecook.cookbook.ingredients.ralphtui.RalphConfig
                 new AgenticRuntime(new RalphConfig(), false).compose()
             ''')
-      adapter.plan(root, disabled).apply()
+      preview(root, disabled).apply()
       assert new File(root, '.ralph-tui/session.json').text == '{"task":"retained"}\n'
       assert new File(root, '.gitignore').text.contains('/.ralph-tui/session.json')
       assert !new File(root, '.ralph-tui/config.toml').exists()
@@ -275,9 +279,8 @@ class TypedCookbookTest {
                 second.ignore.add(FileSet.of(FileReference.file('second.tmp')))
                 new Batch('shared-git').include(first).include(second)
             ''')
-      def adapter = getClass().classLoader.loadClass('thecook.groovy.BatchAdapter')
       def before = ModelChecks.snapshot(root)
-      def plan = adapter.plan(root, batch)
+      def plan = preview(root, batch)
       assert ModelChecks.snapshot(root) == before
       plan.apply()
       String text = new File(root, '.gitignore').text
@@ -292,7 +295,7 @@ class TypedCookbookTest {
         assert region.owner == instance
         assert region.definitionIdentity == 'git'
       }
-      assert adapter.plan(root, batch).changes.empty
+      assert preview(root, batch).changes.empty
     }
   }
 }

@@ -1,32 +1,29 @@
 package thecook.reconciliation
 
 import thecook.formats.Document
+import thecook.composition.ContributionIdentity
+import thecook.rendering.RenderedRegion
 
 class RegionReconciler {
-  Map reconcile(Document document, String identity, Map before, Map desired, boolean eject) {
-    def definition = (before?.definition ?: desired ?: [:]).findAll { it.key != 'value' }
-    def current = document.read(identity, definition)
+  RegionRecord reconcile(Document document, ContributionIdentity identity, RegionRecord before, RenderedRegion desired, boolean eject) {
+    def location = before?.location ?: desired.location
+    def current = document.read(identity.toString(), location)
     def next = desired == null ? null : document.render(desired.value)
     if (before && current != before.rendered && (desired == null || current != next))
       throw new IllegalStateException("Edited managed region: ${identity}")
     if (eject) {
-      document.release(identity, definition); return null
+      document.release(identity.toString(), location); return null
     }
     if (desired == null) {
-      restore(document, identity, definition, before); return null
+      if (before.original != null) document.write(identity.toString(), location, before.original)
+      else document.remove(identity.toString(), location)
+      return null
     }
     if (!before && current != null && !desired.adopt)
       throw new IllegalStateException("Unmanaged region already exists: ${identity}; explicit adopt required")
     if (!before && desired.whenPresent && current == null) return null
-    def original = before ? before.original : current
-    definition += desired.findAll { it.key != 'value' }
-    document.write(identity, definition, next)
-    [rendered: document.read(identity, definition), original: original, definition: definition]
-  }
-  private static void restore(Document document, String id, Map definition, Map before) {
-    if (before.original != null) {
-      document.write(id, definition, before.original); return
-    }
-    document.remove(id, definition)
+    document.write(identity.toString(), desired.location, next)
+    new RegionRecord(document.read(identity.toString(), desired.location), before ? before.original : current,
+        desired.location, desired.adopt, desired.whenPresent, desired.definitionIdentity ?: before?.definitionIdentity)
   }
 }

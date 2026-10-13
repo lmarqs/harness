@@ -1,3 +1,7 @@
+import thecook.filesystem.TargetPath
+import thecook.model.KeyContribution
+import thecook.model.Provider
+
 return { kitchen, book, Map options ->
   boolean adopt = options.adopt?.toString()?.toBoolean() ?: false
   def host = kitchen.target(options.id ?: 'claude')
@@ -6,21 +10,18 @@ return { kitchen, book, Map options ->
   if (options.settings) host.settings.from(options.settings instanceof Map ? [options.settings] : options.settings)
   host.export('files.local') { [[path: '.claude/settings.local.json', scope: 'root', kind: 'file']] }
   host.export('nativePaths') { ['CLAUDE.md', '.claude/settings.json', '.claude/settings.local.json'] }
-  if (options.instructions != null) {
-    host.output(options.instructionsPath ?: 'CLAUDE.md') {
-      block('instructions') { options.instructions.toString() }
-    }
-  }
+  book.type('ingredients/agent-policy/Policy.groovy')
+  def type = book.type('targets/claude/Claude.groovy')
   def merge = book.script('ingredients/mise/inputs.groovy')
-  host.view {
-    def settings = merge(host.settings.value, 'Claude settings')
-    if (settings) output(options.settingsPath ?: '.claude/settings.json', [format: 'json']) {
-      settings.each { name, value ->
-        key([name], [adopt: adopt]) {
-          value
-        }
-      }
+  host.contribute {
+    def target = type.newInstance(host.id.value)
+    if (options.settingsPath) target.settingsPath = TargetPath.of(options.settingsPath)
+    if (options.instructionsPath) target.instructionsPath = TargetPath.of(options.instructionsPath)
+    merge(host.settings.value, 'Claude settings').each { name, value ->
+      target.settings.add(new KeyContribution([name], { value }, adopt))
     }
+    if (options.instructions != null) target.instructions = { [options.instructions.toString()] } as Provider
+    target
   }
   host
 }

@@ -1,5 +1,6 @@
 package thecook.cookbook
 
+import org.codehaus.groovy.control.SourceUnit
 import thecook.composition.Kitchen
 import thecook.filesystem.TargetPath
 
@@ -7,6 +8,7 @@ import thecook.filesystem.TargetPath
 class Cookbook {
   final File directory
   final GroovyClassLoader classes
+  private final Map<String, Class> types = [:]
 
   Cookbook(File directory, List<File> artifacts = []) {
     this.directory = directory.canonicalFile
@@ -18,8 +20,20 @@ class Cookbook {
   }
   Class type(String relative) {
     TargetPath.of(relative)
-    if (classes.getResource('META-INF/the-cook/' + relative)) return classes.parseClass(text(relative), relative)
-    classes.parseClass(source(relative))
+    if (types.containsKey(relative)) return types[relative]
+    String content = text(relative)
+    def sourceUnit = SourceUnit.create(relative, content)
+    sourceUnit.parse(); sourceUnit.completePhase(); sourceUnit.nextPhase(); sourceUnit.convert()
+    Class resolved
+    try {
+      resolved = classes.loadClass(sourceUnit.AST.mainClassName)
+    }
+    catch (ClassNotFoundException missing) {
+      resolved = classes.getResource('META-INF/the-cook/' + relative) ?
+          classes.parseClass(content, relative) : classes.parseClass(source(relative))
+    }
+    types[relative] = resolved
+    resolved
   }
   String text(String relative) {
     TargetPath.of(relative)

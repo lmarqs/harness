@@ -1,5 +1,8 @@
 package thecook.formats
 
+import thecook.rendering.RegionLocation
+import thecook.rendering.KeyLocation
+
 import groovy.json.JsonOutput
 import org.tomlj.Toml
 
@@ -34,8 +37,8 @@ class TomlDocument implements Document {
     if (!position) return null
     ValueSpan.afterEquals(text, offset(position))
   }
-  String read(String id, Map definition) {
-    def range = bounds(definition.path)
+  String read(String id, RegionLocation location) {
+    def range = bounds(((KeyLocation) location).path)
     range ? text.substring(range[0], range[1]) : null
   }
   String render(Object value) {
@@ -54,19 +57,19 @@ class TomlDocument implements Document {
   private static String tableName(List<String> path) {
     path.collect { keyName(it) }.join('.')
   }
-  void write(String id, Map definition, String content) {
-    def range = bounds(definition.path)
+  void write(String id, RegionLocation location, String content) {
+    def range = bounds(((KeyLocation) location).path)
     if (range) {
       splice(range[0], range[1], content); return
     }
-    def table = definition.path.dropRight(1)
+    def table = ((KeyLocation) location).path.dropRight(1)
     def header = findHeader(table)
     if (table && !header) {
       appendTable(table); header = findHeader(table)
     }
     int insertion = header ? header[1] : 0
     def ending = text.contains('\r\n') ? '\r\n' : '\n'
-    splice(insertion, insertion, keyName(definition.path[-1]) + ' = ' + content + ending)
+    splice(insertion, insertion, keyName(((KeyLocation) location).path[-1]) + ' = ' + content + ending)
   }
   private List<Integer> findHeader(List<String> path) {
     if (!path) return null
@@ -84,8 +87,8 @@ class TomlDocument implements Document {
     createdTables.add([path: table, separator: separator])
     parsed()
   }
-  void remove(String id, Map definition) {
-    def range = bounds(definition.path)
+  void remove(String id, RegionLocation location) {
+    def range = bounds(((KeyLocation) location).path)
     if (range) {
       int start = text.lastIndexOf('\n', range[0] - 1) + 1
       int end = text.indexOf('\n', range[1]); end = end < 0 ? text.length() : end + 1
@@ -109,7 +112,7 @@ class TomlDocument implements Document {
       createdTables.remove(table)
     }
   }
-  void release(String id, Map definition) {}
+  void release(String id, RegionLocation location) {}
   private void splice(int start, int end, String value) {
     text = text.substring(0, start) + value + text.substring(end); parsed()
   }
