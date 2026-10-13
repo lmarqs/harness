@@ -1,0 +1,11 @@
+plugins {
+  id 'dev.thecook.recipe'
+  id 'com.diffplug.spotless' version '8.10.4'
+}
+
+dependencies {
+  api 'dev.thecook.recipes:agentic-permission:0.1.0'
+  api 'dev.thecook.recipes:agentic-context:0.1.0'
+}
+
+apply from: '../../../../gradle/agentic-recipe-checks.gradle'

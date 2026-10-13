@@ -22,6 +22,7 @@ dependencies {
     cookbookIngredients "${release.group}:${ingredient.name}:${release.version}"
   }
   cookbookIngredients 'dev.thecook.recipes:agentic-runtime:0.1.0'
+  cookbookIngredients 'dev.thecook.recipes:agentic-init:0.1.0'
   codenarc 'org.codenarc:CodeNarc:3.7.0-groovy-4.0'
 }
 
@@ -130,4 +131,6 @@ tasks.register('ingredientsBuild') {
 tasks.register('cookbookBuild') {
   dependsOn 'ingredientsBuild', gradle.includedBuild('agentic-runtime').task(':build')
   dependsOn gradle.includedBuild('agentic-codex').task(':build'), gradle.includedBuild('agentic-claude').task(':build')
+  dependsOn gradle.includedBuild('agentic-permission').task(':build'), gradle.includedBuild('agentic-context').task(':build')
+  dependsOn gradle.includedBuild('agentic-init').task(':build')
 }

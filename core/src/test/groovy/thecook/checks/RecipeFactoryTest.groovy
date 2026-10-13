@@ -6,6 +6,22 @@ import thecook.composition.Kitchen
 import thecook.cookbook.Cookbook
 
 class RecipeFactoryTest {
+  @Test void flatAgenticDefinitionsResolveFromTheCookbookCheckout() {
+    def directory = Files.createTempDirectory('cook-flat-recipes-').toFile()
+    try {
+      def book = new Cookbook(new File('../cookbook'))
+      assert book.declaration('agentic/permission').name == 'agentic/permission'
+      assert book.declaration('agentic/context').name == 'agentic/context'
+      def kitchen = new Kitchen(directory)
+      def init = book.recipe('agentic/init', kitchen)
+      assert init.definition.children*.id*.value == ['permission', 'context']
+      init.mount()
+      assert kitchen.mounted().size() == 3
+    } finally {
+      directory.deleteDir()
+    }
+  }
+
   @Test void repositoryRecipesLoadNativeDeclarationsWithArguments() {
     def directory = Files.createTempDirectory('cook-target-').toFile()
     try {

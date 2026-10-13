@@ -22,7 +22,9 @@ class IngredientPlugin implements Plugin<Project> {
     project.dependencies.add('api', 'dev.thecook:the-cook-core:0.1.0')
     def sets = project.extensions.getByType(SourceSetContainer)
     sets.main.groovy.setSrcDirs([project.projectDir])
-    sets.main.groovy.include { details -> Character.isUpperCase(details.file.name.charAt(0)) && details.file.name.endsWith('.groovy') }
+    sets.main.groovy.include { details ->
+      details.relativePath.segments.length == 1 && Character.isUpperCase(details.file.name.charAt(0)) && details.file.name.endsWith('.groovy')
+    }
     sets.main.resources.setSrcDirs([])
     def compilerScript = project.layout.buildDirectory.file('cook/supplier-compiler.groovy')
     def compilerConfig = project.tasks.register('cookCompilerConfig') {

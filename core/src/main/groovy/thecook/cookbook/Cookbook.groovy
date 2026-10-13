@@ -42,9 +42,15 @@ class Cookbook {
   String text(String relative) {
     TargetPath.of(relative)
     if (new File(directory, relative).isFile()) return source(relative).getText('UTF-8')
+    def flat = flatRecipe(relative)
+    if (flat != null && new File(directory, flat).isFile()) return source(flat).getText('UTF-8')
     def resource = classes.getResource('META-INF/the-cook/' + relative)
     if (resource) return resource.getText('UTF-8')
     source(relative).getText('UTF-8')
+  }
+  private static String flatRecipe(String relative) {
+    def match = relative =~ /^recipes\/agentic\/([a-z][a-z0-9-]*)\/recipe\.groovy$/
+    match.matches() ? "recipes/agentic/${match[0][1]}.groovy" : null
   }
   private File source(String relative) {
     TargetPath.of(relative)
