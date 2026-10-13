@@ -5,6 +5,7 @@ import thecook.composition.ComponentId
 class Output {
     final ComponentId owner
     final Map declaration
+    String definitionIdentity
 
     Output(ComponentId owner, String path, Map options) {
         this.owner = owner
@@ -54,6 +55,7 @@ class Output {
             def value = definition.supplier.call()
             [(key.toString()): definition.findAll { it.key != 'supplier' } + [value: value]]
         }
-        effective.findAll { !(it.key in ['regions', 'renderer']) } + [owner: owner.toString(), regions: regions]
+        effective.findAll { !(it.key in ['regions', 'renderer']) } +
+            [owner: owner.toString(), definitionIdentity: definitionIdentity, regions: regions]
     }
 }

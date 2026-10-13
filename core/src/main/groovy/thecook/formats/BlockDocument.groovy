@@ -3,8 +3,9 @@ package thecook.formats
 class BlockDocument implements Document {
     String text
     BlockDocument(String text) { this.text = text; validateMarkers() }
-    void seed(Map metadata) {}
-    Map getMetadata() { [:] }
+    private final Set<String> separators = new LinkedHashSet<>()
+    void seed(Map metadata) { separators.addAll(metadata.separators ?: []) }
+    Map getMetadata() { separators ? [separators: separators.toList().sort()] : [:] }
     boolean isEmpty() { text.isEmpty() }
     private String newline() { text.contains('\r\n') ? '\r\n' : '\n' }
     private static String begin(String id) { "# cook:begin ${id}" }
@@ -54,17 +55,29 @@ class BlockDocument implements Document {
         def block = begin(id) + newline() + content + end(id) + newline()
         if (range) { splice(range, block); return }
         definition.separator = text && !text.endsWith('\n')
+        if (definition.separator) separators.add(id)
         text += (definition.separator ? newline() : '') + block
     }
     void remove(String id, Map definition) {
         def range = bounds(id)
         if (!range) return
-        if (definition.separator && range[0] > 0) range[0] -= range[0] >= 2 && text.charAt(range[0] - 2) == '\r' as char ? 2 : 1
+        boolean recorded = separators.remove(id)
+        boolean separator = definition.separator || recorded
+        if (separator && range[0] > 0) {
+            def following = text.substring(range[1])
+            if (following.startsWith('# cook:begin ')) {
+                // The newline still separates handwritten text from the next managed block.
+                separators.add(following.readLines().first().substring(13))
+            } else if (!following) {
+                range[0] -= range[0] >= 2 && text.charAt(range[0] - 2) == '\r' as char ? 2 : 1
+            }
+        }
         splice(range, '')
     }
     void release(String id, Map definition) {
         def content = read(id, definition)
         def range = bounds(id)
+        separators.remove(id)
         if (range) splice(range, content)
     }
     private void splice(List<Integer> range, String replacement) {

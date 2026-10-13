@@ -1,4 +1,4 @@
-package thecook.cookbook.skills
+package thecook.cookbook.ingredients.skills
 
 import thecook.annotations.Ingredient
 import thecook.composition.ComponentId

@@ -81,7 +81,12 @@ class YamlDocument implements Document {
         if (!parent) { text += (text && !text.endsWith('\n') ? ending : '') + entry; root(); return }
         if (parent.flowStyle == FlowStyle.FLOW) {
             if (!parent.value.isEmpty()) throw new IllegalArgumentException('YAML flow mapping insertion is unsupported')
-            splice(index(parent.startMark.index), index(parent.endMark.index), ending + entry)
+            int start = index(parent.startMark.index)
+            int end = index(parent.endMark.index)
+            // Reuse the existing line ending after an empty flow mapping.
+            String replacement = ending + entry
+            if (text.substring(end).startsWith(ending)) replacement = replacement.substring(0, replacement.length() - ending.length())
+            splice(start, end, replacement)
             return
         }
         def mark = parent.value[0].keyNode.startMark

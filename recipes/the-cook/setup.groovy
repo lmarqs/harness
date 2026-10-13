@@ -1,5 +1,5 @@
-import thecook.cookbook.git.Git
-import thecook.cookbook.thecook.TheCook
+import thecook.cookbook.ingredients.git.Git
+import thecook.cookbook.ingredients.thecook.TheCook
 import thecook.model.Batch
 
 def cook = new TheCook()

@@ -1,4 +1,4 @@
-import thecook.cookbook.ralph.RalphConfig
+import thecook.cookbook.ingredients.ralphtui.RalphConfig
 import thecook.cookbook.recipes.AgenticRuntime
 import thecook.groovy.BatchAdapter
 

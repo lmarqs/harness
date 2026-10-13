@@ -34,7 +34,7 @@ class TypedCookbookTest {
         repository { root ->
             new File(root, '.gitignore').text = '# team entries\n.env.local\n'
             def compiled = evaluate(loader, '''
-                import thecook.cookbook.ralph.RalphConfig
+                import thecook.cookbook.ingredients.ralphtui.RalphConfig
                 import thecook.cookbook.recipes.AgenticRuntime
                 new AgenticRuntime(new RalphConfig()).compose()
             ''')
@@ -60,7 +60,7 @@ class TypedCookbookTest {
             loader.parseClass('''
                 import thecook.annotations.Recipe
                 import thecook.model.*
-                import thecook.cookbook.ralph.*
+                import thecook.cookbook.ingredients.ralphtui.*
                 @Recipe('broken')
                 class Broken implements RecipeDefinition {
                     Batch compose() {
@@ -82,7 +82,7 @@ class TypedCookbookTest {
             loader.parseClass('''
                 import thecook.annotations.Recipe
                 import thecook.model.*
-                import thecook.cookbook.git.Git
+                import thecook.cookbook.ingredients.git.Git
                 @Recipe('broken-type')
                 class BrokenType implements RecipeDefinition {
                     Batch compose() {
@@ -163,11 +163,11 @@ class TypedCookbookTest {
             new File(root, 'keep.txt').text = 'manual\n'
             def before = ModelChecks.snapshot(root)
             ['''
-                import thecook.cookbook.git.Git
+                import thecook.cookbook.ingredients.git.Git
                 def git = new Git()
                 git.ignore.add('wrong type')
             ''', '''
-                import thecook.cookbook.ralph.*
+                import thecook.cookbook.ingredients.ralphtui.*
                 import thecook.cookbook.recipes.AgenticRuntime
                 new AgenticRuntime(new RalphConfig(agent: 'unsupported')).compose()
             '''].each { source ->
@@ -188,8 +188,8 @@ class TypedCookbookTest {
             def adapter = getClass().classLoader.loadClass('thecook.groovy.BatchAdapter')
             def gitOnly = evaluate(loader, '''
                 import thecook.model.Batch
-                import thecook.cookbook.git.Git
-                import thecook.cookbook.ralph.*
+                import thecook.cookbook.ingredients.git.Git
+                import thecook.cookbook.ingredients.ralphtui.*
                 def git = new Git()
                 def ralph = new Ralph(new RalphConfig())
                 git.ignore.add(ralph.files.local)
@@ -202,7 +202,7 @@ class TypedCookbookTest {
         repository { root ->
             def ralphOnly = evaluate(loader, '''
                 import thecook.model.Batch
-                import thecook.cookbook.ralph.*
+                import thecook.cookbook.ingredients.ralphtui.*
                 new Batch('ralph-only').include(new Ralph(new RalphConfig()))
             ''')
             getClass().classLoader.loadClass('thecook.groovy.BatchAdapter').plan(root, ralphOnly).apply()
@@ -215,7 +215,7 @@ class TypedCookbookTest {
         def loader = suppliers()
         repository { root ->
             def variables = evaluate(loader, '''
-                import thecook.cookbook.ralph.*
+                import thecook.cookbook.ingredients.ralphtui.*
                 import thecook.cookbook.recipes.AgenticRuntime
                 def config = new RalphConfig()
                 [config: config, batch: new AgenticRuntime(config).compose()]
@@ -227,7 +227,7 @@ class TypedCookbookTest {
             new File(root, '.ralph-tui/session.json').text = '{"task":"retained"}\n'
             def disabled = evaluate(loader, '''
                 import thecook.cookbook.recipes.AgenticRuntime
-                import thecook.cookbook.ralph.RalphConfig
+                import thecook.cookbook.ingredients.ralphtui.RalphConfig
                 new AgenticRuntime(new RalphConfig(), false).compose()
             ''')
             adapter.plan(root, disabled).apply()
@@ -238,18 +238,38 @@ class TypedCookbookTest {
         }
     }
 
-    @Test void typedCompositionRejectsMultipleWritersBeforeCreatingFiles() {
+    @Test void typedGitInstancesShareBlocksAndRecordSupplierProvenance() {
         def loader = suppliers()
         repository { root ->
+            String original = '# Team entries\nmanual/\n'
+            new File(root, '.gitignore').text = original
             def batch = evaluate(loader, '''
-                import thecook.model.Batch
-                import thecook.cookbook.git.Git
-                new Batch('collision').include(new Git('first')).include(new Git('second'))
+                import thecook.model.*
+                import thecook.cookbook.ingredients.git.Git
+                def first = new Git('first')
+                first.ignore.add(FileSet.of(FileReference.file('first.tmp')))
+                def second = new Git('second')
+                second.ignore.add(FileSet.of(FileReference.file('second.tmp')))
+                new Batch('shared-git').include(first).include(second)
             ''')
-            ModelChecks.rejects('Multiple writers') {
-                getClass().classLoader.loadClass('thecook.groovy.BatchAdapter').plan(root, batch)
+            def adapter = getClass().classLoader.loadClass('thecook.groovy.BatchAdapter')
+            def before = ModelChecks.snapshot(root)
+            def plan = adapter.plan(root, batch)
+            assert ModelChecks.snapshot(root) == before
+            plan.apply()
+            String text = new File(root, '.gitignore').text
+            assert text.startsWith(original)
+            assert text.contains('# cook:begin first/ignore')
+            assert text.contains('# cook:begin second/ignore')
+            assert text.readLines().contains('/first.tmp')
+            assert text.readLines().contains('/second.tmp')
+            def state = new groovy.json.JsonSlurper().parse(new File(root, '.cook/state.json'))
+            ['first', 'second'].each { instance ->
+                def region = state.files['.gitignore'].regions[instance + '/ignore']
+                assert region.owner == instance
+                assert region.definitionIdentity == 'git'
             }
-            assert ModelChecks.snapshot(root).isEmpty()
+            assert adapter.plan(root, batch).changes.empty
         }
     }
 }

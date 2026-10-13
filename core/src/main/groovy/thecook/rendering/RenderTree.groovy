@@ -1,6 +1,7 @@
 package thecook.rendering
 
 import thecook.composition.Component
+import thecook.composition.ContributionIdentity
 import thecook.filesystem.TargetPath
 
 class RenderTree {
@@ -11,24 +12,43 @@ class RenderTree {
         validateDependencies(components)
         components.each { component -> component.definition.checks.each { component.evaluate(it) } }
         def outputs = components.collectMany { it.renderOutputs().collect { it.render() } }
-        def paths = new HashSet<String>()
+        def paths = [:]
         outputs.each { output ->
-            def path = TargetPath.of(output.path)
-            if (!paths.add(path.value.toLowerCase(Locale.ROOT))) throw new IllegalArgumentException("Multiple writers for ${path}")
-            output.path = path.value
-            validateKeys(output)
+            def path = TargetPath.of(output.path).value
+            def canonical = path.toLowerCase(Locale.ROOT)
+            if (paths.containsKey(canonical) && paths[canonical].path != path)
+                throw new IllegalArgumentException("Multiple writers with case collision: ${paths[canonical].path}, ${path}")
+            def combined = paths[canonical]
+            boolean exclusive = output.kind in ['whole', 'symlink']
+            if (combined && (exclusive || combined.kind in ['whole', 'symlink'] || combined.kind != output.kind))
+                throw new IllegalArgumentException("Multiple writers with incompatible ownership or format: ${path}")
+            if (!combined) {
+                combined = exclusive ? output + [path: path] : [path: path, kind: output.kind, regions: [:]]
+                paths[canonical] = combined
+            }
+            if (!exclusive) output.regions.each { key, region ->
+                String address = ContributionIdentity.of(output.owner, key.toString()).toString()
+                if (combined.regions.containsKey(address))
+                    throw new IllegalArgumentException("Duplicate contribution: ${path} ${address}")
+                combined.regions[address] = region + [owner: output.owner, definitionIdentity: output.definitionIdentity]
+            }
         }
-        paths.each { path ->
-            if (paths.any { it != path && it.startsWith(path + '/') })
+        paths.keySet().each { path ->
+            if (paths.keySet().any { it != path && it.startsWith(path + '/') })
                 throw new IllegalArgumentException("File-directory collision: ${path}")
         }
-        new RenderTree(outputs.sort { it.path })
+        paths.values().each { validateKeys(it) }
+        new RenderTree(paths.values().toList().sort { it.path })
     }
     private static void validateKeys(Map output) {
-        def paths = output.regions.values().findAll { it.path }.collect { it.path }
-        paths.each { path ->
-            if (paths.any { it.size() > path.size() && it.take(path.size()) == path })
-                throw new IllegalArgumentException("Overlapping keys: ${path}")
+        def keys = output.regions.findAll { it.value.path }
+        keys.each { address, region ->
+            def conflict = keys.find { other, candidate ->
+                other != address && (candidate.path.take(region.path.size()) == region.path ||
+                                     region.path.take(candidate.path.size()) == candidate.path)
+            }
+            if (conflict)
+                throw new IllegalArgumentException("Overlapping keys: ${output.path}: ${address} conflicts with ${conflict.key}")
         }
     }
     private static void validateDependencies(List<Component> components) {

@@ -36,7 +36,9 @@ class Component {
         view.definition.parameters.putAll(definition.parameters)
         view.definition.exports.putAll(definition.exports)
         definition.renderers.each { view.evaluate(it) }
-        definition.outputs + view.definition.outputs
+        def outputs = definition.outputs + view.definition.outputs
+        outputs.each { it.definitionIdentity = definition.definitionIdentity }
+        outputs
     }
     Output output(String path, Map options = [:], Closure configure) {
         def output = new Output(id, path, options)

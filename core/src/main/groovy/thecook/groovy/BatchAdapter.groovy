@@ -1,6 +1,7 @@
 package thecook.groovy
 
 import groovy.transform.CompileStatic
+import thecook.annotations.Ingredient
 import thecook.composition.Component
 import thecook.composition.Kitchen
 import thecook.model.*
@@ -22,6 +23,7 @@ class BatchAdapter {
         Component root = new Component(kitchen, batch.id, 'recipe')
         for (Contributor contributor : batch.contributors) {
             Component component = kitchen.ingredient(contributor.id.value)
+            component.definition.definitionIdentity = contributor.class.getAnnotation(Ingredient)?.value()
             for (OutputSpec spec : contributor.outputs()) {
                 if (spec.owner != contributor.id) throw new IllegalArgumentException('Output owner differs from its contributor')
                 add(component, spec)

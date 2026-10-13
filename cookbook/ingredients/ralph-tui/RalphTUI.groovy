@@ -1,4 +1,4 @@
-package thecook.cookbook.ralph
+package thecook.cookbook.ingredients.ralphtui
 
 import thecook.composition.Component
 import thecook.composition.Kitchen

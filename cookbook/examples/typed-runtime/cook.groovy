@@ -1,6 +1,6 @@
-import thecook.cookbook.git.Git
-import thecook.cookbook.ralph.Ralph
-import thecook.cookbook.ralph.RalphConfig
+import thecook.cookbook.ingredients.git.Git
+import thecook.cookbook.ingredients.ralphtui.Ralph
+import thecook.cookbook.ingredients.ralphtui.RalphConfig
 import thecook.model.Batch
 import thecook.model.FileReference
 import thecook.model.FileSet

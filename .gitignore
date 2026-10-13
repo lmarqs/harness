@@ -8,6 +8,8 @@
 /cookbook/ingredients/*/build/
 /cookbook/recipes/**/.gradle/
 /cookbook/recipes/**/build/
+/cookbook/targets/*/.gradle/
+/cookbook/targets/*/build/
 # cook:begin git/ignore
 /.cook/
 # cook:end git/ignore

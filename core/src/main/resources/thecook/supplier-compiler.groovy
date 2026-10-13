@@ -11,7 +11,11 @@ import groovy.transform.CompilationUnitAware
 // remain readable during migration; repository scripts use a separate compiler.
 class PublishedDefinitions extends CompilationCustomizer implements CompilationUnitAware {
     CompilationUnit compilationUnit
-    PublishedDefinitions() { super(CompilePhase.CANONICALIZATION) }
+    private final String expectedDefinitionName
+    PublishedDefinitions(String expectedDefinitionName) {
+        super(CompilePhase.CANONICALIZATION)
+        this.expectedDefinitionName = expectedDefinitionName
+    }
     void call(org.codehaus.groovy.control.SourceUnit source,
               org.codehaus.groovy.classgen.GeneratorContext context,
               org.codehaus.groovy.ast.ClassNode node) {
@@ -24,6 +28,11 @@ class PublishedDefinitions extends CompilationCustomizer implements CompilationU
             return
         }
         def annotation = published.first()
+        def definitionName = annotation.getMember('value')?.text
+        if (expectedDefinitionName != null && definitionName != expectedDefinitionName) {
+            source.addError(new SyntaxException("Published definition '${definitionName}' must match artifact name '${expectedDefinitionName}'", node.lineNumber, node.columnNumber))
+            return
+        }
         def contract = contracts[annotation.classNode.name]
         if (!node.implementsInterface(ClassHelper.makeWithoutCaching(contract))) {
             source.addError(new SyntaxException("A published definition must implement ${contract}", node.lineNumber, node.columnNumber))
@@ -69,4 +78,5 @@ class PublishedDefinitions extends CompilationCustomizer implements CompilationU
         transform.call(source, context, node)
     }
 }
-configuration.addCompilationCustomizers(new PublishedDefinitions())
+configuration.addCompilationCustomizers(new PublishedDefinitions(
+    binding.hasVariable('expectedDefinitionName') ? binding.getVariable('expectedDefinitionName') : null))

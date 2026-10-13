@@ -1,18 +1,18 @@
-package thecook.cookbook.policy
+package thecook.cookbook.ingredients.agentpolicy
 
-import thecook.annotations.Ingredient
+import groovy.transform.CompileStatic
 import thecook.composition.ComponentId
 import thecook.filesystem.TargetPath
 import thecook.model.*
 
 /** Agent guidance text. Native permission enforcement belongs to the selected target. */
-@Ingredient('agent-policy')
-class AgentPolicy implements Contributor {
+@CompileStatic
+final class AgentInstructions implements Contributor {
     final ComponentId id
     final TargetPath path
     final List<String> instructions = []
 
-    AgentPolicy(String name = 'agent-policy', String path = 'AGENTS.md') {
+    AgentInstructions(String name = 'agent-policy', String path = 'AGENTS.md') {
         id = ComponentId.of(name)
         this.path = TargetPath.of(path)
     }

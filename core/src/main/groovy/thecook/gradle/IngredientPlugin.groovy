@@ -24,12 +24,12 @@ class IngredientPlugin implements Plugin<Project> {
         sets.main.resources.setSrcDirs([])
         def compilerScript = project.layout.buildDirectory.file('cook/supplier-compiler.groovy')
         def compilerConfig = project.tasks.register('cookCompilerConfig') {
-            inputs.property('configuration', SupplierCompiler.script())
+            inputs.property('configuration', SupplierCompiler.script(project.name))
             outputs.file(compilerScript)
             doLast {
                 def target = compilerScript.get().asFile
                 target.parentFile.mkdirs()
-                target.setText(SupplierCompiler.script(), 'UTF-8')
+                target.setText(SupplierCompiler.script(project.name), 'UTF-8')
             }
         }
         project.tasks.withType(GroovyCompile).configureEach {

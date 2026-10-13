@@ -23,8 +23,8 @@ class CookCommandTest {
             def repo = new File(root, 'repository'); repo.mkdirs()
             def script = new File(root, 'cook.groovy')
             script.text = '''
-                import thecook.cookbook.git.Git
-                import thecook.cookbook.ralph.*
+                import thecook.cookbook.ingredients.git.Git
+                import thecook.cookbook.ingredients.ralphtui.*
                 import thecook.model.Batch
                 def ralph = new Ralph(new RalphConfig(agent: preferences.agent ?: 'codex'))
                 def git = new Git()
@@ -111,18 +111,50 @@ class CookCommandTest {
         }
     }
 
+    @Test void namedRecipesReceiveArgumentsWithEitherEqualsOrSeparateValues() {
+        workspace { root, repo, script ->
+            def recipe = new File(repo, 'recipes/example.groovy'); recipe.parentFile.mkdirs()
+            recipe.text = script.text
+            def stdout = new ByteArrayOutputStream(); def stderr = new ByteArrayOutputStream()
+            def cli = command(stdout, stderr)
+            assert cli.execute(['example', '--repo', repo.path, '--agent=claude', '--dry-run'] as String[]) == 0 : stderr.toString('UTF-8')
+            assert !new File(repo, '.ralph-tui').exists()
+            assert cli.execute(['example', '--repo', repo.path, '--agent', 'claude'] as String[]) == 0
+            assert Toml.parse(new File(repo, '.ralph-tui/config.toml').text).getString('defaultAgent') == 'claude'
+            stdout.reset()
+            assert cli.execute(['example', '--repo', repo.path, '--set', 'agent=claude'] as String[]) == 0
+            assert stdout.toString('UTF-8').trim() == 'Already cooked.'
+        }
+    }
+
+    @Test void recipeArgumentsRejectAmbiguityAndNamesCannotEscapeTheRecipeDirectory() {
+        workspace { root, repo, script ->
+            def stdout = new ByteArrayOutputStream(); def stderr = new ByteArrayOutputStream()
+            def cli = command(stdout, stderr)
+            for (args in [
+                ['example', '--agent'], ['example', '--agent=a', '--agent=b'],
+                ['example', '--agent=a', '--set', 'agent=b'],
+                ['example', '--script', script.path], ['../example'],
+                ['example', '--dry-run=true'], ['example', '--policy='],
+            ]) assert cli.execute(args as String[]) == 2 : args
+            assert cli.execute(['missing', '--repo', repo.path] as String[]) == 1
+            assert stderr.toString('UTF-8').contains('Recipe not found: missing')
+            assert !new File(repo, '.cook').exists()
+        }
+    }
+
     @Test void agentSetupLinksSelectedSkillsAndRendersPolicy() {
         workspace { root, repo, script ->
             def source = new File(root, 'shared/solid'); source.mkdirs()
             new File(source, 'SKILL.md').text = 'Source skill'
             new File(repo, 'AGENTS.md').text = '# Team instructions\n'
             script.text = """
-                import thecook.cookbook.skills.Skills
-                import thecook.cookbook.policy.AgentPolicy
+                import thecook.cookbook.ingredients.skills.Skills
+                import thecook.cookbook.ingredients.agentpolicy.AgentInstructions
                 import thecook.model.Batch
                 def skills = new Skills()
                 skills.link('solid', preferences.skill)
-                def policy = new AgentPolicy()
+                def policy = new AgentInstructions()
                 policy.instructions.add('Use ./the-cook cook after editing the batch.')
                 new Batch('agent-setup').include(skills).include(policy)
             """
@@ -146,7 +178,7 @@ class CookCommandTest {
             def stdout = new ByteArrayOutputStream(); def stderr = new ByteArrayOutputStream()
             def cli = command(stdout, stderr)
             script.text = '''
-                import thecook.cookbook.thecook.TheCook
+                import thecook.cookbook.ingredients.thecook.TheCook
                 import thecook.model.Batch
                 new Batch('the-cook').include(new TheCook())
             '''
@@ -155,8 +187,8 @@ class CookCommandTest {
             assert repo.listFiles().length == 0
             new File(repo, '.gitignore').text = '# team entries\n'
             script.text = '''
-                import thecook.cookbook.thecook.TheCook
-                import thecook.cookbook.git.Git
+                import thecook.cookbook.ingredients.thecook.TheCook
+                import thecook.cookbook.ingredients.git.Git
                 import thecook.model.Batch
                 def cook = new TheCook()
                 def git = new Git()
@@ -200,7 +232,7 @@ class CookCommandTest {
         workspace { root, repo, script ->
             def cli = command(new ByteArrayOutputStream(), new ByteArrayOutputStream())
             script.text = """
-                import thecook.cookbook.git.Git
+                import thecook.cookbook.ingredients.git.Git
                 import thecook.model.*
                 def git = new Git()
                 git.ignore.add(FileSet.of(FileReference.directory('.cook')))

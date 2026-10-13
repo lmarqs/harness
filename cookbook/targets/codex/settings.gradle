@@ -1,0 +1,3 @@
+rootProject.name = 'codex'
+includeBuild('../../../core')
+includeBuild('../../ingredients/agent-policy')

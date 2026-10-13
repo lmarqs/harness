@@ -14,6 +14,8 @@ dependencies {
     runtimeOnly 'dev.thecook.ingredients:skills:0.1.0'
     runtimeOnly 'dev.thecook.ingredients:agent-policy:0.1.0'
     runtimeOnly 'dev.thecook.ingredients:the-cook:0.1.0'
+    runtimeOnly 'dev.thecook.targets:codex:0.1.0'
+    runtimeOnly 'dev.thecook.targets:claude:0.1.0'
     testImplementation localGroovy()
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'org.tomlj:tomlj:1.0.0'

@@ -48,12 +48,19 @@ class CompositionChecks {
             a.unmount(); a.export('x') { b.x.value }; b.export('x') { a.x.value }
             rejects('Cyclic export') { a.x.value }
         }
-        check('Duplicate identities, duplicate regions and multiple file writers fail') { root ->
+        check('Duplicate identities and regions fail while distinct block owners share a file') { root ->
             def kitchen = new Kitchen(root); def git = git(kitchen)
             rejects('Duplicate component') { kitchen.ingredient('git') }
             rejects('Duplicate region') { git.output('other') { block('x') { 'a' }; block('x') { 'b' } } }
             def other = kitchen.ingredient('other'); other.output('.gitignore') { block('x') { 'b' } }; other.mount()
-            rejects('Multiple writers') { kitchen.plan() }
+            def plan = kitchen.plan()
+            assert snapshot(root).isEmpty()
+            plan.apply()
+            def contents = new File(root, '.gitignore').text
+            assert contents.contains('# cook:begin git/ignore')
+            assert contents.contains('# cook:begin other/x')
+            assert contents.contains('node_modules/') && contents.readLines().contains('b')
+            assert kitchen.plan().changes.empty
         }
         check('Cross-kitchen mounted components fail') { root ->
             def kitchen = new Kitchen(root); def other = new Kitchen(new File(root, 'other'))

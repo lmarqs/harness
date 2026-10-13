@@ -4,6 +4,7 @@ import thecook.application.CookService
 import java.io.PrintWriter
 import java.nio.file.InvalidPathException
 import java.nio.file.Path
+import java.nio.file.Files
 
 class CookCommand(
     private val service: CookService,
@@ -18,6 +19,10 @@ class CookCommand(
             stderr.println(USAGE)
             stderr.flush()
             return 2
+        } catch (error: IllegalArgumentException) {
+            stderr.println(error.message)
+            stderr.flush()
+            return 1
         }
 
         return try {
@@ -57,8 +62,11 @@ class CookCommand(
         if (args.contentEquals(arrayOf("--help"))) return Help
         val entrypoint = args.firstOrNull() ?: throw UsageError("A command is required")
         val localScript = entrypoint.endsWith(".groovy") && !entrypoint.contains("://")
-        val action = if (localScript) "cook" else entrypoint
-        if (action !in setOf("init", "cook", "plan", "apply")) throw UsageError("Unknown command: $action")
+        val builtins = setOf("init", "cook", "plan", "apply")
+        val namedRecipe = !localScript && entrypoint !in builtins
+        if (namedRecipe && !entrypoint.matches(Regex("[a-z][a-z0-9-]*")))
+            throw UsageError("Invalid recipe name: $entrypoint")
+        val action = if (localScript || namedRecipe) "cook" else entrypoint
         if (args.size == 2 && args[1] == "--help") return Help
 
         var repository = Path.of("").toAbsolutePath()
@@ -68,25 +76,30 @@ class CookCommand(
         val libraries = mutableListOf<Path>()
         val preferences = linkedMapOf<String, String>()
         val seen = mutableSetOf<String>()
-        if (localScript) seen.add("--script")
+        if (localScript || namedRecipe) seen.add("--script")
         var index = 1
         while (index < args.size) {
-            val option = args[index++]
+            val argument = args[index++]
+            val option = argument.substringBefore('=')
+            val inlineValue = if ('=' in argument) argument.substringAfter('=') else null
             if (action == "cook" && option == "--dry-run") {
+                if (inlineValue != null) throw UsageError("--dry-run does not take a value")
                 if (!seen.add(option)) throw UsageError("Option may only be supplied once: $option")
                 dryRun = true
                 continue
             }
-            val allowed = option == "--repo" ||
+            val recipeOption = namedRecipe && option.matches(Regex("--[a-z][a-z0-9-]*")) &&
+                option !in setOf("--repo", "--script", "--plan", "--library", "--set", "--help")
+            val allowed = recipeOption || option == "--repo" ||
                 (action in setOf("plan", "apply") && option == "--plan") ||
                 (action in setOf("cook", "plan") && option in setOf("--script", "--library", "--set"))
             if (!allowed) throw UsageError("Unknown option for $action: $option")
             if (option != "--set" && option != "--library" && !seen.add(option)) {
                 throw UsageError("Option may only be supplied once: $option")
             }
-            val value = args.getOrNull(index)
+            val value = inlineValue ?: args.getOrNull(index)
             if (value.isNullOrEmpty() || value.startsWith("--")) throw UsageError("Missing value for $option")
-            index++
+            if (inlineValue == null) index++
             when (option) {
                 "--repo" -> repository = path(value, option)
                 "--script" -> script = path(value, option)
@@ -95,13 +108,15 @@ class CookCommand(
                 "--set" -> {
                     val separator = value.indexOf('=')
                     if (separator <= 0) throw UsageError("--set requires name=value")
-                    preferences[value.substring(0, separator)] = value.substring(separator + 1)
+                    addPreference(preferences, value.substring(0, separator), value.substring(separator + 1))
                 }
+                else -> addPreference(preferences, option.removePrefix("--"), value)
             }
         }
         if (action == "init") return Init(repository)
         if (action == "cook") {
-            return Cook(repository, script ?: repository.resolve("cook.groovy"), libraries, preferences, dryRun)
+            val recipe = if (namedRecipe) findRecipe(repository, entrypoint) else script ?: repository.resolve("cook.groovy")
+            return Cook(repository, recipe, libraries, preferences, dryRun)
         }
         val file = savedPlan ?: repository.resolve(".cook/plan.json")
         return if (action == "plan") {
@@ -109,6 +124,18 @@ class CookCommand(
         } else {
             Apply(repository, file)
         }
+    }
+
+    private fun addPreference(preferences: MutableMap<String, String>, name: String, value: String) {
+        if (preferences.containsKey(name)) throw UsageError("Argument may only be supplied once: $name")
+        preferences[name] = value
+    }
+
+    private fun findRecipe(repository: Path, name: String): Path {
+        val candidates = listOf(repository.resolve("recipes/$name/recipe.groovy"), repository.resolve("recipes/$name.groovy"))
+            .filter { Files.isRegularFile(it) }
+        require(candidates.size <= 1) { "Ambiguous recipe: $name; keep one entry point" }
+        return candidates.singleOrNull() ?: throw IllegalArgumentException("Recipe not found: $name (looked in ${repository.resolve("recipes")})")
     }
 
     private fun path(value: String, option: String): Path = try {
@@ -140,6 +167,7 @@ class CookCommand(
     private companion object {
         val USAGE = """
             Usage:
+              cook <recipe> [--name value | --name=value] [--dry-run] [--repo path]
               the-cook init [--repo path]
               the-cook cook [--dry-run] [--repo path] [--script path] [--set name=value] [--library path]
               the-cook path/to/recipe.groovy [--dry-run] [--repo path] [--set name=value] [--library path]
@@ -148,6 +176,8 @@ class CookCommand(
               the-cook --help
 
             --repo defaults to the current directory.
+            Named recipes resolve to recipes/<name>/recipe.groovy or recipes/<name>.groovy.
+            Recipe arguments are strings in the Groovy preferences binding; each recipe validates them.
             --script defaults to cook.groovy in the repository.
             --plan defaults to .cook/plan.json in the repository.
             init preserves an existing cook.groovy.

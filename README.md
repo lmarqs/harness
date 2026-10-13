@@ -15,30 +15,20 @@ copies drift.
 way. Everyone keeps their own way of working, and when they are done only the work remains. People who do not use
 the tool never notice it.
 
-## What it is
+## Current implementation
 
-- **The core** is one Go binary with three parts:
-  - the **kitchen**: the team's rules for tool files, kept in the repository;
-  - the **kit**: a person's own setup, kept in their own repository;
-  - **cooking**: one session for one way of working, which leaves only the work behind.
+The core and CLI use Kotlin, with Groovy document and filesystem adapters. Cookbook suppliers and repository recipes use Groovy. Ingredients publish their own builds and versions; recipes compose their contributions into a batch.
 
-  It writes files and reports what it did. It does not start programs or make commits, and it controls nobody.
-- **The wrapper**, `./cook`, is committed in each repository. It pins one release with its checksums, so every machine
-  and pipeline gives the same answer for the same commit, and a newcomer installs nothing.
-- **Cookbooks** publish ways of working as groups of rules, ingredients and recipes. A repository or a kit copies what
-  it uses, with its origin and sha256, in one reviewed change, and copying again is the update. Safety and compliance
-  come from what a cookbook holds, and some recipes are safer than others. The tool helps put them in place; it is not
-  a safety tool.
+`./cook <recipe>` renders the desired batch into native project files. Ingredients can share separate blocks or keys in a file, while whole files and symlinks have exclusive owners. Cooking checks for managed edits and applies changes atomically. Every batch is the complete desired setup.
 
 ```sh
-./cook kitchen apply        # write the kitchen's parts into the team's files
-./cook kit apply            # write the kit's parts into the home directory
-./cook recipe list          # the recipes this kitchen and kit offer
-./cook grill                # run the recipe named grill as a session
+./gradlew check cliBuild cookbookBuild
+./cook init
+./cook cookbook --policy=.agents/policy.yaml --dry-run
+./cook cookbook --policy=.agents/policy.yaml
 ```
 
-For a cookbook to read or start from, see [lmarqs/the-cookbook](https://github.com/lmarqs/the-cookbook), the author's
-own cookbook.
+The agent setup recipe requires a policy file and shared skills; see its [README](recipes/cookbook/README.md). See [the core implementation](core/README.md) for ownership, contribution identities, migration and differences from the earlier design documents.
 
 ## Read next
 
@@ -49,4 +39,4 @@ own cookbook.
 
 ## Install
 
-`the-cook` is in design: it has no release and no code. The design is in [the architecture](docs/architecture.md).
+There is no published release. Build the CLI from source with Java 17 and `./gradlew cliBuild`, then use the repository's `./cook` entry point.

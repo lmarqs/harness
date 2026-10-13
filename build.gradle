@@ -46,4 +46,5 @@ tasks.register('ingredientsBuild') {
 
 tasks.register('cookbookBuild') {
     dependsOn 'ingredientsBuild', gradle.includedBuild('agentic-runtime').task(':build')
+    dependsOn gradle.includedBuild('target-codex').task(':build'), gradle.includedBuild('target-claude').task(':build')
 }

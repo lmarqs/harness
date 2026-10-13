@@ -1,0 +1,10 @@
+#!/bin/sh
+set -eu
+repo_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+cli_path="$repo_dir/cli/build/install/the-cook/bin/the-cook"
+if [ ! -x "$cli_path" ]; then
+    echo "Build the CLI first: ./gradlew cliBuild" >&2
+    exit 1
+fi
+cd "$repo_dir"
+exec "$cli_path" "$@"

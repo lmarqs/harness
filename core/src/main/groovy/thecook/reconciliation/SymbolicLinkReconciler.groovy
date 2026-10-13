@@ -13,6 +13,7 @@ class SymbolicLinkReconciler {
         if (eject) return [content: snapshot.content, mode: null, kind: 'symlink', state: null]
         if (!desired) return [content: before.original.content, mode: null, kind: 'symlink', state: null]
         [content: next, mode: null, kind: 'symlink',
-         state: [owner: desired.owner, kind: 'symlink', rendered: next, original: before ? before.original : snapshot]]
+         state: [owner: desired.owner, kind: 'symlink', rendered: next, original: before ? before.original : snapshot,
+                 definitionIdentity: desired.definitionIdentity ?: before?.definitionIdentity]]
     }
 }

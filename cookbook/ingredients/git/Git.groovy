@@ -1,4 +1,4 @@
-package thecook.cookbook.git
+package thecook.cookbook.ingredients.git
 
 import thecook.annotations.Ingredient
 import thecook.composition.ComponentId
