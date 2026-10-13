@@ -14,7 +14,7 @@ def adoption = preferences.containsKey('adopt') ? preferences.adopt : 'false'
 if (!(adoption in ['true', 'false'])) throw new IllegalArgumentException('--adopt must be true or false')
 def adopt = adoption == 'true'
 
-def repository = scriptDirectory.parentFile.parentFile
+def repository = repositoryDirectory
 def selectedPolicy = new File(preferences.policy.toString())
 if (!selectedPolicy.isAbsolute()) selectedPolicy = new File(repository, selectedPolicy.path)
 def policy = PolicyFile.read(selectedPolicy)

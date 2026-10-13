@@ -8,8 +8,8 @@ import thecook.model.Batch
 @CompileStatic
 class GroovyBatchLoader implements CookbookLoader {
   @Override
-  Batch load(Path script, List<Path> libraries, Map<String, String> preferences) {
+  Batch load(Path repository, Path script, List<Path> libraries, Map<String, String> preferences) {
     new RepositoryScript(libraries.collect { Path library -> library.toFile() })
-    .evaluate(script.toFile(), preferences)
+    .evaluate(script.toFile(), repository.toFile(), preferences)
   }
 }

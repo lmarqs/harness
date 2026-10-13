@@ -16,7 +16,7 @@ class CookExtension {
   Kitchen kitchen() {
     def kitchen = new Kitchen(repository)
     if (script) {
-      def batch = new RepositoryScript(ingredientArtifacts.toList()).evaluate(script, parameters)
+      def batch = new RepositoryScript(ingredientArtifacts.toList()).evaluate(script, repository, parameters)
       BatchAdapter.mount(kitchen, batch)
       return kitchen
     }

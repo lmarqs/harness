@@ -2,6 +2,10 @@
 
 The core declares typed Kotlin cookbook contracts and reconciles their outputs through Groovy filesystem and document adapters. Repository recipes may use dynamic Groovy; published definitions compile statically.
 
+## Recipe execution
+
+CLI and Gradle recipes receive `repositoryDirectory` for project inputs, `scriptDirectory` for supplier assets, and `preferences` for arguments. `evaluateRecipe(relativePath, arguments)` delegates to another supplier script while preserving the destination repository. Moving a recipe does not change which project's policy it reads.
+
 ## Contribution identity
 
 A published ingredient's annotation matches its artifact name. Its explicit instance name identifies its use in a batch. The contribution address combines that instance with its region: `git/ignore`, for example. Class packages and batch names do not change persistent ownership addresses.

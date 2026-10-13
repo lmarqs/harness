@@ -5,6 +5,7 @@ import java.nio.file.Path
 
 interface CookbookLoader {
   fun load(
+    repository: Path,
     script: Path,
     libraries: List<Path>,
     preferences: Map<String, String>,
@@ -50,7 +51,7 @@ class CookService
       script: Path,
       libraries: List<Path>,
       preferences: Map<String, String>,
-    ): PlanHandle = planning.plan(repository, loader.load(script, libraries, preferences))
+    ): PlanHandle = planning.plan(repository, loader.load(repository, script, libraries, preferences))
 
     fun cook(
       repository: Path,

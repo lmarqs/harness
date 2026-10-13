@@ -132,4 +132,33 @@ commands:
       assert Toml.parse(config.text).getString('sandbox_mode') == 'workspace-write'
     }
   }
+
+  @Test void externalRecipeUsesDestinationPolicyAndRelativeSkills() {
+    setup { root, policy, cli, args, out, err ->
+      def supplier = new File(root, 'supplier')
+      def external = new File(supplier, 'recipes/cookbook/recipe.groovy')
+      external.parentFile.mkdirs()
+      external.text = new File(root, 'recipes/cookbook/recipe.groovy').text
+      def supplierPolicy = new File(supplier, '.agents/policy.yaml')
+      supplierPolicy.parentFile.mkdirs()
+      supplierPolicy.text = policy.text.replace('Preserve unrelated work.', 'Wrong supplier instructions.')
+      def selected = [
+        external.path,
+        '--repo',
+        root.path,
+        '--set',
+        'policy=.agents/policy.yaml',
+        '--set',
+        'skills-home=shared-skills'
+      ]
+      assert cli.execute((selected + ['--dry-run']) as String[]) == 0 : err.toString('UTF-8')
+      assert !new File(root, 'AGENTS.md').exists()
+      assert cli.execute(selected as String[]) == 0 : err.toString('UTF-8')
+      assert new File(root, 'AGENTS.md').text.contains('Preserve unrelated work.')
+      assert !new File(root, 'AGENTS.md').text.contains('Wrong supplier instructions.')
+      assert Files.readSymbolicLink(new File(root, '.agents/skills/solid').toPath()).toString() ==
+      new File(root, 'shared-skills/solid').absolutePath
+      assert !new File(supplier, '.cook').exists()
+    }
+  }
 }

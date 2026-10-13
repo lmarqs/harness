@@ -13,9 +13,14 @@ class RepositoryScript {
     for (File artifact : artifacts) classes.addURL(artifact.toURI().toURL())
   }
 
-  Batch evaluate(File script, Map preferences = [:]) {
+  Batch evaluate(File script, File repository, Map preferences = [:]) {
+    File directory = script.absoluteFile.parentFile
+    Closure<Batch> delegate = { String relative, Map arguments = preferences ->
+      evaluate(new File(directory, relative), repository, arguments)
+    }
     Object result = new GroovyShell(classes, new Binding([
-      preferences: preferences, scriptDirectory: script.absoluteFile.parentFile
+      preferences: preferences, scriptDirectory: directory,
+      repositoryDirectory: repository.absoluteFile, evaluateRecipe: delegate
     ])).evaluate(script)
     if (!(result instanceof Batch)) throw new IllegalArgumentException('Repository script must return a Batch')
     (Batch) result
