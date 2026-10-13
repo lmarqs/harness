@@ -1,9 +1,0 @@
-{
-  "name": "cook-node-fixture",
-  "version": "1.0.0",
-  "private": true,
-  "packageManager": "npm@10.9.8",
-  "scripts": { "test": "node test.js" },
-  "dependencies": { "fixture-math": "file:packages/math" },
-  "localSetting": { "keepThis": true }
-}

@@ -1,8 +1,0 @@
-# A developer's own exclusions must survive.
-node_modules/
-coverage/
-.yarn/
-.env.local
-# cook:package-manager
-/yarn.lock
-# end:package-manager

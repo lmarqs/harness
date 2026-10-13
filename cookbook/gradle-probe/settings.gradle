@@ -1,6 +1,0 @@
-// Gradle's Ant file trees exclude .gitignore by default; this probe edits it.
-pluginManagement {
-    org.apache.tools.ant.DirectoryScanner.removeDefaultExclude('**/.gitignore')
-    includeBuild('build-logic')
-}
-rootProject.name = 'cook-gradle-probe'

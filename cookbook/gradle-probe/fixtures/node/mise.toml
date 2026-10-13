@@ -1,6 +1,0 @@
-# The project still uses mise to install its tools.
-[tools]
-node = "22"
-
-[env]
-APP_MODE = "development"
