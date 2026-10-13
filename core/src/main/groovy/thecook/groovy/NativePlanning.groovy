@@ -15,7 +15,7 @@ class NativePlanning implements Planning {
   @Override
   PlanHandle plan(Path repository, RenderedPlan outputs) {
     new NativePlan(new Reconciler().plan(new Repository(repository.toFile()),
-        new RenderTree(outputs.outputs, outputs.applications)))
+        new RenderTree(outputs.outputs, outputs.applications, outputs.provenance)))
   }
 
   @Override

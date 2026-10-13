@@ -50,7 +50,7 @@ class RepositoryScript {
     ])).evaluate(script)
     if (result instanceof DeclaredRecipe || result instanceof Closure) {
       book.recipeValue(result, kitchen, preferences.values().every { it instanceof List } ?
-          new RawRecipeArguments(preferences) : preferences).mount()
+          new RawRecipeArguments(preferences) : preferences, script.path).mount()
       return kitchen.render()
     }
     if (preferences.values().any { it instanceof List && it.size() != 1 })

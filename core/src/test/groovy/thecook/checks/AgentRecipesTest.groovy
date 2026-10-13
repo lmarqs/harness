@@ -117,10 +117,16 @@ class AgentRecipesTest {
         config: [model: 'selected-model'], hooks: [hooks: [:]], instructions: 'Use project tasks.',
         rules: ['project.rules': 'custom_rule()\n']])
       legacy.mount()
+      try { kitchen.plan(); assert false: 'Legacy ownership was claimed' }
+      catch (IllegalStateException expected) { assert expected.message.contains('Legacy ownership') }
+      new Reconciler().plan(new Repository(root), new RenderTree([])).apply()
+      kitchen.plan().apply()
       assert kitchen.plan().changes.empty
       assert new File(root, '.codex/rules/project.rules').text == 'custom_rule()\n'
       assert !new File(root, '.codex/config.toml').exists()
-      legacy.unmount(); kitchen.plan().apply()
+      legacy.unmount()
+      def withdraw = kitchen.recipe('withdraw'); withdraw.application('agentic.permissions/codex'); withdraw.mount()
+      kitchen.plan().apply()
       assert config.text == original
       assert !new File(root, 'instructions.txt').exists()
       assert !new File(root, '.codex/rules/project.rules').exists()
@@ -146,9 +152,15 @@ class AgentRecipesTest {
       legacy.settings.from(source.settings)
       source.rules = [allow: ['Bash(check *)']]
       legacy.mount()
+      try { kitchen.plan(); assert false: 'Legacy ownership was claimed' }
+      catch (IllegalStateException expected) { assert expected.message.contains('Legacy ownership') }
+      new Reconciler().plan(new Repository(root), new RenderTree([])).apply()
+      kitchen.plan().apply()
       assert kitchen.plan().changes.empty
       assert !new File(root, '.claude/settings.local.json').exists()
-      legacy.unmount(); kitchen.plan().apply()
+      legacy.unmount()
+      def withdraw = kitchen.recipe('withdraw'); withdraw.application('agentic.permissions/claude'); withdraw.mount()
+      kitchen.plan().apply()
       assert settings.text == original
     }
   }

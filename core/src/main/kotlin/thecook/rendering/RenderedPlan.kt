@@ -4,4 +4,5 @@ package thecook.rendering
 class RenderedPlan(
   val outputs: List<RenderedFile>,
   val applications: Map<String, List<RenderedFile>>,
+  val provenance: Map<String, Map<String, Any>> = emptyMap(),
 )

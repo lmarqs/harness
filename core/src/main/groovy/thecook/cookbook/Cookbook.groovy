@@ -1,5 +1,6 @@
 package thecook.cookbook
 
+import groovy.json.JsonOutput
 import org.codehaus.groovy.control.SourceUnit
 import thecook.composition.Kitchen
 import thecook.composition.Component
@@ -73,10 +74,26 @@ class Cookbook {
     recipeFile("recipes/${name}/recipe.groovy", name, kitchen, config)
   }
   Component recipeFile(String relative, String name, Kitchen kitchen, Map config = [:]) {
-    recipeComponent(factory(relative, name, kitchen, config), kitchen)
+    def component = recipeComponent(factory(relative, name, kitchen, config), kitchen)
+    component.definition.provenance = provenance(relative, config)
+    component
   }
-  Component recipeValue(Object definition, Kitchen kitchen, Map config = [:]) {
-    recipeComponent(factoryDefinition(definition, '<direct recipe>', null, kitchen, config), kitchen)
+  Component recipeValue(Object definition, Kitchen kitchen, Map config = [:], String source = '<direct recipe>') {
+    def component = recipeComponent(factoryDefinition(definition, '<direct recipe>', null, kitchen, config), kitchen)
+    component.definition.provenance = provenance(source, config)
+    component
+  }
+  private static Map provenance(String recipe, Map config) {
+    [recipe: recipe, inputs: config.keySet().sort().collectEntries { key ->
+      def value = config[key]
+      [(key.toString()): value instanceof Map || value instanceof List ?
+          JsonOutput.toJson(canonicalInput(value)) : String.valueOf(value)]
+    }]
+  }
+  private static Object canonicalInput(Object value) {
+    if (value instanceof Map) return value.keySet().sort().collectEntries { key -> [(key.toString()): canonicalInput(value[key])] }
+    if (value instanceof List) return value.collect { canonicalInput(it) }
+    value
   }
   private Component recipeComponent(Object result, Kitchen kitchen) {
     if (!(result instanceof Component) || !result.kitchen.is(kitchen))

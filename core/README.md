@@ -38,9 +38,9 @@ Each cooked batch declares the complete desired set. Running another recipe is n
 
 ## Ownership records
 
-Version-two `.cook/state.json` records each partial region by contribution address, with its instance owner, optional published definition name, rendered content and adopted original. Document metadata stays at the file level. Whole files and symlinks retain their exclusive owner.
+Version-three `.cook/state.json` records each partial region by contribution address, with its instance owner, optional published definition name, rendered content and adopted original. Document metadata stays at the file level. Whole files and symlinks retain their exclusive owner. Application IDs map to their owned addresses; `legacy` explicitly identifies addresses without a known application. Recipe path and input provenance is diagnostic metadata, not an instruction to load or run a repository file.
 
-Version-one records are converted in memory during planning. Existing markers and adopted originals are preserved; the transaction writes the converted record only on successful application. Existing saved plans remain readable, and rollback restores their exact previous state.
+Version-one and version-two records are converted in memory during planning. Unclaimed older contributions become legacy ownership. An application cannot claim an overlapping legacy contribution, even with equal content or a matching recipe name; withdraw that contribution in an applied transaction first. Existing markers and adopted originals are preserved; the transaction writes the converted record only on successful application. A preview leaves state bytes unchanged. Existing saved plans remain readable, and rollback restores their exact previous state.
 
 This implementation keeps ownership state in the ignored `.cook` directory. That differs from [ADR 0007](../docs/adrs/0007-ownership.md), which calls for a committed manifest. A fresh clone without the state cannot infer ownership or adopted originals from generated files alone. Markers cannot represent JSON ownership.
 

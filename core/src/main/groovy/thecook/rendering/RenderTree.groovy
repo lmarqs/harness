@@ -9,14 +9,20 @@ import thecook.model.Batch
 class RenderTree {
   final List<RenderedFile> outputs
   final Map<String, List<RenderedFile>> applications
+  final Map<String, Map> provenance
 
   RenderTree(List<RenderedFile> outputs) {
     this(outputs, [:])
   }
 
   RenderTree(List<RenderedFile> outputs, Map<String, List<RenderedFile>> applications) {
+    this(outputs, applications, [:])
+  }
+
+  RenderTree(List<RenderedFile> outputs, Map<String, List<RenderedFile>> applications, Map<String, Map> provenance) {
     this.outputs = List.copyOf(outputs)
     this.applications = applications.collectEntries { String id, List<RenderedFile> files -> [(id): List.copyOf(files)] }.asImmutable()
+    this.provenance = provenance.asImmutable()
   }
 
   static RenderTree from(Batch batch) {
@@ -27,6 +33,7 @@ class RenderTree {
     validateDependencies(components)
     List<RenderedFile> outputs = []
     Map<String, List<RenderedFile>> applications = [:]
+    Map<String, Map> provenance = [:]
     for (Component component : components) {
       for (Object check : (List) component.definition.checks) component.evaluate((Closure) check)
     }
@@ -38,10 +45,11 @@ class RenderTree {
         if (applications.containsKey(application))
           throw new IllegalArgumentException("Duplicate application: ${application}")
         applications[application] = combine(files).outputs
+        if (component.definition.provenance) provenance[application] = (Map) component.definition.provenance
       }
     }
     RenderTree combined = combine(outputs)
-    new RenderTree(combined.outputs, applications)
+    new RenderTree(combined.outputs, applications, provenance)
   }
 
   private static RenderTree combine(List<RenderedFile> outputs) {
