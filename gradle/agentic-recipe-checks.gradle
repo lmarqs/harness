@@ -25,7 +25,7 @@ tasks.named('test') {
 
 spotless {
   groovy {
-    target file(providers.gradleProperty('flatRecipeSource').get()), 'src/test/groovy/**/*.groovy'
+    target file(providers.gradleProperty('flatRecipeSource').get()).absolutePath, 'src/test/groovy/**/*.groovy'
     greclipse().configFile('../../../../gradle/spotless/greclipse.properties')
   }
   groovyGradle {

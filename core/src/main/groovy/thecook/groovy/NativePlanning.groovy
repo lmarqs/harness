@@ -44,7 +44,7 @@ class NativePlanning implements Planning {
     Set<String> selected = membership.keySet().findAll { String id ->
       (init && initApplications.contains(id)) ||
           (permission && selectedHarnesses.any { String harness -> id == 'agentic.permissions/' + harness }) ||
-          (context && selectedHarnesses.any { String harness -> id == 'agentic.context/' + harness }) ||
+          ((context || init) && selectedHarnesses.any { String harness -> id == 'agentic.context/' + harness }) ||
           (provenance[id]?.get('recipe') in [path, source] && harnesses.isEmpty())
     }
     if (selected.isEmpty()) return new NoChangePlan()
