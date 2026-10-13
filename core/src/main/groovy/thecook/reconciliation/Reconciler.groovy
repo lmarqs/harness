@@ -30,10 +30,8 @@ class Reconciler {
     def changes = []
     def nextState = [version: 3, files: [:], applications: nextApplications, legacy: [:], provenance: [:]]
     paths.each { path ->
-      boolean affected = selected.isEmpty() || desired.containsKey(path) || previousSelected.values().any { it.containsKey(path) }
-      if (selected.isEmpty() && !desired.containsKey(path) &&
-          previousApplications.values().any { it.containsKey(path) } &&
-          owned[path] instanceof ExclusiveRecord) affected = false
+      boolean affected = desired.containsKey(path) || previousSelected.values().any { it.containsKey(path) } ||
+          (selected.isEmpty() && (state.legacy[path] ?: []).size() > 0)
       if (!affected) {
         observed[path] = repository.snapshot(repository.target(path, owned[path].kind == FileKind.SYMLINK),
             owned[path].kind == FileKind.SYMLINK)

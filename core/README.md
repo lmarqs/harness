@@ -8,7 +8,7 @@ Recipes live in `cookbook/recipes/<name>/recipe.groovy` or `cookbook/recipes/<na
 
 Declared recipes accept `--name=value`, `--name value`, and legacy `--set name=value`; repeatable choices retain their order. `<recipe> --help` shows required inputs, cardinality, choices, and execution options without running the factory.
 
-Optional repository composition scripts such as `cook.groovy` receive `book`, `kitchen`, `repositoryDirectory`, `scriptDirectory`, and `preferences`. They can return a recipe component or a typed `Batch`; both pass through the same checked rendering pipeline before planning. `evaluateRecipe(relativePath, arguments)` delegates to another script while preserving the destination repository.
+Optional repository composition scripts such as `cook.groovy` receive `book`, `kitchen`, `repositoryDirectory`, `scriptDirectory`, and `preferences`. They can return a recipe component or a typed `Batch`; both pass through the same checked rendering pipeline before planning. `evaluateRecipe(relativePath, arguments)` delegates to another script while preserving the destination repository. `the-cook cook` still loads the repository's `cook.groovy` by default, while a direct `.groovy` path names any local script. A `cook.groovy` file is not required to run a named or direct recipe.
 
 ## Rendering
 
@@ -36,7 +36,7 @@ Use `output('path', [seed: true]) { text { 'starter content' } }` for an editabl
 
 Reconciliation preserves handwritten content and checks each managed contribution for drift. Withdrawing one contribution restores its adopted original or removes its generated content. Transferring a structured key to a new contribution requires an applied unmount first. Ejection retains native content and releases ownership.
 
-Each cooked batch declares the complete desired set. Running another recipe is not an additive installation operation.
+An application recipe replaces only its selected application contributions. A direct legacy `Batch` has no application identity: each run replaces its legacy contributions and preserves unrelated application ownership. Removing a legacy contribution by omitting it from the next Batch can withdraw that contribution, but cannot implicitly delete an independently owned application. Overlap with an application is rejected rather than transferred. Use `--remove` to explicitly withdraw selected applications.
 
 ## Ownership records
 

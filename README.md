@@ -19,7 +19,7 @@ the tool never notice it.
 
 The core and CLI use Kotlin, with Groovy document and filesystem adapters. Cookbook suppliers and repository recipes use Groovy. Ingredients publish their own builds and versions; recipes compose their contributions into a batch.
 
-`./cook <recipe>` renders the desired batch into native project files. Ingredients can share separate blocks or keys in a file, while whole files and symlinks have exclusive owners. Cooking checks for managed edits and applies changes atomically. Every batch is the complete desired setup.
+`./cook <recipe>` renders the desired batch into native project files. Ingredients can share separate blocks or keys in a file, while whole files and symlinks have exclusive owners. Cooking checks for managed edits and applies changes atomically. Declared applications update their own contributions; a legacy direct Batch updates its unassigned contributions while retaining independently owned applications.
 
 ```sh
 ./gradlew check cliBuild cookbookBuild
@@ -52,15 +52,16 @@ There is no published release. Build a self-contained distribution with a Java 1
 cli/build/jpackage/the-cook/bin/the-cook --help
 ```
 
-The image includes the CLI, its cookbook dependencies, and a Java runtime. Copy the **whole** `cli/build/jpackage/the-cook` directory to another machine with the same OS and architecture; users do not need Java or Gradle installed. Run its `bin/the-cook` from the repository you want to cook:
+The image includes the CLI, the packaged agentic permission, context, and init definitions with their declared dependencies, and a Java runtime. It does not fetch recipes from a remote registry. Copy the **whole** `cli/build/jpackage/the-cook` directory to another machine with the same OS and architecture; users do not need Java or Gradle installed. Run its `bin/the-cook` from the repository you want to cook:
 
 ```sh
 /path/to/the-cook/bin/the-cook init
 /path/to/the-cook/bin/the-cook cook
+/path/to/the-cook/bin/the-cook agentic/init --harness=codex --harness=claude
 ```
 
 On macOS the image is `the-cook.app` and the launcher is `Contents/MacOS/the-cook`; on Windows the launcher is `the-cook/the-cook.exe`. Build each image on its target platform, as required by [jpackage](https://docs.oracle.com/en/java/javase/17/docs/specs/man/jpackage.html). Linux is the currently verified platform. This task produces an application directory, not an OS installer.
 
-`./gradlew jpackageTest` builds the image and tests the native launcher with Java and Gradle absent from `PATH`, including `init`, recipe rendering, repeat cooking, and error exit codes. This distribution check runs separately from `./gradlew check`.
+`./gradlew jpackageTest` builds the image and tests the native launcher with Java and Gradle absent from `PATH`, including `init`, packaged and local recipe discovery, repeated options, help, child updates, removal, legacy scripts, repeat cooking, and error exit codes. This distribution check runs separately from `./gradlew check`.
 
 For development, `./gradlew cliBuild` builds the regular JVM distribution used by this repository's `./cook` entry point; that distribution requires Java 17 on the user's machine.
