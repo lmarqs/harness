@@ -25,7 +25,10 @@ application {
   mainClass = 'thecook.cli.run.MainKt'
 }
 tasks.named('test') {
+  exclude '**/JpackageTest*'
   useJUnit(); testLogging {
     events 'failed'
   }
 }
+
+apply from: 'gradle/jpackage.gradle'

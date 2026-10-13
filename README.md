@@ -41,4 +41,22 @@ The agent setup recipe requires a policy file and shared skills; see its [README
 
 ## Install
 
-There is no published release. Build the CLI from source with Java 17 and `./gradlew cliBuild`, then use the repository's `./cook` entry point.
+There is no published release. Build a self-contained distribution with a Java 17 JDK (including `jpackage`):
+
+```sh
+./gradlew jpackage
+cli/build/jpackage/the-cook/bin/the-cook --help
+```
+
+The image includes the CLI, its cookbook dependencies, and a Java runtime. Copy the **whole** `cli/build/jpackage/the-cook` directory to another machine with the same OS and architecture; users do not need Java or Gradle installed. Run its `bin/the-cook` from the repository you want to cook:
+
+```sh
+/path/to/the-cook/bin/the-cook init
+/path/to/the-cook/bin/the-cook cook
+```
+
+On macOS the image is `the-cook.app` and the launcher is `Contents/MacOS/the-cook`; on Windows the launcher is `the-cook/the-cook.exe`. Build each image on its target platform, as required by [jpackage](https://docs.oracle.com/en/java/javase/17/docs/specs/man/jpackage.html). Linux is the currently verified platform. This task produces an application directory, not an OS installer.
+
+`./gradlew jpackageTest` builds the image and tests the native launcher with Java and Gradle absent from `PATH`, including `init`, recipe rendering, repeat cooking, and error exit codes. This distribution check runs separately from `./gradlew check`.
+
+For development, `./gradlew cliBuild` builds the regular JVM distribution used by this repository's `./cook` entry point; that distribution requires Java 17 on the user's machine.

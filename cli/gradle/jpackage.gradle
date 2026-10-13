@@ -1,0 +1,55 @@
+// Package the same classpath as installDist, using the project's Java toolchain.
+def packagingJava = javaToolchains.launcherFor {
+  languageVersion = JavaLanguageVersion.of(17)
+}
+def windows = System.getProperty('os.name').startsWith('Windows')
+def mac = System.getProperty('os.name').startsWith('Mac')
+def packageInput = layout.buildDirectory.dir('jpackage-input')
+def packageOutput = layout.buildDirectory.dir('jpackage')
+def imageName = application.applicationName + (mac ? '.app' : '')
+def launcherPath = mac ? 'Contents/MacOS/the-cook' : (windows ? 'the-cook.exe' : 'bin/the-cook')
+def packagedLauncher = packageOutput.map { it.file("${imageName}/${launcherPath}") }
+
+tasks.register('jpackageInput', Sync) {
+  from(tasks.named('jar'))
+  from(configurations.runtimeClasspath)
+  into(packageInput)
+}
+
+tasks.register('jpackage', Exec) {
+  group = 'distribution'
+  description = 'Build a native app image with a bundled Java runtime for this OS and architecture.'
+  dependsOn 'jpackageInput'
+  inputs.dir(packageInput)
+  inputs.property('applicationVersion', project.version.toString())
+  inputs.property('mainClass', application.mainClass)
+  inputs.property('applicationName', application.applicationName)
+  inputs.property('javaRuntime', packagingJava.map { it.metadata.javaRuntimeVersion })
+  inputs.property('platform', System.getProperty('os.name') + '/' + System.getProperty('os.arch'))
+  outputs.dir(packageOutput)
+  doFirst {
+    // jpackage requires a fresh destination when regenerating an image.
+    delete(packageOutput)
+    commandLine packagingJava.get().metadata.installationPath.file('bin/jpackage' + (windows ? '.exe' : '')).asFile,
+        '--type', 'app-image',
+        '--name', application.applicationName,
+        '--app-version', project.version.toString(),
+        '--input', packageInput.get().asFile,
+        '--dest', packageOutput.get().asFile,
+        '--main-jar', tasks.named('jar').get().archiveFileName.get(),
+        '--main-class', application.mainClass.get()
+    if (windows) args '--win-console'
+  }
+}
+
+tasks.register('jpackageTest', Test) {
+  group = 'verification'
+  description = 'Exercise the native launcher without Java or Gradle on PATH.'
+  dependsOn 'jpackage'
+  testClassesDirs = sourceSets.test.output.classesDirs
+  classpath = sourceSets.test.runtimeClasspath
+  include '**/JpackageTest*'
+  useJUnit()
+  inputs.dir(packageOutput)
+  systemProperty 'cook.packagedLauncher', packagedLauncher.get().asFile.absolutePath
+}

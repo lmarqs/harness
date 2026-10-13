@@ -64,6 +64,18 @@ tasks.named('check') {
 
 tasks.register('cliBuild') { dependsOn gradle.includedBuild('cli').task(':installDist') }
 
+tasks.register('jpackage') {
+  group = 'distribution'
+  description = 'Build the CLI with a bundled Java runtime for this platform.'
+  dependsOn gradle.includedBuild('cli').task(':jpackage')
+}
+
+tasks.register('jpackageTest') {
+  group = 'verification'
+  description = 'Build and smoke-test the packaged CLI.'
+  dependsOn gradle.includedBuild('cli').task(':jpackageTest')
+}
+
 tasks.register('ingredientsBuild') {
   dependsOn(ingredientBuilds.collect {
     gradle.includedBuild(it.name == rootProject.name ? 'ingredient-' + it.name : it.name).task(':build')
