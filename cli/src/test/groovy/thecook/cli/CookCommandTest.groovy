@@ -124,6 +124,46 @@ class CookCommandTest {
     }
   }
 
+  @Test void declaredRecipeValidatesRawValuesAndUsesDestinationPolicy() {
+    workspace { root, repo, script ->
+      Fixtures.copy('declared-recipe', repo)
+      def policy = new File(repo, '.agents/policy.yaml'); policy.parentFile.mkdirs()
+      policy.text = 'destination\n'
+      def supplier = new File(root, '.agents/policy.yaml'); supplier.parentFile.mkdirs()
+      supplier.text = 'supplier\n'
+      def stdout = new ByteArrayOutputStream(); def stderr = new ByteArrayOutputStream()
+      def cli = command(stdout, stderr)
+      def base = ['declared', '--repo', repo.path, '--policy=.agents/policy.yaml']
+      for (invalid in [
+            ['--harness=other'], ['--harness=codex', '--policy=again'],
+            ['--harness=codex', '--unknown=x'], []
+          ]) {
+        stderr.reset()
+        assert cli.execute((base + invalid) as String[]) == 1 : invalid
+        assert !new File(repo, 'selection.json').exists()
+        assert !new File(repo, '.cook').exists()
+      }
+      assert stderr.toString('UTF-8').contains('--harness')
+      stderr.reset()
+      assert cli.execute((base + ['--harness=claude', '--harness=codex', '--harness=claude']) as String[]) == 0 : stderr.toString('UTF-8')
+      def output = new JsonSlurper().parse(new File(repo, 'selection.json'))
+      assert output.policy == 'destination'
+      assert output.harness == 'claude,codex'
+      def external = new File(root, 'supplier/cookbook/recipes/declared/recipe.groovy')
+      external.parentFile.mkdirs()
+      external.text = new File(repo, 'cookbook/recipes/declared/recipe.groovy').text
+      def externalRepo = new File(root, 'external-repository'); externalRepo.mkdirs()
+      def externalPolicy = new File(externalRepo, '.agents/policy.yaml'); externalPolicy.parentFile.mkdirs()
+      externalPolicy.text = 'destination\n'
+      stderr.reset()
+      assert cli.execute([external.path, '--repo', externalRepo.path, '--set',
+          'policy=.agents/policy.yaml', '--set', 'harness=codex', '--set', 'harness=claude'] as String[]) == 0 : stderr.toString('UTF-8')
+      output = new JsonSlurper().parse(new File(externalRepo, 'selection.json'))
+      assert output.policy == 'destination'
+      assert output.harness == 'codex,claude'
+    }
+  }
+
   @Test void nestedPackagedRecipeIsRunnableWithoutACookbookCheckout() {
     workspace { root, repo, script ->
       def stdout = new ByteArrayOutputStream(); def stderr = new ByteArrayOutputStream()
@@ -165,8 +205,6 @@ class CookCommandTest {
       def cli = command(stdout, stderr)
       for (args in [
             ['example', '--agent'],
-            ['example', '--agent=a', '--agent=b'],
-            ['example', '--agent=a', '--set', 'agent=b'],
             ['example', '--script', script.path],
             ['../example'],
             ['agentic/../example'],
@@ -175,6 +213,8 @@ class CookCommandTest {
             ['example', '--dry-run=true'],
             ['example', '--policy='],
             ]) assert cli.execute(args as String[]) == 2 : args
+      assert cli.execute(['example', '--agent=a', '--agent=b', '--repo', repo.path] as String[]) == 1
+      assert cli.execute(['example', '--agent=a', '--set', 'agent=b', '--repo', repo.path] as String[]) == 1
       assert cli.execute(['missing', '--repo', repo.path] as String[]) == 1
       assert stderr.toString('UTF-8').contains('Recipe not found: missing')
       assert !new File(repo, '.cook').exists()

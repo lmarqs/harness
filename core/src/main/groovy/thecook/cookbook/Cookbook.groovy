@@ -4,6 +4,8 @@ import org.codehaus.groovy.control.SourceUnit
 import thecook.composition.Kitchen
 import thecook.composition.Component
 import thecook.filesystem.TargetPath
+import thecook.model.RecipeArguments
+import thecook.model.RecipeDeclaration
 
 // Cookbook files are trusted executable Groovy; the core knows no tool names.
 class Cookbook {
@@ -56,6 +58,14 @@ class Cookbook {
   Object station(String name, Kitchen kitchen, Map options = [:]) {
     factory("stations/${name}/station.groovy", kitchen, options)
   }
+  RecipeDeclaration declaration(String name) {
+    def definition = script("recipes/${name}/recipe.groovy")
+    if (!(definition instanceof DeclaredRecipe))
+      throw new IllegalArgumentException("Recipe has no argument declaration: ${name}")
+    if (definition.declaration.name != name)
+      throw new IllegalArgumentException("Recipe identity does not match: ${name}")
+    definition.declaration
+  }
   Component recipe(String name, Kitchen kitchen, Map config = [:]) {
     recipeComponent(factory("recipes/${name}/recipe.groovy", kitchen, config), kitchen)
   }
@@ -65,8 +75,25 @@ class Cookbook {
     result
   }
   private Object factory(String relative, Kitchen kitchen, Map options) {
-    def factory = script(relative)
-    if (!(factory instanceof Closure)) throw new IllegalArgumentException("Cookbook definition must return a factory: ${relative}")
-    factory.call(kitchen, this, options)
+    def definition = script(relative)
+    if (definition instanceof DeclaredRecipe) {
+      def name = relative.substring('recipes/'.length(), relative.length() - '/recipe.groovy'.length())
+      if (definition.declaration.name != name)
+        throw new IllegalArgumentException("Recipe identity does not match: ${name}")
+      def raw = options.collectEntries { key, value ->
+        [(key.toString()): value instanceof List ? value.collect { it.toString() } : [value.toString()]]
+      }
+      return definition.factory.call(kitchen, this, RecipeArguments.validate(definition.declaration, raw))
+    }
+    if (!(definition instanceof Closure)) throw new IllegalArgumentException("Cookbook definition must return a factory: ${relative}")
+    if (!(options instanceof RawRecipeArguments)) return definition.call(kitchen, this, options)
+    def scalar = options.collectEntries { key, value ->
+      if (value instanceof List) {
+        if (value.size() != 1) throw new IllegalArgumentException("Argument may only be supplied once: ${key}")
+        return [(key): value[0]]
+      }
+      [(key): value]
+    }
+    definition.call(kitchen, this, scalar)
   }
 }

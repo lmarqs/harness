@@ -80,6 +80,7 @@ class CookCommand(
       throw UsageError("Invalid recipe name: $entrypoint")
     }
     val action = if (localScript || namedRecipe) "cook" else entrypoint
+    val recipeInput = namedRecipe || (localScript && Path.of(entrypoint).fileName.toString() == "recipe.groovy")
     if (args.size == 2 && args[1] == "--help") return Help
 
     var repository = Path.of("").toAbsolutePath()
@@ -87,7 +88,7 @@ class CookCommand(
     var savedPlan: Path? = null
     var dryRun = false
     val libraries = mutableListOf<Path>()
-    val preferences = linkedMapOf<String, String>()
+    val preferences = linkedMapOf<String, MutableList<String>>()
     val seen = mutableSetOf<String>()
     if (localScript || namedRecipe) seen.add("--script")
     var index = 1
@@ -103,13 +104,13 @@ class CookCommand(
       }
       val recipeOption =
         namedRecipe && option.matches(Regex("--[a-z][a-z0-9-]*")) &&
-          option !in setOf("--repo", "--script", "--plan", "--library", "--set", "--help")
+          option !in setOf("--repo", "--script", "--plan", "--library", "--set", "--help", "--remove")
       val allowed =
         recipeOption || option == "--repo" ||
           (action in setOf("plan", "apply") && option == "--plan") ||
           (action in setOf("cook", "plan") && option in setOf("--script", "--library", "--set"))
       if (!allowed) throw UsageError("Unknown option for $action: $option")
-      if (option != "--set" && option != "--library" && !seen.add(option)) {
+      if (option != "--set" && option != "--library" && !recipeOption && !seen.add(option)) {
         throw UsageError("Option may only be supplied once: $option")
       }
       val value = inlineValue ?: args.getOrNull(index)
@@ -135,14 +136,15 @@ class CookCommand(
         "--set" -> {
           val separator = value.indexOf('=')
           if (separator <= 0) throw UsageError("--set requires name=value")
-          addPreference(preferences, value.substring(0, separator), value.substring(separator + 1))
+          addPreference(preferences, value.substring(0, separator), value.substring(separator + 1), recipeInput)
         }
 
         else -> {
-          addPreference(preferences, option.removePrefix("--"), value)
+          addPreference(preferences, option.removePrefix("--"), value, recipeInput)
         }
       }
     }
+    val inputs: Map<String, Any> = preferences.mapValues { (_, values) -> if (recipeInput) values.toList() else values.single() }
     if (action == "init") return Init(repository)
     if (action == "cook") {
       val recipe =
@@ -152,23 +154,24 @@ class CookCommand(
           script
             ?: repository.resolve("cook.groovy")
         }
-      return Cook(repository, recipe, libraries, preferences, dryRun)
+      return Cook(repository, recipe, libraries, inputs, dryRun)
     }
     val file = savedPlan ?: repository.resolve(".cook/plan.json")
     return if (action == "plan") {
-      Plan(repository, script ?: repository.resolve("cook.groovy"), file, libraries, preferences)
+      Plan(repository, script ?: repository.resolve("cook.groovy"), file, libraries, inputs)
     } else {
       Apply(repository, file)
     }
   }
 
   private fun addPreference(
-    preferences: MutableMap<String, String>,
+    preferences: MutableMap<String, MutableList<String>>,
     name: String,
     value: String,
+    repeatable: Boolean,
   ) {
-    if (preferences.containsKey(name)) throw UsageError("Argument may only be supplied once: $name")
-    preferences[name] = value
+    if (!repeatable && preferences.containsKey(name)) throw UsageError("Argument may only be supplied once: $name")
+    preferences.getOrPut(name) { mutableListOf() }.add(value)
   }
 
   private fun findRecipe(
@@ -198,7 +201,7 @@ class CookCommand(
     val repository: Path,
     val script: Path,
     val libraries: List<Path>,
-    val preferences: Map<String, String>,
+    val preferences: Map<String, Any>,
     val dryRun: Boolean,
   ) : Command
 
@@ -207,7 +210,7 @@ class CookCommand(
     val script: Path,
     val savedPlan: Path,
     val libraries: List<Path>,
-    val preferences: Map<String, String>,
+    val preferences: Map<String, Any>,
   ) : Command
 
   private data class Apply(
@@ -234,7 +237,8 @@ class CookCommand(
       --repo defaults to the current directory.
       Named recipes resolve to cookbook/recipes/<name>/recipe.groovy, then packaged cookbook resources.
       Nested names such as agentic/codex are supported.
-      Recipe arguments are strings in the factory options map; each recipe validates them.
+      Declared recipes validate required paths and repeatable choices before rendering.
+      Undeclared factories continue to receive scalar string options.
       --script defaults to cook.groovy in the repository.
       --plan defaults to .cook/plan.json in the repository.
       init preserves an existing cook.groovy.

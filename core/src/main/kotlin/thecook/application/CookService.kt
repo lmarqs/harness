@@ -8,7 +8,7 @@ interface CookbookLoader {
     repository: Path,
     script: Path,
     libraries: List<Path>,
-    preferences: Map<String, String>,
+    preferences: Map<String, Any>,
   ): List<RenderedFile>
 }
 
@@ -50,14 +50,14 @@ class CookService
       repository: Path,
       script: Path,
       libraries: List<Path>,
-      preferences: Map<String, String>,
+      preferences: Map<String, Any>,
     ): PlanHandle = planning.plan(repository, loader.load(repository, script, libraries, preferences))
 
     fun cook(
       repository: Path,
       script: Path,
       libraries: List<Path>,
-      preferences: Map<String, String>,
+      preferences: Map<String, Any>,
       dryRun: Boolean,
     ): List<String> {
       val pending = plan(repository, script, libraries, preferences)

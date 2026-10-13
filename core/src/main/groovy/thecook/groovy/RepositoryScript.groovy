@@ -5,6 +5,7 @@ import thecook.model.Batch
 import thecook.composition.Component
 import thecook.composition.Kitchen
 import thecook.cookbook.Cookbook
+import thecook.cookbook.RawRecipeArguments
 import thecook.rendering.RenderTree
 
 /** Repository authors may use dynamic Groovy over the same compiled contracts. */
@@ -27,7 +28,8 @@ class RepositoryScript {
       String relative = new File(cookbook, 'recipes').toPath().relativize(script.absoluteFile.parentFile.toPath()).toString().replace(File.separator, '/')
       if (!script.isFile() && !book.classes.getResource('META-INF/the-cook/recipes/' + relative + '/recipe.groovy'))
         throw new IllegalArgumentException('Recipe not found: ' + relative)
-      book.recipe(relative, kitchen, preferences).mount()
+      book.recipe(relative, kitchen, preferences.values().every { it instanceof List } ?
+          new RawRecipeArguments(preferences) : preferences).mount()
       return kitchen.render()
     }
     File directory = script.absoluteFile.parentFile
