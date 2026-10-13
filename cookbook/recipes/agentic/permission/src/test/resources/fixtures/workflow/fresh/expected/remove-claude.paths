@@ -1,0 +1,8 @@
+.agents/interactive.yaml
+.agents/policy.yaml
+.agents/unattended.yaml
+.codex/config.toml
+.codex/rules/cookbook.rules
+.cook/lock
+.cook/state.json
+AGENTS.md
