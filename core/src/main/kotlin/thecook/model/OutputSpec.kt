@@ -43,6 +43,8 @@ class FileOutput
     val adopt: Boolean = false,
   ) : OutputSpec(owner, path)
 
+class SeedOutput(owner: ComponentId, path: TargetPath, val content: Provider<String>) : OutputSpec(owner, path)
+
 class SymbolicLinkOutput
   @JvmOverloads
   constructor(

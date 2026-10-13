@@ -20,7 +20,8 @@ class Reconciler {
     def nextApplications = previousApplications.findAll { id, paths -> !selected.contains(id) }
     if (!remove) tree.applications.each { id, files ->
       nextApplications[id] = files.collectEntries { file ->
-        [(file.path.value): file.kind.exclusive ? ['*'] : ((thecook.rendering.PartialFile) file).regions.collect { it.identity.toString() }]
+        file.kind == FileKind.SEED ? [:] :
+            [(file.path.value): file.kind.exclusive ? ['*'] : ((thecook.rendering.PartialFile) file).regions.collect { it.identity.toString() }]
       }
     }
     def previousSelected = previousApplications.findAll { id, paths -> selected.contains(id) }
@@ -43,6 +44,13 @@ class Reconciler {
       boolean link = desired[path]?.kind == FileKind.SYMLINK || owned[path]?.kind == FileKind.SYMLINK
       def snapshot = repository.snapshot(repository.target(path, link), link)
       observed[path] = snapshot
+      if (desired[path]?.kind == FileKind.SEED) {
+        if (owned.containsKey(path)) throw new IllegalStateException(path + ': Seed conflicts with managed output')
+        if (!snapshot.exists)
+          changes.add([path: path, before: snapshot, content: ((thecook.rendering.SeedFile) desired[path]).content,
+              mode: 'rw-r--r--'])
+        return
+      }
       def result
       try {
         def withdrawn = previousSelected.values().collectMany { it[path] ?: [] }.toSet()

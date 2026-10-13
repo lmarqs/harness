@@ -17,7 +17,10 @@ return { kitchen, book, Map preferences ->
   def repository = kitchen.repository.directory
   def selectedPolicy = new File(preferences.policy.toString())
   if (!selectedPolicy.isAbsolute()) selectedPolicy = new File(repository, selectedPolicy.path)
-  def policy = PolicyFile.read(selectedPolicy)
+  if (java.nio.file.Files.isSymbolicLink(selectedPolicy.toPath()))
+    throw new IllegalArgumentException('Policy source must be a regular file: ' + selectedPolicy)
+  def policySeed = 'version: 1\ninstructions: []\ncommands: {}\n'
+  def policy = selectedPolicy.isFile() ? PolicyFile.read(selectedPolicy) : PolicyFile.readText(policySeed)
   def source = new File(preferences['skills-home'] ?: new File(System.getProperty('user.home'), '.agents/skills').path)
   if (!source.isAbsolute()) source = new File(repository, source.path)
   def names = ['solid', 'hexagonal-layout', 'effective-java-core']
@@ -59,6 +62,8 @@ return { kitchen, book, Map preferences ->
 
   def host = kitchen.recipe('cookbook')
   host.application('agentic.init/cookbook')
+  def relativePolicy = repository.toPath().relativize(selectedPolicy.toPath().toAbsolutePath().normalize()).toString().replace('\\', '/')
+  host.output(relativePolicy, [seed: true]) { text { policySeed } }
   def include = { component, contributor ->
     component.contribute { contributor }
     host.includes(component)

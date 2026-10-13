@@ -10,7 +10,9 @@ class Output {
 
   Output(ComponentId owner, String path, Map options) {
     this.owner = owner
-    declaration = [path: path, kind: options.format ?: 'blocks', owns: options.owns ?: false,
+    if (options.seed && (options.owns || options.format || options.adopt || options.mode))
+      throw new IllegalArgumentException('Seed output cannot declare managed ownership, format, adoption or mode')
+    declaration = [path: path, kind: options.seed ? 'seed' : (options.format ?: 'blocks'), owns: options.owns ?: false,
       mode: options.mode, adopt: options.adopt ?: false, regions: [:]]
   }
   void configure(Closure body) {
@@ -26,8 +28,8 @@ class Output {
     declaration.renderer = renderer
   }
   void text(Closure content) {
-    if (!declaration.owns) throw new IllegalArgumentException('Whole-file output requires owns: true')
-    declaration.kind = 'whole'
+    if (!declaration.owns && declaration.kind != 'seed') throw new IllegalArgumentException('Whole-file output requires owns: true')
+    if (declaration.kind != 'seed') declaration.kind = 'whole'
     add('content', content)
   }
   void symlink(Closure target) {
@@ -56,6 +58,10 @@ class Output {
     }
     def kind = FileKind.parse(effective.kind)
     def path = TargetPath.of(effective.path)
+    if (kind == FileKind.SEED) {
+      if (definitions.keySet() != ['content'] as Set) throw new IllegalArgumentException('Seed output requires one text declaration')
+      return new SeedFile(path, definitions.content.supplier.call().toString())
+    }
     if (kind.exclusive) {
       def value = definitions.content.supplier.call()
       if (kind == FileKind.SYMLINK && value == null) throw new IllegalArgumentException('Invalid symlink target')

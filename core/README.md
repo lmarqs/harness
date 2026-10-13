@@ -32,6 +32,8 @@ The dynamic DSL can include a compiled contributor with `contribute { contributo
 
 Several ingredients can contribute separate text blocks or structured keys to one file. Whole files and symlinks require exclusive ownership. Equal or overlapping structured key paths conflict even when their values match; format differences and case collisions also reject before writes.
 
+Use `output('path', [seed: true]) { text { 'starter content' } }` for an editable source file, or `SeedOutput` from a typed contributor. A seed creates an absent regular file in the checked transaction and then leaves it unowned. Recooking and application removal preserve it, including user edits and empty content. Seeds conflict with other declarations for the same path and with existing managed ownership. Directories and symlinks at the destination are rejected.
+
 Reconciliation preserves handwritten content and checks each managed contribution for drift. Withdrawing one contribution restores its adopted original or removes its generated content. Transferring a structured key to a new contribution requires an applied unmount first. Ejection retains native content and releases ownership.
 
 Each cooked batch declares the complete desired set. Running another recipe is not an additive installation operation.

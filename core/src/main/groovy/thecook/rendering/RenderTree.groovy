@@ -94,6 +94,8 @@ class RenderTree {
       if (file instanceof ExclusiveFile) {
         report.putAll([owner: file.owner.value, mode: file.mode, adopt: file.adopt,
           definitionIdentity: file.definitionIdentity, regions: [content: [value: file.content]]])
+      } else if (file instanceof SeedFile) {
+        report.regions = [content: [value: ((SeedFile) file).content]]
       } else {
         report.regions = ((PartialFile) file).regions.collectEntries { RenderedRegion region ->
           Map fields = [value: region.value, owner: region.identity.instance.value, definitionIdentity: region.definitionIdentity]
