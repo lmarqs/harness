@@ -2,6 +2,8 @@
 
 `recipe.groovy` returns a factory composing Git, TheCook, shared skill links, shared instructions, and the Codex and Claude recipe renderers.
 
+For independent harness setup, use [agentic init, permission, and context](../agentic/README.md). That flow selects applications per invocation and requires no `cook.groovy`. This existing `cookbook` recipe remains a supported combined entry point with its policy and shared-skills behavior; existing invocations and composed `book.recipe('cookbook', ...)` calls continue to work. Its outputs and ownership differ from the independent recipes, so follow the command set for the entry point you selected.
+
 ```sh
 ./cook cookbook --policy=.agents/policy.yaml --dry-run
 ./cook cookbook --policy=.agents/policy.yaml
