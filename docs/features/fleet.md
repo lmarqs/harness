@@ -6,36 +6,36 @@
 a clear account of where the configuration was applied. Repeating commands alone does not account for different
 repository content or local conventions.
 
-**Goal.** Reuse cookbook recipes while keeping each destination's diff, approval and recovery information explicit.
+**Goal.** Reuse cookbook recipes while keeping each destination's diff, approval and batch record explicit.
 
 ## Per-repository file operations
 
-Cookbooks distribute ingredients and recipes that can be reused in multiple repositories. Each invocation evaluates
-the supplied recipes against the destination's current content and shows one combined terminal diff. Applying a recipe
-in one repository does not authorize writes in another. See [Cook's architecture](../architecture.md) and
-[the CLI grammar](cli.md).
+Cookbooks distribute ingredients and recipes that can be reused in multiple repositories; the
+[glossary](glossary.md) defines these terms. Each invocation evaluates the supplied recipes against the destination's
+current content and shows one combined terminal diff. Applying a recipe in one repository does not authorize writes in
+another. See [Cook's architecture](../architecture.md) and [the CLI grammar](cli.md).
 
 The invocation directory is the destination. People or external automation choose the repositories and invoke Cook
 from each intended directory. Keep that selection explicit: an unrelated clone on a machine is not an instruction to
 configure it. Use the appropriate recipes and arguments for each repository, since native program settings and local
 conventions can differ. Review a representative change before repeating it elsewhere, and review each destination's
-actual diff.
+actual diff. The following illustrates applying one recipe in two repositories, each reviewed and approved on its own:
 
-Without preapproval Cook asks before target writes. `--batch-approve` displays the diff and proceeds without prompting;
-noninteractive execution without that flag does not authorize writes. The CLI's approval covers a whole batch in one
-destination. Existing and edited files use the same review flow.
+```sh
+cd /work/repo-a && ./cook apply ./recipe.groovy
+cd /work/repo-b && ./cook apply ./recipe.groovy
+```
 
-## History and reversal
+Approval covers a whole batch in one destination. See
+[batch options and approval](cli.md#batch-options-and-approval).
 
-Each destination records its own batches in its ignored `.cook/batches/<batchId>/` directory, with reverse patches
-saved before the first target write, and commits its own `cook.lock` with each recipe's source, sha256 and owned
-targets. Apply needs neither prior history nor the lock and always evaluates the supplied recipe versions against
-current content. Users supply the versions they intend to use.
+## Batch records and reversal
 
-[Reverting](revert.md#revert) a batch applies its reverse patches against current content in that destination, including
-`cook.lock`. Later non-overlapping edits survive; an overlapping edit makes the revert write nothing and list the
-conflicts. Applying one recipe does not remove output another recipe owns. Cook's rollback on write failure covers the
-batch in that destination; it provides no transaction across repositories.
+Each destination keeps its own batch records in its ignored `.cook/batches/` directory and commits its own
+`cook.lock`. Users supply the recipe versions they intend to use in each repository; see [apply](apply.md).
+
+[Reverting](revert.md#revert) a batch acts on that destination only. Cook's rollback on write failure covers the batch
+in that destination; it provides no transaction across repositories.
 
 ## Execution and delivery boundary
 

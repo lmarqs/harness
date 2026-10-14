@@ -3,10 +3,11 @@
 ## Objective
 
 **Problem.** Recipe evaluation, native permission settings, source paths and reversal can behave differently from a
-reader's expectations. A correct-looking setting or successful file write does not establish that a program loaded the
-setting, enforced the rule or tested the work.
+reader's expectations. A correct-looking setting or successful file write does not establish that a program loaded
+the setting, enforced the rule or tested the work.
 
-**Goal.** Explain the relevant traps, the boundary of Cook's responsibility and what to review before relying on a setup.
+**Goal.** Explain the relevant traps, the boundary of Cook's responsibility and what to review before relying on a
+setup.
 
 ## Overview
 
@@ -18,6 +19,7 @@ terms.
 - [Permissions](#permissions)
 - [Recipes and trust](#recipes-and-trust)
 - [Program configuration](#program-configuration)
+- [Checks](#checks)
 - [Paths and environment](#paths-and-environment)
 - [Ordered operations and recovery](#ordered-operations-and-recovery)
 - [Versions and the wrapper](#versions-and-the-wrapper)
@@ -90,7 +92,7 @@ terms.
 
 - **Symptom.** A recipe causes an external effect before its diff is approved, or the effect remains after rollback.
 - **Why.** Recipes are trusted executable Groovy code. Evaluation can do more than declare file operations.
-- **Cook's responsibility.** Diff review, destination boundaries, recovery patches and rollback govern declared batch
+- **Cook's responsibility.** Diff review, destination boundaries, reverse patches and rollback govern declared batch
   operations. Executing commands is not a batch action; arbitrary recipe effects are outside those guarantees.
 - **What you do.** Read and trust sources before evaluation, including dependencies. Approving the resulting diff is a
   separate decision. See [recipes](recipes.md) and [safety](safety.md).
@@ -112,23 +114,6 @@ terms.
 - **What you do.** Review source origins and recipe changes separately from engine package integrity. Users manage the
   recipe versions they supply. See [cookbooks](cookbooks.md#cookbooks).
 
-## Program configuration
-
-### A program ignores settings in an untrusted folder
-
-- **Symptom.** Project hooks or rules do not take effect in another working copy.
-- **Why.** Loading settings and inheriting trust are program-specific; a nested folder does not guarantee either.
-- **Cook's responsibility.** Write declared configuration.
-- **What you do.** Inspect that program's lookup and trust rules in the actual folder. See [agent configuration](workers.md).
-
-### A native hook has missing dependencies or a different working directory
-
-- **Symptom.** Formatting or notifications work on one machine and fail on another.
-- **Why.** The consuming program runs hooks with its own environment, event support and working directory.
-- **Cook's responsibility.** Declare and review hook settings and scripts.
-- **What you do.** Check executable availability, path quoting, credentials and failure behavior. Make repeated
-  formatting safe. Treat feedback hooks separately from CI evidence. See [native program hooks](hooks.md).
-
 ### Executable code can read inherited secrets
 
 - **Symptom.** A token intended for one integration is available to other code running in the same environment.
@@ -139,6 +124,24 @@ terms.
 - **What you do.** Limit credentials in each process environment and review all code that can access them. Check what
   hook scripts put in notifications and logs. See [native program hooks](hooks.md).
 
+## Program configuration
+
+### A program ignores settings in an untrusted folder
+
+- **Symptom.** Project hooks or rules do not take effect in another working copy.
+- **Why.** Loading settings and inheriting trust are program-specific; a nested folder does not guarantee either.
+- **Cook's responsibility.** Write declared configuration.
+- **What you do.** Inspect that program's lookup and trust rules in the actual folder. See [agent
+  configuration](workers.md).
+
+### A native hook has missing dependencies or a different working directory
+
+- **Symptom.** Formatting or notifications work on one machine and fail on another.
+- **Why.** The consuming program runs hooks with its own environment, event support and working directory.
+- **Cook's responsibility.** Declare and review hook settings and scripts.
+- **What you do.** Check executable availability, path quoting, credentials and failure behavior. Make repeated
+  formatting safe. Treat feedback hooks separately from CI evidence. See [native program hooks](hooks.md).
+
 ### Shared instructions cost attention and may be loaded twice
 
 - **Symptom.** An agent misses task details or reads the same guidance through several discovery paths.
@@ -147,12 +150,14 @@ terms.
 - **What you do.** Keep frequently loaded guidance concise, use focused topic files and remove duplicate references.
   Consult the program's loading rules. See [skills](skills.md) and [context](context.md).
 
+## Checks
+
 ### A check passes with zero tests, or with unrelated tests
 
 - **Symptom.** A check succeeds while the change remains untested.
 - **Why.** A runner may accept a selection that matches no tests; passing unrelated tests provides no relevant evidence.
-- **Cook's responsibility.** Recipes can configure check commands and instructions; Cook's history records file
-  operations for recovery.
+- **Cook's responsibility.** Recipes can configure check commands and instructions; Cook does not verify test
+  selection or results.
 - **What you do.** Select tests that exercise the change, report what ran and configure the runner's no-match behavior.
   See [repository checks and configuration](verify.md).
 
@@ -160,9 +165,9 @@ terms.
 
 ### Tool globs pick up temporary files
 
-- **Symptom.** A linter, test runner or editor scans local history or nested working copies.
+- **Symptom.** A linter, test runner or editor scans batch records or nested working copies.
 - **Why.** A tool's include patterns may not honor version-control ignore rules.
-- **Cook's responsibility.** Keep operation history in the destination's ignored `.cook/`. Recipes may declare other
+- **Cook's responsibility.** Keep batch records in the destination's ignored `.cook/`. Recipes may declare other
   native exclusions.
 - **What you do.** Review each tool's exclusions for `.cook/` and any temporary working-copy directories. See
   [workspace conventions](workspaces.md).
@@ -199,8 +204,7 @@ terms.
 
 - **Symptom.** A key ends with B's value when A and B both declare it.
 - **Why.** Recipes and operations compose left to right; overlap is intentional.
-- **Cook's responsibility.** Show one diff from current content to the final combined result; B becomes the key's
-  owner. Applying B alone does not delete output A owns.
+- **Cook's responsibility.** Show one diff from current content to the final combined result.
 - **What you do.** Review operand order and target scope. A whole-file declaration is broader than a key or section
   declaration. See [ordered operations](apply.md#ordered-operations).
 
@@ -216,21 +220,19 @@ terms.
 ### Revert refuses after an overlapping edit
 
 - **Symptom.** Reverting a batch that changed `test` from `old` to `new` writes nothing after a manual edit to `test`.
-- **Why.** Revert applies the batch's reverse patches against current content without reevaluating recipes. A later
+- **Why.** Revert uses the batch's reverse patches against current content without reevaluating recipes. A later
   edit that overlaps the batch's changes conflicts with them.
-- **Cook's responsibility.** Write nothing and list each conflicting file and section. Later edits that do not overlap
-  the batch's changes survive a revert.
+- **Cook's responsibility.** Write nothing and list each conflicting file and section.
 - **What you do.** Resolve the listed conflicts, then revert again. See [revert](revert.md).
 
-### Lost history prevents reversal of a recorded batch
+### A lost batch record prevents reversal of that batch
 
 - **Symptom.** A batch cannot be reverted after its `.cook/batches/<batchId>/` record is lost.
-- **Why.** Its reverse patches and recovery information come from that batch record.
-- **Cook's responsibility.** Apply needs neither previous history nor `cook.lock`; ownership survives in the committed
-  `cook.lock`. New batches save one reversible patch per touched file before the first target write. Write failure
-  rolls back changes already made by the batch and retains the patches and failure record.
-- **What you do.** Retain needed local history and inspect failure records. Do not expect file reversal to undo
-  external program activity. See [history availability](../architecture.md#history-availability).
+- **Why.** Its reverse patches come from that [batch record](../architecture.md#one-record-for-the-batch).
+- **Cook's responsibility.** Apply needs neither batch records nor `cook.lock`; ownership survives in the committed
+  `cook.lock`.
+- **What you do.** Retain the batch records you may need and inspect failure records. Do not expect file reversal to
+  undo external program activity. See [history availability](../architecture.md#batch-record-availability).
 
 ## Versions and the wrapper
 

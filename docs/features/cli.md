@@ -2,8 +2,9 @@
 
 This page describes the intended command line contract from the
 [architecture](../architecture.md#command-line-and-build-boundary) and its requirements
-[FR-17 through FR-20](../architecture.md#requirements). For current execution and build instructions, see the
-[root README](../../README.md).
+[FR-17 through FR-20](../architecture.md#requirements): command syntax, operands, arguments and options. The
+[glossary](glossary.md) defines terms such as recipe, batch and `cook.lock`. For the options the current CLI accepts,
+see the root README's [current implementation](../../README.md#current-implementation).
 
 ## Synopsis
 
@@ -17,21 +18,20 @@ This page describes the intended command line contract from the
 
 `apply` is the default. Running `./cook` with no arguments shows help.
 
+`<batchId>` identifies a recorded batch: the UTC time the batch started, such as `2026-10-14T15-04-05Z`, with a
+suffix when two batches start in the same second.
+
 ## Commands
 
 | Operation | Operand | Proposed change |
 | --- | --- | --- |
-| Apply, implicit or explicit | One or more recipes, with arguments for each | Declared additions and updates against current content, plus removal of what each recipe's previous version owned and the supplied version no longer declares |
-| Revert | One batch ID | Apply the batch's reverse patches against current content; do not evaluate recipes again |
+| Apply, implicit or explicit | One or more recipes, with arguments for each | Declared additions and updates against current content, and removal of what each recipe's previous version owned and no longer declares |
+| Revert | One batch ID | Use the batch's reverse patches against current content; recipes are not evaluated again |
 | Batch list | None | Show the recorded batches; read only |
 | Batch inspect | One batch ID | Show one batch's recipes, arguments, files, and patches; read only |
 
-Apply evaluates the recipe versions supplied for that invocation, even after an identical earlier invocation. It
-requires neither batch history nor `cook.lock`; without a lock entry for a recipe, it removes nothing on that recipe's
-behalf. Revert requires the chosen batch's record. Later edits that do not overlap the batch's changes survive; an
-overlapping edit makes the revert write nothing and list each conflicting file and section. Reverting a batch also
-restores the `cook.lock` ownership it changed. Discard is deferred; see
-[operation semantics](../architecture.md#apply-discard-and-revert).
+The [architecture](../architecture.md#apply-discard-and-revert) defines these operations, including the deferred
+discard; [apply](apply.md) and [revert](revert.md) explain them with examples.
 
 ```sh
 # Default and explicit apply
@@ -44,8 +44,6 @@ restores the `cook.lock` ownership it changed. Discard is deferred; see
 ./cook batch inspect 2026-10-14T15-04-05Z
 ```
 
-`--batch-approve` is the only preapproval spelling.
-
 ## Recipe operands
 
 A recipe operand is a path inside the destination repository or an `https://` URL. An ordinary relative path such as
@@ -57,8 +55,8 @@ A recipe operand is a path inside the destination repository or an `https://` UR
 ./cook https://example.com/recipes/project.groovy
 ```
 
-Initial bare `apply`, `revert`, and `batch` are reserved command names that select a command. To apply a recipe
-file named `revert`, make its path explicit:
+A first operand equal to `apply`, `revert` or `batch` selects that command. To apply a recipe file named `revert`,
+make its path explicit:
 
 ```sh
 ./cook ./revert
@@ -75,8 +73,9 @@ scope. Shell-quote values containing spaces so the shell passes the value as par
 ```
 
 In the first invocation, `--agent=codex` belongs to `base.groovy`, and `--agent=claude` belongs to `project.groovy`.
-Recipes and their operations compose left to right. When two recipes write the same section, key, or file, the last
-one wins and becomes its owner; the combined final diff is the only notice, and approval covers the entire batch.
+Recipes and their operations compose left to right into one batch; the
+[architecture](../architecture.md#ordered-composition-and-declared-targets) defines how the last writer of a section,
+key or file wins.
 
 An argument value that looks like a recipe path remains an argument value:
 
@@ -86,13 +85,16 @@ An argument value that looks like a recipe path remains an argument value:
 ```
 
 The first invocation evaluates only `a.groovy` and gives it `source` with the value `./b.groovy`. The second evaluates
-`a.groovy`, then `b.groovy`, as two recipes. These examples specify CLI scope.
+`a.groovy`, then `b.groovy`, as two recipes.
 
 ## Batch options and approval
 
-Batch options precede the first recipe operand. For revert, they precede the batch ID. `--batch-approve` applies to
-the whole operation: Cook displays the actual diff and proceeds without prompting. Without it, Cook asks before
-changing target files. Noninteractive execution without this flag does not silently authorize writes.
+| Option | Applies to | Position | Effect |
+| --- | --- | --- | --- |
+| `--batch-approve` | `apply`, implicit or explicit, and `revert` | Before the first recipe operand; for `revert`, before the batch ID | Displays the final diff and proceeds without prompting; approval covers the whole batch |
+
+`--batch-approve` is the batch option and the only preapproval spelling. Without it, Cook asks before changing target
+files. Noninteractive execution without this flag does not silently authorize writes.
 
 ```sh
 ./cook --batch-approve ./recipe.groovy
@@ -100,13 +102,15 @@ changing target files. Noninteractive execution without this flag does not silen
 ./cook revert --batch-approve 2026-10-14T15-04-05Z
 ```
 
-A batch option after a recipe receives the normal unknown-option error:
+A batch option after a recipe receives the normal unknown-option error. This invocation fails:
 
 ```sh
-# Misplaced batch option: unknown-option error
 ./cook apply ./a.groovy --batch-approve
+```
 
-# Correct scope: batch option before the first recipe
+Put the option before the first recipe instead:
+
+```sh
 ./cook apply --batch-approve ./a.groovy
 ```
 

@@ -3,17 +3,20 @@
 ## Objective
 
 **Problem.** Contributors need to decide whether a capability belongs in the engine, a program model, a reusable
-setup recipe or guidance. A broad deterministic-versus-judgement rule can put external workflows into Cook merely
+setup recipe or guidance. A broad deterministic-versus-judgment rule can put external workflows into Cook merely
 because they are repeatable, or turn program-specific configuration into engine policy.
 
 **Goal.** Capabilities follow Cook's agreed responsibilities, with reusable program knowledge and setup in cookbooks,
-judgement in guidance, and external work performed by the people and programs responsible for it.
+judgment in guidance, and external work performed by the people and programs responsible for it.
 
 ## Overview
 
-This page follows the [architecture](../architecture.md). Cook evaluates trusted Groovy recipes into ordered file
-operations, presents the combined terminal diff, obtains whole-batch approval, records the batch and ownership and
-writes the declared targets. The CLI is the public cooking interface; Gradle builds and packages Cook and cookbooks.
+This page places a new capability in one of the destinations below: the engine and CLI, an ingredient, a recipe, a
+cookbook, native repository files, a skill or prose, or an external tool. It follows the
+[architecture](../architecture.md); the [glossary](../features/glossary.md) defines its engine terms. Cook evaluates
+trusted Groovy recipes into ordered file operations, presents the combined terminal diff, obtains whole-batch approval,
+records the batch and ownership and writes the declared targets. The CLI is the public cooking interface; Gradle
+builds and packages Cook and cookbooks.
 
 A capability may have several parts. Place each by responsibility and effect, rather than assuming every deterministic
 part belongs in the binary.
@@ -27,7 +30,7 @@ part belongs in the binary.
 | Recipe | Describe reusable requested file operations using program models and trusted Groovy code | Cookbook or repository authors |
 | Cookbook repository | Hold and ship ingredients and recipes; build them separately where appropriate | Cookbook authors |
 | Native repository files | Hold settings, instructions and conventions consumed by the relevant programs | Repository contributors, with their chosen maintenance process |
-| Skill or focused prose | Guide source selection, configuration choices, review and other work requiring judgement | Shared, organization, personal or repository authors |
+| Skill or focused prose | Guide source selection, configuration choices, review and other work requiring judgment | Shared, organization, personal or repository authors |
 | External tool or person | Execute tasks, run agents, manage working copies, publish work, contact services or update trackers | The team and those tools |
 
 Ingredients are program data models. A recipe can configure native enforcement features, and the consuming program
@@ -35,71 +38,40 @@ enforces them. See [program permissions](../features/policy.md).
 
 ## Criteria
 
-Use these questions together, because repetition alone does not establish an engine responsibility:
+Ask these questions in order for each part of a capability and stop at the first yes, because repetition alone does
+not establish an engine responsibility:
 
-| Question | Placement consequence |
+| Question | Placement |
 | --- | --- |
-| Does it change Cook's evaluation, review or execution of declared file operations? | Consider an engine capability within the architecture |
-| Does it describe a program's native files or configuration? | Keep that knowledge in an ingredient and cookbook |
-| Does it select reusable file additions, updates or deletions for a setup? | Express the request through a recipe |
-| Does it require fitting conventions to one repository, weighing options or writing guidance? | Use a person or agent guided by a skill or prose |
-| Does it execute a command, launch a session, publish work or contact a service? | Keep the activity with external tools and people |
-| Is it a native setting whose later effects include execution or network access? | It can be a declared file change; review the program's interpretation and consequences |
-| Is the choice shared or personal, and which existing content should remain? | Choose declared targets and maintenance sources deliberately |
-| Does the proposal depend on a deferred model or hook API? | Leave that API for the separate discussion rather than defining it here |
+| 1. Does it change Cook's evaluation, review or execution of declared file operations? | Engine capability within the architecture |
+| 2. Must the capability itself execute a command, launch a session, publish work or contact a service? | External tools and people |
+| 3. Does it model the format of a program's native files or configuration? | Ingredient in a cookbook |
+| 4. Does it select reusable file additions, updates or deletions for a setup, including a native setting, CI file, task-runner command or hook that a program later executes? | Recipe; review the program's interpretation and consequences of the written setting |
+| 5. Does it require fitting conventions to one repository, weighing options or writing guidance? | Person or agent guided by a skill or prose |
 
-Writing configuration and executing its workflow are separate steps. A recipe may write a CI file, a
-task-runner command or an agent hook; Cook reviews that file operation. The consuming program later runs it under its
-own working directory, credentials, permissions and failure rules. See [native program hooks](../features/hooks.md).
+Writing configuration and executing its workflow are separate steps, so a hook or CI file answers question 4, not
+question 2: Cook reviews the file operation, and the consuming program later runs it under its own working directory,
+credentials, permissions and failure rules. See [native program hooks](../features/hooks.md).
+
+Whatever the placement, decide whether the choice is shared or personal and which existing content should remain, and
+choose declared targets and maintenance sources accordingly.
 
 ## Engine commands and recipe arguments
 
-The intended command set is implicit or explicit apply, revert, `batch list` and `batch inspect`. Apply proposes
-additions and updates, together with removal of what each recipe's previous version owned and no longer declares;
-revert applies a recorded batch's reverse patches without evaluating recipes again; `batch list` and `batch inspect`
-read batch records. Discard is deferred.
-
-A new engine command or flag requires its own decision when it changes that scope. Do not add a command for each program
-or organization, or invent a setting that bypasses the agreed review and recovery guarantees. Per-recipe choices use
-arguments following that recipe as `--name=value`.
-
-```sh
-./cook ./recipes/project.groovy
-./cook apply ./recipes/base.groovy --agent=codex ./recipes/project.groovy --agent=claude
-./cook batch list
-./cook revert 2026-10-14T15-04-05Z
-```
-
-Recipe operands are paths inside the destination repository, including ordinary relative paths, or `https://` URLs.
-Initial bare command names select commands; use `./revert` for a file named `revert`. An argument value such as
-`--source=./b.groovy` remains an argument value.
-
-Batch options precede operands, including the batch ID for revert. Without preapproval, Cook asks before target writes.
-`--batch-approve` displays the final diff and proceeds without prompting. Noninteractive execution alone does not
-authorize writes; the CLI accepts the whole batch. A misplaced batch option after a recipe receives
-the normal unknown-option error. See [CLI grammar](../features/cli.md).
-
-These examples describe the intended design. Consult the [root README](../../README.md) and recipe READMEs for current
-commands and prerequisites.
+The engine's commands are apply, revert and `batch` ([CLI reference](../features/cli.md)). A new engine command or flag
+requires its own decision when it changes that scope. Do not add a command for each program or organization, or invent
+a setting that bypasses the agreed review and recovery guarantees, because program and organization choices belong in
+cookbooks. Per-recipe choices use recipe arguments following that recipe as `--name=value`.
 
 ## Recipes
 
-Use a recipe to reuse requested native setup, whether the invocation is a first application or an update. Recipes and
-their operations compose left to right; when two recipes write the same target, the last one wins and becomes its owner,
-and the diff is the only notice. Cook shows one final combined diff.
+Use a recipe to reuse requested native setup, whether the invocation is a first application or an update. Recipes
+compose left to right into one combined diff, the last writer of a target becomes its owner, and applying B never
+removes A's output ([ordered composition](../architecture.md#ordered-composition-and-declared-targets)). Ownership
+never blocks a change.
 
-For example, A sets `test` to `A` and creates `notes.txt`; B sets `test` to `B`. Applying A then B previews `B` and the
-new file. Applying B alone after A was applied earlier changes the key, moves its ownership to B and leaves `notes.txt`
-intact: applying B never removes A's output.
-
-Every apply invocation evaluates the supplied recipe versions against current content, even after an identical earlier
-invocation. An unchanged result may have an empty diff. The committed `cook.lock` records ownership, but ownership never
-blocks a change, including a change to content a developer edited.
-
-Revert reverses only one recorded batch's changes. If a batch changed `test` from `old` to `new`, then a person changed
-an unrelated `other` key, reverting that batch proposes `new` to `old` and keeps `other`; had the person changed
-`test`, the revert would write nothing and list the conflict. Discarding a recipe's whole contribution is deferred.
-See [revert](../features/revert.md).
+Revert writes a recorded batch's reverse patches without evaluating recipes again, so reversing a recorded change
+needs no recipe ([revert](../features/revert.md)).
 
 A recipe is trusted executable code. External command execution is not a batch action. Arbitrary recipe side effects
 remain outside diff approval, output boundaries and rollback.
@@ -132,7 +104,7 @@ evidence should fit the task.
 | Restrict force pushes or task chaining | Native program controls and team guidance | Cook may configure supported controls; the consuming program enforces them |
 | Allow one repository's observability search tools | Native settings chosen with organization guidance | Fit the scope to the repository; file approval is not permission to contact the service |
 | Give a Node project lint/build/test commands and an edit hook | Recipe-declared task-runner and native hook files | Programs execute the resulting configuration independently |
-| Add a migration or framework module | Existing generator and contributor skill | Generator execution and implementation judgement belong to those tools and people |
+| Add a migration or framework module | Existing generator and contributor skill | Generator execution and implementation judgment belong to those tools and people |
 | Write reusable initial template files | Recipe | Explicit file operations can apply to existing content |
 | Configure a loop runner or task tracker | Ingredients and recipes for native configuration | Running tasks, updating tracker state and signaling completion belong to external tools |
 | Launch an agent with network restrictions | Agent/runner controls and guidance | Cook can configure native settings |
@@ -142,28 +114,18 @@ evidence should fit the task.
 | Manage worktrees, detect merged branches or remove working copies | Version-control and working-copy tools | Those tools manage working copies |
 | Explain permissions, branches or working-copy locations in `AGENTS.md` | Native instruction prose or recipe-declared marked section | Readable conventions survive stopping Cook; use HTML comments for Markdown boundaries |
 | Share organization skills | Team-selected installer, recipe or reviewed copies | Choose one maintenance process; native discovery determines loading |
-| Record a lesson or open an issue | Agent or person with appropriate tools | Knowledge and tracker activity need judgement and their own review |
-| Pin or upgrade the Cook engine | Explicit committed wrapper version/checksum change | The jpackage package includes Java; first-use verified download/cache is separate from cookbook versions |
+| Record a lesson or open an issue | Agent or person with appropriate tools | Knowledge and tracker activity need judgment and their own review |
+| Pin or upgrade the Cook engine | Explicit committed wrapper version/checksum change | Engine and cookbook versions are separate choices; see [wrapper](../features/wrapper.md) |
 | Apply setup across repositories | Separate CLI invocations from each destination | Each has its own actual diff, approval, `cook.lock` and batch records |
 | Reverse a recorded change | Revert | Reverses one batch's changes; removing a recipe's whole contribution (discard) is deferred |
 
-## Paths, history and distribution
+## Paths, batch records and distribution
 
-The current working directory is the destination, regardless of recipe or executable location. Declared writes and
-deletions stay within it, including paths resolved through symlinks. Recipes come from paths inside the destination
-repository or `https://` URLs. Source recipes and templates resolve relative to the referencing recipe's location or
-HTTPS URL; saving snapshots must not change source resolution, and a local reference outside the repository is refused.
-
-Before the first target write, save the batch record. The ignored `.cook/batches/<batchId>/` directory, named by the
-batch's UTC start time, captures one reversible patch per touched file (`cook.lock` included), evaluated and consumed
-local/downloaded sources, origins, arguments, order and result or failure log. Write failure rolls back batch changes
-already made and retains the record and failure. Apply needs neither batch history nor `cook.lock`; revert requires the
-selected batch's record. The patch format and metadata schema belong to the implementation.
-
-Engine delivery uses complete platform-specific jpackage packages containing Java. The committed wrapper design pins an
-engine version and package checksums, verifies the first-use download and caches it locally. Upgrades are explicit;
-ordinary invocation does not update recipes or choose a newer release. Cookbook repositories and builds remain separate.
-See [wrapper](../features/wrapper.md) for the target and current entry path.
+Each invocation works on one destination, its current working directory, so setup across repositories means one
+invocation per repository ([destination and source origins](../architecture.md#destination-and-source-origins)). Batch
+records stay local to that destination ([batch record](../architecture.md#one-record-for-the-batch)). The engine
+version is pinned by the committed wrapper and moves only by an explicit upgrade, separately from cookbook and recipe
+versions ([wrapper](../features/wrapper.md)).
 
 ## Anti-patterns
 
@@ -181,12 +143,10 @@ See [wrapper](../features/wrapper.md) for the target and current entry path.
   that an agent loaded or followed guidance.
 - Treating batch approval as authorization for arbitrary recipe effects or publication: trusted evaluation and external
   actions have distinct consequences outside the declared batch.
-- Using history to skip a recipe as already applied, or omitting a recipe to delete its previous output: each apply
-  invocation evaluates current content, and a recipe's output is removed only by applying a new version of that recipe
-  that no longer declares it, or by reverting a batch.
+- Omitting a recipe to delete its previous output: its output is removed only by applying a new version of that
+  recipe that no longer declares it, or by reverting a batch ([apply](../features/apply.md)).
 - Refreshing recipes or skills automatically when the engine pin moves: engine and cookbook sources are separate
   version choices.
-- Turning exploratory model or hook sketches into an API here: those choices require the separate model discussion.
 - Committing credentials in native configuration, skill examples or helper scripts: shared files expose them to
-  everyone with repository access; use the program's credential mechanism and review captured sources and history
-  for sensitive content ([credential guidance](configuration-standards.md#no-secrets)).
+  everyone with repository access; use the program's credential mechanism and review captured sources and batch
+  records for sensitive content ([credential guidance](configuration-standards.md#no-secrets)).

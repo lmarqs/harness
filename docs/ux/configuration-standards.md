@@ -5,8 +5,8 @@
 **Problem.** Shared configuration can hide conflicting values, mistyped inputs, and credentials. When the scope of a
 change is unclear, reviewers cannot tell what it replaces or how to recover it.
 
-**Goal.** Recipe inputs and native output are understandable, the proposed changes are visible before writes, and
-recovery records explain the sources and operation that produced them.
+**Goal.** [Recipe](../features/glossary.md) inputs and native output are understandable, the proposed changes are
+visible before writes, and batch records explain the sources and operation that produced them.
 
 ## Overview
 
@@ -14,7 +14,10 @@ These standards follow the intended [architecture](../architecture.md). Cook eva
 ordered file operations; ingredients model a program's native files and configuration, and cookbooks hold and ship
 ingredients and recipes. The [feature reference](../features/README.md) expands these responsibilities.
 
-See the [root README](../../README.md) for current execution.
+This page covers where files live, recipe inputs and their defaults, validation messages, native values and secrets.
+For composition, approval and revert it links to the pages that define them; generated file content follows the
+[generated-content standard](generated-content-standards.md). See the [root README](../../README.md) for current
+execution.
 
 ## Where files live
 
@@ -33,35 +36,19 @@ of the batch they approve.
 `.cook/` holds local batch records; committed ownership lives in `cook.lock`. A recipe may use shared guidance under
 `.agents/` where that suits the native program.
 
-Record source origins when saving snapshots. A relative template reference in a local recipe resolves from that recipe's
-location inside the repository; an HTTPS recipe resolves it against its source URL. Neither resolves from the snapshot
-location, and a local reference outside the repository is refused. For example, invoking
-`cookbook/recipes/project.groovy` from `/work/project` writes a declared `settings.toml` into `/work/project`, while its
-`../templates/settings.toml` source resolves to `/work/project/cookbook/templates/settings.toml`. See [source
-paths](../features/apply.md#destination-and-source-paths).
+Record source origins when saving snapshots. Relative template references resolve from the referencing recipe's
+location or source URL, never from the snapshot location; a local reference outside the repository is refused.
+[Destination and source paths](../features/apply.md#destination-and-source-paths) works through an example.
 
 ## Inputs
 
-Recipe operands are paths inside the destination repository or `https://` URLs. Ordinary relative paths such as
-`recipe.groovy` are accepted. Users manage recipe versions and supply the version they intend to apply; `cook.lock`
-records which version produced the current ownership. Remote and local sources are trusted executable code, not data
-confined by batch approval.
+Recipe operands, `--name=value` recipe arguments and their per-recipe scope follow the
+[CLI reference](../features/cli.md). Users manage recipe versions and supply the version they intend to apply;
+`cook.lock` records which version produced the current ownership. Remote and local sources are trusted executable code,
+not data confined by batch approval.
 
-```sh
-./cook ./recipe.groovy
-./cook apply ./base.groovy --agent=codex ./project.groovy --agent=claude
-./cook apply ./a.groovy --source=./b.groovy
-./cook apply ./a.groovy ./b.groovy
-```
-
-Recipe arguments follow their recipe as `--name=value`; use shell quoting for values containing spaces. Each recipe
-starts its own argument scope. In the last two examples, `b.groovy` is respectively an argument value and a second
-recipe. Batch options precede operands; placing `--batch-approve` after a recipe receives the normal unknown-option
-error. The [CLI reference](../features/cli.md) defines the grammar, including reserved initial command names.
-
-Document cookbook inputs close to the recipes that use them, with their meaning, supported values, defaults, and native
-effects. An input format belongs to its cookbook guidance. Engine wrapper pinning is distinct from cookbook builds and
-user-supplied recipe versions.
+Document cookbook inputs and their formats close to the recipes that use them, with their meaning, supported values,
+defaults, and native effects. Why: a person choosing a value reads the recipe that consumes it.
 
 ## Defaults and format changes
 
@@ -70,8 +57,7 @@ focused on the user's choices rather than copying every default. When changing a
 explain changed meanings and how users can supply the intended version. Why: a familiar key with a new meaning can
 produce an unexpected diff.
 
-Respect the native program's format and compatibility rules. Any declared transformation of existing configuration
-follows the same diff and whole-batch approval flow as other changes.
+Respect the native program's format and compatibility rules.
 
 ## Validation messages
 
@@ -80,7 +66,7 @@ path, and what was expected. Include line and column when available, and offer a
 Why: a person should be able to find the mistake without reconstructing how a recipe reached it.
 
 Do not silently omit a requested setting and present the batch as if it included that change. Explain native support
-gaps where relevant. See the [CLI error guidance](cli-standards.md#errors-and-exit-codes).
+gaps where relevant. See the [CLI error guidance](cli-standards.md#errors).
 
 ## Values and native settings
 
@@ -93,67 +79,32 @@ and avoid unnecessary changes to comments, key order, or blank lines. Review the
 programs can differ in matching, precedence, project trust, and local overrides. See
 [permissions](../features/policy.md), [native hooks](../features/hooks.md), and [guidance](../features/context.md).
 
-A native hook command may need executables, credentials, a working directory, and safely quoted paths. The program runs
-that hook, and undoing the file configuration does not reverse its eventual effects.
+Document what a native hook command needs, such as executables, credentials, a working directory, and safely quoted
+paths, in the recipe's guidance. Why: the program runs that hook later, outside Cook's review, and undoing the file
+configuration does not reverse its eventual effects.
 
 ## Ordered changes and approval
 
-Apply proposes declared additions and updates against current content. Recipes and their operations compose left to
-right; when two recipes write the same section, key, or file, the last one wins and becomes its owner, and the diff
-is the only notice. If A sets `test = "A"` and creates `notes.txt`, and B sets `test = "B"`, applying both in that
-order shows B's final value and A's new file in one diff. Applying only B later leaves `notes.txt` intact: applying B
-never removes A's output. Applying a new version of A removes what A's previous version owned and the new version no
-longer declares, and the diff shows that removal.
+Recipes compose left to right, and the last write to a section, key, or file wins;
+[ordered composition](../architecture.md#ordered-composition-and-declared-targets) defines targets, markers, and
+ownership. A declared transformation of existing or manually edited configuration follows the same diff and
+[whole-batch approval](../features/cli.md#batch-options-and-approval) as any other change. Why: approval must cover the
+actual combined effect of ordered operations, including changes to existing configuration.
 
-Whole-file operations address file paths, structured operations address key paths, and shared-text sections use
-`cook:begin <recipe>/<region>` and `cook:end <recipe>/<region>` markers in the file format's comment syntax (HTML
-comments for Markdown). Markers name the owning recipe and region; ownership never blocks a change. See the
-[generated-content standard](generated-content-standards.md#kinds-of-generated-content).
+## Batch records and explicit reversal
 
-Every apply invocation evaluates the supplied recipe versions against current content. Previous history does not skip a
-recipe as already applied; unchanged output may produce an empty diff. Existing and manually edited content uses the
-same review flow.
-
-Display the final combined diff in the terminal and ask for approval of the whole batch before changing target files.
-With `--batch-approve`, display the diff and proceed without prompting. Noninteractive execution without that flag
-does not authorize writes. The CLI accepts the whole batch; choosing individual changes belongs to a separate
-interface decision, and the core writes and records only accepted changes. Why: approval must cover the actual
-combined effect of ordered operations, including changes to existing configuration.
-
-## Local history and explicit reversal
-
-Before the first target write, save the batch record in the destination's ignored `.cook/batches/<batchId>/`, where the
-batch ID is the UTC start time. It holds one reversible patch per touched file, `cook.lock` included; one patch
-represents the combined file change and supports forward and reverse application. The record also holds evaluated
-recipes, all consumed recipe/template sources (local and downloaded), origins, arguments, execution order, and result or
-failure log. On a write failure, roll back changes already made and retain the record and failure. The patch
-representation, complete storage layout, and metadata schema belong to the implementation.
-
-Apply requires neither batch history nor `cook.lock`. Losing `.cook/` loses the ability to revert earlier batches,
-not the ability to cook; ownership survives in the committed `cook.lock`, and new batches still save their records
-before writes. Reverting a batch requires its record.
-
-```sh
-./cook batch list
-./cook revert 2026-10-14T15-04-05Z
-```
-
-Revert applies a recorded batch's reverse patches against current content without evaluating recipes again. It
-reverses only that batch's changes. If a batch changed `test` from `old` to `new`, then a person changed an unrelated
-`other` key, reverting that batch proposes `new` to `old` and keeps `other`. Had the person changed `test`, the revert
-would write nothing and list the conflicting file and key. Revert shows the actual diff for whole-batch approval.
-
-Discarding a recipe's whole contribution is deferred; revert the batches that applied it instead. Leave native
-configuration in place when it should remain. See [revert](../features/revert.md).
+Cook saves a [batch record](../architecture.md#one-record-for-the-batch) in `.cook/batches/<batchId>/` before the first
+target write. [Revert](../features/revert.md) reverses one recorded batch's changes. Leave native configuration in
+place when it should remain. Why: reverting a batch requires its record.
 
 ## No secrets
 
 Keep credentials out of shared recipe sources, configuration, comments, URLs, and arguments that may be displayed or
 recorded. Use the native program's supported credential mechanism, such as an environment reference or its own
 credential store, rather than embedding a secret in generated output. Why: committed content reaches every reader
-of the repository, and diffs, arguments, snapshots, and recovery patches can retain sensitive values locally too.
+of the repository, and diffs, arguments, and batch records can retain sensitive values locally too.
 
-Ignored history is not a secret store. Review source contents and target values with that retention in mind. Trusted
+Batch records are not a secret store. Review source contents and target values with that retention in mind. Trusted
 Groovy code can read inherited credentials and perform arbitrary effects; batch boundaries and rollback do not
 confine it or promise automatic redaction.
 

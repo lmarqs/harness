@@ -1,4 +1,4 @@
-# Agent and worker configuration
+# Agent configuration
 
 ## Objective
 
@@ -10,23 +10,23 @@ people and tools that run them.
 
 ## Native program files
 
-A worker is a program that changes a repository for someone, such as a coding agent, bot or codemod.
+This page covers coding agents and the other programs that change a repository for someone, such as bots and
+codemods.
 
-Cookbook ingredients model each program's native files and configuration, as described in
+Cookbook [ingredients](glossary.md) model each program's native files and configuration, as described in
 [Cook's architecture](../architecture.md). Recipes use those models to declare file operations, including settings,
 permission rules, shared instructions and skills where the program supports them. Programs consume the resulting files
 directly.
+
+For example, a recipe can own the `permissions.allow` key in `.claude/settings.json`; the batch diff shows that key's
+change, and unrelated keys stay as they are. Sections in shared instruction files follow
+[sections and markers](apply.md#sections-and-markers), and existing or edited content follows the same
+[apply flow](apply.md).
 
 Program-specific knowledge belongs with the ingredient and its cookbook documentation: which files and keys the
 program reads, how it expresses permissions, how it loads instructions and skills, and which settings it supports.
 Writing a rule or instruction does not guarantee that a program loads or obeys it. A program's unsupported settings
 cannot be made effective merely by expressing them in shared guidance.
-
-Cook shows the combined terminal diff and obtains approval for the whole batch before target writes. Structured
-changes address keys; sections in shared text use `cook:begin <recipe>/<region>` and `cook:end <recipe>/<region>`
-markers in the format's comment syntax, including HTML comments for Markdown. Markers name the owning recipe;
-ownership never blocks a change. Existing or edited content follows the same [apply flow](apply.md). Unrelated
-content is preserved according to the declared scope.
 
 ## Trust and execution boundaries
 

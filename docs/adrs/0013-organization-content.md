@@ -13,16 +13,17 @@ repository accepts while preserving choices outside those changes.
 
 - In a worked example, `acme/api` and `acme/web` share build instructions, but only `acme/api` needs configuration
   for acme's deployment service. A different organization uses other services and permissions.
-- Ingredients model programs' native files and configuration, including an organization's own program. Cookbook
-  repositories hold and ship ingredients and trusted Groovy recipes; cookbook builds can be separate from Cook's
-  build ([architecture](../architecture.md#ingredients-recipes-and-cookbooks)).
+- [Ingredients](../features/glossary.md) model programs' native files and configuration, including an organization's
+  own program. Cookbook repositories hold and ship ingredients and trusted Groovy recipes; cookbook builds can be
+  separate from Cook's build ([architecture](../architecture.md#ingredients-recipes-and-cookbooks)).
 - Recipes come from paths inside the destination repository or from `https://` URLs; a local recipe or reference
   outside the repository is refused ([source origins](../architecture.md#destination-and-source-origins)). Relative
-  recipe/template references resolve from the referencing recipe's original location, not from its saved snapshot.
+  recipe and template references resolve from the referencing recipe's original location, not from the copy saved in
+  the batch record.
 - Cook evaluates supplied recipes against current content in declared order and shows one final batch diff. Each batch
   record captures the sources actually evaluated and consumed, including local sources, with origins and arguments.
-- The engine's jpackage distribution and committed version/checksum pin are separate from cookbook and recipe versions
-  ([distribution](../architecture.md#engine-distribution)).
+- The engine's jpackage distribution and committed version and checksum pin are separate from cookbook and recipe
+  versions ([distribution](../architecture.md#engine-distribution)).
 
 ## Decision
 
@@ -34,15 +35,9 @@ repository accepts while preserving choices outside those changes.
 3. Reused content can participate in recipe evaluation from paths inside the destination repository or from
    `https://` URLs. Users manage recipe versions and supply the version to apply; `cook.lock` records which version
    produced the current ownership.
-4. Cook proposes declared changes against current content. Later recipes can replace earlier values at overlapping
-   targets; the terminal shows the final combined diff for whole-batch approval. Applying a recipe leaves unrelated
-   outputs intact. Existing content and manual edits follow the same flow; ownership recorded in `cook.lock` never
-   blocks a change ([0007](0007-ownership.md)).
-5. Native output is readable by its configured programs without Cook ([0010](0010-dependence-on-the-binary.md)).
-   Each local batch record holds evaluated and consumed sources, origins, arguments, order and result or failure,
-   with recovery patches saved before target writes. This record supports inspection and reversal.
-6. Ingredient/recipe APIs, nesting, station semantics, annotations, injection, decorators and lifecycle hooks remain
-   for the separate model discussion.
+4. Ordered composition, ownership and review of the resulting changes follow [0007](0007-ownership.md).
+5. Native output stays readable without Cook ([0010](0010-dependence-on-the-binary.md)), and the batch record keeps
+   the evaluated sources ([0014](0014-directory-layout.md)).
 
 ## Reasons
 
@@ -54,20 +49,19 @@ repository accepts while preserving choices outside those changes.
   shared between repositories. Capturing consumed sources and preserving their origins makes a batch inspectable.
   Trusted code may use changing inputs, so engine pinning alone is not a promise of identical output across machines
   or days.
-- **4.** Review exposes what the requested setup changes in this repository. Add-only station application would prevent
-  intentional updates; automatic withdrawal would delete output outside the request. Ordered overlap and declared
-  scope support both replacement and preservation; recorded ownership limits removal to what a recipe's own previous
-  version wrote.
-- **5.** Native output serves readers who do not run Cook; source history serves those inspecting a recorded operation.
-  Losing local history loses that recovery information, not the ability to apply supplied recipes.
-- **6.** Program models remain useful without settling how they compose or receive parameters.
+- **4.** Review exposes what the requested setup changes in this repository, and a shared recipe overridden by a
+  later, repository-specific one shows the override in the same diff. [0007](0007-ownership.md) gives the reasons.
+- **5.** Native output serves readers who do not run Cook; the batch record serves those inspecting a recorded
+  operation. Losing local batch records loses the ability to revert those batches, not the ability to apply supplied
+  recipes.
 
 ## Rejected alternatives
 
 ### Organization choices maintained in engine releases
 
 At its best, every user gets shared setup from one release. It loses because engine releases become coupled to
-organization-specific choices and teams must fork or wait for changes. Cookbook authors can maintain those choices separately.
+organization-specific choices and teams must fork or wait for changes. Cookbook authors can maintain those choices
+separately.
 
 ### Only copied repository content may affect evaluation
 
@@ -75,23 +69,30 @@ At its best, all source material is visible in one checkout. It loses because it
 source flow and turns copying and merge management into engine responsibilities. Native output, the reviewed diff
 and captured consumed sources provide distinct views without forbidding composition.
 
-### Preserve the station and recipe update protocols unchanged
+### Add-only templates and three-way recipe merges
 
-At its best, add-only station templates and three-way recipe merges offer established update rules. They lose here
-because they decide station roles and recipe version management outside the agreed scope. Users supply recipe
-versions; the separate model discussion decides APIs and lifecycle mechanics.
+At its best, content written only where a target is absent never overwrites a local change, and a three-way merge
+against a stored copy of a recipe's previous output reconciles upstream and local edits. It loses because add-only
+writes prevent intentional updates, and three-way merges make the engine store and manage recipe versions. Users
+supply recipe versions, and the diff against current content shows local edits before approval.
 
 ## Consequences
 
-- Cookbook authors maintain program models and shared recipes independently; teams review the resulting native-file
-  changes and manage the recipe versions they supply.
+Costs:
+
 - Reviewers may need the cookbook sources and local batch records to explain how output was produced. Native output
   alone does not describe every dependency or arbitrary side effect of executable recipes.
-- Engine version/checksum pinning protects the selected engine download; it does not authenticate every recipe source
-  or sandbox recipe execution. [0026](0026-cookbook-trust.md) explains cookbook trust.
+- Engine version and checksum pinning protects the selected engine download; it does not authenticate every recipe
+  source or sandbox recipe execution. [0026](0026-cookbook-trust.md) explains cookbook trust.
+
+Must be maintained:
+
+- Cookbook authors maintain program models and shared recipes independently; teams review the resulting native-file
+  changes and manage the recipe versions they supply.
 
 ## Confirmation
 
-Review the acme example with shared setup and a repository-specific choice: the batch changes only declared targets,
-shows later overrides in its final diff, and preserves unrelated configuration. Trace local and remote consumed sources
-to their original locations and captured history.
+- Review the acme example with shared setup and a repository-specific choice: does the batch change only declared
+  targets, show later overrides in its final diff, and preserve unrelated configuration?
+- Review a batch with local and remote recipes: does `./cook batch inspect` trace each consumed source to its original
+  location?

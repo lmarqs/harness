@@ -9,13 +9,12 @@ copies drift, and a reviewer needs to see what a requested update changes in the
 
 ## Context
 
-The useful concern in reusable recipes is sharing a change while allowing project-specific choices. For example,
-acme's API and web projects can reuse one program model while supplying different instruction text.
+For example, acme's API and web projects can reuse one program model while supplying different instruction text.
 
 The [architecture](../architecture.md#ingredients-recipes-and-cookbooks) and its
 [requirements](../architecture.md#requirements) FR-1 and FR-2 define recipes as trusted executable Groovy code and
-ingredients as program data models. Cookbooks hold and ship both. FR-7 through FR-16 define ordered file changes,
-review, recorded ownership, the deferred discard and batch revert; FR-30 leaves the authoring APIs open.
+[ingredients](../features/glossary.md) as program data models. Cookbooks hold and ship both. FR-7 through FR-16
+define ordered file changes, review, recorded ownership, the deferred discard and batch revert.
 
 ## Decision
 
@@ -25,56 +24,46 @@ review, recorded ownership, the deferred discard and batch revert; FR-30 leaves 
    invocations. Recipes and their operations compose left to right into one final batch diff; later declarations
    can replace earlier values. Applying a recipe does not remove outputs another recipe owns. Existing or edited
    targets use the same review and approval flow; recorded ownership never blocks a change.
-3. Users manage recipe versions and supply the version they intend to apply. Each recipe has a short name, declared or
-   derived from its path, and `cook.lock` records its source, sha256 and owned targets ([0007](0007-ownership.md)).
-   Applying a new version removes what the previous version owned and no longer declares, including edited values.
-   Revert applies a batch's reverse patches without evaluating recipes again.
-4. Each batch record, in the ignored `.cook/batches/<batchId>/` directory, captures evaluated recipes and consumed
-   recipe/template sources, their origins, arguments, order and outcome, with one reversible patch per touched file.
-   Patches are saved before target writes. Relative source references retain their original recipe origin when
-   snapshots are saved. Apply needs no earlier history; reverting a batch requires its record.
-5. Recipes are not passes through a fixed development lifecycle. Batch approval and rollback cover declared file
-   operations, not arbitrary effects of trusted code.
-6. Ingredient/recipe APIs, nesting, station roles, decorators, parameter injection, annotations and lifecycle hooks
-   remain for the separate model discussion.
+3. Users manage recipe versions and supply the version they intend to apply. Each recipe has a short name that
+   markers and `cook.lock` use, and `cook.lock` records its source, sha256 and owned targets
+   ([0007](0007-ownership.md)). Applying a new version removes what the previous version owned and no longer declares,
+   including edited values. Revert applies a batch's reverse patches without evaluating recipes again.
+4. The batch record of the sources each apply evaluated follows [0014](0014-directory-layout.md).
+5. A recipe describes file operations; it does not launch agents or verify their results. Batch approval and rollback
+   cover declared file operations, not arbitrary effects of trusted code.
 
 ## Reasons
 
-- **1.** FR-1 and FR-2 preserve reuse and adaptation without requiring a closed lifecycle schema. Models hold program
-  knowledge and recipes choose requested setup. The trade is that executable sources require trust before evaluation.
+- **1.** FR-1 and FR-2 preserve reuse and adaptation, sharing a change while allowing project-specific choices,
+  without requiring a closed schema. Models hold program knowledge and recipes choose requested setup. The trade is
+  that executable sources require trust before evaluation.
 - **2.** FR-7, FR-8 and FR-25 make supplied declarations and current content authoritative. Review shows the final
-  effect instead of silently skipping an already-applied recipe or withdrawing omitted output. The trade is that a
+  effect instead of silently skipping an already-applied recipe or removing omitted output. The trade is that a
   later recipe can replace a local value; whole-batch review exposes that change.
 - **3.** FR-14 records what each recipe owns, so a new version's removals follow from the lock rather than from
   reevaluating an earlier version, and FR-16 restores a batch's prior values from its patches. The short name ties
-  versions of one recipe together without an update ancestor, which would add version management outside the agreed
-  design. Users must supply the recipe version they mean, rather than relying on Cook to reconstruct it.
-- **4.** FR-22 through FR-25 make a record identify the sources actually used. Recovery needs the evaluated content and
-  origins, not just a recipe name. The trade is local history storage; losing it loses reversal information but does
-  not prevent another apply.
-- **5.** FR-3, FR-4 and FR-6 distinguish configuration writes from worker execution; a verification and resume contract
-  would depend on a lifecycle engine outside Cook's scope. The trade is that checks, delivery and session control belong
-  to the programs or callers responsible for them.
-- **6.** FR-30 defers the model design. Preserving the recipe concept and operation contract does not require choosing
-  authoring syntax, composition mechanics or hooks.
+  versions of one recipe together without a stored copy of the previous version for merging, which would add version
+  management outside the agreed design. Users must supply the recipe version they mean, rather than relying on Cook to
+  reconstruct it.
+- **4.** Revert needs the evaluated content and origins, not just a recipe name; [0014](0014-directory-layout.md)
+  gives the reasons for the record's home and contents.
+- **5.** FR-3 and FR-4 distinguish configuration writes from running programs; a contract to verify results and resume
+  interrupted runs would make Cook run programs, outside its scope. The trade is that checks, delivery and session
+  control belong to the programs or callers responsible for them.
 
 ## Rejected alternatives
 
-### Retain recipes as guarded lifecycle workflows
+### A recipe also launches agents and verifies their results
 
-A workflow could combine generation, worker judgement, verification and delivery. Its guarantees require worker
-launches, receipts, lifecycle guards and resumable sessions outside Cook's agreed file-operation responsibility.
+At its best, one workflow combines generation, an agent's judgment, verification and delivery. It loses because its
+guarantees require launching agents, recording their results and resuming interrupted sessions, outside Cook's
+file-operation responsibility.
 
 ### Copy every recipe into the destination and merge later versions
 
-Source copies can be adapted locally, and a merge can help incorporate upstream changes. Making this the engine's
-contract would add recipe identity, update ancestors and version management. Users can manage their sources without
-Cook mandating a copy or merge protocol.
-
-### Select the model API from existing composition implementations
-
-Choosing one implementation would give authors an immediate convention. It would settle the deferred model discussion
-without its design work. Neither implementation is a deletion target merely because the lifecycle contract is removed.
+At its best, source copies can be adapted locally, and a merge can help incorporate upstream changes. It loses
+because making this the engine's contract would add recipe identity tracking, stored copies of previous versions for
+merging, and version management. Users can manage their sources without Cook mandating a copy or merge protocol.
 
 ## Consequences
 
@@ -90,7 +79,9 @@ Must be maintained:
 
 ## Confirmation
 
-Review against FR-1 through FR-4, FR-7 through FR-16, FR-22 through FR-25 and FR-30. If recipe A sets a key and B
-replaces it, the final diff shows B's result; applying B alone leaves A's unrelated output intact. If a batch changed
-`old` to `new` and a developer then edited another key, reverting that batch proposes `old` and keeps the edit; if the
-developer instead wrote `custom` to the same key, the revert writes nothing and names the key.
+- Review against FR-7 and FR-8: if recipe A sets a key and B replaces it, does the final diff show B's result, and does
+  applying B alone leave A's unrelated output intact?
+- Review against FR-16: if a batch changed `old` to `new` and a developer then edited another key, does reverting that
+  batch propose `old` and keep the edit, and if the developer instead wrote `custom` to the same key, does the revert
+  write nothing and name the key?
+- Review a proposed recipe feature against FR-3 and FR-4: does it describe file operations only?

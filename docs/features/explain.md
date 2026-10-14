@@ -2,18 +2,22 @@
 
 ## Objective
 
-A contributor needs one account of Cook's responsibilities and the reasons behind its operation rules.
+**Problem.** A contributor with a question about Cook's behavior needs to know which document answers it and which
+one is authoritative.
+
+**Goal.** Each question leads to one account of Cook's responsibilities and the reasons behind its operation rules.
+The [feature index](README.md) lists pages by topic; this page routes by question and states which source wins.
 
 ## Reading the references
 
 [Cook architecture](../architecture.md) states the intended design. Supporting feature pages follow it, and
-[ADRs](../adrs/README.md) explain its reasoning.
+[ADRs](../adrs/README.md) explain the reasoning behind that design. The [glossary](glossary.md) defines its terms.
 
 | Question | Read |
 | --- | --- |
 | What does the engine do, and what stays outside it? | [Architecture](../architecture.md) |
 | How are recipe operands, arguments and approval scoped? | [CLI reference](cli.md) |
-| How do ordered file operations, ownership, source paths and history work? | [Apply](apply.md) |
+| How do ordered file operations, ownership, source paths and the batch record work? | [Apply](apply.md) |
 | How is a recorded batch reversed? | [Revert](revert.md) |
 | What does approval protect, and what requires recipe trust? | [Safety guidelines](safety.md) |
 | How can recipes share native instructions and reviewed knowledge? | [Repository guidance](context.md) and [memory](memory.md) |
@@ -27,6 +31,3 @@ configuration it models.
 
 Prefer links to maintained explanations over copying a command catalog or broad rules into every instruction file.
 Keep repository-specific guidance concise and describe the sources and program prerequisites needed to use it.
-
-## Boundaries
-Ingredient/recipe APIs and hooks remain a separate discussion.

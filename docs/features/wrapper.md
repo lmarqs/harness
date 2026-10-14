@@ -2,19 +2,26 @@
 
 ## Objective
 
-A committed wrapper makes the engine version a repository decision. Developers and CI use the same pinned
-platform package, verify its checksum before execution, and upgrade explicitly. This page specifies the wrapper
-required by the [intended architecture](../architecture.md#engine-distribution); the current source-repository
-[`cook` script](../../cook) is a development launcher for a local build.
+**Problem.** Developers and CI need to run the same engine version, and a download must match the version the
+repository reviewed before it runs.
+
+**Goal.** The engine version is a repository decision: every machine runs the pinned platform package, verifies its
+checksum before execution, and upgrades only through an explicit, reviewed change.
+
+This page owns the `./cook` wrapper of the [intended architecture](../architecture.md#engine-distribution): its pin,
+checksum verification, first-use download, cache and upgrades. The current source-repository
+[`cook` script](../../cook) is a development launcher for a local build; see
+[current repository launcher](#current-repository-launcher).
 
 ## Overview
 
-Commit an executable `./cook` wrapper with an engine version and matching platform-package checksums. It selects
-the pinned package for the machine's OS and architecture. Cook remains JVM-based: the package is produced with
-`jpackage` and contains Java. The wrapper caches and launches the complete package.
+A repository commits an executable `./cook` [wrapper](glossary.md) with an engine version and matching platform-package
+checksums. It selects the pinned package for the machine's OS and architecture. Cook is JVM-based: the package is
+produced with `jpackage` and contains Java. The wrapper caches and launches the complete package.
 
-The engine pin belongs in committed repository content, separate from `cook.lock`, which records recipe ownership.
-Destination-local `.cook/` batch history is ignored and can be lost without preventing apply.
+The engine pin belongs in committed repository content, separate from [`cook.lock`](glossary.md), which records
+recipe ownership. The destination's ignored `.cook/` directory holds the batch records; losing it does not prevent
+apply.
 
 ## How it works
 
@@ -27,10 +34,10 @@ Destination-local `.cook/` batch history is ignored and can be lost without prev
 First use of an uncached version needs access to its download source and tools for downloading, checksum
 verification, and unpacking. Later use of the cached package requires no download. The cache must distinguish
 platform packages as well as versions; a package built for one OS or architecture is not a substitute for another.
-Exact asset names, download-source configuration, pin file format, cache layout, shell prerequisites, and failure
-exit codes belong to the implementation.
+The specific tools, exact asset names, download-source configuration, pin file format, cache layout, shell
+prerequisites, and failure exit codes belong to the implementation.
 
-The wrapper passes cooking arguments to the engine. The [CLI reference](cli.md) defines apply, revert, batch list and
+The wrapper passes its CLI arguments to the engine. The [CLI reference](cli.md) defines apply, revert, batch list and
 inspect, recipe operands, and batch options. The invocation directory is the destination for declared file
 operations, regardless of the wrapper's location.
 
@@ -41,7 +48,7 @@ cached package is reused for that pin. Review changes to the wrapper and pin as 
 changes.
 
 A checksum detects whether a download matches the reviewed pin. It does not by itself authenticate a publisher.
-FR-26 requires checksum pinning.
+[FR-26](../architecture.md#requirements) requires checksum pinning.
 
 ## Upgrading
 
@@ -49,9 +56,9 @@ Upgrade by explicitly changing the committed version and its corresponding packa
 the pin change; on the next use, obtain the new package through the same verified download/cache flow. An ordinary
 invocation does not move the pin or select a newer engine release.
 
-Changing the engine pin does not manage recipe versions, fetch cookbook updates, or automatically re-render project
-files. Cookbooks ship ingredients and recipes through their repositories and can have separate builds. Users supply
-the recipe version to apply.
+Changing the engine pin does not manage recipe versions, fetch cookbook updates, or automatically apply recipes to
+project files. Cookbooks ship ingredients and recipes through their repositories and can have separate builds. Users
+supply the recipe version to apply.
 
 ## CI
 
@@ -83,7 +90,7 @@ build.
 
 | Situation | Required response |
 | --- | --- |
-| An uncached package cannot be downloaded | Obtain the pinned platform package before running the engine; a cached complete package can be used offline |
-| A download does not match its checksum | Refuse execution and resolve the download or pin discrepancy; do not silently accept a different package |
+| An uncached package cannot be downloaded | Obtain the pinned platform package; a cached complete package runs offline |
+| A download does not match its checksum | Refuse execution; resolve the download or pin discrepancy |
 | A copied launcher cannot find its runtime | Transfer the complete jpackage image, including Java |
-| The current repository script requests a CLI build | Follow the local development build path |
+| The current repository script requests a CLI build | Run `./gradlew cliBuild`; see [build a local package](installation.md#build-a-local-package-today) |

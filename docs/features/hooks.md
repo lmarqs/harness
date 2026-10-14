@@ -13,11 +13,12 @@ runtime consequences explained.
 
 An [ingredient](ingredients.md) models the configuration a program consumes, including native hook settings where
 applicable. A trusted Groovy [recipe](recipes.md) can declare file operations that write those settings and supporting
-scripts. Cook reviews and writes the declared files; the configured program runs the hooks.
+scripts. Cook reviews and writes the declared files; the configured program runs the hooks. The [glossary](glossary.md)
+defines these terms.
 
 This follows [the architecture](../architecture.md): external command execution is not a batch action. Writing a
-hook command does not execute it as part of the batch. Cook's recovery patches concern declared file changes, not later
-effects of a hook.
+hook command does not execute it as part of the batch. The batch record's patches concern declared file changes, not
+later effects of a hook.
 
 ## Useful hook choices
 
@@ -33,7 +34,7 @@ Keep program-specific guidance with its cookbook's model and recipes. Useful con
 These are configuration purposes. Do not assume every program supports every purpose or treats failures identically.
 Document the native program's behavior and any missing support.
 
-Keep frequent feedback fast and focused; use the repository's external check runner for broader validation. A hook
+Keep frequent feedback fast and focused; use the repository's task runner or CI for broader validation. A hook
 that fixes formatting should avoid repeatedly rewriting unchanged content. Hook feedback does not prove that a change
 passes the repository's checks. See [repository checks and configuration](verify.md).
 
@@ -43,20 +44,16 @@ Choose targets deliberately when a file already contains hooks from a person or 
 preserve content outside their declared targets; a whole-file operation affects the entire file. Review the final
 combined diff, including any replacement of an existing notification command or event entry.
 
-Review scripts alongside the settings that call them. Establish their working directory, executable requirements,
-path quoting, runtime permissions and behavior when a dependency is missing. Project trust and hook enablement are
-properties of the program.
+Review scripts alongside the settings that call them. Establish their working directory, executable requirements, path
+quoting, runtime permissions and behavior when a dependency is missing. Project trust and hook enablement are properties
+of the program. For a concrete case, see
+[the missing-dependency pitfall](pitfalls.md#a-native-hook-has-missing-dependencies-or-a-different-working-directory).
 
 Keep credentials out of committed hook configuration. When the chosen program or script supports environment-based
 credentials, document that prerequisite. Treat event payloads and agent-written messages as untrusted input; do not
 turn their contents into shell commands or instructions for another agent. Notifications can also disclose repository
 content. See [safety guidelines](safety.md) and [program permissions](policy.md).
 
-Applying a new version of a recipe removes hook contributions its previous version owned and the new version no
-longer declares. [Revert](revert.md#revert) applies a recorded batch's reverse patches. Neither reverses actions a hook
-has already performed.
-
-## Deferred boundaries
-
-Recipe lifecycle hooks, decorators, annotations and injection APIs require a separate ingredient/recipe model
-discussion.
+[Applying](apply.md) a new version of a recipe removes hook contributions its previous version owned and the new
+version does not declare, and [revert](revert.md#revert) applies a recorded batch's reverse patches. Neither reverses
+actions a hook has already performed.

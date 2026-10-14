@@ -19,28 +19,30 @@ diff with whole-batch approval. The [glossary](../features/glossary.md) defines 
 
 | Rule | Write | Avoid |
 | --- | --- | --- |
-| Present tense; describe the operation | `apply proposes additions and updates` | `apply now replaces render` |
-| Concise: one fact per sentence | `settings.toml: cannot read file` | `It looks like there may be a problem reading your configuration` |
+| Present tense; describe the operation | `apply proposes additions and updates` | `apply now replaces the old command` |
+| Concise: one fact per sentence | `the-cook: apply: settings.toml: cannot read file` | `It looks like there may be a problem reading your configuration` |
 | Name the thing exactly | `settings.toml:14` | `your settings` |
 | Imperative for instructions | `Move --batch-approve before ./recipe.groovy.` | `You may want to consider moving the option.` |
-| Neutral, no blame | `settings.toml: invalid value` | `You broke settings.toml.` |
+| Neutral, no blame | `the-cook: apply: settings.toml: invalid value` | `You broke settings.toml.` |
 | Plain words and no marketing | `writes native configuration` | `seamlessly configures everything` |
-| Consistent terms | the [names below](#names-for-engine-concepts) | alternating undo, rollback and revert for one operation |
+| Consistent terms | the [glossary](../features/glossary.md) term | alternating undo, rollback and revert for one operation |
 
 The same rules apply to guidance read by coding agents, because ambiguity can become an unintended action.
 
 ## CLI messages
 
-- Follow the [CLI output rules](cli-standards.md#streams-and-human-output). A diagnostic on stderr starts with `the-cook: `
-  so readers can identify its source. On a suitable TTY, a message for a person may use the documented status icon
-  instead; retain a status word because an icon alone cannot explain the result
+- Follow the [CLI output rules](cli-standards.md#streams-and-human-output). A diagnostic on stderr starts with
+  `the-cook: ` so readers can identify its source.
+- On a suitable TTY, a message for a person may use the documented status icon instead of that prefix. Keep a status
+  word, because an icon alone cannot explain the result
   ([terminal presentation](cli-standards.md#color-emoji-and-terminal-control)).
 - Put supporting detail on indented lines. Identify the operation and affected file or source, because readers need
   to distinguish a recipe input failure from a target write failure.
 - Name destination files relative to the invocation directory, with `:line:column` when known. Identify source files
-  by their original location or URL when needed; a snapshot path alone obscures which source to edit.
-- Distinguish warnings from failures in words. Do not assign numeric exit codes in message guidance; the agreed design
-  does not select an exit-code table.
+  by their original location or URL when needed; a copy's path in the batch record alone obscures which source to
+  edit.
+- Distinguish warnings from failures in words. Leave exit codes out of message guidance, because exit-code meanings
+  are undecided ([errors](cli-standards.md#errors)).
 - Do not emit ANSI escapes to non-TTY streams, because logs and transcripts must remain readable. Formatting and
   progress messages must not hide or replace the final batch diff.
 
@@ -74,7 +76,7 @@ the-cook: revert: no record for batch 2026-10-14T15-04-05Z
 
 ```text
 the-cook: revert: 2026-10-14T15-04-05Z conflicts with later edits; nothing was written
-  settings.toml: test
+  settings.toml: test is "custom"; the batch set it to "new"
   resolve the listed edits, then run the revert again
 ```
 
@@ -83,34 +85,47 @@ whereas revert reverses one recorded batch's changes.
 
 When approval needs a caller's decision, name the choices: run interactively to review and answer the prompt, or
 explicitly preapprove with `--batch-approve` before the operands. Neither a noninteractive terminal nor the presence of
-existing content authorizes writes.
+existing content authorizes writes. For example:
+
+```text
+the-cook: apply: approval required; nothing was written
+  the terminal is noninteractive and --batch-approve was not given
+  run interactively to review the diff, or run: ./cook apply --batch-approve ./recipe.groovy
+```
 
 Keep normal diagnostics focused on information the caller can act on, rather than internal type names or paths inside
-the package. When a target write fails, describe rollback and the retained batch record and failure accurately. Do not
-claim recovery of side effects outside the declared batch.
+the package. When a target write fails, name the file that failed, state that the files the batch already wrote were
+rolled back, and give the path of the retained batch record. Do not claim recovery of side effects outside the
+declared batch. For example:
+
+```text
+the-cook: apply: cannot write .codex/config.toml: permission denied
+  rolled back the files batch 2026-10-14T15-04-05Z already wrote
+  record and failure kept in .cook/batches/2026-10-14T15-04-05Z/
+```
 
 ## Output for automation and coding agents
 
 Human prose is for readers; scripts must not treat its wording as a stable data format
-([CLI output](cli-standards.md#json)).
+([CLI output](cli-standards.md#machine-readable-output)).
 
 Use the same operation names and approval scope in interactive and noninteractive guidance. Display the final diff even
 with `--batch-approve`; that flag covers the whole batch. A coding agent reading a message must be able to tell whether
 target writes occurred, whether rollback was needed and what information remains for recovery. Do not imply that batch
 review sandboxes trusted recipe execution.
 
-Cook writes native configuration that other programs consume. Guidance about their prompts, hooks or skill discovery
-belongs with their cookbook configuration.
+Cook writes native configuration that other programs consume. Guidance about a program's prompts, hooks or skill
+discovery belongs in the cookbook configuration for that program.
 
 ## Generated text in human files
 
-A recipe may declare a marked section in a shared instruction file. Markers bound the section and name its owner,
-`cook:begin <recipe>/<region>` and `cook:end <recipe>/<region>`
-([generated-content-standards.md](generated-content-standards.md#managed-blocks)). Keep instructions concise, avoid
+A recipe may declare a section in a shared instruction file. Markers bound the section and name its owning recipe
+and region, `cook:begin <recipe>#<region>` and `cook:end <recipe>#<region>`
+([generated-content-standards.md](generated-content-standards.md#sections-and-markers)). Keep instructions concise, avoid
 duplicating surrounding guidance, and link to supporting detail where useful. State conventions using the values that
 apply to the repository, so people and programs can understand them directly.
 
-A section may contain conventions, explanations or Cook commands as the recipe requires. Manual edits inside the
+A section may contain conventions, explanations or Cook commands. Manual edits inside the
 declared section appear in the next batch diff; unrelated text outside it remains intact. Use HTML comments for markers
 in Markdown.
 
@@ -131,23 +146,27 @@ in issues. See the [UX authority](README.md#authority) and [ADR index](../adrs/R
 
 ### Every document opens with its objective
 
-Every page opens by making its purpose and scope clear. ADRs use an `## Objective` section immediately after the
-title, following the [ADR writing guide](../adrs/README.md#the-objective-comes-first). For standards, feature pages
-and top-level pages, use an Objective section when it helps explain the problem and outcome:
+Every page under `docs/` opens with an `## Objective` section immediately after the title, because a reader arriving
+from search needs the purpose before the detail. ADRs follow the
+[ADR writing guide](../adrs/README.md#the-objective-comes-first). The section has two parts:
 
 - **Problem.** Who has the problem and what goes wrong or is missing.
 - **Goal.** The outcome that addresses it, stated so a reader can tell whether it holds.
 
-Keep an Objective section independent of design details, so readers understand the purpose before judging a solution.
-A concise introduction after the title or under `## Overview` may instead establish purpose, scope and intended-design
-versus current-implementation context, as in the architecture and CLI reference. Do not add a redundant Objective
-section to an introduction that already serves that purpose. ADR facts follow under `## Context`; reference material
-and examples follow under their own headings, because readers use the outline to find each kind of information.
+Keep the Objective independent of design details, so readers understand the purpose before judging a solution.
+
+Three pages state their objective in an opening paragraph instead, because readers open them for lookup rather than
+motivation: `docs/architecture.md` (the authority that other pages cite), `docs/features/cli.md` (command syntax) and
+`docs/features/agentic-dogfood.md` (current-implementation guide). Recipe READMEs open with the one or two sentences
+the recipe README template requires.
+
+ADR facts follow under `## Context`; reference material and examples follow under their own headings, because readers
+use the outline to find each kind of information.
 
 ### Feature pages
 
 Use these sections where relevant, in this order, so readers find the same kind of information in the same place.
-Omit empty sections; an opening introduction may replace Objective and Overview as described above.
+Omit empty sections other than Objective, apart from the pages named above.
 
 | Section | Content |
 | --- | --- |
@@ -194,22 +213,11 @@ from the [recipe README template](../../cookbook/recipes/TEMPLATE.md), which fix
 
 ### Names for engine concepts
 
-| Concept | Name |
-| --- | --- |
-| Engine | Recipe driven configuration engine |
-| Program's native files and configuration model | Ingredient |
-| Trusted executable Groovy source describing requested file operations | Recipe |
-| Repository holding and shipping ingredients and recipes | Cookbook |
-| Ordered file operations reviewed and approved together | Batch |
-| Declared addition or update against current content, with removal of what a recipe's previous version owned | Apply |
-| Removal of everything `cook.lock` lists for a recipe (deferred) | Discard |
-| Reversal of one recorded batch's changes, using its reverse patches | Revert |
-| Identifier of a recorded batch: its UTC start time, such as `2026-10-14T15-04-05Z` | Batch ID |
-| Recording of one batch under ignored `.cook/batches/<batchId>/` | Batch record |
-| Committed YAML file recording each applied recipe's source, sha256 and owned targets | `cook.lock` |
-| Current working directory where declared writes and deletions stay | Destination |
-| Recipe location inside the repository or URL used to resolve relative source references | Source origin |
-| `cook:begin <recipe>/<region>` and `cook:end <recipe>/<region>` delimiters naming a section's owner | Markers |
+The [glossary](../features/glossary.md) is the single list of engine terms; use its term for each concept, because
+two names for one concept read as two concepts. A recipe is evaluated; a batch is reviewed, approved and recorded.
 
-Use these terms consistently with the [glossary](../features/glossary.md). A recipe is evaluated; a batch is reviewed,
-approved and recorded. History never marks a recipe as already applied.
+Words to avoid:
+
+- history, batch history, recovery information or snapshots for a batch record
+- block, managed block or block ID for a section, its markers or its region
+- undo or rollback for revert; rollback names only the recovery from a failed write

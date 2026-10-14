@@ -11,10 +11,11 @@ person whose files are affected.
 
 ## Overview
 
-These principles follow the [architecture](../architecture.md), which states the intended design. Apply them when a
-specific interaction rule leaves a question open, and record the reason in the relevant standard
-([changing a standard](README.md#changing-a-standard)). Current execution instructions belong in the
-[root README](../../README.md) and [core guide](../../core/README.md).
+These principles follow the [architecture](../architecture.md), which states the intended design. The
+[glossary](../features/glossary.md) defines the engine terms used here, such as ingredient, cookbook, batch and
+destination. Apply the principles when a specific interaction rule leaves a question open, and record the reason in
+the relevant standard ([changing a standard](README.md#changing-a-standard)). Current execution instructions belong
+in the [root README](../../README.md) and [core guide](../../core/README.md).
 
 ## 1. Optional and transparent
 
@@ -22,15 +23,14 @@ Programs consume their native configuration directly. Using Cook to prepare thos
 invoke Cook to read them or perform their ordinary work. Why: teammates share configuration without necessarily
 choosing the tool that produced it.
 
-- Ingredients model native program files; cookbooks hold and ship ingredients and recipes separately from the engine.
-  Recipes can configure build, test or CI files when requested; those programs run their own workflows.
+- [Ingredients](../features/glossary.md) model native program files; cookbooks hold and ship ingredients and recipes
+  separately from the engine. Recipes can configure build, test or CI files when requested; those programs run their
+  own workflows.
 - Personal settings are not implicitly imported or changed. An explicitly declared target inside the destination
   uses the same review flow as any other target ([configuration](configuration-standards.md#where-files-live)).
-- Keeping native configuration means leaving it in place. Revert is an explicit operation
-  ([revert](../features/revert.md)).
-- The committed wrapper pins an engine version and matching platform-package checksums, downloads and verifies the
-  complete package on first use, and caches it locally. Upgrades are explicit. The package includes Java; cookbook
-  builds and recipe versions remain separate choices ([wrapper](../features/wrapper.md)).
+- Keeping native configuration means leaving it in place; reversal is the explicit revert operation (principle 5).
+- The committed wrapper pins the engine version; upgrades are explicit and separate from cookbook and recipe versions
+  ([wrapper](../features/wrapper.md)).
 
 ## 2. People judge; Cook presents the requested changes
 
@@ -38,8 +38,8 @@ People and coding agents choose trusted sources and review the proposed result. 
 composes their file operations and displays the actual diff. Why: showing what will change gives the reviewer concrete
 information rather than asking them to infer a result from configuration.
 
-- Evaluate apply recipes against current content on every invocation. History must not skip a recipe as
-  already applied. An unchanged result may have an empty diff.
+- Evaluate each supplied recipe against current content on every invocation. A batch record never marks a recipe as
+  already applied. An unchanged result has an empty diff.
 - Do not promise identical output across machines or a network-free evaluation: trusted Groovy recipes can read their
   environment and execute arbitrary code. Review source trust separately from the resulting batch.
 - Explain errors precisely enough for the caller to correct the request
@@ -47,7 +47,7 @@ information rather than asking them to infer a result from configuration.
 
 ## 3. Configure programs through files
 
-Cook is a recipe driven file-operation engine. It evaluates trusted Groovy recipes, obtains approval for an ordered
+Cook is a recipe driven configuration engine. It evaluates trusted Groovy recipes, obtains approval for an ordered
 batch, records the batch and ownership and performs declared writes. Why: program configuration can be reused without
 placing the program's execution under Cook's control.
 
@@ -57,37 +57,35 @@ the engine handles file operations. Executing external commands is not a batch a
 
 ## 4. Least surprise
 
-- Use the agreed [CLI grammar](cli-standards.md#command-grammar): apply is implicit or explicit; revert takes a recorded
-  batch ID; `batch list` and `batch inspect` read batch records. With no arguments, show help.
-- Recipe operands are paths inside the destination repository or `https://` URLs. Batch options precede operands; recipe
-  arguments follow their recipe as `--name=value`.
-- Compose recipes and operations left to right. When two recipes write the same target, the last one wins and becomes
-  its owner; the diff is the only notice. Show the combined final result as one batch diff, because approval covers that
-  combined result.
-- Applying B never removes output A owns. Applying a new version of A removes what A's previous version owned and the
-  new version no longer declares, and the diff shows that removal.
-- The invocation directory is the destination, including when the executable lives elsewhere. Relative recipe/template
-  source references resolve from the referencing recipe's location or URL, including after snapshotting; a local
-  reference outside the repository is refused ([path resolution](../architecture.md#destination-and-source-origins)).
+The same command line means the same thing wherever it runs. Why: a reader predicts the result from the invocation
+alone only when grammar, order and paths follow fixed rules.
+
+- Follow the agreed [CLI grammar](../features/cli.md): batch options precede operands, and recipe arguments follow
+  their recipe.
+- Compose recipes and operations left to right, last writer wins, and show the combined final result as one batch
+  diff, because approval covers that combined result
+  ([ordered composition](../architecture.md#ordered-composition-and-declared-targets)).
+- Applying B never removes output A owns.
+- The invocation directory is the destination, and relative source references resolve from the referencing recipe
+  ([path resolution](../architecture.md#destination-and-source-origins)).
 
 ## 5. Show changes, obtain approval and prepare recovery
 
-A repository contains people's work. Proposed replacements and deletions need visible scope and a way to recover.
+Proposed replacements and deletions need visible scope and a way to recover. Why: a repository contains people's work.
 
-- Display the final diff in the terminal before target writes. The CLI accepts the whole batch; choosing individual
-  changes belongs to a separate interface decision, and the core writes and records only accepted changes. Without
-  preapproval, ask before writing. `--batch-approve` displays the diff and proceeds
-  without prompting; noninteractive execution alone does not authorize writes.
-- Whole-file targets affect the declared file; structured targets preserve unrelated keys; marked sections preserve
-  text outside their `cook:begin <recipe>/<region>` and `cook:end <recipe>/<region>` markers. Use format-appropriate
+- Display the final diff in the terminal before target writes, and ask before writing unless `--batch-approve`
+  preapproves the whole batch; noninteractive execution alone does not authorize writes
+  ([batch approval](../architecture.md#batch-approval-and-failure-recovery)).
+- Whole-file targets affect the declared file; structured targets preserve unrelated keys; sections preserve text
+  outside their `cook:begin <recipe>#<region>` and `cook:end <recipe>#<region>` markers. Use format-appropriate
   comments, including HTML comments in Markdown.
 - Existing and edited content uses the same approval flow. Ownership never blocks a change, including a change to
   content a developer edited.
 - Save the batch record before the first target write. On write failure, roll back the changes already made by the
   batch and retain the record and failure. This covers declared operations, not arbitrary recipe effects.
-- Revert reverses only one recorded batch's changes against current content. Later non-overlapping edits survive; an
-  overlapping edit makes revert write nothing and list the conflicts. Discard is deferred. Revert shows the actual
-  diff ([operation semantics](../architecture.md#apply-discard-and-revert)).
+- Revert reverses one recorded batch's changes against current content and shows the actual diff. Later
+  non-overlapping edits survive; an overlapping edit makes revert write nothing and list the conflicts
+  ([operation semantics](../architecture.md#apply-discard-and-revert)).
 
 ## 6. One clear interface and vocabulary
 
@@ -95,8 +93,8 @@ Use the CLI as the public cooking interface. Gradle builds and packages Cook and
 learn operation and approval semantics.
 
 Use `revert` and `batch` as commands and `--batch-approve` as the preapproval spelling. The wrapper and a global
-installation expose the same grammar. Default apply and explicit apply have the same meaning ([entry
-points](cli-standards.md#entry-points)).
+installation expose the same grammar. Default apply and explicit apply have the same meaning
+([entry points](cli-standards.md#entry-points)).
 
 Native configuration lives where its program reads it. Source recipes and templates retain their origins; ownership
 lives in the committed `cook.lock`, and batch records live under the destination's ignored `.cook/batches/`. Use the
@@ -117,26 +115,23 @@ evaluation. A diff of native hook settings reviews the configuration, not the la
 Write conventions where people and native programs can find them, with the values that apply. Keep instructions
 concise and link to detail when useful. Native configuration without a Cook runtime dependency remains usable
 without Cook ([generated-content-standards.md](generated-content-standards.md#instruction-files-and-conventions)).
+Why: people and programs keep reading these files after Cook leaves the repository.
 
-Markers bound a declared section and name its owning recipe and region. Keeping configuration means leaving it in place.
-Revert reverses one recorded batch's changes and shows the actual diff for whole-batch approval
-([generated-content-standards.md](generated-content-standards.md#discard-and-revert)).
+Markers bound a declared section and name its owning recipe and region. Keeping configuration means leaving it in
+place; reversal follows principle 5
+([generated-content-standards.md](generated-content-standards.md#revert)).
 
 ## 9. Sources and effects are reviewable
 
 Cook accepts recipe paths inside the destination repository and `https://` URLs. Users supply the recipe versions
-they intend to apply; the committed `cook.lock` records each recipe's short name, source and sha256 with the sections,
-keys and files it owns. A repository commit alone does not determine the effects of trusted recipe code.
+they intend to apply, and the committed `cook.lock` records which source and sha256 produced the current ownership
+([the lock](../architecture.md#ownership-and-the-lock)). A repository commit alone does not determine the effects of
+trusted recipe code. Why: a reviewer can trust or question only a source they can identify.
 
-Record each batch in the destination's ignored `.cook/batches/<batchId>/`, where the batch ID is the UTC start time.
-Capture the recipe sources actually evaluated, all consumed local and downloaded recipe/template sources, origins,
-arguments, execution order and result or failure. Save one reversible patch per touched file for its combined change;
-the same patch is used for forward and reverse application
-([local history](configuration-standards.md#local-history-and-explicit-reversal)).
-
-Apply needs neither batch history nor `cook.lock`. Without `.cook/`, earlier batches cannot be reverted, but
-cooking still works and ownership survives in `cook.lock`. Reverting a batch requires its record. Patch representations,
-metadata schemas and history management belong to the implementation.
+Each batch keeps one record of the sources it evaluated and consumed, with their origins, arguments and order, and one
+reversible patch per touched file ([batch record](../architecture.md#one-record-for-the-batch)). Apply needs neither
+batch records nor `cook.lock`; reverting a batch requires its record
+([history availability](../architecture.md#batch-record-availability)).
 
 ## When principles conflict
 
@@ -144,7 +139,7 @@ Follow the architecture's operation and trust boundaries. Within them, protect r
 and make the affected scope explicit. Ownership never blocks a change.
 
 For example, a batch changed a key from `old` to `new`, and a person then edited it to `custom`. Applying the recipe
-again proposes `custom` to `new` in the diff. Reverting that batch writes nothing and lists the key as a conflict,
-because the edit overlaps the batch's change; once the person resolves it, revert proposes the actual diff for approval,
-preserving unrelated keys. A shared remote recipe also requires source trust; batch approval cannot authorize or reverse
-every effect its code might cause.
+again proposes `custom` to `new` in the diff. Reverting that batch writes nothing and lists the key as a conflict
+(principle 5); once the person resolves it, revert proposes the actual diff for approval, preserving unrelated keys. A
+shared remote recipe also requires source trust; batch approval cannot authorize or reverse every effect its code might
+cause.

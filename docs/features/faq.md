@@ -9,16 +9,27 @@ coexist, and how to remove or reverse changes without reading every reference pa
 
 ## Overview
 
-These answers describe the [intended architecture](../architecture.md). For today's build and usage instructions, read
-[installation](installation.md), the [root README](../../README.md) and the cookbook's usage guides.
+These answers describe the [intended architecture](../architecture.md); the [glossary](glossary.md) defines its terms.
+For today's build and usage instructions, read [installation](installation.md), the [root README](../../README.md) and
+the cookbook's usage guides.
+
+Questions are grouped under [general](#general), [files and operations](#files-and-operations),
+[permissions and program behavior](#permissions-and-program-behavior) and [versions and updates](#versions-and-updates).
 
 ## General
 
+### What is `cook`?
+
+The intended `./cook` wrapper is a committed executable that pins an engine version and matching package checksums,
+verifies its first-use download and caches the complete package. The repository's current
+[`cook` script](../../cook) is a development launcher. See
+[the current launcher](wrapper.md#current-repository-launcher).
+
 ### Does `the-cook` call a model or host coding agents?
 
-The engine evaluates trusted Groovy recipes into an ordered batch of file operations. It does not host agents, launch
-workers or supervise sessions. Recipes can configure agents through native files. Arbitrary recipe code can still
-cause side effects outside the batch; approval is not a sandbox. See [engine boundaries](lifecycle.md).
+No. The engine evaluates trusted Groovy recipes into an ordered batch of file operations. Recipes can configure agents
+through native files. Arbitrary recipe code can still cause side effects outside the batch; approval is not a sandbox.
+See [engine boundaries](lifecycle.md).
 
 ### Is `the-cook` a coding-agent tool?
 
@@ -34,17 +45,9 @@ are separate choices. See [program permissions](policy.md).
 
 ### Do my teammates need to install it?
 
-Programs read committed native configuration directly. Teammates who invoke Cook need the engine. The wrapper
-design obtains a pinned platform-specific jpackage package containing Java on first use and caches it, so package users
-need no separate Java installation. That is the target delivery flow; the current repository launcher uses a local
-development build. See [installation](installation.md) and [wrapper](wrapper.md).
-
-### What is `cook`?
-
-The intended `./cook` wrapper is a committed executable that pins an engine version and matching package checksums,
-verifies its first-use download and caches the complete package. The repository's current
-[`cook` script](../../cook) is a development launcher. See
-[the current launcher](wrapper.md#current-repository-launcher).
+Programs read committed native configuration directly. Teammates who invoke Cook need the engine, which the intended
+[wrapper](wrapper.md) obtains as a pinned package with Java included; the current repository launcher uses a local
+development build. See [installation](installation.md).
 
 ### Do I have to invoke guideline skills by hand in every session?
 
@@ -54,46 +57,42 @@ discovery settings; the agent decides how and when to load and follow them. See 
 
 ### Do I need a global install?
 
-No. The target wrapper obtains its pinned package. Today's local packaging entry path is in
+No. The intended wrapper obtains its pinned package. Today's local packaging entry path is in
 [installation](installation.md).
 
 ### Does CI need it?
 
 CI consumes committed native files directly. A recipe can change CI or build configuration, so review that behavior
-in the diff. A job that invokes Cook follows ordinary whole-batch approval: `--batch-approve` displays the diff and
-proceeds without prompting; noninteractive execution without it does not authorize writes. See
+in the diff. A job that invokes Cook follows ordinary whole-batch approval, and noninteractive execution without
+[`--batch-approve`](cli.md#batch-options-and-approval) does not authorize writes. See
 [compatibility](compatibility.md#cicd).
 
 ### Does it work offline?
 
 Later invocations reuse the cached complete engine package. Recipes, templates and any dependencies they consume must
-also be available; remote sources or arbitrary recipe code may need network access. History snapshots are recovery
-records. See [air-gapped machines](wrapper.md#air-gapped-machines) and
-[source resolution](apply.md#destination-and-source-paths).
+also be available; remote sources or arbitrary recipe code may need network access. See [air-gapped
+machines](wrapper.md#air-gapped-machines) and [source resolution](apply.md#destination-and-source-paths).
 
-### Which coding agents and other workers are supported?
+### Which coding agents and other programs are supported?
 
 Consult the cookbook for the programs, native formats and versions its ingredients model. Cook configures a program
 through its native files; the program enforces its own permissions. See
 [supported program versions](compatibility.md#supported-program-versions).
 
-### Where do ingredients, stations and recipes come from?
+### Where do ingredients and recipes come from?
 
 Cookbook repositories hold and ship ingredients and trusted Groovy recipes; recipes may also be local repository files.
-Cookbook builds can be separate from engine builds. Ingredients are program data models, while station roles,
-recipe/ingredient APIs, nesting and hooks require a separate discussion. See
-[composition boundaries and cookbooks](cookbooks.md).
+Cookbook builds can be separate from engine builds. Ingredients are program data models. See [cookbooks](cookbooks.md).
 
 ### Can a repository have several recipes?
 
-Yes. Supply paths inside the repository or `https://` URLs. Multiple recipes compose left to right; when two recipes
-write the same section, key or file, the last one wins and becomes its owner. One combined diff shows the final result
-and is the only notice. Recipe arguments follow their recipe as `--name=value`. See [CLI reference](cli.md).
+Yes. Supply paths inside the repository or `https://` URLs, each followed by its arguments; the recipes compose left
+to right into one combined diff. See the [CLI reference](cli.md) and [ordered operations](apply.md#ordered-operations).
 
 ### Is monitoring a recipe?
 
-A recipe can configure monitoring through declared files. Running a monitor, responding to alerts and launching agents
-are external activities. See [workflow configuration](lifecycle.md).
+A recipe can configure monitoring through declared files. Running a monitor and responding to alerts are external
+activities. See [workflow configuration](lifecycle.md).
 
 ### Does Cook manage recipe versions for me?
 
@@ -101,7 +100,7 @@ No. Users supply the recipe version to apply. The committed `cook.lock` records 
 source and sha256, and each batch record keeps the evaluated and consumed sources, origins and arguments. Engine
 wrapper pinning is separate. See [recipes](recipes.md) and [wrapper upgrades](wrapper.md#upgrading).
 
-### Can I use my own version control system or worker?
+### Can I use my own version control system or coding agent?
 
 Yes. A cookbook can provide models for its native configuration. See [ingredients](ingredients.md) and
 [compatibility](compatibility.md).
@@ -134,9 +133,9 @@ Windows support. See
 
 ### Why are there both `.cook/` and `.agents/`?
 
-Ignored destination-local `.cook/` holds batch records, source snapshots and reverse patches. `.agents/` is a useful
-shared-content convention for agent instructions and skills where programs support it. See
-[local history](../architecture.md#one-record-for-the-batch) and [skills](skills.md).
+Ignored destination-local `.cook/` holds the batch records, with their source snapshots and reverse patches.
+`.agents/` is a useful shared-content convention for agent instructions and skills where programs support it. See
+[batch record](../architecture.md#one-record-for-the-batch) and [skills](skills.md).
 
 ### Can I edit a program's native settings by hand?
 
@@ -144,11 +143,11 @@ Yes. A later apply proposes its declared changes against the current content, in
 actual diff. Key and section targets preserve unrelated content; whole-file targets affect the whole file. Ownership
 never blocks a change. See [apply](apply.md).
 
-### I edited inside a marked block. Will my text disappear?
+### I edited inside a marked section. Will my text disappear?
 
 A recipe targeting that section may propose replacing your edit. Markers name the owning recipe and region; they do
 not protect the section from changes. Review the diff before approving; use narrower declarations or change the
-recipe if the proposed result is wrong. See [marked blocks](apply.md#managed-blocks).
+recipe if the proposed result is wrong. See [sections and markers](apply.md#sections-and-markers).
 
 ### Why commit native configuration?
 
@@ -158,29 +157,25 @@ belongs in version control or remains personal is a repository choice. `cook.loc
 
 ### Does applying another recipe remove earlier outputs?
 
-No. Applying B never removes output that A owns; if B writes a target A wrote, B wins and becomes its owner, and the
-diff shows it. Applying a new version of A removes what A's previous version owned and the new version no longer
-declares. Every apply invocation evaluates supplied recipes against current content; history never skips a recipe as
-already applied, though the result can be an empty diff. See [ordered operations](apply.md#ordered-operations).
+No. Applying B never removes output that A owns. Applying a new version of A removes what A's previous version
+owned and the new version no longer declares. See [ordered operations](apply.md#ordered-operations).
 
 ### How do I stop using it?
 
 You can stop invoking Cook and keep the native files. To undo a recipe's output, revert the batches that applied it;
-discard is deferred. See [discard and revert](revert.md).
+discard is deferred. See [revert](revert.md).
 
 ### Does discard restore what was there before?
 
-Discard is deferred; when available, it removes what `cook.lock` lists for a recipe without restoring earlier values.
-Revert restores the content from before a batch by applying its reverse patches. If an apply batch changed `test` from
-`old` to `new`, reverting that batch proposes `new` to `old` and keeps later edits to other keys. If you have since
-changed `test` itself, the revert writes nothing and names the conflicting file and key. See
-[the comparison](revert.md#discard-and-revert-compared).
+No. Discard, which is deferred, removes what `cook.lock` lists for a recipe without restoring earlier values. Revert
+restores the content from before a batch by using its reverse patches; see the [revert
+example](revert.md#revert-example) and [discard](revert.md#discard).
 
 ### Can I cook after losing `.cook/`?
 
-Yes. Apply requires neither batch history nor `cook.lock`, and ownership survives in the committed `cook.lock`.
-Without `.cook/`, earlier batches cannot be reverted, because reverting a batch requires its record. New batches still
-save their records before target writes. See [history availability](../architecture.md#history-availability).
+Yes. Apply requires neither batch records nor `cook.lock`, and ownership survives in the committed `cook.lock`;
+earlier batches cannot be reverted, because reverting a batch requires its record. See
+[history availability](../architecture.md#batch-record-availability).
 
 ## Permissions and program behavior
 
@@ -220,7 +215,8 @@ and unrelated content. Existing or edited files use ordinary whole-batch approva
 ### How do I let coding agents use a read-only MCP tool without a prompt?
 
 Use each program's supported native permission settings, check what the rule matches and confirm enforcement in the
-intended mode. A rule that works in one agent is not guaranteed to work in another. See [program permissions](policy.md).
+intended mode. A rule that works in one agent is not guaranteed to work in another. See [program
+permissions](policy.md).
 
 ### Can it configure notifications when an agent needs me?
 
@@ -236,25 +232,22 @@ recipe code is executable and can cause arbitrary side effects, so this boundary
 
 ### Does Cook verify an agent's work or enforce an unattended launch?
 
-No. Native agent settings, task runners and CI have their own enforcement and check behavior. Cook's batch history is
-recovery information.
+No. Native agent settings, task runners and CI have their own enforcement and check behavior.
 
 ## Versions and updates
 
 ### Should we pin the engine version per repository?
 
-The wrapper design commits an engine version and matching platform-package checksums. Cached packages serve that pin;
-ordinary invocations do not select the newest release. The repository's current `cook` script is a development
-launcher; see [wrapper](wrapper.md).
+Yes. The intended wrapper commits an engine version and matching platform-package checksums; see
+[one pin](wrapper.md#one-pin). The repository's current `cook` script is a development launcher.
 
 ### How do I upgrade?
 
-Explicitly change the committed engine version and matching package checksums together and review the change.
-Cookbook sources and recipe versions are separate: users supply the recipe version they intend to apply. See
-[upgrading](wrapper.md#upgrading).
+Change the committed engine version and matching package checksums together in one reviewed change; recipe versions
+are separate. See [upgrading](wrapper.md#upgrading).
 
 ### Is it safe to run a package that a committed script downloads?
 
-Review the executable wrapper, engine version and checksums. The design verifies a package against the committed
-checksum before execution. A checksum detects a mismatch; it does not by itself authenticate a publisher. Recipe trust
-is a separate decision. See [wrapper security](wrapper.md#security).
+Review the executable wrapper, engine version and checksums; the wrapper verifies the package against the committed
+checksum before execution, which detects a mismatch without authenticating a publisher. See
+[wrapper security](wrapper.md#security).

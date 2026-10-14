@@ -4,7 +4,8 @@
 
 **Problem.** Repositories upgrade at different times. Changes to command grammar or native configuration can break
 scripts and programs, while broad replacements can erase settings maintained by teammates or other tools. Pinning an
-engine release alone does not control cookbook sources or the effects of executable recipes.
+engine release alone does not control [cookbook](../features/glossary.md) sources or the effects of executable
+recipes.
 
 **Goal.** Users can review compatibility changes deliberately, preserve unrelated content, and distinguish engine
 versions, cookbook sources and native program behavior.
@@ -21,17 +22,15 @@ Keep these version choices distinct, because changing one does not automatically
 
 | Artifact | Version responsibility | What to review |
 | --- | --- | --- |
-| Cook engine and CLI | The repository chooses an engine release through the committed wrapper's version and matching platform-package checksums | Command grammar, operation behavior and the explicit pin change |
-| Ingredients and cookbooks | Cookbook authors maintain program data models and recipes through their repositories and builds | Source changes and the native program versions and formats they cover |
-| Supplied recipes | Users manage versions and supply the version they intend to apply; the committed `cook.lock` records the source and sha256 that produced each recipe's current ownership | The exact source, its consumed recipe/template dependencies and the `cook.lock` change |
-| Native files and marked sections | The consuming program defines its format and semantics | Actual file changes, key paths, section boundaries and program defaults |
-| Local batch records | Cook records each batch under the destination's ignored `.cook/batches/<batchId>/` | The recorded batch, captured sources and reversible patches |
+| Cook engine and CLI | The committed wrapper pins an engine version and matching platform-package checksums | Command grammar, operation behavior and the pin change |
+| Ingredients and cookbooks | Cookbook authors maintain program models and recipes in their repositories and builds | Source changes and the native program versions and formats they cover |
+| Supplied recipes | Users supply the recipe version they intend to apply | The exact source and its consumed recipe/template dependencies |
+| `cook.lock` | Cook records the source and sha256 that produced each recipe's current ownership | The `cook.lock` change |
+| Native files and sections | The consuming program defines its format and semantics | Actual file changes, key paths, section boundaries and program defaults |
+| Batch records | Cook records each batch under the destination's ignored `.cook/batches/<batchId>/` | The recorded batch, captured sources and reversible patches |
 
-The wrapper pin controls the engine package, not recipe versions. Cook does not merge recipe upgrades or reapply setup
-when the engine pin changes.
-
-Concrete patch representations, metadata serialization and storage schemas belong to the implementation. See
-[configuration formats](configuration-standards.md#defaults-and-format-changes).
+Changing the engine pin leaves recipe versions and project files as they are; see
+[upgrading](../features/wrapper.md#upgrading).
 
 ## What counts as breaking
 
@@ -46,29 +45,24 @@ own pace.
 | Approval | Suppressing the actual diff, accepting noninteractive execution as authorization, or changing whole-batch approval into partial selection |
 | Ordered operations | Reordering recipes, rejecting intentional overlap, skipping repeated evaluation, or removing output another recipe owns |
 | Native output | Changing a program's effective settings, replacing a broader target, losing unrelated keys or comments, or changing marker syntax |
-| Ownership | Changing a recipe's short name, which changes its marker IDs and `cook.lock` entry |
+| Ownership | Changing a recipe's short name, which changes its markers and `cook.lock` entry |
 | Paths | Changing the invocation-directory destination or rebasing relative source references onto captured snapshots |
 | Recovery | Changing recorded information in a way that prevents reversal of a retained batch or misstates its changes |
 | Distribution | Changing package/runtime requirements, checksum verification or explicit pinning behavior |
 | Skill guidance | Teaching commands or prerequisites unavailable in the version the guidance describes |
 
-The target command set is implicit or explicit apply, revert, `batch list` and `batch inspect`; discard is deferred.
-Existing or edited content uses the same actual diff and whole-batch approval flow.
+The [command set](cli-standards.md#command-set) lists the commands this table protects.
 
-### Output across releases and sources
+## Output across releases and sources
 
 Changing an engine version, cookbook source, recipe argument or consuming program can affect the requested setup.
 Review the actual batch diff against current content. Trusted executable recipes do not carry a universal guarantee
 of identical output across machines or releases, or of network-free evaluation.
 
-Every apply invocation evaluates the supplied recipes, even after an identical earlier invocation. An
-unchanged result may produce an empty diff. An engine upgrade does not automatically refresh native files or skill
-content. Users decide when to invoke the supplied sources, and later recipes can intentionally replace earlier values.
-
-For example, recipe A creates `notes.txt` and sets a key; recipe B sets the same key. Applying A then B previews B's
-final value in one combined diff, and B becomes the key's owner; the diff is the only notice. Applying B alone later
-leaves A's `notes.txt` intact. Applying a new version of A removes what A's previous version owned and the new version
-no longer declares, and the diff shows that removal.
+An engine upgrade leaves native files and skill content as they are until users invoke the supplied sources. Later
+recipes can intentionally replace earlier values;
+[ordered composition](../architecture.md#ordered-composition-and-declared-targets) shows how, and what applying a new
+recipe version removes.
 
 ## Supported programs and tools
 
@@ -90,37 +84,31 @@ A recipe may explicitly change build, test, deploy or CI files, so review those 
 setup leaves behavior unchanged. Teams choose whether CI invokes Cook and which sources and dependencies must be
 available to that job.
 
-CI uses the ordinary approval contract. `--batch-approve` precedes operands, displays the final terminal diff and
-proceeds without prompting. Noninteractive execution without it does not authorize target writes. See
-[CLI approval](../features/cli.md#batch-options-and-approval).
+CI uses the ordinary [approval contract](../features/cli.md#batch-options-and-approval): noninteractive execution
+without `--batch-approve` does not authorize target writes.
 
-Stopping Cook invocations leaves native content in place. Revert reverses only one recorded batch's changes and shows
-the actual diff for whole-batch approval, preserving later edits that do not overlap them. Discarding a recipe's whole
-contribution is deferred.
-
-If a batch changed `test` from `old` to `new` and a person then changed an unrelated `other` key, reverting that batch
-proposes `new` to `old` and keeps `other`. Had the person changed `test`, the revert would write nothing and list the
-conflict. Revert does not reverse external activity by configured programs. See [revert](../features/revert.md).
+Stopping Cook invocations leaves native content in place. [Revert](../features/revert.md) reverses one recorded batch's
+changes and keeps later non-overlapping edits; it does not reverse external activity by configured programs.
 
 ## Coexistence
 
 Choose declared targets deliberately, because native files can contain settings maintained by several sources.
-Whole-file operations affect the whole file; key and section operations preserve unrelated content. Markers bound a
-section and name its owner, `cook:begin <recipe>/<region>` and `cook:end <recipe>/<region>`; ownership never blocks a
-change. Use native comment syntax, including HTML comments in Markdown.
+Whole-file operations affect the whole file; key and section operations preserve unrelated content.
+[Markers](generated-content-standards.md#sections-and-markers) bound each section and name its owning recipe and
+region; ownership never blocks a change.
 
 | Already present | Intended interaction |
 | --- | --- |
 | Hand-written settings or instruction text | Propose declared changes against current content; preserve unrelated keys or text outside declared sections |
 | Other tools' ignore entries and marked sections | Preserve entries outside the declared targets; review overlapping native semantics and contradictory instructions |
-| Skills, memory, command folders and installer lock files | Change only supplied declarations; choose a maintenance process that avoids competing updates |
+| Skills, memory, command folders and installer lock files | Change only supplied declarations; maintain each through one process, because competing updates can overwrite each other |
 | Real directories, per-entry links or whole-directory symlinks | Review the existing shape and declared scope; resolved batch targets must remain within the destination |
 | Native agent skill discovery | The agent decides what it loads and follows ([skills guidance](skills-standards.md#discovery-and-session-guidance)) |
 | Local, user or managed program settings | Do not implicitly import them; choose shared versus personal content explicitly, with batch writes confined to the destination |
 | Task-runner, build and CI files | Recipes may target native configuration; those programs execute their own tasks independently |
 | Trackers, loop runners and working-copy tools | Recipes may configure them; those tools select tasks, update issue state, launch sessions and clean working copies |
 | Pushes, pull requests, notifications and MCP services | External tools and people perform these activities |
-| Another program's data in `.cook/` or `cook.lock` | Account for it before using these paths |
+| Another program's data in `.cook/` or `cook.lock` | Move it elsewhere first, because Cook writes batch records to `.cook/` and ownership to `cook.lock` |
 | Executables on `PATH` or a global Cook install | The wrapper design runs its pinned cached package; use explicit paths when selecting another executable |
 
 Approval, output boundaries and rollback cover declared batch operations, not arbitrary side effects of trusted Groovy
@@ -128,35 +116,21 @@ recipe code. Trust sources before evaluating them; the resulting diff is not a s
 
 ## Paths and recovery
 
-The invocation's current working directory is the destination, regardless of executable or recipe location. Declared
-writes and deletions stay inside it, including resolution through symlinks. Recipes come from paths inside the
-destination repository or `https://` URLs. Relative source references resolve from the referencing recipe's location
-or HTTPS URL; capturing a snapshot must not change that base, and a local reference outside the repository is refused.
+Destination and source resolution follow
+[destination and source origins](../architecture.md#destination-and-source-origins). Capturing a source snapshot must
+not change the base for relative references, because a rebased reference would resolve a different source.
 
-Save the batch record before the first target write. It lives in the ignored `.cook/batches/<batchId>/`, where the
-batch ID is the UTC start time, and keeps one reversible patch per touched file for the combined change, `cook.lock`
-included. Capture evaluated recipes, all consumed local and downloaded recipe/template sources, their origins,
-arguments, order and result or failure log. On write failure, roll back changes already made by the batch and retain
-the record and failure.
-
-Apply needs neither batch history nor `cook.lock`. Losing `.cook/` loses the ability to revert earlier batches, not the
-ability to cook; ownership survives in the committed `cook.lock`. Reverting a batch requires its record. The patch
-format and metadata schema belong to the implementation. See
-[paths and history](../architecture.md#paths-source-snapshots-and-local-history).
+Each batch keeps [one record](../architecture.md#one-record-for-the-batch), saved before the first target write.
+Reverting a batch requires its record, so losing `.cook/` makes earlier batches irreversible while apply keeps working
+and ownership survives in `cook.lock` ([history availability](../architecture.md#batch-record-availability)).
 
 ## Installation and version pinning
 
-Cook uses platform-specific JVM packages built with `jpackage`, including Java. Distribute the complete package,
-not a standalone launcher; package users do not install Java separately.
+Cook ships as platform-specific `jpackage` packages that include Java. Distribute the complete package, because a copied
+launcher cannot find its runtime ([wrapper troubleshooting](../features/wrapper.md#troubleshooting)).
 
-The committed `./cook` wrapper design pins an engine version and matching package checksums. First use downloads the
-pinned platform package, verifies its checksum before execution and caches the complete package locally. Later
-invocations reuse that version. Upgrades are explicit reviewed changes to the version and matching checksums;
-ordinary invocation does not choose a newer release or automatically reapply recipes.
-
-A matching checksum establishes correspondence with the committed package choice. It does not by itself prove publisher
-identity or source safety. Review the source of the pin and checksums. See
-[release trust reasoning](../adrs/0021-release-trust.md).
-
-See [installation](../features/installation.md) and [wrapper](../features/wrapper.md) for the design and current local
-entry path.
+The committed `./cook` [wrapper](../features/wrapper.md) pins an engine version and matching package checksums.
+Upgrades are explicit reviewed changes to both; ordinary invocation does not choose a newer release or reapply
+recipes. A matching checksum establishes correspondence with the committed package choice, not publisher identity, so
+review the source of the pin and checksums ([release trust reasoning](../adrs/0021-release-trust.md)). See
+[installation](../features/installation.md) for the current local entry path.

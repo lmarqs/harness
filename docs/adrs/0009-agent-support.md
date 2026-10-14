@@ -10,7 +10,8 @@ several agents duplicates work, and a change made for one can be missed for anot
 ## Context
 
 - The [architecture](../architecture.md#ingredients-recipes-and-cookbooks) assigns native program files and
-  configuration to ingredients, held and shipped with trusted Groovy recipes by cookbook repositories.
+  configuration to [ingredients](../features/glossary.md), held and shipped with trusted Groovy recipes by cookbook
+  repositories.
 - Worked example: `acme/api` configures two agents to permit its test command. A teammate changes the command in one
   native file and forgets the other. Shared recipe inputs can carry that choice to both program models.
 - A permission rule, hook setting, instruction file or skill can have a different representation in each program.
@@ -21,16 +22,14 @@ several agents duplicates work, and a change made for one can be missed for anot
 
 ## Decision
 
-1. Ingredients model each agent's native files and configuration. Cookbooks maintain and distribute those models
-   independently of the engine's file-operation mechanics.
+1. Each agent's native files and configuration have their own ingredient, as for any program
+   ([0022](0022-tool-integration.md)), maintained and distributed by cookbooks independently of the engine.
 2. Recipes can reuse choices across program models, but their declared native output is the subject of review.
    Agent-specific settings remain expressible through the relevant native model.
-3. Agent configuration uses the ordered operations and preservation rules of [0007](0007-ownership.md) and
-   [0008](0008-native-configuration.md). Later operations may replace earlier values at overlapping targets; unrelated
-   content remains intact. One terminal diff shows the combined result for whole-batch approval.
-4. Cook does not launch agent sessions or enforce permission floors or network restrictions. Recipes may declare
-   native settings for those programs; Cook's approval, destination boundaries and recovery govern declared batch
-   operations, as explained in [0011](0011-safety-invariants.md).
+3. Agent configuration follows the ordered composition of [0007](0007-ownership.md) and the preservation rules of
+   [0008](0008-native-configuration.md).
+4. Each agent enforces the permission and network settings a recipe declares for it; Cook writes those settings as
+   declared batch operations, within the trust limits of [0011](0011-safety-invariants.md).
 
 ## Reasons
 
@@ -42,8 +41,9 @@ several agents duplicates work, and a change made for one can be missed for anot
 - **3.** Agent settings share files with existing content. Targeted operations preserve that content, while ordered
   overlap permits deliberate overrides. A reviewer must inspect the final result rather than assume an earlier value
   survives composition.
-- **4.** Session supervision is outside the agreed engine scope. Configuring another program's controls cannot make
-  trusted executable recipes safe to run; recipe trust and approval of declared output are separate decisions.
+- **4.** Running and supervising an agent belong to the agent and its users ([0001](0001-role-of-the-tool.md)).
+  Configuring another program's controls cannot make trusted executable recipes safe to run; recipe trust and
+  approval of declared output are separate decisions.
 
 ## Rejected alternatives
 
@@ -52,10 +52,11 @@ several agents duplicates work, and a change made for one can be missed for anot
 At its best, each program's full native format is directly available. It loses reusable configuration choices and
 requires the repeated edits illustrated in Context. Native-specific choices remain available in program models.
 
-### Require one worker-neutral policy and launch contract
+### Require one agent-neutral policy and launch contract
 
-At its best, one declaration promises the same behavior everywhere. It requires translation and supervision
-contracts beyond the agreed file-operation engine, and hides differences when a program lacks an equivalent setting.
+At its best, one declaration, written once for every agent, promises the same behavior everywhere. It loses because
+it requires translation and supervision contracts beyond the file-operation engine, and hides differences when a
+program lacks an equivalent setting.
 
 ## Consequences
 
@@ -71,9 +72,9 @@ Must be maintained:
 
 ## Confirmation
 
-- Review an example configuring two agents from shared recipe inputs: each native output is visible in the combined
-  diff, with any program-specific choices explicit.
-- Review overlapping agent-setting operations: the later declared value appears in the final diff and unrelated
-  settings remain intact.
-- Review agent-support documentation for claims of launch supervision, mandatory permission floors or finalized model
-  APIs; none follows from native-file configuration.
+- In an example configuring two agents from shared recipe inputs, does the combined diff show each agent's native
+  output, with any program-specific choices explicit?
+- With overlapping agent-setting operations, does the later declared value appear in the final diff while unrelated
+  settings remain intact?
+- Does agent-support documentation describe Cook as writing native settings, and leave starting, supervising and
+  enforcing permissions to the agent?

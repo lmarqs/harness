@@ -6,7 +6,7 @@
 Silently losing a deny can broaden access; silently losing an allow can interrupt work.
 
 **Goal.** Developers can see which existing permission rules a requested change retains, replaces or deletes before
-approving it, without converting their configuration through a separate adoption process.
+approving it, without first converting their configuration through a separate import step.
 
 ## Context
 
@@ -21,21 +21,22 @@ approving it, without converting their configuration through a separate adoption
 
 ## Decision
 
-1. Permission settings are native program configuration modeled by ingredients ([0009](0009-agent-support.md)).
-   Requested changes use declared file, key or section targets and preserve unrelated content, including rules and
-   settings the recipe does not address. Targeted edits preserve unrelated keys, entries, unknown fields, formatting,
-   order and comments. Declaring an entire permission-list key or whole file makes replacement of that scope visible
-   in the diff; it does not promise to retain every rule inside it.
-2. Existing and edited settings receive the normal combined terminal diff and whole-batch approval. There is no
-   mandatory import, equivalence gate, `--adopt` flag or alias. Cook does not silently drop rules to enforce a built-in
-   safety floor, nor prescribe a universal cross-program rule grammar or precedence.
+1. Permission settings are native program configuration modeled by [ingredients](../features/glossary.md)
+   ([0009](0009-agent-support.md)). Requested changes use declared file, key or section targets and preserve unrelated
+   content, including rules and settings the recipe does not address. Targeted edits preserve unrelated keys, entries,
+   unknown fields, formatting, order and comments. Declaring an entire permission-list key or whole file makes
+   replacement of that scope visible in the diff; it does not promise to retain every rule inside it.
+2. Existing and edited settings receive the normal combined terminal diff and whole-batch approval. Cook requires no
+   import of existing rules and no proof that new rules are equivalent before a change, and has no `--adopt` flag or
+   alias. Cook does not silently drop rules to enforce a built-in minimum permission set, nor prescribe a universal
+   cross-program rule grammar or precedence.
 3. Personal settings are not implicitly imported into shared configuration. A recipe that explicitly copies choices
    into a declared destination file exposes that output in the same batch review. Recipe and template references
    come from inside the destination repository or from `https://` URLs; declared writes and deletions remain within
    the destination ([0012](0012-write-boundary.md)).
 4. The permission rules and keys a recipe writes are recorded as its own in the committed `cook.lock`
    ([0007](0007-ownership.md)). That ownership decides which rules the recipe's later versions update and remove; it
-   never vetoes a change to an edited rule and implies no adoption of rules the recipe did not write. Reverting a batch
+   never vetoes a change to an edited rule and never extends to rules the recipe did not write. Reverting a batch
    restores its prior values from reverse patches against current content, preserving unrelated content; a later edit
    that overlaps the batch's changes makes the revert write nothing and list the conflict.
 
@@ -44,23 +45,24 @@ approving it, without converting their configuration through a separate adoption
 - **1.** The example contains native rules outside a common command subset. Preserving unrelated targets avoids
   incidental loss without requiring a neutral language to express every program feature. Broad target declarations
   still require the reviewer to assess every removed rule within that scope.
-- **2.** The actual diff exposes additions, replacements and deletions for the requested operation. An equivalence
-  gate would introduce a separate adoption contract and refuse deliberate permission changes. Native output review
-  does not prove equivalent effective access across programs or across settings outside the batch.
+- **2.** The actual diff exposes additions, replacements and deletions for the requested operation. Requiring proof of
+  equivalence before writing would introduce a separate import contract and refuse deliberate permission changes. Native
+  output review does not prove equivalent effective access across programs or across settings outside the batch.
 - **3.** Personal settings carry choices a team may not share. Making the destination change explicit lets a reviewer
   decide whether to share them. Cook does not discover or publish those choices automatically.
 - **4.** A recipe's later version can stop declaring a permission rule; without a record of what it wrote, that rule
   would linger with no recipe responsible for it. Recording only what the recipe wrote leaves the example's domain and
-  secret-file rules outside its ownership, so no recipe version removes them. Reverting with reverse patches restores
-  the batch's own values without reevaluating the recipe, and refusing on overlap keeps a later manual rule change from
-  being overwritten. The trade is that a removed rule is visible only in the diff, so reviewers must read deletions.
+  secret-file rules outside its ownership, so no recipe version removes them. The trade is that a removed rule is
+  visible only in the diff, so reviewers must read deletions.
+  - Reverting with reverse patches restores the batch's own values without reevaluating the recipe, and refusing on
+    overlap keeps a later manual rule change from being overwritten.
 
 ## Rejected alternatives
 
 ### Import every existing rule and require equivalent permissions
 
-At its best, adoption promises to preserve the effective rule set. It requires scope discovery, provenance and
-cross-program equivalence machinery beyond the agreed operation contract, and blocks intentionally changed rules.
+At its best, importing every rule promises to preserve the effective rule set. It requires scope discovery, provenance
+and cross-program equivalence machinery beyond the agreed operation contract, and blocks intentionally changed rules.
 
 ### Replace native permission keys from a common subset without review
 
@@ -95,4 +97,4 @@ Must be maintained:
   domain and secret-file rules.
 - Review a key changed from `old` to `new` by a batch, then edited elsewhere in the file: reverting the batch proposes
   `new` to `old` and keeps the other edit. If the key itself was edited to `custom`, the revert writes nothing and
-  names the key. Neither case uses an adoption or drift gate.
+  names the key. Neither case requires importing existing rules first.

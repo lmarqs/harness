@@ -11,10 +11,11 @@ keeping their preferred programs and control over how they work.
 
 ## Context
 
-- The [architecture](../architecture.md#scope-and-responsibilities) assigns Cook recipe evaluation, batch review, recovery and
-  file writes. Ingredients model native program files; cookbooks hold and ship those models and recipes.
-- Programs consume their own native configuration. Configuring a coding agent, editor or loop runner does not require
-  Cook to run it or to control its workflow.
+- The [architecture](../architecture.md#scope-and-responsibilities) assigns Cook the evaluation of
+  [recipes](../features/glossary.md), batch review, the batch record and file writes. Ingredients model native program
+  files; cookbooks hold and ship those models and recipes.
+- Programs consume their own native configuration. Configuring a coding agent or editor does not require Cook to run
+  it or to control its workflow.
 - Worked example: acme shares agent settings between `acme/api` and `acme/web`. Each team wants to review the settings
   against its repository's current files, but neither team needs to change the agent it uses or the stages of its work.
 - Recipe authors supply trusted executable Groovy code. Evaluation can have effects beyond the file operations it
@@ -23,22 +24,21 @@ keeping their preferred programs and control over how they work.
 ## Decision
 
 1. Cook evaluates trusted Groovy recipes into an ordered batch of file operations, presents the combined diff,
-   obtains whole-batch approval, records recovery information and performs the declared writes.
+   obtains whole-batch approval, records the batch and performs the declared writes.
 2. Ingredients model a program's native files and configuration. Cookbook repositories hold and ship ingredients and
-   recipes, with builds that can be separate from the engine build. Cook's role remains file operations across programs.
-3. Cook is neither a coding agent nor a fixed software development lifecycle. Model reasoning, provider credentials,
-   worker execution and session orchestration are outside the engine responsibilities defined here. External command
-   execution is not a batch action.
-4. Declared writes and deletions stay within the invocation directory, including paths resolved through symlinks.
-   Recovery patches are saved before the first target write; a write failure rolls back changes already made and
-   retains the patches and failure record. Approval, boundaries and rollback govern declared batch operations,
-   not arbitrary recipe code or its side effects. Personal setup backup and agent-session orchestration remain future work
-   outside this decision, as described in the [architecture](../architecture.md#outside-this-design).
+   recipes, with builds that can be separate from the engine build. Cook's role remains file operations across
+   programs.
+3. Cook is neither a coding agent nor a fixed software development lifecycle. Model reasoning and provider
+   credentials stay with the agents users choose. External command execution is not a batch action
+   ([0019](0019-action-kinds.md)).
+4. Approval, destination boundaries and rollback govern declared batch operations, not arbitrary recipe code or its
+   side effects. The destination boundary is decided in [0012](0012-write-boundary.md) and recovery in
+   [0007](0007-ownership.md).
 
 ## Reasons
 
 - **1.** The acme example needs a shared way to propose configuration changes, not a shared runner. A combined diff
-  makes the requested result reviewable against current content; recovery information supports reversal of the writes.
+  makes the requested result reviewable against current content; the batch record supports reversal of the writes.
   The trade: Cook does not determine whether the resulting setup is the best workflow for the team.
 - **2.** Program configuration changes on each program's schedule. Cookbook-maintained models let authors update that
   knowledge separately from the engine's review and writing logic. The trade: cookbook authors maintain compatibility
@@ -55,8 +55,7 @@ keeping their preferred programs and control over how they work.
 ### A fixed lifecycle controller
 
 At its best, one controller gives teams common stages and guards. It loses because configuring native files does not
-require imposing those stages, supervising workers or recording their verification. Session orchestration is separate
-future work rather than the engine's organizing abstraction.
+require imposing those stages, supervising agents or recording their verification.
 
 ### A coding agent with its own model loop
 
@@ -65,10 +64,20 @@ users already choose and brings their model credentials, cost and changing APIs 
 
 ## Consequences
 
-Cookbook authors maintain program-specific configuration knowledge. Users review declared file changes and trust the
-recipes they evaluate. The engine maintains ordered operations, approval and recovery.
+Costs:
+
+- Cookbook authors maintain program-specific configuration knowledge.
+- Users trust the recipes they evaluate in addition to reviewing the declared file changes.
+
+Must be maintained:
+
+- Ordered operations, approval and recovery in the engine.
+- Configuration that stays native to the program that consumes it.
 
 ## Confirmation
 
-Review the responsibility boundary against the [architecture](../architecture.md): configuration remains native to
-its program, batches contain file operations, and approval and recovery claims apply only to declared operations.
+- Does the [architecture](../architecture.md#scope-and-responsibilities) assign the engine only recipe evaluation,
+  review, the batch record and writes (FR-1), with batches of file operations (FR-3)?
+- Do the approval and recovery claims in the documentation apply only to declared operations (FR-4)?
+- Does a proposed engine change run a model, hold provider credentials or impose stages on a team's work? Such a
+  change falls outside the role this decision gives Cook.

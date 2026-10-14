@@ -10,8 +10,9 @@ change with unrelated formatting edits.
 
 ## Context
 
-- Ingredients model programs' native files and configuration; cookbook repositories hold and ship ingredients and
-  recipes separately from the engine ([architecture](../architecture.md#ingredients-recipes-and-cookbooks)).
+- [Ingredients](../features/glossary.md) model programs' native files and configuration; cookbook repositories hold
+  and ship ingredients and recipes separately from the engine
+  ([architecture](../architecture.md#ingredients-recipes-and-cookbooks)).
 - Native configuration can be structured content, shared text, or separate files in a directory. Where a program
   supports separate files or inclusion, a recipe can use that facility. A single shared file still needs targeted edits.
 - Worked example: `acme/api` has a JSON settings file containing permission lists, a formatting hook and a database
@@ -26,21 +27,17 @@ change with unrelated formatting edits.
 1. Recipes declare targets in native files: whole-file paths, structured key paths or marked text sections
    ([0007](0007-ownership.md)). Where a program supports separate files, a recipe can target one file without touching
    neighboring files.
-2. Structured operations preserve unrelated keys and entries, including fields the model does not interpret.
-   Preserve their formatting, order, comments and surrounding text so the diff remains focused on declared changes.
+2. Structured operations preserve unrelated keys and entries, including fields the model does not interpret. Their
+   formatting, order, comments and surrounding text are preserved so the diff remains focused on declared changes.
    Whole-file declarations have whole-file scope and require review of that full diff.
-3. Existing values, including manually edited values, are inputs to the same ordered operation and whole-batch approval
-   flow. Later instructions may replace earlier values at the same target. Ownership recorded in `cook.lock` decides
-   what a recipe's later versions update and remove and never blocks a change ([0007](0007-ownership.md)). Removing a
-   key a recipe no longer declares removes its current value; reverting a batch restores that batch's prior value from
-   its record.
+3. Existing and manually edited values follow the ordered composition, approval and ownership rules of
+   [0007](0007-ownership.md). In a native file, removing a key a recipe no longer declares removes its current value.
 4. Personal override files are affected only when recipes explicitly declare them as targets. Their mere presence does
    not authorize writing them or importing their contents into shared configuration. Declared operations remain within
    the invocation directory, including symlink resolution ([0012](0012-write-boundary.md)).
 
-Native settings can configure permissions, skills or a program's own hooks. Recipes are trusted executable code;
-declared-operation review, boundaries and recovery do not sandbox their arbitrary side effects. Ingredient/recipe APIs,
-station semantics and lifecycle hooks remain a separate discussion.
+Native settings can configure permissions, skills or a program's own hooks; the trust limits of declared operations
+follow [0011](0011-safety-invariants.md).
 
 ## Reasons
 
@@ -52,9 +49,9 @@ station semantics and lifecycle hooks remain a separate discussion.
   Preserving surrounding bytes keeps formatting noise from burying the meaningful diff, at the cost of careful
   format-specific editing rather than a serializer that rewrites the whole document.
 - **3.** A developer needs to see the replacement of a manual value, rather than import it before any change is
-  allowed. Actual diff review exposes that replacement and ordered composition makes overlap intentional. A batch
-  record answers a request to reverse a batch, while a recipe's declarations compared with its recorded ownership
-  determine what its new version removes.
+  allowed. Actual diff review exposes that replacement and ordered composition makes overlap intentional. Removal
+  follows the recipe's declarations, so the diff shows the current value, edited or not, that a removed key takes
+  away.
 - **4.** A personal choice is not automatically a team choice, as the override example shows. Requiring an explicit
   target makes that scope visible in review without permanently forbidding recipes from configuring local files.
   Destination containment limits declared writes; it is not a restriction on everything trusted recipe code can do.
@@ -76,8 +73,8 @@ that the program cannot read.
 ### Import existing settings before editing
 
 At its best, importing settings into one source retains their effect in future generated output. It loses as a
-mandatory gate because it requires adoption and a second configuration representation for a request that can be
-reviewed directly against current native content.
+mandatory step because it requires bringing settings into a second configuration representation for a request that
+can be reviewed directly against current native content.
 
 ## Consequences
 
@@ -95,8 +92,6 @@ Must be maintained:
 - Diffs that reveal the actual scope of whole-file, key and section changes.
 
 ## Confirmation
-
-Review the intended behavior with shared-file examples:
 
 - A permission-key update preserves the example's hook, environment setting, unknown fields and unrelated formatting.
 - A targeted change preserves unrelated key order and TOML comments; a whole-file declaration shows its full diff.

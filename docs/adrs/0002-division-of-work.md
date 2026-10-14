@@ -6,12 +6,14 @@
 working. Hand copying loses consistency, while guessing a team's intent can silently rewrite configuration it wanted
 to keep.
 
-**Goal.** Developers can review the concrete effect of shared setup while retaining control over its content and choices.
+**Goal.** Developers can review the concrete effect of shared setup while retaining control over its content and
+choices.
 
 ## Context
 
-- The [architecture](../architecture.md#evaluation-review-and-writes) defines trusted recipe evaluation followed by
-  ordered file operations, one combined diff, approval and recovery.
+- The [architecture](../architecture.md#evaluation-review-and-writes) defines trusted
+  [recipe](../features/glossary.md) evaluation followed by ordered file operations, one combined diff, approval and
+  recovery.
 - Recipe inputs include supplied sources, arguments and current target content. Executable Groovy can also consult
   changing external inputs; identical recipe source bytes alone do not establish identical results.
 - Worked example: acme uses one recipe to set an agent option and another to override it. The requested order matters,
@@ -23,26 +25,25 @@ to keep.
 
 1. People and recipe authors choose the content and configuration they want. Cook evaluates their trusted recipes and
    mechanically composes the declared operations against current content in the supplied order.
-2. Cook shows the final combined diff and obtains whole-batch approval before target writes. Existing or edited content
-   uses that same flow; recorded ownership never blocks a change ([0007](0007-ownership.md)).
-3. Every apply invocation evaluates the supplied recipes again. History does not mark recipes as already
-   applied or skip evaluation. An unchanged result may produce an empty diff; arbitrary executable recipes need not
-   produce an unchanged result on repeated invocation.
+2. The composed result is reviewed as one combined diff under whole-batch approval, and existing or edited content
+   follows the same flow ([0007](0007-ownership.md)).
+3. Every apply evaluates the supplied recipes again ([0007](0007-ownership.md)). A repeated invocation of an
+   executable recipe can produce a different result.
 4. Cook can write declared prose, skills and policy like other file content. Neither deterministic batch handling nor
-   review implies a sandbox for recipe evaluation.
+   review implies a sandbox for recipe evaluation ([0011](0011-safety-invariants.md)).
 
 ## Reasons
 
 - **1.** Mechanical composition gives the acme example a defined result: later instructions replace earlier values at
   an overlapping target. Authors retain choices that depend on project intent. The trade: the engine does not decide
   which recipe or configuration is appropriate.
-- **2.** The actual diff exposes changes to current content, including manual edits, without refusing a change
-  because someone else last wrote that content. The trade: reviewers must assess the proposed changes; approval is for
-  the whole batch.
+- **2.** The actual diff exposes changes to current content, including manual edits, so the developer sees the
+  concrete effect of the shared setup before it is written. The trade: reviewers must assess the proposed changes;
+  approval is for the whole batch.
 - **3.** Current content and recipe inputs can change between invocations. Re-evaluation respects the request instead
-  of treating history as an execution cache. The trade: recipe authors who want reproducible results must control the
-  inputs their code uses; Cook cannot promise universal byte-for-byte determinism or idempotence.
-- **4.** Writing supplied text is mechanical even when choosing that text required judgement. Banning entire file
+  of treating the batch record as an execution cache. The trade: recipe authors who want reproducible results must
+  control the inputs their code uses; Cook cannot promise universal byte-for-byte determinism or idempotence.
+- **4.** Writing supplied text is mechanical even when choosing that text required judgment. Banning entire file
   categories would prevent useful program configuration without resolving trust. The trade: declared file changes are
   reviewable, but arbitrary recipe side effects are outside the diff and recovery guarantees.
 
@@ -50,9 +51,9 @@ to keep.
 
 ### Universal determinism enforced by data-only inputs
 
-At its best, a closed declarative model makes outputs reproducible for fixed inputs. It loses because the chosen
-architecture evaluates trusted Groovy recipes, and current content and external inputs may change. It cannot justify
-skipping an invocation as already applied.
+At its best, a closed declarative model makes outputs reproducible for fixed inputs. It loses because current target
+content and the external inputs a recipe consults change between invocations. A result reproduced from earlier inputs
+cannot justify skipping an invocation as already applied.
 
 ### Setup entirely by hand or by a coding agent
 
@@ -62,11 +63,19 @@ Cook handles the declared file operations.
 
 ## Consequences
 
-Recipe authors maintain the choices and inputs their recipes use. Cook maintains operation order and the separation
-between evaluation, review and writes.
+Costs:
+
+- Reviewers assess every proposed change; the engine does not judge which recipe or configuration is appropriate.
+- Recipe authors who want reproducible results control the inputs their code uses.
+
+Must be maintained:
+
+- Recipe authors maintain the choices and inputs their recipes use.
+- Cook maintains operation order and the separation between evaluation, review and writes.
 
 ## Confirmation
 
-Review a composed batch against the [architecture](../architecture.md#ordered-composition-and-declared-targets):
-later declarations determine the final preview, unrelated content is preserved, and a repeated invocation evaluates
-current inputs. Review prose and policy operations under the same approval contract as other declared file content.
+- In a composed batch, do later declarations determine the final preview while unrelated content is preserved
+  ([ordered composition](../architecture.md#ordered-composition-and-declared-targets))?
+- Does a repeated invocation evaluate current inputs instead of reusing an earlier result?
+- Do prose and policy operations go through the same approval as other declared file content?

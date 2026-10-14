@@ -12,10 +12,16 @@ and configuration.
 
 Cook evaluates trusted Groovy [recipes](recipes.md) into ordered file operations. [Ingredients](ingredients.md) model
 programs' native files; cookbook recipes express setup choices using those models. The engine handles the resulting
-diff, whole-batch approval, recovery and writes. See [the architecture](../architecture.md).
+diff, whole-batch approval, batch record and writes. See [the architecture](../architecture.md) and the
+[glossary](glossary.md).
 
 A cookbook can document its own recipe inputs. Recipe arguments follow their recipe operand using `--name=value`;
-their CLI scope is defined in [the CLI reference](cli.md).
+their CLI scope is defined in [the CLI reference](cli.md). The following illustrates a base recipe and a project
+recipe, each with its own argument:
+
+```sh
+./cook apply ./base.groovy --agent=codex ./project.groovy --agent=claude
+```
 
 ## Facts worth recording
 
@@ -42,22 +48,14 @@ them.
 
 ## Composing and changing setup
 
-Recipes and their operations compose left to right. Later instructions can replace earlier values at the same target,
-and Cook presents one final diff against current content. Applying a project recipe after a base recipe can override
-a setting while leaving the base recipe's unrelated files in place. A later invocation does not withdraw earlier
-outputs merely because their recipe was omitted.
-
-Choose whole-file, structured-key or marked-section targets to match the intended extent of each change. Existing or
-manually edited files follow the ordinary diff and approval flow; ownership recorded in `cook.lock` never blocks a
-change. Every apply invocation evaluates the supplied recipes again; history does not mark setup as already applied.
-See [apply](apply.md) and [revert](revert.md).
-
-The invocation directory is the destination. Relative source references resolve from each recipe's original location.
-Batch records live in the destination's ignored `.cook/batches/<batchId>/` directory. They record patches and sources;
-apply needs no previous history, while reverting a batch needs its record.
+Applying a project recipe after a base recipe can override a setting while leaving the base recipe's unrelated files
+in place. Choose whole-file, structured-key or marked-section targets to match the intended extent of each change. The
+[architecture](../architecture.md#ordered-composition-and-declared-targets) defines ordered composition, ownership and
+targets; [apply](apply.md) and [revert](revert.md) explain the destination, sources and batch record.
 
 ## Guidance and personal choices
 
-Keep shared instructions concise and point to focused skills or topic files. Cook can declare those files; the program
-decides what it loads and follows. See [repository guidance](context.md), [skills](skills.md) and
-[program permissions](policy.md).
+Decide which settings belong in shared files and which remain personal; a program can continue to read personal settings
+independently of the files a recipe declares. Keep shared instructions concise and point to focused skills or topic
+files. Cook can declare those files; the program decides what it loads and follows. See [repository
+guidance](context.md), [skills](skills.md) and [program permissions](policy.md).

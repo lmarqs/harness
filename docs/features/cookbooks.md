@@ -1,12 +1,12 @@
-# Composition boundaries and cookbooks
+# Cookbooks and reusable setup
 
 ## Objective
 
-**Problem.** Reusable setup choices and program knowledge need a clear home, but naming an extra composition unit can
-prematurely settle an API.
+**Problem.** A team that reuses setup across repositories needs to know where the reusable choices and the program
+knowledge behind them live, and how they reach a repository.
 
-**Goal.** Preserve the reasons for sharing setup and distributing program models while leaving station semantics for
-the separate model discussion.
+**Goal.** Readers can tell what a cookbook holds, how its recipes reach a repository, and which review each step
+needs.
 
 ## Reusable setup choices
 
@@ -15,32 +15,19 @@ choices still need repository-specific review: a command name or permission sett
 fit another. Native files make the resulting choices visible to people and directly consumable by programs.
 
 [Cook architecture](../architecture.md) assigns program knowledge to [ingredients](ingredients.md) and requested file
-changes to trusted Groovy [recipes](recipes.md). The engine composes declared operations left to right, presents their
-combined diff, obtains approval, records recovery information and performs writes. When two recipes write the
-same target, the last one wins and becomes its owner; applying a recipe does not delete output another recipe owns.
-
-Review existing or edited content through that same batch flow. Deliberately choose declaration scope: whole-file
-operations address entire files, key operations preserve unrelated keys, and marked sections preserve text outside
-their boundaries. See [apply](apply.md) and [revert](revert.md).
-
-## Station role remains deferred
-
-Whether a **station** becomes a separate composition unit, and how it relates to recipes, is an open question in the
-ingredient/recipe model discussion.
-
-Existing dynamic composition and compiled suppliers remain supported. For current implementation behavior, use the
-[core guide](../../core/README.md) and recipe READMEs.
+changes to trusted Groovy [recipes](recipes.md); the [glossary](glossary.md) defines these terms. The engine composes
+declared operations left to right into one reviewed batch; see [ordered operations](apply.md#ordered-operations) for how
+they combine and [revert](revert.md) for undoing a batch.
 
 ## Cookbooks
 
 A cookbook repository holds and ships ingredients and recipes. Ingredients model programs' native files and
 configuration; recipes describe reusable setup choices using those models. A cookbook can have its own build,
 independent of Cook's build and release process. Authors maintain program-specific knowledge separately from the
-engine.
+engine. For current implementation behavior, use the [core guide](../../core/README.md) and recipe READMEs.
 
-Engine distribution uses a platform-specific jpackage package containing Java and a committed wrapper that pins an
-engine version and checksum, downloads it on first use and caches it. See [installation](installation.md) and
-[wrapper](wrapper.md). Changing that engine pin does not upgrade cookbook content or manage recipe versions.
+The engine reaches a repository through the [wrapper](wrapper.md) and its pin; see also
+[installation](installation.md). Changing that engine pin does not upgrade cookbook content or manage recipe versions.
 
 Users supply the recipe version they intend to apply; `cook.lock` records which version produced each recipe's
 ownership. Recipe operands are paths inside the destination repository or `https://` URLs.

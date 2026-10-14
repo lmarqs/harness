@@ -17,7 +17,17 @@ the programs it uses.
 [Ingredients](ingredients.md) model native program configuration, including skills where applicable. Trusted Groovy
 [recipes](recipes.md) can declare operations that supply skill files and configure their discovery, including directory
 or symlink operations where applicable. Cook reviews the combined file changes and writes them after whole-batch
-approval. The program decides when to load the skill and what to do with its instructions.
+approval. The program decides when to load the skill and what to do with its instructions. The
+[glossary](glossary.md) defines the engine terms.
+
+For illustration, a recipe that declares a whole-file `.agents/skills/review/SKILL.md` target proposes a diff such as:
+
+```diff
+--- /dev/null
++++ b/.agents/skills/review/SKILL.md
+@@ -0,0 +1 @@
++Review changes against the repository's contributor instructions.
+```
 
 A skill guides an agent; it does not guarantee compliance. See [repository guidance and context](context.md) and
 [the architecture](../architecture.md).
@@ -48,20 +58,20 @@ Keep shared instructions short and point to focused skill files when useful. Pro
 metadata can help discovery, but a pointer does not ensure loading and an instruction does not establish enforcement.
 
 If a cookbook supplies Cook usage guidance, keep its commands consistent with the [CLI reference](cli.md) and state
-the relevant version and prerequisites. An engine upgrade does not automatically refresh cookbook or repository skill
-content.
+the engine version and prerequisites those commands assume. An engine upgrade does not automatically refresh cookbook
+or repository skill content.
 
 ## Reviewing changes and removal
 
 Review skill text, supporting scripts and links as part of the actual batch diff. Skills can contain executable
 resources or tell an agent to take actions; review those consequences as well as the instruction text. Native program
-permissions remain the program's responsibility. See [program permissions](policy.md) and [safety guidelines](safety.md).
+permissions remain the program's responsibility. See [program permissions](policy.md) and [safety
+guidelines](safety.md).
 
-Cook proposes declared changes against existing or manually edited content; ownership recorded in `cook.lock` never
-blocks a change. Applying another recipe does not remove skills an earlier recipe owns. Applying a new version of a
-recipe removes skill contributions its previous version owned and the new version no longer declares;
-[revert](revert.md#revert) applies a recorded batch's reverse patches. Neither reverses actions an agent has taken
-after reading a skill.
+Skills follow the ordinary [apply](apply.md) and [revert](revert.md#revert) rules; neither reverses actions an agent
+has taken after reading a skill.
+
+## Troubleshooting
 
 When a program cannot find a skill, inspect its expected location, links, metadata and project trust settings. When it
 finds a skill but does not use it, investigate that program's loading behavior and the relevance of the description;

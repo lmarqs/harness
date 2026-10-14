@@ -1,8 +1,15 @@
 # Architecture decision records
 
 An architecture decision record (ADR) states one decision that shapes the structure of this project and, above all,
-why it holds: its objective, the facts it answers, the reasons that connect those facts to the decision, the
-alternatives that lose and why, and what the project maintains because of it.
+why it holds. Each ADR records:
+
+- its objective;
+- the facts it answers;
+- the reasons that connect those facts to the decision;
+- the alternatives that lose, and why;
+- what the project maintains because of it.
+
+The [index](#index) lists every ADR with the question it answers.
 
 ## Authority
 
@@ -11,9 +18,8 @@ that design; the [features](../features/) pages and [user-experience standards](
 standard conflicts with the architecture, correct the supporting document. An earlier decision does not override
 the agreed architecture.
 
-No two ADRs contradict each other. Link to the ADR that explains a related decision. A focused restatement may
-explain how that decision applies here, provided it preserves the same contract and does not introduce a competing
-definition.
+No two ADRs contradict each other, and each rule has one owning ADR. A point that applies another ADR's rule is a
+one-line link to that ADR, which keeps the contract and its reasons in one place.
 
 ## An ADR states what is true now
 
@@ -69,8 +75,8 @@ An ADR whose Reasons section does not cover every point is incomplete, whatever 
 ## When to write one
 
 Write an ADR for a decision that is hard to reverse or that constrains how other parts are built: the implementation
-language, the contract between the tool and its destination, the boundaries on declared writes, how recovery
-information is recorded, how releases are trusted.
+language, the contract between the tool and its destination, the boundaries on declared writes, how the batch record
+is kept, how releases are trusted.
 
 Do not write an ADR for a feature, a command, a flag, a file field, a task or a plan. Those belong in the
 [features](../features/) pages and the [user-experience standards](../ux/). If a proposed ADR reads as a description of
@@ -80,9 +86,10 @@ One ADR holds one decision. If its points serve two decisions, it is two ADRs.
 
 ## Naming
 
-- **File:** `NNNN-<topic>.md`. The number is a permanent identifier, never reused or reassigned. The topic names the
-  question the ADR answers, in kebab-case nouns (`implementation-language`, `release-trust`), so the file name stays
-  valid when the answer changes and links never break.
+- **File:** `NNNN-<topic>.md`. The number is a permanent identifier, never reused or reassigned; a number missing from
+  the index belongs to a deleted decision. The topic names the question the ADR answers, in kebab-case nouns
+  (`implementation-language`, `release-trust`), so the file name stays valid when the answer changes and links never
+  break.
 - **Title:** `# NNNN. <decision>`: one present-tense declarative sentence that states the answer, at most 12 words,
   with no semicolon, no rationale and no "and" joining two decisions. When the decision changes, the title changes
   with it; the file name does not.
@@ -91,11 +98,12 @@ One ADR holds one decision. If its points serve two decisions, it is two ADRs.
 ## Writing rules
 
 - Present tense, no hedges.
-- Prefer generic mechanism names: the wrapper, the batch, the recovery record, the destination, an ingredient,
+- Prefer generic mechanism names: the wrapper, the batch, the batch record, the destination, an ingredient,
   a recipe. Use concrete command, flag, setting, environment-variable, exit-code or file references when necessary
-  to explain a decision, its boundary or its evidence, such as the exclusion of `--adopt` or local history under
-  `.cook/`. Keep detailed usage in the [features](../features/) pages and terminology in the
+  to explain a decision, its boundary or its evidence, such as `--batch-approve` or the batch record under `.cook/`.
+  Keep detailed usage in the [features](../features/) pages and terminology in the
   [glossary](../features/glossary.md); a concrete reference is not a reason to add an undecided contract.
+- Link the [glossary](../features/glossary.md) at the first use of an engine term in each ADR.
 - A third-party product whose behavior a decision depends on is named with the version that behavior was checked
   against. Prior art and rejected tools are named without a version, because nothing depends on their behavior.
 - Organizations appear only as the makers of third-party products whose behavior matters; examples use `acme`.
@@ -143,7 +151,8 @@ Must be maintained:
 
 ## Confirmation
 
-- <A test, a CI job, a review rule or a measurement that shows compliance, and that the goal holds.>
+- <A concrete review question, or an existing test, CI job or measurement, that shows compliance and that the goal
+  holds.>
 ```
 
 ## Index
@@ -162,12 +171,12 @@ Must be maintained:
 | [0011](0011-safety-invariants.md) | What do Cook's guarantees cover? | Cook's guarantees cover declared batch operations |
 | [0012](0012-write-boundary.md) | What may Cook write? | Cook confines declared batch operations to reviewed destination targets |
 | [0013](0013-organization-content.md) | Where do shared organization choices belong? | Cookbooks carry organization choices separately from the engine |
-| [0014](0014-directory-layout.md) | Where does each kind of file live? | Native output and local recovery history have separate homes |
+| [0014](0014-directory-layout.md) | Where does each kind of file live? | Native output and local batch records have separate homes |
 | [0016](0016-permission-adoption.md) | How are existing permission changes reviewed? | Existing permission changes receive explicit native-file review |
 | [0017](0017-engine-version.md) | Which release runs in a repository? | Each repository pins its engine release through a committed wrapper |
 | [0018](0018-conventions.md) | How do conventions remain readable without Cook? | Native instruction text states conventions independently of Cook |
 | [0019](0019-action-kinds.md) | What does a batch contain? | Batches contain declared file operations |
-| [0020](0020-standing-context.md) | How does Cook configure reusable guidance? | Guidance remains native program content |
+| [0020](0020-standing-context.md) | How does Cook configure reusable guidance? | Guidance is native program content |
 | [0021](0021-release-trust.md) | What does release verification prove? | Reviewed engine pins verify package integrity without proving publisher identity |
 | [0022](0022-tool-integration.md) | How is program configuration knowledge supplied? | Ingredients model programs' native configuration |
 | [0023](0023-core-and-contracts.md) | How are operation rules separated from external mechanisms? | The core separates operation rules from external mechanisms |

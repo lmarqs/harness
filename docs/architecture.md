@@ -1,12 +1,13 @@
 # Cook architecture
 
-Cook is a recipe driven configuration engine. It evaluates trusted Groovy recipes into an ordered batch of file
-operations, presents the resulting diff, obtains approval, records the batch, and performs the writes.
+Cook is a recipe driven configuration engine. It evaluates trusted Groovy [recipes](features/glossary.md) into an
+ordered batch of file operations, presents the resulting diff, obtains approval, records the batch, and performs the
+writes.
 
 This document states the intended architecture. Supporting design and reference documents follow it; descriptions of
 the current implementation belong in the [root README](../README.md) and [core implementation guide](../core/README.md).
-The numbered requirements (FR-1 and onward) are listed under [Requirements](#requirements). Implementation progress
-belongs in issues.
+The numbered requirements (FR-1 and onward) are listed under [Requirements](#requirements), and
+[ADRs](adrs/README.md) record the reasons and rejected alternatives behind them.
 
 ## Scope and responsibilities
 
@@ -19,9 +20,8 @@ and recipes that describe the setup.
 | Cook engine | Evaluate trusted Groovy recipes, assemble their ordered file operations, present the diff, obtain approval, record the batch, and perform the writes. | FR-1 |
 | Ingredients and cookbooks | Model programs' native files and configuration in ingredients; hold and ship ingredients and recipes through cookbook repositories, with builds that can be separate from Cook's build. | FR-2 |
 | Batch | Contain file operations, including directory and symlink operations where applicable. | FR-3 |
-| Trust boundary | Apply approval, output boundaries, and rollback to declared batch operations. Recipe execution is trusted code, outside any sandbox guarantee. | FR-4 |
-| Interfaces and builds | Keep the core independent of any interface. Expose cooking through the command line interface (CLI). Use Gradle to build and package Cook and cookbooks. | FR-5 |
-| Future capabilities | Keep personal setup backup (kit) and agent-session orchestration (cooking) outside the engine responsibilities defined here. | FR-6 |
+| Trust boundary | Govern declared batch operations with approval, output boundaries, and rollback. Recipe execution is trusted code, outside any sandbox guarantee. | FR-4 |
+| Interfaces and builds | Keep the core independent of any interface. Expose cooking, running recipes, through the command line interface (CLI). Use Gradle to build and package Cook and cookbooks. | FR-5 |
 
 ## Ingredients, recipes, and cookbooks
 
@@ -31,8 +31,7 @@ include Git's ignore file and Codex's configuration and skills. The ingredient c
 A recipe is trusted executable Groovy code that describes requested file operations using these models. Evaluating
 recipes produces the batch that Cook reviews and writes. The models describe program configuration; the engine
 handles the resulting file operations. Each recipe has a short name, such as `agentic/context`, that markers and the
-lock use to identify it. A recipe declares its short name; without a declaration, the name derives from the recipe's
-path.
+lock use to identify it.
 
 A cookbook repository holds and distributes ingredients and recipes. Cookbook distribution is separate from engine
 distribution, and a cookbook can have its own build. Keeping program models in cookbooks lets their authors maintain
@@ -83,13 +82,15 @@ and rollback responsibilities concern the declared file operations.
 
 Recipes are trusted executable code and are not sandboxed. Approval, output boundaries, and rollback govern declared
 batch operations. Recipe code can cause side effects outside the batch, and the diff and rollback do not cover those
-effects. Trusting a recipe is therefore separate from approving its resulting file changes.
+effects. Trusting a recipe is therefore separate from approving its resulting file changes. See the
+[safety invariants](adrs/0011-safety-invariants.md) and [cookbook trust](adrs/0026-cookbook-trust.md) ADRs.
 
 ### Ordered composition and declared targets
 
 Recipes and their operations execute in declared order, left to right. Cook composes them against current content.
 When two recipes write the same section, key, or file, the last one wins and becomes its owner; the diff is the only
-notice. The preview is one combined diff from current content to the final result (FR-7).
+notice. The preview is one combined diff from current content to the final result (FR-7). The
+[ownership ADR](adrs/0007-ownership.md) records the reasons.
 
 Applying a batch affects its declared targets and the targets its recipes owned before. Applying recipe B does not
 remove output that recipe A owns, even when A is omitted from the new invocation. Applying a new version of recipe A
@@ -123,24 +124,25 @@ Targets have three forms (FR-10):
 | Section in a shared text file | File path and begin/end markers | The bounded section, preserving text outside it |
 
 A section's markers name the recipe that owns it and the region within that recipe:
-`cook:begin <recipe>/<region>` and `cook:end <recipe>/<region>`. Several recipes can therefore keep separate sections
+`cook:begin <recipe>#<region>` and `cook:end <recipe>#<region>`. The recipe's short name precedes `#` and the region
+follows it. Several recipes can therefore keep separate sections
 in one file. Markers use the file format's comment syntax: HTML comments in Markdown, and hash comments in ignore
 files, YAML, TOML, and shell scripts. For example:
 
 ```markdown
 Text outside the section stays in place.
 
-<!-- cook:begin agentic/context/commands -->
+<!-- cook:begin agentic/context#commands -->
 Run the project's build command.
-<!-- cook:end agentic/context/commands -->
+<!-- cook:end agentic/context#commands -->
 
 More unrelated text stays in place.
 ```
 
 ```gitignore
-# cook:begin git/ignore
+# cook:begin git#ignore
 /.cook/
-# cook:end git/ignore
+# cook:end git#ignore
 ```
 
 Ownership decides what a recipe's later versions update and remove. It does not block changes: Cook proposes the
@@ -151,8 +153,8 @@ change (FR-9).
 ### Batch approval and failure recovery
 
 The core proposes the batch and writes only the changes it receives as accepted. It records only accepted changes in
-`cook.lock` and in the batch record, so the lock and `revert` always describe what was written. The core is independent of
-any interface (FR-5).
+`cook.lock` and in the batch record, so the lock and `revert` always describe what was written. The core is
+independent of any interface (FR-5).
 
 The CLI displays the final diff in the terminal and accepts the whole batch. Without preapproval, it asks before
 changing target files. With `--batch-approve`, it displays the diff and proceeds without prompting. Noninteractive
@@ -177,7 +179,7 @@ recipes:
     owns:
       sections:
         - file: CLAUDE.md
-          id: agentic/context/instructions
+          id: agentic/context#instructions
       keys:
         - file: .claude/settings.json
           path: permissions.allow
@@ -217,16 +219,17 @@ Reverting that batch proposes:
 If the later edit had changed `test` instead, the revert would refuse and name `settings.toml` and `test`.
 
 **Discard**, which removes everything the lock lists for a recipe across all the batches that wrote it, is deferred
-until a concrete need. Until then, revert the batches that applied the recipe, or remove its sections and keys by
-hand (FR-15).
+(FR-15). To remove a recipe's contribution, revert the batches that applied it, or remove its sections and keys by
+hand.
 
-## Paths, source snapshots, and local history
+## Paths, source snapshots, and batch records
 
 ### Destination and source origins
 
 The invocation's current working directory is the destination, regardless of where the Cook executable lives.
 Declared writes and deletions stay within that directory, including paths resolved through symlinks. A target that
-reaches outside the destination through a symlink is outside the permitted output boundary (FR-21).
+reaches outside the destination through a symlink is outside the permitted output boundary (FR-21). See the
+[write boundary ADR](adrs/0012-write-boundary.md).
 
 Recipes come from two places: a path inside the destination repository, or an `https://` URL. Relative references to
 recipes and templates resolve from the referencing recipe's location: inside the repository for a local recipe, and
@@ -256,15 +259,16 @@ time the batch started, such as `2026-10-14T15-04-05Z`, with a suffix when two b
 record holds (FR-23):
 
 - One reversible patch per touched file, describing the combined change to that file, `cook.lock` included.
-- The recipe sources evaluated and the recipe and template sources they consumed, with their origins.
+- Snapshots of the recipe sources evaluated and of the recipe and template sources they consumed, with their
+  origins.
 - The recipe arguments and execution order.
 - The result or failure log.
 
-If several recipes touch the same file, the batch keeps one patch for the combined change. Save the record before the
-first target write; if a write fails, roll back the changes already made and retain the record and failure. One patch
-serves both forward and reverse application (FR-13, FR-24).
+If several recipes touch the same file, the batch keeps one patch for the combined change, and that patch serves both
+forward and reverse application (FR-24). [Batch approval and failure recovery](#batch-approval-and-failure-recovery)
+states when the record is saved and what a failed write retains (FR-13).
 
-### History availability
+### Batch record availability
 
 Every apply invocation evaluates the supplied recipe versions against current content, even after an identical
 earlier invocation; an unchanged result produces an empty diff (FR-25).
@@ -275,83 +279,25 @@ is lost; apply keeps working, and ownership survives in the committed `cook.lock
 
 ## Command line and build boundary
 
-The CLI is the public cooking interface. Gradle builds and packages Cook and cookbooks. The engine uses JVM-based
-distribution. The [CLI reference](features/cli.md) expands these forms and their argument scope (FR-17):
-
-```text
-./cook [batch-options] <recipe> [recipe-arguments] [<recipe> [recipe-arguments]]...
-./cook apply [batch-options] <recipe> [recipe-arguments] [<recipe> [recipe-arguments]]...
-./cook revert [batch-options] <batchId>
-./cook batch list
-./cook batch inspect <batchId>
-```
-
-`apply` is the default operation. With no arguments, `./cook` shows help. Initial bare command names `apply`,
-`revert`, and `batch` select a command; a recipe file named `revert` can be passed as `./revert`. `batch list` shows
-the recorded batches, and `batch inspect` shows one batch's recipes, arguments, files, and patches; both only read.
-
-Recipe operands are paths inside the destination repository or `https://` URLs (FR-18). Ordinary relative paths such
-as `recipe.groovy` are accepted.
-
-Batch options precede the first recipe operand, or the batch ID for `revert`. Recipe arguments follow the recipe they
-configure and use `--name=value`; shell quoting keeps values with spaces in one argument. Each following recipe
-starts its own argument scope. Recipes and their operations compose left to right into one batch diff (FR-19).
-
-```sh
-./cook ./recipe.groovy
-./cook apply ./recipe.groovy
-./cook apply --batch-approve ./base.groovy --agent=codex ./project.groovy --agent=claude
-./cook revert --batch-approve 2026-10-14T15-04-05Z
-./cook batch list
-./cook batch inspect 2026-10-14T15-04-05Z
-./cook ./revert
-./cook recipe.groovy --instructions='Keep existing comments.'
-./cook https://example.com/recipes/project.groovy
-```
-
-In the two-recipe invocation, `--agent=codex` belongs to `base.groovy` and `--agent=claude` belongs to
-`project.groovy`.
-
-These invocations have different meanings:
-
-```sh
-./cook apply ./a.groovy --source=./b.groovy
-./cook apply ./a.groovy ./b.groovy
-```
-
-The first evaluates only `a.groovy`, with `./b.groovy` as its `source` argument value. The second evaluates both
-recipes in order.
-
-A batch option after a recipe is misplaced:
-
-```sh
-./cook apply ./a.groovy --batch-approve
-```
-
-This receives the normal unknown-option error. Put the option before the first recipe instead:
-`./cook apply --batch-approve ./a.groovy`.
-
-`--batch-approve` displays the final diff and proceeds without prompting; otherwise Cook asks before changing target
-files. Approval covers the entire batch, and noninteractive execution without this flag does not authorize writes.
-Existing or edited content uses the same diff and batch-approval flow. `--batch-approve` is the only preapproval
-spelling (FR-20).
+The CLI is the public cooking interface, and Gradle builds and packages Cook and cookbooks (FR-5). The commands are
+apply (the default), revert of one recorded batch, and read-only batch listing and inspection; batch options precede
+the first recipe operand, and recipe arguments follow their recipe. The [CLI reference](features/cli.md) defines the
+syntax, recipe operands, argument scope, and batch options (FR-17 through FR-20).
 
 ## Engine distribution
 
 Cook uses JVM-based distribution with `jpackage`. Each platform-specific package contains the engine and a
 bundled Java runtime. Distribute the complete package, including its runtime (FR-26).
 
-A repository commits an executable `./cook` wrapper that pins an engine version and the checksum of the package
-for each platform it uses. On first use, the wrapper downloads the pinned platform package, verifies it against
-the committed checksum before running it, and caches the complete package locally. Later invocations reuse that
-cached version. Upgrades are explicit changes to the committed version and matching checksums, reviewed together.
+A repository commits an executable `./cook` wrapper that pins an engine version and the checksum of each platform
+package it uses; [the wrapper](features/wrapper.md) describes pinning, checksum verification, first-use download,
+caching, and explicit upgrades.
 
 Engine releases supply the packaged runtime. Cookbook repositories hold and ship ingredients and recipes, with
 builds that can be independent of the engine build. Users supply the recipe version they intend to apply;
 `cook.lock` records which version produced the current ownership.
 
-See [installation](features/installation.md) for the delivery design and current local packaging entry path, and
-[the wrapper](features/wrapper.md) for pinning, checksum verification, caching, and explicit upgrades.
+See [installation](features/installation.md) for the delivery design and current local packaging entry path.
 
 ## Requirements
 
@@ -370,8 +316,6 @@ Other documents cite these requirements by number.
   operations; they are not a sandbox or a guarantee against arbitrary side effects in recipe code.
 - **FR-5:** The core is independent of any interface. The CLI is the public cooking interface. Gradle builds and
   packages Cook and cookbooks.
-- **FR-6:** Personal setup backup (kit) and agent-session orchestration (cooking) are future capabilities, outside the
-  engine responsibilities defined here.
 
 ### Ordered operations and review
 
@@ -383,7 +327,7 @@ Other documents cite these requirements by number.
 - **FR-9:** Cook proposes the requested changes against current content, including content a developer edited.
   Ownership never blocks a change.
 - **FR-10:** Whole-file targets use file paths; structured targets use key paths; sections in shared text files use
-  `cook:begin <recipe>/<region>` and `cook:end <recipe>/<region>` markers in the file format's comment syntax,
+  `cook:begin <recipe>#<region>` and `cook:end <recipe>#<region>` markers in the file format's comment syntax,
   including HTML comments for Markdown.
 - **FR-11:** The core proposes the batch, writes only the accepted changes, and records only those in `cook.lock` and
   the batch record.
@@ -408,8 +352,8 @@ Other documents cite these requirements by number.
 
 - **FR-17:** The commands are `./cook [apply] [batch-options] <recipe> [recipe-arguments]...`,
   `./cook revert [batch-options] <batchId>`, `./cook batch list`, and `./cook batch inspect <batchId>`. `apply` is the
-  default. With no arguments, show help. Initial bare command names select a command; a file named `revert` can be
-  supplied as `./revert`.
+  default. With no arguments, show help. A first operand of exactly `apply`, `revert`, or `batch` selects a
+  command; a recipe file with one of those names is supplied as a path, such as `./revert`.
 - **FR-18:** Recipe operands are paths inside the destination repository or `https://` URLs. Ordinary relative paths
   such as `recipe.groovy` are accepted.
 - **FR-19:** Batch options precede recipe operands, or the batch ID for `revert`. Recipe arguments follow their recipe
@@ -417,7 +361,7 @@ Other documents cite these requirements by number.
   unknown-option error.
 - **FR-20:** `--batch-approve` is the only preapproval spelling.
 
-### Paths and batch history
+### Paths and batch records
 
 - **FR-21:** The current working directory is the destination, regardless of the executable location. Declared writes
   and deletions stay within that directory, including paths resolved through symlinks.
@@ -429,8 +373,8 @@ Other documents cite these requirements by number.
   origins, the arguments, the execution order, and the result or failure log.
 - **FR-24:** A single patch supports forward and reverse application. The metadata serialization format and storage
   schema belong to the implementation.
-- **FR-25:** Apply requires neither batch history nor `cook.lock`. Every invocation evaluates the supplied recipes
-  against current content; history never skips a recipe as already applied. Without a lock entry, apply removes
+- **FR-25:** Apply requires neither batch records nor `cook.lock`. Every invocation evaluates the supplied recipes
+  against current content; a batch record never marks a recipe as already applied. Without a lock entry, apply removes
   nothing on a recipe's behalf. Reverting a batch requires its record.
 
 ### Distribution and documentation authority
@@ -440,16 +384,8 @@ Other documents cite these requirements by number.
   explicit.
 - **FR-27:** This document states the intended architecture. Supporting documents follow it. Documents that cover the
   implementation describe its actual behavior.
-- **FR-30:** Ingredient and recipe APIs, nesting, lifecycle hooks, decorators, parameter injection, and annotations
-  need their own design review. The sketches using `Recipe(...)`, `Batch().withRecipe(...)`, `@pwd`, `@param`, and
-  `@before` are exploratory.
 
 ## Outside this design
 
-Personal setup backup, called **kit**, and agent-session orchestration, called **cooking**, are future capabilities
-tracked in [issue #5](https://github.com/lmarqs/the-cook/issues/5) and
-[issue #6](https://github.com/lmarqs/the-cook/issues/6). Configuring a loop runner or coding agent through native files
-does not place its execution under Cook's control.
-
-Ingredient and recipe APIs need their own design review (FR-30). A text-based interface that chooses individual
-changes, and the concrete patch representation, are separate decisions.
+Configuring a loop runner or an agent through native files does not place its execution under Cook's control. A
+text-based interface that chooses individual changes, and the concrete patch representation, are separate decisions.

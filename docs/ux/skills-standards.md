@@ -16,8 +16,9 @@ rules depend on the program.
 
 Cook recipes can declare skill files and discovery configuration as ordinary file operations. The agent decides when
 to load guidance and what to do with it. A successful Cook write does not prove that guidance was loaded or followed.
-This standard follows the [architecture](../architecture.md) and [skills reference](../features/skills.md). See
-[where behavior belongs](when-cli-when-skill.md) for the engine, cookbook and guidance boundaries.
+This standard follows the [architecture](../architecture.md) and [skills reference](../features/skills.md); the
+[glossary](../features/glossary.md) defines recipe, ingredient, cookbook and batch. See
+[where new behavior goes](when-cli-when-skill.md) for the engine, cookbook and guidance boundaries.
 
 ## Sources and maintenance
 
@@ -40,11 +41,11 @@ choice guarantees that every agent discovers the skill.
 | Situation | Suitable home | Reason |
 | --- | --- | --- |
 | Cook commands are misused across repositories | Shared Cook usage skill or focused reference | One explanation can describe the supported interface and its prerequisites |
-| A convention applies across an organization | Organization skill | Authors maintain its reasoning once; applying it still needs repository-specific judgement |
+| A convention applies across an organization | Organization skill | Authors maintain its reasoning once; applying it still needs repository-specific judgment |
 | Knowledge is specific to one repository | Repository skill or contributor prose | Guidance is reviewed where it applies |
-| Guidance is needed in sessions | Existing skill and the native program's discovery configuration | The consuming program controls loading |
+| An existing skill must be discoverable in a program's sessions | The native program's discovery configuration, which a recipe can declare | The consuming program controls loading |
 | A reusable setup writes native files | Cookbook recipe using ingredients | The recipe declares file changes, and Cook presents their actual combined diff |
-| A process requires judgement, external commands or publication | Skill and the repository's existing tools | These need judgement and external tools; Cook's batch holds file operations |
+| A process requires judgment, external commands or publication | Skill and the repository's existing tools | Cook's batch holds file operations only; the agent or person runs the commands and makes the choices |
 | An instruction applies to one request only | The session prompt | A persistent skill would outlive the need |
 
 A skill should state its audience and scope rather than assume that every repository uses one organization, stack or
@@ -66,18 +67,19 @@ For programs that use a `SKILL.md` convention, this is a useful layout:
   when supported, because people can relate the invocation name to its folder.
 - State what the skill does, when it applies and nearby situations where it does not apply. Discovery words should
   match the user's task, because vague descriptions can load too often or never load.
-- Keep the core procedure short; around 500 lines is a useful upper bound. Put occasional detail in focused references
-  and explain when to read each, because agents may load the whole body.
+- Keep the core procedure short. Put occasional detail in focused references and explain when to read each, because
+  agents may load the whole body.
 - Use numbered steps for a sequence. Name the actual command or edit for each state change and its prerequisites.
   Include review evidence appropriate to the task, because a completion claim alone does not establish the result.
 - Review supporting scripts as executable code, because a short instruction can delegate consequential actions to them.
 
 ## Discovery and session guidance
 
-Inspect the consuming program's locations, metadata, links and project trust rules. Existing real directories and
-whole-directory links expose different content; choose targets deliberately rather than replacing a directory that
-contains unrelated skills. Declared batch writes and deletions stay within the invocation directory, including
-paths resolved through symlinks.
+Inspect the consuming program's locations, metadata, links and project trust rules. A symlinked skills directory
+exposes whatever its link target contains; a real directory exposes only its own files. Declare individual skill
+targets rather than replacing a directory that contains unrelated skills, because a directory operation affects
+every skill in it.
+Declared writes stay inside the destination ([where files live](configuration-standards.md#where-files-live)).
 
 Guidance intended for frequent loading should be short and state its scope early, because unrelated always-on text uses
 attention on every task. Link focused detail where useful. Text should remain clear when encountered twice, since an
@@ -92,22 +94,13 @@ section boundaries use HTML comments, and a pointer does not guarantee that an a
 A skill can guide a person or agent in choosing trusted recipes, fitting arguments to a repository and reviewing the
 result. A recipe evaluates to ordered file operations.
 
-Use the intended CLI grammar when documenting the design:
+Link the [CLI reference](../features/cli.md) for command grammar, recipe arguments and approval. A skill must not
+infer preapproval merely because an agent is driving the command: use `--batch-approve` only when preapproval is
+intended, because noninteractive execution alone does not authorize writes
+([CLI approval](../features/cli.md#batch-options-and-approval)).
 
-```sh
-./cook ./recipes/project.groovy --instructions='Keep existing comments.'
-./cook apply ./recipes/base.groovy --agent=codex ./recipes/project.groovy --agent=claude
-./cook batch list
-./cook revert 2026-10-14T15-04-05Z
-```
-
-The batch ID is the recorded batch's UTC start time. These examples establish argument scope. For current execution,
-consult the [root README](../../README.md) and the [core implementation guide](../../core/README.md).
-
-Batch options precede operands. Only use `--batch-approve` when preapproval is intended: it displays the diff and
-proceeds without prompting. Otherwise Cook asks before target writes. Noninteractive execution alone does not authorize
-writes, and the CLI accepts the whole batch. A skill must not infer preapproval merely because an agent is driving the
-command. See [CLI approval](../features/cli.md#batch-options-and-approval).
+Reverting a batch reverses its file changes only; actions an agent took after reading the skill stay in place
+([revert](../features/revert.md)).
 
 Trust the recipe source before evaluation. Recipes are executable Groovy; approval and recovery govern declared
 batch changes, not arbitrary effects of recipe code. A skill or native permission setting is not a sandbox supplied
@@ -117,7 +110,7 @@ by Cook.
 
 An organization skill can explain which native permission rules, instructions, task definitions or CI conventions
 fit a repository. State the reason for each choice and how to handle existing settings, because applying shared
-conventions needs judgement. Ingredients describe native formats; cookbook recipes can declare the requested changes.
+conventions needs judgment. Ingredients describe native formats; cookbook recipes can declare the requested changes.
 
 For example, a team may allow an observability search tool in an agent's project settings. Its skill should explain the
 scope and reason, inspect relevant project and personal settings, and review the actual permission effect. If the team's
@@ -136,8 +129,8 @@ Each rule should carry a concrete reason, because readers need to apply it to ca
   correction; review the resulting batch diff."
 - Incomplete: "Never edit skills directly."
 
-Capitalized commands without reasons do not explain scope or tradeoffs. State when a rule applies and what evidence
-supports it, rather than relying on emphasis.
+All-caps directives such as NEVER or MUST, given without reasons, do not explain scope or tradeoffs. State when a
+rule applies and what evidence supports it, rather than relying on emphasis.
 
 ## Call commands without duplicating their implementation
 
@@ -146,8 +139,7 @@ drift from the command's actual behavior. Explain the intent, prerequisites and 
 agent to imitate Cook's file writes or recovery records by hand when asking it to cook.
 
 Avoid copying full flag catalogs into skills. Link the [CLI reference](../features/cli.md) for the intended design and
-version-appropriate usage guidance for actual execution. Do not cite a command the CLI does not have. Existing content
-follows ordinary review.
+version-appropriate usage guidance for actual execution. Do not cite a command the CLI does not have.
 
 A skill for committing, pushing, opening pull requests or firing delivery events uses the repository's external tools
 and applicable authorization; file-diff approval does not authorize publication.
@@ -169,8 +161,3 @@ are review techniques.
 Choose evidence appropriate to the task: inspect changed native files, command results, scope, permission effects and
 unrelated content. Use an existing relevant check where the task calls for one, without treating an agent's prose as
 proof.
-
-Apply evaluates the supplied recipes against current content every time and needs neither batch history nor
-`cook.lock`. Applying another recipe never removes skill files a different recipe owns. Revert reverses only one
-recorded batch's changes, preserving later non-overlapping edits, and shows the actual diff for whole-batch approval.
-Revert does not reverse actions an agent took after reading the skill. See [revert](../features/revert.md).
