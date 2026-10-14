@@ -59,7 +59,7 @@ Nothing else contributes an entry: no file outside the repository is read. Lists
 entry from another, and
 nothing removes a floor rule. An entry in the policy file that would weaken a floor rule, such as an `allow` for a force
 push to the default branch, is not a validation error. `render` drops it from the output, renders the floor rule and
-reports the entry. [`doctor`](doctor.md) reports it as a finding until it is removed. When a command matches entries
+reports the entry. When a command matches entries
 with different decisions, the decision
 is taken in this order, in every worker:
 
@@ -71,7 +71,7 @@ A command no entry matches falls to the worker's default behaviour, which depend
 coding agent may prompt, let a classifier decide from the conversation, or run the command in a sandbox and ask to
 leave it. Whether a matching `ask` still prompts in the program's unattended mode, and whether a matching `allow` skips
 the program's own judgement, are properties of the program too. The worker ingredient's page in its cookbook states all
-three, and [safety](safety.md#unattended-runs) explains what they mean for an unattended run.
+three.
 
 ### Entry forms
 
@@ -312,7 +312,7 @@ More:
   ([pitfalls](pitfalls.md#permitting-the-cook-make-permits-its-steps)).
 - Don't use `allow` entries broader than the reason you wrote for them.
 
-[Safety guidelines](safety.md) explains the threat model behind these rules.
+[Safety guidelines](safety.md) covers declared file operations and the recipe trust boundary.
 
 ## Known gaps
 

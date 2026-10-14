@@ -74,8 +74,8 @@ import and behaves like a plain scaffold.
    - the archives of the chosen stations, of their ingredients and of their recipes, into the per-user cache.
 5. **Pin** the release that runs `scaffold` in `.cook/wrapper.yaml`, an owned file: its exact version, and the
    checksums of its four platform binaries. They come from that release's checksum file, fetched over HTTPS and
-   accepted only after its signature verifies against the release keys embedded in the running binary
-   ([safety](safety.md#the-pinned-binary)). With `--offline`, `scaffold`
+   accepted only after its signature verifies against the release keys embedded in the running binary.
+   With `--offline`, `scaffold`
    makes no network request and writes a pending pin instead: the version and the source,
    with `checksums: pending`.
 6. **Render** everything else, exactly as [`the-cook render`](render.md) does: `cook`, the renders and floor rules of
@@ -228,8 +228,7 @@ equivalence: Run(acme-deploy status *) from .acme/settings.json (project) is not
 
 ### The to-do
 
-What adoption cannot resolve deterministically, it prints as a to-do. The same list appears in
-[`the-cook doctor`](doctor.md) (and `the-cook doctor --json`) until each item is resolved.
+What adoption cannot resolve deterministically, it prints as a to-do.
 
 | Item | Raised when | Resolved when |
 | --- | --- | --- |
@@ -438,7 +437,7 @@ to-do:
 | --- | --- | --- |
 | `.cook/config.yaml already exists` | The repository is already scaffolded | Use `./cook render`; to start over, `./cook remove` first |
 | Exit 1: the checksum file of the pinned release cannot be fetched | No network access to the release source, which the pin's checksums come from | Rerun with network access, or with `--offline` and complete the pending pin before you push |
-| Exit 1: the checksum file's signature does not verify | The file is not signed by a release key the running binary trusts | Do not work around it; obtain `the-cook` again from the project's releases and report it ([safety](safety.md#the-pinned-binary)) |
+| Exit 1: the checksum file's signature does not verify | The file is not signed by a release key the running binary trusts | Do not work around it; obtain `the-cook` again from the project's releases and report it |
 | Exit 3 in a script | No terminal to confirm | Pass `--yes` |
 | Exit 3 naming `.cook/` | The directory holds neither a profile nor a manifest of `the-cook`, so another program created it | `the-cook` never writes into a directory it did not create; the repository cannot be adopted while the directory is there ([greenfield](#greenfield)) |
 | Exit 2 naming a rule | The equivalence check found a project rule the new files would not keep in effect; nothing was written | Keep the repository unadopted and report the rule to the publisher of the worker's ingredient, with the rule and the worker's version |

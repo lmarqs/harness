@@ -142,7 +142,7 @@ vouches for an ingredient, and its floor is what its author marked ([Trust](#tru
 
 | Check | What it is | Used by |
 | --- | --- | --- |
-| `version` | a command that prints the program's version, and the range of versions the ingredient supports | [`doctor`](doctor.md): a version outside the range is a finding |
+| `version` | a command that prints the program's version, and the range of versions the ingredient supports | program compatibility information |
 | `detect` | file globs whose match shows the program is in use | `ingredient list --cookbook` shows which ingredients of a tag match, so a repository finds a program it uses whose ingredient, and floor, it does not pin |
 
 Both checks are optional. An ingredient without a version check supports any version of its program. Whether or not
@@ -250,7 +250,7 @@ permission prompts, hooks or instruction file still runs as a worker:
 | `launch.model`, `launch.effort` | how a worker's model and effort, from `workers.<name>` or an `attempt` action, are passed | a model or an effort set for the worker is ignored, and `doctor` notes it |
 | `launch.prompt` | how the binary passes the prompt of an `attempt` action or a recipe's `attempt` step | an `attempt` action or step naming the worker fails validation |
 | `floor.bypass` | the arguments that would turn the worker's permission checks off, refused at every launch ([the floor](#the-floor)) | nothing is refused beyond the binary's own rules |
-| `payload` | the JSON paths in the worker's hook payload that give the neutral event, the session, the tool, the edited and read files, the working directory, the person's prompt text and the worker's notification message; which tools are edits and which are reads; the native event that carries each worker event: `session-start`, `post-tool-use`, `prompt-submit`, `attention`, `turn-end` | no hook is rendered for the worker, standing context reaches it only through `static` entries and, in an attempt whose prompt arrives on stdin, through the prompt ([context](context.md#delivery-in-the-prompt)), and `doctor` notes each event it lacks |
+| `payload` | the JSON paths in the worker's hook payload that give the neutral event, the session, the tool, the edited and read files, the working directory, the person's prompt text and the worker's notification message; which tools are edits and which are reads; the native event that carries each worker event: `session-start`, `post-tool-use`, `prompt-submit`, `attention`, `turn-end` | no hook is rendered for the worker, standing context reaches it only through `static` entries and, in an attempt whose prompt arrives on stdin, through the prompt, and `doctor` notes each event it lacks |
 | `instructions` | how the worker reaches `AGENTS.md`: through an import line in a block of its own instruction file | the worker reads `AGENTS.md` directly, or no instruction file |
 | `skills` | where the link to the shipped skill goes | no skill link |
 | `native_rules` | the patterns that recognise a policy string as one of the worker's native rule strings; which files and keys hold the worker's permission rules in each [import scope](scaffold.md#import-scopes), the native rule shape that reads back as a command prefix, and the keys that change permission behaviour without being rules, which adoption reports as notes; [`scaffold --adopt`](scaffold.md#how-each-source-becomes-an-entry) imports from them | no policy string is native for the worker, and adoption imports nothing for it |
@@ -650,7 +650,7 @@ The keys under `operations` for the worker contract:
 | `launch.sandbox_roots` | list of arguments | Passed once per writable directory, with `{path}` replaced by it |
 | `launch.network` | list of arguments | Passed at every unattended launch of a worker declared with `network: true` |
 | `launch.model`, `launch.effort` | list of arguments | Passed when a model or an effort is set, with `{model}` or `{effort}` replaced by it |
-| `launch.prompt` | `{ stdin, args }` | `stdin: true` passes the prompt of an `attempt` action or a recipe's `attempt` step on stdin, with the `always` entries of the `unattended` role before it ([context](context.md#delivery-in-the-prompt)); `args` are added with it |
+| `launch.prompt` | `{ stdin, args }` | `stdin: true` passes the prompt of an `attempt` action or a recipe's `attempt` step on stdin, with the `always` entries of the `unattended` role before it; `args` are added with it |
 | `payload` | map | `event`, `session`, `tool`, `file`, `cwd`, `prompt` and `message`, each a dotted JSON path in the payload; `edit_tools` and `read_tools`, lists of tool names; `events`, a map from each worker event to the native event that carries it |
 | `instructions` | `{ file, block, line }` | The worker's own instruction file, the id of the managed block rendered into it, and the import line the block holds |
 | `skills` | path | Where the link to `.agents/skills/the-cook` is rendered |

@@ -64,7 +64,7 @@ runners ([wrapper](wrapper.md)).
 No. Declare them as standing context in the profile: always on, when the worker touches matching files, or when a
 message contains certain words. `the-cook` injects them through the workers' hooks, and in an attempt whose prompt
 arrives on stdin it puts the `always` entries in the prompt, so they arrive even where the worker's program runs no hook
-unattended. `./cook context show` shows what a session would get and why ([context](context.md)).
+unattended. `./cook context show` shows what a session would get and why.
 
 ### Do I need a global install?
 

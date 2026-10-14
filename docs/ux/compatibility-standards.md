@@ -46,7 +46,7 @@ state each promise and how it changes.
   (`<source>/download/<version>/<kind>-<name>.tar.gz`, `<kind>` being `ingredient`, `station` or `recipe`, and
   `checksums.txt`), the repository file schemas (`wrapper.yaml` and `recipe.yaml` included), the wrapper's name,
   location and flags (`cook` at the repository root, `--no-download`), lifecycle event names and trigger points,
-  notification event names, action kinds and their keys, [standing-context](../features/context.md) triggers and roles,
+  notification event names, action kinds and their keys, standing-context triggers and roles,
   the profile's state path keys and their defaults, managed-block ids, their markers and their class (convention or
   tool), the generated-file header, the manifest location, and the format of the release's signed checksum file. Why:
   each of these is read by scripts, workers, policy entries, ingredients, stations, recipes, other tools' configuration

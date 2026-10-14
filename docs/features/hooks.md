@@ -25,7 +25,7 @@ The hooks file declares, once and neutrally, two kinds of automation:
   push a branch, open a pull request, post a chat message, clean up after a merge. `the-cook` runs them itself; they
   are not rendered into any worker's files.
 
-The same worker hooks also deliver the repository's [standing context](context.md), declared in the profile: skills
+The same worker hooks also deliver the repository's standing context, declared in the profile: skills
 and directives injected when a session starts, when the worker touches matching files, or when the person's message
 contains a listed word.
 
@@ -46,7 +46,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 | A session in a managed workspace to know its task | `session_start.context: true` |
 | A message when a worker waits for you: a permission prompt, a question, idle input | an `attention` action |
 | A message when a worker finishes a turn | a `turn_end` action |
-| A skill or directive in the worker's context without invoking it | a `context` entry in the profile ([context](context.md)) |
+| A skill or directive in the worker's context without invoking it | a `context` entry in the profile |
 | A hook `the-cook` does not model, such as a path guard before a tool runs | a `raw` entry |
 | Something to happen when work starts, is verified, completed, delivered, lands or stops for a person, such as a push, a pull request or a chat message | a `lifecycle` action |
 
@@ -76,10 +76,9 @@ the mapping:
 | `attention` | `attention` | `attention` actions exist |
 | `turn_end` | `turn-end` | `turn_end` actions exist |
 
-A neutral event the ingredient maps to no native event gets nothing rendered for that worker, and
-[`the-cook doctor`](doctor.md) reports the gap as a note. For example, a worker with no event for waiting for a person
-gets no `attention` entry, and `attention` never reaches its sessions. A worker whose ingredient declares no hook
-payload mapping, such as a codemod, gets no hook entry at all.
+A neutral event the ingredient maps to no native event gets nothing rendered for that worker. For example, a worker
+with no event for waiting for a person gets no `attention` entry, and `attention` never reaches its sessions. A worker
+whose ingredient declares no hook payload mapping, such as a codemod, gets no hook entry at all.
 
 The command of a `the-cook hook` entry starts the wrapper from the root of the checkout, which the version-control
 ingredient's `root` operation finds:
@@ -118,7 +117,7 @@ the-cook v0.9.0 is not cached on this machine; run ./cook version once to fetch 
 
 The wrapper prints both lines itself, as fixed text from its template, because no binary is there to print them. It
 recognises the session-start entry by the `session-start` argument. It still never downloads and still exits 0.
-Directives a session must never miss belong in [static context](context.md#static-entries), which is part of
+Directives a session must never miss belong in static context, which is part of
 `AGENTS.md`.
 
 Raw entries are rendered as native hook entries running their own commands, not through `the-cook hook`, so they keep
@@ -137,7 +136,7 @@ standing-context trigger.
 | Normalised field | Mapped by the worker ingredient from |
 | --- | --- |
 | event | the payload's hook event name: session start, post tool use, prompt submission, waiting for a person (`attention`) or turn end (`turn_end`) |
-| session | the payload's session id, for the once-per-session [context](context.md) entries |
+| session | the payload's session id, for the once-per-session context entries |
 | tool | the tool name, and whether the ingredient lists it as an edit tool or a read tool |
 | read and edited files | the tool input's file path, made relative to the checkout; for a patch tool that names no single file, the checkout's uncommitted changes against its head commit, as the version-control ingredient lists them |
 | prompt | the person's message, on prompt submission |
@@ -151,7 +150,7 @@ Files outside the checkout are ignored.
 | Setting | Output, as additional context for the worker |
 | --- | --- |
 | `context: true` | In a managed workspace, one line: the task id given with `--task`, when there is one, and the command to verify. Outside managed workspaces, nothing |
-| `context.always` in the profile | The `always` entries for the session's role, each headed by one line naming it ([context](context.md)). Under `COOK_CONTEXT_IN_PROMPT=1`, which an attempt sets when its prompt arrived on stdin, none: the binary put them in the prompt ([delivery in the prompt](context.md#delivery-in-the-prompt)) |
+| `context.always` in the profile | The `always` entries for the session's role, each headed by one line naming it. Under `COOK_CONTEXT_IN_PROMPT=1`, which an attempt sets when its prompt arrived on stdin, none: the binary put them in the prompt |
 
 Worker sessions never receive an update notice: moving the pin is a reviewed supply-chain decision, so the notice goes
 to people, on the stderr of explicit commands and in `the-cook doctor`.
@@ -168,7 +167,7 @@ For each edited file:
    hash of each file after a successful run. An edit that leaves the content identical to the cached hash skips the
    command.
 3. Every validator whose `when` matches any edited file runs once.
-4. The first time in the session a read or edited file matches a `when.paths` [context](context.md) entry, the entry
+4. The first time in the session a read or edited file matches a `when.paths` context entry, the entry
    is added to the worker's context.
 
 If a command or validator fails, `the-cook hook` exits 2 with the command's output on stderr. A coding agent that
@@ -182,7 +181,7 @@ feedback as in any attempt.
 
 ### Prompt submission
 
-When the person's message contains a word or phrase of a `when.prompt` [context](context.md) entry, compared
+When the person's message contains a word or phrase of a `when.prompt` context entry, compared
 case-insensitively as whole words, the entry is added to the worker's context, once per session. Nothing else runs on
 prompt submission.
 
@@ -274,7 +273,7 @@ The rules for actions:
   and a recipe declares none: a recipe run fires the events, and the actions here run at them.
 
 An action runs with the permissions of the process that fired it, outside any worker's permission checks. Review
-lifecycle actions like code; see [safety](safety.md).
+lifecycle actions like code.
 
 ## Reference
 
@@ -318,7 +317,7 @@ When the pinned binary is not cached, the wrapper exits 0 and `the-cook hook` do
 [ingredient](ingredients.md) the hook needs is not cached, `the-cook hook` prints one line on stderr naming
 `./cook fetch` and exits 0; when no pinned ingredient fills a contract the hook needs, it prints one line naming
 `./cook ingredient pin` and exits 0. Hooks never fetch and never fail. `COOK_NO_CONTEXT=1` turns off standing-context
-injection only ([context](context.md#environment)).
+injection only.
 
 Files read: stdin (the payload), `.cook/wrapper.yaml` (by the wrapper), `.cook/hooks.yaml`,
 `.cook/config.yaml`, `session.json` and `hook-checks.json` in the checkout's state directory, the read and edited

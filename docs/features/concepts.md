@@ -100,7 +100,7 @@ needs an MCP tool is an `attempt` action, or the coordinating worker's job.
 | Page | Covers |
 | --- | --- |
 | [Workflow configuration and engine boundaries](lifecycle.md) | native setup and the boundary between configuration and execution |
-| [Safety guidelines](safety.md) | the threat model, the layers of defence, placing policy entries, unattended runs, secrets |
+| [Safety guidelines](safety.md) | trusted recipe code, declared-operation review and recovery, native configuration and secrets |
 | [Pitfalls, gaps and traps](pitfalls.md) | what goes wrong, why, what `the-cook` does about it, and what you do |
 
 ## One split: deterministic work and variable work
@@ -114,8 +114,7 @@ choosing the loop runner and tracker the team uses and wiring them into the repo
 writes a starting point), arranging an unattended run's commits for review, writing memory, skills and recipes, and the
 work a recipe hands to a worker in an attempt step or to a person in a handoff. For example, rendering the policy into a
 coding agent's settings file has one right answer; deciding whether workers may run `terraform plan` without asking does
-not. The embedded [shipped skill](skills.md#the-shipped-skill) and [`the-cook explain`](explain.md) teach coding agents
-how to do that part.
+not.
 
 ## Two directories, two owners
 
@@ -148,7 +147,7 @@ The three repository files are the contract between a repository and the tool. E
 
 | File | Answers | Reference |
 | --- | --- | --- |
-| `.cook/config.yaml` (the profile) | What is this repository: modules, commands, bootstrap, lanes, workers, the ingredients and stations it pins, state paths, standing context? | [profile](profile.md), [context](context.md) |
+| `.cook/config.yaml` (the profile) | What is this repository: modules, commands, bootstrap, lanes, workers, the ingredients and stations it pins, state paths, standing context? | [profile](profile.md) |
 | `.cook/policy.yaml` (the policy) | What may workers run without asking, only after asking, or never? | [policy](policy.md) |
 | `.cook/hooks.yaml` (the hooks file) | What runs when a worker starts a session, edits a file, waits for a person or ends a turn, and what runs at each lifecycle event? | [hooks](hooks.md) |
 
@@ -280,7 +279,6 @@ How the commands use it:
 | [`render`](render.md) | write exactly the owned set, and drop files and blocks not produced, such as the renders of an ingredient deleted from `ingredients:` |
 | `render --check` | compare the owned set against what the sources produce |
 | [`remove`](remove.md) | undo: delete the owned content, the seeded files in `.cook/`, and seeded files elsewhere only while they still match the hash they were created with; `--eject`: keep convention blocks and rendered native content as hand-owned, delete the rest of what it lists; both: refuse an owned path whose hash changed unless `--force`, and list and leave any file the manifest does not record |
-| [`doctor`](doctor.md) | report missing, modified or dangling owned paths |
 
 ### Marking
 
@@ -300,7 +298,7 @@ Text outside markers, and keys `the-cook` does not own, are preserved byte for b
 Every convention a module establishes is written down where people and other tools already look, in plain language:
 
 - in a managed block of `AGENTS.md`: where managed workspaces live and how their branches are named, the permissions
-  workers work under, the memory index, and the [standing context](context.md) entries declared `static`;
+  workers work under, the memory index, and the standing context entries declared `static`;
 - for every path it creates, in a managed block of `.gitignore`, rendered by the version-control ingredient, such as
   `git`.
 
@@ -341,7 +339,7 @@ therefore never un-ignores a path another still uses.
 
 `AGENTS.md` is read at the start of every session of a worker that reads it, such as a coding agent, so the blocks
 `the-cook` writes there stay short: by default at most 40 lines together and 8 lines each, the `context` block excepted
-([profile](profile.md#blocks)). Detail lives in [`./cook explain <topic>`](explain.md) and the shipped skill.
+([profile](profile.md#blocks)). See [the contract and its reasoning](explain.md) for the documentation reading path.
 
 ## Modules
 
@@ -360,10 +358,9 @@ commands with task binding, the [`the-cook make`](recipes.md#the-cook-make) and 
 `policy` in `AGENTS.md`; `commands` in `README.md`; and the blocks the ingredients in use render, such as the
 version-control ingredient's `state` and `workspaces` blocks in its ignore file.
 
-[Standing context](context.md) is declared in the profile's `context` section. Entries delivered by hook need the
+Standing context is declared in the profile's `context` section. Entries delivered by hook need the
 `hooks` module; `static` entries go into the `context` block of `AGENTS.md` whatever the modules; and in an attempt
-whose prompt arrives on stdin, the `always` entries go in the prompt
-([delivery in the prompt](context.md#delivery-in-the-prompt)).
+whose prompt arrives on stdin, the `always` entries go in the prompt.
 
 ## State
 
@@ -394,7 +391,7 @@ judgement, from a person or a coding agent.
 | Brownfield, complex | its own workflow around its workers: verification scripts, a loop runner's configuration, a task tracker's data | `the-cook scaffold --adopt` | lane definitions from the verification scripts; pointing the loop runner's command for each task at `./cook make <recipe> --task <id> --unattended` or `./cook attempt`, and the tracker's updates at lifecycle actions, which a [station](stations.md) such as `agentic-coding` can write, with the `implement-task` recipe the runner runs |
 
 `scaffold --adopt` imports every permission rule and hook losslessly, proves it with an equivalence check, and prints
-a to-do of the leftovers; [`the-cook doctor`](doctor.md) keeps reporting open items until they are resolved. See
+a to-do of the leftovers. See
 [scaffold](scaffold.md#adopt) for the import scopes and rules.
 
 ## Optional and transparent

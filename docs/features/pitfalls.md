@@ -80,7 +80,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
   `./cook …` and `cook …` ([policy](policy.md#entries-for-the-cook-commands)). It cannot enumerate absolute
   paths or interpreters, so the guards that matter live in the binary: `the-cook lifecycle run` refuses inside an
   attempt whatever the spelling, because `the-cook attempt` sets `COOK_ATTEMPT=1`, and the `deliver` guards hold
-  whoever runs the command ([safety](safety.md#guards-live-in-the-binary)).
+  whoever runs the command.
 - **What you do.** Write each entry for a `the-cook` command once, as `[the-cook, …]`. Treat the policy entries as
   defence in depth and the binary's refusals as the guarantee; deny in `unattended.deny` what attempts must never run.
 
@@ -114,8 +114,8 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 - **Why.** A worker also reads local, user and managed settings, and its own mode, approval and sandbox settings.
   They combine with the project's rules.
 - **What `the-cook` does.** Never writes local, user or managed settings and never reads managed settings. Local and
-  user settings are read only by `the-cook scaffold --import local,user`, which copies them into the policy for review
-  ([safety](safety.md#importing-personal-scopes)); after that, `the-cook` cannot see changes to them.
+  user settings are read only by `the-cook scaffold --import local,user`, which copies them into the policy for review;
+  after that, `the-cook` cannot see changes to them.
   Adoption reports the mode, approval and sandbox settings it finds as notes.
 - **What you do.** When behaviour differs between machines, compare those files first. Before an unattended run, check
   them on the machine that runs it.
@@ -169,7 +169,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
   rendered spelling; renders `[the-cook, lifecycle]` into every worker's unattended denies itself and refuses
   `lifecycle run` inside an attempt in the binary; refuses unsafe delivery with its guards.
 - **What you do.** Read `the-cook lifecycle list` before allowing the command, and review every change to the actions
-  like code ([safety](safety.md#lifecycle-actions-are-code)).
+  like code.
 
 ### Permitting `the-cook make` permits its steps
 
@@ -217,7 +217,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
   verification never reads as a pass.
 - **What you do.** Run `./cook version` once on each machine after cloning and after each upgrade. Treat hooks as
   feedback; `the-cook verify` and CI are the proof. Declare directives every session must have as
-  [static context](context.md#static-entries).
+  static context.
 
 ## Workspaces and environment
 
@@ -404,7 +404,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
   alert, can address the worker through it.
 - **What `the-cook` does.** Validates every input by type before anything runs, so a `slug` holds only
   `[a-z0-9][a-z0-9-]*`, an `enum` only its listed values and no value begins with `-`, and runs the step under the
-  attempt contract, which bounds what the worker can do ([safety](safety.md#attempt-actions-and-prompt-injection)).
+  attempt contract, which bounds what the worker can do.
 - **What you do.** Declare inputs that reach a prompt as `slug`, `enum` or `bool`, and point the worker at what to
   read, such as a task id or a file path, instead of pasting text into the prompt. Keep `string` inputs for `run` steps,
   which pass each one as a single argument and never through a shell, and for templates, whose output is reviewed in
@@ -543,7 +543,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
   out of the committed file, not out of the other actions.
 - **What `the-cook` does.** Never writes those values to output, `--dry-run` or the lifecycle log.
 - **What you do.** Export only the variables the declared actions need, in the shell or CI job that fires them. Review
-  every action as code that can read them ([safety](safety.md#secrets)).
+  every action as code that can read them.
 
 ### A landed `attempt` action leaves a workspace with uncommitted edits
 
@@ -563,8 +563,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
   refusal reason.
 - **Why.** `$NAME` in `attempt.prompt` is replaced by the variable's value as plain text, and the worker reads that
   text as part of its instructions.
-- **What `the-cook` does.** Runs the worker under the attempt contract, which bounds what it can do
-  ([safety](safety.md#attempt-actions-and-prompt-injection)).
+- **What `the-cook` does.** Runs the worker under the attempt contract, which bounds what it can do.
 - **What you do.** Write prompts that point the worker at files and branches instead of pasting values written by
   people and workers.
 
@@ -578,7 +577,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
   its session-start event, which some workers do after a compaction. It competes with the task for the worker's
   attention.
 - **What `the-cook` does.** Reports a `doctor` note when a role's always-on content exceeds `context.budget`, listing
-  each entry's line count ([context](context.md#budget)).
+  each entry's line count.
 - **What you do.** Keep `always` entries short, switch long ones to `inject: pointer`, and move guidance that applies
   to some files only behind a `paths` trigger.
 
@@ -606,7 +605,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 - **Why.** Hook-delivered context comes from `the-cook hook`, which does not run until the pinned release is cached.
 - **What `the-cook` does.** Adds the not-cached line to the session's context, so the worker can tell the person.
 - **What you do.** Run `./cook version` once per machine. Declare what every session must have as
-  [static context](context.md#static-entries), which is part of `AGENTS.md`. A static entry reaches every role, so a
+  static context, which is part of `AGENTS.md`. A static entry reaches every role, so a
   directive only unattended or only interactive sessions must receive cannot be static: it reaches its role through the
   hook, and only where the pinned release is cached.
 
@@ -618,7 +617,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
   task text. When the caller passes the prompt among the worker's arguments, the binary cannot place text in it, and
   the entries depend on the session-start hook, which a worker program may not run unattended.
 - **What `the-cook` does.** Delivers the `always` entries in the prompt whenever the prompt arrives on stdin, and then
-  injects none through the session-start hook, so nothing arrives twice ([context](context.md#delivery-in-the-prompt)).
+  injects none through the session-start hook, so nothing arrives twice.
 - **What you do.** Pass the prompt on stdin in every loop runner's command and every script that runs
   `the-cook attempt` or `the-cook make`.
 

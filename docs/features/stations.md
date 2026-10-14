@@ -126,7 +126,7 @@ none: it adds commands and lanes to a lifecycle that another station, or the rep
 ### Entries
 
 Entries are additions to the repository's three YAML files: commands, `bootstrap`, lanes, validators, module switches
-and [standing context](context.md) in `.cook/config.yaml`; `unattended.deny` and other policy entries in
+and standing context in `.cook/config.yaml`; `unattended.deny` and other policy entries in
 `.cook/policy.yaml`; post-edit hooks and lifecycle actions in `.cook/hooks.yaml`. `apply` adds only what the files
 lack, following the [merge rules](#merge-rules). From then on each entry is the repository's own: people and workers
 change or delete it by editing the file, and nothing records which station wrote it. A newer version's entries reach a

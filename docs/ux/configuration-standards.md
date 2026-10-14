@@ -436,7 +436,7 @@ single meaning.
 ## Standing context
 
 Standing context puts known guidance in front of a worker at the moment it applies, without anyone invoking it. It is
-declared under `context:` in `.cook/config.yaml`. Reference: [context](../features/context.md). Why: guidance a
+declared under `context:` in `.cook/config.yaml`. Why: guidance a
 person must remember to invoke is skipped exactly when it matters, while a deterministic trigger applies it every time.
 
 ```yaml
@@ -480,8 +480,7 @@ context:
   arguments is left as it is, and the session-start hook delivers the entries. `when` entries are always
   hook-delivered. `context.budget` and `COOK_NO_CONTEXT=1` apply to prompt delivery as to hooks. Why: a worker program
   may run no hook unattended, since some run a project's hooks only after a person reviewed them, and nobody reviews
-  in an attempt; the binary can place text only in a prompt that passes through it
-  ([context](../features/context.md#delivery-in-the-prompt)).
+  in an attempt; the binary can place text only in a prompt that passes through it.
 - A `static` entry works without the binary and survives eject, because it is a convention block; it is not also
   injected by a hook, so it is never loaded twice. Static entries count against `context.budget`, not against the
   `AGENTS.md` block budget.

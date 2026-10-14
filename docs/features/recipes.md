@@ -142,7 +142,7 @@ release needed, and reads older ones inside its support window;
 `verify.require` is missing from `requires.lanes`, when an input takes the name of a flag of `the-cook make`, when a
 placeholder names no input, when a step has no kind or more than one, and when any of its files holds a conflict
 marker left by `recipe update`. Every command that reads a recipe checks it, and `the-cook doctor` reports each invalid
-one ([doctor](doctor.md#how-it-works)).
+one.
 
 Names are unique within `.cook/recipes/`, because each recipe is a directory there, and a station and a recipe may
 share a name. A recipe runs only as `the-cook make <name>`, so its name never meets a command's.
@@ -170,7 +170,7 @@ description.
 
 Inputs are plain text. In a `run` step a value stays one argument and never reaches a shell. In a prompt and in a
 handoff's text it is substituted as it is, so a value a person or a tracker supplies is a prompt-injection surface, as
-in `attempt` actions ([safety](safety.md#attempt-actions-and-prompt-injection)).
+in `attempt` actions.
 
 ### Placeholders
 
@@ -256,7 +256,7 @@ draft. Like an `attempt` action, the step runs on the uncommitted edits of the s
 and the worker cannot commit, push or fire lifecycle events. Its edits stay in the workspace for the next steps.
 Arguments given to `the-cook make` after `--` go to the worker of every `attempt` step, after those its ingredient pins,
 and a floor bypass argument among them is refused. When the prompt reaches the worker on stdin, it carries the `always`
-entries of the `unattended` [standing context](context.md#delivery-in-the-prompt) before the step's text, as in every
+entries of the `unattended` standing context before the step's text, as in every
 attempt.
 
 A worker declared with a jail runs the step inside it. From then until the run ends, the later `run`
@@ -500,7 +500,7 @@ itself.
 | Inputs are validated | every input is checked against its type before anything runs, and stays one argument in a `run` step |
 
 A `run` step runs with the rights of whoever started the run, outside every worker's permission checks, like a
-lifecycle action ([safety](safety.md#lifecycle-actions-are-code)). Adding a recipe from a cookbook is therefore the
+lifecycle action. Adding a recipe from a cookbook is therefore the
 trust decision for everything its steps run: `recipe add` shows every file it copies as a diff to review, and from
 then on the recipe changes only through the repository's own reviewed changes.
 

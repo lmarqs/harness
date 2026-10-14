@@ -136,7 +136,7 @@ stations:
 | --- | --- | --- |
 | `hooks` | boolean | [hooks](hooks.md) are rendered into the workers' native files |
 | `verify` | boolean | `the-cook verify`, its `verify` block, and the receipt that `completed` with scope `task` requires |
-| `memory` | boolean | [memory](memory.md) skeleton and `memory` block |
+| `memory` | boolean | memory skeleton and `memory` block |
 
 An omitted module is off.
 
@@ -202,8 +202,7 @@ applied ([stations](stations.md#stages)).
 ### `context`
 
 Standing context is guidance `the-cook` puts into worker sessions when a declared trigger fires, so nobody has to
-invoke a directive or a skill by name. The [context](context.md) page covers behaviour per worker, the worker events
-used, and more examples.
+invoke a directive or a skill by name.
 
 ```yaml
 context:
@@ -243,7 +242,7 @@ An entry:
 Sources are repository files and skills committed under `.agents/skills/`; nothing is fetched when a hook runs. An
 attempt receives the entries as they are at its base commit. Hook delivery
 needs `modules.hooks`; `static` entries do not. Preview what a session would receive with
-[`the-cook context show`](context.md#the-cook-context-show). `COOK_NO_CONTEXT=1` turns injection off for one process
+`the-cook context show`. `COOK_NO_CONTEXT=1` turns injection off for one process
 tree.
 
 ### `blocks`
