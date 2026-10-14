@@ -35,7 +35,7 @@ who rely on its guarantees.
 ## Reasons
 
 - **1.** Control over only those who use Cook would leave every independent way of working open while slowing down
-  willing users. Sharing reviewed configuration provides a useful service without trying to police its use.
+  willing users. Cook shares reviewed configuration without trying to police its use.
   The trade is that Cook cannot report that every change in a repository went through it.
 - **2.** The developers in Context differ in their program choices. Native configuration lets each use the setup
   they need without placing all their sessions under Cook. The trade is that configuring a program does not guarantee

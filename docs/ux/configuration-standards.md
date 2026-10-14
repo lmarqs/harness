@@ -94,7 +94,7 @@ programs can differ in matching, precedence, project trust, and local overrides.
 [permissions](../features/policy.md), [native hooks](../features/hooks.md), and [guidance](../features/context.md).
 
 A native hook command may need executables, credentials, a working directory, and safely quoted paths. The program runs
-that hook. Its eventual effects are not reversed by undoing the file configuration.
+that hook, and undoing the file configuration does not reverse its eventual effects.
 
 ## Ordered changes and approval
 

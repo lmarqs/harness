@@ -144,8 +144,8 @@ The metadata serialization format belongs to the implementation; the concrete pa
 decision.
 
 Apply requires neither batch history nor `cook.lock`; without a lock entry for a recipe, it removes nothing on that
-recipe's behalf. Losing `.cook/` loses the ability to revert earlier batches, not the ability to apply recipes;
-ownership survives in the committed `cook.lock`. Reverting a batch requires its record. See
+recipe's behalf. Without `.cook/`, earlier batches cannot be reverted, but recipes still apply; ownership
+survives in the committed `cook.lock`. Reverting a batch requires its record. See
 [architecture: paths and history](../architecture.md#paths-source-snapshots-and-local-history).
 
 ## Reference

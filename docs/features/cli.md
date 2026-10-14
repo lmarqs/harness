@@ -91,8 +91,8 @@ The first invocation evaluates only `a.groovy` and gives it `source` with the va
 ## Batch options and approval
 
 Batch options precede the first recipe operand. For revert, they precede the batch ID. `--batch-approve` applies to
-the whole operation: display the actual diff and proceed without prompting. Without it, ask before changing target
-files. Noninteractive execution without this flag does not silently authorize writes.
+the whole operation: Cook displays the actual diff and proceeds without prompting. Without it, Cook asks before
+changing target files. Noninteractive execution without this flag does not silently authorize writes.
 
 ```sh
 ./cook --batch-approve ./recipe.groovy

@@ -60,9 +60,9 @@ remote-sync permissions using the tracker's own controls; writing configuration 
 ## Loop runners
 
 A recipe can declare a loop runner's native configuration. Starting it, selecting tasks, choosing models and parallelism,
-creating working copies and signalling completion belong to the runner and whoever drives it. Existing runner
-configuration can be changed through declared operations and the ordinary diff/approval flow; it is not automatically
-kept merely because it exists. See [workflow configuration and engine boundaries](lifecycle.md).
+creating working copies and signalling completion belong to the runner and whoever drives it. Declared operations
+can change existing runner configuration through the ordinary diff/approval flow; it is not automatically kept merely
+because it exists. See [workflow configuration and engine boundaries](lifecycle.md).
 
 ## Task runners
 

@@ -131,11 +131,11 @@ keys and files it owns. A repository commit alone does not determine the effects
 Record each batch in the destination's ignored `.cook/batches/<batchId>/`, where the batch ID is the UTC start time.
 Capture the recipe sources actually evaluated, all consumed local and downloaded recipe/template sources, origins,
 arguments, execution order and result or failure. Save one reversible patch per touched file for its combined change;
-that one patch serves forward and reverse application
+the same patch is used for forward and reverse application
 ([local history](configuration-standards.md#local-history-and-explicit-reversal)).
 
-Apply needs neither batch history nor `cook.lock`. Losing `.cook/` loses the ability to revert earlier batches, not
-the ability to cook; ownership survives in `cook.lock`. Reverting a batch requires its record. Patch representations,
+Apply needs neither batch history nor `cook.lock`. Without `.cook/`, earlier batches cannot be reverted, but
+cooking still works and ownership survives in `cook.lock`. Reverting a batch requires its record. Patch representations,
 metadata schemas and history management belong to the implementation.
 
 ## When principles conflict

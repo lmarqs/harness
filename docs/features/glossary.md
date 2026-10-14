@@ -49,5 +49,6 @@ see the [root README](../../README.md) and [core implementation guide](../../cor
 | Trusted recipe | Executable code the caller trusts before evaluation. Batch review, output boundaries and recovery do not sandbox its arbitrary effects. See [safety](safety.md). |
 | Workspace | A separate working copy managed by people and their version-control tools. Cook can describe repository conventions and configuration. See [workspaces](workspaces.md). |
 | Wrapper | The committed `./cook` entry point that pins an engine version and checksum, downloads and verifies its platform package on first use, then caches it. See [wrapper](wrapper.md). |
-Ingredient/recipe APIs, station roles, nesting, hooks,
-decorators, annotations and parameter injection remain separate discussion topics.
+
+Ingredient/recipe APIs, station roles, nesting, hooks, decorators, annotations and parameter injection remain separate
+discussion topics.

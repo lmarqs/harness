@@ -36,7 +36,7 @@ session work.
 
 ## What `the-cook` is
 
-This section describes the intended design in the [architecture](architecture.md); the
+The [architecture](architecture.md) states this intended design; the
 [current implementation](../README.md#current-implementation) describes what runs today.
 
 Cook is a recipe driven configuration engine. Its CLI evaluates trusted executable Groovy recipes into an ordered
@@ -54,9 +54,8 @@ wrapper that pins a version and checksum, downloads and caches that package on f
 changes. See [installation](features/installation.md) and [the wrapper](features/wrapper.md) for this design and the
 current local build entry path. Gradle builds and packages Cook and cookbooks; the CLI is the public cooking interface.
 
-Personal setup backup (**kit**) remains future work in [issue #5](https://github.com/lmarqs/the-cook/issues/5).
-Agent-session orchestration (**cooking**) remains future work in
-[issue #6](https://github.com/lmarqs/the-cook/issues/6).
+Personal setup backup (**kit**) and agent-session orchestration (**cooking**) are future work, tracked in
+[issue #5](https://github.com/lmarqs/the-cook/issues/5) and [issue #6](https://github.com/lmarqs/the-cook/issues/6).
 
 ## Tenets
 

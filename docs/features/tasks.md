@@ -27,5 +27,5 @@ longer declares; it leaves a tracker's other data in place. Reverting a configur
 patches; it does not reverse task activity performed later by the tracker. See [revert](remove.md).
 
 ## Session boundary
-Task execution and session integration are outside the engine
-responsibilities defined here.
+
+Task execution and session integration are outside the engine responsibilities defined here.

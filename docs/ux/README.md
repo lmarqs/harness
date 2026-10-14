@@ -82,7 +82,7 @@ to an unforeseen case and judge whether it still serves its goal.
 
 ## Changing a standard
 
-Edit standards in place to follow the architecture, preserving relevant reasons and useful cross-references; Git keeps
+Edit standards in place to follow the architecture, and keep relevant reasons and useful cross-references; Git keeps
 earlier versions. Correct contradictory definitions and document the agreed design ahead of its implementation. When a
 product change is made, keep its implementation documentation accurate as well.
 

@@ -184,7 +184,7 @@ changed `test` itself, the revert writes nothing and names the conflicting file 
 ### Can I cook after losing `.cook/`?
 
 Yes. Apply requires neither batch history nor `cook.lock`, and ownership survives in the committed `cook.lock`.
-Losing `.cook/` loses the ability to revert earlier batches; reverting a batch requires its record. New batches still
+Without `.cook/`, earlier batches cannot be reverted, because reverting a batch requires its record. New batches still
 save their records before target writes. See [history availability](../architecture.md#history-availability).
 
 ## Permissions and program behaviour

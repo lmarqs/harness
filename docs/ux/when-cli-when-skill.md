@@ -30,7 +30,7 @@ part belongs in the binary.
 | Skill or focused prose | Guide source selection, configuration choices, review and other work requiring judgement | Shared, organization, personal or repository authors |
 | External tool or person | Execute tasks, run agents, manage working copies, publish work, contact services or update trackers | The team and those tools |
 
-Ingredients remain program data models. A recipe can configure native enforcement features, and the consuming program
+Ingredients are program data models. A recipe can configure native enforcement features, and the consuming program
 enforces them. See [program permissions](../features/policy.md).
 
 ## Criteria
@@ -48,7 +48,7 @@ Use these questions together, because repetition alone does not establish an eng
 | Is the choice shared or personal, and which existing content should remain? | Choose declared targets and maintenance sources deliberately |
 | Does the proposal depend on a deferred model or hook API? | Leave that API for the separate discussion rather than defining it here |
 
-The distinction between writing configuration and executing its workflow matters. A recipe may write a CI file, a
+Writing configuration and executing its workflow are separate steps. A recipe may write a CI file, a
 task-runner command or an agent hook; Cook reviews that file operation. The consuming program later runs it under its
 own working directory, credentials, permissions and failure rules. See [native program hooks](../features/hooks.md).
 

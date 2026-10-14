@@ -45,7 +45,7 @@ station semantics and lifecycle hooks remain a separate discussion.
 ## Reasons
 
 - **1.** Native formats determine where configuration can live. A separate file can make a change easy to review, but
-  cannot serve as a universal rule when a program consumes one shared file. Explicit targets work in both cases
+  cannot be a universal rule when a program consumes one shared file. Explicit targets work in both cases
   without requiring one exclusive file per program.
 - **2.** In the shared-settings example, a change to permissions does not request a new hook or database setting.
   Preserving unrecognized fields avoids silently dropping configuration that the model does not understand.
@@ -85,7 +85,7 @@ Costs:
 
 - Native formats need editing support that preserves unrelated content. A full serializer round trip can change
   formatting or drop unknown fields and therefore needs particular care.
-- A declared key can encompass an entire list or object. Review must expose entries that replacing that target removes.
+- A declared key can cover an entire list or object. Review must expose entries that replacing that target removes.
 - People and Cook can change the same file; a later proposal uses its current content, and replacing a person's edit
   to an owned key appears in the diff rather than happening silently.
 

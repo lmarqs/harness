@@ -89,8 +89,8 @@ during later use. See [program compatibility](../features/compatibility.md) and
 
 ## Transparency for people and CI that do not use Cook
 
-Programs consume their native files without invoking Cook merely to read them. Shared instruction sections remain
-readable without Cook, and skill discovery follows the consuming program.
+Programs read their native files directly, without invoking Cook. Shared instruction sections remain readable
+without Cook, and skill discovery follows the consuming program.
 
 A recipe may explicitly change build, test, deploy or CI files, so review those consequences; do not promise that all
 setup leaves behaviour unchanged. Teams choose whether CI invokes Cook and which sources and dependencies must be

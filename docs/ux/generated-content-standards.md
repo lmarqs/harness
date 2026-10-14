@@ -27,7 +27,7 @@ and recipes independently of the engine.
 | Directory or symlink | Declared path, where applicable | The declared filesystem operation |
 
 Native settings, instruction files, skills, and ignore entries may be recipe targets. A template supplies content.
-Executing external commands is not a batch action. The program runs its configured native hooks.
+Executing external commands is not a batch action; the program runs its configured native hooks.
 
 ## Header
 
@@ -73,8 +73,8 @@ Keep shared instructions concise, avoid duplicating existing guidance, and link 
 that load instructions repeatedly pay for every line. Content and size are recipe configuration choices.
 
 State a convention where people and the native program can find it, using the values that actually apply. Native
-configuration remains usable without Cook when it has no runtime dependency on Cook. Keeping that configuration is a
-choice to leave it in place. See [discard and revert](#discard-and-revert) for batch reversal.
+configuration remains usable without Cook when it has no runtime dependency on Cook. See
+[discard and revert](#discard-and-revert) for batch reversal.
 
 ## Keys in native files
 

@@ -74,6 +74,6 @@ diff review.
 patches before target writes, rolls back writes already made if a write fails, and retains the batch record and failure
 in the destination's ignored `.cook/batches/<batchId>/` directory. Ownership is recorded in the committed `cook.lock`.
 
-The [wrapper design](wrapper.md) provides a committed engine version and checksum pin, first-use package download and
-local cache, and explicit upgrades. Cookbook builds and user-supplied recipe versions remain separate from engine
-delivery.
+The [wrapper design](wrapper.md) pins the engine version and checksum in committed content, downloads the package on
+first use, caches it locally and makes upgrades explicit. Cookbook builds and user-supplied recipe versions remain
+separate from engine delivery.

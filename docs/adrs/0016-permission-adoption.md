@@ -53,7 +53,7 @@ approving it, without converting their configuration through a separate adoption
   would linger with no recipe responsible for it. Recording only what the recipe wrote leaves the example's domain and
   secret-file rules outside its ownership, so no recipe version removes them. Reverting with reverse patches restores
   the batch's own values without reevaluating the recipe, and refusing on overlap keeps a later manual rule change from
-  being overwritten. The trade: a removed rule is visible only in the diff, so reviewers must read deletions.
+  being overwritten. The trade is that a removed rule is visible only in the diff, so reviewers must read deletions.
 
 ## Rejected alternatives
 

@@ -22,7 +22,7 @@ on its matching platform without preparing a development environment.
 2. Engine distribution uses complete platform-specific jpackage packages containing Java, as explained in
    [0004](0004-runtime-dependencies.md). The wrapper pins and verifies the package.
 3. Engine and cookbook builds have distinct responsibilities. Cookbooks hold and ship ingredients and recipes;
-   engine packaging does not manage their versions. The public cooking interface is the CLI, while Gradle serves
+   engine packaging does not manage their versions. The public cooking interface is the CLI, and Gradle handles
    building and packaging.
 
 ## Reasons

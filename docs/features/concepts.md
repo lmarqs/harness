@@ -70,7 +70,7 @@ ownership. Apply needs neither batch history nor `cook.lock`; reverting a partic
 
 ## Files, sources and local history
 
-Native files are consumed directly by the configured programs. Teams choose which resulting files to commit and
+The configured programs consume native files directly. Teams choose which resulting files to commit and
 review.
 
 | Material | Location and purpose |
@@ -87,8 +87,8 @@ evaluated, all consumed recipe and template sources (local and downloaded), orig
 result or failure log. Source snapshots preserve original resolution.
 
 Save the batch record before the first target write. On a write failure, roll back changes already made by the batch and
-retain the record and failure. Losing `.cook/` loses the ability to revert earlier batches, not the ability to apply
-recipes; ownership survives in the committed `cook.lock`. See
+retain the record and failure. Without `.cook/`, earlier batches cannot be reverted, but recipes still apply;
+ownership survives in the committed `cook.lock`. See
 [history](../architecture.md#paths-source-snapshots-and-local-history).
 
 ## Conventions outlive the tool

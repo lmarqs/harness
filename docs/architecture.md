@@ -14,8 +14,6 @@ Teams and developers reuse configuration across repositories. Copying that setup
 share and review. Cook makes the requested file changes visible as a diff, while cookbooks carry the program models
 and recipes that describe the setup.
 
-The responsibilities are divided as follows:
-
 | Area | Responsibility | Requirement |
 | --- | --- | --- |
 | Cook engine | Evaluate trusted Groovy recipes, assemble their ordered file operations, present the diff, obtain approval, record the batch, and perform the writes. | FR-1 |
@@ -57,8 +55,6 @@ flowchart LR
 *Figure 1. System context: cookbook content, the engine, and configured programs. Answers FR-1, FR-2, and FR-5.*
 
 ## Evaluation, review, and writes
-
-The engine's operation follows this flow:
 
 ```mermaid
 flowchart TD
@@ -273,15 +269,14 @@ serves both forward and reverse application (FR-13, FR-24).
 Every apply invocation evaluates the supplied recipe versions against current content, even after an identical
 earlier invocation; an unchanged result produces an empty diff (FR-25).
 
-Batch records are local. Reverting a batch requires its record, so losing `.cook/` loses the ability to revert
-earlier batches; apply keeps working, and ownership survives in the committed `cook.lock`. See
+Batch records are local. Reverting a batch requires its record, so earlier batches cannot be reverted once `.cook/`
+is lost; apply keeps working, and ownership survives in the committed `cook.lock`. See
 [revert](features/remove.md) for details.
 
 ## Command line and build boundary
 
 The CLI is the public cooking interface. Gradle builds and packages Cook and cookbooks. The engine uses JVM-based
-distribution. The [CLI reference](features/cli.md) expands these forms
-and their argument scope (FR-17):
+distribution. The [CLI reference](features/cli.md) expands these forms and their argument scope (FR-17):
 
 ```text
 ./cook [batch-options] <recipe> [recipe-arguments] [<recipe> [recipe-arguments]]...
@@ -343,7 +338,7 @@ spelling (FR-20).
 
 ## Engine distribution
 
-Cook retains JVM-based distribution using `jpackage`. Each platform-specific package contains the engine and a
+Cook uses JVM-based distribution with `jpackage`. Each platform-specific package contains the engine and a
 bundled Java runtime. Distribute the complete package, including its runtime (FR-26).
 
 A repository commits an executable `./cook` wrapper that pins an engine version and the checksum of the package

@@ -250,7 +250,7 @@ These entries concern the [wrapper design](wrapper.md). The current repository l
 
 - **Symptom.** The downloaded package differs from the committed checksum.
 - **Why.** The download, selected platform package or pin may be wrong or changed.
-- **Cook's responsibility.** Refuse execution of a mismatched download; it is not accepted as the cached package.
+- **Cook's responsibility.** Refuse execution of a mismatched download and do not accept it as the cached package.
 - **What you do.** Compare the reviewed pin and package source and investigate the discrepancy. Do not silently change
   a checksum merely to make a download run. See [wrapper security](wrapper.md#security).
 

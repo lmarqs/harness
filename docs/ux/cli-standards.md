@@ -175,7 +175,7 @@ or replace the diff itself. See [message wording](messages-and-docs.md#cli-messa
 
 ### Icons
 
-Retain a small set of kitchen/lab icons for terminal messages. Their meanings describe activities and outcomes.
+Terminal messages use a small set of kitchen/lab icons. Each icon marks an activity or an outcome.
 
 | Icon | Kind |
 | --- | --- |

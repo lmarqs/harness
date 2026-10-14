@@ -106,8 +106,8 @@ origins, the recipe arguments, the execution order, and the result or failure lo
 already made and retain the record and failure. The metadata serialization format and complete storage schema belong
 to the implementation.
 
-Losing `.cook/` loses the ability to revert earlier batches, not the ability to apply recipes; ownership survives in
-the committed `cook.lock`. Reverting a particular batch requires its record.
+Without `.cook/`, earlier batches cannot be reverted, but recipes still apply; ownership survives in the
+committed `cook.lock`. Reverting a particular batch requires its record.
 
 Recipes are trusted executable code. Approval, output boundaries, and rollback cover declared batch operations,
 not arbitrary side effects during recipe evaluation.

@@ -18,7 +18,7 @@ describe intended use; the permission recipe selects a harness.
 The interactive policy allows status, diff, log, and the project check, asks
 before push, and denies hard reset. The unattended policy allows read-only Git
 inspection and denies push and hard reset. The shared project instructions
-live in `AGENTS.md`; policy `instructions` are not rendered by these recipes.
+live in `AGENTS.md`; these recipes do not render policy `instructions`.
 Neither policy changes agent bypass settings. Native settings and rules need
 review when the policy changes.
 
