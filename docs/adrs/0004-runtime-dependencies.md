@@ -16,8 +16,8 @@ want to change.
   [architecture](../architecture.md#engine-distribution) specifies jpackage packages containing Java and a committed
   wrapper that downloads, verifies and caches a pinned platform package on first use.
 - A launcher is one part of that complete package; distributing only the launcher omits the runtime and application
-  files it needs. The [installation reference](../features/installation.md) distinguishes current local packaging
-  from the intended wrapper delivery design.
+  files it needs. The root README's [install section](../../README.md#install) describes current local packaging, and
+  the [wrapper](../features/wrapper.md) page describes the intended delivery design.
 - [Recipes](../features/glossary.md) are trusted executable code and can call network services or local tools of
   their own.
 
@@ -74,5 +74,5 @@ Must be maintained:
 ## Confirmation
 
 - `./gradlew jpackageTest` builds and smoke-tests the packaged CLI with its bundled runtime.
-- Do the [installation](../features/installation.md) and [wrapper](../features/wrapper.md) references distribute the
-  complete package and keep first-use requirements apart from development tooling?
+- Do the root README's [install section](../../README.md#install) and the [wrapper](../features/wrapper.md) reference
+  distribute the complete package and keep first-use requirements apart from development tooling?

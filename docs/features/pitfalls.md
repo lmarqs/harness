@@ -12,9 +12,10 @@ setup.
 ## Overview
 
 This page follows the [intended architecture](../architecture.md). Each entry gives the symptom, its cause, Cook's
-responsibility and the reader's next step. Program-specific details belong in the cookbook's guidance and the
-consuming program's documentation. See [safety](safety.md) for batch guarantees and [the glossary](glossary.md) for
-terms.
+responsibility and the reader's next step. Program-specific details belong in the cookbook's guidance and the consuming
+program's documentation. See [batch approval and failure
+recovery](../architecture.md#batch-approval-and-failure-recovery) for batch guarantees and [the glossary](glossary.md)
+for terms.
 
 - [Permissions](#permissions)
 - [Recipes and trust](#recipes-and-trust)
@@ -33,7 +34,8 @@ terms.
   can change those words.
 - **Cook's responsibility.** Review and write declared native settings.
 - **What you do.** Inspect the consuming program's rule language and the variants the rule must cover. Choose a broader
-  deny where necessary rather than assuming a narrow prefix covers all forms. See [program permissions](policy.md).
+  deny where necessary rather than assuming a narrow prefix covers all forms. See [permission
+  rules](../ux/configuration-standards.md#permission-rules).
 
 ### A task runner runs whatever its tasks say
 
@@ -50,8 +52,9 @@ terms.
 - **Why.** Native rule languages and enforcement boundaries differ. One program may approve tool calls while another
   uses rules for escalation from its own sandbox.
 - **Cook's responsibility.** Expose declared configuration for review.
-- **What you do.** Review the native rule and its support in each program and mode. Keep unsupported choices explicit.
-  See [permission review](policy.md#reviewing-permission-choices).
+- **What you do.** Review the native rule and its support in each program and mode. Keep unsupported choices explicit
+  in cookbook guidance and repository instructions; do not present prose as enforcement or promise lossless
+  translation between programs. See [permission rules](../ux/configuration-standards.md#permission-rules).
 
 ### An `ask` choice stalls an unattended session
 
@@ -67,7 +70,7 @@ terms.
 - **Why.** Local, user or managed settings, trust and program mode may affect the result.
 - **Cook's responsibility.** Change declared targets only.
 - **What you do.** Compare the settings scopes and modes on both machines. Decide what belongs in shared files before
-  declaring changes. See [repository setup](scaffold.md).
+  declaring changes. See [a shared recipe may not fit this repository](#a-shared-recipe-may-not-fit-this-repository).
 
 ### MCP permission rules do not define servers
 
@@ -94,16 +97,21 @@ terms.
 - **Why.** Recipes are trusted executable Groovy code. Evaluation can do more than declare file operations.
 - **Cook's responsibility.** Diff review, destination boundaries, reverse patches and rollback govern declared batch
   operations. Executing commands is not a batch action; arbitrary recipe effects are outside those guarantees.
-- **What you do.** Read and trust sources before evaluation, including dependencies. Approving the resulting diff is a
-  separate decision. See [recipes](recipes.md) and [safety](safety.md).
+- **What you do.** Read and trust sources before evaluation, including dependencies; a source URL or a reviewed output
+  diff alone does not establish that code is safe to execute. Approving the resulting diff is a separate decision. See
+  [trust recipes explicitly](../philosophy.md#trust-recipes-explicitly) and the
+  [cookbook trust ADR](../adrs/0026-cookbook-trust.md).
 
 ### Text read by an agent can become instructions
 
 - **Symptom.** An agent follows unexpected directions from a task, comment, skill or generated instruction file.
 - **Why.** Agents act on text they read; a configuration file or skill can influence behavior without enforcing it.
 - **Cook's responsibility.** Review declared file changes.
-- **What you do.** Review shared guidance and sources, treat untrusted text as data and use the agent's own controls.
-  See [repository guidance and context](context.md).
+- **What you do.** Review who supplied shared guidance and which programs read it, treat untrusted text as data and use
+  the agent's own controls. Keep copied issue text, pull-request text and generated reports identified as data rather
+  than directives. Treat hook event payloads and agent-written messages as untrusted input, and do not turn their
+  contents into shell commands or instructions for another agent. See [instruction
+  files](../ux/generated-content-standards.md#instruction-files-and-conventions).
 
 ### A source checksum is not a trust decision
 
@@ -112,7 +120,7 @@ terms.
 - **Cook's responsibility.** The engine wrapper verifies its package against the committed pin. This does not
   authenticate or sandbox cookbook recipes.
 - **What you do.** Review source origins and recipe changes separately from engine package integrity. Users manage the
-  recipe versions they supply. See [cookbooks](cookbooks.md#cookbooks).
+  recipe versions they supply. See [cookbooks](../architecture.md#ingredients-recipes-and-cookbooks).
 
 ### Executable code can read inherited secrets
 
@@ -122,7 +130,8 @@ terms.
 - **Cook's responsibility.** Batch diff review and recovery provide no confinement or secret-redaction guarantee for
   arbitrary recipe effects or a program's hooks.
 - **What you do.** Limit credentials in each process environment and review all code that can access them. Check what
-  hook scripts put in notifications and logs. See [native program hooks](hooks.md).
+  hook scripts put in notifications and logs, because notifications can disclose repository content. See
+  [no secrets](../ux/configuration-standards.md#no-secrets).
 
 ## Program configuration
 
@@ -131,8 +140,7 @@ terms.
 - **Symptom.** Project hooks or rules do not take effect in another working copy.
 - **Why.** Loading settings and inheriting trust are program-specific; a nested folder does not guarantee either.
 - **Cook's responsibility.** Write declared configuration.
-- **What you do.** Inspect that program's lookup and trust rules in the actual folder. See [workspace
-  conventions](workspaces.md).
+- **What you do.** Inspect that program's lookup, trust and hook enablement rules in the actual folder.
 
 ### A native hook has missing dependencies or a different working directory
 
@@ -140,7 +148,9 @@ terms.
 - **Why.** The consuming program runs hooks with its own environment, event support and working directory.
 - **Cook's responsibility.** Declare and review hook settings and scripts.
 - **What you do.** Check executable availability, path quoting, credentials and failure behavior. Make repeated
-  formatting safe. Treat feedback hooks separately from CI evidence. See [native program hooks](hooks.md).
+  formatting safe, so a formatting hook avoids rewriting unchanged content. Keep frequent hook feedback fast and
+  focused, leave broader validation to the repository's task runner or CI, and treat feedback hooks separately from CI
+  evidence. See [native hooks](../ux/configuration-standards.md#native-hooks).
 
 ### Shared instructions cost attention and may be loaded twice
 
@@ -148,7 +158,41 @@ terms.
 - **Why.** Instructions compete for attention, and overlapping imports or skill discovery may repeat them.
 - **Cook's responsibility.** Write declared guidance.
 - **What you do.** Keep frequently loaded guidance concise, use focused topic files and remove duplicate references.
-  Consult the program's loading rules. See [skills](skills.md) and [context](context.md).
+  Consult the program's loading rules. See [discovery and session
+  guidance](../ux/skills-standards.md#discovery-and-session-guidance) and [instruction
+  files](../ux/generated-content-standards.md#instruction-files-and-conventions).
+
+### A shared recipe may not fit this repository
+
+- **Symptom.** Instructions or native configuration from a shared recipe name commands, paths or settings that do not
+  fit this repository, or replace choices its existing configuration holds.
+- **Why.** Each repository has its own dependency preparation, build and check commands, programs and contributor
+  guidance. A command name or permission setting suitable for one project may not fit another; a shared recipe is a
+  starting choice, not proof that its checks fit this project.
+- **Cook's responsibility.** Show the declared configuration as one diff against current content for whole-batch
+  approval, for an empty repository and one with existing files alike. Ownership never blocks a change.
+- **What you do.** Read the recipe's executable source and README, including required inputs and consumed templates.
+  Compare its declared configuration with the repository's actual programs, commands, paths and dependencies. Read
+  existing native settings, instructions, hooks and skill locations, and decide which targets should change and which
+  content should remain outside the declarations. Review the diff for permissions, replaced hooks, file or symlink
+  targets and instructions, without assuming that translation between programs preserves permission meaning.
+  Investigate unknown settings and rules that cannot be translated in each program. Keep executable choices in the
+  task runner, build tool, CI or program configuration that consumes them, point to them from contributor
+  instructions, keep commands and script dependencies readable and explain required environment settings. Review
+  these repository facts:
+
+| Repository fact | Useful place and review question |
+| --- | --- |
+| Dependency preparation | Project scripts or package manager files; does the setup fit a fresh checkout? |
+| Formatting, linting and building | Existing task runner or build configuration; do the commands name the actual project paths? |
+| Test families and other checks | Test runner and CI configuration; does a selection run meaningful checks rather than none? |
+| Agent permissions and hooks | Native settings; what can the program enforce and what runtime dependencies are needed? |
+| Contributor guidance and skills | Instruction and skill files; can each intended program discover them? |
+| Temporary files and working copies | Native ignore rules and repository conventions; which paths should external tools exclude? |
+
+For example, a Node project might document `npm ci` and its existing package scripts; a Go project might document
+package-based test selection; an infrastructure repository might keep validation and environment-specific planning
+commands in its task runner. These are project choices, and the programs that consume them run the commands.
 
 ## Checks
 
@@ -157,9 +201,11 @@ terms.
 - **Symptom.** A check succeeds while the change remains untested.
 - **Why.** A runner may accept a selection that matches no tests; passing unrelated tests provides no relevant evidence.
 - **Cook's responsibility.** Recipes can configure check commands and instructions; Cook does not verify test
-  selection or results.
-- **What you do.** Select tests that exercise the change, report what ran and configure the runner's no-match behavior.
-  See [repository checks and configuration](verify.md).
+  selection or results. A batch record's result or failure log concerns Cook's file patches and is not proof that a
+  project's checks passed.
+- **What you do.** Name the check commands in instructions and explain which changes they exercise. Select tests that
+  exercise the change, configure the runner's no-match behavior, and report which checks ran and which could not run,
+  with reasons a reviewer can assess.
 
 ## Paths and environment
 
@@ -169,16 +215,21 @@ terms.
 - **Why.** A tool's include patterns may not honor version-control ignore rules.
 - **Cook's responsibility.** Keep batch records in the destination's ignored `.cook/`. Recipes may declare other
   native exclusions.
-- **What you do.** Review each tool's exclusions for `.cook/` and any temporary working-copy directories. See
-  [workspace conventions](workspaces.md).
+- **What you do.** Review each tool's exclusions for `.cook/` and any temporary working-copy directories.
 
 ### Working copies inherit parent configuration and share services
 
 - **Symptom.** A working copy uses parent dependencies, or parallel checks collide on ports and databases.
-- **Why.** Programs may search parent directories, while separate directories still share machine services.
-- **Cook's responsibility.** Write the declared file setup.
+- **Why.** Programs may search parent directories for configuration, dependencies or tracker data, while separate
+  directories still share machine services.
+- **Cook's responsibility.** Write the declared file setup. Invoked inside a separate working copy, Cook treats that
+  working copy as the destination: declared writes stay within it, and its ignored `.cook/` holds its batch records.
 - **What you do.** Prepare dependencies in the intended working copy and configure unique service names or external
-  locks where needed. Working-copy creation and execution belong to external tools. See [workspaces](workspaces.md).
+  locks where needed. Document dependency preparation and relevant tool behavior with the repository's working-copy
+  convention, for example a `.worktrees/` location in contributor instructions with a matching ignore entry and
+  whether each working copy installs its own dependencies. Working-copy creation, removal and execution belong to
+  version control and external tools; before removing a working copy, preserve work and local data through those
+  tools, for example by committing or stashing changes.
 
 ### Running from a subdirectory changes the destination
 
@@ -186,7 +237,8 @@ terms.
 - **Why.** The current working directory is the destination.
 - **Cook's responsibility.** Contain declared writes and deletions within that directory, including symlink resolution.
 - **What you do.** Invoke from the intended destination and inspect target paths. Separately check how programs discover
-  root or nested settings. See [monorepos](compatibility.md#monorepos).
+  root or nested settings, for example in a monorepo. See
+  [destination and source origins](../architecture.md#destination-and-source-origins).
 
 ### Moving a recipe changes its relative source references
 

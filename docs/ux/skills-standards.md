@@ -14,11 +14,21 @@ A skill is a folder of instructions and supporting resources in the form its con
 form uses `SKILL.md`, with metadata that helps an agent decide when to load it. Native location, metadata and loading
 rules depend on the program.
 
-Cook recipes can declare skill files and discovery configuration as ordinary file operations. The agent decides when
-to load guidance and what to do with it. A successful Cook write does not prove that guidance was loaded or followed.
-This standard follows the [architecture](../architecture.md) and [skills reference](../features/skills.md); the
-[glossary](../features/glossary.md) defines recipe, ingredient, cookbook and batch. See
-[where new behavior goes](when-cli-when-skill.md) for the engine, cookbook and guidance boundaries.
+Cook recipes can declare skill files and discovery configuration as ordinary file operations. The agent decides when to
+load guidance and what to do with it. A successful Cook write does not prove that guidance was loaded or followed. For
+example, a recipe that declares a whole-file `.agents/skills/review/SKILL.md` target proposes a diff that adds that
+file:
+
+```diff
+--- /dev/null
++++ b/.agents/skills/review/SKILL.md
+@@ -0,0 +1 @@
++Review changes against the repository's contributor instructions.
+```
+
+This standard follows the [architecture](../architecture.md); the [glossary](../features/glossary.md) defines recipe,
+ingredient, cookbook and batch. See [where new behavior goes](when-cli-when-skill.md) for the engine, cookbook and
+guidance boundaries.
 
 ## Sources and maintenance
 
@@ -32,9 +42,10 @@ This standard follows the [architecture](../architecture.md) and [skills referen
 document which copy to edit and how updates reach users, because competing maintenance processes can overwrite each
 other. Engine upgrades do not automatically refresh cookbook or repository guidance.
 
-Committing skill content makes it reviewable and available in each clone. Where an installer uses a lock file, review
-it with the content it describes. If installation is required on each machine, document the prerequisites. Neither
-choice guarantees that every agent discovers the skill.
+Committing skill content makes it reviewable and available in each clone without running an installer. Where an
+installer uses a lock file as part of the team's chosen process, commit it and review it with the content it describes.
+If installation is required on each machine, document the prerequisites. Neither choice guarantees that every agent
+discovers the skill.
 
 ## When to create a skill
 
@@ -75,19 +86,20 @@ For programs that use a `SKILL.md` convention, this is a useful layout:
 
 ## Discovery and session guidance
 
-Inspect the consuming program's locations, metadata, links and project trust rules. A symlinked skills directory
-exposes whatever its link target contains; a real directory exposes only its own files. Declare individual skill
-targets rather than replacing a directory that contains unrelated skills, because a directory operation affects
-every skill in it.
-Declared writes stay inside the destination ([where files live](configuration-standards.md#where-files-live)).
+Inspect the consuming program's locations, metadata, links and project trust rules. A symlinked skills directory exposes
+whatever its link target contains, an individual skill link exposes one skill, and a real directory exposes only its own
+files. Declare individual skill targets rather than replacing a directory that contains unrelated skills, because a
+directory operation affects every skill in it. Declared writes stay inside the destination ([where files
+live](configuration-standards.md#where-files-live)).
 
 Guidance intended for frequent loading should be short and state its scope early, because unrelated always-on text uses
 attention on every task. Link focused detail where useful. Text should remain clear when encountered twice, since an
 agent may discover it through several paths.
 
 Instructions that must remain readable without Cook belong in native files the program can read directly. Markdown
-section boundaries use HTML comments, and a pointer does not guarantee that an agent follows it. See
-[repository guidance](../features/context.md) and [coexistence](compatibility-standards.md#coexistence).
+section boundaries use HTML comments, and a pointer does not guarantee that an agent follows it. See [instruction
+files](generated-content-standards.md#instruction-files-and-conventions) and
+[coexistence](compatibility-standards.md#coexistence).
 
 ## Skills and recipes
 
@@ -118,7 +130,8 @@ CI requires a particular commit message, that convention belongs in repository g
 process. Cook may configure those programs.
 
 For recipe-maintained content, prefer updating the source and applying the supplied recipe through the normal diff and
-approval flow. Repository-authored content can be edited directly. Manual edits are allowed; a later explicit apply may
+approval flow. For externally maintained skills, update the source and then refresh the repository's copy through the
+chosen process. Repository-authored content can be edited directly. Manual edits are allowed; a later explicit apply may
 propose replacing them. See [configuration review](configuration-standards.md#ordered-changes-and-approval).
 
 ## Explain the reasoning

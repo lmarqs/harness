@@ -78,6 +78,28 @@ that load instructions repeatedly pay for every line. Content and size are recip
 State a convention where people and the native program can find it, using the values that actually apply. Programs
 read the generated files directly, so they stay usable without Cook.
 
+Guidance tells a program where to look; prefer focused files to repeated copies. For example, a section a recipe
+proposes in `AGENTS.md` can tell readers to read `docs/database-conventions.md` before changing database migrations, or
+point to shared skills such as `.agents/skills/coding-guidelines/SKILL.md`. Review guidance as instructions, because
+anyone who changes it can steer the programs that read it, and review who supplied it and which programs read it.
+
+Memory files hold the reviewed knowledge itself: patterns, conventions and lessons that are not obvious from the code,
+so people and agents do not repeat mistakes once a session ends. A repository can choose a layout such as:
+
+```text
+.agents/memory/
+  backend-patterns.md    services, transactions, pagination
+  testing-patterns.md    fixtures and test conventions
+  known-risks.md         areas where small changes have broad effects
+```
+
+Keep each memory file focused on one area, describe what is true with enough context for a new reader to apply it,
+and remove outdated advice; session notes and to-dos belong in the team's tracker. Maintain references to guidance
+and memory files when files are added, renamed, moved or removed, because a stale reference leads readers to the wrong
+file.
+Applying a new version of a recipe removes the memory content its previous version owned and the new version omits,
+even after someone edited it; keep important knowledge by choosing and reviewing the intended declarations.
+
 ## Keys in native files
 
 A structured operation changes its declared key paths. Preserve unrelated keys and avoid unnecessary changes to their

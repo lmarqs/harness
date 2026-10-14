@@ -34,7 +34,15 @@ part belongs in the binary.
 | External tool or person | Execute tasks, run agents, manage working copies, publish work, contact services or update trackers | The team and those tools |
 
 Ingredients are program data models. A recipe can configure native enforcement features, and the consuming program
-enforces them. See [program permissions](../features/policy.md).
+enforces them. See [permission rules](configuration-standards.md#permission-rules).
+
+The distinction is between a program's configuration concepts and the choices a team makes using them:
+
+| Program knowledge an ingredient models | Setup choice a recipe can describe |
+| --- | --- |
+| Git ignore-file content | Ignore this repository's local build output or working-copy directory |
+| An agent's native configuration | Write the settings selected for this repository |
+| A program's native instructions and skill locations | Supply reviewed guidance or skills where that program consumes them |
 
 ## Criteria
 
@@ -51,7 +59,7 @@ not establish an engine responsibility:
 
 Writing configuration and executing its workflow are separate steps, so a hook or CI file answers question 4, not
 question 2: Cook reviews the file operation, and the consuming program later runs it under its own working directory,
-credentials, permissions and failure rules. See [native program hooks](../features/hooks.md).
+credentials, permissions and failure rules. See [native hooks](configuration-standards.md#native-hooks).
 
 Whatever the placement, decide whether the choice is shared or personal and which existing content should remain, and
 choose declared targets and maintenance sources accordingly.
@@ -109,14 +117,14 @@ evidence should fit the task.
 | Configure a loop runner or task tracker | Ingredients and recipes for native configuration | Running tasks, updating tracker state and signaling completion belong to external tools |
 | Launch an agent with network restrictions | Agent/runner controls and guidance | Cook can configure native settings |
 | Choose tests for a code change | Person or agent, guided by repository instructions | Relevant checks run through the repository's tools |
-| Watch production or investigate an alert | Agent or person using service tools and a skill | Service tools contact the service; Cook's batch holds file operations |
+| Watch production or investigate an alert | Agent or person using service tools and a skill | A recipe can configure monitoring through declared files; service tools contact the service, and Cook's batch holds file operations |
 | Push, open a pull request, add a CI trigger commit or notify chat | Team publication process and external tools | Approval of file operations does not cover these external effects |
 | Manage worktrees, detect merged branches or remove working copies | Version-control and working-copy tools | Those tools manage working copies |
-| Explain permissions, branches or working-copy locations in `AGENTS.md` | Native instruction prose or recipe-declared marked section | Readable conventions survive stopping Cook; use HTML comments for Markdown boundaries |
+| Explain permissions, branches or working-copy locations in `AGENTS.md`, with matching ignore rules in `.gitignore` | Native instruction prose or recipe-declared marked section | Readable conventions survive stopping Cook; describe the native settings and their limitations; use HTML comments for Markdown boundaries |
 | Share organization skills | Team-selected installer, recipe or reviewed copies | Choose one maintenance process; native discovery determines loading |
 | Record a lesson or open an issue | Agent or person with appropriate tools | Knowledge and tracker activity need judgment and their own review |
 | Pin or upgrade the Cook engine | Explicit committed wrapper version/checksum change | Engine and cookbook versions are separate choices; see [wrapper](../features/wrapper.md) |
-| Apply setup across repositories | Separate CLI invocations from each destination | Each has its own actual diff, approval, `cook.lock` and batch records |
+| Apply setup across repositories | Separate CLI invocations from each destination | Each has its own actual diff, approval, `cook.lock` and batch records; external tools select repositories and deliver changes |
 | Reverse a recorded change | Revert | Reverses one batch's changes; removing a recipe's whole contribution (discard) is deferred |
 
 ## Paths, batch records and distribution
@@ -126,6 +134,21 @@ invocation per repository ([destination and source origins](../architecture.md#d
 records stay local to that destination ([batch record](../architecture.md#one-record-for-the-batch)). The engine
 version is pinned by the committed wrapper and moves only by an explicit upgrade, separately from cookbook and recipe
 versions ([wrapper](../features/wrapper.md)).
+
+People or external automation choose the repositories and invoke Cook from each intended directory; keep that selection
+explicit, because an unrelated clone on a machine is not an instruction to configure it. Use the recipes and arguments
+that fit each repository, review a representative change before repeating it elsewhere, and review each destination's
+actual diff, for example:
+
+```sh
+cd /work/repo-a && ./cook apply ./recipe.groovy
+cd /work/repo-b && ./cook apply ./recipe.groovy
+```
+
+Approval covers a whole batch in one destination, and revert acts on that destination only. Rollback on write failure
+covers the batch in that destination and provides no transaction across repositories. Checking repositories, tracking
+rollout results, running agents, committing, pushing and opening pull requests belong to the maintainer's workflow and
+external tools.
 
 ## Anti-patterns
 

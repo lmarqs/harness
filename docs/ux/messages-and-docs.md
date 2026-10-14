@@ -135,7 +135,7 @@ in Markdown.
 | --- | --- |
 | `docs/architecture.md` | Intended responsibilities, operations, boundaries and distribution; supporting design pages follow it |
 | `docs/philosophy.md` | Problems, goals and tenets motivating the design |
-| `docs/features/` | Feature and concept references, including CLI grammar and operation semantics |
+| `docs/features/` | Index and reading path, glossary, CLI grammar, apply and revert semantics, the wrapper, pitfalls and this repository's agent setup |
 | `docs/adrs/` | Architectural decisions and their reasons within the architecture |
 | `docs/ux/` | Interaction and documentation standards within the architecture |
 | Root and core usage guides | Truthful instructions and limitations for current implementation |

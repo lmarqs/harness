@@ -72,8 +72,8 @@ result as intended. Engine builds and cookbook builds can be separate.
 
 Review native permissions, hook semantics, discovery paths, links and trust settings using the consuming program's
 rules. Local, user and managed settings can affect project settings. The consuming program enforces its permissions
-during later use. See [program compatibility](../features/compatibility.md) and
-[program permissions](../features/policy.md).
+during later use. See [permission rules](configuration-standards.md#permission-rules). Review configuration when
+upgrading a consuming program as well as when changing cookbook sources.
 
 ## Transparency for people and CI that do not use Cook
 
@@ -105,11 +105,18 @@ region; ownership never blocks a change.
 | Real directories, per-entry links or whole-directory symlinks | Review the existing shape and declared scope; resolved batch targets must remain within the destination |
 | Native agent skill discovery | The agent decides what it loads and follows ([skills guidance](skills-standards.md#discovery-and-session-guidance)) |
 | Local, user or managed program settings | Do not implicitly import them; choose shared versus personal content explicitly, with batch writes confined to the destination |
-| Task-runner, build and CI files | Recipes may target native configuration; those programs execute their own tasks independently |
-| Trackers, loop runners and working-copy tools | Recipes may configure them; those tools select tasks, update issue state, launch sessions and clean working copies |
+| Task-runner, build and CI files | Recipes may target native configuration; the repository's task runner or contributor instructions describe its preparation, build and check commands, and those programs execute their own tasks independently |
+| Trackers, loop runners and working-copy tools | Recipes may configure their native files; those tools select and assign tasks, track dependencies, update and synchronize issue state, launch sessions, signal completion and clean working copies |
+| Tracker databases and state files | They remain the tracker's data; applying configuration does not implicitly migrate, clear or synchronize them, and a recipe that targets them declares that change in the reviewed diff, within the destination |
+| Version-control configuration, ignore rules and hook files | Recipes may declare them and the version-control program interprets and runs them; people and external tools create branches, manage worktrees, create or remove working copies, detect landed work, enforce delivery guards and preserve uncommitted work |
 | Pushes, pull requests, notifications and MCP services | External tools and people perform these activities |
 | Another program's data in `.cook/` or `cook.lock` | Move it elsewhere first, because Cook writes batch records to `.cook/` and ownership to `cook.lock` |
 | Executables on `PATH` or a global Cook install | The wrapper design runs its pinned cached package; use explicit paths when selecting another executable |
+
+Trackers own their assignment rules, sync settings, remotes and commands. Synchronized tracker data can expose
+assignments and comments to other machines, so choose local or shared data and remote-sync permissions with the
+tracker's own controls; writing configuration does not isolate its later activity, and reverting a configuration batch
+does not reverse task activity the tracker performed later.
 
 Approval, output boundaries and rollback cover declared batch operations, not arbitrary side effects of trusted Groovy
 recipe code. Trust sources before evaluating them; the resulting diff is not a sandbox.
@@ -129,8 +136,8 @@ and ownership survives in `cook.lock` ([history availability](../architecture.md
 Cook ships as platform-specific `jpackage` packages that include Java. Distribute the complete package, because a copied
 launcher cannot find its runtime ([wrapper troubleshooting](../features/wrapper.md#troubleshooting)).
 
-The committed `./cook` [wrapper](../features/wrapper.md) pins an engine version and matching package checksums.
-Upgrades are explicit reviewed changes to both; ordinary invocation does not choose a newer release or reapply
-recipes. A matching checksum establishes correspondence with the committed package choice, not publisher identity, so
-review the source of the pin and checksums ([release trust reasoning](../adrs/0021-release-trust.md)). See
-[installation](../features/installation.md) for the current local entry path.
+The committed `./cook` [wrapper](../features/wrapper.md) pins an engine version and matching package checksums. Upgrades
+are explicit reviewed changes to both; ordinary invocation does not choose a newer release or reapply recipes. A
+matching checksum establishes correspondence with the committed package choice, not publisher identity, so review the
+source of the pin and checksums ([release trust reasoning](../adrs/0021-release-trust.md)). See the root README's
+[install section](../../README.md#install) for the current local entry path.

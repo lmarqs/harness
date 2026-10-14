@@ -82,6 +82,6 @@ Must be maintained:
 - Can a package that differs from the committed checksum execute or become an accepted cache entry? It must not.
 - Does changing the engine version also change its matching platform checksums for explicit review, while ordinary
   invocations keep using the pin rather than whatever the download source currently advertises?
-- Do the [wrapper](../features/wrapper.md) and [installation](../features/installation.md) pages describe a matching
-  checksum as integrity against the pin, with publisher identity and prior compromise left as trust limits, and the
-  same complete-package flow without promising signatures?
+- Does the [wrapper](../features/wrapper.md) page describe a matching checksum as integrity against the pin, with
+  publisher identity and prior compromise left as trust limits, and the complete-package flow without promising
+  signatures?

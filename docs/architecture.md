@@ -300,7 +300,7 @@ Engine releases supply the packaged runtime. Cookbook repositories hold and ship
 builds that can be independent of the engine build. Users supply the recipe version they intend to apply;
 `cook.lock` records which version produced the current ownership.
 
-See [installation](features/installation.md) for the delivery design and current local packaging entry path.
+The root README's [install section](../README.md#install) describes the current local packaging entry path.
 
 ## Requirements
 

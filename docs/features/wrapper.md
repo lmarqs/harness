@@ -82,9 +82,8 @@ recipe trust: Groovy recipes are executable code, and batch approval is not a sa
 ## Current repository launcher
 
 The existing [`cook` script](../../cook) invokes `cli/build/install/the-cook/bin/the-cook` after changing into the
-source repository. If that local distribution is absent, it asks the developer to build it with `cliBuild`. The
-[installation page](installation.md#build-a-local-package-today) describes the existing self-contained jpackage
-build.
+source repository. If that local distribution is absent, it prints `Build the CLI first: ./gradlew cliBuild`. The
+root README's [install section](../../README.md#install) describes the existing self-contained jpackage build.
 
 ## Troubleshooting
 
@@ -93,4 +92,4 @@ build.
 | An uncached package cannot be downloaded | Obtain the pinned platform package; a cached complete package runs offline |
 | A download does not match its checksum | Refuse execution; resolve the download or pin discrepancy |
 | A copied launcher cannot find its runtime | Transfer the complete jpackage image, including Java |
-| The current repository script requests a CLI build | Run `./gradlew cliBuild`; see [build a local package](installation.md#build-a-local-package-today) |
+| The current repository script prints `Build the CLI first: ./gradlew cliBuild` | The local CLI distribution is absent; run `./gradlew cliBuild`; see [start from a fresh clone](../../README.md#start-from-a-fresh-clone) |

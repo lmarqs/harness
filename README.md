@@ -41,9 +41,9 @@ the checkout root:
 ./cook agentic/permission --help
 ```
 
-The repository's [`cook` script](cook) launches the local distribution after changing into this checkout. To
-configure another directory, invoke `cli/build/install/the-cook/bin/the-cook` by its absolute path from that
-directory, or use its `--repo` option.
+The help output begins with `Usage:`. The repository's [`cook` script](cook) launches the local distribution after
+changing into this checkout. To configure another directory, invoke `cli/build/install/the-cook/bin/the-cook` by its
+absolute path from that directory, or use its `--repo` option.
 
 ### Development tooling
 
@@ -82,16 +82,18 @@ the intended architecture.
 
 ## Install
 
-There is no published release. Build a self-contained distribution with a Java 17 JDK (including `jpackage`):
+There is no published release. The [jpackage task](cli/gradle/jpackage.gradle) builds a self-contained distribution
+with a Java 17 JDK (including `jpackage`):
 
 ```sh
 ./gradlew jpackage
 cli/build/jpackage/the-cook/bin/the-cook --help
 ```
 
-The image includes the CLI, the packaged agentic permission, context, and init definitions with their declared
-dependencies, and a Java runtime. Copy the **whole** `cli/build/jpackage/the-cook` directory to another machine with
-the same OS and architecture. Run its `bin/the-cook` from the repository you want to cook:
+Its help output also begins with `Usage:`. The image includes the CLI, the packaged agentic permission, context, and
+init definitions with their declared dependencies, and a Java runtime. Copy the **whole** `cli/build/jpackage/the-cook`
+directory to another machine with the same OS and architecture. Run its `bin/the-cook` from the repository you want to
+cook:
 
 ```sh
 /path/to/the-cook/bin/the-cook init
@@ -105,7 +107,7 @@ destination's `cook.groovy`; the script and any sources it requires must be avai
 
 The paths above are for Linux. The build defines `the-cook.app/Contents/MacOS/the-cook` on macOS and
 `the-cook/the-cook.exe` on Windows. Build on the target OS and architecture. This task produces an application
-directory.
+directory. The Windows path in the build configuration does not establish verified Windows support.
 
 `./gradlew jpackageTest` builds the image and tests the native launcher with Java and Gradle absent from `PATH`, including `init`, packaged and local recipe discovery, repeated options, help, child updates, removal, legacy scripts, repeat cooking, and error exit codes. This distribution check runs separately from `./gradlew check`.
 

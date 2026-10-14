@@ -24,8 +24,8 @@ files directly. Recipe evaluation is trusted code, not sandboxed by the review f
 | [cli-standards.md](cli-standards.md) | Command grammar, output, errors, approval and noninteractive use |
 | [when-cli-when-skill.md](when-cli-when-skill.md) | Engine, cookbook, guidance and external-tool responsibilities |
 | [skills-standards.md](skills-standards.md) | Skill sources, native discovery, command guidance and review |
-| [configuration-standards.md](configuration-standards.md) | File locations, recipe inputs, defaults, validation, native values and secrets |
-| [generated-content-standards.md](generated-content-standards.md) | Native files, sections and markers, stable output, review and revert |
+| [configuration-standards.md](configuration-standards.md) | File locations, recipe inputs, defaults, validation, native values, permission rules, hooks and secrets |
+| [generated-content-standards.md](generated-content-standards.md) | Native files, sections and markers, guidance and memory files, stable output, review and revert |
 | [messages-and-docs.md](messages-and-docs.md) | Message wording, engine vocabulary and documentation authority |
 | [compatibility-standards.md](compatibility-standards.md) | Compatibility effects, native coexistence, recovery and engine pinning |
 
@@ -45,10 +45,8 @@ Background:
 - Architecture reasoning: [ADRs](../adrs/README.md)
 - Feature navigation: [features](../features/README.md)
 - CLI grammar and argument scope: [CLI reference](../features/cli.md)
-- Program data models: [ingredients](../features/ingredients.md)
-- Trusted recipe sources: [recipes](../features/recipes.md)
+- Ingredients, recipes and cookbooks: [architecture](../architecture.md#ingredients-recipes-and-cookbooks)
 - Vocabulary: [glossary](../features/glossary.md)
-- Cookbooks and composition boundaries: [cookbooks](../features/cookbooks.md)
 
 ## Who these standards protect
 

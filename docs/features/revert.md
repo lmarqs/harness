@@ -77,8 +77,8 @@ conflicting. The actual change is reviewed and approved as a batch.
 
 ## Discard
 
-Discard, which removes what `cook.lock` lists for a recipe without evaluating it, is deferred; until then,
-[revert](#revert) the batches that applied the recipe or remove its sections and keys by hand.
+Discard, which removes what `cook.lock` lists for a recipe without evaluating it or restoring earlier values, is
+deferred; until then, [revert](#revert) the batches that applied the recipe or remove its sections and keys by hand.
 
 ## Keeping native configuration
 

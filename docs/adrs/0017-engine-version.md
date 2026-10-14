@@ -26,7 +26,7 @@ version through the repository's entry point without installing Java or Gradle s
   batch records nor that lock.
 - The current [`cook` script](../../cook) launches a locally built JVM distribution, and the existing
   [jpackage build](../../cli/gradle/jpackage.gradle) produces an application image with bundled Java
-  ([installation](../features/installation.md#build-a-local-package-today)).
+  ([install](../../README.md#install)).
 
 ## Decision
 

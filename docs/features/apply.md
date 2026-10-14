@@ -44,7 +44,8 @@ Suppose recipe A sets `test = "A"` in `settings.toml` and creates `notes.txt`, a
 Applying A followed by B previews B's final value and A's new file, and B owns `test`. Applying B alone after an
 earlier apply of A updates `test`, moves its ownership to B, and leaves `notes.txt` intact. Applying B never removes
 A's output, and omitting a recipe from an invocation leaves its outputs in place. Applying a new version of A removes
-what A's previous version owned and the new version omits; the diff shows that removal.
+what A's previous version owned and the new version omits, even content someone edited; the diff shows that removal,
+so review deletions as carefully as additions.
 
 Every apply invocation evaluates the supplied recipe versions, including an invocation identical to an earlier one.
 Batch records never mark a recipe as already applied. An unchanged result has an empty diff.
