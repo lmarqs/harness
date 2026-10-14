@@ -15,12 +15,12 @@ another program changes no repository's declarations.
 ## Overview
 
 A **worker** is any program that changes the repository for someone: a coding agent, a bot, a codemod. Workers act in
-the [Implement](lifecycle.md#implement) stage of the [lifecycle](lifecycle.md), in one of two roles: interactively, in
-a session with a person, or unattended, as an [attempt](attempts.md), one run on one task under the guards of the
+the Implement stage of the lifecycle, in one of two roles: interactively, in
+a session with a person, or unattended, as an attempt, one run on one task under the guards of the
 attempt contract. A repository declares its workers in the profile's [`workers`](profile.md#workers), each with its
 role and the ingredient that describes its program. A [recipe](recipes.md) names the roles it requires and, in each
 `attempt` step, a declared worker with role `unattended` to start, so a recipe's steps reach a program only through
-the workers the repository declares ([attempts](attempts.md#in-a-recipe-step)).
+the workers the repository declares.
 
 A worker's ingredient fills the [worker contract](#the-worker-contract): how the binary starts the program and, when
 the program has them, where it reads its configuration, how its permissions and hooks are expressed, what its hook
@@ -93,7 +93,7 @@ each spelling, such as `the-cook lifecycle` and `./cook lifecycle` ([policy](pol
 | Role | Meaning | Native files carry | Under `the-cook attempt` |
 | --- | --- | --- | --- |
 | `interactive` | a session with a person: people work with this worker in the repository | the shared policy (`shared.*`) and the floor rules of every ingredient in use | **Allowed** when the ingredient passes `unattended.deny` as launch arguments, which add it at launch. **Refused** when the ingredient passes it only through rendered rules, or in neither way |
-| `unattended` | an attempt: the worker runs here only under `the-cook attempt`, an [`attempt` action](lifecycle.md#attempt) or a recipe's [`attempt` step](attempts.md#in-a-recipe-step) | the shared policy, the floor rules of every ingredient in use, and `unattended.deny`, including `[the-cook, lifecycle]` in each spelling `the-cook` renders | **Allowed** when the ingredient passes `unattended.deny` at launch or renders permissions. Otherwise **refused**, exit 3 |
+| `unattended` | an attempt: the worker runs here only under `the-cook attempt`, an `attempt` action or a recipe's `attempt` step | the shared policy, the floor rules of every ingredient in use, and `unattended.deny`, including `[the-cook, lifecycle]` in each spelling `the-cook` renders | **Allowed** when the ingredient passes `unattended.deny` at launch or renders permissions. Otherwise **refused**, exit 3 |
 
 How an ingredient passes `unattended.deny` is part of its [launch](#the-worker-contract). A worker whose ingredient
 passes it as launch arguments can be declared `interactive` and still run attempts. A worker whose ingredient passes it
@@ -105,13 +105,13 @@ unattended denies hold in every attempt. Such a worker may still be
 declared `interactive`, and the `policy` block marks the entries it does not receive as not enforced in it.
 
 A worker whose unattended denies live in rendered rules reads them from files inside its own checkout, which it can
-write. The [tamper check](attempts.md#the-attempt-contract) closes that gap. Before every launch it restores the
+write. The tamper check closes that gap. Before every launch it restores the
 [renders](ingredients.md#renders) of every ingredient in use (rendered rule files, owned keys of native settings files,
 `the-cook hook` entries), the wrapper `cook` and its pin `.cook/wrapper.yaml` from the base commit, the head commit of
 the checkout when `the-cook attempt` started. After the worker exits it compares them again, so a worker cannot change
 the rules it runs under or the binary its hooks and its next attempt run. The comparison after the worker exits also
 covers every file under `.cook/` and every file and skill a `context` entry names. An attempt whose worker changed any
-of them fails, whatever its [receipt](verify.md#the-receipt) (the record of a passing `the-cook verify`) says, and a
+of them fails, whatever its receipt (the record of a passing `the-cook verify`) says, and a
 failed attempt returns the checkout to the base commit, keeping its changes as `last-attempt.patch` in the state
 directory.
 
@@ -166,8 +166,7 @@ runner's model and effort flags reach the worker as the loop runner wrote them. 
 a bypass flag a loop runner adds to the arguments is refused when the attempt starts, at the first task, with exit 1
 naming the flag. Before it starts the worker, `the-cook attempt` resolves the version-control ingredient, the worker's
 ingredient and its jail's from the verified cache and uses them for the whole attempt; a pinned ingredient that is not
-cached fails the attempt with exit 3. The full attempt contract is on the [attempts](attempts.md#the-attempt-contract)
-page.
+cached fails the attempt with exit 3.
 
 ## Jails
 

@@ -258,7 +258,7 @@ owners depend on them as they are.
 | --- | --- |
 | A hosting platform's issues, projects, boards, comments, reviews and labels as the record of work | never written; the binary has no logic for the platform that hosts the team's work; task state `the-cook` creates stays clone-local; linking work to issues is a coding agent's job |
 | Pull requests, pushes, CI conventions and notification channels | produced only by actions the repository declares in `hooks.yaml`; the binary ships none |
-| MCP servers a worker is configured to use | never contacted by `the-cook`; work that needs them is an `attempt` action or the job of the [coordinating worker](../features/lifecycle.md#the-lifecycle-stage-by-stage) |
+| MCP servers a worker is configured to use | never contacted by `the-cook`; work that needs them is an `attempt` action or the job of the coordinating worker |
 | A task tracker's existing data | never read, initialised or configured by the binary; actions the repository declares, such as those a station applied for the tracker, run the tracker's commands on it, and what they write travels wherever the repository synchronises it |
 | A loop runner's repository and global configuration | never read; a station's template writes the loop runner's repository file only when it is absent, and from then on it is the repository's file. Why: the binary reads no program's configuration; a bypass argument set there reaches `the-cook attempt`, which refuses it at the first task |
 | A loop runner, a tracker or a script around them that a person runs outside the binary | neither detected nor prevented; the invariants hold for what the binary renders and for every worker the binary starts (`the-cook attempt`, `attempt` actions) |

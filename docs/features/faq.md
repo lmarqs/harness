@@ -26,13 +26,13 @@ install, `the-cook <command>` is equivalent.
 No. It runs the lifecycle the workers work in, coding agents among them, and does no stage's work itself: it never
 calls a model. When a loop runner needs a worker for a task, it calls `./cook make <recipe> --task <id> --unattended` or
 `./cook attempt <worker>`, and either one starts the worker's own program under the
-[attempt contract](attempts.md#the-attempt-contract); an [`attempt` action](lifecycle.md#attempt) and a recipe's
+attempt contract; an `attempt` action and a recipe's
 [`attempt` step](recipes.md#step-kinds) do the same.
 
 ### Is `the-cook` a coding-agent tool?
 
 It is a software development lifecycle a repository declares, and the binary that runs it: the stages a change goes
-through, the events between them, the guards that hold and the proof a change carries ([lifecycle](lifecycle.md)).
+through, the events between them, the guards that hold and the proof a change carries.
 Coding agents are the workers it is used with most, and agentic coding is the first station, but the lifecycle knows no
 program: a bot, a codemod or a person moves a change through the same stages, each program is described by an
 [ingredient](ingredients.md) the repository pins, and a [recipe](recipes.md) whose steps run no worker at all, only
@@ -42,7 +42,7 @@ commands and templates, goes through the same verification as one that does.
 
 The binary is never an MCP client. Work that needs an MCP tool is done by a worker that owns that connection and its
 credentials: the coordinating worker, meaning the worker session that runs `the-cook` commands for a person, or an
-[`attempt` action](lifecycle.md#attempt). Deterministic integrations use a service's API through an `http` action, or
+`attempt` action. Deterministic integrations use a service's API through an `http` action, or
 its CLI through a `run` action.
 
 ### Do my teammates need to install it?
@@ -303,25 +303,24 @@ workers whose ingredient accepts it, and the `policy` block lists the workers it
 For an application change, one that touches a file matching `verify.app_paths`, each lane (a named family of test
 commands in the profile) is either run or skipped with a reason, such as `--skip e2e="no route changed"`. A skip reason
 is free text that no check can judge. It may skip a lane, but an application change needs at least one lane of real
-evidence ([verify](verify.md#lane-rules)).
+evidence.
 
 ### My receipt became invalid after I committed.
 
 Committing does not invalidate it. Editing, adding, deleting or `chmod`-ing a changed file does, and so does rebasing
-onto new commits ([verify](verify.md#freshness)).
+onto new commits.
 
 ### Are tasks the same as issues on the hosting platform?
 
 A task is whatever the team's tracker holds, named by the free-form id given to `the-cook workspace create --task`: an
 entry in a tracker's database, a story in a JSON list, or an issue. The binary never writes issues or projects on any
-hosting platform. A repository that wants an issue closed when its task completes declares an action that does it
-([tasks](tasks.md)).
+hosting platform. A repository that wants an issue closed when its task completes declares an action that does it.
 
 ### I already sync my tracker across machines. Will `the-cook` break that?
 
 No. `the-cook` has no code for any tracker: it never initialises, configures or reads a tracker's data. A station that
 wires a tracker, such as `agentic-coding`, adds only lifecycle actions that run the tracker's own commands on the task a
-workspace is bound to ([tasks](tasks.md)).
+workspace is bound to.
 
 ## Lifecycle and delivery
 
@@ -329,7 +328,7 @@ workspace is bound to ([tasks](tasks.md)).
 
 Not by itself. Everything that leaves the clone is a lifecycle action the repository declares in its own
 `.cook/hooks.yaml`, such as a push and a pull request under `deliver`. No action runs that the repository does
-not declare, and the binary contains no hosting-platform logic ([lifecycle](lifecycle.md)).
+not declare, and the binary contains no hosting-platform logic.
 
 ### Can it notify a chat channel when work finishes or a worker needs me?
 
@@ -385,11 +384,10 @@ task, `the-cook attempt` fires no event, and the run ends with its verified comm
 drives the run fires its events. Most runs need judgement first (which task commits go together, how to word them), so a
 person or a coordinating worker arranges the commits with a skill, then runs
 `./cook lifecycle run completed --scope run` and `./cook lifecycle run deliver --scope run`; the `deliver` actions do
-the rest, for example a push and a pull request declared in `.cook/hooks.yaml` ([attempts](attempts.md#delivery)). In a
+the rest, for example a push and a pull request declared in `.cook/hooks.yaml`. In a
 workspace created with `--task`, `the-cook attempt` fires `completed` and, when the work is concluded, `deliver` itself,
 both with scope `task`. When the loop runner's command for each task is `./cook make <recipe> --task <id> --unattended`,
-each task runs in a workspace of its own bound to the task, and the run fires those events for it
-([attempts](attempts.md#through-a-recipe)).
+each task runs in a workspace of its own bound to the task, and the run fires those events for it.
 
 ### I run my loop runner directly with my own configuration. Does `the-cook` interfere?
 

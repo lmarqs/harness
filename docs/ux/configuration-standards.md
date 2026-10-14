@@ -180,8 +180,7 @@ the ingredients it pins by hash, and by nothing else.
   repository: a cached ingredient or station is loaded only when it matches the hash the repository pins, so two
   machines render the same bytes.
 - An organization's choices (which observability tools coding agents may read without asking, a deny on each
-  repository's deploy command, a CI-trigger commit in delivery
-  ([example](../features/lifecycle.md#an-organization-convention-a-ci-trigger-commit-before-the-pull-request)), the
+  repository's deploy command, a CI-trigger commit in delivery, the
   actions that keep the task tracker its repositories use up to date) are entries in each repository's files, written by
   a person or by a coding agent following a skill the organization publishes, and reviewed in each repository as a diff
   ([when-cli-when-skill.md](when-cli-when-skill.md)). Why: those choices differ between an organization's repositories,
@@ -333,8 +332,7 @@ a worker understands is expressible, in one of three forms, because a rule the p
 
 Actions are declared in `.cook/hooks.yaml`: lifecycle actions under the top-level `lifecycle:` key, notification
 actions under `attention:` and `turn_end:`, beside the keys for hooks on worker events (`post_edit`, `validators`,
-`session_start`, `raw`). Behaviour, trigger points and guards: [lifecycle guide](../features/lifecycle.md) and
-[hooks](../features/hooks.md). Why: everything that leaves the clone is written down and reviewed before it can happen
+`session_start`, `raw`). See [hooks](../features/hooks.md). Why: everything that leaves the clone is written down and reviewed before it can happen
 ([principles.md](principles.md#7-nothing-leaves-the-clone-undeclared)), in the repository where it runs.
 
 ```yaml
@@ -495,7 +493,7 @@ context:
 ## Ingredients and stations
 
 `the-cook` is a declared software development lifecycle that knows no program: a stage that needs one reaches it through
-a contract an ingredient fills, or through an action the repository declares ([lifecycle](../features/lifecycle.md)). A
+a contract an ingredient fills, or through an action the repository declares. A
 cookbook publishes three kinds of unit. An **ingredient** is a named, versioned description of one program: the version
 control system, a worker such as a coding agent, a loop runner, a task tracker, a task runner or a skills installer
 ([ingredients](../features/ingredients.md)). A **station** is what one way of working needs in place: the ingredients
@@ -844,8 +842,8 @@ origin:
   with the rest of `.cook/`, so its worker cannot change a recipe a later run reads either.
 - The run's Verify stage runs the lanes itself: every lane the change selects, as the receipt a step left in the
   workspace selects them, and every lane in `verify.require`, a required lane the change selects nothing for in full.
-  The receipt the run writes records per lane the patterns it ran or that it ran in full
-  ([verify](../features/verify.md)), and Complete replays it from the base, as for any work.
+  The receipt the run writes records per lane the patterns it ran or that it ran in full,
+  and Complete replays it from the base, as for any work.
 - `origin` is a record, not a source: `the-cook make` never reads it, and `the-cook recipe update` and `the-cook fetch`
   read it to find the version the copy came from ([Inputs](#inputs)). A recipe without `origin` has no version to merge
   from and changes only by editing.

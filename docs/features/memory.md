@@ -12,7 +12,7 @@ covers, and reviewers do not correct the same mistake twice.
 
 ## Overview
 
-Memory serves the Implement stage of the [development lifecycle](lifecycle.md): it is what a worker reads about an area
+Memory serves the Implement stage of the development lifecycle: it is what a worker reads about an area
 before it changes it, and the lessons of a change go into it once the change has landed.
 
 Memory is a repository's durable, reviewed knowledge for the workers that read instructions, such as coding agents:
@@ -108,8 +108,8 @@ Add the pagination rule to .agents/memory/backend-patterns.md, then run ./cook r
 
 ## Guidelines
 
-- Do record only reviewed, durable, repository-wide patterns. Session notes and to-dos belong in your task tracker
-  ([tasks](tasks.md)), not in memory.
+- Do record only reviewed, durable, repository-wide patterns. Session notes and to-dos belong in your task tracker,
+  not in memory.
 - Do describe what is true; delete what is false.
 - Do keep each file focused on one area so workers load only what they need.
 - Don't write secrets, credentials or personal data into memory; it is committed.

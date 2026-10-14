@@ -33,13 +33,13 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 | --- | --- | --- |
 | A person | trusted; decides | owns the repository, the credentials and the merge |
 | An interactive worker | an untrusted contributor, with a person present | acts on instructions and on everything it reads; a person sees its prompts |
-| A coordinating worker left alone | an untrusted contributor, with nobody present | the same worker, coordinating work such as an unattended run of [attempts](attempts.md) and its delivery, without the person who would catch a wrong step |
+| A coordinating worker left alone | an untrusted contributor, with nobody present | the same worker, coordinating work such as an unattended run of attempts and its delivery, without the person who would catch a wrong step |
 | The worker of an attempt, started by `the-cook attempt` | the least trusted | unattended, driven by task text, and the one that writes the code its own checks run |
 | A loop runner and its configuration | the person's tool | `the-cook` has no code for it and reads none of its configuration. When its command for each task is `the-cook attempt`, the attempt contract holds whoever calls it. Any other command is outside `the-cook` |
 | Task, issue and pull-request text | untrusted input | anyone who can write it can address the worker that reads it |
 | Lifecycle actions, notification actions, raw hooks, validators, lane commands | code | they run with the person's credentials; `the-cook` runs them without judging them |
 | A [jail](workers.md#jails), described by its ingredient | a program the repository trusts to confine | it runs the worker and the replay of its work with only the directories, variables and network it is given. Its ingredient, pinned like any other, says which arguments carry each. Its floor names the ones that would turn it off |
-| An `attempt` action | an unattended worker | it starts a worker on a prompt, often with values written by people and workers in it; it runs under the [attempt contract](attempts.md#the-attempt-contract) |
+| An `attempt` action | an unattended worker | it starts a worker on a prompt, often with values written by people and workers in it; it runs under the attempt contract |
 | Standing context: the skills and files `context` entries name | instructions | every matching session reads them as guidance; whoever can change them steers the workers |
 | `COOK_MESSAGE`, `COOK_REASON`, task titles and summaries, a recipe's inputs | untrusted input | workers, task text and whoever starts a run shape them; they reach notifications, `attempt` prompts and a recipe's prompts and handoff text |
 | An [ingredient](ingredients.md), pinned from a cookbook | data from an outside source, pinned in the profile by version and sha256 | pinning trusts the cookbook's `checksums.txt` as downloaded over HTTPS at that moment. The pin enters the repository only through a reviewed diff. Every archive is verified against its pin on download and on every load. No hook or attempt fetches one. Its operations, renders and floor are what its author wrote. No release key vouches for them. Reading the ingredient (`the-cook ingredient show`) before approving the pin is the trust decision for everything it runs |
@@ -78,11 +78,11 @@ worker that can edit a test and run the test runner runs code it wrote
 | Invariants in the binary ([concepts](concepts.md#built-in-invariants)) | completion without a replayed proof, delivery of unsafe work, lifecycle actions inside attempts, `attempt` actions and steps outside the attempt contract, an attempt started on ingredients resolved from its own checkout, a recipe that skips a lane, weakens a guard or fires an event | anything a repository allows on purpose, a recipe's `run` steps included |
 | Floor rules of the ingredients in use ([policy](policy.md#the-floor)) | permission bypass in attempts (each worker ingredient's bypass arguments), force push to the default branch (a version-control ingredient), command chaining a task runner offers (a task runner's ingredient), whatever a policy entry tries to weaken them with | a program whose ingredient is not in the profile's `ingredients:`; `doctor` reports one it detects |
 | Guards in the binary ([spellings](#guards-live-in-the-binary)) | `the-cook lifecycle run` inside an attempt, unsafe `deliver`, whatever spelling of the command a worker uses | a command `the-cook` does not run |
-| The attempt contract ([attempts](attempts.md#the-attempt-contract)) | the floor bypass arguments of the worker's ingredient among the arguments `the-cook attempt` receives, whoever calls it; `unattended.deny` commands; a worker committing or integrating its own work; a loop runner reading a failed attempt as done | commands `unattended.deny` does not list; a worker started without `the-cook attempt` |
+| The attempt contract | the floor bypass arguments of the worker's ingredient among the arguments `the-cook attempt` receives, whoever calls it; `unattended.deny` commands; a worker committing or integrating its own work; a loop runner reading a failed attempt as done | commands `unattended.deny` does not list; a worker started without `the-cook attempt` |
 | A jail around a worker's attempts ([workers](workers.md#jails)) | a worker reading the person's home, credentials and variables not passed; writing outside the checkout and `writable_roots`; writing the version-control metadata the binary's commit uses; reaching the network unless `network: true`; lanes and validators running the code the worker wrote | what the jail's own configuration or `jail.args` open; lifecycle actions and version-control operations, which run outside it; a worker without a jail |
 | The tamper check ([below](#the-attempt-contract-and-the-tamper-check)) | a worker editing rendered rules, owned settings keys, hook entries, `cook`, `.cook/wrapper.yaml`, any file under `.cook/`, the recipes in `.cook/recipes/` included, or a file or skill `context` names, to widen its next attempt or rewrite its rules | edits to other files, which the replay and review judge; edits to the person's own configuration outside the repository, which only a jail keeps out of reach |
-| Receipt replay ([verify](verify.md#who-relies-on-it)) | a worker claiming checks it did not run, or weakening the checks it is measured by | tests that pass without exercising the change |
-| Lifecycle guards ([lifecycle](lifecycle.md#built-in-guards)) | delivery from the default branch or of uncommitted work and, when the verify module is enabled, of work without a valid receipt; completion of a task without a valid receipt; actions run by an attempt's worker | what a declared action does once it runs |
+| Receipt replay | a worker claiming checks it did not run, or weakening the checks it is measured by | tests that pass without exercising the change |
+| Lifecycle guards | delivery from the default branch or of uncommitted work and, when the verify module is enabled, of work without a valid receipt; completion of a task without a valid receipt; actions run by an attempt's worker | what a declared action does once it runs |
 | The pinned, verified binary ([wrapper](wrapper.md)) | a download that does not match the checksums committed in the repository; a pin of a release its publisher did not sign; a worker hook fetching code; two versions of `the-cook` in one repository | a compromised signing key; `COOK_BINARY`, which bypasses the pin by design |
 | Committed context sources ([context](context.md#sources-and-trust)) | context fetched when a hook runs; a worker editing the instructions the repository commits, between attempts | a skill or file a reviewer accepted without reading; instructions the worker program reads from outside the repository |
 | Review and branch protection (external) | anything reaching the default branch without a person's approval | anything that does not go through the default branch: production, cloud, other systems |
@@ -143,7 +143,7 @@ before it runs the command at all.
 | Interactive | the mode the person chooses | the shared policy |
 | Coordinating worker left alone | its program's unattended mode, as its ingredient's page describes it | `allow` entries for everything the agreed delivery needs; the boundary of delivery stated by the person at the start (branch, pull request, CI trigger, auto-merge) |
 | Attempt | pinned by `the-cook attempt` ([workers](workers.md#attempt-launch)) | the shared policy plus `unattended.deny`; `workers.<name>.network: true` only when its attempts must reach the network |
-| Loop runner | its own process, started by a person, a coordinating worker or a script | a configuration whose command for every task is `./cook attempt` or `./cook make <recipe> --task <id> --unattended` ([how a loop runner calls it](attempts.md#how-a-loop-runner-calls-it)) |
+| Loop runner | its own process, started by a person, a coordinating worker or a script | a configuration whose command for every task is `./cook attempt` or `./cook make <recipe> --task <id> --unattended` |
 | Recipe run, unattended | `the-cook make --unattended`, which its caller passes when nobody drives the run, as a loop runner does; never started by the worker of an attempt; its `attempt` steps pinned as attempts | a recipe with no `handoff` step, which stops an unattended run as blocked ([recipe runs](#recipe-runs)) |
 
 Two properties of a worker's program decide how an unattended session behaves, when the program has a permission
@@ -218,12 +218,11 @@ for `the-cook attempt` run on its own that state is the base commit's, because t
 the recipe's next steps, and the replay and the completion belong to the run. It never resets the workspace: a failed
 step leaves its changes in place and stops the run as blocked, naming the step, and `the-cook make --continue` runs the
 step again on the tree as it is, so a person inspects or discards those changes first. The reset to the base and
-`last-attempt.patch` (step 9) belong only to `the-cook attempt` run on its own
-([attempts](attempts.md#in-a-recipe-step)).
+`last-attempt.patch` (step 9) belong only to `the-cook attempt` run on its own.
 
 ## Lifecycle actions are code
 
-Lifecycle actions ([lifecycle](lifecycle.md)) run as child processes of `the-cook`, with the environment of the process
+Lifecycle actions run as child processes of `the-cook`, with the environment of the process
 that fired them, outside the worker's per-command permission checks.
 
 - **Permitting an event permits its actions.** A worker allowed to run `the-cook lifecycle run deliver` runs every
@@ -231,7 +230,7 @@ that fired them, outside the worker's per-command permission checks.
 - **Permitting a trigger point permits its automatic actions.** A worker allowed to run `the-cook attempt` in a
   workspace bound to a task fires every `completed` and `deliver` action with `auto: true`; the same holds for
   `the-cook make`, `the-cook verify`, `the-cook workspace create`, `the-cook workspace remove` and
-  `the-cook fleet --deliver`. `the-cook doctor` never fires events ([lifecycle](lifecycle.md#trigger-points)).
+  `the-cook fleet --deliver`. `the-cook doctor` never fires events.
 - **The hooks file is the complete list.** Every action is declared in the repository's own `.cook/hooks.yaml`, and
   nothing outside the repository adds one. A station that declares
   actions writes them there as entries only when a person applies it, and the diff shows them. A recipe declares
@@ -260,7 +259,7 @@ In practice:
 
 ## Attempt actions and prompt injection
 
-An `attempt` action ([lifecycle](lifecycle.md#attempt)) starts a worker unattended on a prompt. It is an attempt, so
+An `attempt` action starts a worker unattended on a prompt. It is an attempt, so
 it runs under the same contract as `the-cook attempt`:
 
 - the unattended launch arguments of the worker's ingredient, the binary's `[the-cook, lifecycle]` deny and the
@@ -389,7 +388,7 @@ Every clone runs the release of `the-cook` that `.cook/wrapper.yaml` pins, throu
   only the credentials the run needs, without production tokens or a cloud administrator profile.
 - An `http` action reads its URL and header values only from the variables `url_env` and `headers_env` name, never
   from the file. `the-cook` never prints or logs them: `--dry-run` shows the variable names, and the
-  [lifecycle log](lifecycle.md#the-lifecycle-log) holds no environment values, URLs, headers, bodies or prompts.
+  lifecycle log holds no environment values, URLs, headers, bodies or prompts.
 - Every action inherits the environment, so a secret exported for one action is readable by all of them. Export only
   what the declared actions need, in the shell or CI job that fires them.
 - A command that looks local can follow an environment file to a remote system, such as a migration whose `.env`

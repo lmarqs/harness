@@ -12,7 +12,7 @@ release that repository runs, and a person and a coding agent asking the same qu
 
 ## Overview
 
-`the-cook explain` serves no single stage of the [development lifecycle](lifecycle.md): it explains the rules of every
+`the-cook explain` serves no single stage of the development lifecycle: it explains the rules of every
 stage, at any point of the work.
 
 `the-cook explain <topic>` prints the built-in documentation for one topic: what the standard is, and the reasoning
@@ -31,7 +31,7 @@ global install, `the-cook <command>` is equivalent.
 - Someone asks why `the-cook` refuses something: `explain invariants`, `explain safety`.
 - Someone asks what happens at each stage of a change, or a worker declares or triggers lifecycle actions or
   notifications: `explain lifecycle`, `explain hooks`.
-- Someone wants a stack's starting commands, [lanes](verify.md) and hooks, or reads a line such as
+- Someone wants a stack's starting commands, lanes and hooks, or reads a line such as
   `kept lanes.unit: differs from station node` from `station apply`: `explain stations`.
 - Someone makes a kind of change the repository has a [recipe](recipes.md) for, writes a recipe, takes a newer version
   of one, or resumes a stopped run: `explain recipes`.

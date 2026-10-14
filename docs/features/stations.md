@@ -16,7 +16,7 @@ another reviewed change.
 ## Overview
 
 `the-cook` declares a software development lifecycle: the stages a change goes through, the events fired between them,
-the guards that hold between stages and the proof a change carries ([lifecycle](lifecycle.md)). It knows no program;
+the guards that hold between stages and the proof a change carries. It knows no program;
 [ingredients](ingredients.md) describe the programs the stages reach. A station is a named, versioned description of
 one way of running that lifecycle, built from ingredients: which ingredient serves version control, which workers
 implement a change and in which role, and the lanes, denies, actions and files that go with them. A station holds up

@@ -17,7 +17,7 @@ files say, and a team can describe a new program without waiting for a release o
 ## Overview
 
 `the-cook` declares a software development lifecycle: the stages a change goes through, the events fired between them,
-the guards that hold between stages and the proof a change carries ([lifecycle](lifecycle.md)). The binary knows no
+the guards that hold between stages and the proof a change carries. The binary knows no
 program. A stage that needs one reaches it through one of the three [contracts](#contracts) the binary declares, or
 through an action the repository declares. An ingredient is a named, versioned description of one program, in data the
 binary interprets. It holds up to four parts:
@@ -113,8 +113,7 @@ An ingredient may mark deny rules and bypass arguments as floor. Floor rules are
   cannot remove or weaken it: an entry that tries, such as an `allow` for a command a floor rule denies, is dropped
   from the output and reported by `render` and `doctor` ([policy](policy.md#the-floor)).
 - A worker ingredient's floor bypass arguments are refused by `the-cook attempt` and by `attempt` actions wherever
-  they appear among the worker's arguments, with exit 1 naming the argument
-  ([attempts](attempts.md#the-attempt-contract)).
+  they appear among the worker's arguments, with exit 1 naming the argument.
 - A jail ingredient's floor bypass arguments, the ones that would turn its confinement off, are refused wherever they
   appear in the launch of a jailed attempt, the worker declaration's `jail.args` included
   ([the jail contract](#the-jail-contract)).
@@ -153,8 +152,8 @@ that is not installed.
 ## Contracts
 
 Three needs take a program the binary cannot do without: version control at Start, Verify, Complete and Landed,
-workers at Implement, and a jail around a worker's attempts, for a worker whose attempts the repository confines
-([lifecycle](lifecycle.md)). For each, the binary declares a contract, and an ingredient's operations fill it. The
+workers at Implement, and a jail around a worker's attempts, for a worker whose attempts the repository confines.
+For each, the binary declares a contract, and an ingredient's operations fill it. The
 version-control and worker contracts serve every repository that runs those stages; the jail contract is optional, and
 only a worker declaration that names a jail uses it. Each contract has a version, which an ingredient declares in its
 file ([The ingredient file](#the-ingredient-file)).
@@ -200,7 +199,7 @@ is an ingredient with the same operations, and the contract asks as little of th
 
 Every operation is required except `default_revision`, `update` and `metadata`. The binary uses `default_branch` where
 it needs the default branch as a name: the `{default_branch}` placeholder of floor rules and of the
-[neutral model](#the-neutral-model), `COOK_DEFAULT_BRANCH`, the [delivery guard](lifecycle.md#built-in-guards) against
+[neutral model](#the-neutral-model), `COOK_DEFAULT_BRANCH`, the delivery guard against
 the default branch and the refusals of `deliver`. It uses `default_revision` where it needs the default branch as a
 commit: the base of the workspace a [recipe run](recipes.md#the-run) creates and the commit the run reads its recipe,
 the profile, the policy and the hooks file from; the base of the fresh workspace an `attempt` action on `landed` runs
@@ -260,7 +259,7 @@ permission prompts, hooks or instruction file still runs as a worker:
 | checks | the worker versions the ingredient supports | any version |
 
 An item absent is a capability the worker lacks, and the rest of the
-[attempt contract](attempts.md#the-attempt-contract) holds without it: the tamper check, the replay from the base and
+attempt contract holds without it: the tamper check, the replay from the base and
 the withheld completion apply to every attempt. The one exception is `unattended.deny`: a worker it cannot reach, at
 launch or through rendered rules, runs no attempt at all. A worker declaration whose ingredient is not in
 `ingredients:`, or does not fill this contract, fails validation with exit 1. The
@@ -330,7 +329,7 @@ The binary composes the launch of a jailed attempt in this order:
 The binary starts the jail in the attempt's checkout, with every variable it passes set in the jail's own environment
 too, so a jail whose `env.pass` names a variable without `{value}` and takes the value from its environment gets the
 right one. The checkout is the jail's working directory and never a `share.write`: the writable set is the checkout
-and `writable_roots`, and the clone's state directory is not in it ([attempts](attempts.md#the-attempt-contract)). It
+and `writable_roots`, and the clone's state directory is not in it. It
 refuses the floor bypass arguments of both ingredients wherever they appear in the whole launch, the caller's arguments
 and `jail.args` included: a jail bypass argument in the profile's `jail.args` is a validation error, exit 1, and any
 other bypass argument is refused at launch with exit 1, naming it. Nothing else of the person's home is shared: how the
@@ -504,7 +503,7 @@ actions read an ingredient only from the cache. When a pinned ingredient is not 
 a hook prints one line on stderr and exits 0, and `doctor` reports a finding. A fresh clone works offline once its
 ingredients are cached, and a CI job runs `./cook fetch` before `render --check` or `doctor`. An attempt resolves the
 version-control ingredient, the worker's ingredient and its jail's from the cache before anything else and uses that
-resolution for every read, comparison, reset and launch of the attempt ([attempts](attempts.md#the-attempt-contract)).
+resolution for every read, comparison, reset and launch of the attempt.
 Nothing rendered depends on a station, so a station missing from the cache stops only `station show` and `station apply`
 without `--cookbook`, which fetch it. Nothing a run reads comes from a recipe's origin either: a recipe runs from
 `.cook/recipes/`, and the version it came from serves only `recipe update`, which fetches it when it is not cached.

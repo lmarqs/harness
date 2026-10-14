@@ -16,7 +16,7 @@ whatever anyone edits.
 ## Overview
 
 The policy says what [workers](workers.md) may do without asking (`allow`), only after a person confirms (`ask`), or
-never (`deny`), plus what is denied only to [attempts](attempts.md#the-attempt-contract), the unattended runs
+never (`deny`), plus what is denied only to attempts, the unattended runs
 `the-cook attempt`, `attempt` actions and the `attempt` steps of [recipes](recipes.md#step-kinds) start. It is written
 once, neutrally where the workers allow it, and each worker's [ingredient](workers.md#the-worker-contract) renders it
 into that program's native permission format. The [floor](#the-floor) is always added and cannot be removed or weakened:
@@ -133,7 +133,7 @@ floor entry for its own commands, the module entries and the [seeded entry](#the
 A prefix rule still matches only leading words, so an absolute path to the wrapper, or `sh cook …`, matches none of
 the rendered spellings ([pitfalls](pitfalls.md#the-wrapper-is-a-second-spelling-of-every-the-cook-command)). The guards
 that matter therefore never rest on these entries: the binary itself refuses `the-cook lifecycle run` inside an
-attempt's worker, and it enforces the [`deliver` guards](lifecycle.md#built-in-guards) whoever runs the command. The
+attempt's worker, and it enforces the `deliver` guards whoever runs the command. The
 entries are defence in depth: they make a worker stop or ask before it runs the command at all.
 
 ### The floor
@@ -147,15 +147,15 @@ worker's output on every render, as long as the ingredient is in the profile's `
 | Rule | From | Entries |
 | --- | --- | --- |
 | Whatever an ingredient marks as floor about its program, such as no force push to the default branch | the floor rules of each ingredient in use, here a version-control ingredient | `shared.deny` or `unattended.deny` entries the ingredient declares, with values the ingredient's operations report, such as the default branch the version-control ingredient reports |
-| Lifecycle actions never run inside an attempt's worker | the binary | `unattended.deny`: `[the-cook, lifecycle]`, rendered for each spelling `the-cook` renders. The binary refuses `the-cook lifecycle run` inside the worker on its own; `the-cook attempt` fires `completed` and `deliver` in its own process ([lifecycle](lifecycle.md#built-in-guards)) |
-| Attempts never bypass permissions | the floor bypass arguments of each worker ingredient | not a policy entry: `the-cook attempt`, `attempt` actions and recipes' `attempt` steps refuse them among the arguments they receive; see [attempts](attempts.md#the-attempt-contract) |
+| Lifecycle actions never run inside an attempt's worker | the binary | `unattended.deny`: `[the-cook, lifecycle]`, rendered for each spelling `the-cook` renders. The binary refuses `the-cook lifecycle run` inside the worker on its own; `the-cook attempt` fires `completed` and `deliver` in its own process |
+| Attempts never bypass permissions | the floor bypass arguments of each worker ingredient | not a policy entry: `the-cook attempt`, `attempt` actions and recipes' `attempt` steps refuse them among the arguments they receive |
 
 Every floor rule an ingredient marks comes from the cookbook the repository pinned it from; a reviewer reads them with
 `./cook ingredient show <name>` before approving the pin. A floor rule exists only while its ingredient is pinned in the
 profile's `ingredients:`: a repository that uses a program without its ingredient has none of that ingredient's floor
 rules.
 
-Organization choices are not in the floor: denying the remote sync of a [task tracker](tasks.md), allowing deploy status
+Organization choices are not in the floor: denying the remote sync of a task tracker, allowing deploy status
 tasks, MCP read rules. They belong in each repository's policy file, written there by a person, by a worker, or by the
 entries of a station the repository applied, and reviewed like any other change ([stations](stations.md)).
 
@@ -174,7 +174,7 @@ permits everything the `deliver` actions do: they run as child processes of `the
 permissions do not reach. The seeded `ask` keeps a person in the loop before delivery. It is a seeded entry, which the
 repository owns and may change; it is not an invariant. A repository
 whose `deliver` actions only open draft pull requests may move it to `allow`. Lifecycle actions are committed
-configuration; review them like code ([lifecycle](lifecycle.md), [safety](safety.md)).
+configuration; review them like code ([safety](safety.md)).
 
 ### Adoption
 

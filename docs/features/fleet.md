@@ -12,12 +12,12 @@ repository reviews on its own, and the maintainer sees which repositories passed
 
 ## Overview
 
-`fleet` serves no single stage of the [development lifecycle](lifecycle.md): it runs one `the-cook` command in many
+`fleet` serves no single stage of the development lifecycle: it runs one `the-cook` command in many
 repositories, and with `--deliver` it takes each repository's change through that repository's Deliver stage.
 
 `the-cook fleet` runs one `the-cook` command across an explicit list of repositories and prints a pass/fail summary.
 With `--deliver`, it also commits each repository's changes on a new local branch and fires that repository's
-[`deliver` event](lifecycle.md), so the change leaves the clone through the actions the repository declares. It is how
+`deliver` event, so the change leaves the clone through the actions the repository declares. It is how
 a `the-cook` change reaches many repositories at once, and how it is withdrawn.
 
 `the-cook` itself never pushes, opens pull requests or writes to a hosting platform. What delivery means in a
@@ -78,7 +78,7 @@ commit_message: "chore(the-cook): <command>"
 
 A convention such as a CI-trigger commit or a commit trailer belongs in a `deliver` action in the repository's own
 `.cook/hooks.yaml`, not in the fleet file: it then applies to every delivery from that repository, not only to
-fleet runs ([lifecycle](lifecycle.md#an-organization-convention-a-ci-trigger-commit-before-the-pull-request)).
+fleet runs.
 
 ### For each repository
 
@@ -93,13 +93,13 @@ fleet runs ([lifecycle](lifecycle.md#an-organization-convention-a-ci-trigger-com
    that confirm need `--yes`. In a repository with `.cook/wrapper.yaml`, the command runs the version that repository
    pins, downloaded and verified when this machine has not cached it yet. In a repository without one, such as one
    `scaffold` is adopting, it runs the fleet's own binary. A command that exits 3 there fires that repository's
-   `blocked` [event](lifecycle.md), with the refusal in `COOK_REASON`. A repository the fleet refuses in step 1 or 2
+   `blocked` event, with the refusal in `COOK_REASON`. A repository the fleet refuses in step 1 or 2
    runs nothing, `blocked` included.
 4. With `--deliver`, if the command exited 0 and changed files:
    1. commit them on the new branch with `commit_message`;
    2. run `the-cook verify` (no lanes are needed for a change outside `app_paths`), because the
-      [`deliver` guards](lifecycle.md#built-in-guards) require a committed, clean branch that is not the default branch
-      and, when the verify module is enabled, a valid [receipt](verify.md#the-receipt);
+      `deliver` guards require a committed, clean branch that is not the default branch
+      and, when the verify module is enabled, a valid receipt;
    3. fire `deliver` with scope `change`, which runs every `deliver` action declared for that scope, in order,
       whatever its `auto` flag.
 
@@ -150,7 +150,7 @@ the-cook fleet <command> [command args...] [--repos <file>] [--deliver] [--conti
 
 Files read: the fleet file, each repository's files as the command reads them. Written: whatever the command writes
 in each repository; with `--deliver`, a local branch, a commit, a receipt, the
-[lifecycle log](lifecycle.md#the-lifecycle-log), and whatever the repository's `deliver` actions do.
+lifecycle log, and whatever the repository's `deliver` actions do.
 
 ## Examples
 
@@ -264,7 +264,7 @@ Health check before a release:
 - Do use `--deliver` for anything that changes files, and declare `deliver` actions that put the change where each
   repository's owners review it, such as a pull request.
 - Do read `the-cook lifecycle list` in one repository before a fleet delivery: `--deliver` runs every `deliver` action
-  declared for scope `change`, not only the automatic ones. An [`attempt` action](lifecycle.md#attempt) among them
+  declared for scope `change`, not only the automatic ones. An `attempt` action among them
   starts one worker per repository.
 - Don't run `fleet` with uncommitted work in the fleet's repositories; `fleet` refuses them by design.
 - Don't declare a `deliver` action that pushes to the default branch: a review is where each repository's owners

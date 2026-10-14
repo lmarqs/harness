@@ -15,7 +15,7 @@ ready to clean up.
 ## Overview
 
 `the-cook doctor` checks that a repository's `the-cook` setup is complete and healthy, so that every stage of its
-[lifecycle](lifecycle.md) can reach what it needs on this machine, lists what is left to do, and reports work that has
+lifecycle can reach what it needs on this machine, lists what is left to do, and reports work that has
 landed on the default branch. It is read-only: it never edits files in the clone, never fires
 lifecycle events and never runs actions. Coding agents use its JSON output to finish an adoption; CI can run it as an
 optional gate.
@@ -28,8 +28,8 @@ global install, `the-cook <command>` is equivalent.
 - After `the-cook scaffold` or `the-cook scaffold --adopt`, to see what is left.
 - After editing the profile, policy or hooks file, as a broader check than `render --check`.
 - After adding, updating or editing a [recipe](recipes.md), to check its file and what it requires of the repository.
-- When something does not behave as expected: a hook does not fire, a [lane](verify.md) selects nothing, every
-  [attempt](attempts.md) fails.
+- When something does not behave as expected: a hook does not fire, a lane selects nothing, every
+  attempt fails.
 - In CI, optionally, next to `the-cook render --check`.
 - Across many repositories with [`the-cook fleet doctor`](fleet.md).
 
@@ -87,7 +87,7 @@ a squash of the same patches counts) has **landed**. `doctor` never runs `update
 last learned of the shared default line of work, so a merge made elsewhere shows once the checkout has learned it.
 `doctor` lists each landed branch with the command that fires the `landed` event for it, such as
 `the-cook workspace remove <name>`. It fires nothing itself: `landed` fires from `the-cook workspace remove` and
-`the-cook lifecycle run landed` ([lifecycle](lifecycle.md#events)). A landed branch is not a finding and does not change
+`the-cook lifecycle run landed`. A landed branch is not a finding and does not change
 the exit code. A CI clone has no recorded branches, so `doctor` in CI lists none.
 
 Supported versions come from each ingredient's checks: the range the cookbook that publishes the ingredient declares
@@ -168,7 +168,7 @@ CI step, after `./cook fetch` and `render --check`:
 
 - Do fix findings at their source: the repository files, the globs, the programs installed on the machine. `doctor`
   only reports.
-- Do run `doctor` before starting an unattended run ([attempts](attempts.md)) in a repository you have not used it in.
+- Do run `doctor` before starting an unattended run in a repository you have not used it in.
 - Do read the `landed` actions with `./cook lifecycle list` before running the command `doctor` prints for a landed
   branch, because that command runs their automatic actions.
 - Don't gate CI on `doctor` until the adoption to-do is empty, or every pull request fails for an unrelated reason.

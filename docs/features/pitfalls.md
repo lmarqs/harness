@@ -168,8 +168,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
   start the event is the permission for every action declared on it.
 - **What `the-cook` does.** Seeds `[the-cook, lifecycle, run, deliver]` under `ask` in a scaffolded policy, in every
   rendered spelling; renders `[the-cook, lifecycle]` into every worker's unattended denies itself and refuses
-  `lifecycle run` inside an attempt in the binary; refuses unsafe delivery with its guards
-  ([lifecycle](lifecycle.md#built-in-guards)).
+  `lifecycle run` inside an attempt in the binary; refuses unsafe delivery with its guards.
 - **What you do.** Read `the-cook lifecycle list` before allowing the command, and review every change to the actions
   like code ([safety](safety.md#lifecycle-actions-are-code)).
 
@@ -180,7 +179,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
   `the-cook`, outside the worker's per-command checks. The permission to run the recipe is the permission for every
   `run` step in it.
 - **What `the-cook` does.** Runs only the steps the recipe declares, runs its `attempt` steps under the
-  [attempt contract](attempts.md#the-attempt-contract) whoever started the run, and refuses `the-cook make` inside an
+  attempt contract whoever started the run, and refuses `the-cook make` inside an
   attempt or a step.
 - **What you do.** Read a recipe before allowing a worker to run it, review every change under `.cook/recipes/` like
   code, and allow the recipes you have read by name, such as `[the-cook, make, migration]`, rather than
@@ -191,7 +190,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 - **Symptom.** A worker allowed to run `the-cook attempt` in a workspace bound to a task also pushes a branch and opens
   a pull request.
 - **Why.** After a verified attempt, `the-cook attempt` fires `completed`, then `deliver`; every action with
-  `auto: true` runs. The same holds for every command with a [trigger point](lifecycle.md#trigger-points).
+  `auto: true` runs. The same holds for every command with a trigger point.
 - **What `the-cook` does.** Runs only actions with `auto: true` at a trigger point; `auto` defaults to `false`.
 - **What you do.** Set `auto: true` only on actions you accept running every time an allowed command fires them.
 
@@ -200,7 +199,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 - **Symptom.** An attempt does something no one asked for, following text in a task description or a pasted issue.
 - **Why.** Coding agents act on what they read. Anyone who can write a task, an issue or a comment can address the
   worker.
-- **What `the-cook` does.** Bounds what an attempt can do with the [attempt contract](attempts.md#the-attempt-contract):
+- **What `the-cook` does.** Bounds what an attempt can do with the attempt contract:
   pinned launch, `unattended.deny`, tamper check, replay, no lifecycle actions inside attempts.
 - **What you do.** Run attempts on tasks a person wrote or read. Limit a loop runner's run to the tasks you mean it to
   take.
@@ -286,7 +285,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 - **Why.** Tracker data synchronised across machines carries assignments and comments with it, including those the
   repository's tracker actions write.
 - **What `the-cook` does.** Nothing: it neither creates nor configures a tracker's data, and the actions use whatever
-  data the tracker's command finds ([tasks](tasks.md#trackers)).
+  data the tracker's command finds.
 - **What you do.** Run workers against local tracker data, or accept that claims are shared. Deny the tracker's remote
   sync to workers in the policy when it must stay manual.
 
@@ -296,7 +295,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 - **Why.** The worker can write its receipt, the record of a passing `the-cook verify` (`.work/verified.json` by
   default), so the receipt cannot be proof.
 - **What `the-cook` does.** Uses the receipt only to select lanes and skip reasons, then replays them from the base
-  commit's rules. The replay is the proof ([verify](verify.md#who-relies-on-it)).
+  commit's rules. The replay is the proof.
 - **What you do.** Read `last-attempt-output` in the state directory of the checkout the attempt ran in, apply
   `last-attempt.patch` from the same directory to see the attempt's changes, since the failed attempt returned the
   checkout to its base, and run the lanes there yourself.
@@ -307,7 +306,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 - **Why.** Many test runners exit 0 when a pattern matches nothing. Tests that pass without exercising the change prove
   nothing about it.
 - **What `the-cook` does.** Enforces that an application change selects at least one lane and that `required_when`
-  lanes run ([verify](verify.md#lane-rules)). It cannot judge what a test exercises.
+  lanes run. It cannot judge what a test exercises.
 - **What you do.** Configure the runner to fail when nothing matches. Select the tests that exercise what changed.
 
 ### A skip reason is free text
@@ -456,8 +455,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 - **What `the-cook` does.** Keeps the result on a local branch and fires nothing that leaves the clone unless an action
   says so.
 - **What you do.** Have a coordinating worker cherry-pick the task commits onto a branch from the shared default line of
-  work, reword them, verify, then run `the-cook lifecycle run deliver`
-  ([lifecycle](lifecycle.md#loop-runs-delivery-per-run-or-delivery-after-judgement)).
+  work, reword them, verify, then run `the-cook lifecycle run deliver`.
 
 ### A run-scope deliver opens one pull request per run
 
@@ -474,7 +472,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 - **Why.** The automatic `deliver` fires only for concluded work: committed, clean, off the default branch and, when
   the verify module is enabled, with a valid receipt.
 - **What `the-cook` does.** Skips the event, names the unmet condition, and records it in the
-  [lifecycle log](lifecycle.md#the-lifecycle-log).
+  lifecycle log.
 - **What you do.** Pass `--commit` to `the-cook attempt`, or commit and run `the-cook lifecycle run deliver` afterwards.
 
 ### A rebase invalidates the receipt
@@ -512,7 +510,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 - **Why.** The first run created the pull request; a failed event is retried by running all its actions again.
 - **What `the-cook` does.** Runs the declared actions as written.
 - **What you do.** Make each action safe to repeat: look the pull request up first and create it only when it is
-  absent ([lifecycle](lifecycle.md#delivery-push-and-a-draft-pull-request)).
+  absent.
 
 ## Notifications and attempt actions
 
@@ -554,8 +552,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
   workspace, holds changes nobody committed, and more of them appear with every landed branch.
 - **Why.** An `attempt` action cannot commit. On `landed`, the work's own workspace is about to be removed and the
   primary checkout holds whatever you are doing, so `the-cook` gives the worker a fresh workspace at the revision of the
-  shared default line of work, on branch `work/landed-<name>-<n>`, and leaves the worker's edits there
-  ([lifecycle](lifecycle.md#attempt)).
+  shared default line of work, on branch `work/landed-<name>-<n>`, and leaves the worker's edits there.
 - **What `the-cook` does.** Records the workspace like any managed workspace, never touches the primary checkout, and
   lists the workspace and its changed paths in the action's output and in the lifecycle log.
 - **What you do.** Review each such workspace: commit its edits and deliver them as a change, or remove it with

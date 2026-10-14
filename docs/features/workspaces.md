@@ -12,14 +12,14 @@ teammate and worker expects, and no copy is removed while it holds uncommitted w
 
 ## Overview
 
-Workspaces serve the Start stage of the [development lifecycle](lifecycle.md): a change starts in one, from a recorded
+Workspaces serve the Start stage of the development lifecycle: a change starts in one, from a recorded
 base, and removing it is where the Landed stage is detected.
 
 `the-cook workspace` creates and removes managed task workspaces: separate checkouts of the clone, added and removed
 through the [version-control contract](ingredients.md#the-version-control-contract), nested inside the clone in the
 configured workspaces directory (`workspaces.dir`, default `.work/workspaces`), each on its own branch, with a recorded
 starting commit, an actor identity and an optional task id. The task id binds the workspace to one task of the team's
-tracker: every event fired there carries the id in `COOK_TASK` and the actor in `COOK_ACTOR` ([tasks](tasks.md)).
+tracker: every event fired there carries the id in `COOK_TASK` and the actor in `COOK_ACTOR`.
 [`the-cook make`](recipes.md#the-cook-make) creates one the same way for each [recipe](recipes.md) run, the workspace
 of one change ([created by a recipe run](#created-by-a-recipe-run)).
 
@@ -31,8 +31,8 @@ Commands are named `the-cook <command>` on this page. The examples run them thro
 
 - You want a worker to work on a task while you keep using the primary checkout.
 - You work on tasks of a tracker, such as a local task database or the hosting platform's issues, and want each task in
-  its own checkout, with the tracker updated by the repository's lifecycle actions ([tasks](tasks.md)).
-- You want a [verification receipt](verify.md) whose base is fixed at the moment the work started.
+  its own checkout, with the tracker updated by the repository's lifecycle actions.
+- You want a verification receipt whose base is fixed at the moment the work started.
 - You run a recipe: `the-cook make` creates the workspace the recipe names, and keeps it while the run is paused or
   stopped.
 
@@ -53,11 +53,11 @@ You do not need them for ordinary work: `the-cook verify` also works in the prim
    unique actor (`<user>:<name>:<random>`).
 5. Prints the workspace path.
 6. Runs the profile's `bootstrap` commands, such as `npm ci` in a Node repository, in the new workspace, unless
-   `--no-bootstrap`. [`the-cook attempt`](attempts.md) also runs them, once per checkout it runs in, so a checkout a
+   `--no-bootstrap`. `the-cook attempt` also runs them, once per checkout it runs in, so a checkout a
    loop runner prepares is ready to build too.
-7. Fires the `start` [lifecycle event](lifecycle.md) in the new workspace: with scope `task` and `COOK_TASK` set to
+7. Fires the `start` lifecycle event in the new workspace: with scope `task` and `COOK_TASK` set to
    the id when `--task` is given, with scope `change` otherwise. Actions declared with `auto: true` run, such as
-   [tracker actions from a station](tasks.md#tracker-actions-from-a-station).
+   tracker actions from a station.
 
 The workspace starts from committed code only. `create` copies no uncommitted changes, credentials, dependency
 directories or personal configuration.
@@ -79,7 +79,7 @@ only once it is on the shared default line of work (for git, pushed), not merely
 nothing new about what is shared: its base is the revision this checkout last learned
 ([the version-control contract](ingredients.md#the-version-control-contract)).
 
-With `--task <id>` the workspace is bound to the task ([tasks](tasks.md#a-task-run-by-a-recipe)).
+With `--task <id>` the workspace is bound to the task.
 
 #### Drafting with `--here`
 
@@ -130,13 +130,13 @@ trust, configuration and tracker database.
   before it detects landed work, so the checkout learns what is shared; when `update` fails, as it does offline, or
   the version-control ingredient has none, it prints one note and goes on with what the checkout knows
   ([profile](profile.md#workspaces));
-- fires the `landed` [lifecycle event](lifecycle.md) when the version-control ingredient finds every patch of
+- fires the `landed` lifecycle event when the version-control ingredient finds every patch of
   `work/<name>` in the revision its `default_revision` reports, the shared default line of work as the checkout knows
   it, after its own checks pass and before it removes the workspace; automatic `landed` actions run in the primary
-  checkout, or an `attempt` action in a fresh workspace at that revision ([environment](lifecycle.md#environment)).
+  checkout, or an `attempt` action in a fresh workspace at that revision.
   Each recorded branch fires `landed` at most once successfully; a failed `landed` is re-fired manually with
   `the-cook lifecycle run landed`. A failing action is reported on stderr and recorded in the
-  [lifecycle log](lifecycle.md#the-lifecycle-log). The exit code is the removal's.
+  lifecycle log. The exit code is the removal's.
 
 `the-cook doctor` lists managed workspaces whose branch has landed, against what the checkout knows, and prints the
 `the-cook workspace remove` command for each; it never runs `update` and never fires `landed` itself.
@@ -182,7 +182,7 @@ the-cook workspace remove <name>
 | Flag | Default | Meaning |
 | --- | --- | --- |
 | `--base <ref>` | the checkout's head commit | Commit the workspace starts from, resolved by the version-control ingredient; recorded as the session base |
-| `--task <id>` | none | Bind the workspace to one task. The id is free-form and recorded in the session; events fired in the workspace default to scope `task` and carry it in `COOK_TASK` ([tasks](tasks.md#task-binding)) |
+| `--task <id>` | none | Bind the workspace to one task. The id is free-form and recorded in the session; events fired in the workspace default to scope `task` and carry it in `COOK_TASK` |
 | `--no-bootstrap` | off | Skip the profile's `bootstrap` commands |
 
 | Exit code | Meaning |
@@ -208,7 +208,7 @@ Paths below show the defaults, `state.dir: .work` and `workspaces.dir: .work/wor
 
 ### A Node API, with tracker actions
 
-With [tracker actions from a station](tasks.md#tracker-actions-from-a-station) applied:
+With tracker actions from a station applied:
 
 ```sh
 ./cook workspace create fix-invoice-rounding --task acme-api-7f2   # start: the task is marked in progress
@@ -268,4 +268,4 @@ git branch -d work/fix-invoice-rounding        # when the branch is merged
 `the-cook` manages only the workspaces it recorded in the configured workspaces directory. It never lists, cleans or
 modifies a workspace that a worker program creates in its own directories, that another tool creates, or that someone
 makes by hand. Branch names start with `work/`, so they stay apart from the branches a loop runner creates for its own
-sessions; a loop runner can run in a managed workspace ([attempts](attempts.md)).
+sessions; a loop runner can run in a managed workspace.

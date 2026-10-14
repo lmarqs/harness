@@ -13,11 +13,11 @@ and every worker and tool working there uses the same answer.
 
 ## Overview
 
-The profile tells `the-cook` what a repository is and how its [lifecycle](lifecycle.md) runs: which
+The profile tells `the-cook` what a repository is and how its lifecycle runs: which
 [ingredients](ingredients.md) describe the programs it uses and which one fills version control, which
 [stations](stations.md) it applied, which modules it uses, how to bootstrap a checkout, how to lint and build, which
 verification lanes (named families of test commands) exist, which workers it declares, in which role, and what an
-[attempt](attempts.md) may write, and the standing context workers receive. It is seeded and then repository-owned.
+attempt may write, and the standing context workers receive. It is seeded and then repository-owned.
 `scaffold` seeds it once, with the stations of a cookbook tag it applies. From then on people and workers edit it,
 `the-cook station apply` adds a station's pins, stages and entries, `the-cook ingredient pin` adds or moves an
 ingredient's pin, and `the-cook render` reads it. [Recipes](recipes.md), those a station adds included, live beside it
@@ -69,7 +69,7 @@ Run `./cook render` after every edit, and `./cook doctor` to check globs and com
 | `stations` | list | `[]` | The [stations](#stations) the repository applied, each with its pin |
 | `vcs` | ingredient name | none | The ingredient that fills the version-control contract; see [`ingredients`](#ingredients). Absent: no ingredient fills it |
 | `modules` | map | every module off | Which modules are on |
-| `bootstrap` | list of commands | `[]` | Run in order in a new workspace, and once in each checkout an [attempt](attempts.md#the-attempt-contract) runs in |
+| `bootstrap` | list of commands | `[]` | Run in order in a new workspace, and once in each checkout an attempt runs in |
 | `commands` | map | | Lint and build commands |
 | `verify` | map | | Verification paths, lanes and validators |
 | `workers` | map | | The [workers](#workers) rendered for this repository, their ingredients and roles, what an attempt may write and reach, and the jail it runs in |
@@ -135,7 +135,7 @@ stations:
 | Field | Type | Effect when `true` |
 | --- | --- | --- |
 | `hooks` | boolean | [hooks](hooks.md) are rendered into the workers' native files |
-| `verify` | boolean | [`the-cook verify`](verify.md), its `verify` block, and the receipt that `completed` with scope `task` requires ([tasks](tasks.md)) |
+| `verify` | boolean | `the-cook verify`, its `verify` block, and the receipt that `completed` with scope `task` requires |
 | `memory` | boolean | [memory](memory.md) skeleton and `memory` block |
 
 An omitted module is off.
@@ -172,8 +172,7 @@ A validator:
 | `run` | command | The check |
 
 Lane names are free: `unit`, `e2e`, `validate`, `plan`, `glue`. They appear in the receipt, in `--lane` and `--skip`, in
-the `commands` block, and in a recipe's `requires.lanes` and `verify.require` ([recipes](recipes.md#verify)). The rules
-that use them are on the [verify](verify.md#lane-rules) page.
+the `commands` block, and in a recipe's `requires.lanes` and `verify.require` ([recipes](recipes.md#verify)).
 
 ### `workers`
 
@@ -186,7 +185,7 @@ applied ([stations](stations.md#stages)).
 | Field | Type | Default | Meaning |
 | --- | --- | --- | --- |
 | `ingredient` | ingredient name | the worker's name | The ingredient that serves the worker; it must be in `ingredients` and fill the worker contract. Example: `reviewer: { ingredient: claude, role: interactive }` |
-| `role` | `interactive` \| `unattended` | required | `interactive`: people use the worker in this repository; its native files carry the shared policy. `unattended`: the worker runs here only in attempts, started by [`the-cook attempt`](attempts.md#the-attempt-contract), an `attempt` action or a recipe's [`attempt` step](recipes.md#attempt); its native files also carry `unattended.deny`. See [workers](workers.md#roles) |
+| `role` | `interactive` \| `unattended` | required | `interactive`: people use the worker in this repository; its native files carry the shared policy. `unattended`: the worker runs here only in attempts, started by `the-cook attempt`, an `attempt` action or a recipe's [`attempt` step](recipes.md#attempt); its native files also carry `unattended.deny`. See [workers](workers.md#roles) |
 | `writable_roots` | list of paths | `[]` | Directories an attempt may write besides the task checkout, relative to the primary checkout root. Only for workers with `launch.sandbox_roots` or a `jail`. See below for rules |
 | `network` | boolean | `false` | Whether the worker's attempts may use the network. `true` passes its ingredient's `launch.network` arguments at every unattended launch, and is a validation error for a worker whose ingredient has none; `false` passes nothing about the network, so the program's default holds, which the ingredient's page in its cookbook explains. See [workers](workers.md#declaring-workers) |
 | `jail.ingredient` | ingredient name | none; required with `jail` | A pinned ingredient that fills the [jail contract](ingredients.md#the-jail-contract): the worker's attempts start inside that jail, and their replay runs in it. Requires a version-control ingredient that fills `metadata`. See [workers](workers.md#jails) |
@@ -242,7 +241,7 @@ An entry:
 | `prompt` | list of words and phrases | | Only in `when`: the trigger is a person's message that contains one, case-insensitive, as a whole word or phrase |
 
 Sources are repository files and skills committed under `.agents/skills/`; nothing is fetched when a hook runs. An
-[attempt](attempts.md#the-attempt-contract) receives the entries as they are at its base commit. Hook delivery
+attempt receives the entries as they are at its base commit. Hook delivery
 needs `modules.hooks`; `static` entries do not. Preview what a session would receive with
 [`the-cook context show`](context.md#the-cook-context-show). `COOK_NO_CONTEXT=1` turns injection off for one process
 tree.
@@ -269,7 +268,7 @@ workspaces:
 
 | Field | Type | Default | Holds | Blocks it produces |
 | --- | --- | --- | --- | --- |
-| `state.dir` | path | `.work` | `lifecycle.jsonl` and locks (primary checkout); `session.json`, `verified.json`, `hook-checks.json`, `run.json`, `last-attempt-output`, `last-attempt.patch` (per checkout). See [verify](verify.md), [recipes](recipes.md#the-run-record) | `.gitignore` `state` (`/.work/`); named in the `AGENTS.md` `layout` block |
+| `state.dir` | path | `.work` | `lifecycle.jsonl` and locks (primary checkout); `session.json`, `verified.json`, `hook-checks.json`, `run.json`, `last-attempt-output`, `last-attempt.patch` (per checkout). See [recipes](recipes.md#the-run-record) | `.gitignore` `state` (`/.work/`); named in the `AGENTS.md` `layout` block |
 | `workspaces.dir` | path | `.work/workspaces` | each managed workspace, at `<dir>/<name>` | `AGENTS.md` `workspaces` (where workspaces are created, their `work/<name>` branch, that they start from committed code); `.gitignore` `workspaces` (`/.work/workspaces/`) |
 
 Rules for the paths:

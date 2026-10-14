@@ -101,7 +101,7 @@ A behaviour is a declared action when all of these hold:
 3. It is organization or repository specific: it names a hosting platform, a CI convention, a notification channel
    or a cleanup habit that not every repository shares.
 4. It is triggered at a lifecycle point or a worker event, by a person, a
-   [coordinating worker](../features/lifecycle.md#the-lifecycle-stage-by-stage) or automatically (`auto: true`).
+   coordinating worker or automatically (`auto: true`).
 
 Why: these are the side effects whose form differs per team, so the team declares them and `the-cook` only fires them
 under its guards.
@@ -125,7 +125,7 @@ flag that pushes, opens a pull request or calls a hosting platform is a design e
 | Notify a person or a service: a chat message, an incident, a status page | `http` | `the-cook` performs the request itself, reads the URL and headers from environment variables and JSON-encodes values, so the action needs no `curl` or shell quoting and puts no secret on a command line |
 | Tell a person the worker is waiting for them, or has finished a turn | `http` (or `run` for a local notifier) on `attention` or `turn_end` | notification events accept `run` and `http` only, so a worker's hook never starts another worker |
 | Tell a person an unattended run stopped or a task was skipped | `http` on `blocked` | `blocked` fires when a command without a terminal exits 3 for a person, when a recipe run stops, and when whoever drives a loop runner's run fires it as that run stops, with the reason in `COOK_REASON` |
-| Judgement after an event: summarise a merged change, write lessons into memory, triage a failure | `attempt` | the worker does the judgement under the [attempt contract](../features/attempts.md#the-attempt-contract); its edits stay uncommitted for review |
+| Judgement after an event: summarise a merged change, write lessons into memory, triage a failure | `attempt` | the worker does the judgement under the attempt contract; its edits stay uncommitted for review |
 | Use a tool only an MCP server provides | `attempt`, or leave it to the coordinating worker | `the-cook` is never an MCP client; the worker owns the connection, its credentials and its permissions |
 
 When the behaviour needs judgement before the side effect (which commits belong together, how to word them), split it: a
@@ -161,7 +161,7 @@ each part of the change has one place:
 | Part of the change | Goes in | Because |
 | --- | --- | --- |
 | what has one right answer: running a generator, writing a file from a template | a `run` or `template` step | the binary does it the same way on every run, before any judgement |
-| what needs judgement: writing the logic, naming, fitting the change to the code around it | an `attempt` step | a worker does it under the [attempt contract](../features/attempts.md#the-attempt-contract), and the lanes check it |
+| what needs judgement: writing the logic, naming, fitting the change to the code around it | an `attempt` step | a worker does it under the attempt contract, and the lanes check it |
 | what a person must check or decide before the run goes on | a handoff | it pauses an attended run for whoever drives it, and stops a run its caller marks unattended as blocked, because it needs a person |
 | how to do the judgement well: the team's conventions for that kind of change | a skill the `attempt` step's prompt names, or a standing-context entry that matches the files the step touches | the guidance keeps one text, which reaches a worker in any recipe or session |
 | what proves the change | `verify.require` | Verify runs those lanes on every run, in full when the change selects nothing for one, and never skips them |
@@ -248,7 +248,7 @@ result with the lanes the recipe requires.
 | Apply an organization's conventions to many repositories | judgement per repository, organization specific | a coding agent following the organization's skill in each repository, reviewed as a diff in each; `the-cook fleet` runs `the-cook` commands, never a worker |
 | Post to the team chat when a task completes | deterministic, leaves the clone, a notification channel | a `completed` action of kind `http` with `url_env`, `auto: true` |
 | Ping me when the coding agent is waiting for my answer | deterministic, a notification, per person or repository | an `attention` action of kind `http` (or `run` for a desktop notifier) in `hooks.yaml` |
-| Tell me when an unattended [run of a loop runner](../features/attempts.md) stops unfinished | deterministic, a notification at the moment work stops; nothing in the binary knows when a run ends | a `blocked` action of kind `http` with scope `run`, fired by whoever drives the run: `./cook lifecycle run blocked --scope run` |
+| Tell me when an unattended run of a loop runner stops unfinished | deterministic, a notification at the moment work stops; nothing in the binary knows when a run ends | a `blocked` action of kind `http` with scope `run`, fired by whoever drives the run: `./cook lifecycle run blocked --scope run` |
 | Write lessons into memory after a change lands | judgement, after an event | a `landed` action of kind `attempt`; it runs in a fresh workspace at the revision of the shared default line of work, and its edits stay uncommitted there for review |
 | Look something up through an MCP-only service before delivery | needs an MCP tool | the coordinating worker before it runs `the-cook lifecycle run deliver`, or an `attempt` action; never the binary |
 | Choose which commits of an unattended run go into which pull request and reword them | judgement (grouping, wording), conventions vary by organization | a coding agent guided by an organization or personal skill, which then runs `the-cook lifecycle run deliver` |

@@ -279,11 +279,12 @@
         "Preserve useful material case by case and repair affected navigation; neither deleting everything nor keeping everything is the default."
       ],
       "priority": 15,
-      "passes": false,
+      "passes": true,
       "notes": "",
       "dependsOn": [
         "US-014"
-      ]
+      ],
+      "completionNotes": "Completed by agent"
     },
     {
       "id": "US-016",
@@ -517,6 +518,6 @@
     }
   ],
   "metadata": {
-    "updatedAt": "2026-10-14T05:02:43.472Z"
+    "updatedAt": "2026-10-14T05:06:37.114Z"
   }
 }

@@ -130,8 +130,7 @@ organization's choices differ between its repositories, so applying them takes j
 For example, acme's CI runs a pull request only when its tip commit carries `#ci`, and acme's coding agents may search
 its observability service without asking. acme's skill has the coding agent add `"mcp__acme_observability__search_*"`
 under `shared.allow` in `.cook/policy.yaml`, read the repository's CI configuration, and, only where that CI waits for
-`#ci`, declare a `ci-trigger` action before the pull-request action under `lifecycle.deliver` in `.cook/hooks.yaml`
-([lifecycle](../features/lifecycle.md#an-organization-convention-a-ci-trigger-commit-before-the-pull-request)).
+`#ci`, declare a `ci-trigger` action before the pull-request action under `lifecycle.deliver` in `.cook/hooks.yaml`.
 
 ## Explain the reasoning
 

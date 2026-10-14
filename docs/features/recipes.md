@@ -15,7 +15,7 @@ its steps run in order, the lanes it needs prove it, and it is delivered the way
 ## Overview
 
 `the-cook` declares a software development lifecycle: the stages a change goes through, the events fired between them,
-the guards that hold between stages and the proof a change carries ([lifecycle](lifecycle.md)). A recipe is one kind
+the guards that hold between stages and the proof a change carries. A recipe is one kind
 of change, made many times: the inputs it takes, what it requires of the repository, the steps that make the change,
 mapped onto the stages, and the lanes that must prove it. A run of a recipe is
 one pass of one change through the stages.
@@ -33,12 +33,12 @@ A recipe maps onto the stages of the lifecycle like this:
 
 | Stage | Recipe key | What a run does |
 | --- | --- | --- |
-| [Plan](lifecycle.md#plan) | `inputs`, `requires` | takes the inputs, and the task id if there is one, from whoever runs it; before anything else, validates each input by type and checks the contracts, roles and lanes the recipe requires |
-| [Start](lifecycle.md#start) | `workspace` | creates a managed workspace and its branch `work/<name>` at the revision of the shared default line of work, as `the-cook workspace create` does, and fires `start` ([Start](#start)) |
-| [Implement](lifecycle.md#implement) | `steps` | runs each [step](#step-kinds) in order: a command, a template, an attempt by an unattended worker, or a handoff to whoever drives the run ([Implement](#implement)) |
-| [Verify](lifecycle.md#verify) | `verify` | runs every lane the change selects and every lane the recipe requires, a required lane the change selects nothing for in full, and writes the receipt ([Verify](#verify)) |
-| [Complete](lifecycle.md#complete) | none | replays the receipt from the base and fires `completed` for a task, as for any work ([Complete](#complete)) |
-| [Deliver](lifecycle.md#deliver), Review and merge, [Landed](lifecycle.md#landed) | none: a recipe declares no lifecycle action | as for any work: the repository's own actions, under the same guards ([Deliver and Landed](#deliver-and-landed)) |
+| Plan | `inputs`, `requires` | takes the inputs, and the task id if there is one, from whoever runs it; before anything else, validates each input by type and checks the contracts, roles and lanes the recipe requires |
+| Start | `workspace` | creates a managed workspace and its branch `work/<name>` at the revision of the shared default line of work, as `the-cook workspace create` does, and fires `start` ([Start](#start)) |
+| Implement | `steps` | runs each [step](#step-kinds) in order: a command, a template, an attempt by an unattended worker, or a handoff to whoever drives the run ([Implement](#implement)) |
+| Verify | `verify` | runs every lane the change selects and every lane the recipe requires, a required lane the change selects nothing for in full, and writes the receipt ([Verify](#verify)) |
+| Complete | none | replays the receipt from the base and fires `completed` for a task, as for any work ([Complete](#complete)) |
+| Deliver, Review and merge, Landed | none: a recipe declares no lifecycle action | as for any work: the repository's own actions, under the same guards ([Deliver and Landed](#deliver-and-landed)) |
 
 A recipe lives in the repository, in `.cook/recipes/<name>/`, and is the repository's own to edit, like the profile.
 The repository writes one with [`the-cook recipe create`](#the-cook-recipe-create), copies one a cookbook publishes
@@ -71,7 +71,7 @@ each task of a tracker.
 | Take a newer version of an added recipe and keep the repository's edits | `./cook recipe update <name> --cookbook github:acme/cookbook@v1.3.0` |
 | Have a loop runner take each task of a tracker through the lifecycle | name `./cook make <recipe> --task <id> --unattended` as its command for each task ([example](#a-loop-runner-runs-implement-task-for-each-task)) |
 | Set up what a way of working needs, once | not a recipe: a [station](stations.md) |
-| Make a change once | not a recipe: `./cook workspace create <name>`, then the stages by hand ([lifecycle](lifecycle.md)) |
+| Make a change once | not a recipe: `./cook workspace create <name>`, then the stages by hand |
 
 ### What is not a recipe
 
@@ -203,7 +203,7 @@ and passes values as positional parameters: `run: [sh, -c, 'npm run migration:cr
 "{name}"]`.
 
 The command runs as the binary does, with the rights of whoever started the run and outside every worker's permission
-checks, from the root of the workspace, like a [`run` lifecycle action](lifecycle.md#run), and, after an `attempt` step
+checks, from the root of the workspace, like a `run` lifecycle action, and, after an `attempt` step
 of a worker with a [jail](#attempt), inside that jail. Its output is printed as it runs. It inherits the run's
 environment, plus:
 
@@ -247,12 +247,12 @@ template never overwrites a file.
 | `model` | the worker's configured model | Override for this step; a worker whose ingredient maps no model ignores it |
 | `effort` | the worker's configured effort | Override for this step, as for `model` |
 
-The step starts the worker unattended in the workspace, under the [attempt contract](attempts.md#the-attempt-contract):
+The step starts the worker unattended in the workspace, under the attempt contract:
 the launch its worker ingredient pins, `unattended.deny` and the floor applied, its floor bypass arguments refused,
 `COOK_ATTEMPT=1` in its environment, its rules read from the workspace's head commit, and the tamper check around it.
 The tamper check compares `.cook/` and the tool-owned files with their state when the step began, the uncommitted edits
 of the steps before it included, and restores that state, so a `--here` run of an uncommitted draft recipe keeps its
-draft. Like an [`attempt` action](lifecycle.md#attempt), the step runs on the uncommitted edits of the steps before it,
+draft. Like an `attempt` action, the step runs on the uncommitted edits of the steps before it,
 and the worker cannot commit, push or fire lifecycle events. Its edits stay in the workspace for the next steps.
 Arguments given to `the-cook make` after `--` go to the worker of every `attempt` step, after those its ingredient pins,
 and a floor bypass argument among them is refused. When the prompt reaches the worker on stdin, it carries the `always`
@@ -351,7 +351,7 @@ record. A step that fails stops the run ([stopping and continuing](#stopping-and
 ### Verify
 
 When the last step has run, the run verifies the change itself, in the workspace and against the workspace's base, as
-[`the-cook verify`](verify.md) does: lint, validators, build and lanes. It runs every lane the change selects and every
+`the-cook verify` does: lint, validators, build and lanes. It runs every lane the change selects and every
 lane of `verify.require`:
 
 - The change's selection, the lanes with their patterns and the skip reasons, is the one of the receipt a step left in
@@ -360,7 +360,7 @@ lane of `verify.require`:
   receipt, the change selects no lane.
 - Every lane of `verify.require` runs and is never skipped: with the patterns the selection gives it, or in full, with
   its `full` command, when the selection gives it none or skips it.
-- The [lane rules](verify.md#lane-rules) hold for the other lanes as for any change, each required lane counting as
+- The lane rules hold for the other lanes as for any change, each required lane counting as
   selected.
 
 When the lane rules demand a lane the selection neither selects nor skips, or a required lane without patterns has no
@@ -398,7 +398,7 @@ base commit. The replay is the proof. When it passes:
 1. with `--commit`, the run commits the work through the version-control ingredient, with the recipe, its inputs and
    the verification summary in the commit body;
 2. in a run with a task, it fires `completed` with scope `task`, then `deliver` with scope `task` when the work is
-   [concluded](lifecycle.md#scopes), as `the-cook attempt` does. A run without a task fires neither, because work of
+   concluded, as `the-cook attempt` does. A run without a task fires neither, because work of
    scope `change` has no `completed` event;
 3. with `--withhold <text>`, it prints the text;
 4. the record shows the run as completed, and it exits 0.
@@ -409,7 +409,7 @@ A failing replay stops the run at Complete with exit 2.
 
 A recipe declares no lifecycle action. The repository's own `deliver` actions deliver the work, under the same guards
 as any work: automatically after `completed` for a task, with `auto: true`, or by hand with
-`./cook lifecycle run deliver` in the workspace ([lifecycle](lifecycle.md#deliver)). While the receipt records the run,
+`./cook lifecycle run deliver` in the workspace. While the receipt records the run,
 every action fired in the workspace also receives `COOK_RECIPE` and `COOK_INPUT_<NAME>`, so a delivery action can, for
 example, title a pull request after the recipe and its inputs. After the merge, `./cook workspace remove <name>` fires
 `landed` and removes the workspace, as for any work.
@@ -491,8 +491,8 @@ itself.
 
 | Guard | Effect |
 | --- | --- |
-| Lanes are only added | the run itself runs every lane of `verify.require`, in full when the change selects nothing for it, on top of the lanes the change selects, and never skips one; the [lane rules](verify.md#lane-rules) of `verify` hold for a run as for any change. No key of a recipe removes a lane, a deny or a guard |
-| The lifecycle's guards hold | the `completed` guard on a task and the `deliver` guards apply to a run's work as to any work ([built-in guards](lifecycle.md#built-in-guards)) |
+| Lanes are only added | the run itself runs every lane of `verify.require`, in full when the change selects nothing for it, on top of the lanes the change selects, and never skips one; the lane rules of `verify` hold for a run as for any change. No key of a recipe removes a lane, a deny or a guard |
+| The lifecycle's guards hold | the `completed` guard on a task and the `deliver` guards apply to a run's work as to any work |
 | Events come from the stages | a run fires `start`, `verified`, `completed`, `deliver` and `blocked` only where the lifecycle fires them. Inside a step, `the-cook` commands fire no event, and `the-cook lifecycle run` and `the-cook make` refuse with exit 3 |
 | `attempt` steps run under the attempt contract | the pinned launch, the unattended denies, the floor and the tamper check, as for every attempt. The tamper check compares the files under `.cook/` too, `.cook/recipes/` included, with their state when the step began, so the worker of a step cannot change a recipe, and a `--here` run keeps the uncommitted draft it runs |
 | A run reads its recipe once | ([The run](#the-run)): from the base commit when it starts; `--here` reads the working tree and is refused with `--unattended` |
@@ -596,7 +596,7 @@ Runs a recipe, or with `--continue` resumes a run, or with `--status` prints one
 | `-- <worker args>...` | none | Arguments for the worker of every `attempt` step |
 
 A loop runner names `./cook make <recipe> --task <id> --unattended` as its command for each task, with the same
-caller-protocol arguments as [`the-cook attempt`](attempts.md#how-a-loop-runner-calls-it): `--commit`,
+caller-protocol arguments as `the-cook attempt`: `--commit`,
 `--withhold <signal>`, and its own arguments for the worker after `--`. Any exit status other than 0 is a task that is
 not done. Without `--unattended` the run is attended, and a handoff pauses it with exit 3 and no completion text.
 
@@ -609,7 +609,7 @@ not done. Without `--unattended` the run is attended, and a handoff pauses it wi
 
 Environment: `run` steps receive `COOK_RECIPE`, `COOK_RUN` and `COOK_INPUT_<NAME>` ([`run`](#run)); the worker of an
 `attempt` step receives `COOK_ATTEMPT=1`; the actions of the events the run fires receive the
-[lifecycle variables](lifecycle.md#environment), and while the receipt records the run also `COOK_RECIPE` and
+lifecycle variables, and while the receipt records the run also `COOK_RECIPE` and
 `COOK_INPUT_<NAME>`.
 
 Files read: the recipe directory, the profile, the policy and the hooks file, from the base commit of the workspace the
@@ -925,7 +925,7 @@ cd .work/workspaces/task-acme-api-9c1
 ./cook make --continue
 ```
 
-Tasks that must build on one another in a single branch run through [`the-cook attempt`](attempts.md) in one
+Tasks that must build on one another in a single branch run through `the-cook attempt` in one
 workspace instead.
 
 ## Guidelines

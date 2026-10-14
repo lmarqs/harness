@@ -65,7 +65,7 @@ Guards never rely on those policy entries alone. The binary itself refuses `the-
 for one task, and inside an `attempt` action, the unattended run of a worker that a lifecycle event starts. Both set
 `COOK_ATTEMPT=1` in the worker's environment, and the binary checks it. It refuses both commands inside a step of a
 recipe run as well, where `COOK_RUN` is set, so a recipe never fires an event itself. The binary also enforces the
-[`deliver` guards](../features/lifecycle.md#built-in-guards) itself. Why: an absolute path or `sh cook` slips past any
+`deliver` guards itself. Why: an absolute path or `sh cook` slips past any
 prefix rule, so policy entries are defence in depth and the binary is the enforcement.
 
 ## Reference surface
@@ -160,7 +160,7 @@ another.
 
 `the-cook attempt` is the command another tool's configuration names when it starts a worker on one task, such as the
 command a loop runner runs for each task. It runs one attempt, the worker unattended under the
-[attempt contract](../features/attempts.md#the-attempt-contract), and reports the outcome through its exit code, its
+attempt contract, and reports the outcome through its exit code, its
 output and the lifecycle events it fires. A loop runner may name [`the-cook make`](#the-make-command) instead, to take
 each task through a recipe.
 
@@ -212,7 +212,7 @@ each task.
 | `--withhold <text>` | as for `the-cook attempt`: the text is removed from everything the run prints and printed once at the end of a completed run, so the caller sees its completion signal only then |
 | `-- <worker args>` | arguments for the worker of every `attempt` step; one the worker's ingredient marks as a floor bypass argument is refused |
 | exit code | 0 completed; 1 an error, with nothing created (invalid usage, `--here` with `--unattended`, an unknown recipe, a recipe that fails validation, a missing or invalid input); 2 a lane failed, at Verify or in the replay; 3 a person must act: a contract, role or lane `requires` names, or another missing prerequisite, a step that stopped the run, a lane the lane rules demand that Verify cannot select, a handoff, or `make` inside an attempt or a step |
-| events | those of the stages the run passes, at the [trigger points](../features/lifecycle.md#trigger-points) of `the-cook make`, under the same guards as any work; `blocked` when the run stops, with the stage, the step and the reason in `COOK_REASON`, and in an unattended run also at an exit 3 before it starts; nothing when a handoff pauses an attended run |
+| events | those of the stages the run passes, at the trigger points of `the-cook make`, under the same guards as any work; `blocked` when the run stops, with the stage, the step and the reason in `COOK_REASON`, and in an unattended run also at an exit 3 before it starts; nothing when a handoff pauses an attended run |
 | environment given to steps | `run` steps get `COOK_RECIPE`, `COOK_RUN` and `COOK_INPUT_<NAME>` ([below](#values-passed-to-user-declared-commands-and-actions)); the worker of an `attempt` step gets `COOK_ATTEMPT=1` |
 
 A loop runner names `the-cook make <recipe> --task <id> --unattended` with the caller-protocol arguments of
@@ -234,7 +234,7 @@ configuration a station's template writes passes `--unattended`.
   `verify.require` names, never skipped, and a required lane the change selects nothing for runs in full. The change's
   selection is the one of the receipt a step left in the workspace: a `the-cook verify` that the worker of an `attempt`
   step, or a person at a handoff, runs gives it, and is feedback for whoever ran it, not the run's proof. The receipt
-  the run writes records, per lane, the patterns it ran or that it ran in full ([verify](../features/verify.md)), and
+  the run writes records, per lane, the patterns it ran or that it ran in full, and
   Complete replays it from the base, as for any work. When the lane rules demand a lane the selection neither selects
   nor skips, the run stops at Verify and names it. Why: a selection a worker leaves can miss the lane the kind of change
   needs, and a required lane that runs whatever the change selects checks every instance the same way.

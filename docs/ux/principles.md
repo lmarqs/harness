@@ -80,9 +80,9 @@ worker's place. Why: the coding agents people already use are developed by their
 A tool that competed with them would carry credentials and cost, and a loop of its own to maintain.
 
 - The binary never calls a model and is never a client of a tool server (MCP). Work that needs a model or an MCP tool
-  is done by a worker: the [coordinating worker](../features/lifecycle.md#the-lifecycle-stage-by-stage), or an
+  is done by a worker: the coordinating worker, or an
   `attempt` action that `the-cook` starts as a child process under the
-  [attempt contract](../features/attempts.md#the-attempt-contract). Why: the worker owns those connections, their
+  attempt contract. Why: the worker owns those connections, their
   credentials and their permissions.
 - The binary never writes knowledge: no free prose, no memory entries, no domain skills, no policy entries invented on
   the user's behalf, because knowledge needs judgement. It writes rendered files, managed blocks whose text is derived
@@ -180,8 +180,7 @@ The binary contains no logic for any hosting platform. Everything that leaves th
 trigger, a notification, a call to a service) happens only through a **declared action**: an action that the repository
 declares on a lifecycle event (`start`, `verified`, `completed`, `deliver`, `landed`, or the out-of-band `blocked`) or
 on a worker's notification event (`attention`, `turn_end`). Why: a side effect outside the clone is visible to others
-and hard to undo, so it must be written down, reviewed and guarded before it can happen. The
-[lifecycle guide](../features/lifecycle.md) has the stages, trigger points and full reference.
+and hard to undo, so it must be written down, reviewed and guarded before it can happen.
 
 - **Declared.** Actions live in `.cook/hooks.yaml`, and no action runs that the repository does not declare there. A
   station's actions, such as the tracker actions of an `agentic-coding` station, reach the file only when a person

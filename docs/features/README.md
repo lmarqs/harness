@@ -71,10 +71,9 @@ Vocabulary and configuration
 
 Related reference pages
 
-- [Lifecycle](lifecycle.md)
-- [Attempts](attempts.md)
-- [Verification](verify.md)
-- [Tasks](tasks.md)
+- [Workflow configuration and engine boundaries](lifecycle.md)
+- [Repository checks and configuration](verify.md)
+- [Task-tracker configuration](tasks.md)
 - [Workspaces](workspaces.md)
 - [Workers](workers.md)
 - [Fleet](fleet.md)

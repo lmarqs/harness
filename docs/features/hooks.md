@@ -21,7 +21,7 @@ The hooks file declares, once and neutrally, two kinds of automation:
   context, send a notification. `the-cook render` writes them into each worker's native hook configuration, through
   its ingredient, and `the-cook hook` runs them when the worker fires an event. Worker hooks give feedback and notify;
   they never decide permissions.
-- **lifecycle actions**, under the `lifecycle` key, which run at the [development lifecycle](lifecycle.md)'s events:
+- **lifecycle actions**, under the `lifecycle` key, which run at the development lifecycle's events:
   push a branch, open a pull request, post a chat message, clean up after a merge. `the-cook` runs them itself; they
   are not rendered into any worker's files.
 
@@ -177,7 +177,7 @@ The edit itself is never undone, and no tool call is blocked.
 
 Post-edit hooks run on a worker's edits only. The files that the `run` and `template` steps of a
 [recipe](recipes.md#step-kinds) write fire no hook, because no worker event reports them; the lint command and the lanes
-of the run's Verify stage check them ([verify](verify.md#the-run)). The worker of an `attempt` step gets post-edit
+of the run's Verify stage check them. The worker of an `attempt` step gets post-edit
 feedback as in any attempt.
 
 ### Prompt submission
@@ -216,13 +216,13 @@ Values reach the actions as environment variables, with the same rules as [lifec
 | `COOK_WORKSPACE` | absolute path of the checkout the worker works in |
 | `COOK_BRANCH` | the checkout's branch |
 
-- Actions are of kind `run` or `http` ([action kinds](lifecycle.md#action-kinds)); an `attempt` action here is an
+- Actions are of kind `run` or `http`; an `attempt` action here is an
   error, so a worker hook never starts an attempt.
 - `the-cook hook` exits 0 on these events whatever the actions return, so a failed notification never keeps a worker
   working or interrupts it. A failure is printed on stderr.
 - They do nothing in an attempt: `the-cook attempt`, `attempt` actions and a recipe's `attempt` steps set
   `COOK_ATTEMPT=1` for the worker they start. An unattended run reports through
-  [lifecycle events](lifecycle.md#trigger-points) instead: in a workspace bound to a task, `the-cook attempt` fires
+  lifecycle events instead: in a workspace bound to a task, `the-cook attempt` fires
   `completed` after a verified attempt; `the-cook make` fires `completed` after its replay, and `blocked` when it
   stops; whatever drives a loop runner's run fires `blocked` and the events of scope `run`.
 - Like every worker hook, they do nothing on a machine where the pinned release is not cached
@@ -234,8 +234,7 @@ Values reach the actions as environment variables, with the same rules as [lifec
 ### Lifecycle actions
 
 The `lifecycle` key maps each event to an ordered list of actions. The events are `start`, `verified`, `completed`,
-`deliver`, `landed` and the out-of-band `blocked`. The [lifecycle](lifecycle.md) page is the full reference for trigger
-points, scopes, guards, action kinds, the environment variables actions receive, and the log.
+`deliver`, `landed` and the out-of-band `blocked`.
 
 ```yaml
 lifecycle:
@@ -260,8 +259,7 @@ lifecycle:
 The rules for actions:
 
 - an action is a shell command (`run`), an HTTP request `the-cook` makes (`http`), or an attempt of a worker on a
-  prompt, under the [attempt contract](attempts.md#the-attempt-contract) (`attempt`)
-  ([action kinds](lifecycle.md#action-kinds));
+  prompt, under the attempt contract (`attempt`);
 - actions run in the work's checkout, in declaration order; the first failure stops the event with exit 2 unless the
   action says `on_failure: continue`, in which case the remaining actions run and the event still exits 2;
 - values reach an action only as environment variables, never substituted into `run`, so a task title or a branch
@@ -297,11 +295,11 @@ lifecycle actions like code; see [safety](safety.md).
 | `attention` | list | `[]` | Actions run when the worker waits for a person |
 | `turn_end` | list | `[]` | Actions run when the worker finishes a turn |
 | `attention[].name`, `turn_end[].name` | string | required | Unique within the list |
-| `attention[].run`, `turn_end[].run` | command | one of `run`, `http` | A shell command ([action kinds](lifecycle.md#action-kinds)) |
-| `attention[].http`, `turn_end[].http` | map | one of `run`, `http` | An HTTP request ([action kinds](lifecycle.md#http)) |
+| `attention[].run`, `turn_end[].run` | command | one of `run`, `http` | A shell command |
+| `attention[].http`, `turn_end[].http` | map | one of `run`, `http` | An HTTP request |
 | `lifecycle` | map of event name to list | `{}` | Lifecycle actions; events `start`, `verified`, `completed`, `deliver`, `landed`, `blocked` |
 | `lifecycle.<event>[].name` | string | required | Unique within the event; `--action` and the log refer to it |
-| `lifecycle.<event>[].run`, `.http`, `.attempt` | command or map | exactly one | The action's kind ([action kinds](lifecycle.md#action-kinds)) |
+| `lifecycle.<event>[].run`, `.http`, `.attempt` | command or map | exactly one | The action's kind |
 | `lifecycle.<event>[].auto` | boolean | `false` | Also run at the event's automatic trigger point |
 | `lifecycle.<event>[].scope` | list of `task`, `run`, `change` | every scope of the event | Scopes the action applies to |
 | `lifecycle.<event>[].on_failure` | `stop` \| `continue` | `stop` | `stop`: the first failure stops the event with exit 2. `continue`: the remaining actions run, and the event still exits 2 |
@@ -383,7 +381,7 @@ that have that event.
 ## Guidelines
 
 - Do keep post-edit commands fast and single-file. They run after every edit; slow checks belong in a
-  [verify lane](verify.md).
+  verify lane.
 - Do make post-edit commands fix what they can (`--fix`, `-w`) so the worker sees only what needs judgement.
 - Do use `raw` for path guards before a tool runs, and keep them small and declared in this file, not hidden in scripts
   wired by hand.
@@ -408,7 +406,7 @@ that have that event.
 | One worker's sessions ignore hooks | The program reads project hooks only when a setting enables them, which its ingredient renders | `the-cook render`, then `the-cook doctor` |
 | A worker gets no hooks at all | Its ingredient declares no hook payload mapping | Expected for such a program, such as a codemod; `the-cook verify` still checks its work |
 | A raw hook stopped running | It was removed from `hooks.yaml`, or its command is not executable | Restore the entry; `chmod +x` the script |
-| A lifecycle action never runs on its own | It has no `auto: true`, or the event's guard did not let it fire | `the-cook lifecycle list`; read the [lifecycle log](lifecycle.md#the-lifecycle-log) |
+| A lifecycle action never runs on its own | It has no `auto: true`, or the event's guard did not let it fire | `the-cook lifecycle list`; read the lifecycle log |
 | The session starts with `the-cook v0.9.0 is not cached on this machine; run ./cook version once to fetch it.` | The pinned release is not cached; the session has no standing context and no notifications | Run `./cook version` once |
 | No `attention` notification from one worker | Its ingredient maps no native event to waiting for a person; `doctor` notes it | Use `turn_end`, where the worker reports it |
 | No `turn_end` from one worker; `doctor` notes a notification program of the repository's own | The program's single-program notification setting already names another program | Move that program into a `turn_end` `run` action, remove the setting, then `the-cook render` |
@@ -425,4 +423,3 @@ file) are preserved. Hooks in a program's local override files are never touched
 After `the-cook remove --eject`, raw entries stay in the native files as the repository's own hooks
 and keep working. The `the-cook hook` entries, including notifications and standing-context injection, are removed, and
 listed in the output, because they call a wrapper that eject deletes. Static context entries stay in `AGENTS.md`.
-

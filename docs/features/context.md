@@ -75,8 +75,8 @@ the-cook context: sql-quality-check (path src/migration/1700000000000-add-invoic
 ### Roles
 
 `for` limits an entry to roles: `interactive` for every session a person starts, `unattended` for
-[attempts](attempts.md#the-attempt-contract), the unattended runs `the-cook attempt`,
-[`attempt` actions](lifecycle.md#action-kinds) and a recipe's [`attempt` steps](attempts.md#in-a-recipe-step) start.
+attempts, the unattended runs `the-cook attempt`,
+`attempt` actions and a recipe's `attempt` steps start.
 The default is both. An unattended session is one started with `COOK_ATTEMPT=1`, which all three set for the worker
 they start; every other session is interactive.
 
@@ -111,7 +111,7 @@ inputs substituted, so a `when.prompt` entry can match a word an input put there
 
 ### Delivery in the prompt
 
-In every attempt whose prompt arrives on stdin, whether `the-cook attempt`, an [`attempt` action](lifecycle.md#attempt)
+In every attempt whose prompt arrives on stdin, whether `the-cook attempt`, an `attempt` action
 or a recipe's [`attempt` step](recipes.md#attempt) started it, the binary puts the `always` entries of the `unattended`
 role before the task text, each headed by its usual line naming it, read from the attempt's base commit. Static entries
 stay in `AGENTS.md` only. The binary also sets `COOK_CONTEXT_IN_PROMPT=1` in the worker's environment, and the

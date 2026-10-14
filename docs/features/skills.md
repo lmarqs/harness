@@ -13,7 +13,7 @@ asking reaches every session it covers and no other.
 
 ## Overview
 
-Skills serve the Implement stage of the [development lifecycle](lifecycle.md), as part of what a worker reads in a
+Skills serve the Implement stage of the development lifecycle, as part of what a worker reads in a
 session; the shipped skill also teaches a coordinating worker to drive every other stage.
 
 Skills are folders of instructions that workers such as coding agents load on demand. They live in `.agents/skills/`,
@@ -59,12 +59,12 @@ It teaches a worker to:
   `./cook render`;
 - place a policy entry in `allow`, `ask`, `deny` or `unattended.deny`, and explain why;
 - finish an adoption from the `the-cook doctor --json` to-do ([doctor](doctor.md));
-- choose lanes and write skip reasons for [`the-cook verify`](verify.md);
+- choose lanes and write skip reasons for `the-cook verify`;
 - run a [recipe](recipes.md) with `./cook make <recipe>`, do what a handoff step asks and resume the run with
   `./cook make --continue`, and pick up a run that stopped as blocked;
 - write a recipe for a kind of change the repository makes again and again, or add one from a cookbook, and resolve
   what `./cook recipe update` leaves marked;
-- run unattended work through [`the-cook attempt`](attempts.md), and report blocked work;
+- run unattended work through `the-cook attempt`, and report blocked work;
 - fire lifecycle events with `the-cook lifecycle run <event>`, including `completed` or `blocked` when a loop runner's
   run ends, and deliver the run's commits after arranging them for review;
 - declare lifecycle and notification actions of the right kind (`run`, `http` or `attempt`), with secrets read from

@@ -32,7 +32,7 @@ global install, `the-cook <command>` is equivalent.
 
 ## The lifecycle at the centre
 
-`the-cook` implements one abstraction, the [development lifecycle](lifecycle.md), and everything else on this page
+`the-cook` implements one abstraction, the development lifecycle, and everything else on this page
 supports it: the repository files declare it, rendering and ownership deliver what each stage needs, ingredients reach
 the programs that do the work, and recipes take one kind of change through it.
 
@@ -77,7 +77,7 @@ creates, and follows that content to the end, so no step can change the recipe o
 
 ### Events and actions
 
-`the-cook` fires each [lifecycle event](lifecycle.md#events) at fixed trigger points in its own commands, and a person,
+`the-cook` fires each lifecycle event at fixed trigger points in its own commands, and a person,
 a coordinating worker or a script around a loop runner can fire one by hand with `the-cook lifecycle run <event>`;
 nothing in the binary knows when a loop runner's run starts or ends. `the-cook` fires `blocked` itself when a command
 run without a terminal stops with exit 3 for a person to act, and when a recipe run stops; whoever drives a loop
@@ -85,13 +85,13 @@ runner's run fires it when the run stops unfinished. What happens at an event is
 `.cook/hooks.yaml`; the binary ships none. Everything that leaves the clone, such as a push, a pull request or a chat
 notification, is one of those actions.
 
-Every action has one kind ([action kinds](lifecycle.md#action-kinds)):
+Every action has one kind:
 
 | Kind | What `the-cook` does |
 | --- | --- |
 | `run` | runs a shell command; values reach it only through `COOK_*` environment variables |
 | `http` | makes an HTTP request itself, with the URL and header values read from environment variables, never from the file |
-| `attempt` | starts a worker unattended on a prompt, under the [attempt contract](attempts.md#the-attempt-contract); it cannot commit, push or fire events |
+| `attempt` | starts a worker unattended on a prompt, under the attempt contract; it cannot commit, push or fire events |
 
 Two worker events run declared `run` and `http` actions too: `attention`, when a worker waits for a person, and
 `turn_end`, when it finishes a turn ([hooks](hooks.md)). `the-cook` itself is never a client of an MCP server: work that
@@ -99,7 +99,7 @@ needs an MCP tool is an `attempt` action, or the coordinating worker's job.
 
 | Page | Covers |
 | --- | --- |
-| [Development lifecycle](lifecycle.md) | each stage, who acts at it, and the full event reference |
+| [Workflow configuration and engine boundaries](lifecycle.md) | native setup and the boundary between configuration and execution |
 | [Safety guidelines](safety.md) | the threat model, the layers of defence, placing policy entries, unattended runs, secrets |
 | [Pitfalls, gaps and traps](pitfalls.md) | what goes wrong, why, what `the-cook` does about it, and what you do |
 
@@ -107,7 +107,7 @@ needs an MCP tool is an `attempt` action, or the coordinating worker's job.
 
 `the-cook` does the work that has one right answer: moving a change between stages and holding the guards between them,
 scaffolding, importing, rendering, checking drift, verifying, running a recipe's commands and templates, running one
-worker for one task under the attempt contract ([`the-cook attempt`](attempts.md)), firing lifecycle events, removing
+worker for one task under the attempt contract, firing lifecycle events, removing
 what it wrote. People and workers do the work that needs judgement: writing `AGENTS.md` prose, deciding which commands
 belong in the [policy](policy.md)'s `allow` list, reviewing the [to-do](scaffold.md#the-to-do) an adoption leaves,
 choosing the loop runner and tracker the team uses and wiring them into the repository's files (a [station](stations.md)
@@ -150,7 +150,7 @@ The three repository files are the contract between a repository and the tool. E
 | --- | --- | --- |
 | `.cook/config.yaml` (the profile) | What is this repository: modules, commands, bootstrap, lanes, workers, the ingredients and stations it pins, state paths, standing context? | [profile](profile.md), [context](context.md) |
 | `.cook/policy.yaml` (the policy) | What may workers run without asking, only after asking, or never? | [policy](policy.md) |
-| `.cook/hooks.yaml` (the hooks file) | What runs when a worker starts a session, edits a file, waits for a person or ends a turn, and what runs at each lifecycle event? | [hooks](hooks.md), [lifecycle](lifecycle.md) |
+| `.cook/hooks.yaml` (the hooks file) | What runs when a worker starts a session, edits a file, waits for a person or ends a turn, and what runs at each lifecycle event? | [hooks](hooks.md) |
 
 Beside them, each directory under `.cook/recipes/` answers one more question: what does one kind of change go through
 here ([recipes](recipes.md))?
@@ -356,7 +356,7 @@ The profile's `modules:` map turns features on and off. Each module is opt-in an
 Always present, whatever the modules: the lifecycle with its events, guards and declared actions, the `.cook/` files,
 `cook`, the rendered policy, the shipped skill and its links, the manifest, the [`the-cook workspace`](workspaces.md)
 commands with task binding, the [`the-cook make`](recipes.md#the-cook-make) and `the-cook recipe` commands, the
-[`the-cook attempt`](attempts.md) command, and these blocks: `commands`, `layout`, `workspaces`, `lifecycle` and
+`the-cook attempt` command, and these blocks: `commands`, `layout`, `workspaces`, `lifecycle` and
 `policy` in `AGENTS.md`; `commands` in `README.md`; and the blocks the ingredients in use render, such as the
 version-control ingredient's `state` and `workspaces` blocks in its ignore file.
 
@@ -373,7 +373,7 @@ lives at paths the [profile](profile.md#state-paths) sets, outside `.cook/`; the
 | Path (profile key) | Owner | Holds |
 | --- | --- | --- |
 | `.work/` (`state.dir`), in the primary checkout | `the-cook` | `lifecycle.jsonl` (every lifecycle run of the clone), locks shared by every workspace of the clone |
-| `.work/` (`state.dir`), in each checkout | `the-cook` | `session.json` (managed workspace session: base, task, actor), `verified.json` (the [receipt](verify.md) of a passing `the-cook verify`), `hook-checks.json` (post-edit cache), `context/<session-id>.json` (which triggered context entries a session has received), `last-attempt-output` and `last-attempt.patch` (the full output and the changes of the last failed attempt), the record that `bootstrap` ran for an attempt |
+| `.work/` (`state.dir`), in each checkout | `the-cook` | `session.json` (managed workspace session: base, task, actor), `verified.json` (the receipt of a passing `the-cook verify`), `hook-checks.json` (post-edit cache), `context/<session-id>.json` (which triggered context entries a session has received), `last-attempt-output` and `last-attempt.patch` (the full output and the changes of the last failed attempt), the record that `bootstrap` ran for an attempt |
 | `.work/workspaces/` (`workspaces.dir`) | `the-cook` | each managed workspace, at `<dir>/<name>` |
 
 Other tools keep their own state where they choose, such as a task tracker's database directory; `the-cook` neither
@@ -424,7 +424,7 @@ such as from their own loop-runner configuration, is outside them: `the-cook` ne
    default branch it reports, and a task runner's ingredient marks the syntax that chains a second task onto an allowed
    one.
 3. Verification proofs are replayed outside the tree the worker can write: `the-cook attempt` reruns the lanes the
-   worker's [receipt](verify.md) selected, with the profile read from the base commit.
+   worker's receipt selected, with the profile read from the base commit.
 4. Completion is withheld until the replayed proof passes: only then does `the-cook attempt` exit 0, release a loop
    runner's completion signal and, in a workspace bound to a task, fire `completed`. `completed` with scope `task` is
    refused without a valid receipt when the verify module is enabled, whoever fires it.

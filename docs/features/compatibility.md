@@ -58,7 +58,7 @@ logic for any hosting platform, and never writes issues, projects, boards, comme
 of a tracker to an issue is a person's or a coding agent's job.
 
 Everything that leaves the clone (a push, a pull request, a CI trigger, a notification) is a
-[lifecycle action](lifecycle.md) the repository declares in its own `.cook/hooks.yaml`, such as a command that opens a
+lifecycle action the repository declares in its own `.cook/hooks.yaml`, such as a command that opens a
 pull request under `deliver`. Those actions run with the credentials of whoever fires them, through the platform's own
 CLI or API. A repository that declares none never has anything leave the clone through `the-cook`.
 
@@ -66,7 +66,7 @@ CLI or API. A repository that declares none never has anything leave the clone t
 
 The binary has no code for any task tracker: it never runs a tracker's command of its own accord, reads its data or
 creates it. A tracker is wired by lifecycle actions on `start`, `completed` and `blocked`, which the repository declares
-or a station such as `agentic-coding` writes as entries, in a managed workspace bound to a task ([tasks](tasks.md)).
+or a station such as `agentic-coding` writes as entries, in a managed workspace bound to a task.
 Creating and configuring the tracker's data, and every other use of the tracker, is the team's.
 
 | Situation | Behaviour |
@@ -85,7 +85,7 @@ runner and reads none of its configuration. A station such as `agentic-coding` c
 [template](stations.md#templates), only when it is absent, with `./cook make implement-task --task <id> --unattended` as
 the command it runs for each task, and add the `implement-task` [recipe](recipes.md) that command runs, so every task is
 attempted under the attempt contract and verified before the runner sees it complete. A team's own script may name
-`./cook attempt <worker>` instead ([attempts](attempts.md)). From then on the file is the repository's. Starting the
+`./cook attempt <worker>` instead. From then on the file is the repository's. Starting the
 runner, choosing its task source and firing the events of a run as a whole are the team's.
 
 | Situation | Behaviour |
