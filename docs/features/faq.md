@@ -87,8 +87,9 @@ is established here. See [composition boundaries and cookbooks](stations.md).
 
 ### Can a repository have several recipes?
 
-Yes. Supply exact file paths or supported source URIs. Multiple recipes compose left to right, and later operations can
-replace earlier values at the same target. One combined diff shows the final result. Recipe arguments follow their
+Yes. Supply paths inside the repository or `https://` URLs. Multiple recipes compose left to right; when two recipes
+write the same section, key or file, the last one wins and becomes its owner. One combined diff shows the final result
+and is the only notice. Recipe arguments follow their
 recipe as `--name=value`; there is no implicit cookbook-name lookup. See [CLI reference](cli.md).
 
 ### Is monitoring a recipe?
@@ -98,8 +99,9 @@ are external activities, not batch actions. See [workflow configuration](lifecyc
 
 ### Does Cook manage recipe versions for me?
 
-No. Users supply the recipe version to apply or discard. Cook records evaluated and consumed recipe/template sources,
-origins and arguments for recovery; that does not establish persistent recipe identity or a recipe-update protocol.
+No. Users supply the recipe version to apply. The committed `cook.lock` records each applied recipe's short name,
+source and sha256, and each batch record keeps the evaluated and consumed sources, origins and arguments; neither
+establishes a recipe-update protocol.
 Engine wrapper pinning is separate. See [recipes](recipes.md) and [wrapper upgrades](wrapper.md#upgrading).
 
 ### Can I use my own version control system or worker?
@@ -141,52 +143,53 @@ require a repository profile, policy and hooks schema. See [repository configura
 
 ### Why are there both `.cook/` and `.agents/`?
 
-Ignored destination-local `.cook/` holds operation history, source snapshots and recovery patches. `.agents/` is a useful
+Ignored destination-local `.cook/` holds batch records, source snapshots and reverse patches. `.agents/` is a useful
 shared-content convention for agent instructions and skills where programs support it, not an engine-required layout.
 See [local history](../architecture.md#one-record-for-the-batch) and [skills](skills.md).
 
 ### Can I edit a program's native settings by hand?
 
 Yes. A later apply proposes its declared changes against the current content, including your edits, and shows the
-actual diff. Key and section targets preserve unrelated content; whole-file targets affect the whole file. There is no
-ownership veto, `--adopt`, adoption alias or separate adoption step. See [apply](render.md).
+actual diff. Key and section targets preserve unrelated content; whole-file targets affect the whole file. Ownership
+never blocks a change; there is no `--adopt`, adoption alias or separate adoption step. See [apply](render.md).
 
 ### I edited inside a marked block. Will my text disappear?
 
-A recipe targeting that section may propose replacing your edit. Markers define boundaries, not protection from
-changes. Review the diff before approving; use narrower declarations or change the recipe if the proposed result is
-wrong. See [marked blocks](render.md#managed-blocks).
+A recipe targeting that section may propose replacing your edit. Markers name the owning recipe and region; they do
+not protect the section from changes. Review the diff before approving; use narrower declarations or change the
+recipe if the proposed result is wrong. See [marked blocks](render.md#managed-blocks).
 
 ### Why commit native configuration?
 
 Shared native files let teammates and reviewers see the setup, and programs consume them without needing Cook to read
-them. Whether a file belongs in version control or remains personal is a repository choice. Recovery history in
-`.cook/` remains local and ignored. See [repository setup](scaffold.md).
+them. Whether a file belongs in version control or remains personal is a repository choice. `cook.lock` is
+committed; batch records in `.cook/` remain local and ignored. See [repository setup](scaffold.md).
 
 ### Does applying another recipe remove earlier outputs?
 
-Only its declared targets are affected. Applying B does not implicitly remove unrelated output from A. Every
-apply/discard invocation evaluates supplied recipes against current content; history never skips a recipe as already
-applied, though the result can be an empty diff. See [ordered operations](render.md#ordered-operations).
+No. Applying B never removes output that A owns; if B writes a target A wrote, B wins and becomes its owner, and the
+diff shows it. Applying a new version of A removes what A's previous version owned and the new version no longer
+declares. Every apply invocation evaluates supplied recipes against current content; history never skips a recipe as
+already applied, though the result can be an empty diff. See [ordered operations](render.md#ordered-operations).
 
 ### How do I stop using it?
 
-You can stop invoking Cook and keep the native files. To delete contributions, discard the supplied recipe version;
-to restore a recorded run's prior values, revert that run using its history. There is no eject or automatic
-repository-wide restoration. See [discard and revert](remove.md).
+You can stop invoking Cook and keep the native files. To undo a recipe's output, revert the batches that applied it;
+discard is deferred. There is no eject or automatic repository-wide restoration. See [discard and revert](remove.md).
 
 ### Does discard restore what was there before?
 
-Discard deletes declared contributions even after manual edits. Revert restores recorded prior values. If an apply
-changed `test` from `old` to `new` and you then changed it to `custom`, discarding that recipe proposes deleting `test`;
-reverting the original run proposes `custom` to `old`. Both preserve unrelated keys and show the actual diff. See
+Discard is deferred; when available, it removes what `cook.lock` lists for a recipe without restoring earlier values.
+Revert restores the content from before a batch by applying its reverse patches. If an apply batch changed `test` from
+`old` to `new`, reverting that batch proposes `new` to `old` and keeps later edits to other keys. If you have since
+changed `test` itself, the revert writes nothing and names the conflicting file and key. See
 [the comparison](remove.md#discard-and-revert-compared).
 
 ### Can I cook after losing `.cook/`?
 
-Apply and discard require neither prior history nor an ownership database. Losing `.cook/` loses local recovery
-information; reverting a particular run requires that run's history. New operations still save recovery patches before
-target writes. See [history availability](../architecture.md#history-availability).
+Yes. Apply requires neither batch history nor `cook.lock`, and ownership survives in the committed `cook.lock`.
+Losing `.cook/` loses the ability to revert earlier batches; reverting a batch requires its record. New batches still
+save their records before target writes. See [history availability](../architecture.md#history-availability).
 
 ## Permissions and program behaviour
 
@@ -242,7 +245,7 @@ recipe code is executable and can cause arbitrary side effects, so this boundary
 
 ### Does Cook verify an agent's work or enforce an unattended launch?
 
-No. Native agent settings, task runners and CI have their own enforcement and check behaviour. Cook's run history is
+No. Native agent settings, task runners and CI have their own enforcement and check behaviour. Cook's batch history is
 recovery information, not verification proof. Agent-session orchestration remains future work in
 [issue #6](https://github.com/lmarqs/the-cook/issues/6); personal setup backup remains in
 [issue #5](https://github.com/lmarqs/the-cook/issues/5).

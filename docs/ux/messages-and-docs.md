@@ -25,7 +25,7 @@ diff with whole-batch approval. The [glossary](../features/glossary.md) defines 
 | Imperative for instructions | `Move --batch-approve before ./recipe.groovy.` | `You may want to consider moving the option.` |
 | Neutral, no blame | `settings.toml: invalid value` | `You broke settings.toml.` |
 | Plain words and no marketing | `writes native configuration` | `seamlessly configures everything` |
-| Consistent terms | the [names below](#names-for-engine-concepts) | alternating discard, undo and revert for one operation |
+| Consistent terms | the [names below](#names-for-engine-concepts) | alternating undo, rollback and revert for one operation |
 
 The same rules apply to guidance read by coding agents, because ambiguity can become an unintended action.
 
@@ -67,20 +67,26 @@ the-cook: apply: target ../shared/settings.toml is outside the destination
 ```
 
 ```text
-the-cook: revert: history for RUN_ID is unavailable
-  reverting a recorded run requires that run's local history
-  restore its history from a backup if available before retrying
+the-cook: revert: no record for batch 2026-10-14T15-04-05Z
+  reverting a batch requires its record in .cook/batches/
+  run: ./cook batch list
 ```
 
-`RUN_ID` stands for the selected recorded run's identifier. Do not suggest re-evaluating a recipe as an equivalent
-reversal: discard deletes declared contributions, whereas revert restores recorded prior values.
+```text
+the-cook: revert: 2026-10-14T15-04-05Z conflicts with later edits; nothing was written
+  settings.toml: test
+  resolve the listed edits, then run the revert again
+```
+
+Do not suggest re-evaluating a recipe as an equivalent reversal: apply proposes a recipe's current declarations,
+whereas revert reverses one recorded batch's changes.
 
 When approval needs a caller's decision, name the choices: run interactively to review and answer the prompt, or
 explicitly preapprove with `--batch-approve` before the operands. Neither a noninteractive terminal nor the presence
 of existing content authorizes writes. Do not suggest an adoption step, alias or manual-edit override.
 
 Keep normal diagnostics focused on information the caller can act on, rather than internal type names or paths inside
-the package. When a target write fails, describe rollback and the retained recovery/failure record accurately. Do not
+the package. When a target write fails, describe rollback and the retained batch record and failure accurately. Do not
 claim recovery of side effects outside the declared batch.
 
 ## Output for automation and coding agents
@@ -89,7 +95,7 @@ Human prose is for readers; scripts must not treat its wording as a stable data 
 specify `--json` or a machine-output schema ([CLI output](cli-standards.md#json)).
 
 Use the same operation names and approval scope in interactive and noninteractive guidance. Display the final diff
-even with `--batch-approve`; that flag covers the whole batch, not selected files or hunks. A coding agent reading a
+even with `--batch-approve`; that flag covers the whole batch, not individually chosen changes. A coding agent reading a
 message must be able to tell whether target writes occurred, whether rollback was needed and what information remains
 for recovery. Do not imply that batch review sandboxes trusted recipe execution.
 
@@ -98,10 +104,11 @@ belongs with their cookbook configuration; this standard defines no injected-con
 
 ## Generated text in human files
 
-A recipe may declare a marked section in a shared instruction file. Markers identify its boundaries, not
-ownership or a block class ([generated-content-standards.md](generated-content-standards.md#managed-blocks)). Keep
-instructions concise, avoid duplicating surrounding guidance, and link to supporting detail where useful. State
-conventions using the values that apply to the repository, so people and programs can understand them directly.
+A recipe may declare a marked section in a shared instruction file. Markers bound the section and name its owner,
+`cook:begin <recipe>/<region>` and `cook:end <recipe>/<region>`; they do not define a block class
+([generated-content-standards.md](generated-content-standards.md#managed-blocks)). Keep instructions concise, avoid
+duplicating surrounding guidance, and link to supporting detail where useful. State conventions using the values that
+apply to the repository, so people and programs can understand them directly.
 
 A section may contain conventions, explanations or Cook commands as the recipe requires. There is no mandatory
 convention/tool classification, eject behaviour or engine line budget. Manual edits inside the declared section
@@ -116,7 +123,8 @@ appear in the next batch diff; unrelated text outside it remains intact. Use HTM
 | `docs/features/` | Feature and concept references, including CLI grammar and operation semantics |
 | `docs/adrs/` | Architectural decisions and their reasons within the architecture |
 | `docs/ux/` | Interaction and documentation standards within the architecture |
-| Root, core and cookbook usage guides | Truthful instructions and limitations for current implementation |
+| Root and core usage guides | Truthful instructions and limitations for current implementation |
+| Recipe READMEs under `cookbook/recipes/` | What one recipe writes, reads, accepts and rejects |
 
 When a standard or ADR conflicts with the architecture, correct the supporting document. A missing implementation
 is work to track separately, not a reason to revive a conflicting design. Requirements and illustrative examples do
@@ -156,6 +164,12 @@ Omit empty sections; an opening introduction may replace Objective and Overview 
 Do not fill reference tables with undecided exit codes, hook phases, patch formats, metadata schemas or model APIs.
 An explanation of the guarantee is sufficient when its concrete representation needs separate design.
 
+### Recipe READMEs
+
+A recipe README explains its recipe and nothing else. Its reader already knows the core and the architecture, so it
+does not explain or link them; a recipe stays understandable when its directory is read on its own. Write each one
+from the [recipe README template](../../cookbook/recipes/TEMPLATE.md), which fixes the section order.
+
 ### Writing rules for all documentation
 
 - Use present tense for the intended design. In implementation guides, describe what actually runs and identify
@@ -190,16 +204,17 @@ An explanation of the guarantee is sufficient when its concrete representation n
 | Trusted executable Groovy source describing requested file operations | Recipe |
 | Repository holding and shipping ingredients and recipes | Cookbook |
 | Ordered file operations reviewed and approved together | Batch |
-| Declared addition or update against current content | Apply |
-| Deletion of contributions declared by the supplied recipe version | Discard |
-| Reversal of a recorded operation to its prior values, using its history | Revert |
-| Invocation whose combined operation is recorded in local history | Run |
+| Declared addition or update against current content, with removal of what a recipe's previous version owned | Apply |
+| Removal of everything `cook.lock` lists for a recipe (deferred) | Discard |
+| Reversal of one recorded batch's changes, using its reverse patches | Revert |
+| Identifier of a recorded batch: its UTC start time, such as `2026-10-14T15-04-05Z` | Batch ID |
+| Recording of one batch under ignored `.cook/batches/<batchId>/` | Batch record |
+| Committed YAML file recording each applied recipe's source, sha256 and owned targets | `cook.lock` |
 | Current working directory where declared writes and deletions stay | Destination |
-| Original recipe location or URL used to resolve relative source references | Source origin |
-| Begin/end delimiters identifying a section in shared text | Markers |
-| Destination-local recovery information under ignored `.cook/` | Local history |
+| Recipe location inside the repository or URL used to resolve relative source references | Source origin |
+| `cook:begin <recipe>/<region>` and `cook:end <recipe>/<region>` delimiters naming a section's owner | Markers |
 
-Use these terms consistently with the [glossary](../features/glossary.md). A recipe is evaluated; a batch is reviewed
-and approved; an operation is recorded. Cook does not infer persistent recipe identity or an already-applied status.
+Use these terms consistently with the [glossary](../features/glossary.md). A recipe is evaluated; a batch is reviewed,
+approved and recorded. History never marks a recipe as already applied.
 Ingredient/recipe APIs, station roles, nesting, annotations, injection and lifecycle hooks remain separate model
 questions, not vocabulary rules that settle their design.

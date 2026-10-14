@@ -24,8 +24,9 @@ to keep.
 1. People and recipe authors choose the content and configuration they want. Cook evaluates their trusted recipes and
    mechanically composes the declared operations against current content in the supplied order.
 2. Cook shows the final combined diff and obtains whole-batch approval before target writes. Existing or edited content
-   uses that same flow, without ownership reconciliation, adoption gates or a manual-edit veto.
-3. Every apply or discard invocation evaluates the supplied recipes again. History does not mark recipes as already
+   uses that same flow; recorded ownership never blocks a change, and there are no adoption gates or manual-edit veto
+   ([0007](0007-ownership.md)).
+3. Every apply invocation evaluates the supplied recipes again. History does not mark recipes as already
    applied or skip evaluation. An unchanged result may produce an empty diff; arbitrary executable recipes need not
    produce an unchanged result on repeated invocation.
 4. Cook can write declared prose, skills and policy like other file content. It does not choose that content through
@@ -36,11 +37,12 @@ to keep.
 - **1.** Mechanical composition gives the acme example a defined result: later instructions replace earlier values at
   an overlapping target. Authors retain choices that depend on project intent. The trade: the engine does not decide
   which recipe or configuration is appropriate.
-- **2.** The actual diff exposes changes to current content, including manual edits, without guessing whether that
-  content belongs to Cook. The trade: reviewers must assess the proposed changes; approval is for the whole batch.
-- **3.** Current content and recipe inputs can change between runs. Re-evaluation respects the request instead of
-  treating history as an ownership or execution cache. The trade: recipe authors who want reproducible results must
-  control the inputs their code uses; Cook cannot promise universal byte-for-byte determinism or idempotence.
+- **2.** The actual diff exposes changes to current content, including manual edits, without refusing a change
+  because someone else last wrote that content. The trade: reviewers must assess the proposed changes; approval is for
+  the whole batch.
+- **3.** Current content and recipe inputs can change between invocations. Re-evaluation respects the request instead
+  of treating history as an execution cache. The trade: recipe authors who want reproducible results must control the
+  inputs their code uses; Cook cannot promise universal byte-for-byte determinism or idempotence.
 - **4.** Writing supplied text is mechanical even when choosing that text required judgement. Banning entire file
   categories would prevent useful program configuration without resolving trust. The trade: declared file changes are
   reviewable, but arbitrary recipe side effects are outside the diff and recovery guarantees.

@@ -23,21 +23,23 @@ mechanisms for protection from arbitrary recipe execution or agent sessions.
 
 1. Cook displays the actual final diff against current content and obtains approval for the entire batch before
    changing target files. Preapproval still displays the diff; noninteractive execution alone does not authorize
-   writes. Individual file or hunk selection is outside the design.
+   writes. The core writes and records only accepted changes; the CLI accepts the whole batch, and choosing
+   individual changes is a separate interface decision.
 2. Declared writes and deletions stay within the invocation directory, including paths resolved through symlinks
    ([0012](0012-write-boundary.md)). Structured keys and marked sections preserve unrelated content; whole-file
    declarations expose their full scope. Recipes and operations compose in declared order.
-3. Cook saves one reversible patch per touched file before the first target write and records the batch operation
-   locally. A write failure rolls back changes already made by the batch and retains the patches and failure record.
-   Reverting a run uses its recorded prior values and proposes the reversal against current content.
+3. Cook saves one reversible patch per touched file, `cook.lock` included, before the first target write and records
+   the batch locally. A write failure rolls back changes already made by the batch and retains the patches and failure
+   record. Reverting a batch applies its reverse patches against current content; a later edit that overlaps the
+   batch's changes makes the revert write nothing and list the conflict.
 4. These guarantees cover declared batch operations. They do not sandbox trusted recipe execution, roll back arbitrary
    recipe side effects, or enforce the behaviour of configured programs. Executing external commands is not a batch
    action. Worker supervision, verification replay, permission floors, tamper checks and jails are outside this engine
    decision; no replacement enforcement system is specified.
-5. Existing or manually edited content uses the same review and approval flow. Apply and discard need neither an
-   ownership manifest nor previous run history, and every invocation evaluates the supplied recipes again. There is
-   no adoption flag, alias, separate adoption step or drift veto. Applying a recipe does not automatically withdraw
-   unrelated output from an earlier recipe.
+5. Existing or manually edited content uses the same review and approval flow. Apply needs neither `cook.lock` nor
+   previous batch history, and every invocation evaluates the supplied recipes again. Ownership recorded in `cook.lock`
+   never blocks a change ([0007](0007-ownership.md)); there is no adoption flag, alias, separate adoption step or drift
+   veto. Applying a recipe does not remove output another recipe owns.
 
 ## Reasons
 
@@ -45,13 +47,14 @@ mechanisms for protection from arbitrary recipe execution or agent sessions.
   authorizes that combined result. Preapproval is an explicit choice; the absence of a terminal is not one.
 - **2.** A destination boundary limits declared output, and precise targets reduce incidental edits. Whole-file
   replacement carries a broader review responsibility. None of these limits constrains arbitrary recipe code.
-- **3.** Recovery saved after a write would be too late for that write's failure. Recording the operation also
-  distinguishes restoring prior values from deleting a supplied recipe's contributions. Recovery depends on keeping
-  the relevant local history.
+- **3.** Recovery saved after a write would be too late for that write's failure. The same patches later restore the
+  batch's own prior values without reevaluating recipes, and refusing on overlap keeps later edits. Recovery depends
+  on keeping the relevant local batch record.
 - **4.** The example separates output approval from code trust. Claiming protection beyond the declared batch would
   promise control the engine does not provide. Developers must choose which recipes to trust before evaluating them.
-- **5.** Current content is the basis for review, not proof that a target is still owned. Removing reconciliation keeps
-  operations usable without prior state but makes the actual diff, including deletion of edited values, essential.
+- **5.** Current content is the basis for review. Recorded ownership decides what a recipe's later versions remove,
+  not whether a change may proceed. Not gating on ownership keeps operations usable without prior state but makes the
+  actual diff, including deletion of edited values, essential.
 
 ## Rejected alternatives
 
@@ -76,8 +79,8 @@ Costs:
 
 - Recipe evaluation must be trusted separately from approval of its output.
 - Preapproval places responsibility for the entire displayed change on the caller.
-- Losing local history loses recovery for past runs. Apply and discard remain available; reversal of a particular
-  run requires its history.
+- Losing `.cook/` loses recovery for past batches. Apply remains available and ownership survives in `cook.lock`;
+  reverting a particular batch requires its record.
 
 Must be maintained:
 

@@ -12,8 +12,7 @@ version through the repository's entry point without installing Java or Gradle s
 ## Context
 
 - The agreed [architecture](../architecture.md#engine-distribution) retains JVM distribution using `jpackage`, with
-  a platform-specific package containing Java. FR-26 of the
-  [documentation alignment PRD](../../tasks/prd-documentation-alignment.md#distribution-and-documentation-authority)
+  a platform-specific package containing Java. Its requirement FR-26 ([requirements](../architecture.md#requirements))
   selects a committed wrapper, version and checksum pinning, first-use download, local caching, and explicit upgrades.
 - Developers may work in several repositories that choose different engine versions. CI machines may start without
   any cached package. A machine-wide installation alone does not express each repository's choice.
@@ -22,8 +21,9 @@ version through the repository's entry point without installing Java or Gradle s
 - Cookbook repositories hold and ship ingredients and trusted Groovy recipes and can build separately from Cook
   ([0013](0013-organization-content.md)). Ingredients model programs' native files and configuration; the engine
   evaluates recipes and reviews, records, and writes their declared file operations.
-- Destination-local `.cook/` is ignored recovery history, not a committed ownership database or the sole home of the
-  engine pin ([0014](0014-directory-layout.md)). Apply and discard need no prior history or ownership records.
+- Destination-local `.cook/` is ignored recovery history, not the home of the engine pin
+  ([0014](0014-directory-layout.md)). Recipe ownership lives in the committed `cook.lock`; apply needs neither prior
+  history nor that lock.
 - These are target decisions. The current [`cook` script](../../cook) launches a locally built JVM distribution; it
   does not pin, download, verify, or cache a release. The existing
   [jpackage build](../../cli/gradle/jpackage.gradle) produces an application image with bundled Java. Neither establishes
@@ -32,8 +32,8 @@ version through the repository's entry point without installing Java or Gradle s
 ## Decision
 
 1. Commit an executable `./cook` wrapper with an exact engine version and matching checksums for the platform packages
-   the repository uses. The committed pin remains available independently of ignored `.cook/` history. This decision
-   does not select a pin serialization format or require an ownership manifest.
+   the repository uses. The committed pin remains available independently of ignored `.cook/` history and is separate
+   from the recipe ownership in `cook.lock`. This decision does not select a pin serialization format.
 2. Distribute the engine as a complete platform-specific `jpackage` package containing Java. Cache and launch that
    complete package; copying only its launcher does not supply the runtime or other package contents.
 3. On first use of an uncached pin, the wrapper downloads the selected platform package and verifies it against the
@@ -46,7 +46,7 @@ version through the repository's entry point without installing Java or Gradle s
    for declared writes regardless of the wrapper or package location. CI that chooses to invoke Cook uses the same
    pin and verification flow; no CI job or check command is required by this decision.
 6. Engine pinning is separate from cookbook distribution and recipe trust. Users manage recipe versions and supply
-   the version to apply or discard. Ingredient/recipe APIs, nesting, station semantics, decorators, injection,
+   the version to apply. Ingredient/recipe APIs, nesting, station semantics, decorators, injection,
    annotations, and lifecycle hooks remain for the separate model discussion. Issue #9 does not decide deletion of
    dynamic composition or compiled suppliers, and this wrapper decision selects neither as the final model API.
 
@@ -62,7 +62,7 @@ version through the repository's entry point without installing Java or Gradle s
 - **4.** Explicit upgrades make a dependency change a repository decision. Separating that change from cooking avoids
   turning an ordinary invocation into an unrequested upgrade or file rewrite.
 - **1, 5.** Committed pins, local executable caches, and recovery history serve different purposes. Losing history
-  must not erase the engine choice or prevent apply/discard, and locating an executable must not change output paths.
+  must not erase the engine choice or prevent apply, and locating an executable must not change output paths.
 - **6.** Program models and recipes have their own authors and distribution. An engine version cannot establish the
   trustworthiness or intended version of those sources, and packaging does not decide how their APIs compose.
 
@@ -101,7 +101,8 @@ jpackage distribution supplies Java directly without that requirement.
 - Repositories review explicit pin changes. Cookbook changes remain separate; no registry, recipe-version manager,
   automatic updater, global-install delegation, hook cache mode, or checksum-bypass mechanism is introduced.
 - Existing target content uses the actual batch diff and approval flow, without `--adopt`, an adoption alias, a separate
-  adoption step, or ownership/drift gates. Engine pinning does not create those prerequisites.
+  adoption step, or drift gates; recorded ownership never blocks a change. Engine pinning does not create those
+  prerequisites.
 
 ## Confirmation
 

@@ -1,10 +1,9 @@
-# Add a Python dependency
+# add-python-dependency
 
-This guide describes the current implementation. The [architecture](../../../docs/architecture.md) defines the
-intended design; the [factory guide](../README.md) explains current CLI limits, source prerequisites and ownership
-reconciliation. Existing composition APIs and adoption gates do not settle the deferred model or hooks.
+`add-python-dependency` declares one requirement in a requirements file or in the dependency array of a TOML project
+file, and a `dependency:python` mise task that installs it with pip or uv.
 
-Declare a requirement in a text manifest or in a TOML project dependency array, and generate a `dependency:python` task.
+## Usage
 
 ```groovy
 book.recipe('add-python-dependency', kitchen, [
@@ -13,16 +12,64 @@ book.recipe('add-python-dependency', kitchen, [
 ]).mount()
 ```
 
-Required options are `dependency`, `manifest`, `installer`, and `environment` (the Python executable). Installer is `uv` or `pip`; the requirement must occupy one line.
+## Arguments
 
-A manifest ending in `.toml` uses `project.dependencies`, or `project.optional-dependencies.<group>` when `group` is supplied. In the TOML case, existing requirements for the same normalized package with different specifications are rejected;
-the text-manifest case writes a block without checking other requirements outside it. The TOML array is managed as
-one key, so an existing unmanaged array requires adoption even when the new requirement is simply appended. Other manifests receive a managed dependency block.
+| Argument | Required | Default | Meaning |
+| --- | --- | --- | --- |
+| `dependency` | yes | none | One requirement on a single line, for example `example-library==1.2.3`. In a TOML manifest it must begin with a package name. |
+| `manifest` | yes | none | Path of the manifest. A path ending in `.toml` selects the TOML project array; any other path is a requirements file. |
+| `installer` | yes | none | `pip` or `uv`. |
+| `environment` | yes | none | Path of the Python executable the task installs into, for example `.venv/bin/python`. |
+| `group` | no | none | TOML manifests only: selects `project.optional-dependencies.<group>` instead of `project.dependencies`. |
+| `id` | no | `add-python-dependency` | Identity of the recipe component. It names the requirements-file block. |
+| `mise` | no | a new `mise` ingredient | Existing mise ingredient component that receives the task. Pass one when the kitchen already holds a component named `mise`. |
+| `adopt` | no | `false` | Boolean. `true` takes over an existing unmanaged TOML dependency array and, when the recipe creates the mise ingredient, an existing unmanaged task key. The requirements-file block does not use it. |
 
-Optional options are `group` (TOML only), `id` (default `add-python-dependency`), `mise`, and `adopt`. The task installs the project in editable mode for TOML, or installs with `-r <manifest>` for a requirements file when invoked separately. Cooking does not create the Python
-environment or install packages. Running the task requires mise, an existing Python environment with pip, or uv
-for the uv path, and a usable requirements file or installable project. A TOML dependency stub alone is not a
-complete installable project. Package sources must be reachable or cached. The text block does not use `adopt`;
-that option applies to the TOML key and mise supplier, and managed edits still fail reconciliation.
+## Output
 
-See [factory usage](../README.md).
+| Target | Format | Part the recipe owns |
+| --- | --- | --- |
+| `<manifest>` ending in `.toml` | TOML | The `project.dependencies` array, or `project.optional-dependencies.<group>`: its existing entries plus `<dependency>`. |
+| any other `<manifest>` | Text with marker blocks | The block between `# cook:begin <id>/dependency` and `# cook:end <id>/dependency`, holding `<dependency>`. |
+| `mise.toml`, or the file of the supplied `mise` | TOML | The `tasks."dependency:python"` key. |
+
+The task runs `'<environment>' -m pip install` with pip, or `uv pip install --python '<environment>'` with uv. For a
+TOML manifest the command ends with `-e '<directory>'`, where `<directory>` is the manifest's parent directory or `.`;
+with `group`, the editable target is `<directory>[<group>]`. For a requirements file it ends with `-r '<manifest>'`.
+
+## Inputs
+
+- For a TOML manifest, the recipe reads the existing file, when there is one, to keep the array's current entries.
+- The task needs mise and the Python executable at `environment`. With pip, that executable must provide the `pip`
+  module; with uv, `uv` must be available to the task.
+- For a TOML manifest, the manifest's directory must hold an installable project. The recipe writes only the
+  dependency array.
+- Package indexes must be reachable, or the packages cached.
+
+## Behaviour
+
+- TOML manifest: a file that does not parse as TOML fails the recipe. A requirement whose package name, compared in
+  lower case with runs of `-`, `_` and `.` read as one `-`, already appears in the array with a different
+  specification fails the recipe. An identical existing entry stays once. The whole array is one key, so an existing
+  unmanaged array needs `adopt: true` even when the recipe only appends to it.
+- Requirements file: the recipe does not check the rest of the file, so a requirement for the same package outside the
+  block stays.
+- An `installer` other than `pip` or `uv`, or a `dependency` that contains a line break, fails the recipe.
+- The recipe writes the task declaration. It does not run the task, create the Python environment or install packages.
+
+## Example
+
+With the usage above and this `requirements.txt`:
+
+```text
+requests==2.32.3
+```
+
+the recipe writes:
+
+```text
+requests==2.32.3
+# cook:begin add-python-dependency/dependency
+example-library==1.2.3
+# cook:end add-python-dependency/dependency
+```

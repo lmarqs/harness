@@ -11,9 +11,9 @@ that verification proves and what trust remains their responsibility.
 
 ## Context
 
-- FR-26 of the [documentation alignment PRD](../../tasks/prd-documentation-alignment.md#distribution-and-documentation-authority)
-  selects JVM distribution using `jpackage`, complete platform packages containing Java, a committed wrapper pinning
-  version and checksum, first-use download/cache, and explicit upgrades ([0017](0017-engine-version.md)).
+- FR-26 in the [architecture requirements](../architecture.md#requirements) selects JVM distribution using `jpackage`,
+  complete platform packages containing Java, a committed wrapper pinning version and checksum, first-use
+  download/cache, and explicit upgrades ([0017](0017-engine-version.md)).
 - A checksum detects whether downloaded bytes match the recorded pin. If a package was already compromised when its
   checksum was chosen, that checksum will still match. Replacing both a package and an unreviewed checksum at its source
   defeats a comparison with that source; the committed checksum is the reference for subsequent downloads.
@@ -40,8 +40,8 @@ that verification proves and what trust remains their responsibility.
    package they choose. No signing system is a prerequisite established by this decision.
 4. Keep engine integrity separate from recipe trust and file-operation approval. Trust recipe sources before
    evaluation; reviewing the resulting batch diff governs declared writes, not arbitrary recipe side effects.
-   Apply/discard require neither ownership records nor previous history. The committed pin is not an owned target
-   requiring adoption, and ignored `.cook/` recovery history is not the only copy of it.
+   Apply requires neither `cook.lock` nor previous history. The committed pin needs no adoption, and ignored `.cook/`
+   recovery history is not the only copy of it.
 5. Do not use distribution trust to decide recipe/ingredient APIs, nesting, station semantics, decorators, injection,
    annotations, or lifecycle hooks. Those remain separate model questions. Issue #9 supplies review input, not a
    decision to delete dynamic composition or compiled suppliers; this record selects no replacement model API.
@@ -58,8 +58,8 @@ that verification proves and what trust remains their responsibility.
   Signatures could address a different part of trust, but choosing keys, verification, rotation, and bootstrap would
   add decisions absent from the agreed architecture.
 - **4.** Engine packages and cookbook sources have separate distribution responsibilities. A trusted engine does not
-  make every recipe trustworthy, and approval cannot undo effects outside the declared batch. Ownership storage or
-  adoption gates would add prerequisites unrelated to verifying an engine download.
+  make every recipe trustworthy, and approval cannot undo effects outside the declared batch. Depending on `cook.lock`
+  or adoption gates would add prerequisites unrelated to verifying an engine download.
 - **5.** The ingredient concept remains useful program knowledge regardless of release verification. Packaging and
   trust reasoning do not settle how recipes and models compose or how future session capabilities work.
 
@@ -93,7 +93,7 @@ obsolete Go-only or operating-system-only runtime constraint; it leaves their se
 - Cookbook authors retain responsibility for their program models and recipes. The engine pin does not manage recipe
   versions, impose a supplier-admission protocol, or provide a registry.
 - Existing or edited target files follow batch diff review and approval. The target CLI has no `--adopt`, adoption
-  alias, separate adoption step, or ownership-state prerequisite; removing existing gates remains implementation work.
+  alias, separate adoption step, or `cook.lock` prerequisite; removing existing gates remains implementation work.
 
 ## Confirmation
 
@@ -105,4 +105,4 @@ Review the documented trust flow against these scenarios; no new check command i
 - A matching checksum is described as integrity against the pin, with publisher identity and prior compromise left
   as trust limits. Neither recipe trust nor arbitrary-code sandboxing is inferred from package verification.
 - The wrapper and installation references describe the same complete-package flow without promising signatures,
-  adoption, ownership storage, or a finalized model API.
+  adoption, or a finalized model API.

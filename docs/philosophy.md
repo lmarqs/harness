@@ -30,16 +30,19 @@ session work, rather than expanding the file-operation engine into a session con
 
 - Reuse configuration through recipes and ingredients maintained in cookbook repositories.
 - Review the combined effect of the requested changes against current content before approving writes.
-- Preserve unrelated content when applying, discarding or reverting declared contributions.
+- Preserve unrelated content when applying recipes or reverting batches.
 - Let configured programs consume their native files directly, without needing Cook to run them.
 - Keep the engine's responsibilities bounded so cookbooks can evolve separately.
 
 ## What `the-cook` is
 
+This section describes the intended design stated in the [architecture](architecture.md); see the root README's
+[current implementation](../README.md#current-implementation) for what runs today.
+
 Cook is a recipe driven configuration engine. Its CLI evaluates trusted executable Groovy recipes into an ordered
-batch of file operations, shows the resulting terminal diff, obtains approval, saves recovery information and
-performs the writes. Batches can include directory and symlink operations where applicable; executing external
-commands is not a batch action.
+batch of file operations, shows the resulting terminal diff, obtains approval, records the batch and the ownership in
+`cook.lock`, and performs the writes. Batches can include directory and symlink operations where applicable;
+executing external commands is not a batch action.
 
 Ingredients are program data models: they describe native files and configuration, such as Git's ignore file or
 Codex's configuration and skills. Cookbook repositories hold and ship ingredients and recipes, with builds that can
@@ -94,21 +97,22 @@ station roles, hooks, decorators, parameter injection or annotations; those requ
 **Problem.** Hidden reconciliation or refusals based on manual edits prevent readers from judging the change they
 requested against the files they have now.
 
-**Tenet.** Evaluate supplied recipes against current content on every apply or discard invocation. Compose operations
-in declared order, allowing later instructions to replace earlier values, and show one combined diff. Approval covers
-the whole batch. Existing or edited content uses the same flow, without ownership-state prerequisites, `--adopt`,
-adoption aliases or a separate adoption step. Applying one recipe leaves unrelated outputs from another intact.
+**Tenet.** Evaluate supplied recipes against current content on every apply invocation. Compose operations in
+declared order; when two recipes write the same target, the last one wins and becomes its owner, and one combined diff
+shows the result. The CLI accepts the whole batch. Ownership, recorded in the committed `cook.lock`, never blocks a
+change: existing or edited content uses the same flow, without `--adopt`, adoption aliases or a separate adoption
+step. Applying one recipe never removes another recipe's output.
 
 ### Make recovery part of writing
 
 **Problem.** A failed write can leave only part of the approved change, and later withdrawal can be confused with
 restoring the past.
 
-**Tenet.** Save recovery patches before the first target write and roll back completed writes if the batch fails,
-retaining the patches and failure record. Discard deletes the supplied recipe version's declared contributions;
-revert uses a recorded run to restore its prior values against current content. Both preserve unrelated content and
-show the actual diff. Apply and discard need no prior history; reverting a particular run needs its history. See
-[apply](features/render.md) and [discard and revert](features/remove.md).
+**Tenet.** Save the batch record before the first target write and roll back completed writes if the batch fails,
+retaining the record and failure. Revert reverses only one recorded batch's changes against current content: later
+non-overlapping edits survive, and an overlapping edit makes revert write nothing and list the conflicts. Apply needs
+neither batch history nor `cook.lock`; reverting a batch needs its record. Discarding a recipe's whole contribution is
+deferred. See [apply](features/render.md) and [revert](features/remove.md).
 
 ### Let native configuration stand on its own
 

@@ -1,30 +1,70 @@
-# Migrate AWS CI credentials
+# migrate-aws-credentials
 
-This guide describes the current implementation. The [architecture](../../../docs/architecture.md) defines the
-intended design; the [factory guide](../README.md) explains current CLI limits, source prerequisites and ownership
-reconciliation. Existing composition APIs and adoption gates do not settle the deferred model or hooks.
+`migrate-aws-credentials` replaces the steps of selected CI workflow jobs with a caller-supplied list that includes an
+AWS credentials step assuming an IAM role, and grants each job the `contents: read` and `id-token: write` permissions.
 
-Replace selected workflow job steps with AWS role credentials and permissions.
+## Usage
 
 ```groovy
+def checkout = [id: 'checkout', uses: 'actions/checkout@v4']
+def staticKeys = [id: 'staticKeys', run: './export-aws-keys.sh']
+def build = [id: 'build', run: './gradlew build']
 book.recipe('migrate-aws-credentials', kitchen, [
     adopt: true,
     jobs: [[workflow: '.github/workflows/build.yaml', job: 'build',
-        expectedSteps: oldSteps, steps: replacementSteps,
+        expectedSteps: [checkout, staticKeys, build], steps: [checkout, build],
         region: 'us-east-1', role: 'arn:aws:iam::123456789012:role/build',
-        placement: 'start']]
+        placement: [before: 'build']]]
 ]).mount()
 ```
 
-Define `oldSteps` as the exact current YAML steps list and `replacementSteps` as the complete desired list before
-this example; they are caller-supplied Groovy lists, not repository variables. The workflow must already exist.
-Boolean `adopt: true` and a nonempty typed `jobs` list are required through Groovy composition; CLI strings do not
-satisfy these checks. Each job requires `workflow`, `job`, `expectedSteps`, `steps`, `region`, `role`, and `placement`. `expectedSteps` must equal the current YAML job steps; `steps` is the complete list into which credentials are inserted. `placement` accepts `start`, `end`, `[before: stepId]`, or `[after: stepId]`; selectors must match exactly one step. The replacement list must not already contain an `awsCredentials` step. Optional `action` overrides the supplier's
-AWS action reference.
+## Arguments
 
-Optional `id` defaults to `migrate-aws-credentials`. Optional `files` uses guarded whole-file replacements with `[path, expected, content]` strings. A replacement cannot own the same workflow as a credential job.
+| Argument | Required | Default | Meaning |
+| --- | --- | --- | --- |
+| `adopt` | yes | none | Boolean; must be `true`. |
+| `jobs` | yes | none | Nonempty list of job maps, described below. |
+| `files` | no | none | List of maps with `path`, `expected` and `content`, where `expected` and `content` are strings: guarded whole-file replacements. A `path` cannot be a workflow named in `jobs`. |
+| `id` | no | `migrate-aws-credentials` | Identity of the recipe component. |
 
-The supplier manages the job's steps, `contents: read`, and `id-token: write` permissions. Cooking does not run CI
-or validate AWS trust. The eventual workflow needs an AWS role/trust setup appropriate for its runner. Current
-ownership and managed-edit checks still apply; repeating a migration also requires `expectedSteps` to match the
-then-current workflow, so the initial map is not a general idempotence guarantee. See [factory usage](../README.md).
+Each `jobs` entry is a map with these keys:
+
+| Argument | Required | Default | Meaning |
+| --- | --- | --- | --- |
+| `workflow` | yes | none | Path of the existing workflow YAML file. |
+| `job` | yes | none | Identifier of the job under `jobs`. |
+| `expectedSteps` | yes | none | List that must equal the job's current `steps`, as parsed from the YAML. |
+| `steps` | yes | none | List of step maps: the job's complete new steps, without the credentials step. No step may have the id `awsCredentials`. |
+| `region` | yes | none | AWS region, passed to the credentials step as `aws-region`. |
+| `role` | yes | none | IAM role ARN, passed to the credentials step as `role-to-assume`. |
+| `placement` | yes | none | Position of the credentials step: `'start'`, `'end'`, `[before: '<step id>']` or `[after: '<step id>']`. |
+| `action` | no | `aws-actions/configure-aws-credentials@v6.3.0` | Action reference of the credentials step. |
+
+## Output
+
+| Target | Format | Part the recipe owns |
+| --- | --- | --- |
+| `<workflow>` | YAML | For each job: `jobs.<job>.steps`, `jobs.<job>.permissions.contents` set to `read`, and `jobs.<job>.permissions.id-token` set to `write`. |
+| each `files` path | Text | The whole file, set to `content`. |
+
+The new `steps` value is the job's `steps` argument with the credentials step inserted at `placement`. The credentials
+step is `{id: awsCredentials, uses: <action>, with: {aws-region: <region>, role-to-assume: <role>}}`.
+
+## Inputs
+
+- The recipe reads each job's workflow file and each `files` path; all of them must exist.
+- Runs of the updated workflow need the IAM role in `role` to accept the job's identity token. The recipe does not
+  create or check the role.
+
+## Behaviour
+
+- The recipe fails when `adopt` is not `true`, when `jobs` is empty or not a list, when a job's `expectedSteps` differ
+  from its current steps or the job is missing, when a step is not a map, when `placement` has another form, when a
+  `before` or `after` selector matches no step id or more than one, or when a `files` path is also a job's workflow.
+- A `files` entry whose current content equals neither `expected` nor `content` fails the recipe.
+- The recipe takes over the job keys and the `files` paths, replacing existing values. Other jobs, other keys of the
+  job and other permission entries stay unchanged.
+- After an application the job's steps include the credentials step, so applying again needs `expectedSteps` that
+  match the updated job.
+- Each job is applied through the `aws-ci-credentials` ingredient, with identity `aws-ci-credentials-<index>` for the
+  job's position in `jobs`.

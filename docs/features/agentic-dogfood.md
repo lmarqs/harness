@@ -2,15 +2,16 @@
 
 This page describes the current implementation and this checkout's setup. The
 [architecture](../architecture.md) defines the intended design; the ownership,
-adoption and drift behaviour below does not override it. The target requires
-removing `--adopt` wherever exposed and the underlying adoption and managed-edit
-gates, replacing them with review and whole-batch approval of the actual diff for
-existing or edited content, without an adoption alias or ownership-state
-prerequisite. That remains product implementation work.
+adoption and drift behaviour below does not override it. In the target design,
+existing or edited content goes through review and whole-batch approval of the
+actual diff, with no `--adopt` flag, adoption alias, or managed-edit gate.
+Ownership is recorded in a committed `cook.lock` and never blocks a change, and
+batch records live in the ignored `.cook/batches/<batchId>/` directory.
+Implementing that design is product work.
 
 The commands below use the current CLI and require the local JVM distribution;
 see the [root build/help instructions](../../README.md#start-from-a-fresh-clone).
-They do not demonstrate the target apply/discard/revert or batch-approval flow.
+They do not demonstrate the target apply/revert or batch-approval flow.
 
 The repository uses the independent `agentic/context` and `agentic/permission`
 recipes. `AGENTS.md` is the editable, seeded project guidance. `CLAUDE.md`,

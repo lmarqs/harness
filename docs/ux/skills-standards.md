@@ -101,17 +101,17 @@ Use the intended CLI grammar when documenting the design:
 ```sh
 ./cook ./recipes/project.groovy --instructions='Keep existing comments.'
 ./cook apply ./recipes/base.groovy --agent=codex ./recipes/project.groovy --agent=claude
-./cook discard ./recipes/project.groovy
-./cook revert RUN_ID
+./cook batch list
+./cook revert 2026-10-14T15-04-05Z
 ```
 
-`RUN_ID` stands for a recorded run identifier. These examples establish argument scope, not a model or injection API,
-and do not claim current CLI implementation. For current execution, consult the [root README](../../README.md) and
-the relevant cookbook usage guide.
+The batch ID is the recorded batch's UTC start time. These examples establish argument scope, not a model or injection
+API, and do not claim current CLI implementation. For current execution, consult the [root README](../../README.md) and
+the [core implementation guide](../../core/README.md).
 
 Batch options precede operands. Only use `--batch-approve` when preapproval is intended: it displays the diff and
 proceeds without prompting. Otherwise Cook asks before target writes. Noninteractive execution alone does not
-authorize writes, and approval covers the whole batch rather than individual files or hunks. A skill must not infer
+authorize writes, and the CLI accepts the whole batch rather than individually chosen changes. A skill must not infer
 preapproval merely because an agent is driving the command. See [CLI approval](../features/cli.md#batch-options-and-approval).
 
 Trust the recipe source before evaluation. Recipes are executable Groovy; approval and recovery govern declared
@@ -178,8 +178,7 @@ Choose evidence appropriate to the task: inspect changed native files, command r
 unrelated content. Use an existing relevant check where the task calls for one, without inventing Cook verification
 receipts or treating an agent's prose as proof.
 
-Apply/discard evaluate the supplied recipes against current content every time and need no previous history. Applying
-another recipe does not remove unrelated skill files. Discard deletes the supplied recipe version's declarations,
-including edited values; revert restores the recorded operation's prior values using its history. Both preserve
-unrelated content and show the actual diff for whole-batch approval. Neither reverses actions an agent took after
-reading the skill. See [discard and revert](../features/remove.md).
+Apply evaluates the supplied recipes against current content every time and needs neither batch history nor
+`cook.lock`. Applying another recipe never removes skill files a different recipe owns. Revert reverses only one
+recorded batch's changes, preserving later non-overlapping edits, and shows the actual diff for whole-batch approval.
+Revert does not reverse actions an agent took after reading the skill. See [revert](../features/remove.md).

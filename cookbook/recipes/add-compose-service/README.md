@@ -1,10 +1,8 @@
-# Add a Compose service
+# add-compose-service
 
-This guide describes the current implementation. The [architecture](../../../docs/architecture.md) defines the
-intended design; the [factory guide](../README.md) explains current CLI limits, source prerequisites and ownership
-reconciliation. Existing composition APIs and adoption gates do not settle the deferred model or hooks.
+Adds one service to a Compose file and declares a `stack:validate` mise task that checks the file with Docker Compose.
 
-Declare a Compose service and a `stack:validate` mise task.
+## Usage
 
 ```groovy
 book.recipe('add-compose-service', kitchen, [
@@ -13,9 +11,29 @@ book.recipe('add-compose-service', kitchen, [
 ]).mount()
 ```
 
-Required options are `service`, a nonempty `configuration` map, and `path`. Optional options are `id` (default `add-compose-service`), `mise` (an existing mise component), and `adopt` (passed to suppliers). The validation task runs `docker compose -f <path> config` when invoked separately. Its `configuration` must be a
-Groovy map, so this example requires composition rather than CLI string options. The selected service key and
-mise task must be absent or managed, or explicitly adopted using the existing supplier options. Cooking writes
-configuration; running the task requires mise and Docker Compose and does not start the service.
+## Arguments
 
-See [factory usage](../README.md).
+| Argument | Required | Default | Meaning |
+| --- | --- | --- | --- |
+| `service` | yes | none | Service name, used as the key under `services`. |
+| `configuration` | yes | none | Service definition, as a nonempty map. Any other value is rejected. |
+| `path` | yes | none | Repository-relative path of the Compose file. |
+| `id` | no | `add-compose-service` | Component ID of the recipe. |
+| `mise` | no | a new `mise` ingredient | Existing mise component that receives the task. |
+| `adopt` | no | `false` | Boolean `true` or string `'true'` lets the recipe adopt an existing unmanaged service key and, when it creates the mise component, an existing unmanaged `stack:validate` task. |
+
+## Output
+
+| Target | Format | Part the recipe owns |
+| --- | --- | --- |
+| `path` | YAML | The `services.<service>` key, set to `configuration`. |
+| `mise.toml`, or the file of the supplied `mise` component | TOML | The `tasks."stack:validate"` key: `{ run = "docker compose -f '<path>' config" }`. |
+
+## Inputs
+
+Running the task needs mise and Docker Compose (`docker compose`).
+
+## Behaviour
+
+- Other services and top-level keys of the Compose file are left untouched.
+- The recipe writes the service and the task declaration only; it does not run the task or start the service.

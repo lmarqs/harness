@@ -1,43 +1,67 @@
-# Cookbook agent setup
+# cookbook
 
-This guide describes the current implementation. The [architecture](../../../docs/architecture.md) defines the
-intended design; the [factory guide](../README.md) explains current CLI limits, source prerequisites and ownership
-reconciliation. Existing composition APIs and adoption gates do not settle the deferred model or hooks.
+Configures Codex and Claude from one version 1 policy file. The repository gets shared agent instructions in
+`AGENTS.md`, native permission settings for both agents, and links to three shared skills.
 
-`recipe.groovy` returns a factory composing Git, TheCook, shared skill links, shared instructions, and the Codex and Claude recipe renderers.
-
-For independent harness setup, use [agentic init, permission, and context](../agentic/README.md). That flow selects applications per invocation and requires no `cook.groovy`. This existing `cookbook` recipe remains a supported combined entry point with its policy and shared-skills behavior; existing invocations and composed `book.recipe('cookbook', ...)` calls continue to work. Its outputs and ownership differ from the independent recipes, so follow the command set for the entry point you selected.
-
-Before the commands below, build the local CLI as described in the [factory guide](../README.md#before-running-recipes).
-Supply a policy path and a skill source containing `solid/SKILL.md`, `hexagonal-layout/SKILL.md` and
-`effective-java-core/SKILL.md`. The default `~/.agents/skills` is personal input, not supplied by this clone; use
-`--skills-home=/absolute/path/to/skills` to choose another source. `.agents/policy.yaml` is not a tracked starter:
-an absent destination-local path can be seeded, while an existing source must be a valid regular policy file.
-Symlink policy sources are rejected. A missing source outside the destination cannot be seeded there.
-
-These commands assume absent or already managed selected output. Tracked agent files in a fresh clone are unmanaged,
-so even `--dry-run` can fail. It reports changed paths rather than a content diff; the write command has no approval
-prompt. Review sources and output prerequisites before invoking it.
+## Usage
 
 ```sh
-./cook cookbook --policy=.agents/policy.yaml --dry-run
 ./cook cookbook --policy=.agents/policy.yaml
 ```
 
-| Argument | Contract |
-| --- | --- |
-| `--policy` | Required policy YAML path. Relative paths resolve from the repository root. An absent path inside the repository receives a version-one starter policy. |
-| `--skills-home` | Optional shared skill directory; defaults to `~/.agents/skills`. Relative paths resolve from the repository root. |
-| `--adopt` | Optional `true` or `false`, default `false`. Allows adoption of selected unmanaged keys, Codex rule content and skill links; managed drift still rejects. |
+```groovy
+book.recipe('cookbook', kitchen, [policy: '.agents/policy.yaml']).mount()
+```
 
-`--adopt=true` does not adopt the `AGENTS.md` instruction block or Claude's `CLAUDE.md` block, and it cannot resolve
-conflicting ownership from another application. Combined and independent permission renderers share the
-`agentic.permissions/codex` and `agentic.permissions/claude` application IDs, so recooking either entry point can
-withdraw omitted contributions within those applications. Inspect their output scopes before mixing them.
+## Arguments
 
-Unknown arguments, invalid policies, and missing `SKILL.md` files fail before outputs are applied. The skills directory must contain `solid`, `hexagonal-layout`, and `effective-java-core`.
+| Argument | Required | Default | Meaning |
+| --- | --- | --- | --- |
+| `policy` | yes | none | String path to the policy YAML. A relative path resolves from the repository root. The path must resolve inside the repository. |
+| `skills-home` | no | `~/.agents/skills` | String path to the directory that holds the shared skills. A relative path resolves from the repository root. |
+| `adopt` | no | `'false'` | String `'true'` or `'false'`; any other value, including boolean `true`, is rejected. `'true'` lets the recipe adopt existing unmanaged Codex and Claude permission keys, the Codex rules block and the skill links. |
 
-The policy schema is version 1:
+## Output
+
+| Target | Format | Part the recipe owns |
+| --- | --- | --- |
+| `AGENTS.md` | Markdown | The `agent-policy/instructions` block: a fixed `# Working on the-cook` section that names the three skills and the build commands, followed by the policy's `instructions`. |
+| `CLAUDE.md` | Markdown | The `cookbook.claude/instructions` block, containing `@AGENTS.md`. |
+| `.codex/config.toml` | TOML | `sandbox_mode` (`workspace-write`), `approval_policy` (`on-request`) and `sandbox_workspace_write.network_access` (`false`). |
+| `.codex/rules/cookbook.rules` | Codex rules | The `cookbook.codex/commands` block: one `prefix_rule` per policy command, with `allow`, `ask` and `deny` rendered as `allow`, `prompt` and `forbidden`. |
+| `.claude/settings.json` | JSON | `permissions.defaultMode` (`acceptEdits`) and the `permissions.allow`, `permissions.ask` and `permissions.deny` lists, one `Bash(<tokens> *)` entry per policy command. |
+| `.agents/skills/<name>` | Symbolic link | The whole link, pointing to the absolute path of `<skills-home>/<name>`. |
+| `.claude/skills/<name>` | Symbolic link | The whole link, pointing to `../../.agents/skills/<name>`. |
+| `.gitignore` | Ignore file | The `git/ignore` block: `/.cook/` and the six skill links. |
+| The `policy` path | YAML | Nothing. When the file is absent, the recipe writes the starter `version: 1`, `instructions: []`, `commands: {}` and does not own it. |
+
+`<name>` is each of `solid`, `hexagonal-layout` and `effective-java-core`.
+
+## Inputs
+
+- The policy file. It contains `version: 1`, an optional `instructions` list of strings, and optional `commands.allow`,
+  `commands.ask` and `commands.deny` lists. Each command is a nonempty list of literal tokens made of ASCII letters,
+  digits and `_ . / : = @ + -`. [PolicyFile.groovy](../../ingredients/agent-policy/PolicyFile.groovy) and
+  [Policy.groovy](../../ingredients/agent-policy/Policy.groovy) define the format.
+- The skill source at `skills-home`. It contains `solid/SKILL.md`, `hexagonal-layout/SKILL.md` and
+  `effective-java-core/SKILL.md`.
+
+## Behaviour
+
+- Before it declares any output, the recipe rejects unknown arguments, a missing `policy`, an `adopt` value other than
+  `'true'` or `'false'`, a policy path that is a symbolic link, an invalid policy and a missing `SKILL.md`.
+- A policy is invalid when its version is not 1, when it has unknown fields or duplicate keys, when it uses non-standard
+  YAML tags, or when a command token contains any character outside the allowed set.
+- An absent policy file is read as the starter, so the outputs carry no policy instructions or commands. An existing
+  policy file is read and never modified.
+- `adopt` does not apply to the `AGENTS.md`, `CLAUDE.md` and `.gitignore` blocks.
+- The recipe declares these applications: `agentic.init/cookbook` for itself; `agentic.init/the-cook`,
+  `agentic.init/git`, `agentic.init/skills`, `agentic.init/claude-skills` and `agentic.init/agent-policy` for its
+  ingredients; `agentic.permissions/codex` and `agentic.permissions/claude` for the two permission renderers.
+
+## Example
+
+`.agents/policy.yaml`:
 
 ```yaml
 version: 1
@@ -52,14 +76,21 @@ commands:
     - [git, reset, --hard]
 ```
 
-Command entries are nonempty lists of literal tokens. Shell syntax, wildcards, unknown fields, duplicate keys, and executable YAML tags are rejected.
+`.codex/rules/cookbook.rules`:
 
-Outputs are `AGENTS.md`, `CLAUDE.md`, managed Codex TOML keys and rules, managed Claude JSON permission keys, and skill symlinks. `.agents/skills/<name>` points to the absolute shared skill path; `.claude/skills/<name>` points to `../../.agents/skills/<name>`. Git ignores local ownership state and those links. An absent policy receives an editable starter file after its effective content passes policy validation. Existing policy files are read without modification; the seeded policy is unowned and is preserved when its
-contributions are withdrawn through composition. This closure factory has no removal declaration, so
-`./cook cookbook --remove` is unsupported. Use the declared independent recipes for their documented CLI removal flow.
+```text
+# cook:begin cookbook.codex/commands
+# Generated from the selected policy by ./cook cookbook.
+# These literal prefix rules govern execution outside the Codex sandbox.
+# They do not inspect the contents of scripts or enforce instructions as OS controls.
+prefix_rule(pattern = ["git","status"], decision = "allow")
+prefix_rule(pattern = ["terraform","apply"], decision = "prompt")
+prefix_rule(pattern = ["git","reset","--hard"], decision = "forbidden")
+# cook:end cookbook.codex/commands
+```
 
-Codex rules govern requests outside its sandbox and do not inspect script contents. Claude permissions use native Bash prefix rules. Policy instructions are guidance for both agents.
+`.claude/settings.json`:
 
-The CLI and `book.recipe('cookbook', kitchen, options)` invoke the same factory. Relative policy and skill paths resolve from the destination repository. In a composed call, `policy` is a string,
-`'skills-home'` is an optional string, and `adopt` must be the string `'true'` or `'false'`, matching this factory's
-validation; it does not accept boolean `true` like the guarded migration factories.
+```json
+{"permissions":{"allow":["Bash(git status *)"], "ask":["Bash(terraform apply *)"], "defaultMode":"acceptEdits", "deny":["Bash(git reset --hard *)"]}}
+```

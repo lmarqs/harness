@@ -14,9 +14,9 @@ the pinned package for the machine's OS and architecture. Cook remains JVM-based
 `jpackage` and contains Java. The wrapper caches and launches the complete package, rather than a standalone
 binary that assumes a system Java installation.
 
-The engine pin belongs in committed repository content. Destination-local `.cook/` operation history is ignored
-and can be lost without preventing apply or discard; it must not be the only copy of the engine pin. This design
-does not select a pin file format or cache directory and does not require an ownership manifest for the wrapper.
+The engine pin belongs in committed repository content. Destination-local `.cook/` batch history is ignored and
+can be lost without preventing apply; it must not be the only copy of the engine pin. This design does not select a
+pin file format or cache directory; `cook.lock` records recipe ownership, not the engine pin.
 
 ## How it works
 
@@ -32,8 +32,8 @@ platform packages as well as versions; a package built for one OS or architectur
 Exact asset names, download-source configuration, cache layout, shell prerequisites, and failure exit codes need
 implementation design and are not prescribed by FR-26.
 
-The wrapper passes cooking arguments to the engine. The [CLI reference](cli.md) defines apply, discard, revert,
-recipe operands, and batch options. This wrapper design adds no management command or hook API. Its executable
+The wrapper passes cooking arguments to the engine. The [CLI reference](cli.md) defines apply, revert, batch list and
+inspect, recipe operands, and batch options. This wrapper design adds no management command or hook API. Its executable
 location does not change the invocation directory's role as the destination for declared file operations.
 
 ## One pin
@@ -54,7 +54,7 @@ invocation does not move the pin or select a newer engine release.
 
 Changing the engine pin does not manage recipe versions, fetch cookbook updates, or automatically re-render project
 files. Cookbooks ship ingredients and recipes through their repositories and can have separate builds. Users supply
-the recipe version to apply or discard. The wrapper introduces no registry, recipe-version manager, or updater.
+the recipe version to apply. The wrapper introduces no registry, recipe-version manager, or updater.
 
 ## CI
 

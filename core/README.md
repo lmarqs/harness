@@ -14,8 +14,31 @@ Declared recipes accept `--name=value`, `--name value`, and legacy `--set name=v
 
 Declaration help loads the trusted Groovy definition; it skips the returned factory, not arbitrary top-level script
 code. The current CLI accepts one named recipe or local `.groovy` script per invocation. It does not implement the
-target multiple-operand grammar or `file://` and HTTPS source loading. Its `apply` command executes a saved plan;
-the target `discard`, run-ID `revert` and `--batch-approve` are not implemented.
+target multiple-operand grammar, HTTPS source loading or the restriction of local sources to the destination
+repository. Its `apply` command executes a saved plan; the target `revert <batchId>`, `batch list`, `batch inspect` and
+`--batch-approve` are not implemented.
+
+A `DeclaredRecipe` wraps a `RecipeDeclaration` and a factory. Required single paths, required repeatable choices and
+optional single choices validate before the factory runs. Paths arrive as strings, repeatable choices as ordered lists
+with identical duplicates removed, and optional choices as strings. Closure factories without a declaration receive
+command-line arguments as strings; a composition can pass typed Groovy maps, lists and booleans. `repo`, `dry-run`,
+`remove`, `script`, `plan`, `library`, `set` and `help` are reserved argument names. `book.declaration(name)` returns
+a recipe's declaration without mounting or rendering it. `--remove` requires a declaration with a removal scope and
+withdraws the selected applications using saved ownership; recipes without a declaration cannot be removed this way.
+
+A standalone composition needs core on its classpath and a `Cookbook` pointing at available recipe sources. Mounting
+declares output; `kitchen.plan()` reconciles it without writing, and `plan.apply()` writes it:
+
+```groovy
+import thecook.composition.Kitchen
+import thecook.cookbook.Cookbook
+
+def book = new Cookbook(new File('cookbook'))
+def kitchen = new Kitchen(new File('/path/to/repository'))
+book.recipe('grill', kitchen, [script: 'git status']).mount()
+def plan = kitchen.plan()
+println plan.changes*.path
+```
 
 Optional repository composition scripts such as `cook.groovy` receive `book`, `kitchen`, `repositoryDirectory`, `scriptDirectory`, and `preferences`. They can return a recipe component or a typed `Batch`; both pass through the same checked rendering pipeline before planning. `evaluateRecipe(relativePath, arguments)` delegates to another script while preserving the destination repository. `the-cook cook` still loads the repository's `cook.groovy` by default, while a direct `.groovy` path names any local script. A `cook.groovy` file is not required to run a named or direct recipe.
 
@@ -23,12 +46,12 @@ Optional repository composition scripts such as `cook.groovy` receive `book`, `k
 
 Compiled contributors and the dynamic composition DSL evaluate directly into the same Kotlin render records. Aggregation checks file sharing and key overlap on those records; reconciliation keeps identities and document locations typed. Ownership encoding and reporting are the places that convert records to maps. Document adapters retain their format-specific restoration metadata.
 
-The current CLI reports changed paths, using `--dry-run` for a preview without target writes. Normal cooking applies
-the plan without prompting. Saved plans and the transaction journal contain before/after content and state, but
-they are not the intended consumed-source snapshots or per-run reversible-patch history. The filesystem transaction
-checks observed content and modes before writing, journals the proposal and restores applied changes on write
-failure. Successful rollback removes that journal; the target requirement to retain recovery patches and a failure
-record needs implementation. Trusted recipe evaluation is not sandboxed by these checks.
+The current CLI reports changed paths, using `--dry-run` for a preview without target writes. Normal cooking applies the
+plan without prompting. Saved plans and the transaction journal contain before/after content and state, but they are not
+the intended consumed-source snapshots or per-batch records with reversible patches. The filesystem transaction checks
+observed content and modes before writing, journals the proposal and restores applied changes on write failure.
+Successful rollback removes that journal; the target requirement to retain the batch record and failure needs
+implementation. Trusted recipe evaluation is not sandboxed by these checks.
 
 ## Contribution identity
 
@@ -61,18 +84,19 @@ Version-three `.cook/state.json` records each partial region by contribution add
 Version-one and version-two records are converted in memory during planning. Unclaimed older contributions become legacy ownership. An application cannot claim an overlapping legacy contribution, even with equal content or a matching recipe name; withdraw that contribution in an applied transaction first. Existing markers and adopted originals are preserved; the transaction writes the converted record only on successful application. A preview leaves state bytes unchanged. Existing saved plans remain readable, and rollback restores their exact previous state.
 
 This implementation keeps ownership state in the ignored `.cook` directory. A fresh clone without the state cannot
-infer ownership or adopted originals from generated files alone. Markers cannot represent JSON ownership. This is an
-implementation limitation, rather than a prerequisite in the intended architecture.
+infer ownership or adopted originals from generated files alone. Markers cannot represent JSON ownership. The intended
+architecture records ownership in a committed `cook.lock`, and its apply does not require that lock.
 
 ## Differences from the intended architecture
 
 The [operation contract](../docs/architecture.md#evaluation-review-and-writes) and
-[ADR 0007](../docs/adrs/0007-ownership.md) require changes from supplied declarations and current content without an
-ownership manifest. They allow later operations to replace earlier values, preserve unrelated outputs and use the
-actual terminal diff with whole-batch approval for existing or edited content. Current ownership identities,
-overlap conflicts, automatic withdrawal within a selected application or legacy Batch, adopted-original restoration
-and managed-edit vetoes describe the reconciler, not that target contract. Current `--remove` uses stored application
-ownership rather than evaluating supplied declarations as target discard requires.
+[ADR 0007](../docs/adrs/0007-ownership.md) require changes from supplied declarations and current content, with
+ownership recorded in a committed `cook.lock` that never blocks a change. When two recipes write the same target, the
+last one wins and becomes its owner; applying one recipe never removes another's output; and existing or edited content
+uses the actual terminal diff with whole-batch approval. Current `.cook/state.json` ownership identities, overlap
+conflicts, adopted-original restoration and managed-edit vetoes describe the reconciler, not that target contract.
+Current `--remove` withdraws applications using stored ownership; the target defers discard and reverses recorded
+batches with `revert`.
 
 Some current recipe factories expose `--adopt`; render records and reconcilers also retain adoption gates. The target
 has no adoption flag, alias or separate adoption step. Removing those entry points and underlying gates in favor of
@@ -80,8 +104,8 @@ actual batch diff review and approval remains product implementation work.
 
 The [history design](../docs/architecture.md#paths-source-snapshots-and-local-history) requires consumed local and
 downloaded sources with their origins and one reversible patch per touched file, saved before target writes.
-Ownership state, diagnostic recipe/input provenance and saved plans do not supply that history. Stateless
-apply/discard and reversal by recorded run still need implementation.
+Ownership state, diagnostic recipe/input provenance and saved plans do not supply that history. Records under
+`.cook/batches/<batchId>/`, the committed `cook.lock` and reversal of a recorded batch still need implementation.
 
 [ADR 0023](../docs/adrs/0023-core-and-contracts.md) describes operation boundaries, and
 [ADR 0024](../docs/adrs/0024-ingredients-and-stations.md) preserves program models while deferring their APIs.

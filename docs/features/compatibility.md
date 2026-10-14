@@ -17,12 +17,12 @@ the declared targets. Ingredients model programs' native files and configuration
 and recipes through their repositories, with builds that can be separate from Cook's build.
 
 These requirements do not establish implementation completion. For current execution, see the
-[root README](../../README.md) and cookbook usage guides.
+[root README](../../README.md) and [core implementation guide](../../core/README.md).
 
 Coexistence depends on the targets a recipe declares. A whole-file declaration affects the whole file; a key or marked
 section limits the contribution within a shared file. Existing and manually edited content uses the same diff and
 approval flow, without `--adopt`, an adoption alias or an ownership-state prerequisite. Applying one recipe does not
-implicitly remove unrelated output from another. See [apply](render.md) and [repository setup](scaffold.md).
+remove output another recipe owns. See [apply](render.md) and [repository setup](scaffold.md).
 
 Executing external commands is not a batch action. Trusted recipe code can still cause arbitrary side effects during
 evaluation: diff review, destination boundaries and rollback cover declared file operations, not those effects. Read
@@ -41,7 +41,7 @@ and trust recipe sources before evaluation; do not infer a sandbox from the boun
 | Version-control hooks | Only explicit file declarations change them; the version-control program runs them |
 | `.gitignore` and shared instruction files | Marked sections can coexist with unrelated lines and sections |
 | Local or personal settings | Make shared-versus-personal choices deliberately; Cook does not define an import protocol |
-| `.cook/` | Ignored destination-local operation history, not a committed ownership database or repository profile |
+| `.cook/` | Ignored destination-local batch records, not a repository profile; ownership is recorded in the committed `cook.lock` |
 
 ## Hosting platforms
 
@@ -113,14 +113,14 @@ Keep destination-local `.cook/` history ignored. Other ignore entries are reposi
 A marked section bounds a contribution without taking ownership of the whole ignore file:
 
 ```gitignore
-# cook:local-history
+# cook:begin git/ignore
 /.cook/
-# /cook:local-history
+# cook:end git/ignore
 ```
 
 Review overlapping ignore rules and tracked files using the version-control program's own semantics. Removing one
-section does not establish that a path becomes tracked or that another rule no longer ignores it. Markers identify
-boundaries; they do not create an ownership database or protect a section from a later explicit change.
+section does not establish that a path becomes tracked or that another rule no longer ignores it. Markers name the
+owning recipe and region; ownership never protects a section from a later explicit change.
 
 ## Other tools in `AGENTS.md`
 
@@ -128,9 +128,9 @@ Separate marked sections can coexist with other tools' instructions and hand-wri
 rather than headings, and Markdown uses HTML comments:
 
 ```markdown
-<!-- cook:project-guidance -->
+<!-- cook:begin agentic/context/project-guidance -->
 Use the repository's documented build and check commands.
-<!-- /cook:project-guidance -->
+<!-- cook:end agentic/context/project-guidance -->
 ```
 
 Text outside that section remains unrelated to its declaration. Review duplicated or contradictory instructions even
@@ -172,14 +172,14 @@ upgrading a consuming program as well as when changing cookbook sources.
 ## After removal
 
 Stopping Cook invocations leaves written native files available to their programs. There is no eject protocol or
-automatic repository-wide restoration. To delete declared contributions, discard the supplied recipe version; to
-restore a recorded operation's prior values, revert that run using its history. Both present the actual diff for
-whole-batch approval, preserve unrelated content, and can change manually edited targets. See
-[discard and revert](remove.md).
+automatic repository-wide restoration. To reverse a recorded batch, revert it using its batch record; revert presents
+the actual diff for whole-batch approval and writes nothing when a later edit overlaps the batch's changes. Discarding
+a recipe's sections and keys is deferred; remove them by hand or revert the batches that applied the recipe. See
+[revert](remove.md).
 
-Losing `.cook/` loses local recovery information, not the ability to apply or discard recipes. Reverting a particular
-run requires its history. File reversal does not undo external activity caused by configured programs or arbitrary
-recipe code.
+Losing `.cook/` loses local recovery information, not the ability to apply recipes; ownership survives in the committed
+`cook.lock`. Reverting a particular batch requires its record. File reversal does not undo external activity caused by
+configured programs or arbitrary recipe code.
 
 Personal setup backup (kit) and agent-session orchestration remain future work in
 [issue #5](https://github.com/lmarqs/the-cook/issues/5) and

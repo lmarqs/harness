@@ -30,9 +30,10 @@ change with unrelated formatting edits.
    Preserve their formatting, order, comments and surrounding text so the diff remains focused on declared changes.
    Whole-file declarations have whole-file scope and require review of that full diff.
 3. Existing values, including manually edited values, are inputs to the same ordered operation and whole-batch approval
-   flow. Later instructions may replace earlier values at the same target. No ownership manifest, adoption prerequisite
-   or drift veto applies. Deleting a declared key deletes its current value; restoring a run's prior value uses its
-   recorded history.
+   flow. Later instructions may replace earlier values at the same target. Ownership recorded in `cook.lock` decides
+   what a recipe's later versions update and remove ([0007](0007-ownership.md)); no adoption prerequisite or drift veto
+   applies. Removing a key a recipe no longer declares removes its current value; reverting a batch restores that
+   batch's prior value from its record.
 4. Personal override files are affected only when recipes explicitly declare them as targets. Their mere presence does
    not authorize writing them or importing their contents into shared configuration. Declared operations remain within
    the invocation directory, including symlink resolution ([0012](0012-write-boundary.md)).
@@ -46,14 +47,15 @@ hooks remain a separate discussion. This decision selects no model schema, migra
 
 - **1.** Native formats determine where configuration can live. A separate file can make a change easy to review, but
   cannot serve as a universal rule when a program consumes one shared file. Explicit targets work in both cases
-  without a persistent ownership catalog.
+  without requiring one exclusive file per program.
 - **2.** In the shared-settings example, a change to permissions does not request a new hook or database setting.
   Preserving unrecognized fields avoids silently dropping configuration that the model does not understand.
   Preserving surrounding bytes keeps formatting noise from burying the meaningful diff, at the cost of careful
   format-specific editing rather than a serializer that rewrites the whole document.
 - **3.** A developer needs to see the replacement of a manual value, rather than import it before any change is
-  allowed. Actual diff review exposes that replacement and ordered composition makes overlap intentional. Recovery
-  history answers a request to reverse a run, while recipe declarations answer a request to delete contributions.
+  allowed. Actual diff review exposes that replacement and ordered composition makes overlap intentional. A batch
+  record answers a request to reverse a batch, while a recipe's declarations compared with its recorded ownership
+  determine what its new version removes.
 - **4.** A personal choice is not automatically a team choice, as the override example shows. Requiring an explicit
   target makes that scope visible in review without permanently forbidding recipes from configuring local files.
   Destination containment limits declared writes; it is not a restriction on everything trusted recipe code can do.
@@ -85,8 +87,8 @@ Costs:
 - Native formats need editing support that preserves unrelated content. A full serializer round trip can change
   formatting or drop unknown fields and therefore needs particular care.
 - A declared key can encompass an entire list or object. Review must expose entries that replacing that target removes.
-- People and Cook can change the same file; a later proposal uses its current content instead of treating one writer
-  as an owner whose version wins automatically.
+- People and Cook can change the same file; a later proposal uses its current content, and replacing a person's edit
+  to an owned key appears in the diff rather than happening silently.
 
 Must be maintained:
 

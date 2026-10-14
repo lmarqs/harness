@@ -47,14 +47,15 @@ diff and approval flow. There is no `--adopt`, adoption alias, separate import g
 Do not copy personal permission settings into shared repository configuration without deciding whether the team wants
 those choices. A program can continue to read personal settings independently of the files a recipe declares.
 
-Applying another recipe does not implicitly remove earlier unrelated rules. [Discard](remove.md#discard) proposes
-deleting the supplied recipe version's declared contributions, even after manual edits; [revert](remove.md#revert)
-uses a recorded run's history to restore its prior values. Neither operation proves that the resulting permission
-configuration is appropriate for every program or user.
+Applying another recipe does not remove rules an earlier recipe owns. Applying a new version of a recipe removes the
+rules its previous version owned and the new version no longer declares, and the diff shows that removal.
+[Revert](remove.md#revert) applies a recorded batch's reverse patches against current content. Neither operation
+proves that the resulting permission configuration is appropriate for every program or user.
 
 A recipe may also write a short permission explanation in contributor instructions. Use format-appropriate markers
 for a shared section, including HTML comments in Markdown. Describe the native settings and their limitations;
-markers identify text boundaries and do not protect the rules from editing.
+markers name the owning recipe and region (`cook:begin <recipe>/<region>`) and do not protect the rules from
+editing.
 
 ## Trust and runtime limits
 

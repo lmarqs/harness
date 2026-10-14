@@ -16,15 +16,15 @@ Use the relevant evidence to investigate a problem:
 | Question | Evidence and responsibility |
 | --- | --- |
 | Why is a different file changing? | The invocation directory is the destination; source recipe/template references resolve from the original recipe location. Review declared paths and symlink resolution against the destination boundary. |
-| Why is a value replaced? | Recipes and operations compose left to right. Later declarations can replace earlier values; review the final combined diff against current content. |
+| Why is a value replaced? | Recipes and operations compose left to right. The last recipe to write a section, key or file wins and becomes its owner in `cook.lock`; review the final combined diff against current content. |
 | Why does the program ignore a setting or instruction? | Consult the program's native configuration rules and the ingredient's cookbook documentation, including supported settings and trust prerequisites. Writing configuration does not enforce its loading. |
-| Why did a write fail? | Inspect the run's failure record and retained recovery patches. Cook rolls back changes already made by the batch; arbitrary recipe effects are outside that guarantee. |
-| Why can a prior run no longer be reverted? | Revert requires that run's local history under the destination's `.cook/`. Losing history does not prevent new apply/discard operations. |
+| Why did a write fail? | Inspect the batch's failure record and retained recovery patches with `./cook batch inspect <batchId>`. Cook rolls back changes already made by the batch; arbitrary recipe effects are outside that guarantee. |
+| Why does a prior batch fail to revert? | Revert requires that batch's record under the destination's `.cook/batches/`. Losing history does not prevent new apply operations. If a later edit overlaps the batch's changes, revert writes nothing and lists each conflicting file and section. |
 
-See [apply](render.md) for review and source resolution, [discard and revert](remove.md) for reversal semantics, and
-[safety](safety.md) for the trusted-code boundary. The history captures evaluated and consumed local or downloaded
-sources, their origins, arguments, execution order, operation and result or failure log. It is recovery information,
-not an ownership database or proof that checks passed.
+See [apply](render.md) for review and source resolution, [revert](remove.md) for reversal semantics, and
+[safety](safety.md) for the trusted-code boundary. The batch record captures evaluated and consumed sources, their
+origins, arguments, execution order, reverse patches and result or failure log. It is recovery information, not proof
+that checks passed; ownership is recorded in the committed `cook.lock`.
 
 ## Scope
 

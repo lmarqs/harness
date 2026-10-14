@@ -194,6 +194,7 @@ in the cookbook's guidance and the consuming program's documentation. See [safet
 
 - **Symptom.** A recipe cannot find a template, or consumes a different source after it is copied elsewhere.
 - **Why.** Relative recipe/template references resolve from the referencing recipe's original location or source URL.
+  A local recipe or reference outside the repository is refused.
 - **Cook's responsibility.** Capture consumed sources and preserve their origins; snapshots must not rebase references
   onto `.cook/`.
 - **What you do.** Review origins and referenced sources when relocating recipes. The executable's location does not
@@ -205,36 +206,36 @@ in the cookbook's guidance and the consuming program's documentation. See [safet
 
 - **Symptom.** A key ends with B's value when A and B both declare it.
 - **Why.** Recipes and operations compose left to right; overlap is intentional.
-- **Cook's responsibility.** Show one diff from current content to the final combined result. Applying B alone does not
-  implicitly delete unrelated output from A.
+- **Cook's responsibility.** Show one diff from current content to the final combined result; B becomes the key's
+  owner. Applying B alone does not delete output A owns.
 - **What you do.** Review operand order and target scope. A whole-file declaration is broader than a key or section
   declaration. See [ordered operations](render.md#ordered-operations).
 
 ### A manual edit is changed by the next apply
 
 - **Symptom.** A recipe proposes replacing a hand-edited value or marked section.
-- **Why.** Every invocation evaluates supplied recipes against current content; markers are boundaries, not ownership.
+- **Why.** Every invocation evaluates supplied recipes against current content; ownership never blocks a change.
 - **Cook's responsibility.** Show the actual diff for whole-batch approval, without a drift veto, `--adopt`, adoption
   alias or separate adoption gate. Noninteractive execution without `--batch-approve` does not authorize writes.
 - **What you do.** Review the proposed result and adjust declarations or recipe inputs if needed. Omitting an earlier
   recipe does not withdraw its unrelated contributions. See [apply](render.md).
 
-### Discard deletes a manually edited contribution
+### Revert refuses after an overlapping edit
 
-- **Symptom.** Discard proposes deleting `test = "custom"` instead of restoring its old value.
-- **Why.** Discard evaluates the supplied recipe version and deletes its declared targets, even when current values differ.
-- **Cook's responsibility.** Preserve unrelated keys and display the deletion for approval. Reverting the original run
-  instead uses recorded prior values: after `old` to `new` to a manual `custom`, it proposes `custom` to `old`.
-- **What you do.** Choose deletion or recorded reversal deliberately and retain the recipe version you intend to discard.
-  Revert does not reevaluate recipes. See [discard and revert](remove.md).
+- **Symptom.** Reverting a batch that changed `test` from `old` to `new` writes nothing after a manual edit to `custom`.
+- **Why.** Revert applies the batch's reverse patches against current content without reevaluating recipes. A later
+  edit that overlaps the batch's changes conflicts with them.
+- **Cook's responsibility.** Write nothing and list each conflicting file and section. Later edits that do not overlap
+  the batch's changes survive a revert.
+- **What you do.** Resolve the listed conflicts, then revert again. See [revert](remove.md).
 
-### Lost history prevents reversal of a recorded run
+### Lost history prevents reversal of a recorded batch
 
-- **Symptom.** A run cannot be reverted after its `.cook/` history is lost.
-- **Why.** Its prior values and recovery information come from that recorded operation.
-- **Cook's responsibility.** Apply/discard need no previous history or ownership database. New operations save one
-  reversible patch per touched file before the first target write. Write failure rolls back changes already made by
-  the batch and retains the patches and failure record.
+- **Symptom.** A batch cannot be reverted after its `.cook/batches/<batchId>/` record is lost.
+- **Why.** Its reverse patches and recovery information come from that batch record.
+- **Cook's responsibility.** Apply needs neither previous history nor `cook.lock`; ownership survives in the committed
+  `cook.lock`. New batches save one reversible patch per touched file before the first target write. Write failure
+  rolls back changes already made by the batch and retains the patches and failure record.
 - **What you do.** Retain needed local history and inspect failure records. Do not treat source snapshots as a recipe
   registry or expect file reversal to undo external program activity. See
   [history availability](../architecture.md#history-availability).
@@ -275,5 +276,5 @@ not implement pinned downloads or a release cache.
 Personal setup backup and agent-session orchestration remain future work in
 [issue #5](https://github.com/lmarqs/the-cook/issues/5) and
 [issue #6](https://github.com/lmarqs/the-cook/issues/6). Ingredient/recipe APIs, nesting, station roles and hooks remain
-outside these troubleshooting rules; patch representation, run metadata and overlapping-reversal mechanics also need
+outside these troubleshooting rules; patch representation and batch metadata format also need
 separate design.

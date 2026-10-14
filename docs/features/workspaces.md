@@ -18,22 +18,22 @@ branch prefix is required by [the architecture](../architecture.md).
 For example, a repository that chooses `.worktrees/` for local working copies can request these sections:
 
 ```markdown
-<!-- cook:workspaces -->
+<!-- cook:begin git/workspaces/instructions -->
 Keep local working copies under `.worktrees/`. Create and remove them with the version control system.
-<!-- /cook:workspaces -->
+<!-- cook:end git/workspaces/instructions -->
 ```
 
 ```gitignore
-# cook:workspaces
+# cook:begin git/workspaces/ignore
 /.worktrees/
-# /cook:workspaces
+# cook:end git/workspaces/ignore
 ```
 
-The path is an example of a repository choice. Markers identify section boundaries and use each format's comment
-syntax; they do not establish ownership. The ordinary [apply flow](render.md) shows the actual batch diff for existing
-or edited files and preserves unrelated sections. [Discard](remove.md) proposes deleting the supplied recipe's declared
-contributions; reverting a recorded run proposes restoring that operation's prior values. Neither operation manages
-the working copies mentioned in the text unless file operations explicitly target them.
+The path is an example of a repository choice. Markers name the owning recipe and region and use each format's
+comment syntax; ownership never blocks a change. The ordinary [apply flow](render.md) shows the actual batch diff for
+existing or edited files and preserves unrelated sections. [Reverting](remove.md#revert) a recorded batch applies its
+reverse patches against current content. Neither operation manages the working copies mentioned in the text unless
+file operations explicitly target them.
 
 ## Destination and local state
 
@@ -49,8 +49,8 @@ Document dependency preparation and relevant tool behavior with the repository's
 working copy, preserve work and local data that matter through the tools that manage them.
 
 Cook does not create branches or task workspaces, bootstrap dependencies, record workspace actors or session bases,
-resume development runs, detect landed changes, or fire lifecycle events when a working copy is removed. Its run
-history records file operations and recovery information, not a development session.
+resume development runs, detect landed changes, or fire lifecycle events when a working copy is removed. Its batch
+records hold file patches and recovery information, not a development session.
 
 Agent-session orchestration remains future work in
 [issue #6](https://github.com/lmarqs/the-cook/issues/6). No workspace/session protocol or recipe hook API is decided here.

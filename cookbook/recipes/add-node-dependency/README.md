@@ -1,10 +1,9 @@
-# Add a Node dependency
+# add-node-dependency
 
-This guide describes the current implementation. The [architecture](../../../docs/architecture.md) defines the
-intended design; the [factory guide](../README.md) explains current CLI limits, source prerequisites and ownership
-reconciliation. Existing composition APIs and adoption gates do not settle the deferred model or hooks.
+`add-node-dependency` declares one package in a JSON package manifest and a `dependency:node` mise task that installs
+the manifest's dependencies with npm, pnpm or yarn.
 
-Declare one JSON package manifest key and a `dependency:node` installation task.
+## Usage
 
 ```groovy
 book.recipe('add-node-dependency', kitchen, [
@@ -13,12 +12,36 @@ book.recipe('add-node-dependency', kitchen, [
 ]).mount()
 ```
 
-Required options are `package`, `version`, `manager`, and `manifest`. Manager is `npm`, `pnpm`, or `yarn`. Optional `kind` defaults to `dependencies` and also accepts `devDependencies`, `optionalDependencies`, and `peerDependencies`. Other optional options are `id` (default `add-node-dependency`), `mise`, and `adopt` for the manifest key and mise supplier.
+## Arguments
 
-The task changes to the manifest directory and runs the selected manager's `install` command when invoked
-separately. Cooking only writes the selected key and task; it does not install dependencies or the manager.
-Running the task requires mise, Node, the selected package manager and a usable manifest, with registry access
-or cached packages as needed. Existing unmanaged selected keys need the supplier's adoption option; managed
-edits still fail reconciliation.
+| Argument | Required | Default | Meaning |
+| --- | --- | --- | --- |
+| `package` | yes | none | Package name: an optional `@scope/` prefix, then letters, digits, `_`, `.` or `-`. |
+| `version` | yes | none | Version specification, written as given, for example `^1.2.0`. The recipe does not validate it. |
+| `manager` | yes | none | Package manager the task runs: `npm`, `pnpm` or `yarn`. |
+| `manifest` | yes | none | Path of the JSON manifest, for example `package.json`. |
+| `kind` | no | `dependencies` | Manifest section: `dependencies`, `devDependencies`, `optionalDependencies` or `peerDependencies`. |
+| `id` | no | `add-node-dependency` | Identity of the recipe component. |
+| `mise` | no | a new `mise` ingredient | Existing mise ingredient component that receives the task. Pass one when the kitchen already holds a component named `mise`. |
+| `adopt` | no | `false` | Boolean. `true` takes over an existing unmanaged `<kind>.<package>` key and, when the recipe creates the mise ingredient, an existing unmanaged task key. |
 
-See [factory usage](../README.md).
+## Output
+
+| Target | Format | Part the recipe owns |
+| --- | --- | --- |
+| `<manifest>` | JSON | The `<kind>.<package>` key, set to `<version>`. |
+| `mise.toml`, or the file of the supplied `mise` | TOML | The `tasks."dependency:node"` key: a task that runs `cd '<directory>' && <manager> install`. |
+
+`<directory>` is the manifest's parent directory, or `.` for a manifest at the repository root.
+
+## Inputs
+
+The `dependency:node` task needs mise, Node, the selected package manager and the manifest, plus registry access or
+cached packages.
+
+## Behaviour
+
+- The recipe writes the manifest key and the task declaration. It does not run the task, install packages or install
+  the package manager.
+- Other keys of the manifest stay unchanged.
+- A `manager`, `kind` or `package` outside the accepted values fails the recipe.

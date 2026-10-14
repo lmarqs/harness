@@ -1,10 +1,8 @@
-# Implement a PRD story
+# implement-prd-story
 
-This guide describes the current implementation. The [architecture](../../../docs/architecture.md) defines the
-intended design; the [factory guide](../README.md) explains current CLI limits, source prerequisites and ownership
-reconciliation. Existing composition APIs and adoption gates do not settle the deferred model or hooks.
+Writes a copy of a JSON PRD reduced to one user story and sets up Ralph with the JSON tracker pointing at that copy.
 
-Select one story from an existing JSON PRD and compose Ralph with the JSON tracker.
+## Usage
 
 ```groovy
 book.recipe('implement-prd-story', kitchen, [
@@ -12,13 +10,35 @@ book.recipe('implement-prd-story', kitchen, [
 ]).mount()
 ```
 
-Required options are `prdPath` and `storyId`. The JSON file must exist in the destination and contain a `userStories` list with exactly one story whose `id`
-equals the supplied ID. Supply that file yourself; it is not created by this recipe. The example assumes initialized
-Groovy composition and absent or already managed selected output.
+## Arguments
 
-Optional `selectedPrdPath` defaults to `.ralph-tui/selected-prd.json`; the selected PRD preserves other top-level values and contains only that story. Boolean `adopt: true` in Groovy composition permits adopting that output file; CLI `--adopt=true` is a string and
-does not satisfy the whole-file check. Managed edits still fail reconciliation. `id` defaults to `implement-prd-story`. Remaining options are forwarded to [agentic/ralph](../agentic/ralph/README.md), using `tracker: 'json'`, the selected PRD path, and a default `mode` of `mise`.
+| Argument | Required | Default | Meaning |
+| --- | --- | --- | --- |
+| `prdPath` | yes | none | Repository-relative path of an existing JSON PRD. |
+| `storyId` | yes | none | ID of the story to select. |
+| `selectedPrdPath` | no | `.ralph-tui/selected-prd.json` | Repository-relative path of the reduced PRD. It is passed to agentic/ralph as its `prdPath`, so it must satisfy that recipe's path rule. |
+| `mode` | no | `mise` | Forwarded to agentic/ralph: `mise` or `standalone`. |
+| `id` | no | `implement-prd-story` | Component ID of the recipe. It is not forwarded. |
+| `adopt` | no | `false` | Boolean `true` lets the recipe adopt an existing unmanaged file at `selectedPrdPath`; string `'true'` does not. The value is also forwarded to agentic/ralph, which accepts boolean `true`/`false` or string `'true'`/`'false'`. |
+| Other [agentic/ralph](../agentic/ralph/README.md) arguments | no | as in agentic/ralph | Forwarded unchanged, except that `tracker` is always `json` and `prdPath` is always `selectedPrdPath`. |
 
-Cooking writes the selected PRD and Ralph configuration/runner; it does not execute or complete the story. Running
-the runner separately requires Ralph, the selected agent and tracker tools, and mise when using mise mode.
-Writing tool declarations does not install them. See [factory usage](../README.md).
+## Output
+
+| Target | Format | Part the recipe owns |
+| --- | --- | --- |
+| `selectedPrdPath` | JSON, pretty-printed | The whole file: every top-level value of the source PRD, with `userStories` reduced to the selected story. |
+| `.ralph-tui/config.toml`, the runner (`.mise/tasks/ralph/run` in `mise` mode, `.ralph-tui/run` in `standalone` mode) and, in `mise` mode, the Ralph tools in `mise.toml` | As in agentic/ralph | The parts the composed agentic/ralph recipe owns for `tracker: 'json'`. |
+
+## Inputs
+
+The file at `prdPath`. It is a JSON object with a `userStories` list that contains exactly one story whose `id` equals
+`storyId`.
+
+## Behaviour
+
+- The recipe rejects a missing PRD file, a PRD that is not a JSON object with a `userStories` list, and a PRD with zero
+  or several stories matching `storyId`.
+- The source PRD is read and never modified.
+- The recipe composes [agentic/ralph](../agentic/ralph/README.md) with every argument except `id`, overriding
+  `tracker`, `prdPath` and the `mode` default.
+- The recipe writes files only; it does not start Ralph or work on the story.

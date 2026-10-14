@@ -62,8 +62,8 @@ responsibilities. Their future design is not decided here.
 
 ### Treat batch approval as a recipe sandbox
 
-At its best, reviewing a diff would authorize every effect of a run. It loses because executable recipes can act
-before or outside declared batch writes; approval cannot restrict or recover those arbitrary effects.
+At its best, reviewing a diff would authorize every effect of a recipe's evaluation. It loses because executable recipes
+can act before or outside declared batch writes; approval cannot restrict or recover those arbitrary effects.
 
 ## Consequences
 

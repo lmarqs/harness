@@ -1,26 +1,42 @@
-# Refresh CI cache configuration
+# refresh-ci-cache
 
-This guide describes the current implementation. The [architecture](../../../docs/architecture.md) defines the
-intended design; the [factory guide](../README.md) explains current CLI limits, source prerequisites and ownership
-reconciliation. Existing composition APIs and adoption gates do not settle the deferred model or hooks.
+`refresh-ci-cache` applies caller-supplied CI cache changes as whole-file replacements, after checking each file's
+current content.
 
-Apply explicit, guarded whole-file replacements.
+## Usage
+
+`currentWorkflow` and `updatedWorkflow` hold the file's exact current and desired content:
 
 ```groovy
 book.recipe('refresh-ci-cache', kitchen, [
     adopt: true,
     files: [[path: '.github/workflows/build.yaml',
-        expected: oldWorkflow, content: newWorkflow]]
+        expected: currentWorkflow, content: updatedWorkflow]]
 ]).mount()
 ```
 
-Define `oldWorkflow` and `newWorkflow` as exact UTF-8 workflow contents before the example; the workflow must
-already exist. These are caller-supplied values. Use Groovy composition: CLI strings do not supply a typed `files`
-list or boolean adoption.
+## Arguments
 
-Required options are the boolean `adopt: true` and a nonempty `files` list. Each entry needs `path`, `expected`, and `content` strings. The source file must exist and equal either the expected source or the desired content. Optional `id` defaults to `refresh-ci-cache`.
+| Argument | Required | Default | Meaning |
+| --- | --- | --- | --- |
+| `adopt` | yes | none | Boolean; must be `true`. |
+| `files` | yes | none | Nonempty list of maps with `path`, `expected` and `content`, where `expected` and `content` are strings. |
+| `id` | no | `refresh-ci-cache` | Identity of the recipe component. |
 
-The caller supplies the exact cache changes; the recipe does not infer cache keys or actions, run CI or refresh a
-remote cache. Managed edits can still fail reconciliation even when a file passes the explicit source/content guard.
+## Output
 
-See [factory usage](../README.md).
+| Target | Format | Part the recipe owns |
+| --- | --- | --- |
+| each `files` path | Text | The whole file, set to `content`. |
+
+## Inputs
+
+The recipe reads each `files` path, which must exist.
+
+## Behaviour
+
+- A `files` entry whose current content equals neither `expected` nor `content` fails the recipe, as do an `adopt`
+  other than `true`, an empty `files` list, and an entry without `path` or with a non-string `expected` or `content`.
+- The recipe takes over the selected files.
+- The recipe writes the supplied content only. It does not derive cache keys or actions, run CI or touch a remote
+  cache.

@@ -1,17 +1,32 @@
-# Grill task
+# grill
 
-This guide describes the current implementation. The [architecture](../../../docs/architecture.md) defines the
-intended design; the [factory guide](../README.md) explains current CLI limits, source prerequisites and ownership
-reconciliation. Existing composition APIs and adoption gates do not settle the deferred model or hooks.
+Declares a mise task named `grill` that runs the command given in `script`.
 
-Declare a mise task named `grill`.
+## Usage
 
 ```groovy
 book.recipe('grill', kitchen, [script: 'git status']).mount()
 ```
 
-`script` is required and becomes the task command. Optional options are `id` (default `grill`), `mise` (an existing mise component), and `adopt` (passed to mise). Applying the recipe does not run the command. Invoke the generated task separately with mise
-and the tools used by `script` installed. Existing unmanaged task content requires the mise adoption option;
-managed edits still fail reconciliation.
+## Arguments
 
-See [factory usage](../README.md).
+| Argument | Required | Default | Meaning |
+| --- | --- | --- | --- |
+| `script` | yes | none | Command the `grill` task runs. An empty value is rejected. |
+| `id` | no | `grill` | Component ID of the recipe. |
+| `mise` | no | a new `mise` ingredient | Existing mise component that receives the task. |
+| `adopt` | no | `false` | Passed to the mise component the recipe creates; boolean `true` or string `'true'` lets it adopt an existing unmanaged `grill` task. Ignored when `mise` is supplied. |
+
+## Output
+
+| Target | Format | Part the recipe owns |
+| --- | --- | --- |
+| `mise.toml`, or the file of the supplied `mise` component | TOML | The `tasks.grill` key: `{ run = "<script>" }`. |
+
+## Inputs
+
+Running the task needs mise and the tools that `script` calls.
+
+## Behaviour
+
+The recipe writes the task declaration only; it does not run the command.

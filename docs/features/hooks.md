@@ -57,8 +57,9 @@ credentials, document that prerequisite. Treat event payloads and agent-written 
 turn their contents into shell commands or instructions for another agent. Notifications can also disclose repository
 content. See [safety guidelines](safety.md) and [program permissions](policy.md).
 
-[Discard](remove.md#discard) deletes the supplied recipe's declared hook contributions. [Revert](remove.md#revert)
-restores a recorded operation's prior values using its history. Neither reverses actions a hook has already performed.
+Applying a new version of a recipe removes hook contributions its previous version owned and the new version no
+longer declares. [Revert](remove.md#revert) applies a recorded batch's reverse patches. Neither reverses actions a hook
+has already performed.
 
 ## Deferred boundaries
 

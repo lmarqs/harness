@@ -1,19 +1,28 @@
-# TheCook repository setup
+# the-cook
 
-This guide describes the current implementation. The [architecture](../../../docs/architecture.md) defines the
-intended design; the [factory guide](../README.md) explains current CLI limits, source prerequisites and ownership
-reconciliation. Existing composition APIs and adoption gates do not settle the deferred model or hooks.
+Adds the-cook's local `.cook/` directory to the repository's `.gitignore`, so it stays out of version control.
 
-Composes TheCook and Git to ignore local ownership state while preserving existing `.gitignore` entries.
+## Usage
 
 ```sh
-./cook the-cook --dry-run
 ./cook the-cook
 ```
 
-This factory ignores its option map; it declares no configurable recipe inputs or CLI removal scope.
-The commands require a built local CLI and absent or already managed `git/ignore` content. Existing handwritten
-entries outside that block are preserved; unmanaged matching content or edits inside a managed block can reject
-reconciliation, including a dry run. The recipe declares an ignore entry for `.cook/`; it does not create the target
-per-run history or pinned wrapper. Current cooking maintains local ownership records separately. It can also be included through `book.recipe('the-cook', kitchen)`.
-Use [cookbook](../cookbook/README.md) for this project's agent policy and shared skills.
+```groovy
+book.recipe('the-cook', kitchen).mount()
+```
+
+## Arguments
+
+None. The recipe ignores every option it receives.
+
+## Output
+
+| Target | Format | Part the recipe owns |
+| --- | --- | --- |
+| `.gitignore` | Ignore file | The `git/ignore` block, containing `/.cook/`. |
+
+## Behaviour
+
+- Lines outside the `git/ignore` block are left untouched.
+- The recipe returns a component named `the-cook-setup` that includes the `the-cook` and `git` ingredients.

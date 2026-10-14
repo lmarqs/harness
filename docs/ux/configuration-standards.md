@@ -27,26 +27,29 @@ symlinks. Why: a reviewer must know the boundary of the batch they approve.
 | Content | Location | Purpose |
 | --- | --- | --- |
 | Native configuration and guidance | Paths declared by recipes within the destination, where the program reads them | Settings, ignore entries, instruction files, skills, and other requested output |
-| Recipe and template sources | Supplied local paths or supported source URIs | Trusted input; relative references resolve from the referencing recipe's original location or URL |
-| Local operation history | The destination's ignored `.cook/` directory | A separate run record, source snapshots, and reversible patches for recovery |
+| Recipe and template sources | Paths inside the destination repository or `https://` URLs | Trusted input; relative references resolve from the referencing recipe's location or URL |
+| Ownership lock | Committed `cook.lock` at the repository root | Each applied recipe's short name, source, sha256, and owned sections, keys, and files |
+| Batch records | The destination's ignored `.cook/batches/<batchId>/` directory | One record per batch: source snapshots and reversible patches for revert |
 | Engine wrapper | Committed `./cook` | Pins the engine version and package checksum; first use fetches and caches the platform package |
 
-`.cook/` holds local history, not a required committed ownership manifest or neutral configuration tree. A recipe may
+`.cook/` holds local batch records; committed ownership lives in `cook.lock`, and there is no neutral configuration
+tree. A recipe may
 use shared guidance under `.agents/` where that suits the native program; the engine does not prescribe a fixed
 catalog of skills, memory, commands, or instruction blocks.
 
-Record source origins when saving snapshots. A relative template reference in a local recipe resolves from that
-recipe's original location; an HTTPS recipe resolves it against its source URL. Neither resolves from the snapshot
-location. For example, invoking `/home/dev/cookbook/recipes/project.groovy` from `/work/project` writes a declared
-`settings.toml` into `/work/project`, while its `../templates/settings.toml` source resolves to
-`/home/dev/cookbook/templates/settings.toml`. See [source paths](../features/render.md#destination-and-source-paths).
+Record source origins when saving snapshots. A relative template reference in a local recipe resolves from that recipe's
+location inside the repository; an HTTPS recipe resolves it against its source URL. Neither resolves from the snapshot
+location, and a local reference outside the repository is refused. For example, invoking
+`cookbook/recipes/project.groovy` from `/work/project` writes a declared `settings.toml` into `/work/project`, while its
+`../templates/settings.toml` source resolves to `/work/project/cookbook/templates/settings.toml`. See [source
+paths](../features/render.md#destination-and-source-paths).
 
 ## Inputs
 
-Recipe operands are exact file paths or supported source URIs, including local paths, `file://`, and `https://`.
-Ordinary relative paths such as `recipe.groovy` are accepted; there is no implicit cookbook-name lookup. Users manage
-recipe versions and supply the version they intend to apply or discard. Remote and local sources are trusted
-executable code, not data confined by batch approval.
+Recipe operands are paths inside the destination repository or `https://` URLs. Ordinary relative paths such as
+`recipe.groovy` are accepted; there is no implicit cookbook-name lookup. Users manage recipe versions and supply the
+version they intend to apply; `cook.lock` records which version produced the current ownership. Remote and local sources
+are trusted executable code, not data confined by batch approval.
 
 ```sh
 ./cook ./recipe.groovy
@@ -104,51 +107,52 @@ configuration. Recipe lifecycle hooks and injection mechanisms are outside this 
 ## Ordered changes and approval
 
 Apply proposes declared additions and updates against current content. Recipes and their operations compose left to
-right; later instructions can replace earlier values at an overlapping target. If A sets `test = "A"` and creates
-`notes.txt`, and B sets `test = "B"`, applying both in that order shows B's final value and A's new file in one diff.
-Applying only B later leaves `notes.txt` intact. No omitted recipe or missing configuration entry triggers automatic
-withdrawal of unrelated output.
+right; when two recipes write the same section, key, or file, the last one wins and becomes its owner, and the diff
+is the only notice. If A sets `test = "A"` and creates `notes.txt`, and B sets `test = "B"`, applying both in that
+order shows B's final value and A's new file in one diff. Applying only B later leaves `notes.txt` intact: applying B
+never removes A's output. Applying a new version of A removes what A's previous version owned and the new version no
+longer declares, and the diff shows that removal.
 
 Whole-file operations address file paths, structured operations address key paths, and shared-text sections use
-begin/end markers in the file format's comment syntax (HTML comments for Markdown). Markers define boundaries, not
-ownership. See the [generated-content standard](generated-content-standards.md#kinds-of-generated-content).
+`cook:begin <recipe>/<region>` and `cook:end <recipe>/<region>` markers in the file format's comment syntax (HTML
+comments for Markdown). Markers name the owning recipe and region; ownership never blocks a change. See the
+[generated-content standard](generated-content-standards.md#kinds-of-generated-content).
 
-Every apply/discard invocation evaluates the supplied recipe versions against current content. Previous history does
-not skip a recipe as already applied; unchanged output may produce an empty diff. Existing and manually edited
-content uses the same review flow, without ownership-state reconciliation, `--adopt`, adoption aliases, or a separate
-adoption step.
+Every apply invocation evaluates the supplied recipe versions against current content. Previous history does not
+skip a recipe as already applied; unchanged output may produce an empty diff. Existing and manually edited content
+uses the same review flow, without `--adopt`, adoption aliases, or a separate adoption step.
 
 Display the final combined diff in the terminal and ask for approval of the whole batch before changing target files.
 With `--batch-approve`, display the diff and proceed without prompting. Noninteractive execution without that flag
-does not authorize writes. Partial file or hunk selection is outside the design. Why: approval must cover the actual
+does not authorize writes. The CLI accepts the whole batch; choosing individual changes belongs to a separate
+interface decision, and the core writes and records only accepted changes. Why: approval must cover the actual
 combined effect of ordered operations, including changes to existing configuration.
 
 ## Local history and explicit reversal
 
-Before the first target write, save one reversible patch per touched file under the destination's ignored `.cook/`.
-One patch represents the combined file change and supports forward and reverse application. Record the whole batch
-separately, including evaluated recipes, all consumed recipe/template sources (local and downloaded), origins,
-arguments, execution order, operation, and result or failure log. On a write failure, roll back changes already made
-and retain the patches and failure record. No patch representation, complete storage layout, or metadata schema is
-chosen here.
+Before the first target write, save the batch record in the destination's ignored `.cook/batches/<batchId>/`, where
+the batch ID is the UTC start time. It holds one reversible patch per touched file, `cook.lock` included; one patch
+represents the combined file change and supports forward and reverse application. The record also holds evaluated
+recipes, all consumed recipe/template sources (local and downloaded), origins, arguments, execution order, and result
+or failure log. On a write failure, roll back changes already made and retain the record and failure. No patch
+representation, complete storage layout, or metadata schema is chosen here.
 
-Apply and discard require no previous run history or ownership database. Losing `.cook/` loses local recovery
-information, not the ability to cook; new operations still save recovery information before writes. Reverting a run
-requires that run's history.
+Apply requires neither batch history nor `cook.lock`. Losing `.cook/` loses the ability to revert earlier batches,
+not the ability to cook; ownership survives in the committed `cook.lock`, and new batches still save their records
+before writes. Reverting a batch requires its record.
 
 ```sh
-./cook discard ./recipe.groovy
-./cook revert RUN_ID
+./cook batch list
+./cook revert 2026-10-14T15-04-05Z
 ```
 
-Discard evaluates the supplied recipe version and proposes deleting its declared contributions, even if their values
-have changed. Revert restores a recorded operation's prior values against current content without evaluating the
-recipe again. If a run changed `test` from `old` to `new`, then a person changed it to `custom`, discard proposes
-removing `test`, while reverting that run proposes `custom` to `old`. Both preserve unrelated keys and show the actual
-diff for whole-batch approval; later edits do not create an ownership or drift veto.
+Revert applies a recorded batch's reverse patches against current content without evaluating recipes again. It
+reverses only that batch's changes. If a batch changed `test` from `old` to `new`, then a person changed an unrelated
+`other` key, reverting that batch proposes `new` to `old` and keeps `other`. Had the person changed `test`, the revert
+would write nothing and list the conflicting file and key. Revert shows the actual diff for whole-batch approval.
 
-There is no inferred persistent recipe identity or adopted-original restoration during discard. Leave native
-configuration in place when it should remain. See [discard and revert](../features/remove.md).
+Discarding a recipe's whole contribution is deferred; revert the batches that applied it instead. Leave native
+configuration in place when it should remain. See [revert](../features/remove.md).
 
 ## No secrets
 

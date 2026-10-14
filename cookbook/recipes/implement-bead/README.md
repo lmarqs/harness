@@ -1,10 +1,9 @@
-# Implement a Beads issue
+# implement-bead
 
-This guide describes the current implementation. The [architecture](../../../docs/architecture.md) defines the
-intended design; the [factory guide](../README.md) explains current CLI limits, source prerequisites and ownership
-reconciliation. Existing composition APIs and adoption gates do not settle the deferred model or hooks.
+Sets up Ralph with the Beads tracker in mise mode and declares a `ralph:bead` mise task that shows one Beads issue and
+then runs a command that works on it.
 
-Compose Ralph with the Beads tracker and mise, then declare a `ralph:bead` task.
+## Usage
 
 ```groovy
 book.recipe('implement-bead', kitchen, [
@@ -12,11 +11,32 @@ book.recipe('implement-bead', kitchen, [
 ]).mount()
 ```
 
-Required options are `issue` and `runCommand`; the command must contain the issue string explicitly. The generated task first runs `bd show <issue>`, then the supplied command. The example command must be supplied by your project; `issue` must name an existing Beads issue in that destination.
-Cooking writes configuration and tasks without implementing the issue or starting Ralph. Running the task separately
-requires mise, `bd`, the supplied command and any tools that command uses. Starting the generated Ralph runner has
-the additional agent/tracker prerequisites in the Ralph guide. Mise tool declarations do not install those tools.
+## Arguments
 
-Optional `id` defaults to `implement-bead`. Remaining options are forwarded to [agentic/ralph](../agentic/ralph/README.md), with `tracker: 'beads'` and `mode: 'mise'` selected by this recipe.
+| Argument | Required | Default | Meaning |
+| --- | --- | --- | --- |
+| `issue` | yes | none | Beads issue ID. An empty value is rejected. |
+| `runCommand` | yes | none | Command the task runs after `bd show`. It must contain the `issue` text; otherwise the recipe rejects it. |
+| `id` | no | `implement-bead` | Component ID of the recipe. It is not forwarded. |
+| `mise` | no | the mise component agentic/ralph creates | Existing mise component that receives the Ralph tools and the task. |
+| `adopt` | no | `false` | Forwarded to agentic/ralph, which accepts boolean `true`/`false` or string `'true'`/`'false'` and applies it to the Ralph and Beads outputs and to the mise component it creates, which holds the task. |
+| Other [agentic/ralph](../agentic/ralph/README.md) arguments | no | as in agentic/ralph | Forwarded unchanged, except that `tracker` is always `beads` and `mode` is always `mise`. |
 
-See [factory usage](../README.md).
+## Output
+
+| Target | Format | Part the recipe owns |
+| --- | --- | --- |
+| `mise.toml`, or the file of the supplied `mise` component | TOML | The `tasks."ralph:bead"` key: `{ run = "bd show '<issue>' && <runCommand>" }`. |
+| `.ralph-tui/config.toml`, `.mise/tasks/ralph/run`, `.beads/config.yaml` and the Ralph tools in `mise.toml` | As in agentic/ralph | The parts the composed agentic/ralph recipe owns for `tracker: 'beads'` and `mode: 'mise'`. |
+
+## Inputs
+
+Running the task needs mise, the Beads CLI `bd`, and the tools that `runCommand` calls. `runCommand` runs only when
+`bd show` succeeds for the issue.
+
+## Behaviour
+
+- The recipe composes [agentic/ralph](../agentic/ralph/README.md) with every argument except `id`, overriding
+  `tracker` and `mode`.
+- The task shell-quotes the issue in single quotes and inserts `runCommand` as given.
+- The recipe writes the task declaration and the Ralph setup only; it does not run the task or start Ralph.

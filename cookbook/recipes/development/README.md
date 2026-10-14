@@ -1,10 +1,9 @@
-# Development composition
+# development
 
-This guide describes the current implementation. The [architecture](../../../docs/architecture.md) defines the
-intended design; the [factory guide](../README.md) explains current CLI limits, source prerequisites and ownership
-reconciliation. Existing composition APIs and adoption gates do not settle the deferred model or hooks.
+Sets up a Node project with npm or Yarn: tool versions in `mise.toml`, the engine and package manager in
+`package.json`, setup and lock tasks, and Git ignores for the files those tools leave behind.
 
-Compose mise, Node, the selected package manager, and Git.
+## Usage
 
 ```groovy
 book.recipe('development', kitchen, [
@@ -12,10 +11,34 @@ book.recipe('development', kitchen, [
 ]).mount()
 ```
 
-All options are optional. `manager` is `npm` (default) or `yarn`; `nodeVersion` defaults to `22`. `npmVersion` or `yarnVersion` configures the selected manager. `adopt` defaults to false and is converted from its string representation to a boolean.
+## Arguments
 
-The recipe wires package fields, mise tools and tasks, and Git ignores for ephemeral supplier files. Its component ID is `development`. Cooking does not install Node, the manager or dependencies. Running generated
-tasks separately requires mise and the tools/sources their scripts use. Existing selected keys and task files must
-be managed or adopted; managed edits still fail. Optional manager versions must be exact numeric three-part versions.
+| Argument | Required | Default | Meaning |
+| --- | --- | --- | --- |
+| `manager` | no | `npm` | Package manager: `npm` or `yarn`. Other values are rejected. |
+| `nodeVersion` | no | `22` | Node version for mise: one to three numeric parts, such as `22` or `20.11`. |
+| `npmVersion` | no | `10.9.8` | npm version, used when `manager` is `npm`. It must be an exact `major.minor.patch` version. |
+| `yarnVersion` | no | `4.17.0` | Yarn version, used when `manager` is `yarn`. It must be an exact `major.minor.patch` version. |
+| `adopt` | no | `false` | Boolean `true` or string `'true'` lets the recipe adopt existing unmanaged `package.json` keys, `mise.toml` keys and task files. |
 
-See [factory usage](../README.md).
+## Output
+
+| Target | Format | Part the recipe owns |
+| --- | --- | --- |
+| `package.json` | JSON | `engines.node` (`^<major>.0.0`), `packageManager` (`npm@<version>` or `yarn@<version>`), and `devDependencies.@types/node` (`^<major>.0.0`) only when that key already exists. |
+| `mise.toml` | TOML | `tools.node`, and `tools."npm:npm"` or `tools.yarn`. |
+| `.mise/tasks/node/setup` | Executable Bash script | The whole file: the `node:setup` task, which runs `npm ci` or `yarn install --immutable`. |
+| `.mise/tasks/node/lock` | Executable Bash script | The whole file: the `node:lock` task, which runs `npm install --package-lock-only` or `yarn install`. |
+| `.gitignore` | Ignore file | The `git/ignore` block: `node_modules/` and `npm-debug.log*` for npm; `node_modules/`, `yarn-error.log*`, `/.yarn/install-state.gz` and `/.yarn/unplugged/` for Yarn. |
+
+## Inputs
+
+Running the tasks needs mise. `node:setup` exits with an error when the lockfile is missing: `package-lock.json` for
+npm, `yarn.lock` for Yarn.
+
+## Behaviour
+
+- The recipe composes the `mise`, `node`, `npm` or `yarn`, and `git` ingredients.
+- The version argument of the manager that is not selected is ignored.
+- `adopt` does not apply to the `.gitignore` block.
+- The recipe writes declarations only; it installs nothing and does not run the tasks.

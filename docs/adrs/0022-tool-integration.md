@@ -12,7 +12,8 @@ Program knowledge can evolve separately from the rules for reviewing and writing
 ## Context
 
 - The [architecture](../architecture.md#scope-and-responsibilities) assigns recipe evaluation, ordered file operations,
-  diff presentation, approval, recovery and writes to Cook (PRD FR-1 through FR-6).
+  diff presentation, approval, recovery and writes to Cook (FR-1 through FR-6 in its
+  [requirements](../architecture.md#requirements)).
 - Ingredients are program data models for native files and configuration. Git's ignore file and Codex's configuration
   and skills illustrate that responsibility; these examples do not prescribe a supplier API.
 - Cookbooks hold and ship ingredients and trusted Groovy recipes through their repositories, with builds that can be
@@ -33,8 +34,9 @@ Program knowledge can evolve separately from the rules for reviewing and writing
    jails, fixed lifecycle stages and completion signals are not engine responsibilities. External commands are not
    batch actions. Recipes remain trusted executable code, whose arbitrary side effects are outside batch guarantees.
 3. Native targets are file paths, structured key paths or marked text sections. Cook proposes changes against current
-   content, combines overlapping operations in declared order and presents one batch diff. Ingredients require no
-   persistent ownership database, adoption step or automatic withdrawal when a model is omitted.
+   content, combines overlapping operations in declared order and presents one batch diff. Ownership recorded in
+   `cook.lock` belongs to recipes and never blocks a change ([0007](0007-ownership.md)); ingredients require no
+   adoption step, and omitting a model from an invocation withdraws nothing.
 4. Engine package pinning is separate from cookbook distribution and user-managed recipe versions. An engine upgrade
    does not select new cookbook content. This record does not introduce cookbook hash admission, a registry, a
    recipe updater, program-detection rules or a safety-floor enforcement protocol.
@@ -51,8 +53,9 @@ Program knowledge can evolve separately from the rules for reviewing and writing
 - **2.** FR-3 and FR-6 bound Cook's role. Launch and lifecycle contracts would add orchestration to a configuration
   engine. Native files let teams use their own runners without making Cook part of every run. The trade is that Cook
   does not police how those programs run, and trusted recipe code can act beyond the declared batch.
-- **3.** FR-7 through FR-10 make requested targets and order the basis of composition. An ownership manifest would
-  replace that contract with reconciliation of earlier output. The trade is that a recipe can propose replacing an
+- **3.** FR-7 through FR-10 make requested targets and order the basis of composition. Recorded ownership decides only
+  what a recipe's later versions remove (FR-8); a reconciliation step for earlier output would block requested
+  changes instead (FR-9). The trade is that a recipe can propose replacing an
   edited target; the actual combined diff and whole-batch approval make that change visible.
 - **4.** The wrapper selects an engine package, not a team's program setup. Keeping these responsibilities distinct
   avoids coupling cookbook maintenance to engine upgrades. The trade is that users select recipe versions themselves;
@@ -92,7 +95,7 @@ Costs:
 Must be maintained:
 
 - The distinction between native configuration models, cookbook choices and engine file-operation responsibilities.
-- Ordered composition and review against current content, without ownership or adoption prerequisites.
+- Ordered composition and review against current content, without `cook.lock` or adoption prerequisites.
 
 ## Confirmation
 

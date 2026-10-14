@@ -25,11 +25,11 @@ This is an example convention, not a required Cook directory. A short reference 
 instruction file can point readers at the relevant files:
 
 ```markdown
-<!-- cook:memory -->
+<!-- cook:begin agentic/memory/references -->
 Reviewed repository knowledge lives in `.agents/memory/`.
 Before changing backend behaviour, read `.agents/memory/backend-patterns.md`.
 For test conventions, read `.agents/memory/testing-patterns.md`.
-<!-- /cook:memory -->
+<!-- cook:end agentic/memory/references -->
 ```
 
 Maintain references when files are added, renamed or removed. The consuming program determines whether it reads
@@ -39,14 +39,15 @@ those instructions; Cook does not enforce knowledge loading or automatically mai
 ## Recipe contributions
 
 A trusted Groovy recipe may declare knowledge files or a reference section as ordinary file operations. There is no
-memory skeleton, module switch, seeded-file hash or ownership manifest required by the design. The recipe's declared
-scope determines what it changes. HTML-comment markers bound a Markdown section and preserve text outside it.
+memory skeleton, module switch or seeded-file hash required by the design; the committed `cook.lock` records which
+recipe owns each declared target. The recipe's declared scope determines what it changes. HTML-comment markers bound a
+Markdown section, name its owning recipe and preserve text outside it.
 
-Review the actual [batch diff](render.md), including proposed changes to existing knowledge. Manual edits do not
-create an ownership veto or an adoption step. [Discard](remove.md#discard) proposes deleting
-the supplied recipe's declared contributions even if someone edited them; retain important knowledge by choosing
-and reviewing the intended declarations. Revert instead uses a recorded run's prior values and preserves unrelated
-content. Neither operation infers that a file has become protected knowledge from a stored hash.
+Review the actual [batch diff](render.md), including proposed changes to existing knowledge. Manual edits do not create
+an ownership veto or an adoption step. Applying a new version of a recipe removes what its previous version owned and
+the new version no longer declares, even if someone edited it; retain important knowledge by choosing and reviewing the
+intended declarations. [Revert](remove.md#revert) instead applies a recorded batch's reverse patches and preserves later
+edits that do not overlap them. Neither operation infers that a file has become protected knowledge from a stored hash.
 
 ## Guidelines and boundaries
 

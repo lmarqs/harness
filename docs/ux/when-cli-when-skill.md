@@ -12,8 +12,8 @@ judgement in guidance, and external work performed by the people and programs re
 ## Overview
 
 This page follows the [architecture](../architecture.md). Cook evaluates trusted Groovy recipes into ordered file
-operations, presents the combined terminal diff, obtains whole-batch approval, records recovery information and writes
-the declared targets. The CLI is the public cooking interface; Gradle builds and packages Cook and cookbooks.
+operations, presents the combined terminal diff, obtains whole-batch approval, records the batch and ownership and
+writes the declared targets. The CLI is the public cooking interface; Gradle builds and packages Cook and cookbooks.
 
 A capability may have several parts. Place each by responsibility and effect, rather than assuming every deterministic
 part belongs in the binary. These rules do not select ingredient/recipe APIs, station roles, nesting, injection,
@@ -23,7 +23,7 @@ annotations or hooks.
 
 | Destination | Responsibility | Maintainer |
 | --- | --- | --- |
-| Cook engine and CLI | Evaluation, ordered composition, diff presentation, approval, destination boundaries, recovery, writes and recorded-run reversal | Cook contributors |
+| Cook engine and CLI | Evaluation, ordered composition, diff presentation, approval, destination boundaries, recovery, writes, ownership in `cook.lock` and recorded-batch reversal | Cook contributors |
 | Ingredient | Model a program's native files and configuration, including settings, ignore files or skills | Authors of the cookbook that holds it |
 | Recipe | Describe reusable requested file operations using program models and trusted Groovy code | Cookbook or repository authors |
 | Cookbook repository | Hold and ship ingredients and recipes; build them separately where appropriate | Cookbook authors |
@@ -56,9 +56,10 @@ own working directory, credentials, permissions and failure rules. See [native p
 
 ## Engine commands and recipe arguments
 
-The intended command set is implicit or explicit apply, discard and revert. Apply proposes additions and updates;
-discard deletes the supplied recipes' declared contributions; revert uses a recorded run's history to restore prior
-values without evaluating recipes again.
+The intended command set is implicit or explicit apply, revert, `batch list` and `batch inspect`. Apply proposes
+additions and updates, together with removal of what each recipe's previous version owned and no longer declares;
+revert applies a recorded batch's reverse patches without evaluating recipes again; `batch list` and `batch inspect`
+read batch records. Discard is deferred.
 
 A new engine command or flag requires its own decision when it changes that scope. Do not add a command for each
 program or organization, or invent a setting that bypasses the agreed review and recovery guarantees. Per-recipe
@@ -67,40 +68,41 @@ choices use arguments following that recipe as `--name=value`; this grammar does
 ```sh
 ./cook ./recipes/project.groovy
 ./cook apply ./recipes/base.groovy --agent=codex ./recipes/project.groovy --agent=claude
-./cook discard ./recipes/project.groovy
-./cook revert RUN_ID
+./cook batch list
+./cook revert 2026-10-14T15-04-05Z
 ```
 
-Recipe operands are exact paths or supported URIs, including ordinary relative paths, `file://` and `https://`.
-There is no implicit cookbook-name lookup. Initial bare operation names select commands; use `./revert` for a file
+Recipe operands are paths inside the destination repository, including ordinary relative paths, or `https://` URLs.
+There is no implicit cookbook-name lookup. Initial bare command names select commands; use `./revert` for a file
 named `revert`. An argument value such as `--source=./b.groovy` is not a second recipe operand.
 
-Batch options precede operands, including the run ID for revert. Without preapproval, Cook asks before target writes.
+Batch options precede operands, including the batch ID for revert. Without preapproval, Cook asks before target writes.
 `--batch-approve` displays the final diff and proceeds without prompting. Noninteractive execution alone does not
-authorize writes; approval covers all files and hunks in the batch. A misplaced batch option after a recipe receives
+authorize writes; the CLI accepts the whole batch. A misplaced batch option after a recipe receives
 the normal unknown-option error. See [CLI grammar](../features/cli.md).
 
-These examples describe the intended design. Consult the [root README](../../README.md) and cookbook usage guides for
+These examples describe the intended design. Consult the [root README](../../README.md) and recipe READMEs for
 current commands and prerequisites; do not infer implementation from a design example.
 
 ## Recipes
 
 Use a recipe to reuse requested native setup, whether the invocation is a first application or an update. Recipes and
-their operations compose left to right, and later instructions may replace earlier values. Cook shows one final
-combined diff rather than approving intermediate results.
+their operations compose left to right; when two recipes write the same target, the last one wins and becomes its
+owner, and the diff is the only notice. Cook shows one final combined diff rather than approving intermediate results.
 
 For example, A sets `test` to `A` and creates `notes.txt`; B sets `test` to `B`. Applying A then B previews `B` and the
-new file. Applying B alone after A was applied earlier changes the key and leaves `notes.txt` intact. Omission of A
-does not withdraw its unrelated output.
+new file. Applying B alone after A was applied earlier changes the key, moves its ownership to B and leaves `notes.txt`
+intact: applying B never removes A's output.
 
-Every apply/discard invocation evaluates the supplied recipe versions against current content, even after an identical
-earlier invocation. An unchanged result may have an empty diff. There is no already-applied recipe identity, ownership
-database, adoption step or manual-edit veto. The target eliminates `--adopt` and adoption aliases.
+Every apply invocation evaluates the supplied recipe versions against current content, even after an identical
+earlier invocation. An unchanged result may have an empty diff. The committed `cook.lock` records ownership, but
+ownership never blocks a change: there is no already-applied status, adoption step or manual-edit veto, and the target
+CLI has no `--adopt` or adoption aliases.
 
-Discard uses the supplied recipe version, which users manage. If an apply changed `test` from `old` to `new`, then a
-person changed it to `custom`, discarding a recipe that declares that key proposes deleting `test`. Reverting the
-original run instead proposes `custom` to `old` using its history. Both preserve unrelated keys and present the actual
-diff for whole-batch approval. See [discard and revert](../features/remove.md).
+Revert reverses only one recorded batch's changes. If a batch changed `test` from `old` to `new`, then a person changed
+an unrelated `other` key, reverting that batch proposes `new` to `old` and keeps `other`; had the person changed
+`test`, the revert would write nothing and list the conflict. Discarding a recipe's whole contribution is deferred.
+See [revert](../features/remove.md).
 
 A recipe is trusted executable code, not a fixed development lifecycle with run/template/attempt step kinds, handoffs
 or verification lanes. External command execution is not a batch action. Arbitrary recipe side effects remain outside
@@ -146,20 +148,21 @@ rather than imitate their implementation; its evidence should fit the task rathe
 | Share organization skills | Team-selected installer, recipe or reviewed copies | Choose one maintenance process; native discovery determines loading |
 | Record a lesson or open an issue | Agent or person with appropriate tools | Knowledge and tracker activity need judgement and their own review |
 | Pin or upgrade the Cook engine | Explicit committed wrapper version/checksum change | The jpackage package includes Java; first-use verified download/cache is separate from cookbook versions |
-| Apply setup across repositories | Separate CLI invocations from each destination | Each has its own actual diff, approval and local history; no fleet transaction is implied |
-| Delete declared setup or reverse a recorded change | Discard or revert respectively | Supplied declarations and recorded prior values answer different requests |
+| Apply setup across repositories | Separate CLI invocations from each destination | Each has its own actual diff, approval, `cook.lock` and batch records; no fleet transaction is implied |
+| Reverse a recorded change | Revert | Reverses one batch's changes; removing a recipe's whole contribution (discard) is deferred |
 
 ## Paths, history and distribution
 
 The current working directory is the destination, regardless of recipe or executable location. Declared writes and
-deletions stay within it, including paths resolved through symlinks. Source recipes and templates resolve relative to
-the referencing recipe's original location or HTTPS URL; saving snapshots must not change source resolution.
+deletions stay within it, including paths resolved through symlinks. Recipes come from paths inside the destination
+repository or `https://` URLs. Source recipes and templates resolve relative to the referencing recipe's location or
+HTTPS URL; saving snapshots must not change source resolution, and a local reference outside the repository is refused.
 
-Before the first target write, save recovery patches. Destination-local ignored `.cook/` history captures one
-reversible patch per touched file and a separate run record for the batch, evaluated and consumed local/downloaded
-sources, origins, arguments, order, operation and result or failure log. Write failure rolls back batch changes already
-made and retains patches and failure records. Apply/discard need no prior history; revert requires the selected run's
-history. No patch format, metadata schema or overlapping-reversal mechanism is selected here.
+Before the first target write, save the batch record. The ignored `.cook/batches/<batchId>/` directory, named by the
+batch's UTC start time, captures one reversible patch per touched file (`cook.lock` included), evaluated and consumed
+local/downloaded sources, origins, arguments, order and result or failure log. Write failure rolls back batch changes
+already made and retains the record and failure. Apply needs neither batch history nor `cook.lock`; revert requires the
+selected batch's record. No patch format or metadata schema is selected here.
 
 Engine delivery uses complete platform-specific jpackage packages containing Java. The committed wrapper design pins
 an engine version and package checksums, verifies the first-use download and caches it locally. Upgrades are explicit;
@@ -175,16 +178,17 @@ that published packages or pinned downloads are available.
   configuration, while the consuming program controls later activity.
 - Treating a recipe as a workspace, attempt, verification or delivery pipeline: those activities belong to external
   tools and people, with future session orchestration left separate.
-- Requiring ownership manifests, adoption gates or drift vetoes before changing existing content: the agreed contract
-  is current-content evaluation and actual batch-diff approval.
+- Letting ownership, adoption gates or drift vetoes block changes to existing content: `cook.lock` records ownership,
+  and the agreed contract is current-content evaluation and actual batch-diff approval.
 - Declaring a whole shared file when only one key or section is intended: the broader scope can remove unrelated
   content and must be visible in review.
 - Assuming markers or a successful skill-file write enforce instructions: boundaries and discoverability do not prove
   that an agent loaded or followed guidance.
 - Treating batch approval as authorization for arbitrary recipe effects or publication: trusted evaluation and external
   actions have distinct consequences outside the declared batch.
-- Using history to skip a recipe as already applied, or omitting a recipe to delete its previous output: each supplied
-  apply/discard invocation evaluates current content, and deletion is explicit.
+- Using history to skip a recipe as already applied, or omitting a recipe to delete its previous output: each apply
+  invocation evaluates current content, and a recipe's output is removed only by applying a new version of that recipe
+  that no longer declares it, or by reverting a batch.
 - Refreshing recipes or skills automatically when the engine pin moves: engine and cookbook sources are separate
   version choices.
 - Turning exploratory model or hook sketches into an API here: those choices require the separate model discussion.

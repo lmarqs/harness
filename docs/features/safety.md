@@ -15,28 +15,29 @@ code is safe to execute.
 
 Approval, destination boundaries and rollback govern declared batch operations. They do not sandbox recipe
 evaluation or guarantee protection against arbitrary side effects. A recipe can run code outside the batch before
-the diff appears; rejecting the batch or reverting a run does not undo those effects. Executing external commands is
+the diff appears; rejecting the batch or reverting a batch does not undo those effects. Executing external commands is
 not a batch action.
 
 ## Declared operations and review
 
 | Protection | Scope and limit |
 | --- | --- |
-| Destination boundary | Declared writes and deletions stay within the invocation directory, including paths resolved through symlinks. This does not confine arbitrary recipe code. |
-| Combined terminal diff | Shows the final result of left-to-right composition against current content. Later declarations can replace earlier values; intermediate results are not separate approvals. |
-| Whole-batch approval | Without preapproval, ask before target writes. With `--batch-approve`, show the diff and proceed without prompting. Noninteractive execution without that flag does not authorize writes. Partial file or hunk selection is outside the design. |
+| Destination boundary | Declared writes and deletions stay within the invocation directory, including paths resolved through symlinks. Recipes come from paths inside the repository or `https://` URLs; a local recipe or template outside the repository is refused. This does not confine arbitrary recipe code. |
+| Combined terminal diff | Shows the final result of left-to-right composition against current content. When two recipes write the same target, the last one wins and becomes its owner; intermediate results are not separate approvals. |
+| Whole-batch approval | Without preapproval, ask before target writes. With `--batch-approve`, show the diff and proceed without prompting. Noninteractive execution without that flag does not authorize writes. Choosing individual files or hunks belongs to a separate interface decision. |
 | Recovery before writes | Save one reversible patch per touched file before the first target write. On a write failure, roll back changes already made by the batch and retain patches and the failure record. Recovery covers declared file operations. |
-| Declared scope | Whole-file paths, structured key paths and begin/end text markers determine what changes. Unrelated keys and text outside declared sections are preserved. Markers identify boundaries, not ownership. |
+| Declared scope | Whole-file paths, structured key paths and `cook:begin <recipe>/<region>` / `cook:end <recipe>/<region>` text markers determine what changes. Unrelated keys and text outside declared sections are preserved. Markers name the owning recipe; ownership never blocks a change. |
 
 Existing and edited targets use the same actual diff and approval flow. There is no `--adopt`, adoption alias,
 separate adoption step, ownership-state prerequisite or refusal merely because a developer edited a target. Applying
-another recipe does not implicitly withdraw unrelated output from an earlier one. See [apply](render.md).
+another recipe does not remove output an earlier recipe owns. See [apply](render.md).
 
-Review deletions as carefully as additions. [Discard](remove.md) evaluates the supplied recipe version and proposes
-deleting its declared contributions even when their current values differ from the recipe's generated values.
-Revert uses a recorded run's prior values, proposes the actual reversal against current content and preserves
-unrelated content; later edits do not impose a drift veto. Recovery mechanics for overlapping edits and non-text
-operations need later implementation design; this page does not select a patch representation.
+Review deletions as carefully as additions. Applying a new version of a recipe removes what its previous version
+owned and the new version no longer declares, and the diff shows that removal. [Revert](remove.md) applies a recorded
+batch's reverse patches against current content, `cook.lock` included; later edits that do not overlap the batch's
+changes survive, and an overlapping edit makes the revert write nothing and list each conflicting file and section.
+Recovery mechanics for non-text operations need later implementation design; this page does not select a patch
+representation.
 
 ## Reviewing native configuration and guidance
 
@@ -79,9 +80,10 @@ distinguishes the delivery design from the current local build and launcher.
 
 ## History and engine boundaries
 
-Local `.cook/` history records the operation, evaluated and consumed sources (including local ones), origins,
-arguments, order, reversible patches and result or failure log. Apply and discard require no previous history or
-ownership database. Losing `.cook/` loses local recovery information; reverting a particular run requires its record.
+Each batch record in the ignored `.cook/batches/<batchId>/` directory holds evaluated and consumed sources (including
+local ones), origins, arguments, order, reversible patches and result or failure log. Apply requires neither previous
+history nor `cook.lock`. Losing `.cook/` loses local recovery information; ownership survives in the committed
+`cook.lock`, and reverting a particular batch requires its record.
 History is not a verification receipt or a worker supervision log.
 
 Permission enforcement, branch protection, checks, publication and runtime confinement belong to people, configured

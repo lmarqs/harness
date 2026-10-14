@@ -13,8 +13,8 @@ establish that the target behavior is implemented.
 ## Overview
 
 Apply evaluates trusted Groovy recipes into an ordered batch of file operations. Ingredients model programs' native
-files and configuration; cookbooks supply ingredients and recipes separately from the engine. The CLI accepts exact
-recipe paths or supported source URIs, with no implicit cookbook-name lookup.
+files and configuration; cookbooks supply ingredients and recipes separately from the engine. The CLI accepts recipe
+paths inside the destination repository or `https://` URLs, with no implicit cookbook-name lookup.
 
 ```sh
 ./cook ./recipe.groovy
@@ -23,27 +23,28 @@ recipe paths or supported source URIs, with no implicit cookbook-name lookup.
 ```
 
 Apply is the default. Batch options precede recipe operands; recipe arguments follow their recipe as `--name=value`.
-See the [CLI reference](cli.md) for the full grammar. Apply replaces the earlier render command contract; retired
-render flags and commands are not compatibility aliases.
+See the [CLI reference](cli.md) for the full grammar. Render flags and commands are not compatibility aliases.
 
 ## Ordered operations
 
-Recipes and their operations compose left to right against current content. Later instructions can replace earlier
-values at the same target. Cook displays one final combined diff for the whole batch, without requiring separate
-approval for intermediate values.
+Recipes and their operations compose left to right against current content. When two recipes write the same
+section, key, or file, the last one wins and becomes its owner; the diff is the only notice. Cook displays one final
+combined diff for the whole batch, without requiring separate approval for intermediate values.
 
 Suppose recipe A sets `test = "A"` in `settings.toml` and creates `notes.txt`, and recipe B sets `test = "B"`.
-Applying A followed by B previews B's final value and A's new file. Applying B alone after an earlier apply of A
-updates `test` and leaves `notes.txt` intact. Omitting a recipe does not withdraw its unrelated outputs.
+Applying A followed by B previews B's final value and A's new file, and B owns `test`. Applying B alone after an
+earlier apply of A updates `test`, moves its ownership to B, and leaves `notes.txt` intact. Applying B never removes
+A's output, and omitting a recipe does not withdraw its outputs. Applying a new version of A removes what A's
+previous version owned and the new version no longer declares; the diff shows that removal.
 
 Every apply invocation evaluates the supplied recipe versions, including an invocation identical to an earlier
-one. History does not mark recipes as already applied or skip them. An unchanged result may have an empty diff.
+one. History does not mark recipes as already applied or skip them. An unchanged result has an empty diff.
 
 ## Declared outputs
 
-A batch affects the targets its recipes declare. There is no engine-mandated catalog of generated configuration,
-wrapper files, agent instructions, skills, hooks, or ignore entries. A recipe may declare those native files;
-configuring a program does not make Cook its runner.
+A batch affects the targets its recipes declare and the targets they owned before. There is no engine-mandated
+catalog of generated configuration, wrapper files, agent instructions, skills, hooks, or ignore entries. A recipe may
+declare those native files; configuring a program does not make Cook its runner.
 
 | Target | Address | Effect of apply |
 | --- | --- | --- |
@@ -56,11 +57,12 @@ configuring a program does not make Cook its runner.
 
 Structured operations target keys rather than claiming ownership of the whole native file. A declared `test` key
 can change while an unrelated `other` key remains. Whole-file targets have whole-file scope, so review their full
-diff. The recipe's declarations determine that scope, rather than a persistent ownership manifest.
+diff. The recipe's declarations determine that scope; the committed `cook.lock` records the sections, keys, and
+files each recipe owns.
 
-Existing or edited content follows the same diff and approval flow. A developer's manual edit is not an ownership
-or drift veto. Cook requires no ownership-state reconciliation, `--adopt` flag, compatibility alias, or separate
-adoption step.
+Existing or edited content follows the same diff and approval flow. Ownership never blocks a change: a developer's
+manual edit appears in the next diff like any other difference. Cook requires no `--adopt` flag, compatibility alias,
+or separate adoption step.
 
 ### Native program files
 
@@ -70,30 +72,33 @@ safety-floor policy, or lifecycle engine. Recipe/model APIs and lifecycle hooks 
 
 ## Managed blocks
 
-Markers identify text boundaries, not ownership. A recipe can address a section of a shared file while preserving
-prose outside it. Use the file format's appropriate comment syntax:
+Markers bound a section and name the recipe that owns it and the region within that recipe. A recipe can address a
+section of a shared file while preserving prose outside it, and several recipes can keep separate sections in one
+file. Use the file format's comment syntax:
 
 | File kind | Opening marker | Closing marker |
 | --- | --- | --- |
-| Markdown | `<!-- cook:<id> -->` | `<!-- /cook:<id> -->` |
-| Hash-comment formats, such as TOML and ignore files | `# cook:<id>` | `# /cook:<id>` |
+| Markdown | `<!-- cook:begin <recipe>/<region> -->` | `<!-- cook:end <recipe>/<region> -->` |
+| Hash-comment formats: ignore files, YAML, TOML, and shell scripts | `# cook:begin <recipe>/<region>` | `# cook:end <recipe>/<region>` |
 
 ```markdown
 Text people wrote outside the section.
 
-<!-- cook:commands -->
+<!-- cook:begin agentic/context/commands -->
 Run the project's build command.
-<!-- /cook:commands -->
+<!-- cook:end agentic/context/commands -->
 
 More unrelated text.
 ```
 
 ### Block ids
 
-A block ID identifies a section's begin/end boundaries. It does not establish a persistent recipe identity, owner,
-or an engine-wide module catalog. The recipe declares which section it addresses. Manual edits within the section
-are included in the next actual diff; they do not trigger an adoption gate. Removing a recipe from a later apply
-invocation does not delete its section. Use [discard](remove.md#discard) to delete declared contributions.
+A block ID has the form `<recipe>/<region>`: the owning recipe's short name, such as `agentic/context`, followed by
+the region within that recipe. A recipe declares its short name; without a declaration, the name derives from the
+recipe's path. The block ID is not an engine-wide module catalog. Manual edits within the section are included in the
+next actual diff; ownership never blocks them. Removing a recipe from a later apply invocation does not delete its
+section; a new version of the recipe that no longer declares the section removes it. [Discard](remove.md#discard) is
+deferred; revert the batches that applied a recipe to undo its output.
 
 ### Instruction files
 
@@ -108,40 +113,45 @@ configuration choices.
 2. Display the final combined diff in the terminal.
 3. Ask for approval of the entire batch before changing target files. With `--batch-approve`, display the diff and
    proceed without prompting. Noninteractive execution without that flag does not authorize writes.
-4. Save one reversible patch per touched file before the first target write, and capture the sources and run
-   information for the whole batch under the destination's ignored `.cook/` directory.
-5. Perform the approved writes. On a write failure, roll back changes already made and retain the patches and failure
-   record.
+4. Save the batch record before the first target write: one reversible patch per touched file, `cook.lock`
+   included, plus the sources and batch information, under the destination's ignored `.cook/batches/<batchId>/`
+   directory.
+5. Perform the approved writes and update `cook.lock`. On a write failure, roll back changes already made and retain
+   the batch record and failure.
 
-Approval covers all files and hunks; partial selection is outside the design. Terminal review replaces the old
-render drift-check and dry-run contracts, without adding those flags to the target CLI.
+The core writes and records only accepted changes. The CLI accepts the whole batch, covering all files and hunks;
+choosing individual changes belongs to a separate interface decision. Terminal review takes the place of render
+drift-check and dry-run flags, which the target CLI does not have.
 
 Recipes are trusted executable code. Diff, approval, output boundaries, and rollback govern declared batch
 operations; they are not a sandbox or protection against arbitrary side effects during recipe evaluation.
 
 ## Destination and source paths
 
-The invocation directory is the destination, regardless of the recipe or executable location. Declared writes and
+The invocation directory is the destination, regardless of the executable location. Declared writes and
 deletions stay within it, including paths resolved through symlinks. A symlink cannot route a declared target outside
 that boundary.
 
-Relative recipe/template source references resolve from the referencing recipe's original location. HTTPS
-references resolve against its source URL. For example, when invoked from `/work/project`:
+Recipes come from paths inside the destination repository or `https://` URLs. Relative recipe/template source
+references resolve from the referencing recipe's location: inside the repository for a local recipe, and against
+the source URL for a remote one. A local operand or reference that resolves outside the repository is refused. For
+example, when invoked from `/work/project`:
 
 | Recipe operand | Template reference in that recipe | Resolved source | Output declared as `settings.toml` |
 | --- | --- | --- | --- |
-| `/home/dev/cookbook/recipes/project.groovy` | `../templates/settings.toml` | `/home/dev/cookbook/templates/settings.toml` | `/work/project/settings.toml` |
+| `cookbook/recipes/project.groovy` | `../templates/settings.toml` | `cookbook/templates/settings.toml` | `/work/project/settings.toml` |
 | `https://example.com/cookbook/recipes/project.groovy` | `../templates/settings.toml` | `https://example.com/cookbook/templates/settings.toml` | `/work/project/settings.toml` |
 
 All consumed recipe/template sources are captured, including local sources and the recipes actually evaluated.
 Recording their origins preserves relative resolution when the sources are snapshotted. Multiple recipes touching
-one file produce one patch for the combined change and one recorded operation for the whole batch. A single patch
-supports forward and reverse application. Arguments, execution order, operation, and result or failure log are
-recorded too; no patch representation or metadata serialization format is specified here.
+one file produce one patch for the combined change and one batch record for the whole batch. A single patch
+supports forward and reverse application. Arguments, execution order, and result or failure log are recorded too;
+no patch representation or metadata serialization format is specified here.
 
-Apply requires no previous history or ownership database. Losing `.cook/` loses local recovery information, not the
-ability to apply or discard. New operations still save recovery patches before writes. Reverting a run requires that
-run's history. See [architecture: paths and history](../architecture.md#paths-source-snapshots-and-local-history).
+Apply requires neither batch history nor `cook.lock`; without a lock entry for a recipe, it removes nothing on that
+recipe's behalf. Losing `.cook/` loses the ability to revert earlier batches, not the ability to apply recipes;
+ownership survives in the committed `cook.lock`. Reverting a batch requires its record. See
+[architecture: paths and history](../architecture.md#paths-source-snapshots-and-local-history).
 
 ## Reference
 
@@ -154,4 +164,4 @@ run's history. See [architecture: paths and history](../architecture.md#paths-so
 answering the whole-batch prompt. Recipe arguments use `--name=value`, with shell quoting for values containing
 spaces. The [CLI reference](cli.md) defines operand and option scope.
 
-To delete a supplied recipe's declared contributions or reverse a recorded run, see [discard and revert](remove.md).
+To reverse a recorded batch, or for the deferred discard, see [discard and revert](remove.md).

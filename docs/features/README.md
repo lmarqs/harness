@@ -16,7 +16,7 @@ conflicts with the architecture, correct that page. Earlier lifecycle, ownership
 override the agreed design. Useful cross-references can run in either direction.
 
 A target requirement does not establish that its behaviour is implemented. The [root README](../../README.md),
-[core implementation guide](../../core/README.md) and cookbook usage guides describe current execution. Implementation
+[core implementation guide](../../core/README.md) and recipe READMEs describe current execution. Implementation
 progress belongs in issues.
 
 ## Overview
@@ -31,9 +31,10 @@ and recipes, and can have builds separate from the engine. Programs consume the 
 an agent or loop runner does not make Cook its lifecycle controller.
 
 The CLI is the public cooking interface; Gradle builds and packages the engine and cookbooks. The intended CLI offers
-apply (the default), discard of supplied recipes' declared contributions, and revert of a recorded run. Existing or
-edited content uses the same actual diff and batch approval, with no `--adopt` or separate adoption gate. See the
-[CLI reference](cli.md), [apply](render.md), and [discard and revert](remove.md).
+apply (the default), revert of a recorded batch, and read-only batch listing and inspection. The committed `cook.lock`
+records which recipe owns each section, key and file; ownership never blocks a change. Existing or edited content uses
+the same actual diff and batch approval, with no `--adopt` or separate adoption gate. See the [CLI reference](cli.md),
+[apply](render.md), and [revert](remove.md).
 
 Personal setup backup (kit) and agent-session orchestration (cooking) are future capabilities tracked in
 [issue #5](https://github.com/lmarqs/the-cook/issues/5) and
@@ -51,9 +52,9 @@ The wrapper's pinned-download design does not establish that published releases 
 
 Engine and delivery
 
-- [CLI reference](cli.md): apply, discard and revert grammar, exact recipe operands, recipe arguments and batch approval
-- [Apply](render.md): ordered file/key/marker contributions, review, source paths and local history
-- [Discard and revert](remove.md): delete declared contributions or restore a recorded run's prior values
+- [CLI reference](cli.md): apply, revert and batch grammar, recipe operands, recipe arguments and batch approval
+- [Apply](render.md): ordered file/key/marker contributions, ownership, review, source paths and local history
+- [Revert](remove.md): reverse a recorded batch's changes; discard is deferred
 - [Installation](installation.md): jpackage with bundled Java, intended delivery and the current local build path
 - [Wrapper](wrapper.md): version/checksum pinning, first-use download and cache, explicit upgrades and the current launcher
 

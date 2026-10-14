@@ -16,13 +16,13 @@ fit another. Native files make the resulting choices visible to people and direc
 
 [Cook architecture](../architecture.md) assigns program knowledge to [ingredients](ingredients.md) and requested file
 changes to trusted Groovy [recipes](recipes.md). The engine composes declared operations left to right, presents their
-combined diff, obtains approval, records recovery information and performs writes. Later instructions can replace
-earlier values at overlapping targets; applying a recipe does not implicitly delete unrelated earlier output.
+combined diff, obtains approval, records recovery information and performs writes. When two recipes write the
+same target, the last one wins and becomes its owner; applying a recipe does not delete output another recipe owns.
 
 Review existing or edited content through that same batch flow. There is no adoption step or rule to keep every
 existing value merely because it is already present. Deliberately choose declaration scope: whole-file operations
 address entire files, key operations preserve unrelated keys, and marked sections preserve text outside their
-boundaries. See [apply](render.md) and [discard and revert](remove.md).
+boundaries. See [apply](render.md) and [revert](remove.md).
 
 ## Station role remains deferred
 
@@ -31,9 +31,9 @@ model discussion. This page defines no station schema, command, stages, detectio
 behavior. It does not decide whether a station becomes a separate composition unit or how it relates to recipes.
 
 Ingredient/recipe APIs, composition and nesting rules, decorators, annotations, parameter injection and lifecycle hooks
-also require that discussion. Existing dynamic composition and compiled suppliers are not selected for deletion by
-this documentation change. For current implementation behavior, use the [core guide](../../core/README.md) and
-cookbook usage guides rather than treating an exploratory sketch as the target API.
+also require that discussion. Existing dynamic composition and compiled suppliers remain supported. For current
+implementation behavior, use the [core guide](../../core/README.md) and recipe READMEs rather than treating an
+exploratory sketch as the target API.
 
 ## Cookbooks
 
@@ -46,8 +46,9 @@ Engine distribution uses a platform-specific jpackage package containing Java an
 engine version and checksum, downloads it on first use and caches it. See [installation](installation.md) and
 [wrapper](wrapper.md). Changing that engine pin does not upgrade cookbook content or manage recipe versions.
 
-Users supply the recipe version they intend to apply or discard. Recipe operands are exact paths or supported source
-URIs; there is no implicit cookbook-name lookup. This reference prescribes no registry, archive naming scheme,
+Users supply the recipe version they intend to apply; `cook.lock` records which version produced each recipe's
+ownership. Recipe operands are paths inside the destination repository or `https://` URLs; there is no implicit
+cookbook-name lookup. This reference prescribes no registry, archive naming scheme,
 cookbook manifest, automatic recipe updater or complete publication protocol.
 
 ## Review and execution boundaries

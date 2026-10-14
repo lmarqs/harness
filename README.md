@@ -30,11 +30,12 @@ cooking invocation writes without an approval prompt or a terminal content diff.
 applications using ownership records. The existing `apply` command applies a saved plan, rather than evaluating
 recipe operands. No-argument invocation reports a missing command; use `--help` explicitly.
 
-The [target CLI](docs/features/cli.md) instead requires ordered recipe operands, apply/discard/revert and whole-batch
-diff approval. Stateless apply/discard, consumed-source snapshots, per-run reversible patches and the pinned-download
-wrapper are requirements, not capabilities supplied by this implementation. Some current recipes expose `--adopt`
-and the core enforces adoption and managed-edit gates; the target eliminates that flag and those gates in favor of
-reviewing and approving the actual batch diff for existing or edited content.
+The [target CLI](docs/features/cli.md) instead requires ordered recipe operands, `apply`, `revert`, `batch list`,
+`batch inspect` and whole-batch diff approval. The committed `cook.lock`, `cook:begin <recipe>/<region>` markers,
+consumed-source snapshots, per-batch records under `.cook/batches/<batchId>/` with reversible patches, and the
+pinned-download wrapper are requirements, not capabilities supplied by this implementation. Some current recipes
+expose `--adopt` and the core enforces adoption and managed-edit gates; the target design has no adoption flag, and
+ownership never blocks a change: existing or edited content appears in the batch diff for approval.
 
 ### Start from a fresh clone
 

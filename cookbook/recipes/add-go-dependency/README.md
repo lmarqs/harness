@@ -1,10 +1,9 @@
-# Add a Go dependency
+# add-go-dependency
 
-This guide describes the current implementation. The [architecture](../../../docs/architecture.md) defines the
-intended design; the [factory guide](../README.md) explains current CLI limits, source prerequisites and ownership
-reconciliation. Existing composition APIs and adoption gates do not settle the deferred model or hooks.
+`add-go-dependency` adds an explicit `require` line for one module to an existing `go.mod` and declares a
+`dependency:go` mise task that tidies the module and runs its tests.
 
-Declare an explicit module requirement in an existing `go.mod` and a `dependency:go` task.
+## Usage
 
 ```groovy
 book.recipe('add-go-dependency', kitchen, [
@@ -13,11 +12,56 @@ book.recipe('add-go-dependency', kitchen, [
 ]).mount()
 ```
 
-Required options are `module`, `version`, and `manifest`. The module and version must be valid literal tokens; the version begins with `v` and a digit. An existing declaration with a different version is rejected. The whole manifest is managed, so an existing unmanaged file requires boolean `adopt: true` through Groovy
-composition; CLI `--adopt=true` is a string and cannot satisfy this whole-file adoption check. Existing managed
-edits still fail reconciliation.
+## Arguments
 
-Optional options are `id` (default `add-go-dependency`), `mise`, and `adopt`. The task changes to the manifest directory, runs `go mod tidy`, then `go test ./...` when invoked separately. Cooking does not fetch modules or run tests. The generated task
-requires mise, Go and a valid Go project, with network access or cached modules as needed.
+| Argument | Required | Default | Meaning |
+| --- | --- | --- | --- |
+| `module` | yes | none | Module path of letters, digits, `_`, `.`, `/` or `-`. |
+| `version` | yes | none | Module version: `v`, a digit, then letters, digits, `_`, `.`, `+` or `-`, for example `v1.2.3`. |
+| `manifest` | yes | none | Path of the existing `go.mod`. |
+| `id` | no | `add-go-dependency` | Identity of the recipe component. |
+| `mise` | no | a new `mise` ingredient | Existing mise ingredient component that receives the task. Pass one when the kitchen already holds a component named `mise`. |
+| `adopt` | no | `false` | Boolean. Only `true` lets the recipe take over the existing unmanaged `go.mod`, so the first application needs it. When the recipe creates the mise ingredient, it also takes over an existing unmanaged task key. |
 
-See [factory usage](../README.md).
+## Output
+
+| Target | Format | Part the recipe owns |
+| --- | --- | --- |
+| `<manifest>` | Text | The whole file: its current content, plus `require <module> <version>` when the module has no declaration. |
+| `mise.toml`, or the file of the supplied `mise` | TOML | The `tasks."dependency:go"` key: a task that runs `cd '<directory>' && go mod tidy && go test ./...`. |
+
+`<directory>` is the manifest's parent directory, or `.` for a manifest at the repository root.
+
+## Inputs
+
+The `dependency:go` task needs mise, Go and the module that `manifest` describes, plus network access or cached
+modules.
+
+## Behaviour
+
+- A missing `manifest` file, or a `module` or `version` that does not match its pattern, fails the recipe.
+- A line that, trimmed, starts with `<module> ` or `require <module> ` is the module's declaration. A declaration that
+  reads exactly `<module> <version>` or `require <module> <version>` leaves the content unchanged. Any other
+  declaration, including one with a trailing comment such as `// indirect`, fails the recipe.
+- Without a declaration, the recipe appends `require <module> <version>` as the last line, after adding a final newline
+  when the file lacks one.
+- The recipe writes the task declaration. It does not run the task, fetch modules or run tests.
+
+## Example
+
+With the usage above and this `go.mod`:
+
+```text
+module example.org/service
+
+go 1.24
+```
+
+the recipe writes:
+
+```text
+module example.org/service
+
+go 1.24
+require example.org/library v1.2.3
+```

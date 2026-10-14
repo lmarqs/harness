@@ -61,10 +61,11 @@ Review skill text, supporting scripts and links as part of the actual batch diff
 resources or tell an agent to take actions; review those consequences as well as the instruction text. Native program
 permissions remain the program's responsibility. See [program permissions](policy.md) and [safety guidelines](safety.md).
 
-Cook proposes declared changes against existing or manually edited content without adoption or ownership gates.
-Applying another recipe does not remove unrelated skills. [Discard](remove.md#discard) deletes the supplied recipe
-version's declared skill contributions, even after edits; [revert](remove.md#revert) restores a recorded operation's
-prior values using history. Neither reverses actions an agent has taken after reading a skill.
+Cook proposes declared changes against existing or manually edited content without an adoption step; ownership
+recorded in `cook.lock` never blocks a change. Applying another recipe does not remove skills an earlier recipe owns.
+Applying a new version of a recipe removes skill contributions its previous version owned and the new version no
+longer declares; [revert](remove.md#revert) applies a recorded batch's reverse patches. Neither reverses actions an
+agent has taken after reading a skill.
 
 When a program cannot find a skill, inspect its expected location, links, metadata and project trust settings. When it
 finds a skill but does not use it, investigate that program's loading behaviour and the relevance of the description;

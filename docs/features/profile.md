@@ -51,14 +51,14 @@ a setting while leaving the base recipe's unrelated files in place. A later invo
 outputs merely because their recipe was omitted.
 
 Choose whole-file, structured-key or marked-section targets to match the intended extent of each change. Existing or
-manually edited files follow the ordinary diff and approval flow, without adoption or ownership reconciliation.
-Every apply/discard invocation evaluates the supplied recipes again; history does not mark setup as already applied.
-See [apply](render.md) and [discard and revert](remove.md).
+manually edited files follow the ordinary diff and approval flow, without an adoption step; ownership recorded in
+`cook.lock` never blocks a change. Every apply invocation evaluates the supplied recipes again; history does not mark
+setup as already applied. See [apply](render.md) and [revert](remove.md).
 
 The invocation directory is the destination. Relative source references resolve from each recipe's original location,
-not from the destination or captured snapshot. Local recovery history lives in the destination's ignored `.cook/`
-directory, not a committed profile. It records operations and sources rather than worker sessions or verification
-receipts; apply/discard need no previous history, while reverting a run needs its record.
+not from the destination or captured snapshot. Batch records live in the destination's ignored
+`.cook/batches/<batchId>/` directory, not a committed profile. They record patches and sources rather than worker
+sessions or verification receipts; apply needs no previous history, while reverting a batch needs its record.
 
 ## Guidance and personal choices
 

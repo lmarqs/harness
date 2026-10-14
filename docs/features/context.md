@@ -16,17 +16,17 @@ Keep broadly applicable instructions short and link to focused guidance for part
 can propose a section in a repository's `AGENTS.md`:
 
 ```markdown
-<!-- cook:guidance -->
+<!-- cook:begin agentic/context/guidance -->
 Before changing database migrations, read `docs/database-conventions.md`.
 Shared coding guidance lives in `.agents/skills/coding-guidelines/SKILL.md`.
-<!-- /cook:guidance -->
+<!-- cook:end agentic/context/guidance -->
 ```
 
-These paths and the section name are repository choices, not a required Cook layout. The HTML comments identify text
-boundaries, not ownership. A recipe targeting that section preserves text outside it; its changes to existing or
-edited content use the ordinary [batch diff and approval](render.md). Writing a pointer does not guarantee that a
-program reads it or follows its instructions. Program-specific loading rules belong with the ingredient's cookbook
-reference; see [agent configuration](workers.md).
+These paths and the section name are repository choices, not a required Cook layout. The HTML comments bound the text
+and name its owning recipe and region; ownership never blocks a change. A recipe targeting that section preserves text
+outside it; its changes to existing or edited content use the ordinary [batch diff and approval](render.md). Writing a
+pointer does not guarantee that a program reads it or follows its instructions. Program-specific loading rules belong
+with the ingredient's cookbook reference; see [agent configuration](workers.md).
 
 ## Sources and trust
 

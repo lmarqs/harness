@@ -29,9 +29,10 @@ teams can change one part of their setup without withdrawing unrelated parts.
    change the committed version and matching checksums; an ordinary invocation does not select a newer release.
 3. Cook introduces no required CI step merely because it wrote configuration. A team may explicitly invoke Cook in
    CI through the same wrapper and pin flow as a developer. A missing engine cannot stand in for a completed operation.
-4. Recipe requests affect their declared targets. Applying one recipe does not withdraw unrelated outputs of another.
-   Discard deletes the supplied recipe version's declared contributions through the normal batch diff and approval
-   flow; stopping use of Cook does not itself delete native configuration.
+4. Recipe requests affect their declared targets and the targets their recipes owned before
+   ([0007](0007-ownership.md)). Applying one recipe does not remove output another recipe owns. A recipe's new version
+   removes what its previous version owned and no longer declares, through the normal batch diff and approval flow;
+   stopping use of Cook does not itself delete native configuration.
 5. This decision defines no implicit hook entry points, cache-only hook mode, session hints or lifecycle contracts.
    Recipe/ingredient APIs, station semantics and recipe hooks remain for the separate model discussion. Personal
    setup backup and agent-session orchestration remain future capabilities.
@@ -46,8 +47,9 @@ teams can change one part of their setup without withdrawing unrelated parts.
   package and a first-use download when the pin is not cached.
 - **3.** CI belongs to the team. Optional explicit cooking still needs an engine and approval; absence cannot be
   reported as success. There is no engine-owned drift check or mandatory pipeline integration to guard.
-- **4.** Declared scope supports changing one part of setup without an ownership database or automatic withdrawal.
-  Discard and history-based reversal serve different requests; neither requires an eject step to keep using native files.
+- **4.** Declared scope and per-recipe ownership support changing one part of setup without withdrawing other
+  recipes' output. Ownership lives in a committed file and in comment markers, neither of which a program or teammate
+  needs Cook to read, so no eject step is required to keep using native files.
 - **5.** Native program settings can describe hooks without making Cook a hook runner. Deferring model mechanics avoids
   retaining the former session engine through distribution requirements.
 
@@ -67,7 +69,7 @@ budget or skip protocol to preserve here.
 ### Automatically withdraw omitted recipes
 
 At its best, one invocation describes all desired setup. It loses because applying a recipe would implicitly delete
-unrelated output. Explicit discard makes the requested deletion visible against current content.
+unrelated output. Removal instead follows a recipe's own later versions and is visible against current content.
 
 ## Consequences
 
@@ -81,4 +83,5 @@ unrelated output. Explicit discard makes the requested deletion visible against 
 Review a native-configuration example from a teammate's perspective: reading its settings and following its instructions
 requires the configured program, not a Cook invocation. Review the wrapper design for bundled Java, version/checksum
 pinning, first-use verification/cache and explicit upgrades. Review a two-recipe example to ensure applying one preserves
-unrelated output and discard exposes only the supplied declarations. These are design review criteria, not new CI gates.
+unrelated output and a recipe's new version removes only what that recipe owned. These are design review criteria,
+not new CI gates.

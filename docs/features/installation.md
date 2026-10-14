@@ -16,7 +16,7 @@ or Gradle. The launcher depends on the rest of the package: copying only its exe
 Engine release packaging and cookbook distribution have separate responsibilities. Cookbooks hold and ship
 program data models (ingredients) and Groovy recipes through their repositories, and can build independently of
 Cook. The engine's version pin does not select or upgrade cookbook content. Users manage their recipe versions
-and supply the version they intend to apply or discard; Cook does not introduce a registry or recipe-version manager.
+and supply the version they intend to apply; Cook does not introduce a registry or recipe-version manager.
 
 ## The wrapper (default)
 
@@ -74,8 +74,8 @@ implemented.
 The source repository currently exposes a `cookbookBuild` task separately from CLI packaging; some cookbook
 runtime dependencies are also included on the CLI's packaged classpath. That build arrangement does not make the
 engine release responsible for versioning every cookbook. Cookbook authors maintain and distribute their own
-models and recipes. Neither downloading an engine package nor changing its pin supplies an earlier recipe version
-for discard.
+models and recipes. Neither downloading an engine package nor changing its pin supplies or selects a recipe
+version.
 
 ## Troubleshooting
 

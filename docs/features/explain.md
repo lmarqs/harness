@@ -15,14 +15,14 @@ catalog or a guarantee that a shipped skill contains the same text as a binary.
 | --- | --- |
 | What does the engine do, and what stays outside it? | [Architecture](../architecture.md) |
 | How are recipe operands, arguments and approval scoped? | [CLI reference](cli.md) |
-| How do ordered file operations, source paths and history work? | [Apply](render.md) |
-| How does deleting declarations differ from reversing a run? | [Discard and revert](remove.md) |
+| How do ordered file operations, ownership, source paths and history work? | [Apply](render.md) |
+| How is a recorded batch reversed? | [Revert](remove.md) |
 | What does approval protect, and what requires recipe trust? | [Safety guidelines](safety.md) |
 | How can recipes share native instructions and reviewed knowledge? | [Repository guidance](context.md) and [memory](memory.md) |
 | What evidence helps diagnose an unexpected result? | [Configuration diagnostics](doctor.md) |
 | How is Cook packaged and versioned? | [Installation](installation.md) and [wrapper](wrapper.md) |
 
-The [root README](../../README.md), [core implementation guide](../../core/README.md) and cookbook usage guides
+The [root README](../../README.md), [core implementation guide](../../core/README.md) and recipe READMEs
 describe current execution. Read them for what runs today; missing implementation does not invalidate the agreed
 design. When investigating a particular setup, keep the engine version distinct from the supplied recipe version and
 consult the cookbook documentation for the program configuration it models.

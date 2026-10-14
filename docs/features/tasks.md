@@ -23,9 +23,9 @@ clear, or synchronize them. Changes to any such files must be explicitly declare
 directory (including paths resolved through symlinks), and appear in the reviewed diff. Declared configuration changes
 preserve unrelated content according to their file, key, or marked-section scope.
 
-Discard deletes the contributions declared by the supplied recipe version. It does not infer or remove a tracker's
-other data. Reverting a configuration run restores that operation's recorded prior values from local history; it does
-not reverse task activity performed later by the tracker. See [discard and revert](remove.md).
+Applying a new version of a recipe removes only the configuration its previous version owned and the new version no
+longer declares; it leaves a tracker's other data in place. Reverting a configuration batch applies its recorded reverse
+patches; it does not reverse task activity performed later by the tracker. See [revert](remove.md).
 
 ## Session boundary
 

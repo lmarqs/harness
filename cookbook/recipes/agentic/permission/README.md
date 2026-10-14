@@ -1,60 +1,103 @@
-# Permission recipe
+# agentic/permission
 
-This guide describes the current implementation. The [architecture](../../../../docs/architecture.md) defines the
-intended design; the [agentic guide](../README.md) explains current CLI limits, launcher prerequisites and differences
-from the target. Existing composition APIs and adoption behavior do not settle the deferred model or hooks.
+Renders one agent policy file into the native permission settings of the selected harnesses: Bash permission rules for
+Claude, and sandbox settings plus command prefix rules for Codex.
 
-`agentic/permission` applies one version 1 policy to the selected harnesses. After the [CLI build](../README.md#before-running-recipes), the commands below use this checkout's `./cook` development launcher, which chooses this checkout as the destination. Use `--repo PATH` for another destination or run a packaged launcher from that repository. A relative `--policy` path resolves from the destination, including when the recipe is invoked by direct path.
+## Usage
 
 ```sh
-./cook agentic/permission --help
-./cook cookbook/recipes/agentic/permission.groovy --help
-./cook agentic/permission --policy=.agents/policy.interactive.yaml --harness=claude --dry-run
-./cook agentic/permission --policy=.agents/policy.interactive.yaml --harness=claude
-./cook agentic/permission --policy=.agents/policy.unattended.yaml --harness=codex
-./cook cookbook/recipes/agentic/permission.groovy --policy=.agents/policy.interactive.yaml --harness=claude
+./cook agentic/permission --policy=.agents/policy.yaml --harness=claude --harness=codex
 ```
 
-`--policy PATH` is required for application, and `--harness CHOICE` is required and repeatable (`claude` or `codex`). Repeating it applies the same policy to both harnesses in one transaction. `--adopt=true` permits takeover of conflicting unmanaged permission keys; the default is `false`. `--repo PATH` selects another destination, and `--dry-run` reports proposed changed paths without writing target files. The CLI's `--help` lists these options without reading the policy file.
+## Arguments
 
-The cooking examples assume the selected native content is absent or already owned by this application; unmanaged conflicts need the current `--adopt=true` option, including Codex's rules block. This option does not bypass managed edits. Create the two regular policy source files in the destination before cooking; symbolic-link policy sources are rejected. The init starter `.agents/policy.yaml` does not supply these two filenames. Existing tracked policies in this checkout need not be replaced.
+| Argument | Required | Default | Meaning |
+| --- | --- | --- | --- |
+| `policy` | yes | none | Path to a version 1 policy file. A relative path resolves against the destination repository. The file must be a regular file, not a symbolic link. |
+| `harness` | yes | none | `claude` or `codex`. Repeat it to apply the same policy to both. |
+| `adopt` | no | `false` | `true` or `false`. `true` takes over existing unmanaged values at the keys the recipe writes and an existing unmanaged `cookbook.codex/commands` block. |
 
-For instance, `.agents/policy.interactive.yaml` can contain:
+## Output
+
+| Target | Format | Part the recipe owns |
+| --- | --- | --- |
+| `.claude/settings.json` | JSON | Keys `permissions.defaultMode`, `permissions.allow`, `permissions.ask` and `permissions.deny`. |
+| `.codex/config.toml` | TOML | Keys `sandbox_mode`, `approval_policy` and `sandbox_workspace_write.network_access`. |
+| `.codex/rules/cookbook.rules` | Codex rules | The block `cookbook.codex/commands`. |
+
+## Inputs
+
+The policy file is YAML with these fields, read by
+[PolicyFile.groovy](../../../ingredients/agent-policy/PolicyFile.groovy):
+
+- `version`: required, must be `1`.
+- `instructions`: optional list of strings. This recipe accepts it and writes nothing from it.
+- `commands`: optional object with optional `allow`, `ask` and `deny` lists. Each entry is a list of tokens that form a
+  literal command prefix, such as `[mise, run, check]`.
+
+Each token is nonempty and consists of letters, digits and `_ . / : = @ + -`, as defined in
+[Policy.groovy](../../../ingredients/agent-policy/Policy.groovy). Shell syntax and wildcards are not supported.
+
+## Behaviour
+
+For Claude, `permissions.defaultMode` is `acceptEdits`, and each command becomes a `Bash(<tokens> *)` entry in the
+list named after its decision. All three lists are written, empty when the policy has no command for that decision.
+
+For Codex, the keys are `sandbox_mode = "workspace-write"`, `approval_policy = "on-request"` and
+`sandbox_workspace_write.network_access = false`. The rules block starts with three comment lines, followed by one
+`prefix_rule` per command: `allow` stays `allow`, `ask` becomes `prompt` and `deny` becomes `forbidden`.
+
+The same prefixes do not guarantee identical enforcement by the two harnesses; review the generated configuration
+against each harness's permission model.
+
+A missing, empty or malformed policy, an unknown field, a version other than `1`, a duplicate key, an unsupported
+token or a symbolic link is rejected before any file is written. The recipe leaves other keys in these files untouched
+and writes no `AGENTS.md`, `CLAUDE.md`, skills or hooks.
+
+Each harness has its own application, `agentic.permissions/claude` or `agentic.permissions/codex`. Applying one
+harness leaves the other harness's files intact. The policy path is not part of the identity, so cooking a harness
+with another policy file replaces that harness's output.
+
+`--remove --harness=<harness>` withdraws `agentic.permissions/<harness>`. `--policy` is accepted during removal but not
+read, and the policy file is not touched.
+
+The recipe renders Claude output with `ClaudeFiles` from [agentic/claude](../claude/README.md), without its instruction
+block, and Codex output with `CodexFiles` from [agentic/codex](../codex/README.md). It is composed by
+[agentic/init](../init/README.md).
+
+## Example
+
+The policy
 
 ```yaml
 version: 1
 commands:
   allow:
     - [mise, run, check]
+  deny:
+    - [git, push]
 ```
 
-And `.agents/policy.unattended.yaml` can contain:
+sets `permissions.allow` to `["Bash(mise run check *)"]`, `permissions.ask` to `[]` and `permissions.deny` to
+`["Bash(git push *)"]` in `.claude/settings.json`, and produces this block in `.codex/rules/cookbook.rules`:
 
-```yaml
-version: 1
-commands:
-  allow:
-    - [git, status]
+```text
+# cook:begin cookbook.codex/commands
+# Generated from the selected policy by ./cook cookbook.
+# These literal prefix rules govern execution outside the Codex sandbox.
+# They do not inspect the contents of scripts or enforce instructions as OS controls.
+prefix_rule(pattern = ["mise","run","check"], decision = "allow")
+prefix_rule(pattern = ["git","push"], decision = "forbidden")
+# cook:end cookbook.codex/commands
 ```
 
-The two policy commands above deliberately use different sources. The filename selects policy content, not a session role. Each harness has one repository-wide permission application. Applying Claude leaves Codex's native files and ownership intact, and vice versa. Edit a policy and run its command again to update that harness. A renamed policy file can be passed to the same harness application; the path is not its ownership identity.
-
-The policy format accepts `version: 1`, optional `instructions`, and `commands.allow`, `commands.ask`, and `commands.deny` lists of literal, nonempty command-token prefixes. See [PolicyFile.groovy](../../../ingredients/agent-policy/PolicyFile.groovy). Shell expressions and wildcards are outside this scope. Native rendering uses each harness's own permission model: Claude receives Bash permission entries in `.claude/settings.json`; Codex receives execution settings in `.codex/config.toml` and prefix rules in `.codex/rules/cookbook.rules`. Equivalent source prefixes do not guarantee identical enforcement by the two harnesses. Review the generated native configuration and the harness's behavior before relying on a rule.
-
-The recipe preserves unrelated native settings and creates no skills, hooks, `AGENTS.md`, or `CLAUDE.md`. An existing unmanaged conflicting key requires `--adopt=true`; an edited managed region stops reconciliation. A missing, empty, malformed, or unsupported policy fails before writes. `.cook/state.json` records owned output for later reconciliation; it is not a user-authored complete desired setup.
-
-Remove only the selected harness's managed permissions explicitly; the source policy remains. Current removal restores saved adopted originals when applicable and rejects managed drift; it is not target discard or run-ID revert:
-
-```sh
-./cook agentic/permission --harness=claude --remove --dry-run
-./cook agentic/permission --harness=claude --remove
-./cook cookbook/recipes/agentic/permission.groovy --harness=codex --remove
-```
-
-Removal reads saved ownership, so it needs no policy source. For permission development, the existing independent module check is:
+## Development
 
 ```sh
 ./gradlew -p cookbook/recipes/agentic/permission check
 ```
 
-The permission module declares the Codex and Claude renderer modules as dependencies; its build also includes core and the agent-policy ingredient. See [independent module checks](../README.md#build-and-verification) for related development commands.
+`check` runs the module tests, CodeNarc and Spotless. The recipe source is
+`cookbook/recipes/agentic/permission.groovy`, packaged as `recipe.groovy`. The module publishes
+`dev.thecook.recipes:agentic-permission`, with its version in `gradle.properties`, and depends on the `agentic-codex`
+and `agentic-claude` modules.

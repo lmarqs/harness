@@ -13,8 +13,9 @@ for both interactive and noninteractive use.
 
 These pages describe the interaction of the file-operation engine: commands, output, configuration, generated content
 and documentation. Cook evaluates trusted Groovy recipes, presents their combined terminal diff, obtains whole-batch
-approval, records recovery information and performs declared writes. Programs read their native files directly;
-Cook does not run their development lifecycle. Recipe evaluation is trusted code, not sandboxed by the review flow.
+approval, records the batch and ownership in `cook.lock` and performs declared writes. Programs read their native files
+directly; Cook does not run their development lifecycle. Recipe evaluation is trusted code, not sandboxed by the review
+flow.
 
 ## Authority
 
@@ -22,8 +23,8 @@ Cook does not run their development lifecycle. Recipe evaluation is trusted code
 it. Standards govern interactions within that design; when a standard or ADR conflicts with the architecture, correct
 the supporting document. An obsolete rule does not override the agreed architecture.
 
-Descriptions of current behaviour in the [root README](../../README.md), [core guide](../../core/README.md) and cookbook
-usage guides must remain truthful. A requirement in these standards does not establish implementation, and a gap in
+Descriptions of current behaviour in the [root README](../../README.md), [core guide](../../core/README.md) and recipe
+READMEs must remain truthful. A requirement in these standards does not establish implementation, and a gap in
 implementation does not invalidate the design. Implementation progress belongs in issues.
 
 Background:
@@ -51,7 +52,7 @@ backup (kit) and agent-session orchestration (cooking) remain future work in
 | Reviewer | Recipe, configuration and wrapper-pin changes | Inspect requested contributions and explicit version/checksum changes |
 | Teammate who does not use Cook | Native program files | Consume those files directly without invoking Cook |
 | Cookbook author | Ingredients and trusted Groovy recipes | Maintain program models and setup separately from engine releases |
-| User withdrawing or reversing setup | Discard and revert | Review deletion of declared contributions or restoration of a recorded run's prior values, preserving unrelated content |
+| User reversing setup | Revert | Review the reversal of one recorded batch's changes, preserving later non-overlapping edits |
 
 ## Normative language
 

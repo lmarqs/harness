@@ -1,34 +1,73 @@
-# Claude setup
+# agentic/claude
 
-This guide describes the current implementation. The [architecture](../../../../docs/architecture.md) defines the
-intended design; the [agentic guide](../README.md) explains current CLI limits, launcher prerequisites and differences
-from the target. Existing composition APIs and adoption behavior do not settle the deferred model or hooks.
+Writes Claude Code settings keys into `.claude/settings.json` and a managed instruction block into `CLAUDE.md`. A
+composing recipe uses it to declare native Claude configuration.
 
-In a Groovy composition with `book` and `kitchen` initialized and the required cookbook artifacts or sources available (see [factory usage](../../README.md)), compose native Claude settings and instructions:
+## Usage
 
 ```groovy
-def claude = book.recipe('agentic/claude', kitchen, [
+book.recipe('agentic/claude', kitchen, [
     settings: [permissions: [allow: ['Bash(mise run check *)']]],
     instructions: '@AGENTS.md'
-])
-claude.mount()
+]).mount()
 ```
 
-| Option | Default | Purpose |
+## Arguments
+
+| Argument | Required | Default | Meaning |
+| --- | --- | --- | --- |
+| `id` | no | `claude` | Component identity. The instruction block is marked `<id>/instructions`. |
+| `settings` | no | none | A map, or a collection of maps, of top-level settings keys and their values. |
+| `instructions` | no | none | Text of the instruction block. The block is written only when this is set. |
+| `settingsPath` | no | `.claude/settings.json` | File that receives the settings keys. |
+| `instructionsPath` | no | `CLAUDE.md` | File that receives the instruction block. |
+| `adopt` | no | `false` | Boolean. `true` takes over existing unmanaged values at the selected settings keys. It never adopts the instruction block. |
+
+## Output
+
+| Target | Format | Part the recipe owns |
 | --- | --- | --- |
-| `id` | `claude` | Stable contribution identity |
-| `settings` | empty | Top-level JSON keys; map or collection of maps |
-| `instructions` | absent | Managed instruction block |
-| `settingsPath` | `.claude/settings.json` | Settings file |
-| `instructionsPath` | `CLAUDE.md` | Instructions file |
-| `adopt` | `false` | Adopt existing selected keys |
+| `.claude/settings.json` | JSON | Each top-level key supplied through `settings`, as a whole value. |
+| `CLAUDE.md` | Markdown | The block `<id>/instructions`, `claude/instructions` by default. |
 
-The returned recipe exposes a `settings` input for deferred connections, plus `nativePaths` and `files.local` exports. The latter describes `.claude/settings.local.json`; the recipe does not create that personal file. A containing recipe can connect these local paths to Git's ignore contributions.
+## Behaviour
 
-`adopt` defaults to `false` and applies to selected settings keys. This factory has no rule-file output, and the option does not adopt its instruction block. Recooking preserves unrelated content; withdrawal restores saved adopted settings values when managed content has not drifted. The example references `AGENTS.md` but does not create it; supply that file or compose [context](../context/README.md) instead for seeded shared guidance.
+Each top-level settings key is owned whole: `settings: [permissions: [allow: [...]]]` owns the entire `permissions`
+object. Contributions are merged, and two contributions with different values for the same key are rejected with
+`Conflicting Claude settings: <key>`. The recipe writes nothing when neither `settings` nor `instructions` is given.
+Other keys in the settings file and text outside the block are left untouched. The recipe does not create files that
+the instructions refer to, such as `AGENTS.md`.
 
-The recipe declares files; it does not launch the agent. Mount it alongside the other recipes required by the repository before planning. The factory belongs to the `agentic.permissions/claude` application, shared with [permission](../permission/README.md). Updating that application replaces its declared contribution set, so do not treat these two entry points as independent owners. Omitted contributions in that application can be withdrawn; this is current reconciliation behavior, not the target ordered-operation contract. This factory has no removal declaration for CLI `--remove`; withdrawal here means changing the composition before planning.
+The returned recipe exposes:
 
-`ClaudeFiles` is the compiled renderer used by this recipe. A typed repository recipe can include `new ClaudeFiles(policy, adopt)` in its batch. This constructor translates an agent policy into individual permission keys and a `CLAUDE.md` reference to `AGENTS.md`, retaining the historical `cookbook.claude` ownership ID. Its third argument overrides the ID.
+- the input `settings`, which accepts further maps or deferred exports from a composing recipe;
+- the export `nativePaths`: `CLAUDE.md`, `.claude/settings.json` and `.claude/settings.local.json`;
+- the export `files.local`: the root file `.claude/settings.local.json`, for an ignore consumer. The recipe never
+  writes that file.
 
-The module builds independently with `./gradlew -p cookbook/recipes/agentic/claude build` and defines publication coordinates `dev.thecook.recipes:agentic-claude`, with its version in `gradle.properties`.
+The recipe records its output under the application `agentic.permissions/claude`. The Claude output of
+[agentic/permission](../permission/README.md) and of [cookbook](../../cookbook/README.md) uses the same application,
+so cooking one of them withdraws content another recorded there that the run does not declare. The recipe
+declares no removal scope.
+
+The module compiles the renderer `thecook.cookbook.recipes.agentic.claude.ClaudeFiles`:
+
+- `new ClaudeFiles(String name = 'claude')` exposes `settings` (a list of key contributions), `settingsPath`,
+  `instructionsPath`, `instructions` and `adoptInstructions`. This recipe uses it.
+- `new ClaudeFiles(Policy policy, boolean adopt = false, String name = 'cookbook.claude')` translates an agent policy
+  into `permissions.defaultMode` (`acceptEdits`) and `permissions.allow`, `permissions.ask` and `permissions.deny`
+  lists of `Bash(<prefix> *)` entries, plus an instruction block containing `@AGENTS.md`. `adopt` applies to those
+  keys.
+
+agentic/permission and cookbook use the policy constructor; [agentic/context](../context/README.md) uses the first
+constructor for its `CLAUDE.md` import block.
+
+## Development
+
+```sh
+./gradlew -p cookbook/recipes/agentic/claude check
+./gradlew -p cookbook/recipes/agentic/claude build
+```
+
+The module publishes `dev.thecook.recipes:agentic-claude`, with its version in `gradle.properties`, and depends on
+`dev.thecook.ingredients:agent-policy`.

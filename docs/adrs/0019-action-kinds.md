@@ -9,9 +9,10 @@ service calls or worker launches makes a file diff an incomplete account of the 
 
 ## Context
 
-The [architecture](../architecture.md#evaluation-review-and-writes) and PRD FR-1 through FR-4 define trusted Groovy
-evaluation followed by review and execution of declared file operations. External command execution is not a batch
-action. Recipes are executable code and can cause side effects outside their declarations.
+The [architecture](../architecture.md#evaluation-review-and-writes) and its
+[requirements](../architecture.md#requirements) FR-1 through FR-4 define trusted Groovy evaluation followed by review
+and execution of declared file operations. External command execution is not a batch action. Recipes are executable code
+and can cause side effects outside their declarations.
 
 For example, an acme recipe can write a program's native notification settings. The program later sends the
 notification; Cook's batch changes its configuration, rather than sending the notification itself.
@@ -35,8 +36,8 @@ notification; Cook's batch changes its configuration, rather than sending the no
   integrations, but the configured program performs them independently of Cook. The trade is that callers arrange
   any external execution outside the batch.
 - **2.** FR-7 and FR-11 through FR-13 make the combined result the unit of review and recovery. Later operations can
-  replace earlier values without presenting intermediate results as separate approvals. The trade is that approval
-  covers the whole batch rather than selected files or hunks.
+  replace earlier values without presenting intermediate results as separate approvals. The trade is that the CLI's
+  approval covers the whole batch; choosing individual changes is a separate interface decision.
 - **3.** FR-4 separates trusting executable sources from approving their declared writes. A file diff cannot show
   arbitrary code side effects. The trade is that reviewers must trust recipe sources before evaluating them.
 - **4.** FR-6 keeps worker supervision and lifecycle events outside the engine. This preserves the distinction

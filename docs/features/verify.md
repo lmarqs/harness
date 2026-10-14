@@ -20,8 +20,9 @@ checks ran and which could not run, with reasons a reviewer can assess. A passin
 that the changed behavior works; a runner that succeeds with zero matching tests needs attention in that runner's
 configuration. These are workflow choices, not engine-enforced lane rules or mandatory Cook quality gates.
 
-Sections in shared Markdown instruction files use begin/end markers written as HTML comments. The markers identify
-the declared text boundary, not ownership. Targeted edits preserve unrelated content; broad replacements show their
+Sections in shared Markdown instruction files use `cook:begin <recipe>/<region>` and `cook:end <recipe>/<region>`
+markers written as HTML comments. The markers bound the declared text and name its owning recipe; ownership never
+blocks a change. Targeted edits preserve unrelated content; broad replacements show their
 full scope in the final diff. See [native configuration](../adrs/0008-native-configuration.md).
 
 ## Engine boundary
@@ -30,9 +31,9 @@ The [engine](../architecture.md) evaluates recipes and reviews and writes declar
 verification commands as batch actions, certify a change, issue verification receipts, replay a worker's tests, or gate
 task completion and delivery on their results. Configured checks remain usable without Cook.
 
-Local `.cook/` history records Cook's file operations and their recovery information. Its result or failure log is not
-proof that a project's checks passed. Reverting a run uses that history to restore prior values; it does not re-run the
-project's checks. See [discard and revert](remove.md).
+Batch records in the ignored `.cook/batches/<batchId>/` directory hold Cook's file patches and their recovery
+information. Their result or failure log is not proof that a project's checks passed. Reverting a batch applies its
+reverse patches; it does not re-run the project's checks. See [revert](remove.md).
 
 Agent-session orchestration is future work in
 [issue #6](https://github.com/lmarqs/the-cook/issues/6). This page does not specify its verification protocol or decide

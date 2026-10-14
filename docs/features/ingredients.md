@@ -40,18 +40,19 @@ permissions enforcement or task completion under Cook's control.
 ## Native files and declared targets
 
 Recipes produce file operations using these models. The operation contract supports whole files addressed by path,
-structured content addressed by key path, and shared text sections addressed by begin/end markers. Directory and
-symlink operations are included where applicable; external command execution is not a batch action.
+structured content addressed by key path, and shared text sections addressed by `cook:begin <recipe>/<region>` and
+`cook:end <recipe>/<region>` markers. Directory and symlink operations are included where applicable; external
+command execution is not a batch action.
 
 Choose declarations with the scope of the requested change in mind. A whole-file declaration concerns that entire
 file; a declared structured key preserves unrelated keys, and a marked section preserves text outside its boundaries.
 Use comment syntax appropriate to the format, such as HTML comments in Markdown and hash comments in ignore files.
-Markers identify boundaries, not ownership or a ban on manual edits.
+Markers name the owning recipe and region; ownership never bans manual edits.
 
-Recipes and their operations compose left to right. Later instructions can replace earlier values at overlapping
-targets; the final combined diff shows the result. Applying another recipe does not implicitly withdraw unrelated
-earlier output. See [apply](render.md) for these rules and [discard and revert](remove.md) for declared deletion
-versus restoring recorded prior values.
+Recipes and their operations compose left to right. When two recipes write the same target, the last one wins and
+becomes its owner in `cook.lock`; the final combined diff shows the result. Applying another recipe does not withdraw
+output an earlier recipe owns. See [apply](render.md) for these rules and [revert](remove.md) for reversing a recorded
+batch.
 
 ## Trust and review
 
@@ -61,8 +62,8 @@ Review native configuration in the final diff too: permission changes or command
 can affect what that program does later.
 
 Existing or manually edited files use the normal batch diff and whole-batch approval. There is no `--adopt`, adoption
-alias, separate adoption step or ownership-state prerequisite. Apply and discard evaluate supplied recipes against
-current content on every invocation and do not need previous run history. See [safety guidelines](safety.md).
+alias, separate adoption step or ownership-state prerequisite. Apply evaluates supplied recipes against current
+content on every invocation and needs neither batch history nor `cook.lock`. See [safety guidelines](safety.md).
 
 ## Model discussion boundary
 
