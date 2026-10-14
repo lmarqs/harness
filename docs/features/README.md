@@ -259,4 +259,4 @@ Many repositories and many workers
 
 Reference
 
-- [CLI reference](cli.md): every command, flag, exit code and environment variable on one page
+- [CLI reference](cli.md): apply, discard, and revert grammar, exact recipe operands, per-recipe arguments, and batch approval

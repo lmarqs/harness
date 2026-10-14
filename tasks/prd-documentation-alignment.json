@@ -53,11 +53,12 @@
         "Explicitly exclude `--adopt`, adoption aliases, and separate adoption steps from the target CLI; existing content follows the same diff and batch-approval flow."
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "",
       "dependsOn": [
         "US-002"
-      ]
+      ],
+      "completionNotes": "Completed by agent"
     },
     {
       "id": "US-004",
@@ -505,6 +506,6 @@
     }
   ],
   "metadata": {
-    "updatedAt": "2026-10-14T03:32:00.661Z"
+    "updatedAt": "2026-10-14T03:35:01.528Z"
   }
 }

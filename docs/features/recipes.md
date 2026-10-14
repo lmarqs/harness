@@ -412,8 +412,8 @@ A recipe declares no lifecycle action. The repository's own `deliver` actions de
 as any work: automatically after `completed` for a task, with `auto: true`, or by hand with
 `./cook lifecycle run deliver` in the workspace ([lifecycle](lifecycle.md#deliver)). While the receipt records the run,
 every action fired in the workspace also receives `COOK_RECIPE` and `COOK_INPUT_<NAME>`, so a delivery action can, for
-example, title a pull request after the recipe and its inputs ([environment](cli.md#environment-variables)). After the
-merge, `./cook workspace remove <name>` fires `landed` and removes the workspace, as for any work.
+example, title a pull request after the recipe and its inputs. After the merge, `./cook workspace remove <name>` fires
+`landed` and removes the workspace, as for any work.
 
 ### The run record
 

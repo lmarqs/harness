@@ -218,6 +218,70 @@ values is the role of reverting a recorded operation.
 The CLI is the public cooking interface. Gradle builds and packages Cook and cookbooks; it is not a second public
 cooking interface. The engine uses JVM-based distribution.
 
+The grammar follows FR-17 through FR-20 of the PRD's
+[CLI requirements](../tasks/prd-documentation-alignment.md#cli-grammar). The
+[CLI reference](features/cli.md) expands these forms and their argument scope:
+
+```text
+./cook [batch-options] <recipe> [recipe-arguments] [<recipe> [recipe-arguments]]...
+./cook apply [batch-options] <recipe> [recipe-arguments] [<recipe> [recipe-arguments]]...
+./cook discard [batch-options] <recipe> [recipe-arguments] [<recipe> [recipe-arguments]]...
+./cook revert [batch-options] <run-id>
+```
+
+`apply` is the default operation. With no arguments, `./cook` shows help. Initial bare command names `apply`,
+`discard`, and `revert` select an operation; a recipe file named `revert` can be passed as `./revert`.
+
+Recipe operands are exact file paths or supported source URIs: local paths, `file://`, and `https://`.
+Ordinary relative paths such as `recipe.groovy` are accepted; there is no implicit cookbook-name lookup.
+
+Batch options precede the first recipe operand, or the run ID for `revert`. Recipe arguments follow the recipe they
+configure and use `--name=value`; shell quoting keeps values with spaces in one argument. Each following recipe
+starts its own argument scope. Recipes and their operations compose left to right into one batch diff.
+
+```sh
+./cook ./recipe.groovy
+./cook apply ./recipe.groovy
+./cook apply --batch-approve ./base.groovy --agent=codex ./project.groovy --agent=claude
+./cook discard --batch-approve ./recipe.groovy
+./cook revert --batch-approve RUN_ID
+./cook ./revert
+./cook recipe.groovy --instructions='Keep existing comments.'
+./cook file:///path/to/recipe.groovy
+./cook https://example.com/recipes/project.groovy
+```
+
+`RUN_ID` stands for a recorded run's identifier. In the two-recipe invocation, `--agent=codex` belongs to
+`base.groovy` and `--agent=claude` belongs to `project.groovy`.
+
+These invocations have different meanings:
+
+```sh
+./cook apply ./a.groovy --source=./b.groovy
+./cook apply ./a.groovy ./b.groovy
+```
+
+The first evaluates only `a.groovy`, with `./b.groovy` as its `source` argument value. The second evaluates both
+recipes in order. A recipe-like path inside an argument value does not become a second recipe operand.
+
+A batch option after a recipe is misplaced:
+
+```sh
+./cook apply ./a.groovy --batch-approve
+```
+
+This receives the normal unknown-option error. Put the option before the first recipe instead:
+`./cook apply --batch-approve ./a.groovy`.
+
+`--batch-approve` displays the final diff and proceeds without prompting; otherwise Cook asks before changing target
+files. Approval covers the entire batch, and noninteractive execution without this flag does not authorize writes.
+Existing or edited content uses the same diff and batch-approval flow. There is no `--adopt`, adoption alias, or
+separate adoption step.
+
+The target command set is apply (implicit or explicit), discard, and revert. Obsolete lifecycle and management
+commands are not compatibility aliases. Discard is a command, not a flag, and `--batch-approve` is the sole
+preapproval spelling; earlier tentative spellings are not aliases.
+
 ## Outside this design
 
 Personal setup backup, called **kit**, is future work tracked in [issue #5](https://github.com/lmarqs/the-cook/issues/5).
