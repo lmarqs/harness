@@ -33,31 +33,39 @@ approval, trust, sources/history, distribution and deferred APIs; inspected affe
 references. No broken affected cross-reference or conflicting target product contract was found. Truthful current
 ownership/adoption behavior is an implementation gap, not an alternative target design.
 
-These documentation conflicts remain closeout blockers for #1, independent of product implementation:
+The initial review recorded three editorial conflicts. The acceptance-review retry resolved them in place:
 
 1. **Current-implementation scope in the dogfood page.** The [feature index's authority statement](../docs/features/README.md#authority)
-   covers feature references generally, but [agentic-dogfood.md](../docs/features/agentic-dogfood.md) gives unqualified
-   ownership/adoption, drift and project-gate instructions without an architecture link or current-versus-target
-   explanation. Label its scope explicitly as current repository setup, link to the target and required adoption
-   removal, and distinguish its existing project gate from this run's explicit exemption. Retain truthful usage
-   examples until code changes; resolving this ambiguity does not require implementing the target first.
+   covers feature references generally. [agentic-dogfood.md](../docs/features/agentic-dogfood.md) previously gave
+   unqualified ownership/adoption, drift and project-gate instructions. It now identifies current repository setup,
+   links to the intended architecture and build prerequisites, and states the required product removal of adoption
+   and managed-edit gates. Existing commands remain truthful current usage. Its existing project gate and fixture
+   example are explicitly outside this run's no-mandatory-gates scope.
 2. **ADR writing rules versus the reconciled records.** The [ADR index](../docs/adrs/README.md#writing-rules)
-   prohibits command/flag/file names, and its authority section prohibits restating other decisions. Retained ADRs
-   repeat relevant operation guarantees and explicitly name `--adopt` and `.cook/`. Reconcile the editorial rules
-   with the explanatory records without weakening the agreed contract or restoring obsolete obligations.
+   previously prohibited command/flag/file names and restating other decisions, while retained ADRs repeat relevant
+   operation guarantees and explicitly name `--adopt` and `.cook/`. The rules now permit necessary concrete references
+   and focused explanatory restatements with links to the related decision, preserving the same contract. Detailed
+   usage still belongs in feature references; no new product obligation or API is introduced.
 3. **Opening-structure rule versus reference pages.** The [documentation standard](../docs/ux/messages-and-docs.md#every-document-opens-with-its-objective)
-   requires an Objective section immediately after every top-level/feature title, with Problem and Goal.
-   Architecture and the CLI reference use other introductions. Align the rule's scope or the affected introductions;
-   this is an editorial conflict, not a missing product feature.
+   previously required an Objective section immediately after every top-level/feature title, with Problem and Goal,
+   although architecture and the CLI reference use other introductions. It now permits useful introductions that
+   establish purpose and scope, including the distinction between intended design and current implementation.
+   ADRs retain their Objective requirement; the feature outline allows an introduction in place of redundant
+   Objective/Overview sections. Existing headings and affected cross-references remain intact.
 
-The handoff story is complete when these findings are recorded; #1 should not be presented as unconditionally
-ready to close until the documentation blockers are addressed. No implementation gap below is a condition of #1.
+The retry reviewed these corrections against the architecture, feature references, retained ADRs, UX standards and
+implementation guides together, including their authority statements and affected cross-references. No unresolved
+documentation conflict or broken affected cross-reference was identified. The documentation scope is ready for
+maintainer closeout review; this remains a draft handoff and does not close #1 automatically. No implementation gap
+below is a condition of #1.
 
 ## Corrections to carry into #9
 
 The PRD notes that [#9](https://github.com/lmarqs/the-cook/issues/9) cites an earlier revision. Current local evidence
 at `021e2d6` supports these corrections; live issue reads failed because GitHub was unavailable in this environment,
 so the latest issue wording and comments were not verified. These are proposed handoff corrections, not issue edits.
+The acceptance-review retry re-inspected the CLI/service/loader/factory path and adoption reconcilers at `d8e49ce`;
+the corrections and product gaps below still apply. No live issue read or execution gate was added during the retry.
 
 | Review claim to reassess | Current evidence and correction |
 | --- | --- |

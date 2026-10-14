@@ -11,8 +11,9 @@ that design; the [features](../features/) pages and [user-experience standards](
 standard conflicts with the architecture, correct the supporting document. An earlier decision does not override
 the agreed architecture.
 
-No two ADRs contradict each other. A point decided in one ADR is referenced from the others, never restated in
-different words.
+No two ADRs contradict each other. Link to the ADR that explains a related decision. A focused restatement may
+explain how that decision applies here, provided it preserves the same contract and does not introduce a competing
+definition.
 
 ## An ADR states what is true now
 
@@ -90,10 +91,11 @@ One ADR holds one decision. If its points serve two decisions, it is two ADRs.
 ## Writing rules
 
 - Present tense, no hedges.
-- No names of the tool's commands, flags, settings, environment variables, exit codes or files. Mechanisms are named
-  generically: the wrapper, the batch, the recovery record, the destination, an ingredient, a recipe.
-  The [glossary](../features/glossary.md) and the [features](../features/) pages give the tool's own
-  name for each. The directory layout ADR names directories because the layout is its decision.
+- Prefer generic mechanism names: the wrapper, the batch, the recovery record, the destination, an ingredient,
+  a recipe. Use concrete command, flag, setting, environment-variable, exit-code or file references when necessary
+  to explain a decision, its boundary or its evidence, such as the exclusion of `--adopt` or local history under
+  `.cook/`. Keep detailed usage in the [features](../features/) pages and terminology in the
+  [glossary](../features/glossary.md); a concrete reference is not a reason to add an undecided contract.
 - A third-party product whose behaviour a decision depends on is named with the version that behaviour was checked
   against. Prior art and rejected tools are named without a version, because nothing depends on their behaviour.
 - Organizations appear only as the makers of third-party products whose behaviour matters; examples use `acme`.
