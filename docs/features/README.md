@@ -83,6 +83,6 @@ Related reference pages
 - [Configuration diagnostics](doctor.md)
 - [Finding the contract and its reasoning](explain.md)
 - [Safety guidelines](safety.md)
-- [Compatibility](compatibility.md)
-- [Pitfalls, gaps and traps](pitfalls.md)
-- [FAQ](faq.md)
+- [Compatibility and coexistence](compatibility.md): declared targets, native files, external tools and version choices
+- [Pitfalls, gaps and traps](pitfalls.md): permissions, recipe trust, paths, ordered changes and recovery
+- [FAQ](faq.md): engine scope, setup, approval, reversal and distribution questions
