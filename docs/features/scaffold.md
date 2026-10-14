@@ -10,7 +10,7 @@ choices made deliberately.
 
 ## Setup is a file operation
 
-Use trusted Groovy [recipes](recipes.md) supplied by a [cookbook](stations.md#cookbooks) to propose native configuration.
+Use trusted Groovy [recipes](recipes.md) supplied by a [cookbook](cookbooks.md#cookbooks) to propose native configuration.
 [Ingredients](ingredients.md) hold the program models; Cook evaluates the recipes, composes their file operations in
 order and displays the final combined terminal diff for whole-batch approval. The same flow applies to an empty
 repository and one with existing files. See [the architecture](../architecture.md).
@@ -52,7 +52,7 @@ the later one wins and becomes its owner.
 
 Without preapproval, Cook asks before changing targets. `--batch-approve`, placed before the recipe operands, displays
 the final diff and proceeds without prompting. Noninteractive execution without that flag does not authorize writes.
-See [CLI grammar](cli.md) and [apply](render.md) for the complete operating contract.
+See [CLI grammar](cli.md) and [apply](apply.md) for the complete operating contract.
 
 These are target examples. For the build and packaging entry path available today, use [installation](installation.md)
 and the [root README](../../README.md).
@@ -70,7 +70,7 @@ recipe. Applying a different recipe does not remove output another recipe owns; 
 removes what its previous version owned and the new version no longer declares. Manual edits receive the same actual
 diff review.
 
-[Revert](remove.md#revert) applies a recorded batch's reverse patches against current content. Cook saves recovery
+[Revert](revert.md#revert) applies a recorded batch's reverse patches against current content. Cook saves recovery
 patches before target writes, rolls back writes already made if a write fails, and retains the batch record and failure
 in the destination's ignored `.cook/batches/<batchId>/` directory. Ownership is recorded in the committed `cook.lock`.
 

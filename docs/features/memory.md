@@ -25,7 +25,7 @@ at the relevant files:
 ```markdown
 <!-- cook:begin agentic/memory/references -->
 Reviewed repository knowledge lives in `.agents/memory/`.
-Before changing backend behaviour, read `.agents/memory/backend-patterns.md`.
+Before changing backend behavior, read `.agents/memory/backend-patterns.md`.
 For test conventions, read `.agents/memory/testing-patterns.md`.
 <!-- cook:end agentic/memory/references -->
 ```
@@ -39,10 +39,10 @@ A trusted Groovy recipe may declare knowledge files or a reference section as or
 `cook.lock` records which recipe owns each declared target. The recipe's declared scope determines what it changes.
 HTML-comment markers bound a Markdown section, name its owning recipe and preserve text outside it.
 
-Review the actual [batch diff](render.md), including proposed changes to existing knowledge. A manual edit appears in
+Review the actual [batch diff](apply.md), including proposed changes to existing knowledge. A manual edit appears in
 the next diff like any other difference; ownership never blocks a change. Applying a new version of a recipe removes
 what its previous version owned and the new version no longer declares, even if someone edited it; retain important
-knowledge by choosing and reviewing the intended declarations. [Revert](remove.md#revert) instead applies a recorded
+knowledge by choosing and reviewing the intended declarations. [Revert](revert.md#revert) instead applies a recorded
 batch's reverse patches and preserves later edits that do not overlap them.
 
 ## Guidelines and boundaries

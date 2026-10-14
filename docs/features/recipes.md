@@ -57,7 +57,7 @@ invocation. An unchanged result produces an empty diff; history does not mark re
 Declared targets can be whole files, structured key paths or bounded sections in shared text files. Whole-file
 operations concern the whole file; key operations preserve unrelated keys, and section operations preserve text
 outside their boundaries. Section markers, `cook:begin <recipe>/<region>` and `cook:end <recipe>/<region>` in the
-file format's comment syntax, identify the owning recipe and region. See [apply](render.md).
+file format's comment syntax, identify the owning recipe and region. See [apply](apply.md).
 
 ## Review and trust
 
@@ -105,7 +105,7 @@ instead.
 
 For a key changed by an apply batch from `old` to `new`, reverting that batch proposes `new` to `old`. If the key was
 since edited by hand to `custom`, the revert refuses and names the file and key. Apply requires neither batch history
-nor `cook.lock`; revert requires that batch's record. See [discard and revert](remove.md).
+nor `cook.lock`; revert requires that batch's record. See [discard and revert](revert.md).
 
 Each batch has one record in the destination's ignored `.cook/batches/<batchId>/` directory, with one reversible patch
 per touched file, `cook.lock` included. The record is saved before the first target write. On a write failure, Cook

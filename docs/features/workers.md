@@ -25,7 +25,7 @@ cannot be made effective merely by expressing them in shared guidance.
 Cook shows the combined terminal diff and obtains approval for the whole batch before target writes. Structured
 changes address keys; sections in shared text use `cook:begin <recipe>/<region>` and `cook:end <recipe>/<region>`
 markers in the format's comment syntax, including HTML comments for Markdown. Markers name the owning recipe;
-ownership never blocks a change. Existing or edited content follows the same [apply flow](render.md). Unrelated
+ownership never blocks a change. Existing or edited content follows the same [apply flow](apply.md). Unrelated
 content is preserved according to the declared scope.
 
 ## Trust and execution boundaries

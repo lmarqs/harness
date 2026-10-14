@@ -48,7 +48,7 @@ those choices. A program can continue to read personal settings independently of
 
 Applying another recipe does not remove rules an earlier recipe owns. Applying a new version of a recipe removes the
 rules its previous version owned and the new version no longer declares, and the diff shows that removal.
-[Revert](remove.md#revert) applies a recorded batch's reverse patches against current content. Neither operation
+[Revert](revert.md#revert) applies a recorded batch's reverse patches against current content. Neither operation
 proves that the resulting permission configuration is appropriate for every program or user.
 
 A recipe may also write a short permission explanation in contributor instructions. Use format-appropriate markers

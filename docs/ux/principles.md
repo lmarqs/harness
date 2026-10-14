@@ -27,7 +27,7 @@ choosing the tool that produced it.
 - Personal settings are not implicitly imported or changed. An explicitly declared target inside the destination
   uses the same review flow as any other target ([configuration](configuration-standards.md#where-files-live)).
 - Keeping native configuration means leaving it in place. Revert is an explicit operation
-  ([revert](../features/remove.md)).
+  ([revert](../features/revert.md)).
 - The committed wrapper pins an engine version and matching platform-package checksums, downloads and verifies the
   complete package on first use, and caches it locally. Upgrades are explicit. The package includes Java; cookbook
   builds and recipe versions remain separate choices ([wrapper](../features/wrapper.md)).

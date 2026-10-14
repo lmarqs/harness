@@ -7,7 +7,7 @@ scripts and programs, while broad replacements can erase settings maintained by 
 engine release alone does not control cookbook sources or the effects of executable recipes.
 
 **Goal.** Users can review compatibility changes deliberately, preserve unrelated content, and distinguish engine
-versions, cookbook sources and native program behaviour.
+versions, cookbook sources and native program behavior.
 
 ## Overview
 
@@ -21,7 +21,7 @@ Keep these version choices distinct, because changing one does not automatically
 
 | Artifact | Version responsibility | What to review |
 | --- | --- | --- |
-| Cook engine and CLI | The repository chooses an engine release through the committed wrapper's version and matching platform-package checksums | Command grammar, operation behaviour and the explicit pin change |
+| Cook engine and CLI | The repository chooses an engine release through the committed wrapper's version and matching platform-package checksums | Command grammar, operation behavior and the explicit pin change |
 | Ingredients and cookbooks | Cookbook authors maintain program data models and recipes through their repositories and builds | Source changes and the native program versions and formats they cover |
 | Supplied recipes | Users manage versions and supply the version they intend to apply; the committed `cook.lock` records the source and sha256 that produced each recipe's current ownership | The exact source, its consumed recipe/template dependencies and the `cook.lock` change |
 | Native files and marked sections | The consuming program defines its format and semantics | Actual file changes, key paths, section boundaries and program defaults |
@@ -37,7 +37,7 @@ Concrete patch representations, metadata serialization and storage schemas belon
 
 Review compatibility by effect rather than by whether an edit merely adds a field or flag. An added reserved command
 name can change how an existing bare operand is parsed; a new default can change configuration without changing its
-shape. Release notes SHOULD explain affected use and the migration a user must make, because users upgrade at their
+shape. Release notes should explain affected use and the migration a user must make, because users upgrade at their
 own pace.
 
 | Surface | Compatibility concern |
@@ -49,14 +49,8 @@ own pace.
 | Ownership | Changing a recipe's short name, which changes its marker IDs and `cook.lock` entry |
 | Paths | Changing the invocation-directory destination or rebasing relative source references onto captured snapshots |
 | Recovery | Changing recorded information in a way that prevents reversal of a retained batch or misstates its changes |
-| Distribution | Changing package/runtime requirements, checksum verification or explicit pinning behaviour |
+| Distribution | Changing package/runtime requirements, checksum verification or explicit pinning behavior |
 | Skill guidance | Teaching commands or prerequisites unavailable in the version the guidance describes |
-
-Engine releases use semantic versioning (`MAJOR.MINOR.PATCH`) to signal interface compatibility. Breaking changes belong
-in a major release; before 1.0, they may appear in a minor release and should be listed first in its notes, because
-users need to assess the change before moving their pin. Release notes should distinguish incompatible behaviour,
-additions and corrections. A fix can change rendered bytes or native behaviour, so a patch label is not proof that
-applying recipes produces no diff.
 
 The target command set is implicit or explicit apply, revert, `batch list` and `batch inspect`; discard is deferred.
 Existing or edited content uses the same actual diff and whole-batch approval flow.
@@ -78,7 +72,7 @@ no longer declares, and the diff shows that removal.
 
 ## Supported programs and tools
 
-Ingredients model programs' native files and configuration. Cookbook authors SHOULD document the program versions,
+Ingredients model programs' native files and configuration. Cookbook authors should document the program versions,
 formats and limitations their models cover, because successful file writing does not prove that a program reads the
 result as intended. Engine builds and cookbook builds can be separate.
 
@@ -93,7 +87,7 @@ Programs read their native files directly, without invoking Cook. Shared instruc
 without Cook, and skill discovery follows the consuming program.
 
 A recipe may explicitly change build, test, deploy or CI files, so review those consequences; do not promise that all
-setup leaves behaviour unchanged. Teams choose whether CI invokes Cook and which sources and dependencies must be
+setup leaves behavior unchanged. Teams choose whether CI invokes Cook and which sources and dependencies must be
 available to that job.
 
 CI uses the ordinary approval contract. `--batch-approve` precedes operands, displays the final terminal diff and
@@ -106,7 +100,7 @@ contribution is deferred.
 
 If a batch changed `test` from `old` to `new` and a person then changed an unrelated `other` key, reverting that batch
 proposes `new` to `old` and keeps `other`. Had the person changed `test`, the revert would write nothing and list the
-conflict. Revert does not reverse external activity by configured programs. See [revert](../features/remove.md).
+conflict. Revert does not reverse external activity by configured programs. See [revert](../features/revert.md).
 
 ## Coexistence
 

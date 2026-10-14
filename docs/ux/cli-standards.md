@@ -113,7 +113,7 @@ file format's comment syntax, including HTML comments in Markdown. Ownership nev
 For example, a batch changes a `test` key from `old` to `new`, then a person changes an unrelated `other` key.
 Reverting that batch proposes changing `test` back to `old` and keeps the edit to `other`. If the later edit had
 changed `test` instead, the revert writes nothing and lists the conflicting file and key. Discarding a recipe's whole
-contribution is deferred; revert the batches that applied it instead. See [revert](../features/remove.md) for details.
+contribution is deferred; revert the batches that applied it instead. See [revert](../features/revert.md) for details.
 
 ### Repeated invocations and history
 
@@ -128,7 +128,7 @@ history](../architecture.md#one-record-for-the-batch) for the recorded informati
 
 ## Batch review and approval
 
-Cook MUST display the final combined diff in the terminal before target writes, because the user approves the actual
+Cook must display the final combined diff in the terminal before target writes, because the user approves the actual
 change to current content. The CLI accepts the whole batch; choosing individual changes belongs to a separate interface
 decision, and the core writes and records only the changes it receives as accepted.
 
@@ -222,7 +222,7 @@ execution. Do not open a pager or editor that an unattended caller would have to
 ## Help text
 
 With no arguments, show help. Present the operation summary, grammar, operand and argument scope, batch approval
-behaviour, and examples in a consistent order, because readers need to predict how a command works. Examples use
+behavior, and examples in a consistent order, because readers need to predict how a command works. Examples use
 `./cook` and exact recipe paths or `https://` URLs. Explain that apply evaluates supplied recipes while revert uses a
 recorded batch's patches, and link to the [CLI reference](../features/cli.md) for details.
 

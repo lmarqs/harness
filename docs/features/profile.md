@@ -50,7 +50,7 @@ outputs merely because their recipe was omitted.
 Choose whole-file, structured-key or marked-section targets to match the intended extent of each change. Existing or
 manually edited files follow the ordinary diff and approval flow; ownership recorded in `cook.lock` never blocks a
 change. Every apply invocation evaluates the supplied recipes again; history does not mark setup as already applied.
-See [apply](render.md) and [revert](remove.md).
+See [apply](apply.md) and [revert](revert.md).
 
 The invocation directory is the destination. Relative source references resolve from each recipe's original location.
 Batch records live in the destination's ignored `.cook/batches/<batchId>/` directory. They record patches and sources;

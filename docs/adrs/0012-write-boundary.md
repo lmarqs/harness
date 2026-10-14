@@ -3,14 +3,14 @@
 ## Objective
 
 **Problem.** Repositories contain configuration, prose, and state that people and other tools depend on. Unrequested
-normalisation or cleanup can break their work, while refusing every change to existing content prevents useful setup
+normalization or cleanup can break their work, while refusing every change to existing content prevents useful setup
 updates. People need to see the actual requested changes and keep unrelated content intact.
 
 **Goal.** Requested changes are reviewable and recoverable, and content outside their scope remains intact.
 
 ## Context
 
-- Worked example: `acme/api` keeps a task database with remote synchronisation, a loop-runner configuration, and
+- Worked example: `acme/api` keeps a task database with remote synchronization, a loop-runner configuration, and
   hand-written agent instructions. Changing one program setting need not rewrite the database or the other settings.
 - A file or directory name does not prove who created it. People may edit recipe-produced content after a batch.
 - The agreed [architecture](../architecture.md#evaluation-review-and-writes) makes declared targets, current content,
@@ -76,7 +76,7 @@ updates. People need to see the actual requested changes and keep unrelated cont
 At its best, creation records limit accidental changes to existing files. It loses because it prevents requested
 updates to current configuration and adds ownership/adoption gates that the agreed review flow excludes.
 
-### Normalise existing state or clean up by naming convention
+### Normalize existing state or clean up by naming convention
 
 At its best, every repository ends in a uniform state without explicit target declarations. It loses because names
 collide and unrelated databases, settings, and hand-written content can be changed without being requested.

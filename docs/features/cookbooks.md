@@ -21,7 +21,7 @@ same target, the last one wins and becomes its owner; applying a recipe does not
 
 Review existing or edited content through that same batch flow. Deliberately choose declaration scope: whole-file
 operations address entire files, key operations preserve unrelated keys, and marked sections preserve text outside
-their boundaries. See [apply](render.md) and [revert](remove.md).
+their boundaries. See [apply](apply.md) and [revert](revert.md).
 
 ## Station role remains deferred
 

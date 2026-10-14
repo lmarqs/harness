@@ -15,7 +15,7 @@ several agents duplicates work, and a change made for one can be missed for anot
   native file and forgets the other. Shared recipe inputs can carry that choice to both program models.
 - A permission rule, hook setting, instruction file or skill can have a different representation in each program.
   Some settings have no equivalent in another program. Writing configuration does not establish equivalent runtime
-  behaviour or make Cook the program's runner.
+  behavior or make Cook the program's runner.
 - Existing native files can contain settings outside the requested change. The preservation reasoning in
   [0008](0008-native-configuration.md) applies to agent files too.
 
@@ -54,14 +54,14 @@ requires the repeated edits illustrated in Context. Native-specific choices rema
 
 ### Require one worker-neutral policy and launch contract
 
-At its best, one declaration promises the same behaviour everywhere. It requires translation and supervision
+At its best, one declaration promises the same behavior everywhere. It requires translation and supervision
 contracts beyond the agreed file-operation engine, and hides differences when a program lacks an equivalent setting.
 
 ## Consequences
 
 Costs:
 
-- Shared inputs can produce different native output and behaviour across programs; reviewers must assess those
+- Shared inputs can produce different native output and behavior across programs; reviewers must assess those
   differences.
 - Cookbook authors must keep agent models compatible with the native formats they describe.
 

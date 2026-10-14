@@ -54,7 +54,7 @@ terms.
 ### An `ask` choice stalls an unattended session
 
 - **Symptom.** An agent or external runner waits for a person who is absent.
-- **Why.** Native approval behaviour depends on program mode, defaults and other settings scopes.
+- **Why.** Native approval behavior depends on program mode, defaults and other settings scopes.
 - **Cook's responsibility.** Write the declared settings.
 - **What you do.** Review approval choices for the program and mode the external runner actually uses. Keep human
   approval where intended and account for that stop in the runner's operation.
@@ -98,19 +98,19 @@ terms.
 ### Text read by an agent can become instructions
 
 - **Symptom.** An agent follows unexpected directions from a task, comment, skill or generated instruction file.
-- **Why.** Agents act on text they read; a configuration file or skill can influence behaviour without enforcing it.
+- **Why.** Agents act on text they read; a configuration file or skill can influence behavior without enforcing it.
 - **Cook's responsibility.** Review declared file changes.
 - **What you do.** Review shared guidance and sources, treat untrusted text as data and use the agent's own controls.
   See [repository guidance and context](context.md).
 
 ### A source checksum is not a trust decision
 
-- **Symptom.** Reviewed bytes match a checksum but contain unwanted executable behaviour.
+- **Symptom.** Reviewed bytes match a checksum but contain unwanted executable behavior.
 - **Why.** A checksum establishes matching content, not whether its author or effects are acceptable.
 - **Cook's responsibility.** The engine wrapper verifies its package against the committed pin. This does not
   authenticate or sandbox cookbook recipes.
 - **What you do.** Review source origins and recipe changes separately from engine package integrity. Users manage the
-  recipe versions they supply. See [cookbooks](stations.md#cookbooks).
+  recipe versions they supply. See [cookbooks](cookbooks.md#cookbooks).
 
 ## Program configuration
 
@@ -126,7 +126,7 @@ terms.
 - **Symptom.** Formatting or notifications work on one machine and fail on another.
 - **Why.** The consuming program runs hooks with its own environment, event support and working directory.
 - **Cook's responsibility.** Declare and review hook settings and scripts.
-- **What you do.** Check executable availability, path quoting, credentials and failure behaviour. Make repeated
+- **What you do.** Check executable availability, path quoting, credentials and failure behavior. Make repeated
   formatting safe. Treat feedback hooks separately from CI evidence. See [native program hooks](hooks.md).
 
 ### Executable code can read inherited secrets
@@ -153,7 +153,7 @@ terms.
 - **Why.** A runner may accept a selection that matches no tests; passing unrelated tests provides no relevant evidence.
 - **Cook's responsibility.** Recipes can configure check commands and instructions; Cook's history records file
   operations for recovery.
-- **What you do.** Select tests that exercise the change, report what ran and configure the runner's no-match behaviour.
+- **What you do.** Select tests that exercise the change, report what ran and configure the runner's no-match behavior.
   See [repository checks and configuration](verify.md).
 
 ## Paths and environment
@@ -161,7 +161,7 @@ terms.
 ### Tool globs pick up temporary files
 
 - **Symptom.** A linter, test runner or editor scans local history or nested working copies.
-- **Why.** A tool's include patterns may not honour version-control ignore rules.
+- **Why.** A tool's include patterns may not honor version-control ignore rules.
 - **Cook's responsibility.** Keep operation history in the destination's ignored `.cook/`. Recipes may declare other
   native exclusions.
 - **What you do.** Review each tool's exclusions for `.cook/` and any temporary working-copy directories. See
@@ -191,7 +191,7 @@ terms.
 - **Cook's responsibility.** Capture consumed sources and record their origins, which preserves relative resolution
   when the sources are snapshotted.
 - **What you do.** Review origins and referenced sources when relocating recipes. The executable's location does not
-  choose the destination. See [source paths](render.md#destination-and-source-paths).
+  choose the destination. See [source paths](apply.md#destination-and-source-paths).
 
 ## Ordered operations and recovery
 
@@ -202,7 +202,7 @@ terms.
 - **Cook's responsibility.** Show one diff from current content to the final combined result; B becomes the key's
   owner. Applying B alone does not delete output A owns.
 - **What you do.** Review operand order and target scope. A whole-file declaration is broader than a key or section
-  declaration. See [ordered operations](render.md#ordered-operations).
+  declaration. See [ordered operations](apply.md#ordered-operations).
 
 ### A manual edit is changed by the next apply
 
@@ -211,16 +211,16 @@ terms.
 - **Cook's responsibility.** Show the actual diff for whole-batch approval. Noninteractive execution without
   `--batch-approve` does not authorize writes.
 - **What you do.** Review the proposed result and adjust declarations or recipe inputs if needed. Omitting an earlier
-  recipe does not withdraw its unrelated contributions. See [apply](render.md).
+  recipe does not withdraw its unrelated contributions. See [apply](apply.md).
 
 ### Revert refuses after an overlapping edit
 
-- **Symptom.** Reverting a batch that changed `test` from `old` to `new` writes nothing after a manual edit to `custom`.
+- **Symptom.** Reverting a batch that changed `test` from `old` to `new` writes nothing after a manual edit to `test`.
 - **Why.** Revert applies the batch's reverse patches against current content without reevaluating recipes. A later
   edit that overlaps the batch's changes conflicts with them.
 - **Cook's responsibility.** Write nothing and list each conflicting file and section. Later edits that do not overlap
   the batch's changes survive a revert.
-- **What you do.** Resolve the listed conflicts, then revert again. See [revert](remove.md).
+- **What you do.** Resolve the listed conflicts, then revert again. See [revert](revert.md).
 
 ### Lost history prevents reversal of a recorded batch
 

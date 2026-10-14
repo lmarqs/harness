@@ -32,7 +32,7 @@ saved before the first target write, and commits its own `cook.lock` with each r
 targets. Apply needs neither prior history nor the lock and always evaluates the supplied recipe versions against
 current content. Users supply the versions they intend to use.
 
-[Reverting](remove.md#revert) a batch applies its reverse patches against current content in that destination, including
+[Reverting](revert.md#revert) a batch applies its reverse patches against current content in that destination, including
 `cook.lock`. Later non-overlapping edits survive; an overlapping edit makes the revert write nothing and list the
 conflicts. Applying one recipe does not remove output another recipe owns. Cook's rollback on write failure covers the
 batch in that destination; it provides no transaction across repositories.

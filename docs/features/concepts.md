@@ -22,8 +22,8 @@ writes. These definitions describe that design; the [root README](../../README.m
 | --- | --- | --- |
 | Ingredient | Model a program's native files and configuration, such as Git's ignore file or Codex's configuration and skills | [Ingredients](ingredients.md) |
 | Recipe | Describe requested file operations in trusted executable Groovy code using program models | [Recipes](recipes.md) |
-| Cookbook | Hold and ship ingredients and recipes through a repository, with a build that can be separate from Cook's build | [Cookbooks](stations.md#cookbooks) |
-| Batch | Combine declared file operations in order for one final diff and whole-batch approval | [Apply](render.md) |
+| Cookbook | Hold and ship ingredients and recipes through a repository, with a build that can be separate from Cook's build | [Cookbooks](cookbooks.md#cookbooks) |
+| Batch | Combine declared file operations in order for one final diff and whole-batch approval | [Apply](apply.md) |
 | Engine | Evaluate recipes, review their resulting batch, record the batch and perform writes | [Architecture](../architecture.md) |
 
 Program knowledge belongs in ingredients; setup choices belong in recipes. The engine handles the resulting file
@@ -63,7 +63,7 @@ that flag does not authorize writes. See the [CLI reference](cli.md) for recipe 
 If a batch changes a key from `old` to `new`, reverting that batch proposes `new` to `old` and preserves later edits
 elsewhere in the file. If a person has since changed that key to `custom`, the edit overlaps the batch's change, so
 the revert writes nothing and lists the conflicting file and key. Discard is deferred; revert the batches that applied
-a recipe instead. See [discard and revert](remove.md) for the full distinction.
+a recipe instead. See [discard and revert](revert.md) for the full distinction.
 
 Users supply the recipe version they intend to apply; `cook.lock` records which version produced the current
 ownership. Apply needs neither batch history nor `cook.lock`; reverting a particular batch needs its record.

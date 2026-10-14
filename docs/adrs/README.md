@@ -19,7 +19,7 @@ definition.
 
 An ADR describes the intended decision in the present tense, without status labels or a chain of replacements.
 Correct contradictory definitions in place and review affected references. Documentation can record an agreed
-decision before implementation catches up; descriptions of current behaviour must remain accurate, and implementation
+decision before implementation catches up; descriptions of current behavior must remain accurate, and implementation
 progress belongs in issues. Git history holds the earlier versions.
 
 A decision that stops applying is deleted, together with every reference to it. Its number is not reused.
@@ -55,7 +55,7 @@ nobody can tell which facts it depends on. So every ADR justifies every point it
 - Each numbered point of the Decision serves the Objective and has at least one reason in Reasons.
 - A reason ties a fact from Context, or another ADR, to the point, and states what the decision trades away.
 - Context holds the facts and examples that make the objective concrete, and a reader with only this repository and
-  public sources can check or follow every one of them: a third-party tool's documented behaviour, with the version it
+  public sources can check or follow every one of them: a third-party tool's documented behavior, with the version it
   was checked against; a property of the tool or of the problem itself; or a worked example, named as one, set in a
   made-up organization (`acme`). It holds no conclusions. The objective is understood without it; Context is where a
   reader checks it.
@@ -96,9 +96,9 @@ One ADR holds one decision. If its points serve two decisions, it is two ADRs.
   to explain a decision, its boundary or its evidence, such as the exclusion of `--adopt` or local history under
   `.cook/`. Keep detailed usage in the [features](../features/) pages and terminology in the
   [glossary](../features/glossary.md); a concrete reference is not a reason to add an undecided contract.
-- A third-party product whose behaviour a decision depends on is named with the version that behaviour was checked
-  against. Prior art and rejected tools are named without a version, because nothing depends on their behaviour.
-- Organizations appear only as the makers of third-party products whose behaviour matters; examples use `acme`.
+- A third-party product whose behavior a decision depends on is named with the version that behavior was checked
+  against. Prior art and rejected tools are named without a version, because nothing depends on their behavior.
+- Organizations appear only as the makers of third-party products whose behavior matters; examples use `acme`.
 
 ## Template
 
@@ -152,7 +152,7 @@ Must be maintained:
 | --- | --- | --- |
 | [0001](0001-role-of-the-tool.md) | What is the tool's role? | Cook reviews and performs recipe-declared file operations |
 | [0002](0002-division-of-work.md) | How are recipe choices separated from batch execution? | Cook separates recipe choices from batch execution |
-| [0003](0003-implementation-language.md) | In what language, and as what artefact? | Cook retains its JVM stack |
+| [0003](0003-implementation-language.md) | In what language, and as what artifact? | Cook retains its JVM stack |
 | [0004](0004-runtime-dependencies.md) | How is the runtime supplied? | Cook packages its Java runtime |
 | [0006](0006-repository-contract.md) | What does a repository hold? | Repositories hold trusted recipes separately from the shared engine |
 | [0007](0007-ownership.md) | What defines the scope of a file change? | Declared targets define changes reviewed against current content |

@@ -1,4 +1,4 @@
-# Where new behaviour goes
+# Where new behavior goes
 
 ## Objective
 
@@ -99,7 +99,7 @@ blocks a change, including a change to content a developer edited.
 Revert reverses only one recorded batch's changes. If a batch changed `test` from `old` to `new`, then a person changed
 an unrelated `other` key, reverting that batch proposes `new` to `old` and keeps `other`; had the person changed
 `test`, the revert would write nothing and list the conflict. Discarding a recipe's whole contribution is deferred.
-See [revert](../features/remove.md).
+See [revert](../features/revert.md).
 
 A recipe is trusted executable code. External command execution is not a batch action. Arbitrary recipe side effects
 remain outside diff approval, output boundaries and rollback.
@@ -134,7 +134,7 @@ evidence should fit the task.
 | Give a Node project lint/build/test commands and an edit hook | Recipe-declared task-runner and native hook files | Programs execute the resulting configuration independently |
 | Add a migration or framework module | Existing generator and contributor skill | Generator execution and implementation judgement belong to those tools and people |
 | Write reusable initial template files | Recipe | Explicit file operations can apply to existing content |
-| Configure a loop runner or task tracker | Ingredients and recipes for native configuration | Running tasks, updating tracker state and signalling completion belong to external tools |
+| Configure a loop runner or task tracker | Ingredients and recipes for native configuration | Running tasks, updating tracker state and signaling completion belong to external tools |
 | Launch an agent with network restrictions | Agent/runner controls and guidance | Cook can configure native settings |
 | Choose tests for a code change | Person or agent, guided by repository instructions | Relevant checks run through the repository's tools |
 | Watch production or investigate an alert | Agent or person using service tools and a skill | Service tools contact the service; Cook's batch holds file operations |

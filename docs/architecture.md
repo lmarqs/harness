@@ -271,7 +271,7 @@ earlier invocation; an unchanged result produces an empty diff (FR-25).
 
 Batch records are local. Reverting a batch requires its record, so earlier batches cannot be reverted once `.cook/`
 is lost; apply keeps working, and ownership survives in the committed `cook.lock`. See
-[revert](features/remove.md) for details.
+[revert](features/revert.md) for details.
 
 ## Command line and build boundary
 

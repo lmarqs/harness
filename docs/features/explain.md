@@ -13,8 +13,8 @@ A contributor needs one account of Cook's responsibilities and the reasons behin
 | --- | --- |
 | What does the engine do, and what stays outside it? | [Architecture](../architecture.md) |
 | How are recipe operands, arguments and approval scoped? | [CLI reference](cli.md) |
-| How do ordered file operations, ownership, source paths and history work? | [Apply](render.md) |
-| How is a recorded batch reversed? | [Revert](remove.md) |
+| How do ordered file operations, ownership, source paths and history work? | [Apply](apply.md) |
+| How is a recorded batch reversed? | [Revert](revert.md) |
 | What does approval protect, and what requires recipe trust? | [Safety guidelines](safety.md) |
 | How can recipes share native instructions and reviewed knowledge? | [Repository guidance](context.md) and [memory](memory.md) |
 | What evidence helps diagnose an unexpected result? | [Configuration diagnostics](doctor.md) |

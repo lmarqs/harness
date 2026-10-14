@@ -12,7 +12,7 @@ running the workflow.
 
 [Cook's architecture](../architecture.md) defines a file-operation engine. Trusted Groovy recipes produce an ordered
 batch of file operations; Cook shows the final terminal diff, obtains whole-batch approval, saves recovery information
-before target writes, and performs the writes. See [apply](render.md) and [revert](remove.md).
+before target writes, and performs the writes. See [apply](apply.md) and [revert](revert.md).
 
 Cookbooks supply ingredients that model programs' native files and configuration, and recipes that use those models.
 A recipe can describe agent settings, shared instructions, task-runner configuration, or CI files. Programs consume

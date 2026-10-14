@@ -3,7 +3,7 @@
 ## Objective
 
 A contributor needs to know what Cook's approval and recovery cover before running a recipe or accepting its file
-changes. Executable recipe trust, review of declared operations and the behaviour of configured programs are separate
+changes. Executable recipe trust, review of declared operations and the behavior of configured programs are separate
 responsibilities.
 
 ## Trust boundary
@@ -29,10 +29,10 @@ not a batch action.
 | Declared scope | Whole-file paths, structured key paths and `cook:begin <recipe>/<region>` / `cook:end <recipe>/<region>` text markers determine what changes. Unrelated keys and text outside declared sections are preserved. Markers name the owning recipe; ownership never blocks a change. |
 
 Existing and edited targets use the same actual diff and approval flow as any other target. Applying another recipe
-does not remove output an earlier recipe owns. See [apply](render.md).
+does not remove output an earlier recipe owns. See [apply](apply.md).
 
 Review deletions as carefully as additions. Applying a new version of a recipe removes what its previous version
-owned and the new version no longer declares, and the diff shows that removal. [Revert](remove.md) applies a recorded
+owned and the new version no longer declares, and the diff shows that removal. [Revert](revert.md) applies a recorded
 batch's reverse patches against current content, `cook.lock` included; later edits that do not overlap the batch's
 changes survive, and an overlapping edit makes the revert write nothing and list each conflicting file and section.
 

@@ -97,7 +97,7 @@ The invocation directory is the destination, regardless of the executable locati
 stay within it, including paths resolved through symlinks. Recipes come from paths inside the destination repository
 or `https://` URLs. Relative references to recipe/template sources resolve from the referencing recipe's location,
 inside the repository or against its HTTPS source URL; a local reference outside the repository is refused. See
-[destination and source examples](render.md#destination-and-source-paths).
+[destination and source examples](apply.md#destination-and-source-paths).
 
 Each batch has one record in the destination's ignored `.cook/batches/<batchId>/` directory. Save one reversible patch
 per touched file for the combined change, `cook.lock` included, before the first target write. Each patch supports

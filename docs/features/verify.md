@@ -12,7 +12,7 @@ by the team's tools.
 
 Cook recipes can declare files that describe a repository's lint, build, and test commands: for example, task-runner
 configuration, CI files, or a section of contributor instructions. Ingredients model the native formats those programs
-consume. Cook proposes the file changes through the ordinary [batch diff and approval flow](render.md); the task
+consume. Cook proposes the file changes through the ordinary [batch diff and approval flow](apply.md); the task
 runner, CI service, contributor, or agent runs the commands independently.
 
 Useful instructions name the commands and explain which changes they exercise. When reporting a result, say which
@@ -32,4 +32,4 @@ remain usable without Cook.
 
 Batch records in the ignored `.cook/batches/<batchId>/` directory hold Cook's file patches and their recovery
 information. Their result or failure log is not proof that a project's checks passed. Reverting a batch applies its
-reverse patches. See [revert](remove.md).
+reverse patches. See [revert](revert.md).

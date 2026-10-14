@@ -3,7 +3,7 @@
 ## Objective
 
 **Problem.** Reused agent guidance can load for the wrong task, repeat procedures that drift from commands, or teach
-behaviour unavailable in the release a repository uses. Shared copies can also overwrite repository-specific edits.
+behavior unavailable in the release a repository uses. Shared copies can also overwrite repository-specific edits.
 
 **Goal.** Skills are discoverable, scoped, maintainable and consistent with the commands and native programs they
 describe. Their results can be reviewed without treating an agent's completion message as proof.
@@ -17,7 +17,7 @@ rules depend on the program.
 Cook recipes can declare skill files and discovery configuration as ordinary file operations. The agent decides when
 to load guidance and what to do with it. A successful Cook write does not prove that guidance was loaded or followed.
 This standard follows the [architecture](../architecture.md) and [skills reference](../features/skills.md). See
-[where behaviour belongs](when-cli-when-skill.md) for the engine, cookbook and guidance boundaries.
+[where behavior belongs](when-cli-when-skill.md) for the engine, cookbook and guidance boundaries.
 
 ## Sources and maintenance
 
@@ -79,7 +79,7 @@ whole-directory links expose different content; choose targets deliberately rath
 contains unrelated skills. Declared batch writes and deletions stay within the invocation directory, including
 paths resolved through symlinks.
 
-Guidance intended for frequent loading SHOULD be short and state its scope early, because unrelated always-on text uses
+Guidance intended for frequent loading should be short and state its scope early, because unrelated always-on text uses
 attention on every task. Link focused detail where useful. Text should remain clear when encountered twice, since an
 agent may discover it through several paths.
 
@@ -142,7 +142,7 @@ supports it, rather than relying on emphasis.
 ## Call commands without duplicating their implementation
 
 A skill should call the supported command for an operation and link its reference, because a parallel procedure can
-drift from the command's actual behaviour. Explain the intent, prerequisites and review decisions; do not teach an
+drift from the command's actual behavior. Explain the intent, prerequisites and review decisions; do not teach an
 agent to imitate Cook's file writes or recovery records by hand when asking it to cook.
 
 Avoid copying full flag catalogs into skills. Link the [CLI reference](../features/cli.md) for the intended design and
@@ -173,4 +173,4 @@ proof.
 Apply evaluates the supplied recipes against current content every time and needs neither batch history nor
 `cook.lock`. Applying another recipe never removes skill files a different recipe owns. Revert reverses only one
 recorded batch's changes, preserving later non-overlapping edits, and shows the actual diff for whole-batch approval.
-Revert does not reverse actions an agent took after reading the skill. See [revert](../features/remove.md).
+Revert does not reverse actions an agent took after reading the skill. See [revert](../features/revert.md).

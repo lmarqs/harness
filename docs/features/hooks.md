@@ -3,7 +3,7 @@
 ## Objective
 
 **Problem.** Coding agents and other programs can run formatters, checks or notifications at their own events, but
-hook formats, event payloads and failure behaviour differ. A copied hook can fail on another machine or run with more
+hook formats, event payloads and failure behavior differ. A copied hook can fail on another machine or run with more
 authority than its reviewer expected.
 
 **Goal.** Useful hook configuration remains inspectable in the program's native files, with its dependencies and
@@ -28,10 +28,10 @@ Keep program-specific guidance with its cookbook's model and recipes. Useful con
 | Format or lint an edited file | Supported event, file-path handling, command dependencies and cost per edit |
 | Check related repository files | Which changes trigger the check and what a failed check does to the session |
 | Guard a path before a tool runs | Whether the native event can actually block the operation and what paths it sees |
-| Notify a person | Supported event, destination, credentials, message content and failure behaviour |
+| Notify a person | Supported event, destination, credentials, message content and failure behavior |
 
 These are configuration purposes. Do not assume every program supports every purpose or treats failures identically.
-Document the native program's behaviour and any missing support.
+Document the native program's behavior and any missing support.
 
 Keep frequent feedback fast and focused; use the repository's external check runner for broader validation. A hook
 that fixes formatting should avoid repeatedly rewriting unchanged content. Hook feedback does not prove that a change
@@ -44,7 +44,7 @@ preserve content outside their declared targets; a whole-file operation affects 
 combined diff, including any replacement of an existing notification command or event entry.
 
 Review scripts alongside the settings that call them. Establish their working directory, executable requirements,
-path quoting, runtime permissions and behaviour when a dependency is missing. Project trust and hook enablement are
+path quoting, runtime permissions and behavior when a dependency is missing. Project trust and hook enablement are
 properties of the program.
 
 Keep credentials out of committed hook configuration. When the chosen program or script supports environment-based
@@ -53,7 +53,7 @@ turn their contents into shell commands or instructions for another agent. Notif
 content. See [safety guidelines](safety.md) and [program permissions](policy.md).
 
 Applying a new version of a recipe removes hook contributions its previous version owned and the new version no
-longer declares. [Revert](remove.md#revert) applies a recorded batch's reverse patches. Neither reverses actions a hook
+longer declares. [Revert](revert.md#revert) applies a recorded batch's reverse patches. Neither reverses actions a hook
 has already performed.
 
 ## Deferred boundaries

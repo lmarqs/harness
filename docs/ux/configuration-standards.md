@@ -38,7 +38,7 @@ location inside the repository; an HTTPS recipe resolves it against its source U
 location, and a local reference outside the repository is refused. For example, invoking
 `cookbook/recipes/project.groovy` from `/work/project` writes a declared `settings.toml` into `/work/project`, while its
 `../templates/settings.toml` source resolves to `/work/project/cookbook/templates/settings.toml`. See [source
-paths](../features/render.md#destination-and-source-paths).
+paths](../features/apply.md#destination-and-source-paths).
 
 ## Inputs
 
@@ -144,7 +144,7 @@ reverses only that batch's changes. If a batch changed `test` from `old` to `new
 would write nothing and list the conflicting file and key. Revert shows the actual diff for whole-batch approval.
 
 Discarding a recipe's whole contribution is deferred; revert the batches that applied it instead. Leave native
-configuration in place when it should remain. See [revert](../features/remove.md).
+configuration in place when it should remain. See [revert](../features/revert.md).
 
 ## No secrets
 

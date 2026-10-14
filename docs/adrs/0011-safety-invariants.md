@@ -33,7 +33,7 @@ mechanisms for protection from arbitrary recipe execution or agent sessions.
    record. Reverting a batch applies its reverse patches against current content; a later edit that overlaps the
    batch's changes makes the revert write nothing and list the conflict.
 4. These guarantees cover declared batch operations. They do not sandbox trusted recipe execution, roll back arbitrary
-   recipe side effects, or enforce the behaviour of configured programs. Executing external commands is not a batch
+   recipe side effects, or enforce the behavior of configured programs. Executing external commands is not a batch
    action.
 5. Existing or manually edited content uses the same review and approval flow. Apply needs neither `cook.lock` nor
    previous batch history, and every invocation evaluates the supplied recipes again. Ownership recorded in `cook.lock`

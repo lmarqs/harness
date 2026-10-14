@@ -60,9 +60,9 @@ permissions remain the program's responsibility. See [program permissions](polic
 Cook proposes declared changes against existing or manually edited content; ownership recorded in `cook.lock` never
 blocks a change. Applying another recipe does not remove skills an earlier recipe owns. Applying a new version of a
 recipe removes skill contributions its previous version owned and the new version no longer declares;
-[revert](remove.md#revert) applies a recorded batch's reverse patches. Neither reverses actions an agent has taken
+[revert](revert.md#revert) applies a recorded batch's reverse patches. Neither reverses actions an agent has taken
 after reading a skill.
 
 When a program cannot find a skill, inspect its expected location, links, metadata and project trust settings. When it
-finds a skill but does not use it, investigate that program's loading behaviour and the relevance of the description;
+finds a skill but does not use it, investigate that program's loading behavior and the relevance of the description;
 Cook's successful file write is not evidence that the skill was loaded.

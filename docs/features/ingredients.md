@@ -15,7 +15,7 @@ Git's ignore file or Codex's configuration and skills. [Cook architecture](../ar
 responsibility.
 
 [Recipes](recipes.md) use program models to describe requested file changes in trusted executable Groovy code.
-[Cookbook repositories](stations.md#cookbooks) hold and ship ingredients and recipes; their builds can be separate
+[Cookbook repositories](cookbooks.md#cookbooks) hold and ship ingredients and recipes; their builds can be separate
 from Cook's build. The engine evaluates recipes into an ordered batch, shows its diff, obtains approval, records
 recovery information and performs writes.
 
@@ -49,7 +49,7 @@ Markers name the owning recipe and region; ownership never bans manual edits.
 
 Recipes and their operations compose left to right. When two recipes write the same target, the last one wins and
 becomes its owner in `cook.lock`; the final combined diff shows the result. Applying another recipe does not withdraw
-output an earlier recipe owns. See [apply](render.md) for these rules and [revert](remove.md) for reversing a recorded
+output an earlier recipe owns. See [apply](apply.md) for these rules and [revert](revert.md) for reversing a recorded
 batch.
 
 ## Trust and review

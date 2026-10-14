@@ -6,7 +6,7 @@
 files it changes. Inconsistent interactions make it hard to tell what will change, what approval covers and how to
 recover from an operation.
 
-**Goal.** Cook presents predictable commands and reviewable file changes, with clear approval and recovery behaviour
+**Goal.** Cook presents predictable commands and reviewable file changes, with clear approval and recovery behavior
 for both interactive and noninteractive use.
 
 ## Overview
@@ -22,7 +22,7 @@ directly. Recipe evaluation is trusted code, not sandboxed by the review flow.
 Standards govern interactions within that design; when a standard or ADR conflicts with the architecture, correct the
 supporting document.
 
-Descriptions of current behaviour in the [root README](../../README.md), [core guide](../../core/README.md) and recipe
+Descriptions of current behavior in the [root README](../../README.md), [core guide](../../core/README.md) and recipe
 READMEs must remain truthful. A requirement in these standards does not establish implementation, and a gap in
 implementation does not invalidate the design. Implementation progress belongs in issues.
 
@@ -35,7 +35,7 @@ Background:
 - Program data models: [ingredients](../features/ingredients.md)
 - Trusted recipe sources: [recipes](../features/recipes.md)
 - Vocabulary: [glossary](../features/glossary.md)
-- Composition discussion: [stations](../features/stations.md)
+- Composition discussion: [stations](../features/cookbooks.md)
 
 Ingredient/recipe APIs, composition, station roles and lifecycle hooks need a separate discussion. Personal setup backup
 (kit) and agent-session orchestration (cooking) remain future work in
@@ -54,13 +54,8 @@ Ingredient/recipe APIs, composition, station roles and lifecycle hooks need a se
 
 ## Normative language
 
-The key words MUST, MUST NOT, REQUIRED, SHALL, SHALL NOT, SHOULD, SHOULD NOT, RECOMMENDED, MAY and OPTIONAL are
-interpreted as described in BCP 14 (RFC 2119, RFC 8174) when, and only when, they appear in capitals. Lower-case uses
-carry their ordinary English meaning. These terms apply within the architecture's agreed scope.
-
-- MUST / MUST NOT: a release that violates the rule is defective.
-- SHOULD / SHOULD NOT: deviation needs a reason stated in the pull request that introduces it.
-- MAY: an allowed option; no justification needed.
+Plain imperatives and "must" state rules; a release that violates one is defective. "Should" states a default;
+deviation needs a reason stated in the pull request that introduces it. "May" states an allowed option.
 
 ## Index
 

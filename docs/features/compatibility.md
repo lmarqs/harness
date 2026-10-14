@@ -20,7 +20,7 @@ For current execution, see the [root README](../../README.md) and [core implemen
 
 Coexistence depends on the targets a recipe declares. A whole-file declaration affects the whole file; a key or marked
 section limits the contribution within a shared file. Existing and manually edited content uses the same diff and
-approval flow. Applying one recipe does not remove output another recipe owns. See [apply](render.md) and
+approval flow. Applying one recipe does not remove output another recipe owns. See [apply](apply.md) and
 [repository setup](scaffold.md).
 
 Executing external commands is not a batch action. Trusted recipe code can still cause arbitrary side effects during
@@ -54,13 +54,13 @@ Trackers own their databases, assignment rules, sync settings, remotes and comma
 files when a recipe declares them. Unrelated tracker data is preserved. A recipe can target tracker data; review it as
 a change to that data. See [task-tracker configuration](tasks.md).
 
-Synchronised tracker data can expose assignments and comments to other machines. Choose local or shared data and
+Synchronized tracker data can expose assignments and comments to other machines. Choose local or shared data and
 remote-sync permissions using the tracker's own controls; writing configuration does not isolate its later activity.
 
 ## Loop runners
 
 A recipe can declare a loop runner's native configuration. Starting it, selecting tasks, choosing models and parallelism,
-creating working copies and signalling completion belong to the runner and whoever drives it. Declared operations
+creating working copies and signaling completion belong to the runner and whoever drives it. Declared operations
 can change existing runner configuration through the ordinary diff/approval flow; it is not automatically kept merely
 because it exists. See [workflow configuration and engine boundaries](lifecycle.md).
 
@@ -93,7 +93,7 @@ Review the actual diff and permission meaning, including other settings scopes a
 
 Local, user and managed settings may change how project settings behave. Decide which settings belong in shared files
 and which remain personal; existing content follows the same diff and approval flow. Native hooks run under the
-program that consumes them, with that program's working directory, credentials and failure behaviour. See
+program that consumes them, with that program's working directory, credentials and failure behavior. See
 [native program hooks](hooks.md).
 
 ## Version control
@@ -140,12 +140,12 @@ from a subdirectory when that directory is the destination. Declared writes and 
 including resolution through symlinks. Recipe and template source references resolve from the referencing recipe's
 original location. See [destination and source origins](../architecture.md#destination-and-source-origins).
 
-Whether an agent started in a subdirectory reads root settings is that program's behaviour. Check its configuration
+Whether an agent started in a subdirectory reads root settings is that program's behavior. Check its configuration
 lookup and trust rules. See [pitfalls](pitfalls.md#program-configuration).
 
 ## CI/CD
 
-Programs consume native files directly. Recipes can change build or CI behaviour when they explicitly declare those
+Programs consume native files directly. Recipes can change build or CI behavior when they explicitly declare those
 files, so inspect their effects as part of review.
 
 A job that invokes Cook uses the same batch diff and approval contract: `--batch-approve` displays the diff and proceeds
@@ -169,7 +169,7 @@ configuration when upgrading a consuming program as well as when changing cookbo
 Stopping Cook invocations leaves written native files available to their programs. To reverse a recorded batch,
 revert it using its batch record; revert presents the actual diff for whole-batch approval and writes nothing when a
 later edit overlaps the batch's changes. Discarding a recipe's sections and keys is deferred; remove them by hand or
-revert the batches that applied the recipe. See [revert](remove.md).
+revert the batches that applied the recipe. See [revert](revert.md).
 
 Losing `.cook/` loses local recovery information, not the ability to apply recipes; ownership survives in the committed
 `cook.lock`. Reverting a particular batch requires its record. File reversal does not undo external activity caused by

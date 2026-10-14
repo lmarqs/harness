@@ -20,7 +20,7 @@ Use the relevant evidence to investigate a problem:
 | Why did a write fail? | Inspect the batch's failure record and retained recovery patches with `./cook batch inspect <batchId>`. Cook rolls back changes already made by the batch; arbitrary recipe effects are outside that guarantee. |
 | Why does a prior batch fail to revert? | Revert requires that batch's record under the destination's `.cook/batches/`. Losing history does not prevent new apply operations. If a later edit overlaps the batch's changes, revert writes nothing and lists each conflicting file and section. |
 
-See [apply](render.md) for review and source resolution, [revert](remove.md) for reversal semantics, and
+See [apply](apply.md) for review and source resolution, [revert](revert.md) for reversal semantics, and
 [safety](safety.md) for the trusted-code boundary. The batch record captures evaluated and consumed sources, their
 origins, arguments, execution order, reverse patches and result or failure log. It is recovery information; ownership
 is recorded in the committed `cook.lock`.

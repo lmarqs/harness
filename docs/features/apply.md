@@ -93,7 +93,7 @@ A block ID has the form `<recipe>/<region>`: the owning recipe's short name, suc
 the region within that recipe. A recipe declares its short name; without a declaration, the name derives from the
 recipe's path. Manual edits within the section are included in the next actual diff; ownership never blocks them.
 Removing a recipe from a later apply invocation does not delete its section; a new version of the recipe that no
-longer declares the section removes it. [Discard](remove.md#discard) is deferred; revert the batches that applied a
+longer declares the section removes it. [Discard](revert.md#discard) is deferred; revert the batches that applied a
 recipe to undo its output.
 
 ### Instruction files
@@ -159,4 +159,4 @@ survives in the committed `cook.lock`. Reverting a batch requires its record. Se
 answering the whole-batch prompt. Recipe arguments use `--name=value`, with shell quoting for values containing
 spaces. The [CLI reference](cli.md) defines operand and option scope.
 
-To reverse a recorded batch, or for the deferred discard, see [discard and revert](remove.md).
+To reverse a recorded batch, or for the deferred discard, see [discard and revert](revert.md).

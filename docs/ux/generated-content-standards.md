@@ -163,6 +163,6 @@ restores the `cook.lock` ownership it changed.
 If an apply changes `test` from `old` to `new`, and a person later changes an unrelated `other` key, reverting that
 batch proposes `new` to `old` and keeps the edit to `other`. If the person had changed `test` instead, the revert
 refuses and names the file and `test`. Discarding a recipe's whole contribution is deferred; revert the batches that
-applied it instead. See the [operation reference](../features/remove.md).
+applied it instead. See the [operation reference](../features/revert.md).
 
 To keep native configuration, leave it in place.

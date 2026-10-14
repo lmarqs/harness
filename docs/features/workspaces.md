@@ -30,8 +30,8 @@ Keep local working copies under `.worktrees/`. Create and remove them with the v
 ```
 
 The path is an example of a repository choice. Markers name the owning recipe and region and use each format's
-comment syntax; ownership never blocks a change. The ordinary [apply flow](render.md) shows the actual batch diff for
-existing or edited files and preserves unrelated sections. [Reverting](remove.md#revert) a recorded batch applies its
+comment syntax; ownership never blocks a change. The ordinary [apply flow](apply.md) shows the actual batch diff for
+existing or edited files and preserves unrelated sections. [Reverting](revert.md#revert) a recorded batch applies its
 reverse patches against current content. Neither operation manages the working copies mentioned in the text unless
 file operations explicitly target them.
 

@@ -35,7 +35,7 @@ setup readers encounter.
 4. Stopping use of Cook requires no eject operation: native files, their markers and `cook.lock` can stay as they
    are. Reverting a batch restores its prior values from its reverse patches, subject to actual batch diff review; a
    later edit that overlaps the batch's changes makes the revert write nothing and list the conflict. The
-   [operation reference](../features/remove.md) explains these distinct requests.
+   [operation reference](../features/revert.md) explains these distinct requests.
 
 ## Reasons
 

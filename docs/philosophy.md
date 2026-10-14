@@ -109,7 +109,7 @@ restoring the past.
 retaining the record and failure. Revert reverses only one recorded batch's changes against current content: later
 non-overlapping edits survive, and an overlapping edit makes revert write nothing and list the conflicts. Apply needs
 neither batch history nor `cook.lock`; reverting a batch needs its record. Discarding a recipe's whole contribution is
-deferred. See [apply](features/render.md) and [revert](features/remove.md).
+deferred. See [apply](features/apply.md) and [revert](features/revert.md).
 
 ### Let native configuration stand on its own
 
