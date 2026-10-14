@@ -522,14 +522,15 @@
         "Explicitly hand off removal of `--adopt` wherever exposed and removal of underlying adoption gates as required product implementation work. The replacement behavior is review and approval of the actual batch diff for existing or edited content, with no adoption alias or ownership-state prerequisite. Documentation completion alone does not complete this code change."
       ],
       "priority": 28,
-      "passes": false,
+      "passes": true,
       "notes": "",
       "dependsOn": [
         "US-027"
-      ]
+      ],
+      "completionNotes": "Completed by agent"
     }
   ],
   "metadata": {
-    "updatedAt": "2026-10-14T06:11:25.190Z"
+    "updatedAt": "2026-10-14T06:17:29.225Z"
   }
 }
