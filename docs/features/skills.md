@@ -1,147 +1,75 @@
-# Skills
+# Skills and program configuration
 
 ## Objective
 
-**Problem.** A coding agent knows about a repository only what it reads there. Asked to change the repository's
-`the-cook` setup, it does not know the rules for doing so and edits the wrong files or weakens a permission. A skill a
-team maintains for many repositories, copied into each by hand, goes stale in some of them, and a skill that should
-guide every relevant session guides only those where the coding agent happens to judge it relevant.
+**Problem.** Useful instructions copied into many repositories go stale, and a coding agent can only use guidance it
+can discover and read. Sharing a skill folder alone does not ensure that every program loads it or follows it.
 
-**Goal.** Every coding agent in the repository can read how to work with its `the-cook` setup, the shared skills the
-repository carries are present and identical in every clone, and a skill the repository wants applied without anyone
-asking reaches every session it covers and no other.
+**Goal.** Skill content and discovery configuration remain reviewable, with clear responsibilities for maintaining
+sources and for loading the instructions.
 
-## Overview
+## Skills as native files
 
-Skills serve the Implement stage of the development lifecycle, as part of what a worker reads in a
-session; the shipped skill also teaches a coordinating worker to drive every other stage.
+A skill is a folder of instructions and supporting resources in the form its consuming program understands. A team
+can keep shared skills under `.agents/skills/<name>/SKILL.md`, but that location and any required metadata depend on
+the programs it uses; it is not an engine-mandated layout.
 
-Skills are folders of instructions that workers such as coding agents load on demand. They live in `.agents/skills/`,
-one folder per skill, following the file conventions of the agent ecosystem.
+[Ingredients](ingredients.md) model native program configuration, including skills where applicable. Trusted Groovy
+[recipes](recipes.md) can declare operations that supply skill files and configure their discovery, including directory
+or symlink operations where applicable. Cook reviews the combined file changes and writes them after whole-batch
+approval. The program decides when to load the skill and what to do with its instructions.
 
-`the-cook` does two things with them. It installs and refreshes its own skill, the **shipped skill**, in every adopted
-repository. It injects skills into worker sessions when the repository names them as standing context.
+A skill guides an agent; it does not guarantee compliance. Cook does not assign skills to fixed development stages,
+launch workers, inject skills into sessions or enforce a deterministic matching rule. Recipe APIs and injection remain
+separate model discussion work. See [repository guidance and context](context.md) and
+[the architecture](../architecture.md).
 
-It never writes a domain skill, and it contains no code for any skills installer: shared skills are installed by the
-team with the tool of its choice and committed like any other file. An
-[ingredient](ingredients.md) can describe such an installer, as it describes any program.
+## Sharing and maintaining content
 
-A skill guides a worker and guarantees nothing about what the worker does with it. A recipe takes one kind
-of change through the lifecycle's stages, and its steps, its required lanes and the guards hold whatever the worker
-does. The two meet in a recipe's `attempt` step, whose prompt can tell its worker to follow a skill, such as a
-monitoring skill in a recipe that fixes the cause of an alert.
+Choose how to maintain a skill: repository-authored content, an external installer or a cookbook recipe can provide
+its files. Record its source and update process so reviewers know where a change belongs. Avoid maintaining the same
+copy through competing processes that overwrite each other's edits.
 
-**On this page:**
+Committing skill content makes that content available in each clone and lets reviewers inspect changes without
+running an installer. Include an installer's lock file when it is part of the team's chosen process. If an installer
+is required on each machine instead, document its access and setup prerequisites. Availability does not guarantee
+that every agent will discover or load the files.
 
-- [The shipped skill](#the-shipped-skill): where it lives and what it teaches
-- [Shared skills](#shared-skills): installing and committing domain skills
-- [Skills as standing context](#skills-as-standing-context): injecting skills by trigger
+For externally maintained skills, update the source and then refresh the repository's copy through the chosen process.
+For repository-authored skills, edit the repository content directly. A cookbook recipe that supplies a skill uses the
+ordinary batch diff and approval flow; no dedicated skill registry, updater or installer API is defined here.
 
-Commands are named `the-cook <command>` on this page. The examples run them through the repository's wrapper,
-`./cook <command>`, from the root of a checkout; with a global install, `the-cook <command>` is equivalent
-([wrapper](wrapper.md)).
+## Discovery and coexistence
 
-## The shipped skill
+Review where each program looks for skills, whether it accepts links, and what project trust or settings it requires.
+A link to a shared directory can expose several skills; an individual link exposes one. An existing real directory
+can contain unrelated skills, so choose the declared targets deliberately rather than assuming it can be replaced.
+Declared symlink targets must respect Cook's destination boundary, including paths resolved through symlinks.
 
-`.agents/skills/the-cook/SKILL.md` is a tool-owned file, written by `scaffold` and refreshed by every `render`. Like
-every owned file, it is drift-checked by the pinned release: it must match the text that release embeds, and an upgrade
-refreshes it in the same change that moves the pin ([wrapper](wrapper.md#upgrading)). Its header, the
-`# generated by the-cook` line that marks every owned file,
-is a YAML comment on the line after the opening `---` of its front matter, so
-workers and skills installers still read the front matter.
+Keep shared instructions short and point to focused skill files when useful. Program-specific descriptions and
+metadata can help discovery, but a pointer does not ensure loading and an instruction does not establish enforcement.
+This design defines no profile `context` triggers, once-per-session cache or hook delivery API.
 
-It teaches a worker to:
+There is no mandatory shipped `.agents/skills/the-cook/SKILL.md`, release-embedded skill identity or drift-checked skill
+ownership contract. If a cookbook supplies Cook usage guidance, keep its commands consistent with the
+[CLI reference](cli.md) and state the relevant version and prerequisites. An engine upgrade does not automatically
+refresh cookbook or repository skill content.
 
-- run every `the-cook` command through the repository's wrapper, `./cook <command>`, from the root of the checkout
-  it works in;
-- edit `.cook/config.yaml`, `.cook/policy.yaml` and `.cook/hooks.yaml` correctly, then run
-  `./cook render`;
-- place a policy entry in `allow`, `ask`, `deny` or `unattended.deny`, and explain why;
-- choose lanes and write skip reasons for `the-cook verify`;
-- run a recipe with `./cook make <recipe>`, do what a handoff step asks and resume the run with
-  `./cook make --continue`, and pick up a run that stopped as blocked;
-- write a recipe for a kind of change the repository makes again and again, or add one from a cookbook, and resolve
-  what `./cook recipe update` leaves marked;
-- run unattended work through `the-cook attempt`, and report blocked work;
-- fire lifecycle events with `the-cook lifecycle run <event>`, including `completed` or `blocked` when a loop runner's
-  run ends, and deliver the run's commits after arranging them for review;
-- declare lifecycle and notification actions of the right kind (`run`, `http` or `attempt`), with secrets read from
-  environment variables;
-- declare standing context: which skill or directive applies always, on which paths, or on which words, and preview
-  it with `./cook context show`.
+## Reviewing changes and removal
 
-Workers find it where they look for skills. Each worker's ingredient names that location, the worker's own skills
-directory, as part of the worker contract, and `render` writes a link there to
-`.agents/skills/the-cook`. When that directory is already a link to the whole `.agents/skills` directory, the skill is
-reached through it and no extra link is written. When it is a real directory, the link is added inside it and nothing
-else there changes.
+Review skill text, supporting scripts and links as part of the actual batch diff. Skills can contain executable
+resources or tell an agent to take actions; review those consequences as well as the instruction text. Native program
+permissions remain the program's responsibility. See [program permissions](policy.md) and [safety guidelines](safety.md).
 
-`the-cook` lists the skill in no skills installer's lock file, so no installer manages it. `the-cook remove` and
-`the-cook remove --eject` both delete it and its links: it teaches `./cook` commands that do not exist once the
-wrapper is gone.
+Cook proposes declared changes against existing or manually edited content without adoption or ownership gates.
+Applying another recipe does not remove unrelated skills. [Discard](remove.md#discard) deletes the supplied recipe
+version's declared skill contributions, even after edits; [revert](remove.md#revert) restores a recorded operation's
+prior values using history. Neither reverses actions an agent has taken after reading a skill.
 
-## Shared skills
+When a program cannot find a skill, inspect its expected location, links, metadata and project trust settings. When it
+finds a skill but does not use it, investigate that program's loading behaviour and the relevance of the description;
+Cook's successful file write is not evidence that the skill was loaded.
 
-### When to use it
-
-- The repository should carry skills your organization or you maintain elsewhere.
-- Many repositories should get the same skill.
-
-### How it works
-
-The team installs shared skills into `.agents/skills/` with the tool it uses for that, and commits the result, with the
-installer's lock file when it keeps one. Every clone and every worker then has them without running anything, and a
-reviewer sees each skill's text in the diff that adds it. The binary has no code for it: no command or profile field
-declares a skill source, or installs, updates or removes a shared skill.
-
-Installing, updating and removing a skill stay the installer's own commands, run by a person or a worker. A machine
-without the installer still gets every skill, because the commit carries them to every clone.
-
-To drop a shared skill, remove it with the tool that installed it, then commit the change.
-
-## Skills as standing context
-
-An installed skill reaches a session in one of two ways:
-
-| Way | When the worker gets it | Decided by |
-| --- | --- | --- |
-| The worker matches the skill's description and loads it | when the worker judges it relevant | the worker, from the description |
-| A `context` entry names it | always, when matching files are read or edited, or when the person's message contains a listed word | the repository, deterministically |
-
-A `context` entry names a skill by its name, the name of its directory under `.agents/skills/`:
-
-```yaml
-# .cook/config.yaml (a Node API)
-context:
-  always:
-    - skill: coding-guidelines
-```
-
-A reference to a skill that does not exist under `.agents/skills/` needs to be corrected. A skill is injected as it is
-committed under `.agents/skills/`, whoever wrote it; for an attempt, as it is in the base commit. `the-cook` reads no
-installer's lock file, so a reviewer approves a skill's content in the diff that adds or changes it. A hook fetches
-nothing when it runs: a skill is injected only once it is installed and committed.
-
-Skills written to be injected follow the [skills standards](../ux/skills-standards.md): a short body, self-contained,
-instructions first, so they read correctly as a pointer or as injected content.
-
-## Guidelines
-
-- Do keep domain knowledge in repository skills you write and review; `the-cook` never generates them.
-- Do commit installed skills and the installer's lock file, so every clone and every worker has them without running
-  anything.
-- Don't edit `.agents/skills/the-cook/SKILL.md`; render overwrites it. Put repository-specific guidance in `AGENTS.md`
-  or a repository skill.
-- Don't vendor the same skill by hand and through an installer; the installer will not know about the hand copy.
-- Don't edit a shared skill in place: the next install from its source overwrites the edit. Change it at its source
-  and reinstall.
-- Do declare as standing context the skills that should apply without anyone invoking them, and leave the rest to the
-  worker's own matching.
-
-## Troubleshooting
-
-| Symptom | Cause | Fix |
-| --- | --- | --- |
-| `doctor`: a skill `context` names does not exist | The skill is not installed, was removed, or the entry misspells its directory name | Install and commit the skill, or fix or remove the `context` entry |
-| A worker does not list the shipped skill | The link its worker ingredient names is missing, its ingredient is not in `ingredients:`, or the worker ignores project files in this folder | `the-cook render`; pin the worker's ingredient (`the-cook ingredient pin`); check the worker's own trust settings |
-| A private source fails to install | No credentials for it on this machine | Configure access, rerun the installer |
+Personal setup backup remains future kit work in [issue #5](https://github.com/lmarqs/the-cook/issues/5), and agent-session
+orchestration remains future work in [issue #6](https://github.com/lmarqs/the-cook/issues/6). Neither supplies a skill
+injection protocol here.

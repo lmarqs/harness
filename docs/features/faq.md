@@ -88,7 +88,7 @@ and leaves the pin pending until a later `the-cook wrapper --version <tag>` with
 access verifies the release and records its checksums. Complete it before you push. Only `the-cook fleet --deliver`,
 and `the-cook workspace remove` when the profile sets `workspaces.update_before_landed`, have the version control system
 learn what is shared; offline, `workspace remove` prints one note and detects landed work against what the checkout
-knows ([profile](profile.md#workspaces)).
+knows.
 
 ### Which coding agents and other workers are supported?
 
@@ -270,27 +270,27 @@ that applies, and the same commit renders the same bytes on every machine.
 
 ### An allowed command still prompts. Why?
 
-An `ask` or `deny` entry also matches (deny > ask > allow), or the worker does not trust the folder. The
-`policy` block in `AGENTS.md` shows the effective policy and where each entry comes from.
+The program may apply overlapping rules, another settings scope, a trust requirement or a mode-specific decision.
+Inspect that program's native settings and documented precedence; Cook does not define a universal decision order.
+See [program permissions](policy.md#reviewing-permission-choices).
 
-### Why does one worker not enforce one of my denies?
+### Why does one program not enforce one of my denies?
 
-A bare string or a native rule string renders only for the workers whose ingredient can express it; a worker that
-matches only command prefixes cannot enforce it. The `policy` block in `AGENTS.md` lists, for each such entry, the
-workers it does not reach. Express the rule as a prefix list, which every worker ingredient renders
-([policy](policy.md#entry-forms)).
+Rule languages and enforcement support differ. A command prefix, complete-command pattern or tool rule supported by
+one program may have no equivalent in another. Keep the support gap explicit and review each program's native output;
+Cook does not promise universal translation. See [program permissions](policy.md#reviewing-permission-choices).
 
-### Does adoption lose any of our permission rules?
+### How do I change setup without losing important permission rules?
 
-No. `scaffold --adopt` imports every project rule, keeps its decision, and runs an equivalence check per worker before
-writing anything; a rule that would stop applying makes adoption exit 2 and name it. Only a rule that would weaken a
-floor rule of an ingredient in use, such as allowing a force push to the default branch, is dropped, and it is reported
-([scaffold](scaffold.md#the-equivalence-check)).
+Read the existing settings and choose the recipe's declared targets deliberately. Review the actual combined diff,
+including permission meaning and unrelated content. Existing or edited files use the ordinary whole-batch approval
+flow; there is no `--adopt`, adoption alias or import-equivalence gate. See [repository setup](scaffold.md).
 
 ### How do I let coding agents use a read-only MCP tool without a prompt?
 
-Add a native rule string under `shared.allow`, in the syntax of the worker's own rules. It renders verbatim for the
-workers whose ingredient accepts it, and the `policy` block lists the workers it does not reach.
+Use each program's supported native permission configuration, and confirm what the rule matches and whether the
+program honours it in the intended mode. A cookbook recipe can declare that configuration; a rule that works for one
+agent is not guaranteed to work for another. See [program permissions](policy.md).
 
 ## Verification and tasks
 
@@ -326,12 +326,12 @@ Not by itself. Everything that leaves the clone is a lifecycle action the reposi
 `.cook/hooks.yaml`, such as a push and a pull request under `deliver`. No action runs that the repository does
 not declare, and the binary contains no hosting-platform logic.
 
-### Can it notify a chat channel when work finishes or a worker needs me?
+### Can it configure notifications when an agent needs me?
 
-Yes, through declared actions. An `http` action on `completed` or `blocked` posts to a webhook whose URL comes from an
-environment variable, never from a committed file. The `attention` and `turn_end` hooks fire when a worker waits for a
-person or ends a turn ([hooks](hooks.md)). Like every hook, they stay silent on a machine where the pinned release is
-not cached yet.
+A recipe can declare native hook settings and supporting scripts where the program supports notifications. The
+program runs them; Cook reviews and writes their configuration. Review credentials, message content, dependencies
+and failure behaviour. Cook does not provide a session-event or lifecycle-notification dispatcher. See
+[native program hooks](hooks.md).
 
 ### Is it safe to allow a worker to run `the-cook lifecycle run deliver`?
 

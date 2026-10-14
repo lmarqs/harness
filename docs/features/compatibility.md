@@ -46,7 +46,7 @@ install, `the-cook <command>` is equivalent.
 | `.gitignore` | Each ingredient in use that needs it adds its own marked blocks; every other line is left |
 | Other tools' sections in `AGENTS.md` | Leaves them |
 | Files of programs no ingredient in use describes | Leaves them |
-| A `.cook/` directory that `the-cook` did not create | Refuses to adopt the repository and never changes the directory ([scaffold](scaffold.md#greenfield)) |
+| A `.cook/` directory that `the-cook` did not create | Refuses to adopt the repository and never changes the directory |
 | CI/CD | Requires nothing; `./cook render --check` is an optional step; a CI-trigger convention is a `deliver` action |
 
 What stays after `the-cook` is removed is under [After removal](#after-removal).
@@ -74,7 +74,7 @@ Creating and configuring the tracker's data, and every other use of the tracker,
 | No tracker data in the clone | nothing is created; initialising it is the tracker's own step |
 | Existing tracker data | never read, written or moved by the binary; its remotes, sync settings and hooks are the tracker's own |
 | Tracker actions | run the tracker's command with the credentials of whoever fires the event; what they write travels where the repository's synchronisation sends it, and `the-cook` never configures that synchronisation |
-| A sandboxed worker that writes the tracker's data | the data directory is listed in `workers.<name>.writable_roots`, by hand or by the station that wires the tracker ([profile](profile.md#workers)) |
+| A sandboxed worker that writes the tracker's data | the data directory is listed in `workers.<name>.writable_roots`, by hand or by the station that wires the tracker |
 | Tracker data tracked in version control, or ignored | the team's choice; the binary writes no `.gitignore` entry for it |
 | A tracker remote workers must never push to | a `deny` entry in the repository's policy |
 
@@ -109,7 +109,7 @@ task, and `the-cook` runs it like any other command. People and workers run `the
 | A declared command, lane or action that runs the task runner | runs as written; `doctor` reports it when the program is not on PATH |
 | A recipe's `run` step that runs the task runner | runs as written, with the inputs substituted into its arguments and never through a shell |
 | A task runner whose ingredient is not in `ingredients:` | when a cookbook's ingredient for it has a detect rule, `ingredient list --cookbook` shows the match; the ingredient's floor is not in use until it is pinned |
-| A task-runner form that lets an allowed task carry an unlisted one | denied for workers by the ingredient's floor, when the ingredient is in use ([policy](policy.md#the-floor)) |
+| A task-runner form that lets an allowed task carry an unlisted one | denied for workers by the ingredient's floor, when the ingredient is in use |
 | `the-cook` installed through a tool-version manager | an install option; a `the-cook` it puts on PATH defers to `.cook/wrapper.yaml` |
 | A pin of `the-cook` in the task runner's own tool list | never read: `.cook/wrapper.yaml` is the pin `the-cook` runs, and a second pin drifts from it, so keep `the-cook` out of the task runner's files |
 
@@ -119,9 +119,9 @@ A skills installer puts shared skills into `.agents/skills/` and may record them
 for any installer and never runs one of its own accord. Installing
 shared skills is the team's own step, with the installer of its choice, committed with its lock file.
 
-The profile's `context` names skills by name, and `doctor` reports a skill named there that does not exist under
-`.agents/skills/` ([skills](skills.md)). The shipped skill, `.agents/skills/the-cook/SKILL.md`, is the one skill
-`the-cook` writes.
+Skill discovery depends on the consuming program's locations, metadata, links and trust settings. Recipes can declare
+skill files and discovery configuration; there is no mandatory shipped Cook skill or session-injection contract. See
+[skills and program configuration](skills.md).
 
 ## Native worker files
 
@@ -132,7 +132,7 @@ which names the keys and entries it owns.
 | --- | --- |
 | A project settings file with keys no render owns | preserved byte for byte; the worker ingredient's renders own only the keys and entries it names |
 | A notification key the repository already sets to a program of its own | left as it is; the notification is not rendered for that worker, and `doctor` notes it |
-| Hand-written permissions and hooks | imported losslessly by [`scaffold --adopt`](scaffold.md#adopt), with an equivalence check |
+| Hand-written permissions and hooks | changed only through declared targets and actual batch diff review; see [repository setup](scaffold.md) |
 | Local and user settings | never written; read only by `scaffold --import local` or `--import user`, which marks what it imports for review |
 | Mode, sandbox and approval settings, MCP server definitions, managed settings | not policy; left in place, reported as notes by adoption and `doctor` |
 | A worker's skills directory that is a whole-directory link to `.agents/skills` | kept; the shipped skill is reached through it |

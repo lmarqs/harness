@@ -146,14 +146,13 @@ is worse than none.
 
 - After importing, the binary renders the policy and compares the effective rule set per worker with the set in effect
   before adoption. Every project-scope rule (one in the repository's committed worker settings, the files each worker
-  ingredient names) stays in effect, or adoption exits 2 naming each rule that would be lost, and writes nothing
-  ([the equivalence check](../features/scaffold.md#the-equivalence-check)).
+  ingredient names) stays in effect, or adoption exits 2 naming each rule that would be lost, and writes nothing.
 - An entry that would weaken a floor rule of an ingredient in use (allowing a bypass argument a worker ingredient
   marks, or a force push to the default branch a version-control ingredient denies) is dropped and reported. It is the
   only project-scope rule adoption does not carry over, because floor rules hold in every repository that uses the
   ingredient.
-- Exact duplicates merge. The same pattern under allow and deny resolves to deny and becomes a
-  [to-do](../features/scaffold.md#the-to-do) item, because the narrower reading is the safe one until a person decides.
+- Exact duplicates merge. The same pattern under allow and deny resolves to deny and becomes a to-do item, because
+  the narrower reading is the safe one until a person decides.
 - Every imported entry carries a provenance comment naming its source file and scope
   (`# imported from <file> (project)`), so a reviewer can trace it.
 - Importing the `local` or `user` scope (`--import local`, `--import user`) publishes personal rules: they move from

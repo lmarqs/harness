@@ -126,7 +126,7 @@ workspaces:
   checkout knows. `the-cook make`, `the-cook workspace create` and `the-cook doctor` never run `update`. Why: learning
   what is shared asks the version control system to reach beyond the clone, which no command does unless the
   repository asks, and whether work lands somewhere else, such as through a hosting platform's merge, is the
-  repository's practice, which a station may seed as an entry ([profile](../features/profile.md#workspaces)).
+  repository's practice, which a station may seed as an entry.
 
 ## Ownership
 
@@ -331,7 +331,7 @@ a worker understands is expressible, in one of three forms, because a rule the p
 
 Actions are declared in `.cook/hooks.yaml`: lifecycle actions under the top-level `lifecycle:` key, notification
 actions under `attention:` and `turn_end:`, beside the keys for hooks on worker events (`post_edit`, `validators`,
-`session_start`, `raw`). See [hooks](../features/hooks.md). Why: everything that leaves the clone is written down and reviewed before it can happen
+`session_start`, `raw`). Why: everything that leaves the clone is written down and reviewed before it can happen
 ([principles.md](principles.md#7-nothing-leaves-the-clone-undeclared)), in the repository where it runs.
 
 ```yaml

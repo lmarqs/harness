@@ -64,10 +64,10 @@ Vocabulary and configuration
 - [Ingredients](ingredients.md): program data models and native configuration
 - [Recipes](recipes.md): trusted Groovy file declarations, ordered composition, sources and reversal
 - [Composition boundaries and cookbooks](stations.md): deferred station role and separate cookbook distribution
-- [Profile](profile.md)
-- [Policy](policy.md)
-- [Hooks](hooks.md)
-- [Skills](skills.md)
+- [Repository configuration choices](profile.md): project facts, native settings and recipe inputs
+- [Program permissions and policy](policy.md): native rules, support limits and review
+- [Native program hooks and recipe boundaries](hooks.md): configuration and external runtime responsibilities
+- [Skills and program configuration](skills.md): shared content, discovery and maintenance
 
 Related reference pages
 
@@ -79,7 +79,7 @@ Related reference pages
 - [Configuration across repositories](fleet.md)
 - [Repository guidance and context](context.md)
 - [Repository memory](memory.md)
-- [Scaffold](scaffold.md)
+- [Repository setup with recipes](scaffold.md): reusable setup and review of existing configuration
 - [Configuration diagnostics](doctor.md)
 - [Finding the contract and its reasoning](explain.md)
 - [Safety guidelines](safety.md)

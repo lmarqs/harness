@@ -43,7 +43,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 
 ### A prefix matches the leading words only
 
-- **Symptom.** The policy denies `[kubectl, patch]`, a [prefix list](policy.md#entry-forms) that matches commands whose
+- **Symptom.** The policy denies `[kubectl, patch]`, a prefix list that matches commands whose
   leading words are `kubectl patch`, yet a coding agent runs `kubectl -n prod patch deployment api …` without a
   prompt, or the worker's own judgement decides it.
 - **Why.** A prefix entry matches the first words of the command. A flag before the subcommand changes the first
@@ -63,9 +63,8 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 - **Why.** A rule matches the command the worker starts, not what that command runs. A task runner, a script, a
   `Makefile` target or a wrapper runs code the worker can read and often edit.
 - **What `the-cook` does.** Renders the floor rules of the ingredients in use, such as a task-runner ingredient's deny
-  of a form that chains one task onto another, so one allowed task cannot carry an unlisted one
-  ([policy](policy.md#the-floor)). Such a rule holds only where its ingredient is pinned. Replays an attempt's checks
-  from the base commit, so a worker cannot change the checks it is measured by.
+  of a form that chains one task onto another, so one allowed task cannot carry an unlisted one. Such a rule holds only
+  where its ingredient is pinned. Replays an attempt's checks from the base commit, so a worker cannot change the checks it is measured by.
 - **What you do.** Allow tasks whose effects stay in the clone. Give a wrapper of a guarded command the same decision
   as the command it wraps. Treat "edit files" plus "run the test runner" as "run any code", and keep production
   credentials out of the worker's environment.
@@ -77,7 +76,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 - **Why.** A prefix matches leading words. `the-cook …`, `./cook …`, `cook …`, an absolute path to the wrapper
   and `sh cook …` all start with different words.
 - **What `the-cook` does.** Renders every entry that names `the-cook` for each spelling it can know: `the-cook …`,
-  `./cook …` and `cook …` ([policy](policy.md#entries-for-the-cook-commands)). It cannot enumerate absolute
+  `./cook …` and `cook …`. It cannot enumerate absolute
   paths or interpreters, so the guards that matter live in the binary: `the-cook lifecycle run` refuses inside an
   attempt whatever the spelling, because `the-cook attempt` sets `COOK_ATTEMPT=1`, and the `deliver` guards hold
   whoever runs the command.
@@ -210,7 +209,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
   print `the-cook: v0.9.0 not downloaded, hook skipped; run: ./cook version`. It happens after cloning, on a new
   machine, and after the pin moves to a new release.
 - **Why.** Rendered hooks are implicit entry points and never download: they run `cook --no-download`, which exits
-  0 when the pinned version is not in the cache ([hooks](hooks.md#the-missing-binary-guard)).
+  0 when the pinned version is not in the cache.
 - **What `the-cook` does.** Prints one stderr line on every `the-cook hook` entry and, at session start, also adds the
   one session-context line; then continues. Raw hooks and static context entries work regardless. Explicit entry points,
   such as `./cook <command>`, download and verify the pinned version, and exit non-zero when they cannot, so a skipped
@@ -495,9 +494,9 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 - **What `the-cook` does.** With `workspaces.update_before_landed: true`, `workspace remove` runs the version-control
   contract's `update` first, and prints one note and goes on with what the checkout knows when that fails or the
   ingredient has none. `doctor` never learns what is shared.
-- **What you do.** Set `workspaces.update_before_landed: true` in a repository whose work lands elsewhere
-  ([profile](profile.md#workspaces)), or have the version control program learn what is shared before removing a
-  workspace. Fire a missed `landed` with `the-cook lifecycle run landed`.
+- **What you do.** Set `workspaces.update_before_landed: true` in a repository whose work lands elsewhere, or have
+  the version control program learn what is shared before removing a workspace. Fire a missed `landed` with
+  `the-cook lifecycle run landed`.
 
 ### Actions that are not idempotent fail on retry
 
@@ -528,7 +527,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 - **Symptom.** `attention` notifications arrive from sessions of one worker and never from another.
 - **Why.** Not every worker has a hook event for waiting for a person; some report only a finished turn.
 - **What `the-cook` does.** Renders `attention` and `turn_end` only on the native events the worker's ingredient maps
-  them to, and reports an unmapped one as a `doctor` note ([hooks](hooks.md#worker-notifications)).
+  them to, and reports an unmapped one as a `doctor` note.
 - **What you do.** Use `turn_end` for sessions of a worker without a waiting event.
 
 ### Every action sees every secret in the environment
