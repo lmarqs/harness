@@ -36,7 +36,6 @@ with a global install, `the-cook <command>` is equivalent.
 | Only the skeleton now, stations later | `the-cook scaffold`, then [`./cook station apply <name> --cookbook <source>@<version>`](stations.md#how-apply-works) |
 | A program to wire in after scaffolding, such as a loop runner or a tracker | a station that uses it: `./cook station apply <name> --cookbook <source>@<version>`; or its ingredient alone: `./cook ingredient pin <name> --cookbook <source>@<version>` |
 | The repository already has `.cook/config.yaml` | Not `scaffold`: edit the files and run [`./cook render`](render.md) |
-| Many repositories at once | [`the-cook fleet scaffold`](fleet.md) |
 
 When it is unclear which class a repository is in, run
 `the-cook scaffold --cookbook <source>@<version> --adopt --dry-run`: on a greenfield repository it finds nothing to

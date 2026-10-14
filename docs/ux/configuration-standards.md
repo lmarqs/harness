@@ -550,7 +550,7 @@ workers:
 | `ingredients[].sha256` | sha256 | required | the sha256 of the ingredient's archive, as the tag's `checksums.txt` states it; `the-cook` loads the ingredient only when its archive matches |
 | `stations` | list | empty; `the-cook scaffold --cookbook` writes the stations it applies | every station applied to the repository, with the pin it was applied at: `name` (equal to the `name` in its `station.yaml`, unique within `stations`), `source`, `version` and `sha256`, as under `ingredients` |
 | `vcs` | ingredient name | none; applying a station writes the one its stages name | the ingredient that fills the [version-control contract](../features/ingredients.md#the-version-control-contract) |
-| `workers.<name>` | map | none; applying a station adds the workers its stages declare | a worker the repository uses, with `ingredient`, `role`, `writable_roots`, `network`, `jail`, `model` and `effort` ([workers](../features/workers.md)) |
+| `workers.<name>` | map | none; applying a station adds the workers its stages declare | a worker the repository uses, with `ingredient`, `role`, `writable_roots`, `network`, `jail`, `model` and `effort` |
 | `workers.<name>.ingredient` | ingredient name | the worker's name | the ingredient that fills the [worker contract](../features/ingredients.md#the-worker-contract) for that worker |
 | `workers.<name>.network` | boolean | `false` | whether the worker's attempts may use the network; `true` passes the ingredient's `launch.network` arguments at every unattended launch |
 | `workers.<name>.jail.ingredient` | ingredient name | none; required with `jail` | the ingredient that fills the [jail contract](../features/ingredients.md#the-jail-contract) around the worker's attempts |
@@ -566,7 +566,7 @@ workers:
   default holds, which the ingredient's page in its cookbook states. Why: whether attempts may reach the network is the
   repository's practice and the arguments that carry it are the program's fact, so the value is the profile's and its
   mapping the ingredient's; a `true` the program never receives would let a reviewer believe the attempts reach the
-  network when nothing told the program ([workers](../features/workers.md#declaring-workers)).
+  network when nothing told the program.
 - `workers.<name>.jail` starts every attempt of that worker, and the replay of its work, inside the jail; it never
   applies to an interactive session. The jail's ingredient holds the arguments that carry each share, variable and the
   network; `jail.args` holds the options the repository chooses, such as how the worker program's login reaches the
@@ -577,8 +577,7 @@ workers:
   choice to confine and the options are the repository's practice, while the arguments are the jail program's fact, so
   the value is the profile's and the arguments the pinned ingredient's; a free-form command prefix would leave the
   binary unable to place the worker's launch, tell the jail's arguments from the worker's when it refuses bypass
-  arguments, or pass the attempt marks, and every repository would retype the jail's facts
-  ([workers](../features/workers.md#jails)).
+  arguments, or pass the attempt marks, and every repository would retype the jail's facts.
 - Names are unique within each list: two `ingredients` entries, or two `stations` entries, with the same `name` are a
   validation error (exit 1). Why: every reference to an ingredient, from `vcs`, a worker or the manifest, must resolve
   to exactly one, and applying a station again must resolve to one pin.

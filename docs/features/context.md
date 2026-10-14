@@ -14,7 +14,7 @@ sessions where it does not.
 ## Overview
 
 Standing context is guidance a repository declares once, as a skill or a file, that `the-cook` puts into a
-[worker](workers.md)'s context whenever a declared trigger matches: every session, the first time the worker reads or
+worker's context whenever a declared trigger matches: every session, the first time the worker reads or
 edits a matching file, or when the person's message contains a listed word. Worker hooks deliver the entries, and in
 an attempt whose prompt arrives on stdin the `always` entries travel in the prompt instead
 ([delivery in the prompt](#delivery-in-the-prompt)); an entry declared `static: true` is written into `AGENTS.md`, so
@@ -88,7 +88,7 @@ so a worker cannot change its own instructions between attempts ([safety](safety
 
 `the-cook render` writes one hook entry per event the declarations need; `the-cook hook` decides what to inject. Which
 native event carries each trigger, and where in the payload the file paths and the message are, comes from the
-worker's [ingredient](workers.md#the-worker-contract), which maps the payload onto a neutral event
+worker's ingredient, which maps the payload onto a neutral event
 ([payload normalisation](hooks.md#payload-normalisation)). A worker ingredient maps each trigger to the native event
 that carries it:
 

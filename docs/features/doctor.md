@@ -31,7 +31,6 @@ global install, `the-cook <command>` is equivalent.
 - When something does not behave as expected: a hook does not fire, a lane selects nothing, every
   attempt fails.
 - In CI, optionally, next to `the-cook render --check`.
-- Across many repositories with [`the-cook fleet doctor`](fleet.md).
 
 **Quick reference:** [Signature and exit codes](#reference) · [JSON output](#json-output) ·
 [Landed branches](#landed-branches)

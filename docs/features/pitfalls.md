@@ -145,8 +145,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
   other prompts for a command the first runs.
 - **Why.** In one worker permissions approve each tool call; in another, rules govern only escalation out of a sandbox,
   inside which the worker runs commands on its own.
-- **What `the-cook` does.** Renders the same intent for every worker and pins each worker's unattended launch
-  ([workers](workers.md)).
+- **What `the-cook` does.** Renders the same intent for every worker and pins each worker's unattended launch.
 - **What you do.** Judge a policy per worker, with what its ingredient says about its boundary.
 
 ## Workers and trust
@@ -157,7 +156,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 - **Why.** A worker may apply project settings only in folders the person trusted. Workspaces nested in the primary
   checkout can inherit its trust; a workspace created as a sibling directory may not.
 - **What `the-cook` does.** Creates its workspaces in the configured workspaces directory, inside the primary checkout
-  (`.work/workspaces/` by default). Never changes trust ([workers](workers.md)).
+  (`.work/workspaces/` by default). Never changes trust.
 - **What you do.** Trust the primary checkout once. Create workspaces with `the-cook workspace create`, not as siblings.
 
 ### Permitting `the-cook lifecycle run` permits its actions
@@ -240,7 +239,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 - **Why.** Tools resolve configuration and dependencies by walking up directories. A nested workspace without its own
   finds the primary checkout's: a tool-version file, installed dependencies, a virtual environment.
 - **What `the-cook` does.** Runs the profile's `bootstrap` in every new workspace, and once in every checkout an
-  attempt runs in ([workspaces](workspaces.md#nesting)).
+  attempt runs in.
 - **What you do.** Make `bootstrap` install everything a build needs in the workspace itself. Do not skip it with
   `--no-bootstrap` for a workspace that builds.
 
@@ -330,7 +329,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 
 - **Symptom.** `./cook verify` passes in your checkout, and every attempt of one worker fails its replay at the same
   lane, such as an end-to-end lane that reaches a local database, while other workers' attempts pass.
-- **Why.** The worker is declared with a [jail](workers.md#jails), and the replay runs in the same jail, because its
+- **Why.** The worker is declared with a jail, and the replay runs in the same jail, because its
   lanes run code the worker wrote. The jail passes only the `COOK_*` marks and `COOK_HOME`, shares only the checkout,
   `writable_roots`, the version-control metadata and the per-user cache, and opens the network only with
   `network: true`, so a variable, a socket outside the checkout or a service on the host that the lane needs is not
@@ -655,7 +654,8 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
   the ingredient pins the station lists ([stations](stations.md)).
 - **What you do.** Run `./cook station apply <name> --cookbook <source>@<version> --dry-run` with the newer version to
   see what it would add, then apply it, review the diff and commit. Applying again also adds back an entry the
-  repository deleted on purpose, so read the diff before confirming. Across many repositories, use [fleet](fleet.md).
+  repository deleted on purpose, so read the diff before confirming. For the engine boundary across repositories, see
+  [configuration across repositories](fleet.md).
 
 ### A command that needs a contract no ingredient fills refuses
 
@@ -761,8 +761,8 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 - **What `the-cook` does.** Refuses every download that does not match
   ([A checksum mismatch refuses the download](#a-checksum-mismatch-refuses-the-download)).
 - **What you do.** Upgrade with `./cook wrapper --version <tag>` (or `--latest`), which verifies the release's
-  signed checksum file and writes the version and the checksum of every platform from it, and review the diff. Across
-  repositories, run `the-cook fleet wrapper --version <tag> --deliver` ([fleet](fleet.md)).
+  signed checksum file and writes the version and the checksum of every platform from it, and review the diff. For
+  changes across repositories, see [configuration across repositories](fleet.md).
 
 ### A second pin in the task runner drifts from the wrapper
 

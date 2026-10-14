@@ -354,7 +354,7 @@ The profile's `modules:` map turns features on and off. Each module is opt-in an
 | `memory` | the `.agents/memory/` skeleton (seeded when the module is enabled, never re-rendered) and the `memory` block in `AGENTS.md` |
 
 Always present, whatever the modules: the lifecycle with its events, guards and declared actions, the `.cook/` files,
-`cook`, the rendered policy, the shipped skill and its links, the manifest, the [`the-cook workspace`](workspaces.md)
+`cook`, the rendered policy, the shipped skill and its links, the manifest, the `the-cook workspace`
 commands with task binding, the [`the-cook make`](recipes.md#the-cook-make) and `the-cook recipe` commands, the
 `the-cook attempt` command, and these blocks: `commands`, `layout`, `workspaces`, `lifecycle` and
 `policy` in `AGENTS.md`; `commands` in `README.md`; and the blocks the ingredients in use render, such as the
@@ -440,7 +440,7 @@ such as from their own loop-runner configuration, is outside them: `the-cook` ne
    tool-owned files, the renders of every ingredient in use, `cook` and its pin, from the base commit. After the worker
    exits it fails the attempt if the worker changed them, a file under `.cook/` or a file standing context names. The
    standing context an attempt receives is read from the same base commit; a base that cannot be read fails the attempt.
-   A failed attempt returns the checkout to its base. A worker with a [jail](workers.md#jails) runs inside it with the
+   A failed attempt returns the checkout to its base. A worker with a jail runs inside it with the
    version-control metadata and the per-user cache read-only, and the replay of its work runs in the same jail.
 9. Lifecycle and notification actions never run inside an attempt: `the-cook attempt` fires events in its own process
    after the worker exits, the binary refuses `the-cook lifecycle` under the attempt mark (`COOK_ATTEMPT=1`), which it

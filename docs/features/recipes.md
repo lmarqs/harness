@@ -130,7 +130,7 @@ verify: { require: [unit, migrations] }                                        #
 | `inputs.<name>.values` | list of strings | with `enum` | The values an `enum` input accepts |
 | `inputs.<name>.description` | string | no | One line, printed by `make <name> --help`, by `recipe show` and when the input is missing or invalid |
 | `requires.contracts` | list of `vcs`, `worker` | no | The [contracts](ingredients.md#contracts) the repository must have filled: `vcs`, a pinned ingredient the profile's `vcs:` names; `worker`, at least one declared worker |
-| `requires.roles` | list of `interactive`, `unattended` | no | For each role, at least one worker the profile declares with it ([workers](workers.md#roles)) |
+| `requires.roles` | list of `interactive`, `unattended` | no | For each role, at least one worker the profile declares with it |
 | `requires.lanes` | list of lane names | no | Lanes the profile must declare under `verify.lanes` ([profile](profile.md#verify)); it holds every lane of `verify.require` |
 | `workspace` | string | yes | The name of the managed workspace a run creates, with [placeholders](#placeholders): the workspace is `<workspaces.dir>/<name>` and its branch `work/<name>` ([Start](#start)) |
 | `steps` | list of steps | yes | The steps in the order they run, each a map with exactly one key, its [kind](#step-kinds) ([Implement](#implement)) |
@@ -242,7 +242,7 @@ template never overwrites a file.
 
 | Field | Default | Meaning |
 | --- | --- | --- |
-| `worker` | the only worker declared with role `unattended` | The [declared worker](workers.md) to start, which must have role `unattended`; required when the profile declares more than one |
+| `worker` | the only worker declared with role `unattended` | The declared worker to start, which must have role `unattended`; required when the profile declares more than one |
 | `prompt` | the prompt the caller of `the-cook make` passes on stdin | What the worker is asked to do, with placeholders replaced |
 | `model` | the worker's configured model | Override for this step; a worker whose ingredient maps no model ignores it |
 | `effort` | the worker's configured effort | Override for this step, as for `model` |
@@ -259,7 +259,7 @@ and a floor bypass argument among them is refused. When the prompt reaches the w
 entries of the `unattended` [standing context](context.md#delivery-in-the-prompt) before the step's text, as in every
 attempt.
 
-A worker declared with a [jail](workers.md#jails) runs the step inside it. From then until the run ends, the later `run`
+A worker declared with a jail runs the step inside it. From then until the run ends, the later `run`
 steps, the Verify stage and the replay of Complete run in that jail too, with the same shares, variables, network and
 `jail.args`, because they run code the worker wrote; the steps before the first such `attempt` step, the
 version-control operations, the tamper check, the commit and the lifecycle actions run outside it
@@ -332,8 +332,8 @@ runner never counts the task done.
    worker of each `attempt` step. A failure exits 1, or 3 for a missing requirement, which the message names, and
    creates nothing. It does not run `update`: the revision is the one this checkout last learned.
 2. **Create** the managed workspace the `workspace` key names, `<workspaces.dir>/<name>` on a new branch `work/<name>`
-   at that revision, as `the-cook workspace create <name> --base <default revision>` does
-   ([workspaces](workspaces.md#create)): the session with the base, the task given with `--task` and the actor; the
+   at that revision, as `the-cook workspace create <name> --base <default revision>` does:
+   the session with the base, the task given with `--task` and the actor; the
    profile's `bootstrap`; then the `start` event, with scope `task` when the run has a task and `change` otherwise.
 3. **Record** the run in `run.json` in the new workspace's state directory, with the recipe's content and digest
    ([the run record](#the-run-record)), and print the workspace's path.
@@ -480,7 +480,7 @@ never this one. With `--dry-run` it prints the steps it would run, with the inpu
 | stopped at Verify, or by the replay | Verify |
 
 A completed run cannot be continued. To abandon a run, remove its workspace with
-[`the-cook workspace remove`](workspaces.md#remove), which refuses uncommitted changes: discard them first with the
+`the-cook workspace remove`, which refuses uncommitted changes: discard them first with the
 version control system. The branch `work/<name>` stays, so a later run that would create the same workspace needs that
 branch deleted first.
 
@@ -616,7 +616,7 @@ Files read: the recipe directory, the profile, the policy and the hooks file, fr
 run creates, or from the working tree with `--here`; with `--continue`, the recipe content `run.json` holds instead of
 the recipe directory; the version-control ingredient and the workers' ingredients, from the cache; stdin, for an
 `attempt` step without a prompt; the receipt a step left in the workspace. Files written: what
-[`workspace create`](workspaces.md#reference) writes, the workspace, its branch and its session, unless `--here`;
+`workspace create` writes, the workspace, its branch and its session, unless `--here`;
 `run.json` in the workspace's state directory, with the recipe's content and digest; whatever the steps write; the
 receipt `verified.json`; with `--commit`, a commit on the workspace's branch; `.work/lifecycle.jsonl` in the primary
 checkout, for the events the run fires.
@@ -727,7 +727,7 @@ A recipe with a conflict left in any of its files is invalid: `make` refuses it 
 until a person or a worker resolves the conflict. Resolving the markers is all that is left: `origin` already names the
 newer version and the binary keeps no record of a pending merge, so the resolution is an ordinary change for the
 repository to review. Under `fleet --deliver`, a repository where `recipe update` exits 3 is not delivered, as for any
-command that exits non-zero there ([fleet](fleet.md)).
+command that exits non-zero there.
 
 | Flag | Default | Meaning |
 | --- | --- | --- |

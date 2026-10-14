@@ -93,7 +93,7 @@ knows ([profile](profile.md#workspaces)).
 ### Which coding agents and other workers are supported?
 
 Any program an ingredient the repository pins describes. The binary has no code or data for any worker: a worker
-ingredient fills the [worker contract](workers.md#the-worker-contract), and a worker declaration names it, for example
+ingredient fills the worker contract, and a worker declaration names it, for example
 a worker `reviewer` declared with `ingredient: claude`, pinned from `github:acme/cookbook`. Which programs and versions
 a cookbook covers, and how it tests them, is that cookbook's to say.
 
@@ -264,10 +264,9 @@ that applies, and the same commit renders the same bytes on every machine.
   repositories can hold different entries for the same choice when they need to.
 - **A way of working**, such as the organization's lanes, unattended denies and delivery actions: publish it as a
   station in the organization's cookbook, and apply it in each repository; it becomes that repository's own.
-- **`the-cook` commands**, such as applying a stack station or moving to a new release: run them across repositories
-  with [`the-cook fleet`](fleet.md), for example
-  `the-cook fleet station apply node --cookbook github:acme/cookbook@v1.2.0 --yes --deliver` with a fleet file of Node
-  repositories.
+- **Configuration across repositories**: reuse recipes with a separate invocation, diff and approval in each
+  destination. Repository selection and delivery belong to external tools; see
+  [configuration across repositories](fleet.md).
 - **Stack facts**, such as how to lint, test and build a Node project: these come from a stack station in a cookbook,
   which `scaffold --cookbook` applies when its detect rule matches and `the-cook station apply` applies on request
   ([stations](stations.md)).
@@ -355,7 +354,7 @@ a task, such as a loop runner's, it fires no event.
 
 ### Can a worker run in a container or on another machine?
 
-Not as a worker's jail. A [jail](workers.md#jails) runs the host's own programs at the host's own paths, confined to
+Not as a worker's jail. A jail runs the host's own programs at the host's own paths, confined to
 the directories, variables and network it is given, so the worker program, the version-control program and `the-cook`
 inside it are the same files as outside. A container image brings its own copies of the programs, so the version
 checks, the floor and the renders would describe a program other than the one that runs, and the binary would need a

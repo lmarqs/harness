@@ -15,10 +15,10 @@ whatever anyone edits.
 
 ## Overview
 
-The policy says what [workers](workers.md) may do without asking (`allow`), only after a person confirms (`ask`), or
+The policy says what workers may do without asking (`allow`), only after a person confirms (`ask`), or
 never (`deny`), plus what is denied only to attempts, the unattended runs
 `the-cook attempt`, `attempt` actions and the `attempt` steps of [recipes](recipes.md#step-kinds) start. It is written
-once, neutrally where the workers allow it, and each worker's [ingredient](workers.md#the-worker-contract) renders it
+once, neutrally where the workers allow it, and each worker's ingredient renders it
 into that program's native permission format. The [floor](#the-floor) is always added and cannot be removed or weakened:
 the floor rules of the ingredients in use, such as a version-control ingredient's deny of a force push to the default
 branch, and the binary's own entries for its commands.
@@ -87,7 +87,7 @@ such as `"db:restore"` or `"-f"`.
 
 The binary knows no program's rule syntax, so the worker ingredients say which strings are native rule strings. Each
 worker ingredient declares, in the `native_rules.patterns` item of the
-[worker contract](workers.md#the-worker-contract), the regular expressions its program's own rule strings match, in RE2
+worker contract, the regular expressions its program's own rule strings match, in RE2
 syntax (that of Go's `regexp` package), each against the whole string. A string is a native rule string (form 2) for
 every declared worker whose ingredient has a pattern it matches. A string that matches no pattern of any declared
 worker's ingredient is a bare string (form 3), and a string that matches one is never a bare string, for any worker.
@@ -114,8 +114,7 @@ file; its page in its cookbook shows the exact output:
 | `unattended.deny`, when the ingredient does neither | the worker cannot run attempts: `the-cook attempt` and `attempt` actions refuse it with exit 3 |
 
 Every entry a worker does not enforce is listed as such in the [`policy` block](#the-convention-in-agentsmd) of
-`AGENTS.md`, so a reader sees which rules each worker leaves out. See [workers](workers.md#roles) for what roles
-change.
+`AGENTS.md`, so a reader sees which rules each worker leaves out.
 
 ### Entries for `the-cook` commands
 
@@ -179,7 +178,7 @@ configuration; review them like code ([safety](safety.md)).
 ### Adoption
 
 `the-cook scaffold --adopt` imports existing permission rules into this file: the native keys each declared worker's
-ingredient names for [native rule import](workers.md#the-worker-contract) and, with `--import local` or
+ingredient names for native rule import and, with `--import local` or
 `--import user`, personal settings. Each imported entry keeps its decision and carries a provenance comment naming its
 source, such as `# imported from <file> (project)`, and an equivalence check proves no project rule was lost. See
 [scaffold](scaffold.md#adopt).
@@ -247,8 +246,7 @@ settings file has to be made by hand in the other worker's file and in this text
 
 ### A Node API
 
-The repository pins its `git`, `claude` and `codex` ingredients from `github:acme/cookbook`
-([workers](workers.md#declaring-workers)).
+The repository pins its `git`, `claude` and `codex` ingredients from `github:acme/cookbook`.
 
 ```yaml
 # .cook/policy.yaml

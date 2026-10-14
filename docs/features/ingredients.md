@@ -57,7 +57,7 @@ Commands are named `the-cook <command>` on this page. The examples run them thro
 | Move an ingredient to a newer tag, such as a newer `git` ingredient | `./cook ingredient pin git --cookbook github:acme/cookbook@v1.3.0` |
 | Take up a whole way of working, with the ingredients it uses | a station: `./cook station apply <name> --cookbook <source>@<version>` ([stations](stations.md)) |
 | Use a program no applied station lists | `./cook ingredient pin <name> --cookbook <source>@<version>`, then name it in `vcs:`, a worker's `ingredient` or a worker's `jail.ingredient` when it fills a contract ([Examples](#a-program-no-station-lists)) |
-| Confine a worker's attempts | pin a jail ingredient and name it in the worker's `jail` ([the jail contract](#the-jail-contract), [workers](workers.md#jails)) |
+| Confine a worker's attempts | pin a jail ingredient and name it in the worker's `jail` ([the jail contract](#the-jail-contract)) |
 | Cache every pinned ingredient and applied station, and the version every added recipe came from, after cloning or in CI | `./cook fetch` ([Fetching](#fetching)) |
 | Stop using a program | delete its pin from `ingredients:`, and the `vcs:` or worker that names it, then run `./cook render` |
 | Describe a program no cookbook describes | write an ingredient and publish it in a cookbook ([cookbooks](stations.md#cookbooks)) |
@@ -210,10 +210,9 @@ a git ingredient answers `origin/<branch>`, an ingredient for a centralized syst
 system with no shared copies the branch itself.
 
 A checkout learns what is shared only through `update`, and only where a command or the repository asks for it:
-`fleet --deliver` runs it before it creates its branch ([fleet](fleet.md#for-each-repository)), and
-`workspace remove` runs it before it detects landed work when the profile sets `workspaces.update_before_landed`
-([workspaces](workspaces.md#remove)). Nothing else runs it: `make`, `workspace create` and `doctor` use what the
-checkout knows. Where a command calls `update` and the ingredient has none, the command prints one note and goes on
+`fleet --deliver` runs it before it creates its branch, and
+`workspace remove` runs it before it detects landed work when the profile sets `workspaces.update_before_landed`.
+Nothing else runs it: `make`, `workspace create` and `doctor` use what the checkout knows. Where a command calls `update` and the ingredient has none, the command prints one note and goes on
 with what the checkout knows.
 
 The binary uses `metadata` only to share those paths read-only inside a [jail](#the-jail-contract). A worker declared
@@ -245,7 +244,7 @@ permission prompts, hooks or instruction file still runs as a worker:
 | --- | --- | --- |
 | `launch.command` | the program the binary starts | required |
 | `launch.unattended` | the arguments that start the worker unattended with its permission checks on | the worker starts with `launch.command` and its caller's arguments only |
-| `launch.unattended_deny` | how `unattended.deny` reaches the worker as arguments at launch | it reaches the worker only through the rendered rules, which then require `role: unattended` ([workers](workers.md#roles)); with no rendered permissions either, the worker cannot run attempts: `the-cook attempt` and `attempt` actions naming it exit 3, and it may still be an interactive worker |
+| `launch.unattended_deny` | how `unattended.deny` reaches the worker as arguments at launch | it reaches the worker only through the rendered rules, which then require `role: unattended`; with no rendered permissions either, the worker cannot run attempts: `the-cook attempt` and `attempt` actions naming it exit 3, and it may still be an interactive worker |
 | `launch.sandbox_roots` | the arguments that open a directory beyond the checkout for writing: each entry of `workers.<name>.writable_roots` | `writable_roots` on the worker is a validation error, unless the worker has a jail, whose write shares then carry them |
 | `launch.network` | the arguments that let the worker's attempts use the network, passed at every unattended launch of a worker declared with `network: true` | `network: true` on the worker is a validation error; with `network: false` the ingredient states nothing about the network, and its page in its cookbook says what the program does by default |
 | `launch.model`, `launch.effort` | how a worker's model and effort, from `workers.<name>` or an `attempt` action, are passed | a model or an effort set for the worker is ignored, and `doctor` notes it |
@@ -272,7 +271,7 @@ mapping, the policy entry `[git, push]` becomes `Run(git push *)` in `permission
 A jail is a program that starts another program confined to what it is given: the directories it shares read-only or
 read-write, the environment variables it passes and the network it opens. It runs the host's own programs at the host's
 own paths, so the worker program, the version-control program and `the-cook` inside it are the same files as outside.
-A worker declaration that names a jail, `workers.<name>.jail` ([workers](workers.md#jails)), has the binary start the
+A worker declaration that names a jail, `workers.<name>.jail`, has the binary start the
 worker of each of its attempts through that jail: under `the-cook attempt`, an `attempt` action and a recipe's
 `attempt` step. The binary never starts an interactive session, so no jail wraps one: a person who wants a session
 confined starts it inside the jail, and the rendered files apply there as they do without one.

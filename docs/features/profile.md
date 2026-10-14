@@ -177,7 +177,7 @@ the `commands` block, and in a recipe's `requires.lanes` and `verify.require` ([
 ### `workers`
 
 A map from worker name to its declaration. A worker is a program that changes the repository for someone, such as a
-coding agent, a bot or a codemod; the [workers](workers.md) page covers them. Only declared workers are rendered. Each
+coding agent, a bot or a codemod. Only declared workers are rendered. Each
 worker is served by an ingredient the repository pins that fills the
 [worker contract](ingredients.md#the-worker-contract). A station's stages declare the workers it uses when it is
 applied ([stations](stations.md#stages)).
@@ -185,10 +185,10 @@ applied ([stations](stations.md#stages)).
 | Field | Type | Default | Meaning |
 | --- | --- | --- | --- |
 | `ingredient` | ingredient name | the worker's name | The ingredient that serves the worker; it must be in `ingredients` and fill the worker contract. Example: `reviewer: { ingredient: claude, role: interactive }` |
-| `role` | `interactive` \| `unattended` | required | `interactive`: people use the worker in this repository; its native files carry the shared policy. `unattended`: the worker runs here only in attempts, started by `the-cook attempt`, an `attempt` action or a recipe's [`attempt` step](recipes.md#attempt); its native files also carry `unattended.deny`. See [workers](workers.md#roles) |
+| `role` | `interactive` \| `unattended` | required | `interactive`: people use the worker in this repository; its native files carry the shared policy. `unattended`: the worker runs here only in attempts, started by `the-cook attempt`, an `attempt` action or a recipe's [`attempt` step](recipes.md#attempt); its native files also carry `unattended.deny`. |
 | `writable_roots` | list of paths | `[]` | Directories an attempt may write besides the task checkout, relative to the primary checkout root. Only for workers with `launch.sandbox_roots` or a `jail`. See below for rules |
-| `network` | boolean | `false` | Whether the worker's attempts may use the network. `true` passes its ingredient's `launch.network` arguments at every unattended launch, and is a validation error for a worker whose ingredient has none; `false` passes nothing about the network, so the program's default holds, which the ingredient's page in its cookbook explains. See [workers](workers.md#declaring-workers) |
-| `jail.ingredient` | ingredient name | none; required with `jail` | A pinned ingredient that fills the [jail contract](ingredients.md#the-jail-contract): the worker's attempts start inside that jail, and their replay runs in it. Requires a version-control ingredient that fills `metadata`. See [workers](workers.md#jails) |
+| `network` | boolean | `false` | Whether the worker's attempts may use the network. `true` passes its ingredient's `launch.network` arguments at every unattended launch, and is a validation error for a worker whose ingredient has none; `false` passes nothing about the network, so the program's default holds, which the ingredient's page in its cookbook explains. |
+| `jail.ingredient` | ingredient name | none; required with `jail` | A pinned ingredient that fills the [jail contract](ingredients.md#the-jail-contract): the worker's attempts start inside that jail, and their replay runs in it. Requires a version-control ingredient that fills `metadata`. |
 | `jail.args` | list of arguments | `[]` | The jail's options this repository chooses, placed before the jail's separator, such as how the worker program's login reaches the jail; a floor bypass argument of the jail is a validation error |
 | `model` | string | none | The model the binary starts the worker with, in attempts and `attempt` actions, passed as its ingredient's `launch.model` says; an action's `attempt.model` overrides it. A worker whose ingredient maps no model ignores it, and `doctor` notes it |
 | `effort` | string | none | The effort level, passed and overridden like `model`, through `launch.effort` and `attempt.effort` |
@@ -289,10 +289,10 @@ workspaces:
 
 | Field | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `workspaces.update_before_landed` | boolean | `false` | Run the version-control contract's `update` before `workspace remove` detects landed work, so it compares with the shared default line as it is. When `update` fails or is absent, detects against what the checkout knows. See [workspaces](workspaces.md#remove) |
+| `workspaces.update_before_landed` | boolean | `false` | Run the version-control contract's `update` before `workspace remove` detects landed work, so it compares with the shared default line as it is. When `update` fails or is absent, detects against what the checkout knows. |
 
 Nothing else in `the-cook` learns what is shared on its own: `the-cook make`, `the-cook workspace create` and
-`the-cook doctor` never run `update`, and [`fleet`](fleet.md#for-each-repository) runs its own. A repository whose work
+`the-cook doctor` never run `update`, and `fleet` runs its own. A repository whose work
 lands on the shared default line of work somewhere else, such as through a hosting platform's merge, sets the field to
 `true`, so removing a workspace fires `landed` without anyone first updating the checkout by hand. A station may write
 it as one of its [entries](stations.md#entries).
@@ -460,7 +460,7 @@ Patterns for the Go lanes are package paths:
 | Two `ingredients` entries, or two `stations` entries, with the same name | A name is unique within each list | Delete one; `./cook ingredient pin` moves an existing pin |
 | `writable_roots` is rejected for a worker | Its ingredient opens no sandbox roots and the worker has no jail | Remove the field, use an ingredient that fills `launch.sandbox_roots`, or declare a `jail` |
 | `network: true` is rejected for a worker | Its ingredient has no `launch.network` arguments | Remove the field, or use an ingredient that fills `launch.network` |
-| A worker's `jail` is rejected | `jail.ingredient` is not pinned or fills another contract, the jail ingredient is incomplete, `jail.args` holds a floor bypass argument of the jail, the jail has no `network` for a worker with `network: true`, or the version-control ingredient has no `metadata` | Fix what the message names ([workers](workers.md#jails)) |
+| A worker's `jail` is rejected | `jail.ingredient` is not pinned or fills another contract, the jail ingredient is incomplete, `jail.args` holds a floor bypass argument of the jail, the jail has no `network` for a worker with `network: true`, or the version-control ingredient has no `metadata` | Fix what the message names |
 | `render` exits 3 naming `./cook fetch` | An ingredient in `ingredients` is not in this machine's cache | Run `./cook fetch` |
 | `doctor` says a program is not on PATH | A command, lane, validator or action names a program this machine lacks | Install the program, or fix the command in `.cook/config.yaml` or `.cook/hooks.yaml` |
 | `doctor` says a glob matches nothing | Wrong path or quoting | YAML needs quotes around globs that start with `*` |

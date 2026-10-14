@@ -14,7 +14,7 @@ and what that protection does not stop, and every gap left open is one they chos
 
 ## Overview
 
-`the-cook` lets [workers](workers.md), coding agents above all, work in a repository, attended or not, without handing
+`the-cook` lets workers, coding agents above all, work in a repository, attended or not, without handing
 them more than the work needs. This page covers what it defends against, which layers defend, and how to configure a
 repository so the layers hold: where to place a policy entry, what changes when nobody is watching, why lifecycle
 actions are code, what an `attempt` action may do, what a recipe run may do, where [standing context](context.md) may
@@ -38,7 +38,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 | A loop runner and its configuration | the person's tool | `the-cook` has no code for it and reads none of its configuration. When its command for each task is `the-cook attempt`, the attempt contract holds whoever calls it. Any other command is outside `the-cook` |
 | Task, issue and pull-request text | untrusted input | anyone who can write it can address the worker that reads it |
 | Lifecycle actions, notification actions, raw hooks, validators, lane commands | code | they run with the person's credentials; `the-cook` runs them without judging them |
-| A [jail](workers.md#jails), described by its ingredient | a program the repository trusts to confine | it runs the worker and the replay of its work with only the directories, variables and network it is given. Its ingredient, pinned like any other, says which arguments carry each. Its floor names the ones that would turn it off |
+| A jail, described by its ingredient | a program the repository trusts to confine | it runs the worker and the replay of its work with only the directories, variables and network it is given. Its ingredient, pinned like any other, says which arguments carry each. Its floor names the ones that would turn it off |
 | An `attempt` action | an unattended worker | it starts a worker on a prompt, often with values written by people and workers in it; it runs under the attempt contract |
 | Standing context: the skills and files `context` entries name | instructions | every matching session reads them as guidance; whoever can change them steers the workers |
 | `COOK_MESSAGE`, `COOK_REASON`, task titles and summaries, a recipe's inputs | untrusted input | workers, task text and whoever starts a run shape them; they reach notifications, `attempt` prompts and a recipe's prompts and handoff text |
@@ -79,7 +79,7 @@ worker that can edit a test and run the test runner runs code it wrote
 | Floor rules of the ingredients in use ([policy](policy.md#the-floor)) | permission bypass in attempts (each worker ingredient's bypass arguments), force push to the default branch (a version-control ingredient), command chaining a task runner offers (a task runner's ingredient), whatever a policy entry tries to weaken them with | a program whose ingredient is not in the profile's `ingredients:`; `doctor` reports one it detects |
 | Guards in the binary ([spellings](#guards-live-in-the-binary)) | `the-cook lifecycle run` inside an attempt, unsafe `deliver`, whatever spelling of the command a worker uses | a command `the-cook` does not run |
 | The attempt contract | the floor bypass arguments of the worker's ingredient among the arguments `the-cook attempt` receives, whoever calls it; `unattended.deny` commands; a worker committing or integrating its own work; a loop runner reading a failed attempt as done | commands `unattended.deny` does not list; a worker started without `the-cook attempt` |
-| A jail around a worker's attempts ([workers](workers.md#jails)) | a worker reading the person's home, credentials and variables not passed; writing outside the checkout and `writable_roots`; writing the version-control metadata the binary's commit uses; reaching the network unless `network: true`; lanes and validators running the code the worker wrote | what the jail's own configuration or `jail.args` open; lifecycle actions and version-control operations, which run outside it; a worker without a jail |
+| A jail around a worker's attempts | a worker reading the person's home, credentials and variables not passed; writing outside the checkout and `writable_roots`; writing the version-control metadata the binary's commit uses; reaching the network unless `network: true`; lanes and validators running the code the worker wrote | what the jail's own configuration or `jail.args` open; lifecycle actions and version-control operations, which run outside it; a worker without a jail |
 | The tamper check ([below](#the-attempt-contract-and-the-tamper-check)) | a worker editing rendered rules, owned settings keys, hook entries, `cook`, `.cook/wrapper.yaml`, any file under `.cook/`, the recipes in `.cook/recipes/` included, or a file or skill `context` names, to widen its next attempt or rewrite its rules | edits to other files, which the replay and review judge; edits to the person's own configuration outside the repository, which only a jail keeps out of reach |
 | Receipt replay | a worker claiming checks it did not run, or weakening the checks it is measured by | tests that pass without exercising the change |
 | Lifecycle guards | delivery from the default branch or of uncommitted work and, when the verify module is enabled, of work without a valid receipt; completion of a task without a valid receipt; actions run by an attempt's worker | what a declared action does once it runs |
@@ -142,7 +142,7 @@ before it runs the command at all.
 | --- | --- | --- |
 | Interactive | the mode the person chooses | the shared policy |
 | Coordinating worker left alone | its program's unattended mode, as its ingredient's page describes it | `allow` entries for everything the agreed delivery needs; the boundary of delivery stated by the person at the start (branch, pull request, CI trigger, auto-merge) |
-| Attempt | pinned by `the-cook attempt` ([workers](workers.md#attempt-launch)) | the shared policy plus `unattended.deny`; `workers.<name>.network: true` only when its attempts must reach the network |
+| Attempt | pinned by `the-cook attempt` | the shared policy plus `unattended.deny`; `workers.<name>.network: true` only when its attempts must reach the network |
 | Loop runner | its own process, started by a person, a coordinating worker or a script | a configuration whose command for every task is `./cook attempt` or `./cook make <recipe> --task <id> --unattended` |
 | Recipe run, unattended | `the-cook make --unattended`, which its caller passes when nobody drives the run, as a loop runner does; never started by the worker of an attempt; its `attempt` steps pinned as attempts | a recipe with no `handoff` step, which stops an unattended run as blocked ([recipe runs](#recipe-runs)) |
 
@@ -181,7 +181,7 @@ contract is enforced inside `the-cook attempt`, so it holds whoever calls it: a 
    receive the denies in neither way cannot run attempts: `the-cook attempt` refuses it with exit 3, naming the gap.
    It passes the ingredient's network arguments only for a worker the profile declares with `network: true`; for any
    other, it says nothing about the network, and what the program reaches is its own default, which the ingredient's
-   page in its cookbook states. For a worker with a [jail](workers.md#jails) it starts the worker inside it, in the
+   page in its cookbook states. For a worker with a jail it starts the worker inside it, in the
    checkout, with only `writable_roots` writable beyond the checkout, the version-control metadata and the per-user
    cache read-only, and the `COOK_*` marks passed, and refuses the jail's floor bypass arguments as it refuses the
    worker's.
@@ -237,7 +237,7 @@ that fired them, outside the worker's per-command permission checks.
   none. Reviewing that file reviews everything an event can run.
 - **Every action sees the whole environment.** A webhook URL exported for one `http` action is visible to every `run`
   and `attempt` action of every event fired from that shell.
-- **Actions run outside the jail.** A worker's [jail](workers.md#jails) confines its attempts and the replay of what it
+- **Actions run outside the jail.** A worker's jail confines its attempts and the replay of what it
   wrote, never a lifecycle action. An action that runs a command the checkout defines, such as a task runner's task,
   runs what the worker wrote, outside the jail and with the person's credentials. Keep such actions to programs the
   checkout cannot change.

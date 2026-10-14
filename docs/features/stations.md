@@ -65,7 +65,6 @@ Commands are named `the-cook <command>` on this page. The examples run them thro
 | Move the programs a station uses to newer versions | `./cook ingredient pin <name>... --cookbook github:acme/cookbook@v1.3.0` ([ingredients](ingredients.md#pinning)) |
 | Take a newer version of a recipe a station added, keeping the repository's edits | `./cook recipe update <name> --cookbook github:acme/cookbook@v1.3.0` ([recipes](recipes.md#updating-an-added-recipe)) |
 | Describe a way of working no cookbook has | write a station and publish it in a cookbook ([Cookbooks](#cookbooks)) |
-| Apply a station in many repositories, each delivered for review | `the-cook fleet station apply <name> --cookbook <source>@<version> --yes --deliver` ([fleet](fleet.md)) |
 | Bring an organization's conventions into a repository | a station the organization publishes, or a reviewed change written by a person or a worker: see [Organization choices](#organization-choices) |
 
 ### Writing one
@@ -118,7 +117,7 @@ The stages say which ingredient serves each stage of the lifecycle that needs a 
   [worker contract](ingredients.md#the-worker-contract), its role, `interactive` or `unattended`, and optionally its
   `writable_roots`, `network`, `jail`, `model` and `effort` ([profile](profile.md#workers)). A station that seeds a
   `jail` lists the jail's ingredient among its `ingredients`, so applying it pins the jail in the same diff, and the
-  version-control ingredient it names fills `metadata` ([jails](workers.md#jails)).
+  version-control ingredient it names fills `metadata`.
 
 Applying writes them into the profile as `vcs:` and one `workers.<name>` item each, under the
 [merge rules](#merge-rules). Stages are what make a station a way of running the lifecycle. A stack station declares
@@ -654,7 +653,7 @@ the-cook fleet station apply node --cookbook github:acme/cookbook@v1.2.0 --yes -
 
 Each repository that lacks some of the station's entries, or its record in `stations:`, gets a branch with the change
 and its rendered effect, delivered through its own `deliver` actions. A repository that already holds them is
-reported as unchanged ([fleet](fleet.md)). The command runs without a terminal in each repository, so it needs
+reported as unchanged. The command runs without a terminal in each repository, so it needs
 `--yes`.
 
 ## Guidelines

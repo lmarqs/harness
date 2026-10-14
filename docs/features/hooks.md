@@ -16,7 +16,7 @@ steps at each stage of a change run the same way whoever reaches it, and none of
 
 The hooks file declares, once and neutrally, two kinds of automation:
 
-- **worker hooks**, which run at worker events, when a [worker](workers.md) starts a session, edits a file, waits for a
+- **worker hooks**, which run at worker events, when a worker starts a session, edits a file, waits for a
   person or finishes a turn: format or lint the edited file, run a repository validator, add a line of session
   context, send a notification. `the-cook render` writes them into each worker's native hook configuration, through
   its ingredient, and `the-cook hook` runs them when the worker fires an event. Worker hooks give feedback and notify;
@@ -43,7 +43,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 | The edited file formatted or linted right after every edit a worker makes | a `post_edit` entry |
 | The stack's usual format-on-edit or lint-on-edit hook | `./cook station apply <name> --cookbook <source>@<version>` with a stack station, such as `node`, whose [entries](stations.md#entries) add it as a `post_edit` entry |
 | A repository check run when certain files are edited | `validators` |
-| A session in a [managed workspace](workspaces.md) to know its task | `session_start.context: true` |
+| A session in a managed workspace to know its task | `session_start.context: true` |
 | A message when a worker waits for you: a permission prompt, a question, idle input | an `attention` action |
 | A message when a worker finishes a turn | a `turn_end` action |
 | A skill or directive in the worker's context without invoking it | a `context` entry in the profile ([context](context.md)) |
@@ -58,7 +58,7 @@ Worker hooks, notification hooks and hook-delivered standing context need `modul
 ### Rendering
 
 For each declared worker whose ingredient maps hook payloads, `render` writes two kinds of hook entries through the
-worker's [ingredient](workers.md#the-worker-contract), whose renders own the program's native hook configuration:
+worker's ingredient, whose renders own the program's native hook configuration:
 
 | Entry | Events | Command |
 | --- | --- | --- |
@@ -132,7 +132,7 @@ edit.
 Each worker's program sends its own JSON payload on stdin. The binary knows no program's payload: the worker's
 ingredient maps it, by JSON paths, onto one neutral event, and `the-cook hook` acts on that event. The ingredient also
 says which tools are edits and which are reads, and which native events are `attention`, `turn_end` and each
-standing-context trigger ([the worker contract](workers.md#the-worker-contract)).
+standing-context trigger.
 
 | Normalised field | Mapped by the worker ingredient from |
 | --- | --- |
@@ -150,7 +150,7 @@ Files outside the checkout are ignored.
 
 | Setting | Output, as additional context for the worker |
 | --- | --- |
-| `context: true` | In a [managed workspace](workspaces.md), one line: the task id given with `--task`, when there is one, and the command to verify. Outside managed workspaces, nothing |
+| `context: true` | In a managed workspace, one line: the task id given with `--task`, when there is one, and the command to verify. Outside managed workspaces, nothing |
 | `context.always` in the profile | The `always` entries for the session's role, each headed by one line naming it ([context](context.md)). Under `COOK_CONTEXT_IN_PROMPT=1`, which an attempt sets when its prompt arrived on stdin, none: the binary put them in the prompt ([delivery in the prompt](context.md#delivery-in-the-prompt)) |
 
 Worker sessions never receive an update notice: moving the pin is a reviewed supply-chain decision, so the notice goes
