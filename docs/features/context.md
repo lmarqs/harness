@@ -22,11 +22,11 @@ Shared coding guidance lives in `.agents/skills/coding-guidelines/SKILL.md`.
 <!-- cook:end agentic/context/guidance -->
 ```
 
-These paths and the section name are repository choices, not a required Cook layout. The HTML comments bound the text
-and name its owning recipe and region; ownership never blocks a change. A recipe targeting that section preserves text
-outside it; its changes to existing or edited content use the ordinary [batch diff and approval](render.md). Writing a
-pointer does not guarantee that a program reads it or follows its instructions. Program-specific loading rules belong
-with the ingredient's cookbook reference; see [agent configuration](workers.md).
+These paths and the section name are repository choices. The HTML comments bound the text and name its owning recipe
+and region; ownership never blocks a change. A recipe targeting that section preserves text outside it; its changes to
+existing or edited content use the ordinary [batch diff and approval](render.md). Writing a pointer does not guarantee
+that a program reads it or follows its instructions. Program-specific loading rules belong with the ingredient's
+cookbook reference; see [agent configuration](workers.md).
 
 ## Sources and trust
 
@@ -41,7 +41,4 @@ approving their file diff does not sandbox their evaluation.
 
 ## Session boundary
 
-Cook does not inject guidance into sessions, match prompt or path triggers, assign session roles, or track delivery
-budgets and per-session state. Agent-session orchestration remains future work in
-[issue #6](https://github.com/lmarqs/the-cook/issues/6). Ingredient/recipe APIs and hooks require a separate discussion;
-this page defines no trigger, injection or hook API.
+Ingredient/recipe APIs and hooks require a separate discussion.

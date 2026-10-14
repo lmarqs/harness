@@ -26,32 +26,28 @@ repository keeps its recovery information local without relocating unrelated fil
 ## Decision
 
 1. Native output lives at the destination paths declared by the recipes for the configured programs to consume.
-   Shared content can use locations such as `.agents/`, but this decision imposes no universal agent-directory layout
-   or mandatory per-entry symlink scheme. Unrelated real directories, files and existing links remain in place.
+   Shared content can use locations such as `.agents/`. Unrelated real directories, files and existing links remain in
+   place.
 2. Declared writes and deletions stay inside the invocation directory, including paths resolved through symlinks.
    An existing directory is not refused merely because Cook did not create it. Existing content follows the same
-   terminal diff and whole-batch approval flow, without adoption steps; recorded ownership never blocks a change.
+   terminal diff and whole-batch approval flow; recorded ownership never blocks a change.
 3. Local batch history lives under the destination's ignored `.cook/` directory, with one record per batch in
    `.cook/batches/<batchId>/`, where the batch ID is the UTC start time. Save one reversible patch per touched file,
    `cook.lock` included, before the first target write. Record evaluated and consumed recipe/template sources,
    including local sources, their origins, arguments, execution order and result or failure log. On a write failure,
    roll back prior batch changes and retain patches and the failure record.
-4. History is recovery information, not committed configuration. Recipe ownership lives in the committed `cook.lock`
-   at the repository root ([0007](0007-ownership.md)). Apply evaluates supplied recipes against current content
-   without previous history; losing `.cook/` does not prevent it or lose ownership. Reverting a particular batch
-   requires its record. No metadata serialization format or complete storage schema is selected here.
+4. History is recovery information. Recipe ownership lives in the committed `cook.lock` at the repository root
+   ([0007](0007-ownership.md)). Apply evaluates supplied recipes against current content without previous history;
+   losing `.cook/` does not prevent it or lose ownership. Reverting a particular batch requires its record.
 5. The committed `./cook` wrapper pins an engine version and matching platform-package checksums. First use downloads
    and verifies the uncached package, then caches the complete package including Java. Upgrades explicitly change
-   the version and checksums. The engine pin remains committed rather than existing only in ignored recovery history;
-   the engine cache path and pin representation remain unspecified.
+   the version and checksums. The engine pin remains committed; the engine cache path and pin representation remain
+   unspecified.
 6. Cookbook repositories hold and ship ingredients and recipes, with builds that can be separate from the engine.
-   Sources are paths inside the destination repository or `https://` URLs; there is no rule excluding cookbook content
-   from a repository or requiring ingredients and stations to live only in a per-user hash cache. Relative source
-   references retain their original recipe base when captured in history
-   ([source origins](../architecture.md#destination-and-source-origins)).
+   Sources are paths inside the destination repository or `https://` URLs. Relative source references retain their
+   original recipe base when captured in history ([source origins](../architecture.md#destination-and-source-origins)).
 7. Configuring native program files does not make Cook the owner of those programs' state or workspaces. Recipes do
-   not implicitly relocate that state. Ingredient/recipe APIs, station semantics and lifecycle mechanics remain
-   deferred; this layout defines no session worktree tree, supplier API or command execution as a batch action.
+   not implicitly relocate that state.
 
 ## Reasons
 
@@ -68,8 +64,8 @@ repository keeps its recovery information local without relocating unrelated fil
 - **6.** Source location and destination location answer different questions. Requiring supplier-only caches would
   exclude local cookbook inputs and confuse recovery snapshots with source resolution. Capturing sources accepts
   storage costs while leaving cookbook distribution and model APIs separate.
-- **7.** Existing state and workspace conventions belong to their programs and users. Removing the old session engine
-  does not authorize moving their files or finalizing station semantics in a directory-layout decision.
+- **7.** Existing state and workspace conventions belong to their programs and users, so the layout leaves their files
+  where they are.
 
 ## Rejected alternatives
 
@@ -101,13 +97,11 @@ hold unrelated files. An explicitly declared symlink operation still uses the or
 - Shared native configuration, a committed engine pin, local engine packages and ignored `.cook/` recovery have
   different lifetimes. Losing recovery history prevents reverting those batches, while a missing package requires
   obtaining the pinned package before cooking.
-- Recovery snapshots consume local space. Patch representations for binary files, modes, symlinks and empty
-  directories remain implementation design work.
+- Recovery snapshots consume local space.
 
 ## Confirmation
 
-Review the two skills-layout examples to ensure declared changes preserve unrelated content and do not impose a symlink
-layout. Trace an HTTPS recipe to its native output and source snapshot, retaining its source URL as base; a local recipe
-outside the repository is refused. Review containment through symlinks, ignored destination-local history, committed
-version/checksum pinning, and complete jpackage caching as separate responsibilities. No new health-check command or
-storage schema is required.
+Review the two skills-layout examples to ensure declared changes preserve unrelated content. Trace an HTTPS recipe to
+its native output and source snapshot, retaining its source URL as base; a local recipe outside the repository is
+refused. Review containment through symlinks, ignored destination-local history, committed version/checksum pinning,
+and complete jpackage caching as separate responsibilities.

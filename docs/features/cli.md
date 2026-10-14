@@ -3,7 +3,7 @@
 This page describes the intended command line contract from the
 [architecture](../architecture.md#command-line-and-build-boundary) and its requirements
 [FR-17 through FR-20](../architecture.md#requirements). For current execution and build instructions, see the
-[root README](../../README.md). The design examples here do not establish that the target CLI is implemented.
+[root README](../../README.md).
 
 ## Synopsis
 
@@ -44,13 +44,12 @@ restores the `cook.lock` ownership it changed. Discard is deferred; see
 ./cook batch inspect 2026-10-14T15-04-05Z
 ```
 
-These are the target commands, with no compatibility aliases. The sole preapproval spelling is `--batch-approve`.
+`--batch-approve` is the only preapproval spelling.
 
 ## Recipe operands
 
 A recipe operand is a path inside the destination repository or an `https://` URL. An ordinary relative path such as
-`recipe.groovy` is accepted. Cook refuses an operand outside the repository and does not look up implicit cookbook
-names.
+`recipe.groovy` is accepted. Cook refuses an operand outside the repository.
 
 ```sh
 ./cook recipe.groovy
@@ -87,8 +86,7 @@ An argument value that looks like a recipe path remains an argument value:
 ```
 
 The first invocation evaluates only `a.groovy` and gives it `source` with the value `./b.groovy`. The second evaluates
-`a.groovy`, then `b.groovy`, as two recipes. These examples specify CLI scope; they do not decide the deferred
-recipe parameter-injection API.
+`a.groovy`, then `b.groovy`, as two recipes. These examples specify CLI scope.
 
 ## Batch options and approval
 
@@ -112,7 +110,6 @@ A batch option after a recipe receives the normal unknown-option error:
 ./cook apply --batch-approve ./a.groovy
 ```
 
-Approval covers all files and hunks in the batch; choosing individual changes belongs to a separate interface decision.
-Existing or edited content follows this same diff and batch-approval flow; ownership recorded in `cook.lock` never
-blocks a change. The target CLI has no `--adopt` flag, adoption alias, or separate adoption step. See [batch review and
-recovery](../architecture.md#batch-approval-and-failure-recovery) for the write and rollback contract.
+Approval covers all files and hunks in the batch. Existing or edited content follows this same diff and batch-approval
+flow; ownership recorded in `cook.lock` never blocks a change. See
+[batch review and recovery](../architecture.md#batch-approval-and-failure-recovery) for the write and rollback contract.

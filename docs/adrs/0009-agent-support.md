@@ -24,15 +24,13 @@ several agents duplicates work, and a change made for one can be missed for anot
 1. Ingredients model each agent's native files and configuration. Cookbooks maintain and distribute those models
    independently of the engine's file-operation mechanics.
 2. Recipes can reuse choices across program models, but their declared native output is the subject of review.
-   Agent-specific settings remain expressible through the relevant native model; this decision does not require a
-   universal permission language, shared event catalog or identical permission precedence across programs.
+   Agent-specific settings remain expressible through the relevant native model.
 3. Agent configuration uses the ordered operations and preservation rules of [0007](0007-ownership.md) and
    [0008](0008-native-configuration.md). Later operations may replace earlier values at overlapping targets; unrelated
    content remains intact. One terminal diff shows the combined result for whole-batch approval.
 4. Cook does not launch agent sessions or enforce permission floors or network restrictions. Recipes may declare
    native settings for those programs; Cook's approval, destination boundaries and recovery govern declared batch
-   operations, as explained in [0011](0011-safety-invariants.md). Recipe/model APIs, composition and recipe hooks remain
-   outside this decision.
+   operations, as explained in [0011](0011-safety-invariants.md).
 
 ## Reasons
 

@@ -36,7 +36,7 @@ stays intact, every clone agrees on which recipe produced which output, and a re
    the new version no longer declares; the diff shows that removal. Without a lock entry for a recipe, apply removes
    nothing on its behalf.
 4. Ownership decides what a recipe's later versions update and remove; it never blocks a change. Existing or manually
-   edited targets follow the normal flow, without an adoption flag, alias, separate adoption step or drift veto.
+   edited targets follow the same batch diff and approval flow as any other change.
 5. The core proposes the final combined diff, writes only the changes it receives as accepted, and records only those
    in `cook.lock` and the batch record. The CLI displays that diff in the terminal and accepts the whole batch.
    Preapproval still displays the diff; noninteractive execution alone does not authorize writes. Choosing individual
@@ -56,7 +56,7 @@ stays intact, every clone agrees on which recipe produced which output, and a re
 
 Approval, destination boundaries and recovery govern declared batch operations
 ([0012](0012-write-boundary.md)). They do not sandbox trusted recipe code or cover arbitrary side effects during
-its evaluation. Concrete patch representations and history schemas remain outside this decision.
+its evaluation.
 
 ## Reasons
 
@@ -71,8 +71,9 @@ its evaluation. Concrete patch representations and history schemas remain outsid
 - **3.** In the worked example, the section version 1 added would otherwise linger after version 2 stops declaring it.
   Comparing the new declarations with the recorded ownership answers that, and only a record of the previous version's
   targets can supply that comparison. Committing the record gives every clone the same answer and puts ownership changes
-  in pull-request review; key paths and whole files carry no markers, so markers alone cannot hold it. Ownership needs
-  only targets, so arguments stay in the local batch record. The trade: a generated file to commit and review.
+  in pull-request review; key paths and whole files carry no markers, so markers alone cannot hold it. The lock lists
+  the targets each recipe owns, and reading that ownership needs no arguments; the batch record keeps the arguments
+  (point 8). The trade: a generated file to commit and review.
 - **4.** Reviewing the actual diff exposes a manual edit that a requested update would replace. Approval makes that
   choice explicit; a veto would block the developer's intended change, and an adoption step would add a second
   contract for content the diff already shows.

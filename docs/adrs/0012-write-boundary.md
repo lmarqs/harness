@@ -19,7 +19,7 @@ updates. People need to see the actual requested changes and keep unrelated cont
 - Trusted Groovy recipes execute before batch writes. Code evaluated with the user's privileges can have effects
   that are not represented in the batch.
 - Issue trackers, code-review platforms, loop runners, and worker sessions have their own execution and delivery
-  conventions. Configuring their native files does not make Cook their controller.
+  conventions.
 
 ## Decision
 
@@ -34,8 +34,7 @@ updates. People need to see the actual requested changes and keep unrelated cont
    whole-file scope.
 3. Cook proposes changes against current content, including existing files and manual edits, and presents one final
    combined terminal diff. Approval covers the whole batch. Explicit preapproval still displays the diff;
-   noninteractive execution without it does not authorize writes. Recorded ownership never blocks a change; there is
-   no adoption flag, compatibility alias, separate adoption step, or drift veto.
+   noninteractive execution without it does not authorize writes. Recorded ownership never blocks a change.
 4. Cook saves recovery patches before the first target write. A write failure rolls back changes already made by
    the batch and retains the patches and failure record. The batch record in the ignored `.cook/batches/<batchId>/`
    directory holds the patches and the consumed sources with their origins. Ownership lives in the committed
@@ -59,8 +58,8 @@ updates. People need to see the actual requested changes and keep unrelated cont
   requested to change. The trade is that declaring a whole file permits a broader change than declaring one key;
   users must review that scope in the diff.
 - **3.** Current content is the relevant basis for approval. Creation records and directory names cannot establish
-  whether today's change is wanted. Removing their veto allows useful edits, but places the decision on actual
-  batch review, including deletion or replacement of content someone has edited.
+  whether today's change is wanted, so they hold no veto: useful edits proceed, and the decision rests on actual batch
+  review, including deletion or replacement of content someone has edited.
 - **4.** Saved recovery information makes completed batch writes reversible if a later write fails. The trade is
   local history storage; losing it loses recovery for recorded batches, not the ability to evaluate new recipes.
 - **5.** Recorded ownership and a batch's reverse patches answer different questions: what a recipe's new version no
@@ -105,8 +104,8 @@ Must be maintained:
 
 - Review a key update alongside unrelated keys and text, a whole-file replacement, and a target resolving outside
   the destination through a symlink. The declared scope determines the diff; an escaping target is not permitted.
-- Review an existing manually edited target through the ordinary batch diff and approval flow, without adoption,
-  whether or not `cook.lock` records its owner. Applying another recipe does not delete unrelated prior output.
+- Review an existing manually edited target through the ordinary batch diff and approval flow, whether or not
+  `cook.lock` records its owner. Applying another recipe does not delete unrelated prior output.
 - Review a recipe operand and a template reference that resolve outside the repository: both are refused.
 - Review recovery ordering and write-failure behavior against the architecture, without treating recipe evaluation
   side effects as reversible batch writes. Concrete patch formats remain an implementation choice.

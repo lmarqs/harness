@@ -49,7 +49,8 @@ The runner calls `ralph-tui run --agent <agent> --tracker <tracker>`. For `json`
 ## Inputs
 
 The runner needs `ralph-tui` on the `PATH`, the selected agent's command-line tool, and the PRD file or Beads epic it
-is given. The recipe installs nothing.
+is given. The default `json` tracker needs no other tool; the `beads` and `beads-bv` trackers need `bd`, and `beads-bv`
+uses `bv` when it is installed. The recipe installs nothing.
 
 ## Behaviour
 

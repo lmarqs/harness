@@ -18,8 +18,7 @@ the tool never notice it.
 ## Current implementation
 
 This section describes the repository's executable behavior. The [architecture](docs/architecture.md) defines the
-intended design; the implementation described here does not override it. Ingredient/recipe APIs and hooks remain
-subject to a separate model discussion.
+intended design, and [issue #15](https://github.com/lmarqs/the-cook/issues/15) tracks implementing it.
 
 The core and CLI use Kotlin, with Groovy document and filesystem adapters. Cookbook suppliers and repository recipes use Groovy. Ingredients publish their own builds and versions; recipes compose their contributions into a batch.
 
@@ -27,15 +26,9 @@ The core and CLI use Kotlin, with Groovy document and filesystem adapters. Cookb
 
 The current CLI resolves cookbook names or local `.groovy` paths. `--dry-run` reports proposed changed paths; a normal
 cooking invocation writes without an approval prompt or a terminal content diff. `--remove` withdraws selected
-applications using ownership records. The existing `apply` command applies a saved plan, rather than evaluating
-recipe operands. No-argument invocation reports a missing command; use `--help` explicitly.
-
-The [target CLI](docs/features/cli.md) instead requires ordered recipe operands, `apply`, `revert`, `batch list`,
-`batch inspect` and whole-batch diff approval. The committed `cook.lock`, `cook:begin <recipe>/<region>` markers,
-consumed-source snapshots, per-batch records under `.cook/batches/<batchId>/` with reversible patches, and the
-pinned-download wrapper are requirements, not capabilities supplied by this implementation. Some current recipes
-expose `--adopt` and the core enforces adoption and managed-edit gates; the target design has no adoption flag, and
-ownership never blocks a change: existing or edited content appears in the batch diff for approval.
+applications using ownership records. The existing `apply` command applies a saved plan. No-argument invocation
+reports a missing command; use `--help` explicitly. Some recipes expose `--adopt`, and the core enforces adoption and
+managed-edit gates.
 
 ### Start from a fresh clone
 
@@ -48,16 +41,18 @@ the checkout root:
 ./cook agentic/permission --help
 ```
 
-These help commands require no policy or personal skill files. The repository's [`cook` script](cook) launches the
-local distribution after changing into this checkout. To configure another directory, invoke
-`cli/build/install/the-cook/bin/the-cook` by its absolute path from that directory, or use its `--repo` option.
-The script does not pin, download, verify or cache a release.
+The repository's [`cook` script](cook) launches the local distribution after changing into this checkout. To
+configure another directory, invoke `cli/build/install/the-cook/bin/the-cook` by its absolute path from that
+directory, or use its `--repo` option.
 
 ### Development tooling
 
 `./gradlew check` includes `spotlessCheck`, which enforces the format of Kotlin (ktlint), Groovy and Gradle (Groovy-Eclipse, [settings](gradle/spotless/greclipse.properties)) and plain-text files, with 2-space indentation per [`.editorconfig`](.editorconfig). `./gradlew spotlessApply` fixes violations. The Groovy formatter on Java 17 cannot parse the `!in` operator; write `!(a in b)` instead.
 
 `./gradlew check` also requires braces around every `if`/`else`/`for`/`while` body, with the body on its own line. In Kotlin this is a custom ktlint rule ([`gradle/lint/ktlint-rules`](gradle/lint/ktlint-rules)) that Spotless runs; an `if` used as a value (`val x = if (a) b else c`, an argument, a return value, an expression body, the final `if`/`else` of a lambda) is exempt. In Groovy and Gradle, CodeNarc (`./gradlew codenarc`, [rules](gradle/lint/codenarc.groovy)) requires the braces, and Groovy-Eclipse moves braced bodies onto their own line. Violations that predate the rule are baselined: Groovy per violation in [`codenarc-baseline.xml`](gradle/lint/codenarc-baseline.xml), which `./gradlew codenarcBaseline` regenerates, and Kotlin per file in the `suppressLintsFor` list in [`build.gradle`](build.gradle). Remove a file's entry once its violations are fixed.
+
+`docs/` is its own build. `./gradlew -p docs check`, which `./gradlew check` includes, fails on a relative link in
+`docs/` that points to a missing file or heading anchor; [`docs/build.gradle`](docs/build.gradle) defines the check.
 
 ### Recipe prerequisites
 
@@ -67,10 +62,16 @@ It can seed an absent policy inside the destination, but its skill source must a
 selected with `--skills-home`. Those personal files are not supplied by a fresh clone, and `.agents/policy.yaml` is
 not a tracked starter policy. Inspect the prerequisites before invoking the combined setup.
 
-The [independent agentic flow](cookbook/recipes/agentic/README.md) provides separate init, permission, and context commands without a mandatory `cook.groovy`; [this repository's setup](docs/features/agentic-dogfood.md) uses that flow. Repository recipe sources live in `cookbook/recipes/`, with packaged definitions available on the CLI classpath: `./cook <name>` runs the same factory that another recipe can compose through `book.recipe(name, kitchen, options)`. Nested names work, for example `./cook agentic/codex --instructions='Run tests before committing.'`. Each invocation updates its selected applications. Use `./cook agentic/permission --harness=claude --remove --dry-run` to preview removal and omit `--dry-run` to apply it. Removal reads stored ownership and does not require the policy source.
+The [independent agentic flow](cookbook/recipes/agentic/README.md) provides separate init, permission, and context
+commands; [this repository's setup](docs/features/agentic-dogfood.md) uses that flow. Repository recipe sources live
+in `cookbook/recipes/`, with packaged definitions available on the CLI classpath: `./cook <name>` runs the same
+factory that another recipe can compose through `book.recipe(name, kitchen, options)`. Nested names work, for example
+`./cook agentic/codex --instructions='Run tests before committing.'`. Each invocation updates its selected
+applications. Use `./cook agentic/permission --harness=claude --remove --dry-run` to preview removal and omit
+`--dry-run` to apply it. Removal reads stored ownership.
 
 See [the core implementation](core/README.md) for ownership, contribution identities, migration and differences from
-the intended architecture. These factory and composition APIs describe existing code, not the deferred model decision.
+the intended architecture.
 
 ## Read next
 
@@ -88,7 +89,9 @@ There is no published release. Build a self-contained distribution with a Java 1
 cli/build/jpackage/the-cook/bin/the-cook --help
 ```
 
-The image includes the CLI, the packaged agentic permission, context, and init definitions with their declared dependencies, and a Java runtime. It does not fetch recipes from a remote registry. Copy the **whole** `cli/build/jpackage/the-cook` directory to another machine with the same OS and architecture; users do not need Java or Gradle installed. Run its `bin/the-cook` from the repository you want to cook:
+The image includes the CLI, the packaged agentic permission, context, and init definitions with their declared
+dependencies, and a Java runtime. Copy the **whole** `cli/build/jpackage/the-cook` directory to another machine with
+the same OS and architecture. Run its `bin/the-cook` from the repository you want to cook:
 
 ```sh
 /path/to/the-cook/bin/the-cook init
@@ -96,14 +99,13 @@ The image includes the CLI, the packaged agentic permission, context, and init d
 /path/to/the-cook/bin/the-cook agentic/init --harness=codex --harness=claude
 ```
 
-The builtin `init` creates `cook.groovy` and preserves an existing regular file. It does not install the combined
-cookbook setup. Inspect the packaged recipe's help and [init guide](cookbook/recipes/agentic/init/README.md) before
-writing agent files. `the-cook cook` evaluates the destination's `cook.groovy`; the script and any sources it requires
-must be available. These are current commands, not examples of the target CLI grammar.
+The builtin `init` creates `cook.groovy` and preserves an existing regular file. Inspect the packaged recipe's help and
+[init guide](cookbook/recipes/agentic/init/README.md) before writing agent files. `the-cook cook` evaluates the
+destination's `cook.groovy`; the script and any sources it requires must be available.
 
 The paths above are for Linux. The build defines `the-cook.app/Contents/MacOS/the-cook` on macOS and
-`the-cook/the-cook.exe` on Windows. Build on the target OS and architecture; those paths do not establish availability
-of published packages. This task produces an application directory, not an OS installer.
+`the-cook/the-cook.exe` on Windows. Build on the target OS and architecture. This task produces an application
+directory.
 
 `./gradlew jpackageTest` builds the image and tests the native launcher with Java and Gradle absent from `PATH`, including `init`, packaged and local recipe discovery, repeated options, help, child updates, removal, legacy scripts, repeat cooking, and error exit codes. This distribution check runs separately from `./gradlew check`.
 

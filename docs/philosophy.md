@@ -10,7 +10,7 @@ part of that problem Cook solves before proposing another responsibility for it.
 native program files, while keeping program-specific setup separate from the engine.
 
 [Cook architecture](architecture.md) states the intended design. This philosophy explains its goals and tenets;
-[ADRs](adrs/) record the supporting reasoning. Neither overrides the architecture. Documentation of the current
+[ADRs](adrs/) record the supporting reasoning. Both follow the architecture. Documentation of the current
 implementation belongs in the [root README](../README.md) and [core guide](../core/README.md).
 
 ## The problems
@@ -24,20 +24,20 @@ programs consume native files, often inside the repository. Reusing their setup 
 - Coupling program-specific configuration to the engine makes each program's evolution an engine concern.
 
 Personal setup portability and traces left by agent sessions are related problems. They motivate future kit and
-session work, rather than expanding the file-operation engine into a session controller.
+session work.
 
 ## The goals
 
 - Reuse configuration through recipes and ingredients maintained in cookbook repositories.
 - Review the combined effect of the requested changes against current content before approving writes.
 - Preserve unrelated content when applying recipes or reverting batches.
-- Let configured programs consume their native files directly, without needing Cook to run them.
+- Let configured programs consume their native files directly.
 - Keep the engine's responsibilities bounded so cookbooks can evolve separately.
 
 ## What `the-cook` is
 
-This section describes the intended design stated in the [architecture](architecture.md); see the root README's
-[current implementation](../README.md#current-implementation) for what runs today.
+This section describes the intended design in the [architecture](architecture.md); the
+[current implementation](../README.md#current-implementation) describes what runs today.
 
 Cook is a recipe driven configuration engine. Its CLI evaluates trusted executable Groovy recipes into an ordered
 batch of file operations, shows the resulting terminal diff, obtains approval, records the batch and the ownership in
@@ -56,8 +56,7 @@ current local build entry path. Gradle builds and packages Cook and cookbooks; t
 
 Personal setup backup (**kit**) remains future work in [issue #5](https://github.com/lmarqs/the-cook/issues/5).
 Agent-session orchestration (**cooking**) remains future work in
-[issue #6](https://github.com/lmarqs/the-cook/issues/6). A fixed development lifecycle, workers, verification receipts,
-jails and session orchestration are outside the engine responsibilities defined here.
+[issue #6](https://github.com/lmarqs/the-cook/issues/6).
 
 ## Tenets
 
@@ -73,8 +72,8 @@ judge whether a decision still serves its goal. See the [ADR structure](adrs/REA
 
 **Problem.** A core that owns a team's development lifecycle must change whenever that way of working changes.
 
-**Tenet.** Cook evaluates recipes and reviews and performs their declared file operations. Configuring a coding agent,
-loop runner or CI system does not make Cook responsible for running it or controlling its workflow.
+**Tenet.** Cook evaluates recipes and reviews and performs their declared file operations. The coding agents, loop
+runners and CI systems it configures run and control their own workflows.
 
 ### Trust recipes explicitly
 
@@ -82,15 +81,14 @@ loop runner or CI system does not make Cook responsible for running it or contro
 
 **Tenet.** Recipes are trusted Groovy code. Approval, destination boundaries and rollback govern declared batch
 operations; they do not sandbox recipe evaluation or guarantee that arbitrary recipe code has no side effects. Choose
-recipe sources accordingly, rather than treating a preview as a security boundary.
+recipe sources accordingly.
 
 ### Keep program models in cookbooks
 
 **Problem.** Program-specific setup tied to the engine makes the engine follow each program's configuration changes.
 
 **Tenet.** Ingredients model native program files and configuration, and cookbooks distribute ingredients and recipes
-separately from the engine. The ingredient concept does not settle the recipe/model API, composition and nesting,
-station roles, hooks, decorators, parameter injection or annotations; those require their own discussion.
+separately from the engine.
 
 ### Review the actual change
 
@@ -100,8 +98,8 @@ requested against the files they have now.
 **Tenet.** Evaluate supplied recipes against current content on every apply invocation. Compose operations in
 declared order; when two recipes write the same target, the last one wins and becomes its owner, and one combined diff
 shows the result. The CLI accepts the whole batch. Ownership, recorded in the committed `cook.lock`, never blocks a
-change: existing or edited content uses the same flow, without `--adopt`, adoption aliases or a separate adoption
-step. Applying one recipe never removes another recipe's output.
+change: existing or edited content uses the same flow as any other change. Applying one recipe never removes another
+recipe's output.
 
 ### Make recovery part of writing
 
@@ -118,5 +116,5 @@ deferred. See [apply](features/render.md) and [revert](features/remove.md).
 
 **Problem.** A setup tool can become an unnecessary dependency of every program it configures.
 
-**Tenet.** Programs read the native files Cook writes directly. Users can keep using those files without invoking Cook.
-The file-operation engine does not require teammates to adopt one editor, agent or way of working.
+**Tenet.** Programs read the native files Cook writes directly, and teammates keep their own editors, agents and ways
+of working.

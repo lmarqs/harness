@@ -15,7 +15,7 @@ Program knowledge can evolve separately from the rules for reviewing and writing
   diff presentation, approval, recovery and writes to Cook (FR-1 through FR-6 in its
   [requirements](../architecture.md#requirements)).
 - Ingredients are program data models for native files and configuration. Git's ignore file and Codex's configuration
-  and skills illustrate that responsibility; these examples do not prescribe a supplier API.
+  and skills illustrate that responsibility.
 - Cookbooks hold and ship ingredients and trusted Groovy recipes through their repositories, with builds that can be
   separate from the engine build (FR-2). Native output is consumed by the configured programs directly
   ([0010](0010-dependence-on-the-binary.md)).
@@ -28,28 +28,24 @@ Program knowledge can evolve separately from the rules for reviewing and writing
 ## Decision
 
 1. Ingredients carry program-specific knowledge as models of native files and configuration. Cookbooks hold and ship
-   those models and recipes; Cook handles the resulting ordered file operations. This responsibility split imposes no
-   blanket prohibition on program names in engine code or on packaging cookbook content with a distribution.
-2. Configuring a program does not make Cook its runner. Version control commands, worker launches, tracker updates,
-   jails, fixed lifecycle stages and completion signals are not engine responsibilities. External commands are not
-   batch actions. Recipes remain trusted executable code, whose arbitrary side effects are outside batch guarantees.
+   those models and recipes; Cook handles the resulting ordered file operations.
+2. Configuring a program does not make Cook its runner. External commands are not batch actions. Recipes remain trusted
+   executable code, whose arbitrary side effects are outside batch guarantees.
 3. Native targets are file paths, structured key paths or marked text sections. Cook proposes changes against current
    content, combines overlapping operations in declared order and presents one batch diff. Ownership recorded in
-   `cook.lock` belongs to recipes and never blocks a change ([0007](0007-ownership.md)); ingredients require no
-   adoption step, and omitting a model from an invocation withdraws nothing.
+   `cook.lock` belongs to recipes and never blocks a change ([0007](0007-ownership.md)), and omitting a model from an
+   invocation withdraws nothing.
 4. Engine package pinning is separate from cookbook distribution and user-managed recipe versions. An engine upgrade
-   does not select new cookbook content. This record does not introduce cookbook hash admission, a registry, a
-   recipe updater, program-detection rules or a safety-floor enforcement protocol.
+   does not select new cookbook content.
 5. Ingredient/recipe APIs, composition and nesting, station semantics, decorators, annotations, parameter injection
-   and lifecycle hooks remain for the separate model discussion. Issue #9 does not decide deletion of dynamic
-   composition or compiled suppliers; neither implementation becomes the final API through this record.
+   and lifecycle hooks remain for the separate model discussion.
 
 ## Reasons
 
 - **1.** Program formats evolve independently (Objective). Keeping their models in cookbooks lets cookbook authors
   maintain that knowledge separately, while engine maintainers focus on file-operation behavior. The trade is that
   cookbook authors maintain compatibility with the programs they model; separating responsibilities alone does not
-  guarantee compatible versions or require a particular packaging arrangement.
+  guarantee compatible versions.
 - **2.** FR-3 and FR-6 bound Cook's role. Launch and lifecycle contracts would add orchestration to a configuration
   engine. Native files let teams use their own runners without making Cook part of every run. The trade is that Cook
   does not police how those programs run, and trusted recipe code can act beyond the declared batch.
@@ -60,9 +56,8 @@ Program knowledge can evolve separately from the rules for reviewing and writing
 - **4.** The wrapper selects an engine package, not a team's program setup. Keeping these responsibilities distinct
   avoids coupling cookbook maintenance to engine upgrades. The trade is that users select recipe versions themselves;
   engine checksum verification does not establish cookbook trust ([0026](0026-cookbook-trust.md)).
-- **5.** FR-30 preserves the model questions for their own discussion. Resolving them from an older cleanup proposal
-  would make an API decision without that discussion. The trade is that the concept is established before its public
-  authoring contract is finalized.
+- **5.** FR-30 preserves the model questions for their own discussion. The trade is that the concept is established
+  before its public authoring contract is finalized.
 
 ## Rejected alternatives
 
@@ -95,12 +90,11 @@ Costs:
 Must be maintained:
 
 - The distinction between native configuration models, cookbook choices and engine file-operation responsibilities.
-- Ordered composition and review against current content, without `cook.lock` or adoption prerequisites.
+- Ordered composition and review against current content, without a `cook.lock` prerequisite.
 
 ## Confirmation
 
 Review the design against FR-1 through FR-10, FR-26 and FR-30: the acme example permits a shared model with different
 recipe choices, later instructions can replace earlier values, and applying one recipe leaves unrelated earlier
 output intact. The engine promises concern declared operations, not worker execution or recipe sandboxing. Package
-verification follows the explicit engine pin independently of cookbook selection. These are design review criteria,
-not claims that the target behavior is implemented or mandatory commands for this documentation run.
+verification follows the explicit engine pin independently of cookbook selection.

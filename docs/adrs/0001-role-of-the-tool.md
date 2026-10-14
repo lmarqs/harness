@@ -17,8 +17,8 @@ keeping their preferred programs and control over how they work.
   Cook to run it or to control its workflow.
 - Worked example: acme shares agent settings between `acme/api` and `acme/web`. Each team wants to review the settings
   against its repository's current files, but neither team needs to change the agent it uses or the stages of its work.
-- Recipe authors supply trusted executable Groovy code, not only declarative data. Evaluation can have effects beyond
-  the file operations it declares.
+- Recipe authors supply trusted executable Groovy code. Evaluation can have effects beyond the file operations it
+  declares.
 
 ## Decision
 
@@ -66,11 +66,9 @@ users already choose and brings their model credentials, cost and changing APIs 
 ## Consequences
 
 Cookbook authors maintain program-specific configuration knowledge. Users review declared file changes and trust the
-recipes they evaluate. The engine maintains ordered operations, approval and recovery, without becoming the runner
-of the programs it configures. Ingredient/recipe APIs, composition rules and hooks remain a separate model discussion.
+recipes they evaluate. The engine maintains ordered operations, approval and recovery.
 
 ## Confirmation
 
 Review the responsibility boundary against the [architecture](../architecture.md): configuration remains native to
 its program, batches contain file operations, and approval and recovery claims apply only to declared operations.
-This decision describes the intended design, not a claim that every operation is already implemented.

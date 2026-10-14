@@ -4,8 +4,8 @@
 
 **Problem.** Teams use different task trackers, or none, and need their setup to remain useful independently of Cook.
 
-**Goal.** Share native tracker configuration and guidance without making Cook the tracker or the controller of work
-on its tasks.
+**Goal.** Share native tracker configuration and guidance, while the tracker and the people or programs using it
+control work on its tasks.
 
 ## Native configuration
 
@@ -15,8 +15,7 @@ The tracker consumes its native configuration directly. See [Cook's architecture
 [apply](render.md).
 
 Task selection, assignment, dependencies, completion, and synchronization belong to the tracker and the people or
-programs using it. The engine does not bind workspaces to tasks, assign actors, fire tracker lifecycle events, or close
-tasks after a verification receipt. Tracker commands and hosting-platform requests are not batch actions.
+programs using it. Tracker commands and hosting-platform requests are not batch actions.
 
 A tracker's database and state files remain that program's data. Applying configuration does not implicitly migrate,
 clear, or synchronize them. Changes to any such files must be explicitly declared, stay within the invocation
@@ -28,7 +27,5 @@ longer declares; it leaves a tracker's other data in place. Reverting a configur
 patches; it does not reverse task activity performed later by the tracker. See [revert](remove.md).
 
 ## Session boundary
-
-Agent-session orchestration is future work tracked in
-[issue #6](https://github.com/lmarqs/the-cook/issues/6). Task execution and session integration are outside the engine
-responsibilities defined here; no tracker protocol, scheduling system, or recipe hook API is decided by this page.
+Task execution and session integration are outside the engine
+responsibilities defined here.

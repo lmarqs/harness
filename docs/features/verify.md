@@ -18,7 +18,7 @@ runner, CI service, contributor, or agent runs the commands independently.
 Useful instructions name the commands and explain which changes they exercise. When reporting a result, say which
 checks ran and which could not run, with reasons a reviewer can assess. A passing unrelated test does not establish
 that the changed behavior works; a runner that succeeds with zero matching tests needs attention in that runner's
-configuration. These are workflow choices, not engine-enforced lane rules or mandatory Cook quality gates.
+configuration. These are workflow choices.
 
 Sections in shared Markdown instruction files use `cook:begin <recipe>/<region>` and `cook:end <recipe>/<region>`
 markers written as HTML comments. The markers bound the declared text and name its owning recipe; ownership never
@@ -27,14 +27,9 @@ full scope in the final diff. See [native configuration](../adrs/0008-native-con
 
 ## Engine boundary
 
-The [engine](../architecture.md) evaluates recipes and reviews and writes declared file operations. It does not run
-verification commands as batch actions, certify a change, issue verification receipts, replay a worker's tests, or gate
-task completion and delivery on their results. Configured checks remain usable without Cook.
+The [engine](../architecture.md) evaluates recipes and reviews and writes declared file operations. Configured checks
+remain usable without Cook.
 
 Batch records in the ignored `.cook/batches/<batchId>/` directory hold Cook's file patches and their recovery
 information. Their result or failure log is not proof that a project's checks passed. Reverting a batch applies its
-reverse patches; it does not re-run the project's checks. See [revert](remove.md).
-
-Agent-session orchestration is future work in
-[issue #6](https://github.com/lmarqs/the-cook/issues/6). This page does not specify its verification protocol or decide
-recipe hooks.
+reverse patches. See [revert](remove.md).

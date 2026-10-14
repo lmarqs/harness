@@ -27,8 +27,7 @@ notification; Cook's batch changes its configuration, rather than sending the no
 3. Approval, destination boundaries and rollback govern declared operations. They do not sandbox trusted recipe
    evaluation or cover arbitrary side effects caused by recipe code.
 4. Configuring a program through native files does not make Cook that program's runner. Agent-session orchestration
-   remains future work in [issue #6](https://github.com/lmarqs/the-cook/issues/6), without an execution design here.
-   Recipe hooks and model APIs remain outside this decision.
+   remains future work in [issue #6](https://github.com/lmarqs/the-cook/issues/6).
 
 ## Reasons
 
@@ -41,7 +40,7 @@ notification; Cook's batch changes its configuration, rather than sending the no
 - **3.** FR-4 separates trusting executable sources from approving their declared writes. A file diff cannot show
   arbitrary code side effects. The trade is that reviewers must trust recipe sources before evaluating them.
 - **4.** FR-6 keeps worker supervision and lifecycle events outside the engine. This preserves the distinction
-  between configuration and execution without deciding future orchestration or deferred hooks.
+  between configuration and execution.
 
 ## Rejected alternatives
 
@@ -69,5 +68,4 @@ Must be maintained:
 ## Confirmation
 
 Review against FR-1 through FR-4, FR-6, FR-7 and FR-11 through FR-13. In the acme example, approval covers the native
-notification settings diff, not a service request. The record defines no command runner, action schema, worker
-launch contract or recipe hook API. These are design review criteria, not claims of implemented behavior.
+notification settings diff, not a service request.

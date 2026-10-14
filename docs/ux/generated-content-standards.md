@@ -10,16 +10,14 @@ recorded batch. Content outside the declared targets stays intact.
 
 ## Overview
 
-These standards follow the intended [architecture](../architecture.md). They cover Cook's declared batch operations;
-they do not establish that the target behavior is implemented. See the [root README](../../README.md) for current
-execution. Cook evaluates trusted Groovy recipes; approval, boundaries, and recovery do not sandbox arbitrary effects
-of recipe code.
+These standards follow the intended [architecture](../architecture.md). They cover Cook's declared batch operations. See
+the [root README](../../README.md) for current execution. Cook evaluates trusted Groovy recipes; approval, boundaries,
+and recovery do not sandbox arbitrary effects of recipe code.
 
 ## Kinds of generated content
 
-A recipe declares its targets. There is no required catalog of engine-owned files, seeded files, or modules.
-Ingredients model programs' native files and configuration; cookbooks supply ingredients and recipes independently
-of the engine.
+A recipe declares its targets. Ingredients model programs' native files and configuration; cookbooks supply ingredients
+and recipes independently of the engine.
 
 | Target | Address | Review scope |
 | --- | --- | --- |
@@ -28,9 +26,8 @@ of the engine.
 | Shared text | File path and begin/end markers | The declared section, with text outside its boundaries preserved |
 | Directory or symlink | Declared path, where applicable | The declared filesystem operation |
 
-Native settings, instruction files, skills, and ignore entries may be recipe targets. A template supplies content;
-using a template does not establish a write-once rule or a separate removal contract. Executing external commands is
-not a batch action. Configuring a program's native hooks does not make Cook the hook runner.
+Native settings, instruction files, skills, and ignore entries may be recipe targets. A template supplies content.
+Executing external commands is not a batch action. The program runs its configured native hooks.
 
 ## Header
 
@@ -38,9 +35,8 @@ When a recipe includes a generated-content notice, use the file's comment syntax
 program permits it: after a script's shebang, for example. Do not add comments to JSON. A useful notice identifies
 the source so a reader can find the recipe or template behind the output.
 
-A notice is explanatory text; ownership is recorded in the committed `cook.lock`. It does not require a manifest, a
-schema number, or a special command for editing the file. Existing content and manual edits follow the same actual diff
-and approval flow.
+A notice is explanatory text; ownership is recorded in the committed `cook.lock`. Existing content and manual edits
+follow the same actual diff and approval flow.
 
 ## Managed blocks
 
@@ -62,37 +58,32 @@ Run the project's build command.
 ```
 
 Markdown uses HTML comments; ignore files, TOML, YAML, and shell files use hash comments where their formats permit
-comments. A declared section update preserves unrelated text, comments, and layout outside its boundaries. Manual
-edits inside the section appear in the next proposed diff and do not trigger an adoption gate; ownership never blocks
-a change.
+comments. A declared section update preserves unrelated text, comments, and layout outside its boundaries. Manual edits
+inside the section appear in the next proposed diff; ownership never blocks a change.
 
 ### Block ids
 
 A section ID is `<recipe>/<region>`: the owning recipe's short name, such as `agentic/context`, followed by a region
 name chosen by that recipe. Several recipes can therefore keep separate sections in one file. `cook.lock` lists each
-recipe's sections by file and ID. Recipes declare the sections they address; there is no required closed list of
-IDs, block-class system, or migration protocol for them.
+recipe's sections by file and ID. Recipes declare the sections they address.
 
 ### Instruction files and conventions
 
 Keep shared instructions concise, avoid duplicating existing guidance, and link to detail when useful. Why: programs
-that load instructions repeatedly pay for every line. Content and size are recipe configuration choices, without a
-fixed engine line budget or a context-injection API.
+that load instructions repeatedly pay for every line. Content and size are recipe configuration choices.
 
 State a convention where people and the native program can find it, using the values that actually apply. Native
 configuration remains usable without Cook when it has no runtime dependency on Cook. Keeping that configuration is a
-choice to leave it in place; no eject operation or block class is needed. See [discard and revert](#discard-and-revert)
-for batch reversal.
+choice to leave it in place. See [discard and revert](#discard-and-revert) for batch reversal.
 
 ## Keys in native files
 
-A structured operation changes its declared key paths rather than claiming the whole file. Preserve unrelated keys
-and avoid unnecessary changes to their order, comments, or formatting. Whole-file declarations have broader scope;
-review the entire replacement rather than assuming key-level preservation.
+A structured operation changes its declared key paths. Preserve unrelated keys and avoid unnecessary changes to their
+order, comments, or formatting. Whole-file declarations have broader scope; review the entire replacement rather than
+assuming key-level preservation.
 
-For example, a recipe that sets `test` in `settings.toml` preserves an unrelated `other` key. A permission list or
-hook setting has the scope the recipe declares. Cook does not require imported permission provenance, safety-floor
-rules, or a universal hook entry. A program enforces its own native settings.
+For example, a recipe that sets `test` in `settings.toml` preserves an unrelated `other` key. A permission list or hook
+setting has the scope the recipe declares. A program enforces its own native settings.
 
 ## Ordered operations and repeat application
 
@@ -103,9 +94,9 @@ batch diff, and B owns `test`. Applying B alone later leaves `notes.txt` intact:
 Applying a new version of A removes what A's previous version owned and the new version no longer declares; the diff
 shows that removal.
 
-Every apply evaluates the supplied recipe versions against current content, even after an identical
-invocation. History does not skip recipes as already applied. An unchanged result may produce an empty diff. A
-manual edit is not a drift or ownership veto; there is no `--adopt`, adoption alias, or separate adoption step.
+Every apply evaluates the supplied recipe versions against current content, even after an identical invocation. History
+does not skip recipes as already applied. An unchanged result may produce an empty diff. A manual edit appears in the
+next diff like any other difference.
 
 ## Stable output
 
@@ -142,12 +133,12 @@ and deletions stay within it, including paths resolved through symlinks. Recipes
 destination repository or `https://` URLs. Source references resolve from the recipe's location or URL, not from the
 destination or a saved snapshot; a local reference outside the repository is refused.
 
-Before the first target write, save the batch record in the destination's ignored `.cook/batches/<batchId>/`
-directory, where the batch ID is the UTC start time. It holds one reversible patch per touched file, `cook.lock`
-included; multiple recipes touching one file produce one patch for their combined change. The record also holds the
-evaluated recipes, all consumed recipe/template sources (local and downloaded),
-origins, arguments, execution order, and result or failure log. One patch supports forward and reverse
-application; no concrete patch format or metadata schema is selected here.
+Before the first target write, save the batch record in the destination's ignored `.cook/batches/<batchId>/` directory,
+where the batch ID is the UTC start time. It holds one reversible patch per touched file, `cook.lock` included; multiple
+recipes touching one file produce one patch for their combined change. The record also holds the evaluated recipes, all
+consumed recipe/template sources (local and downloaded), origins, arguments, execution order, and result or failure log.
+One patch supports forward and reverse application; the concrete patch format and metadata schema belong to the
+implementation.
 
 On a write failure, roll back changes already made by the batch and retain its record and failure. Apply needs
 neither batch history nor `cook.lock`. Losing `.cook/` loses the ability to revert earlier batches; new apply
@@ -174,5 +165,4 @@ batch proposes `new` to `old` and keeps the edit to `other`. If the person had c
 refuses and names the file and `test`. Discarding a recipe's whole contribution is deferred; revert the batches that
 applied it instead. See the [operation reference](../features/remove.md).
 
-To keep native configuration, leave it in place. Revert does not require removal of the wrapper, recipe sources, or
-unrelated setup as a group.
+To keep native configuration, leave it in place.

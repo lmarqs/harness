@@ -24,13 +24,12 @@ to keep.
 1. People and recipe authors choose the content and configuration they want. Cook evaluates their trusted recipes and
    mechanically composes the declared operations against current content in the supplied order.
 2. Cook shows the final combined diff and obtains whole-batch approval before target writes. Existing or edited content
-   uses that same flow; recorded ownership never blocks a change, and there are no adoption gates or manual-edit veto
-   ([0007](0007-ownership.md)).
+   uses that same flow; recorded ownership never blocks a change ([0007](0007-ownership.md)).
 3. Every apply invocation evaluates the supplied recipes again. History does not mark recipes as already
    applied or skip evaluation. An unchanged result may produce an empty diff; arbitrary executable recipes need not
    produce an unchanged result on repeated invocation.
-4. Cook can write declared prose, skills and policy like other file content. It does not choose that content through
-   model reasoning. Neither deterministic batch handling nor review implies a sandbox for recipe evaluation.
+4. Cook can write declared prose, skills and policy like other file content. Neither deterministic batch handling nor
+   review implies a sandbox for recipe evaluation.
 
 ## Reasons
 
@@ -64,8 +63,7 @@ Cook handles the declared file operations.
 ## Consequences
 
 Recipe authors maintain the choices and inputs their recipes use. Cook maintains operation order and the separation
-between evaluation, review and writes. There is no mandatory unresolved-items handoff, two-step adoption process,
-embedded skill or prohibition on writing knowledge files. Model APIs and hooks remain outside this decision.
+between evaluation, review and writes.
 
 ## Confirmation
 

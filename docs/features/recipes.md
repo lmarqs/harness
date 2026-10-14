@@ -24,14 +24,11 @@ native files directly. Cooking is exposed through the CLI; Gradle builds and pac
 
 This page describes the intended design. For current commands and supplier behavior, use the
 [root README](../../README.md), [core implementation guide](../../core/README.md) and recipe READMEs.
-Ingredient/recipe APIs, nesting, annotations, injection and hooks remain a separate model discussion. The CLI examples
-below do not specify how a recipe receives arguments or composes models internally.
 
 ## Invoking recipes
 
 Pass recipe paths inside the destination repository or `https://` URLs. Ordinary relative paths such as
-`recipe.groovy` are accepted; Cook refuses operands outside the repository and does not perform implicit
-cookbook-name lookup.
+`recipe.groovy` are accepted; Cook refuses operands outside the repository.
 
 ```sh
 ./cook ./recipe.groovy
@@ -49,8 +46,7 @@ See the [CLI reference](cli.md) for the full grammar and reserved initial comman
 Recipes and their operations execute in declared order, left to right. When two recipes write the same section, key
 or file, the last one wins and becomes its owner; the diff is the only notice. If a base recipe sets a key to `base`
 and a project recipe sets it to `project`, the final combined preview shows `project`, and the project recipe owns
-the key. Cook presents one diff for the whole batch rather than asking for approval of each
-intermediate result.
+the key. Cook presents one diff for the whole batch.
 
 Applying the project recipe alone later leaves the base recipe's output intact; applying one recipe never removes
 another recipe's output, and absence from an invocation is not a deletion request. Applying a new version of a recipe
@@ -71,10 +67,10 @@ effects. External command execution is not a batch action, even when a recipe wr
 that another program will execute later.
 
 Cook proposes changes against current content, including existing files and manual edits. Ownership recorded in
-`cook.lock` never blocks a change. There is no `--adopt`, adoption alias or separate adoption step. Cook displays the
-actual final terminal diff and asks before target writes unless `--batch-approve` precedes the recipes. With that
-flag, it still displays the diff and proceeds without prompting. Approval covers the whole batch; noninteractive
-execution alone does not authorize writes. See [safety](safety.md) for trust and configuration review guidance.
+`cook.lock` never blocks a change. Cook displays the actual final terminal diff and asks before target writes unless
+`--batch-approve` precedes the recipes. With that flag, it still displays the diff and proceeds without prompting.
+Approval covers the whole batch; noninteractive execution alone does not authorize writes. See [safety](safety.md) for
+trust and configuration review guidance.
 
 ## Sources and destination
 
@@ -86,7 +82,6 @@ references resolve from the referencing recipe's location: inside the repository
 source URL for HTTPS sources. A local reference that resolves outside the repository is refused. For example, when
 invoked from `/work/project`, a recipe at `cookbook/recipes/project.groovy` referring to `../templates/settings.toml`
 reads `cookbook/templates/settings.toml`. Its declared `settings.toml` output goes to `/work/project/settings.toml`.
-This resolution rule selects no nesting or template-loading API.
 
 The batch record captures the recipe sources actually evaluated and all consumed recipe/template sources, local and
 downloaded, with origins, arguments and execution order. Capturing a source must not change relative source resolution.
@@ -96,8 +91,7 @@ See [paths and history](../architecture.md#paths-source-snapshots-and-local-hist
 
 Users manage recipe versions and supply the version they intend to apply. The committed `cook.lock` records, for
 each applied recipe, its short name, its source as a repository-relative path or `https://` URL, the source's sha256
-and the sections, keys and files it owns; it records no recipe arguments. Cook does not retrieve a previously applied
-version automatically.
+and the sections, keys and files it owns; it records no recipe arguments.
 
 ```sh
 ./cook revert 2026-10-14T15-04-05Z
@@ -115,16 +109,11 @@ nor `cook.lock`; revert requires that batch's record. See [discard and revert](r
 
 Each batch has one record in the destination's ignored `.cook/batches/<batchId>/` directory, with one reversible patch
 per touched file, `cook.lock` included. The record is saved before the first target write. On a write failure, Cook
-rolls back changes already made by the batch and retains the record and failure information. This is file-operation
-recovery, not a workflow verification receipt. Patch representation and metadata schema belong to the
-implementation.
+rolls back changes already made by the batch and retains the record and failure information. Patch representation
+and metadata schema belong to the implementation.
 
 ## Workflow boundary
 
-Recipes describe file changes, not passes through a fixed development lifecycle. Programs and teams execute checks,
-track tasks, launch agents and arrange delivery independently of Cook. Native workflow configuration can be useful
-recipe output without making those activities engine responsibilities. See [workflow boundaries](lifecycle.md).
-
-Personal setup backup (kit) and agent-session orchestration remain future work in
-[issue #5](https://github.com/lmarqs/the-cook/issues/5) and
-[issue #6](https://github.com/lmarqs/the-cook/issues/6). This reference does not define their protocols or recipe hooks.
+Recipes describe file changes. Programs and teams execute checks, track tasks, launch agents and arrange delivery
+independently of Cook. Native workflow configuration can be useful recipe output. See
+[workflow boundaries](lifecycle.md).

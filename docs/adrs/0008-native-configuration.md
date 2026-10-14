@@ -25,23 +25,22 @@ change with unrelated formatting edits.
 
 1. Recipes declare targets in native files: whole-file paths, structured key paths or marked text sections
    ([0007](0007-ownership.md)). Where a program supports separate files, a recipe can target one file without touching
-   neighboring files. Cook does not require one exclusive file per program or a universal set of permission or hook keys.
+   neighboring files.
 2. Structured operations preserve unrelated keys and entries, including fields the model does not interpret.
    Preserve their formatting, order, comments and surrounding text so the diff remains focused on declared changes.
    Whole-file declarations have whole-file scope and require review of that full diff.
 3. Existing values, including manually edited values, are inputs to the same ordered operation and whole-batch approval
    flow. Later instructions may replace earlier values at the same target. Ownership recorded in `cook.lock` decides
-   what a recipe's later versions update and remove ([0007](0007-ownership.md)); no adoption prerequisite or drift veto
-   applies. Removing a key a recipe no longer declares removes its current value; reverting a batch restores that
-   batch's prior value from its record.
+   what a recipe's later versions update and remove and never blocks a change ([0007](0007-ownership.md)). Removing a
+   key a recipe no longer declares removes its current value; reverting a batch restores that batch's prior value from
+   its record.
 4. Personal override files are affected only when recipes explicitly declare them as targets. Their mere presence does
    not authorize writing them or importing their contents into shared configuration. Declared operations remain within
    the invocation directory, including symlink resolution ([0012](0012-write-boundary.md)).
 
-Native settings can configure permissions, skills or a program's own hooks. That does not make Cook the program's
-runner or impose a safety-floor policy. Recipes are trusted executable code; declared-operation review, boundaries
-and recovery do not sandbox their arbitrary side effects. Ingredient/recipe APIs, station semantics and lifecycle
-hooks remain a separate discussion. This decision selects no model schema, migration protocol or serialization format.
+Native settings can configure permissions, skills or a program's own hooks. Recipes are trusted executable code;
+declared-operation review, boundaries and recovery do not sandbox their arbitrary side effects. Ingredient/recipe APIs,
+station semantics and lifecycle hooks remain a separate discussion.
 
 ## Reasons
 
@@ -103,4 +102,4 @@ Review the intended behavior with shared-file examples:
 - A targeted change preserves unrelated key order and TOML comments; a whole-file declaration shows its full diff.
 - A separate-file target leaves neighboring configuration files intact.
 - Personal overrides are not implicitly written or imported; an explicit in-destination target follows normal review.
-- A manually edited key can be updated or deleted through batch review, without adoption or a drift veto.
+- A manually edited key can be updated or deleted through batch review.

@@ -39,8 +39,8 @@ The same rules apply to guidance read by coding agents, because ambiguity can be
   to distinguish a recipe input failure from a target write failure.
 - Name destination files relative to the invocation directory, with `:line:column` when known. Identify source files
   by their original location or URL when needed; a snapshot path alone obscures which source to edit.
-- Distinguish warnings from failures in words. Do not assign numeric exit codes in message guidance; the agreed
-  design does not select a new exit-code table.
+- Distinguish warnings from failures in words. Do not assign numeric exit codes in message guidance; the agreed design
+  does not select an exit-code table.
 - Do not emit ANSI escapes to non-TTY streams, because logs and transcripts must remain readable. Formatting and
   progress messages must not hide or replace the final batch diff.
 
@@ -52,7 +52,7 @@ Every actionable error explains three things, in this order:
 2. **Why:** the cause, including found and expected values when useful.
 3. **Next:** the command, edit or decision that addresses it.
 
-The following examples illustrate wording for the intended CLI; they are not captured implementation output:
+The following examples illustrate wording for the intended CLI:
 
 ```text
 the-cook: apply: unknown option --batch-approve after ./recipe.groovy
@@ -82,8 +82,8 @@ Do not suggest re-evaluating a recipe as an equivalent reversal: apply proposes 
 whereas revert reverses one recorded batch's changes.
 
 When approval needs a caller's decision, name the choices: run interactively to review and answer the prompt, or
-explicitly preapprove with `--batch-approve` before the operands. Neither a noninteractive terminal nor the presence
-of existing content authorizes writes. Do not suggest an adoption step, alias or manual-edit override.
+explicitly preapprove with `--batch-approve` before the operands. Neither a noninteractive terminal nor the presence of
+existing content authorizes writes.
 
 Keep normal diagnostics focused on information the caller can act on, rather than internal type names or paths inside
 the package. When a target write fails, describe rollback and the retained batch record and failure accurately. Do not
@@ -91,28 +91,28 @@ claim recovery of side effects outside the declared batch.
 
 ## Output for automation and coding agents
 
-Human prose is for readers; scripts must not treat its wording as a stable data format. The agreed CLI does not
-specify `--json` or a machine-output schema ([CLI output](cli-standards.md#json)).
+Human prose is for readers; scripts must not treat its wording as a stable data format
+([CLI output](cli-standards.md#json)).
 
-Use the same operation names and approval scope in interactive and noninteractive guidance. Display the final diff
-even with `--batch-approve`; that flag covers the whole batch, not individually chosen changes. A coding agent reading a
-message must be able to tell whether target writes occurred, whether rollback was needed and what information remains
-for recovery. Do not imply that batch review sandboxes trusted recipe execution.
+Use the same operation names and approval scope in interactive and noninteractive guidance. Display the final diff even
+with `--batch-approve`; that flag covers the whole batch. A coding agent reading a message must be able to tell whether
+target writes occurred, whether rollback was needed and what information remains for recovery. Do not imply that batch
+review sandboxes trusted recipe execution.
 
 Cook writes native configuration that other programs consume. Guidance about their prompts, hooks or skill discovery
-belongs with their cookbook configuration; this standard defines no injected-context, worker-output or session protocol.
+belongs with their cookbook configuration.
 
 ## Generated text in human files
 
 A recipe may declare a marked section in a shared instruction file. Markers bound the section and name its owner,
-`cook:begin <recipe>/<region>` and `cook:end <recipe>/<region>`; they do not define a block class
+`cook:begin <recipe>/<region>` and `cook:end <recipe>/<region>`
 ([generated-content-standards.md](generated-content-standards.md#managed-blocks)). Keep instructions concise, avoid
 duplicating surrounding guidance, and link to supporting detail where useful. State conventions using the values that
 apply to the repository, so people and programs can understand them directly.
 
-A section may contain conventions, explanations or Cook commands as the recipe requires. There is no mandatory
-convention/tool classification, eject behaviour or engine line budget. Manual edits inside the declared section
-appear in the next batch diff; unrelated text outside it remains intact. Use HTML comments for markers in Markdown.
+A section may contain conventions, explanations or Cook commands as the recipe requires. Manual edits inside the
+declared section appear in the next batch diff; unrelated text outside it remains intact. Use HTML comments for markers
+in Markdown.
 
 ## Documentation structure
 
@@ -126,10 +126,8 @@ appear in the next batch diff; unrelated text outside it remains intact. Use HTM
 | Root and core usage guides | Truthful instructions and limitations for current implementation |
 | Recipe READMEs under `cookbook/recipes/` | What one recipe writes, reads, accepts and rejects |
 
-When a standard or ADR conflicts with the architecture, correct the supporting document. A missing implementation
-is work to track separately, not a reason to revive a conflicting design. Requirements and illustrative examples do
-not establish that a command or distribution mechanism is available. See the [UX authority](README.md#authority) and
-[ADR index](../adrs/README.md).
+When a standard or ADR conflicts with the architecture, correct the supporting document. Track a missing implementation
+in issues. See the [UX authority](README.md#authority) and [ADR index](../adrs/README.md).
 
 ### Every document opens with its objective
 
@@ -172,9 +170,8 @@ from the [recipe README template](../../cookbook/recipes/TEMPLATE.md), which fix
 
 ### Writing rules for all documentation
 
-- Use present tense for the intended design. In implementation guides, describe what actually runs and identify
-  relevant limitations. Keep implementation progress in issues; Git retains earlier text. No document status labels,
-  supersession registry or archive framework is needed.
+- Use present tense for the intended design. In implementation guides, describe what actually runs and identify relevant
+  limitations. Keep implementation progress in issues; Git retains earlier text.
 - Make each page understandable when reached from search: define a term or link to the
   [glossary](../features/glossary.md) at first use.
 - Support claims with accessible evidence. Avoid references to unnamed repositories or private conversations.
@@ -182,18 +179,18 @@ from the [recipe README template](../../cookbook/recipes/TEMPLATE.md), which fix
 - Follow an abstract rule with a concrete example when its meaning would otherwise be unclear. Label illustrative
   commands, diffs and output as examples of the intended interaction. Do not present invented output as a real run.
 - Use relative links for repository pages, tables when they aid lookup, and language-tagged fenced blocks for commands
-  and output. Link where useful in either direction; cross-references need no acyclic order or directory numbering.
+  and output. Link where useful in either direction.
 - Use Cook or `the-cook` for the engine and `./cook` for the repository entry point. Show the equivalent global entry
   point when useful ([entry points](cli-standards.md#entry-points)). Use one term per engine concept.
 - Use generic organizations such as `acme` in made-up examples. Recipe operands must still be exact supported paths or
   URIs, such as `https://example.com/cookbook/recipe.groovy`; do not invent a cookbook-name lookup scheme.
 - Explain program-specific files and settings when they clarify native configuration. Attribute those choices to
-  cookbook ingredients and recipes rather than promising engine contracts for every program. Do not invent worker,
-  version-control or jail roles merely to avoid naming a program.
+  cookbook ingredients and recipes rather than promising engine contracts for every program. Name the program rather
+  than inventing a generic role in its place.
 - Keep commands aligned with the [CLI reference](../features/cli.md). Show batch options before operands and recipe
   arguments after their recipe. Document any real prerequisites in current-usage examples.
-- Review affected links and index descriptions when changing a page. Retain useful paths; correct contradictory text
-  in place instead of introducing a replacement-document registry.
+- Review affected links and index descriptions when changing a page. Retain useful paths; correct contradictory text in
+  place.
 
 ### Names for engine concepts
 
@@ -216,5 +213,3 @@ from the [recipe README template](../../cookbook/recipes/TEMPLATE.md), which fix
 
 Use these terms consistently with the [glossary](../features/glossary.md). A recipe is evaluated; a batch is reviewed,
 approved and recorded. History never marks a recipe as already applied.
-Ingredient/recipe APIs, station roles, nesting, annotations, injection and lifecycle hooks remain separate model
-questions, not vocabulary rules that settle their design.

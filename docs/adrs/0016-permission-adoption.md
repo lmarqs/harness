@@ -32,8 +32,7 @@ approving it, without converting their configuration through a separate adoption
 3. Personal settings are not implicitly imported into shared configuration. A recipe that explicitly copies choices
    into a declared destination file exposes that output in the same batch review. Recipe and template references
    come from inside the destination repository or from `https://` URLs; declared writes and deletions remain within
-   the destination ([0012](0012-write-boundary.md)). This decision does not define an import API or personal-backup
-   capability.
+   the destination ([0012](0012-write-boundary.md)).
 4. The permission rules and keys a recipe writes are recorded as its own in the committed `cook.lock`
    ([0007](0007-ownership.md)). That ownership decides which rules the recipe's later versions update and remove; it
    never vetoes a change to an edited rule and implies no adoption of rules the recipe did not write. Reverting a batch

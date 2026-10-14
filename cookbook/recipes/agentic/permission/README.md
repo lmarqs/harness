@@ -51,8 +51,7 @@ The same prefixes do not guarantee identical enforcement by the two harnesses; r
 against each harness's permission model.
 
 A missing, empty or malformed policy, an unknown field, a version other than `1`, a duplicate key, an unsupported
-token or a symbolic link is rejected before any file is written. The recipe leaves other keys in these files untouched
-and writes no `AGENTS.md`, `CLAUDE.md`, skills or hooks.
+token or a symbolic link is rejected before any file is written. The recipe leaves other keys in these files untouched.
 
 Each harness has its own application, `agentic.permissions/claude` or `agentic.permissions/codex`. Applying one
 harness leaves the other harness's files intact. The policy path is not part of the identity, so cooking a harness

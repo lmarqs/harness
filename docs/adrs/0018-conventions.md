@@ -18,7 +18,6 @@ setup readers encounter.
 - A path remains ignored while an ignore entry covers it. Deleting the last covering entry can expose existing files
   as untracked; deleting an ignore entry does not delete those files.
 - Instructions about repository practice and instructions for invoking Cook have different readers and dependencies.
-  Cook does not create or supervise agent sessions or working-copy lifecycles under this design.
 
 ## Decision
 
@@ -32,12 +31,11 @@ setup readers encounter.
 3. Applying recipes composes declared instruction and ignore-file operations in order. Applying another recipe does
    not remove text or ignore entries another recipe owns. Applying a recipe's new version removes the sections and
    entries its previous version owned and no longer declares, after whole-batch review, even when their current
-   content was edited. It neither automatically deletes the paths those entries describe nor strips markers to
-   preserve a special class of block.
+   content was edited. It does not automatically delete the paths those entries describe.
 4. Stopping use of Cook requires no eject operation: native files, their markers and `cook.lock` can stay as they
-   are. Reverting a batch restores its prior values from its reverse patches, subject to actual batch diff review
-   rather than a drift veto; a later edit that overlaps the batch's changes makes the revert write nothing and list
-   the conflict. The [operation reference](../features/remove.md) explains these distinct requests.
+   are. Reverting a batch restores its prior values from its reverse patches, subject to actual batch diff review; a
+   later edit that overlaps the batch's changes makes the revert write nothing and list the conflict. The
+   [operation reference](../features/remove.md) explains these distinct requests.
 
 ## Reasons
 

@@ -14,15 +14,13 @@ These standards follow the intended [architecture](../architecture.md). Cook eva
 ordered file operations; ingredients model a program's native files and configuration, and cookbooks hold and ship
 ingredients and recipes. The [feature reference](../features/README.md) expands these responsibilities.
 
-These requirements do not establish implementation completion. See the [root README](../../README.md) for current
-execution. Ingredient/recipe APIs, station roles, nesting, annotations, parameter injection, and lifecycle hooks
-remain separate model discussion work. This page does not define a universal profile, policy, hook, or recipe schema.
+See the [root README](../../README.md) for current execution.
 
 ## Where files live
 
-The current working directory is the destination. Recipe and executable locations do not select a repository root or
-another output directory. Declared writes and deletions stay within the destination, including paths resolved through
-symlinks. Why: a reviewer must know the boundary of the batch they approve.
+The current working directory is the destination, regardless of recipe and executable locations. Declared writes and
+deletions stay within the destination, including paths resolved through symlinks. Why: a reviewer must know the boundary
+of the batch they approve.
 
 | Content | Location | Purpose |
 | --- | --- | --- |
@@ -32,10 +30,8 @@ symlinks. Why: a reviewer must know the boundary of the batch they approve.
 | Batch records | The destination's ignored `.cook/batches/<batchId>/` directory | One record per batch: source snapshots and reversible patches for revert |
 | Engine wrapper | Committed `./cook` | Pins the engine version and package checksum; first use fetches and caches the platform package |
 
-`.cook/` holds local batch records; committed ownership lives in `cook.lock`, and there is no neutral configuration
-tree. A recipe may
-use shared guidance under `.agents/` where that suits the native program; the engine does not prescribe a fixed
-catalog of skills, memory, commands, or instruction blocks.
+`.cook/` holds local batch records; committed ownership lives in `cook.lock`. A recipe may use shared guidance under
+`.agents/` where that suits the native program.
 
 Record source origins when saving snapshots. A relative template reference in a local recipe resolves from that recipe's
 location inside the repository; an HTTPS recipe resolves it against its source URL. Neither resolves from the snapshot
@@ -47,9 +43,9 @@ paths](../features/render.md#destination-and-source-paths).
 ## Inputs
 
 Recipe operands are paths inside the destination repository or `https://` URLs. Ordinary relative paths such as
-`recipe.groovy` are accepted; there is no implicit cookbook-name lookup. Users manage recipe versions and supply the
-version they intend to apply; `cook.lock` records which version produced the current ownership. Remote and local sources
-are trusted executable code, not data confined by batch approval.
+`recipe.groovy` are accepted. Users manage recipe versions and supply the version they intend to apply; `cook.lock`
+records which version produced the current ownership. Remote and local sources are trusted executable code, not data
+confined by batch approval.
 
 ```sh
 ./cook ./recipe.groovy
@@ -63,9 +59,9 @@ starts its own argument scope. In the last two examples, `b.groovy` is respectiv
 recipe. Batch options precede operands; placing `--batch-approve` after a recipe receives the normal unknown-option
 error. The [CLI reference](../features/cli.md) defines the grammar, including reserved initial command names.
 
-Document cookbook inputs close to the recipes that use them, with their meaning, supported values, defaults, and
-native effects. An input format belongs to its cookbook guidance rather than an inferred engine model API. Engine
-wrapper pinning is distinct from cookbook builds and user-supplied recipe versions.
+Document cookbook inputs close to the recipes that use them, with their meaning, supported values, defaults, and native
+effects. An input format belongs to its cookbook guidance. Engine wrapper pinning is distinct from cookbook builds and
+user-supplied recipe versions.
 
 ## Defaults and format changes
 
@@ -74,9 +70,8 @@ focused on the user's choices rather than copying every default. When changing a
 explain changed meanings and how users can supply the intended version. Why: a familiar key with a new meaning can
 produce an unexpected diff.
 
-Respect the native program's format and compatibility rules. Do not require every file to start with `schema: 1`,
-select a metadata serialization format, or infer engine migration commands. Any declared transformation of existing
-configuration follows the same diff and whole-batch approval flow as other changes.
+Respect the native program's format and compatibility rules. Any declared transformation of existing configuration
+follows the same diff and whole-batch approval flow as other changes.
 
 ## Validation messages
 
@@ -85,8 +80,7 @@ path, and what was expected. Include line and column when available, and offer a
 Why: a person should be able to find the mistake without reconstructing how a recipe reached it.
 
 Do not silently omit a requested setting and present the batch as if it included that change. Explain native support
-gaps where relevant. These guidelines establish neither a new exit-code table nor a validation command or model API;
-see the [CLI error guidance](cli-standards.md#errors-and-exit-codes).
+gaps where relevant. See the [CLI error guidance](cli-standards.md#errors-and-exit-codes).
 
 ## Values and native settings
 
@@ -94,15 +88,13 @@ Quote values according to the native format. For example, YAML strings containin
 content is not interpreted as a mapping or comment. Document how a recipe interprets paths or globs rather than
 assuming every program shares one convention. Distinguish destination paths from source paths as described above.
 
-Permission settings, hook entries, and skill discovery belong to the program that reads them. Preserve unrelated
-keys and avoid unnecessary changes to comments, key order, or blank lines. Review the exact native rules and their
-scope: programs can differ in matching, precedence, project trust, and local overrides. Cook does not establish a
-universal permission policy, immutable safety floor, command placeholder language, or hook event/payload contract.
-See [permissions](../features/policy.md), [native hooks](../features/hooks.md), and [guidance](../features/context.md).
+Permission settings, hook entries, and skill discovery belong to the program that reads them. Preserve unrelated keys
+and avoid unnecessary changes to comments, key order, or blank lines. Review the exact native rules and their scope:
+programs can differ in matching, precedence, project trust, and local overrides. See
+[permissions](../features/policy.md), [native hooks](../features/hooks.md), and [guidance](../features/context.md).
 
-A native hook command may need executables, credentials, a working directory, and safely quoted paths. The program
-runs that hook; external commands are not batch actions. Its eventual effects are not reversed by undoing the file
-configuration. Recipe lifecycle hooks and injection mechanisms are outside this design.
+A native hook command may need executables, credentials, a working directory, and safely quoted paths. The program runs
+that hook. Its eventual effects are not reversed by undoing the file configuration.
 
 ## Ordered changes and approval
 
@@ -118,9 +110,9 @@ Whole-file operations address file paths, structured operations address key path
 comments for Markdown). Markers name the owning recipe and region; ownership never blocks a change. See the
 [generated-content standard](generated-content-standards.md#kinds-of-generated-content).
 
-Every apply invocation evaluates the supplied recipe versions against current content. Previous history does not
-skip a recipe as already applied; unchanged output may produce an empty diff. Existing and manually edited content
-uses the same review flow, without `--adopt`, adoption aliases, or a separate adoption step.
+Every apply invocation evaluates the supplied recipe versions against current content. Previous history does not skip a
+recipe as already applied; unchanged output may produce an empty diff. Existing and manually edited content uses the
+same review flow.
 
 Display the final combined diff in the terminal and ask for approval of the whole batch before changing target files.
 With `--batch-approve`, display the diff and proceed without prompting. Noninteractive execution without that flag
@@ -130,12 +122,12 @@ combined effect of ordered operations, including changes to existing configurati
 
 ## Local history and explicit reversal
 
-Before the first target write, save the batch record in the destination's ignored `.cook/batches/<batchId>/`, where
-the batch ID is the UTC start time. It holds one reversible patch per touched file, `cook.lock` included; one patch
+Before the first target write, save the batch record in the destination's ignored `.cook/batches/<batchId>/`, where the
+batch ID is the UTC start time. It holds one reversible patch per touched file, `cook.lock` included; one patch
 represents the combined file change and supports forward and reverse application. The record also holds evaluated
-recipes, all consumed recipe/template sources (local and downloaded), origins, arguments, execution order, and result
-or failure log. On a write failure, roll back changes already made and retain the record and failure. No patch
-representation, complete storage layout, or metadata schema is chosen here.
+recipes, all consumed recipe/template sources (local and downloaded), origins, arguments, execution order, and result or
+failure log. On a write failure, roll back changes already made and retain the record and failure. The patch
+representation, complete storage layout, and metadata schema belong to the implementation.
 
 Apply requires neither batch history nor `cook.lock`. Losing `.cook/` loses the ability to revert earlier batches,
 not the ability to cook; ownership survives in the committed `cook.lock`, and new batches still save their records
@@ -166,5 +158,5 @@ Groovy code can read inherited credentials and perform arbitrary effects; batch 
 confine it or promise automatic redaction.
 
 Keep personal and shared choices deliberate. Local overrides belong to the native program's configuration scopes;
-copying a value into shared output changes who can read it and whose behavior it affects. Existing personal settings
-do not need a special adoption/import step for a declared batch target to use the normal approval flow.
+copying a value into shared output changes who can read it and whose behavior it affects. A declared batch target that
+holds existing personal settings uses the normal approval flow.

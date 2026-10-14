@@ -25,7 +25,7 @@ the tools used to build Cook.
 ## Decision
 
 1. The complete platform-specific jpackage package contains Cook and its Java runtime. Package users do not install
-   Java or Gradle separately. The runtime is a bundled engine dependency, not an assumed property of the destination.
+   Java or Gradle separately. The runtime is a bundled engine dependency.
 2. A committed wrapper pins the engine version and matching platform-package checksum. It downloads and verifies the
    complete package before first execution, caches it locally, and reuses that pin. Upgrades are explicit reviewed
    changes; ordinary invocations do not select newer releases.
@@ -63,13 +63,10 @@ removing separate runtime installation does not require removing the runtime fro
 ## Consequences
 
 Engine releases maintain the bundled Java runtime and complete platform packages. Copying a launcher alone is
-insufficient. Development builds have their own toolchain requirements, which are not package-user requirements.
-This decision imposes no static-linking rule, native-library ban, external-tool health-check contract, automatic
-updater, cookbook registry or recipe-version manager.
+insufficient. Development builds have their own toolchain requirements.
 
 ## Confirmation
 
 Review runtime and wrapper descriptions against the [architecture](../architecture.md#engine-distribution) and
 [wrapper reference](../features/wrapper.md). Delivery instructions must distribute the complete package and keep
-first-use requirements distinct from development tooling. A target pinning design does not imply that a release
-has been published or that the development launcher implements it.
+first-use requirements distinct from development tooling.

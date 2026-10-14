@@ -12,12 +12,12 @@ approve the whole batch; unattended callers explicitly preapprove it.
 
 These standards follow the intended [architecture](../architecture.md), with command details in the
 [CLI reference](../features/cli.md) and vocabulary in the [glossary](../features/glossary.md). The architecture is the
-authority when a supporting standard conflicts with it. These requirements do not establish that the target behaviour
-is implemented; see the [root README](../../README.md) for current execution instructions.
+authority when a supporting standard conflicts with it. See the [root README](../../README.md) for current execution
+instructions.
 
-Cook evaluates trusted Groovy recipes into ordered file operations. Approval, destination boundaries and rollback
-cover declared batch operations, not arbitrary side effects of recipe code. Trusting a recipe is separate from
-approving the changes it proposes. Cook does not run a development lifecycle or orchestrate agent sessions.
+Cook evaluates trusted Groovy recipes into ordered file operations. Approval, destination boundaries and rollback cover
+declared batch operations, not arbitrary side effects of recipe code. Trusting a recipe is separate from approving the
+changes it proposes.
 
 ## Entry points
 
@@ -26,8 +26,8 @@ downloads and verifies the platform package on first use, and reuses the local c
 upgrades are explicit pin and checksum changes. See [installation](../features/installation.md) and
 [wrapper](../features/wrapper.md) for the distribution contract and current implementation limitations.
 
-The CLI is the public cooking interface. Gradle builds and packages the engine and cookbooks; it is not a second
-public cooking interface. Cookbook repositories and builds remain separate from engine releases.
+The CLI is the public cooking interface. Gradle builds and packages the engine and cookbooks. Cookbook repositories and
+builds remain separate from engine releases.
 
 The invocation's current working directory is the destination, regardless of the executable or recipe location. Declared
 writes and deletions stay inside that directory, including through symlinks. Recipes come from paths inside the
@@ -50,7 +50,7 @@ commands. A file named `revert` can be supplied as `./revert`, so its path is un
 `batch inspect` only read recorded batches.
 
 Recipe operands are paths inside the destination repository or `https://` URLs. Ordinary relative paths such as
-`recipe.groovy` are accepted. There is no implicit cookbook-name lookup.
+`recipe.groovy` are accepted.
 
 ```sh
 ./cook recipe.groovy
@@ -75,8 +75,7 @@ they reach Cook as one argument.
 
 Here `--agent=codex` belongs to `base.groovy`; `--agent=claude` belongs to `project.groovy`. Recipes and their
 operations compose left to right. When two recipes write the same section, key or file, the last one wins and becomes
-its owner; the diff is the only notice. The terminal shows the combined final result, rather than approving
-intermediate results separately.
+its owner; the diff is the only notice. The terminal shows the combined final result.
 
 An argument value that looks like a path remains an argument value:
 
@@ -86,7 +85,7 @@ An argument value that looks like a path remains an argument value:
 ```
 
 The first invocation evaluates only `a.groovy`, with `./b.groovy` as its `source` argument value. The second evaluates
-both recipes, in order. This grammar does not select a recipe parameter-injection API.
+both recipes, in order.
 
 A misplaced batch option after a recipe receives the normal unknown-option error:
 
@@ -131,25 +130,21 @@ history](../architecture.md#one-record-for-the-batch) for the recorded informati
 
 Cook MUST display the final combined diff in the terminal before target writes, because the user approves the actual
 change to current content. The CLI accepts the whole batch; choosing individual changes belongs to a separate interface
-decision, and the core writes and records only the changes it receives as accepted. Diff visibility does not depend on a
-verbose flag or a separate preview command.
+decision, and the core writes and records only the changes it receives as accepted.
 
 Without preapproval, ask before changing target files. Declining approval leaves batch targets unchanged. With
 `--batch-approve`, display the diff and proceed without prompting. This flag preapproves the entire operation,
 including revert, so its meaning is the same for apply and revert.
 
-Existing and edited content follows this same review flow; ownership never blocks a change, and Cook does not refuse
-merely because a developer edited a target. The target CLI has no `--adopt`, adoption alias or separate adoption step.
-The only preapproval spelling is `--batch-approve`; `--batch-approved`,
-`--approve` and `--yes` are not aliases. There is no separate `--force` gate for hand-edited targets.
+Existing and edited content follows this same review flow; ownership never blocks a change. The only preapproval
+spelling is `--batch-approve`.
 
 ### Failure recovery
 
 Save the batch record before the first target write. Record the whole batch in the destination's ignored
 `.cook/batches/<batchId>/`, where the batch ID is the UTC start time, with one reversible patch per touched file,
 `cook.lock` included. Capture evaluated recipes, all consumed recipe/template sources (local and downloaded), origins,
-arguments, execution order and result or failure log. One patch supports forward and reverse application; separate
-copies are unnecessary.
+arguments, execution order and result or failure log. One patch supports forward and reverse application.
 
 If a write fails, roll back changes already made by the batch and retain the patches and failure record. Report the
 failure and recovery outcome clearly so the caller can inspect what happened. These guarantees cover declared batch
@@ -180,8 +175,7 @@ or replace the diff itself. See [message wording](messages-and-docs.md#cli-messa
 
 ### Icons
 
-Retain a small set of kitchen/lab icons for terminal messages. Their meanings describe activities and outcomes,
-without assigning exit codes or implying lifecycle stages.
+Retain a small set of kitchen/lab icons for terminal messages. Their meanings describe activities and outcomes.
 
 | Icon | Kind |
 | --- | --- |
@@ -199,8 +193,9 @@ the final message describes its outcome, so an activity icon does not suggest su
 
 ### JSON
 
-The agreed CLI does not specify a `--json` option or machine-output schema. This standard does not introduce one.
-Batch records have no mandated metadata serialization format.
+CLI results and diagnostics are the human output described under [streams and human output](#streams-and-human-output);
+scripts must not treat their wording as a stable data format. The metadata serialization format of batch records belongs
+to the implementation.
 
 ### Progress
 
@@ -214,9 +209,8 @@ Every error states what failed, why, and an actionable next step when known. Nam
 line and column so the reader can locate the problem. Invalid usage explains the correct argument scope; for example,
 a misplaced `--batch-approve` message directs the caller to put it before the first recipe.
 
-Keep routine diagnostics focused on information the caller can act on, rather than internal identifiers or stack
-traces. This design does not assign new exit-code meanings, retry codes or hook-triggered failure events. The former
-lifecycle engine's code table does not define the file-operation CLI contract.
+Keep routine diagnostics focused on information the caller can act on, rather than internal identifiers or stack traces.
+This design does not assign exit-code meanings.
 
 ## Non-interactive operation
 
@@ -232,13 +226,10 @@ behaviour, and examples in a consistent order, because readers need to predict h
 `./cook` and exact recipe paths or `https://` URLs. Explain that apply evaluates supplied recipes while revert uses a
 recorded batch's patches, and link to the [CLI reference](../features/cli.md) for details.
 
-Help must not advertise retired lifecycle/management commands as part of this target contract. Ingredient/recipe
-APIs, nesting, station roles, annotations, injection and lifecycle hooks require their own discussion; help and
-examples must not turn exploratory model syntax into a normative API.
+Help advertises only the commands in the [command grammar](#command-grammar). Help and examples must not turn
+exploratory model syntax into a normative API.
 
 ## Deprecation
 
-The target command set is apply (implicit or explicit), revert, `batch list` and `batch inspect`; discard is
-deferred. Retired lifecycle/management commands,
-adoption options and tentative approval spellings are not compatibility aliases. This documentation alignment does
-not introduce a deprecation window or an updater; implementation changes remain separate work.
+The target command set is apply (implicit or explicit), revert, `batch list` and `batch inspect`; discard is deferred.
+[What counts as breaking](compatibility-standards.md#what-counts-as-breaking) covers removing or renaming a command.

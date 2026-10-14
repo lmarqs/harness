@@ -18,4 +18,4 @@ Each directory holds one recipe: its `recipe.groovy` entry point (or a flat `<na
 ## Shared helpers
 
 `operations.groovy` is a helper map for required values, shell quoting, task composition, whole-file outputs and
-guarded replacements. It is not a recipe.
+guarded replacements.

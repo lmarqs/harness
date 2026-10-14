@@ -4,6 +4,8 @@
 /core/build/
 /cli/.gradle/
 /cli/build/
+/docs/.gradle/
+/docs/build/
 /cookbook/ingredients/*/.gradle/
 /cookbook/ingredients/*/build/
 /cookbook/recipes/**/.gradle/

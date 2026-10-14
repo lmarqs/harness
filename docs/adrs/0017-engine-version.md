@@ -21,19 +21,17 @@ version through the repository's entry point without installing Java or Gradle s
 - Cookbook repositories hold and ship ingredients and trusted Groovy recipes and can build separately from Cook
   ([0013](0013-organization-content.md)). Ingredients model programs' native files and configuration; the engine
   evaluates recipes and reviews, records, and writes their declared file operations.
-- Destination-local `.cook/` is ignored recovery history, not the home of the engine pin
-  ([0014](0014-directory-layout.md)). Recipe ownership lives in the committed `cook.lock`; apply needs neither prior
-  history nor that lock.
-- These are target decisions. The current [`cook` script](../../cook) launches a locally built JVM distribution; it
-  does not pin, download, verify, or cache a release. The existing
-  [jpackage build](../../cli/gradle/jpackage.gradle) produces an application image with bundled Java. Neither establishes
-  a published-release installation path. See [installation](../features/installation.md#build-a-local-package-today).
+- Destination-local `.cook/` is ignored recovery history ([0014](0014-directory-layout.md)). Recipe ownership lives in
+  the committed `cook.lock`; apply needs neither prior history nor that lock.
+- The current [`cook` script](../../cook) launches a locally built JVM distribution, and the existing
+  [jpackage build](../../cli/gradle/jpackage.gradle) produces an application image with bundled Java
+  ([installation](../features/installation.md#build-a-local-package-today)).
 
 ## Decision
 
 1. Commit an executable `./cook` wrapper with an exact engine version and matching checksums for the platform packages
    the repository uses. The committed pin remains available independently of ignored `.cook/` history and is separate
-   from the recipe ownership in `cook.lock`. This decision does not select a pin serialization format.
+   from the recipe ownership in `cook.lock`.
 2. Distribute the engine as a complete platform-specific `jpackage` package containing Java. Cache and launch that
    complete package; copying only its launcher does not supply the runtime or other package contents.
 3. On first use of an uncached pin, the wrapper downloads the selected platform package and verifies it against the
@@ -41,14 +39,13 @@ version through the repository's entry point without installing Java or Gradle s
    reuse the cached pinned package without downloading again. The cache distinguishes versions and platforms.
 4. Upgrade by explicitly changing the committed version and corresponding package checksums together for review.
    Ordinary invocations do not move the pin. A pin change does not automatically re-render project files, migrate
-   configuration, update cookbooks, or choose a recipe version. No updater or release-notice command is selected here.
+   configuration, update cookbooks, or choose a recipe version.
 5. The wrapper passes CLI arguments to the engine. The invocation's current working directory remains the destination
    for declared writes regardless of the wrapper or package location. CI that chooses to invoke Cook uses the same
-   pin and verification flow; no CI job or check command is required by this decision.
+   pin and verification flow.
 6. Engine pinning is separate from cookbook distribution and recipe trust. Users manage recipe versions and supply
-   the version to apply. Ingredient/recipe APIs, nesting, station semantics, decorators, injection,
-   annotations, and lifecycle hooks remain for the separate model discussion. Issue #9 does not decide deletion of
-   dynamic composition or compiled suppliers, and this wrapper decision selects neither as the final model API.
+   the version to apply. Ingredient/recipe APIs, nesting, station semantics, decorators, injection, annotations, and
+   lifecycle hooks remain for the separate model discussion.
 
 ## Reasons
 
@@ -94,23 +91,19 @@ jpackage distribution supplies Java directly without that requirement.
 ## Consequences
 
 - First use needs access to the pinned package and tools to download, verify, and unpack it. Users of the complete
-  package need no separate Java or Gradle installation. Wrapper tooling and the release platform matrix still need
-  implementation design; this record does not prescribe shells, asset paths, cache paths, or failure exit codes.
+  package need no separate Java or Gradle installation.
 - Maintainers distribute complete packages and corresponding checksums for the platforms they support. Platform
   packages and cached executables need protection from unintended changes.
-- Repositories review explicit pin changes. Cookbook changes remain separate; no registry, recipe-version manager,
-  automatic updater, global-install delegation, hook cache mode, or checksum-bypass mechanism is introduced.
-- Existing target content uses the actual batch diff and approval flow, without `--adopt`, an adoption alias, a separate
-  adoption step, or drift gates; recorded ownership never blocks a change. Engine pinning does not create those
-  prerequisites.
+- Repositories review explicit pin changes. Cookbook changes remain separate.
+- Existing target content uses the actual batch diff and approval flow; recorded ownership never blocks a change.
 
 ## Confirmation
 
-Review the distribution design for these scenarios; they are acceptance observations, not required check commands:
+Review the distribution design for these scenarios:
 
 - An uncached invocation verifies and caches the complete pinned platform package, including Java, before launching
   it with the supplied arguments. A checksum mismatch prevents execution and cache acceptance.
 - A later invocation reuses that pin offline. An explicit version/checksum change selects the new package through the
   same verification flow without automatically changing cookbook content or project configuration.
 - Removing local recovery history leaves the committed pin available. Invoking a wrapper or package elsewhere still
-  targets the caller's working directory. Recipe/model APIs and lifecycle mechanics remain undecided.
+  targets the caller's working directory.

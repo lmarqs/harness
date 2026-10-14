@@ -28,10 +28,9 @@ own configuration choices and can reuse practices maintained elsewhere.
 1. The engine's evaluation, batch review, recovery, and writing responsibilities stay in the shared engine release.
    A repository need not vendor or maintain a copy of that engine to describe its own configuration.
 2. Repositories may hold trusted executable Groovy recipes and their source/template files. Recipes describe
-   requested file operations; they are not restricted to declarative YAML or a closed set of lifecycle steps.
+   requested file operations; they are not restricted to declarative YAML.
 3. Cookbooks hold and ship ingredients and recipes through their own repositories, with builds that can be separate
-   from Cook's build. Ingredients model programs' native files and configuration. This decision does not select
-   model APIs, nesting, lifecycle hooks, or a mandatory cookbook storage or version-management scheme.
+   from Cook's build. Ingredients model programs' native files and configuration.
 4. A committed wrapper pins the engine version and package checksum, downloads and verifies the platform package
    on first use, caches it locally, and changes version only through an explicit upgrade. The platform-specific
    JVM package uses jpackage and contains Java. Engine pinning is separate from selecting the recipe version to use.
@@ -46,8 +45,7 @@ own configuration choices and can reuse practices maintained elsewhere.
   review and writing machinery. The trade is that source review alone does not establish the resulting diff or rule
   out side effects; authors and users must trust the code they evaluate.
 - **3.** Program knowledge changes independently of engine mechanics. Separate cookbook maintenance keeps those
-  release responsibilities apart. The trade is that engine and cookbook compatibility still needs attention;
-  this ADR does not settle its API or serialization contract.
+  release responsibilities apart. The trade is that engine and cookbook compatibility still needs attention.
 - **4.** A version and checksum make the selected engine package reviewable, while bundled Java avoids a separate
   runtime installation. The trade is complete platform-specific packages and separate cookbook/recipe updates.
 - **5.** A declared file operation can be previewed and recovered by Cook. Arbitrary Groovy code can act outside
@@ -90,4 +88,4 @@ Must be maintained:
 - Review traces evaluation, combined diff, approval, recovery, and declared writes to engine responsibilities,
   while leaving program-specific configuration choices to cookbook content and recipes.
 - Distribution descriptions use complete JVM packages with bundled Java and explicit engine pins, without
-  claiming that recipe code is sandboxed or that a deferred model API has been chosen.
+  claiming that recipe code is sandboxed.

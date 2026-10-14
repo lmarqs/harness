@@ -34,12 +34,10 @@ mechanisms for protection from arbitrary recipe execution or agent sessions.
    batch's changes makes the revert write nothing and list the conflict.
 4. These guarantees cover declared batch operations. They do not sandbox trusted recipe execution, roll back arbitrary
    recipe side effects, or enforce the behaviour of configured programs. Executing external commands is not a batch
-   action. Worker supervision, verification replay, permission floors, tamper checks and jails are outside this engine
-   decision; no replacement enforcement system is specified.
+   action.
 5. Existing or manually edited content uses the same review and approval flow. Apply needs neither `cook.lock` nor
    previous batch history, and every invocation evaluates the supplied recipes again. Ownership recorded in `cook.lock`
-   never blocks a change ([0007](0007-ownership.md)); there is no adoption flag, alias, separate adoption step or drift
-   veto. Applying a recipe does not remove output another recipe owns.
+   never blocks a change ([0007](0007-ownership.md)). Applying a recipe does not remove output another recipe owns.
 
 ## Reasons
 
@@ -89,7 +87,7 @@ Must be maintained:
 
 ## Confirmation
 
-- Review an edited-target example: the actual proposed replacement or deletion is displayed without an adoption gate.
+- Review an edited-target example: the actual proposed replacement or deletion is displayed for approval.
 - Review a batch with a write failure: recovery precedes target writes, completed changes are rolled back and failure
   information is retained.
 - Review path examples including symlinks: declared output remains within the destination.

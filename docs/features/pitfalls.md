@@ -10,10 +10,10 @@ setting, enforced the rule or tested the work.
 
 ## Overview
 
-This page follows the [intended architecture](../architecture.md); it does not claim the target is implemented. Each
-entry gives the symptom, its cause, Cook's responsibility and the reader's next step. Program-specific details belong
-in the cookbook's guidance and the consuming program's documentation. See [safety](safety.md) for batch guarantees and
-[the glossary](glossary.md) for terms.
+This page follows the [intended architecture](../architecture.md). Each entry gives the symptom, its cause, Cook's
+responsibility and the reader's next step. Program-specific details belong in the cookbook's guidance and the
+consuming program's documentation. See [safety](safety.md) for batch guarantees and [the glossary](glossary.md) for
+terms.
 
 - [Permissions](#permissions)
 - [Recipes and trust](#recipes-and-trust)
@@ -29,8 +29,7 @@ in the cookbook's guidance and the consuming program's documentation. See [safet
 - **Symptom.** A deny intended for `kubectl patch` misses a spelling with options before the subcommand.
 - **Why.** A program's prefix matcher may compare only leading words. Options, absolute paths and interpreter wrappers
   can change those words.
-- **Cook's responsibility.** Review and write declared native settings; there is no universal command parser or
-  automatic expansion of every spelling.
+- **Cook's responsibility.** Review and write declared native settings.
 - **What you do.** Inspect the consuming program's rule language and the variants the rule must cover. Choose a broader
   deny where necessary rather than assuming a narrow prefix covers all forms. See [program permissions](policy.md).
 
@@ -39,8 +38,7 @@ in the cookbook's guidance and the consuming program's documentation. See [safet
 - **Symptom.** An allowed test command performs an unexpected action after its script changes.
 - **Why.** Permission to start a command can also permit the code it invokes. A script or task definition may itself be
   editable by the agent that runs it.
-- **Cook's responsibility.** Configure declared files; Cook does not replay tests, impose task-runner floors or enforce
-  downstream command permissions.
+- **Cook's responsibility.** Configure declared files; the consuming program enforces command permissions.
 - **What you do.** Review scripts as code and keep production credentials out of sessions that can edit and execute
   them. Treat permission to edit and run a script as permission to execute its changed content.
 
@@ -49,8 +47,7 @@ in the cookbook's guidance and the consuming program's documentation. See [safet
 - **Symptom.** A deny works in one agent and has no effect in another.
 - **Why.** Native rule languages and enforcement boundaries differ. One program may approve tool calls while another
   uses rules for escalation from its own sandbox.
-- **Cook's responsibility.** Expose declared configuration for review, without promising universal translation or
-  equivalent enforcement.
+- **Cook's responsibility.** Expose declared configuration for review.
 - **What you do.** Review the native rule and its support in each program and mode. Keep unsupported choices explicit.
   See [permission review](policy.md#reviewing-permission-choices).
 
@@ -58,7 +55,7 @@ in the cookbook's guidance and the consuming program's documentation. See [safet
 
 - **Symptom.** An agent or external runner waits for a person who is absent.
 - **Why.** Native approval behaviour depends on program mode, defaults and other settings scopes.
-- **Cook's responsibility.** Write the declared settings; Cook does not start or supervise that session.
+- **Cook's responsibility.** Write the declared settings.
 - **What you do.** Review approval choices for the program and mode the external runner actually uses. Keep human
   approval where intended and account for that stop in the runner's operation.
 
@@ -66,8 +63,7 @@ in the cookbook's guidance and the consuming program's documentation. See [safet
 
 - **Symptom.** The same project configuration prompts or allows differently on two machines.
 - **Why.** Local, user or managed settings, trust and program mode may affect the result.
-- **Cook's responsibility.** Change declared targets only; Cook supplies no universal precedence or automatic import of
-  personal settings.
+- **Cook's responsibility.** Change declared targets only.
 - **What you do.** Compare the settings scopes and modes on both machines. Decide what belongs in shared files before
   declaring changes. See [repository setup](scaffold.md).
 
@@ -75,7 +71,7 @@ in the cookbook's guidance and the consuming program's documentation. See [safet
 
 - **Symptom.** A permission rule names a tool unavailable in another clone.
 - **Why.** Server definitions, availability and credentials are separate from permission rules.
-- **Cook's responsibility.** Recipes may declare native configuration, without guaranteeing connection or authentication.
+- **Cook's responsibility.** Recipes may declare native configuration.
 - **What you do.** Document the required servers and credential setup, then review tool approval separately. Keep
   credentials out of committed instructions and settings.
 
@@ -103,8 +99,7 @@ in the cookbook's guidance and the consuming program's documentation. See [safet
 
 - **Symptom.** An agent follows unexpected directions from a task, comment, skill or generated instruction file.
 - **Why.** Agents act on text they read; a configuration file or skill can influence behaviour without enforcing it.
-- **Cook's responsibility.** Review declared file changes; Cook does not inject prompts, validate a deferred input
-  schema or supervise agents.
+- **Cook's responsibility.** Review declared file changes.
 - **What you do.** Review shared guidance and sources, treat untrusted text as data and use the agent's own controls.
   See [repository guidance and context](context.md).
 
@@ -113,9 +108,9 @@ in the cookbook's guidance and the consuming program's documentation. See [safet
 - **Symptom.** Reviewed bytes match a checksum but contain unwanted executable behaviour.
 - **Why.** A checksum establishes matching content, not whether its author or effects are acceptable.
 - **Cook's responsibility.** The engine wrapper verifies its package against the committed pin. This does not
-  authenticate or sandbox cookbook recipes or establish a cookbook admission protocol.
+  authenticate or sandbox cookbook recipes.
 - **What you do.** Review source origins and recipe changes separately from engine package integrity. Users manage the
-  recipe versions they supply; no automatic recipe-update merge is promised. See [cookbooks](stations.md#cookbooks).
+  recipe versions they supply. See [cookbooks](stations.md#cookbooks).
 
 ## Program configuration
 
@@ -123,16 +118,14 @@ in the cookbook's guidance and the consuming program's documentation. See [safet
 
 - **Symptom.** Project hooks or rules do not take effect in another working copy.
 - **Why.** Loading settings and inheriting trust are program-specific; a nested folder does not guarantee either.
-- **Cook's responsibility.** Write declared configuration, without changing session trust automatically or managing
-  working copies.
+- **Cook's responsibility.** Write declared configuration.
 - **What you do.** Inspect that program's lookup and trust rules in the actual folder. See [agent configuration](workers.md).
 
 ### A native hook has missing dependencies or a different working directory
 
 - **Symptom.** Formatting or notifications work on one machine and fail on another.
 - **Why.** The consuming program runs hooks with its own environment, event support and working directory.
-- **Cook's responsibility.** Declare and review hook settings and scripts, without a Cook dispatcher or cached-binary
-  hook protocol.
+- **Cook's responsibility.** Declare and review hook settings and scripts.
 - **What you do.** Check executable availability, path quoting, credentials and failure behaviour. Make repeated
   formatting safe. Treat feedback hooks separately from CI evidence. See [native program hooks](hooks.md).
 
@@ -150,7 +143,7 @@ in the cookbook's guidance and the consuming program's documentation. See [safet
 
 - **Symptom.** An agent misses task details or reads the same guidance through several discovery paths.
 - **Why.** Instructions compete for attention, and overlapping imports or skill discovery may repeat them.
-- **Cook's responsibility.** Write declared guidance, without a session cache, trigger system or injection budget.
+- **Cook's responsibility.** Write declared guidance.
 - **What you do.** Keep frequently loaded guidance concise, use focused topic files and remove duplicate references.
   Consult the program's loading rules. See [skills](skills.md) and [context](context.md).
 
@@ -158,8 +151,8 @@ in the cookbook's guidance and the consuming program's documentation. See [safet
 
 - **Symptom.** A check succeeds while the change remains untested.
 - **Why.** A runner may accept a selection that matches no tests; passing unrelated tests provides no relevant evidence.
-- **Cook's responsibility.** Recipes can configure check commands and instructions. Cook does not execute verification
-  lanes or issue proof receipts; its history records file operations for recovery.
+- **Cook's responsibility.** Recipes can configure check commands and instructions; Cook's history records file
+  operations for recovery.
 - **What you do.** Select tests that exercise the change, report what ran and configure the runner's no-match behaviour.
   See [repository checks and configuration](verify.md).
 
@@ -170,7 +163,7 @@ in the cookbook's guidance and the consuming program's documentation. See [safet
 - **Symptom.** A linter, test runner or editor scans local history or nested working copies.
 - **Why.** A tool's include patterns may not honour version-control ignore rules.
 - **Cook's responsibility.** Keep operation history in the destination's ignored `.cook/`. Recipes may declare other
-  native exclusions; Cook does not automatically rewrite every tool's configuration.
+  native exclusions.
 - **What you do.** Review each tool's exclusions for `.cook/` and any temporary working-copy directories. See
   [workspace conventions](workspaces.md).
 
@@ -178,14 +171,14 @@ in the cookbook's guidance and the consuming program's documentation. See [safet
 
 - **Symptom.** A working copy uses parent dependencies, or parallel checks collide on ports and databases.
 - **Why.** Programs may search parent directories, while separate directories still share machine services.
-- **Cook's responsibility.** File setup does not bootstrap, isolate, serialise or namespace running services.
+- **Cook's responsibility.** Write the declared file setup.
 - **What you do.** Prepare dependencies in the intended working copy and configure unique service names or external
   locks where needed. Working-copy creation and execution belong to external tools. See [workspaces](workspaces.md).
 
 ### Running from a subdirectory changes the destination
 
 - **Symptom.** A recipe targets files under a subdirectory when root configuration was intended.
-- **Why.** The current working directory is the destination; Cook does not walk upward to discover a profile or root.
+- **Why.** The current working directory is the destination.
 - **Cook's responsibility.** Contain declared writes and deletions within that directory, including symlink resolution.
 - **What you do.** Invoke from the intended destination and inspect target paths. Separately check how programs discover
   root or nested settings. See [monorepos](compatibility.md#monorepos).
@@ -195,8 +188,8 @@ in the cookbook's guidance and the consuming program's documentation. See [safet
 - **Symptom.** A recipe cannot find a template, or consumes a different source after it is copied elsewhere.
 - **Why.** Relative recipe/template references resolve from the referencing recipe's original location or source URL.
   A local recipe or reference outside the repository is refused.
-- **Cook's responsibility.** Capture consumed sources and preserve their origins; snapshots must not rebase references
-  onto `.cook/`.
+- **Cook's responsibility.** Capture consumed sources and record their origins, which preserves relative resolution
+  when the sources are snapshotted.
 - **What you do.** Review origins and referenced sources when relocating recipes. The executable's location does not
   choose the destination. See [source paths](render.md#destination-and-source-paths).
 
@@ -215,8 +208,8 @@ in the cookbook's guidance and the consuming program's documentation. See [safet
 
 - **Symptom.** A recipe proposes replacing a hand-edited value or marked section.
 - **Why.** Every invocation evaluates supplied recipes against current content; ownership never blocks a change.
-- **Cook's responsibility.** Show the actual diff for whole-batch approval, without a drift veto, `--adopt`, adoption
-  alias or separate adoption gate. Noninteractive execution without `--batch-approve` does not authorize writes.
+- **Cook's responsibility.** Show the actual diff for whole-batch approval. Noninteractive execution without
+  `--batch-approve` does not authorize writes.
 - **What you do.** Review the proposed result and adjust declarations or recipe inputs if needed. Omitting an earlier
   recipe does not withdraw its unrelated contributions. See [apply](render.md).
 
@@ -236,14 +229,12 @@ in the cookbook's guidance and the consuming program's documentation. See [safet
 - **Cook's responsibility.** Apply needs neither previous history nor `cook.lock`; ownership survives in the committed
   `cook.lock`. New batches save one reversible patch per touched file before the first target write. Write failure
   rolls back changes already made by the batch and retains the patches and failure record.
-- **What you do.** Retain needed local history and inspect failure records. Do not treat source snapshots as a recipe
-  registry or expect file reversal to undo external program activity. See
-  [history availability](../architecture.md#history-availability).
+- **What you do.** Retain needed local history and inspect failure records. Do not expect file reversal to undo
+  external program activity. See [history availability](../architecture.md#history-availability).
 
 ## Versions and the wrapper
 
-These entries concern the [wrapper design](wrapper.md). The current repository launcher uses a local build and does
-not implement pinned downloads or a release cache.
+These entries concern the [wrapper design](wrapper.md). The current repository launcher uses a local build.
 
 ### The first run needs access to the pinned package
 
@@ -269,12 +260,6 @@ not implement pinned downloads or a release cache.
 - **Why.** Separate pins can change independently. Changing a version without matching package checksums also leaves
   an inconsistent pin.
 - **Cook's responsibility.** The intended wrapper uses the committed version and platform-package checksums, reuses its
-  cached package and changes only through an explicit upgrade. It supplies no automatic cookbook updater or reapply.
+  cached package and changes only through an explicit upgrade.
 - **What you do.** Review version and checksum changes together and avoid competing engine pins. Select recipe versions
   separately. See [one pin](wrapper.md#one-pin) and [upgrading](wrapper.md#upgrading).
-
-Personal setup backup and agent-session orchestration remain future work in
-[issue #5](https://github.com/lmarqs/the-cook/issues/5) and
-[issue #6](https://github.com/lmarqs/the-cook/issues/6). Ingredient/recipe APIs, nesting, station roles and hooks remain
-outside these troubleshooting rules; patch representation and batch metadata format also need
-separate design.

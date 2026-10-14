@@ -11,9 +11,9 @@ management left to version control and the tools or people using it.
 ## Native conventions
 
 A recipe can declare a workspace convention in contributor instructions and the corresponding paths in a version
-control ignore file. An ingredient models the program's native format; Cook reviews and writes the declared changes.
-The convention remains useful to people and tools independently of Cook. No engine-owned workspace directory or
-branch prefix is required by [the architecture](../architecture.md).
+control ignore file. An ingredient models the program's native format; Cook reviews and writes the declared changes,
+as described in [the architecture](../architecture.md). The convention remains useful to people and tools
+independently of Cook.
 
 For example, a repository that chooses `.worktrees/` for local working copies can request these sections:
 
@@ -38,19 +38,12 @@ file operations explicitly target them.
 ## Destination and local state
 
 Cook's destination is the directory where it is invoked. When invoked inside a separate working copy, declared writes
-and deletions stay within that directory, including paths resolved through symlinks. The engine does not search upward
-for a primary checkout to select its destination. Relative source references resolve from the referencing recipe's
-original location; local recovery history belongs in the destination's ignored `.cook/` directory. See
+and deletions stay within that directory, including paths resolved through symlinks. Relative source references
+resolve from the referencing recipe's original location; local recovery history belongs in the destination's ignored
+`.cook/` directory, where batch records hold file patches and recovery information. See
 [paths, sources and history](../architecture.md#paths-source-snapshots-and-local-history).
 
 Nested working copies can interact with tools that search parent directories for configuration, dependencies or
-tracker data. That behavior depends on those tools; it is not a Cook guarantee of shared state or inherited trust.
-Document dependency preparation and relevant tool behavior with the repository's convention. Before removing a
-working copy, preserve work and local data that matter through the tools that manage them.
-
-Cook does not create branches or task workspaces, bootstrap dependencies, record workspace actors or session bases,
-resume development runs, detect landed changes, or fire lifecycle events when a working copy is removed. Its batch
-records hold file patches and recovery information, not a development session.
-
-Agent-session orchestration remains future work in
-[issue #6](https://github.com/lmarqs/the-cook/issues/6). No workspace/session protocol or recipe hook API is decided here.
+tracker data. That behavior depends on those tools. Document dependency preparation and relevant tool behavior with
+the repository's convention. Before removing a working copy, preserve work and local data that matter through the
+tools that manage them.

@@ -11,23 +11,19 @@ on its matching platform without preparing a development environment.
 ## Context
 
 - The [root README](../../README.md#current-implementation) describes Kotlin core and CLI modules, Groovy adapters,
-  and Groovy cookbook suppliers and recipes. This is implementation evidence, not the authority for the target design.
+  and Groovy cookbook suppliers and recipes.
 - The [architecture](../architecture.md#engine-distribution) retains JVM distribution using jpackage with bundled Java.
   Recipes are trusted executable Groovy, and cookbook builds can be separate from the engine build.
-- The CLI is the public cooking interface. Gradle builds and packages the engine and cookbooks; it is not a second
-  public cooking interface.
-- Fixed lifecycle hooks and a per-hook latency budget are outside the engine responsibilities defined by the
-  [architecture](../architecture.md#outside-this-design).
+- The CLI is the public cooking interface. Gradle builds and packages the engine and cookbooks.
 
 ## Decision
 
-1. Cook retains its Kotlin/Groovy JVM stack. Recipe evaluation accepts trusted Groovy code rather than limiting
-   cookbook or repository content to data-only declarations.
+1. Cook retains its Kotlin/Groovy JVM stack. Recipe evaluation accepts trusted Groovy code.
 2. Engine distribution uses complete platform-specific jpackage packages containing Java, as explained in
-   [0004](0004-runtime-dependencies.md). The wrapper pins and verifies the package, not a standalone Go binary.
+   [0004](0004-runtime-dependencies.md). The wrapper pins and verifies the package.
 3. Engine and cookbook builds have distinct responsibilities. Cookbooks hold and ship ingredients and recipes;
-   engine packaging does not prescribe their model APIs or manage their versions. The public cooking interface is
-   the CLI, while Gradle serves building and packaging.
+   engine packaging does not manage their versions. The public cooking interface is the CLI, while Gradle serves
+   building and packaging.
 
 ## Reasons
 
@@ -38,7 +34,7 @@ on its matching platform without preparing a development environment.
   runtime. The trade: packages include runtime files and must be built for their target platforms.
 - **3.** Cookbook authors maintain program models on the programs' schedules, while engine contributors maintain
   evaluation and file operations. A common CLI gives users one cooking interface. The trade: separate builds require
-  compatibility coordination; this decision does not settle the deferred composition API.
+  compatibility coordination.
 
 ## Rejected alternatives
 
@@ -55,12 +51,11 @@ the public CLI and complete runtime package, rather than a build environment in 
 
 ## Consequences
 
-Contributors need the JVM development toolchain. Releases maintain complete platform packages and a bundled runtime,
-rather than a Go cross-compilation pipeline or static-linking constraints. Cookbook builds remain distinct from engine
-releases. No four-platform release matrix, Windows exclusion or fixed hook latency gate follows from this decision.
+Contributors need the JVM development toolchain. Releases maintain complete platform packages and a bundled runtime.
+Cookbook builds remain distinct from engine releases.
 
 ## Confirmation
 
 Review stack and packaging descriptions against the [architecture](../architecture.md#engine-distribution) and
 [installation reference](../features/installation.md). Current-execution claims must describe the actual local
-packaging entry path; the design does not establish published releases or a working pinned-download wrapper.
+packaging entry path.

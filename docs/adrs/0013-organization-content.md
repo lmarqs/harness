@@ -30,29 +30,25 @@ repository accepts while preserving choices outside those changes.
    becoming engine policy. Cook handles recipe evaluation and the ordered file-operation batch, review, recovery
    and writes; ingredients model native program configuration.
 2. Cookbooks distribute their ingredients and recipes through their repositories and may build independently.
-   This responsibility split does not impose a blanket prohibition on bundling cookbook content in a distribution,
-   require a registry, or mandate a content-addressed supplier cache. Engine upgrades do not manage recipe versions.
+   Engine upgrades do not manage recipe versions.
 3. Reused content can participate in recipe evaluation from paths inside the destination repository or from
-   `https://` URLs. There is no rule requiring shared content to be copied into each repository, ban on includes or
-   dynamic composition, mandatory copy-once workflow, or automatic recipe merge/update protocol. Users manage recipe
-   versions and supply the version to apply; `cook.lock` records which version produced the current ownership.
+   `https://` URLs. Users manage recipe versions and supply the version to apply; `cook.lock` records which version
+   produced the current ownership.
 4. Cook proposes declared changes against current content. Later recipes can replace earlier values at overlapping
    targets; the terminal shows the final combined diff for whole-batch approval. Applying a recipe leaves unrelated
-   outputs intact. Existing content and manual edits follow the same flow without adoption gates; ownership recorded
-   in `cook.lock` never blocks a change ([0007](0007-ownership.md)).
+   outputs intact. Existing content and manual edits follow the same flow; ownership recorded in `cook.lock` never
+   blocks a change ([0007](0007-ownership.md)).
 5. Native output is readable by its configured programs without Cook ([0010](0010-dependence-on-the-binary.md)).
    Each local batch record holds evaluated and consumed sources, origins, arguments, order and result or failure,
-   with recovery patches saved before target writes. This record supports inspection and reversal, not automatic
-   reapplication.
+   with recovery patches saved before target writes. This record supports inspection and reversal.
 6. Ingredient/recipe APIs, nesting, station semantics, annotations, injection, decorators and lifecycle hooks remain
-   for the separate model discussion. Issue #9 is review input, not a decision to delete dynamic composition or
-   compiled suppliers. This record selects neither implementation as the final model API.
+   for the separate model discussion.
 
 ## Reasons
 
 - **1, 2.** Separate cookbook responsibility lets teams maintain native program knowledge and shared choices without
   making every change an engine release or organization-specific fork. Cookbook content is still executable or
-  consumed input that users must trust; separation alone does not establish a supplier admission protocol.
+  consumed input that users must trust.
 - **3.** Shared sources address hand-copying without forcing all inputs into each destination repository. Limiting
   local sources to the repository keeps every local input visible in the same clone, while HTTPS carries content
   shared between repositories. Capturing consumed sources and preserving their origins makes a batch inspectable.
@@ -64,8 +60,7 @@ repository accepts while preserving choices outside those changes.
   version wrote.
 - **5.** Native output serves readers who do not run Cook; source history serves those inspecting a recorded operation.
   Losing local history loses that recovery information, not the ability to apply supplied recipes.
-- **6.** Program models remain useful without settling how they compose or receive parameters. Removing stale
-  lifecycle requirements is not evidence that either current composition implementation should be removed.
+- **6.** Program models remain useful without settling how they compose or receive parameters.
 
 ## Rejected alternatives
 
@@ -93,11 +88,10 @@ versions; the separate model discussion decides APIs and lifecycle mechanics.
 - Reviewers may need the cookbook sources and local batch records to explain how output was produced. Native output
   alone does not describe every dependency or arbitrary side effect of executable recipes.
 - Engine version/checksum pinning protects the selected engine download; it does not authenticate every recipe source
-  or sandbox recipe execution. Cookbook trust and the model APIs need their own discussion.
+  or sandbox recipe execution. [0026](0026-cookbook-trust.md) explains cookbook trust.
 
 ## Confirmation
 
 Review the acme example with shared setup and a repository-specific choice: the batch changes only declared targets,
 shows later overrides in its final diff, and preserves unrelated configuration. Trace local and remote consumed sources
-to their original locations and captured history. Confirm that neither the content split nor references to issue #9
-select a station API, recipe updater, or deletion of a composition implementation. No new check command is required.
+to their original locations and captured history.

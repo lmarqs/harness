@@ -14,14 +14,13 @@ for both interactive and noninteractive use.
 These pages describe the interaction of the file-operation engine: commands, output, configuration, generated content
 and documentation. Cook evaluates trusted Groovy recipes, presents their combined terminal diff, obtains whole-batch
 approval, records the batch and ownership in `cook.lock` and performs declared writes. Programs read their native files
-directly; Cook does not run their development lifecycle. Recipe evaluation is trusted code, not sandboxed by the review
-flow.
+directly. Recipe evaluation is trusted code, not sandboxed by the review flow.
 
 ## Authority
 
-[Cook architecture](../architecture.md) states the intended design. These standards and the [ADRs](../adrs/) follow
-it. Standards govern interactions within that design; when a standard or ADR conflicts with the architecture, correct
-the supporting document. An obsolete rule does not override the agreed architecture.
+[Cook architecture](../architecture.md) states the intended design. These standards and the [ADRs](../adrs/) follow it.
+Standards govern interactions within that design; when a standard or ADR conflicts with the architecture, correct the
+supporting document.
 
 Descriptions of current behaviour in the [root README](../../README.md), [core guide](../../core/README.md) and recipe
 READMEs must remain truthful. A requirement in these standards does not establish implementation, and a gap in
@@ -38,10 +37,9 @@ Background:
 - Vocabulary: [glossary](../features/glossary.md)
 - Composition discussion: [stations](../features/stations.md)
 
-Ingredient/recipe APIs, composition, station roles and lifecycle hooks need a separate discussion. Personal setup
-backup (kit) and agent-session orchestration (cooking) remain future work in
-[issue #5](https://github.com/lmarqs/the-cook/issues/5) and
-[issue #6](https://github.com/lmarqs/the-cook/issues/6); these standards do not design them.
+Ingredient/recipe APIs, composition, station roles and lifecycle hooks need a separate discussion. Personal setup backup
+(kit) and agent-session orchestration (cooking) remain future work in
+[issue #5](https://github.com/lmarqs/the-cook/issues/5) and [issue #6](https://github.com/lmarqs/the-cook/issues/6).
 
 ## Who these standards protect
 
@@ -84,12 +82,10 @@ to an unforeseen case and judge whether it still serves its goal.
 
 ## Changing a standard
 
-Edit standards in place to follow the architecture, preserving relevant reasons and useful cross-references. Correct
-contradictory definitions rather than requiring implementation to catch up before documenting the agreed design.
-When a product change is made, keep its implementation documentation accurate as well.
+Edit standards in place to follow the architecture, preserving relevant reasons and useful cross-references; Git keeps
+earlier versions. Correct contradictory definitions and document the agreed design ahead of its implementation. When a
+product change is made, keep its implementation documentation accurate as well.
 
-Review affected feature pages and ADRs when changing a standard. If a proposal changes the intended architecture,
-make that decision explicit in the architecture and align the supporting documents. Earlier ADRs and standards do
-not silently change the design. Cross-references may run in either direction; no acyclic reading order is required.
-
-Git keeps earlier versions. These pages need no status banners or replacement registry.
+Review affected feature pages and ADRs when changing a standard. If a proposal changes the intended architecture, make
+that decision explicit in the architecture and align the supporting documents. Cross-references may run in either
+direction.

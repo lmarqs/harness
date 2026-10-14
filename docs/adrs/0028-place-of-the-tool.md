@@ -15,7 +15,7 @@ who rely on its guarantees.
 - Worked example: one acme developer uses VS Code and an agent plugin, another uses IntelliJ and a loop runner,
   and a third uses no coding agent. All contribute to `acme/api` through the team's review and CI conventions.
 - The agreed [architecture](../architecture.md#scope-and-responsibilities) defines a file-operation engine that
-  configures native program files, not a worker supervisor or fixed development lifecycle.
+  configures native program files.
 - Recipes are trusted executable Groovy code. Their declared batch operations are only part of what that code
   can do with the user's privileges.
 
@@ -76,14 +76,12 @@ Costs:
 Must be maintained:
 
 - Documentation that names the declared operations each guarantee covers and the trusted-code boundary.
-- The separation between configuring programs and controlling their execution, without specifying deferred session
-  APIs, jails, or recipe hooks.
+- The separation between configuring programs and controlling their execution.
 
 ## Confirmation
 
 - Review descriptions of a developer using Cook alongside one who does not: neither must change their editor or agent
   choice to contribute.
-- Review every guarantee for a declared batch action and its scope. No worker-launch, jail, or recipe-sandbox promise
-  is inferred from native configuration or batch approval.
-- Review features against the engine's file-operation responsibility; detecting or blocking independent work is not
-  a purpose of this engine.
+- Review every guarantee for a declared batch action and its scope. No recipe-sandbox promise is inferred from native
+  configuration or batch approval.
+- Review features against the engine's file-operation responsibility.

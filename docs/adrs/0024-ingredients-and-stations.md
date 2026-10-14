@@ -28,32 +28,27 @@ setup changes before they are written.
 ## Decision
 
 1. Preserve ingredients as program data models, distinct in responsibility from recipes' setup choices. Cookbooks hold
-   and ship ingredients and recipes; the engine evaluates recipes and reviews and writes the ordered batch. This does
-   not select a schema or require separate artifact types for every responsibility.
+   and ship ingredients and recipes; the engine evaluates recipes and reviews and writes the ordered batch.
 2. Reusable setup follows the agreed operation contract. Every apply invocation evaluates the supplied recipes against
    current content; history does not mark setup as already applied. Later operations can replace earlier values in one
-   combined diff. Existing or edited content uses the same whole-batch approval flow, without adoption gates; recorded
-   ownership never blocks a change. Omitting a recipe does not withdraw its earlier output.
-3. Leave station semantics undecided. This record does not define a station API, mandatory copy-once or add-only
-   application, inherited configuration, ingredient lists, content-hash pins, detect rules or station history. It also
-   does not prescribe what fields or templates an ingredient may contain. Recipe/ingredient APIs, composition and
-   nesting, hooks, decorators, annotations and parameter injection require their own model discussion.
+   combined diff. Existing or edited content uses the same whole-batch approval flow; recorded ownership never blocks a
+   change. Omitting a recipe does not withdraw its earlier output.
+3. Leave station semantics undecided.
 4. Keep engine version/checksum pinning separate from cookbook builds and user-managed recipe versions. Batch records
-   capture consumed sources and origins for inspection and recovery, not an updater's merge ancestor; `cook.lock`
-   records which recipe version produced the current ownership without selecting the next one. Issue #9 does not decide
-   deletion of dynamic composition or compiled suppliers, and this record does not choose between them.
+   capture consumed sources and origins for inspection and recovery; `cook.lock` records which recipe version produced
+   the current ownership without selecting the next one.
 
 ## Reasons
 
 - **1.** The acme example uses the same program format with different choices. Separating responsibilities lets a
   model be reused without embedding one team's instructions as engine policy. The trade is that cookbook authors must
-  make the distinction clear; it is not enforced by the former ingredient/station field split.
+  make the distinction clear.
 - **2.** FR-7 through FR-9 and FR-25 make requested changes and their order authoritative. A first-value-wins,
   add-only or already-applied rule would silently replace that contract. The trade is that applying shared setup can
   propose replacing a local value; the reviewer sees the final diff before approving the batch.
-- **3.** FR-30 explicitly defers station roles and model APIs. Retaining the old six-part station schema would decide
-  that role indirectly. The trade is leaving an authoring question open while documenting the program-model concept
-  and operation behavior that are already agreed.
+- **3.** FR-30 explicitly defers station roles and model APIs. A fixed station schema would decide that role
+  indirectly. The trade is leaving an authoring question open while documenting the program-model concept and
+  operation behavior that are already agreed.
 - **4.** An engine pin chooses an executable package, while a supplied recipe chooses the requested setup. Treating
   history or the lock as an update baseline would add the recipe-version management the architecture excludes; the
   lock only records which version produced the current ownership (FR-14, FR-25). The trade is that users supply the
@@ -83,7 +78,6 @@ separate discussion rather than cleanup targets inferred from issue #9.
 
 Costs:
 
-- Authors still need a separate model discussion before treating station roles or composition syntax as public APIs.
 - Updating reusable setup requires supplying the intended recipe version and reviewing changes to current content;
   engine pins and local batch records do not perform that selection.
 
@@ -97,5 +91,4 @@ Must be maintained:
 Review against FR-1, FR-2, FR-7 through FR-9, FR-14, FR-25, FR-26 and FR-30. In the acme example, two recipes can reuse
 one program model while choosing different instructions. If recipe A sets a key and recipe B overrides it, the preview
 shows B's value; applying B alone leaves A's unrelated file intact. Repeating apply evaluates the recipe again, although
-unchanged content may yield an empty diff. No station schema, supplier API or recipe updater is needed to state those
-guarantees. These are documentation review criteria, not mandatory execution commands or claims of implemented behavior.
+unchanged content may yield an empty diff.

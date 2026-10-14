@@ -38,5 +38,4 @@ The recipe reads each `files` path, which must exist.
 - A `files` entry whose current content equals neither `expected` nor `content` fails the recipe, as do an `adopt`
   other than `true`, an empty `files` list, and an entry without `path` or with a non-string `expected` or `content`.
 - The recipe takes over the selected files.
-- The recipe writes the supplied content only. It does not derive cache keys or actions, run CI or touch a remote
-  cache.
+- The recipe writes the supplied content only. It does not run CI or touch a remote cache.

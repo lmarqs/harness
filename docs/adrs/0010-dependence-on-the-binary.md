@@ -11,7 +11,7 @@ teams can change one part of their setup without withdrawing unrelated parts.
 ## Context
 
 - Cook evaluates trusted Groovy recipes into file operations. Configured programs consume their native files
-  directly; Cook is not their runner or lifecycle controller ([architecture](../architecture.md#scope-and-responsibilities)).
+  directly ([architecture](../architecture.md#scope-and-responsibilities)).
 - Ingredients model native program files and configuration. Cookbooks supply those models and recipes separately
   from the engine's evaluation, review, recovery and writing responsibilities.
 - The engine distribution uses platform-specific jpackage packages containing Java. The intended committed wrapper
@@ -34,8 +34,6 @@ teams can change one part of their setup without withdrawing unrelated parts.
    removes what its previous version owned and no longer declares, through the normal batch diff and approval flow;
    stopping use of Cook does not itself delete native configuration.
 5. This decision defines no implicit hook entry points, cache-only hook mode, session hints or lifecycle contracts.
-   Recipe/ingredient APIs, station semantics and recipe hooks remain for the separate model discussion. Personal
-   setup backup and agent-session orchestration remain future capabilities.
 
 ## Reasons
 
@@ -46,12 +44,11 @@ teams can change one part of their setup without withdrawing unrelated parts.
   the engine package a reviewed choice rather than a changing download. The trade is a platform-specific complete
   package and a first-use download when the pin is not cached.
 - **3.** CI belongs to the team. Optional explicit cooking still needs an engine and approval; absence cannot be
-  reported as success. There is no engine-owned drift check or mandatory pipeline integration to guard.
+  reported as success.
 - **4.** Declared scope and per-recipe ownership support changing one part of setup without withdrawing other
   recipes' output. Ownership lives in a committed file and in comment markers, neither of which a program or teammate
   needs Cook to read, so no eject step is required to keep using native files.
-- **5.** Native program settings can describe hooks without making Cook a hook runner. Deferring model mechanics avoids
-  retaining the former session engine through distribution requirements.
+- **5.** Native program settings can describe hooks without making Cook a hook runner.
 
 ## Rejected alternatives
 

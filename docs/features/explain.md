@@ -2,14 +2,12 @@
 
 ## Objective
 
-A contributor needs one account of Cook's responsibilities and the reasons behind its operation rules. Examples for
-an earlier lifecycle engine or a different implementation must not silently define the target contract.
+A contributor needs one account of Cook's responsibilities and the reasons behind its operation rules.
 
 ## Reading the references
 
 [Cook architecture](../architecture.md) states the intended design. Supporting feature pages follow it, and
-[ADRs](../adrs/README.md) explain its reasoning. This design does not define an `explain` command, an embedded topic
-catalog or a guarantee that a shipped skill contains the same text as a binary.
+[ADRs](../adrs/README.md) explain its reasoning.
 
 | Question | Read |
 | --- | --- |
@@ -23,16 +21,12 @@ catalog or a guarantee that a shipped skill contains the same text as a binary.
 | How is Cook packaged and versioned? | [Installation](installation.md) and [wrapper](wrapper.md) |
 
 The [root README](../../README.md), [core implementation guide](../../core/README.md) and recipe READMEs
-describe current execution. Read them for what runs today; missing implementation does not invalidate the agreed
-design. When investigating a particular setup, keep the engine version distinct from the supplied recipe version and
-consult the cookbook documentation for the program configuration it models.
+describe current execution. Read them for what runs today. When investigating a particular setup, keep the engine
+version distinct from the supplied recipe version and consult the cookbook documentation for the program
+configuration it models.
 
 Prefer links to maintained explanations over copying a command catalog or broad rules into every instruction file.
 Keep repository-specific guidance concise and describe the sources and program prerequisites needed to use it.
 
 ## Boundaries
-
-The engine does not explain or enforce fixed lifecycle stages, worker attempts, verification receipts or delivery
-guards. Personal setup backup and agent-session orchestration remain future work in
-[issue #5](https://github.com/lmarqs/the-cook/issues/5) and
-[issue #6](https://github.com/lmarqs/the-cook/issues/6). Ingredient/recipe APIs and hooks remain a separate discussion.
+Ingredient/recipe APIs and hooks remain a separate discussion.

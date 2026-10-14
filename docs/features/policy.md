@@ -15,9 +15,8 @@ Trusted Groovy [recipes](recipes.md) declare the file changes that express the r
 those changes in order, displays the actual batch diff and obtains whole-batch approval before writes, as defined by
 [the architecture](../architecture.md). The configured program interprets and enforces its own permissions.
 
-There is no required engine policy file or shared permission schema. A cookbook can provide policy inputs for its
-recipes; their format and prerequisites belong in that cookbook's usage guide. The engine does not impose a safety
-floor, worker roles, unattended-launch rules or a universal decision order across programs.
+A cookbook can provide policy inputs for its recipes; their format and prerequisites belong in that cookbook's usage
+guide.
 
 ## Reviewing permission choices
 
@@ -36,13 +35,13 @@ For each configured program, establish:
 
 A rule supported by one program may have no equivalent in another. Keep that limitation explicit in cookbook guidance
 and repository instructions; do not present prose as enforcement or promise lossless translation. Program-specific
-support belongs with the [program model](ingredients.md), rather than in the engine.
+support belongs with the [program model](ingredients.md).
 
 ## Existing settings and changes
 
 Review existing native rules before choosing file, key or section targets. A whole-file declaration affects the whole
 file; a key or marked section can preserve unrelated content. Existing and manually edited targets use the same actual
-diff and approval flow. There is no `--adopt`, adoption alias, separate import gate or ownership-state prerequisite.
+diff and approval flow.
 
 Do not copy personal permission settings into shared repository configuration without deciding whether the team wants
 those choices. A program can continue to read personal settings independently of the files a recipe declares.
@@ -53,9 +52,9 @@ rules its previous version owned and the new version no longer declares, and the
 proves that the resulting permission configuration is appropriate for every program or user.
 
 A recipe may also write a short permission explanation in contributor instructions. Use format-appropriate markers
-for a shared section, including HTML comments in Markdown. Describe the native settings and their limitations;
-markers name the owning recipe and region (`cook:begin <recipe>/<region>`) and do not protect the rules from
-editing.
+for a shared section, including HTML comments in Markdown. Describe the native settings and their limitations.
+Markers name the owning recipe and region (`cook:begin <recipe>/<region>`); a manual edit inside the section appears in
+the next diff like any other difference.
 
 ## Trust and runtime limits
 
@@ -63,6 +62,4 @@ Trusting a recipe is separate from approving its declared file changes. Recipes 
 side effects are outside batch review and recovery. Permission settings written for an agent do not sandbox recipe
 evaluation. See [safety guidelines](safety.md).
 
-[Native hooks](hooks.md) can provide program-specific feedback, but this design defines no hook-based permission
-engine. Agent-session orchestration is future work in [issue #6](https://github.com/lmarqs/the-cook/issues/6), not a
-permission-enforcement responsibility of Cook.
+[Native hooks](hooks.md) can provide program-specific feedback.

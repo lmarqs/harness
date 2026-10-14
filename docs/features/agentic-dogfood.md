@@ -1,17 +1,11 @@
 # This repository's agent setup
 
 This page describes the current implementation and this checkout's setup. The
-[architecture](../architecture.md) defines the intended design; the ownership,
-adoption and drift behaviour below does not override it. In the target design,
-existing or edited content goes through review and whole-batch approval of the
-actual diff, with no `--adopt` flag, adoption alias, or managed-edit gate.
-Ownership is recorded in a committed `cook.lock` and never blocks a change, and
-batch records live in the ignored `.cook/batches/<batchId>/` directory.
-Implementing that design is product work.
+[architecture](../architecture.md) defines the intended design, and
+[issue #15](https://github.com/lmarqs/the-cook/issues/15) tracks implementing it.
 
 The commands below use the current CLI and require the local JVM distribution;
 see the [root build/help instructions](../../README.md#start-from-a-fresh-clone).
-They do not demonstrate the target apply/revert or batch-approval flow.
 
 The repository uses the independent `agentic/context` and `agentic/permission`
 recipes. `AGENTS.md` is the editable, seeded project guidance. `CLAUDE.md`,
@@ -19,7 +13,7 @@ recipes. `AGENTS.md` is the editable, seeded project guidance. `CLAUDE.md`,
 `.codex/rules/cookbook.rules` are rendered output. The two reviewed policy
 sources are `.agents/policy.interactive.yaml` for Claude sessions and
 `.agents/policy.unattended.yaml` for Codex unattended work. The filenames
-describe intended use; the permission recipe selects a harness, not a role.
+describe intended use; the permission recipe selects a harness.
 
 The interactive policy allows status, diff, log, and the project check, asks
 before push, and denies hard reset. The unattended policy allows read-only Git

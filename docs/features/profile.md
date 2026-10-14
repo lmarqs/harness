@@ -14,10 +14,8 @@ Cook evaluates trusted Groovy [recipes](recipes.md) into ordered file operations
 programs' native files; cookbook recipes express setup choices using those models. The engine handles the resulting
 diff, whole-batch approval, recovery and writes. See [the architecture](../architecture.md).
 
-There is no required `.cook/config.yaml` profile, module switchboard, worker declaration or fixed lifecycle schema.
-A cookbook can document its own recipe inputs, but those inputs do not establish an engine-wide profile API. Recipe
-arguments follow their recipe operand using `--name=value`; their CLI scope is defined in [the CLI reference](cli.md).
-Parameter injection and the ingredient/recipe API remain separate model work.
+A cookbook can document its own recipe inputs. Recipe arguments follow their recipe operand using `--name=value`;
+their CLI scope is defined in [the CLI reference](cli.md).
 
 ## Facts worth recording
 
@@ -35,13 +33,12 @@ instructions can point to those choices and explain when to use them.
 
 For example, a Node project might document `npm ci` and its existing package scripts; a Go project might document
 package-based test selection; an infrastructure repository might keep validation and environment-specific planning
-commands in its task runner. These are project choices, not Cook verification lanes or automatically executed steps.
-Configuring a command does not make Cook run it. See [repository checks](verify.md) and
-[workspace conventions](workspaces.md).
+commands in its task runner. These are project choices, and the programs that consume them run the commands. See
+[repository checks](verify.md) and [workspace conventions](workspaces.md).
 
 Keep commands and script dependencies readable, avoid machine-specific paths and secrets in shared configuration, and
 explain any required environment settings. Keep globs and command quoting in the syntax of the program that reads
-them; this design defines no engine placeholder substitution or universal glob format.
+them.
 
 ## Composing and changing setup
 
@@ -51,21 +48,16 @@ a setting while leaving the base recipe's unrelated files in place. A later invo
 outputs merely because their recipe was omitted.
 
 Choose whole-file, structured-key or marked-section targets to match the intended extent of each change. Existing or
-manually edited files follow the ordinary diff and approval flow, without an adoption step; ownership recorded in
-`cook.lock` never blocks a change. Every apply invocation evaluates the supplied recipes again; history does not mark
-setup as already applied. See [apply](render.md) and [revert](remove.md).
+manually edited files follow the ordinary diff and approval flow; ownership recorded in `cook.lock` never blocks a
+change. Every apply invocation evaluates the supplied recipes again; history does not mark setup as already applied.
+See [apply](render.md) and [revert](remove.md).
 
-The invocation directory is the destination. Relative source references resolve from each recipe's original location,
-not from the destination or captured snapshot. Batch records live in the destination's ignored
-`.cook/batches/<batchId>/` directory, not a committed profile. They record patches and sources rather than worker
-sessions or verification receipts; apply needs no previous history, while reverting a batch needs its record.
+The invocation directory is the destination. Relative source references resolve from each recipe's original location.
+Batch records live in the destination's ignored `.cook/batches/<batchId>/` directory. They record patches and sources;
+apply needs no previous history, while reverting a batch needs its record.
 
 ## Guidance and personal choices
 
 Keep shared instructions concise and point to focused skills or topic files. Cook can declare those files; the program
-decides what it loads and follows. There is no deterministic context-trigger or session-injection contract. See
-[repository guidance](context.md), [skills](skills.md) and [program permissions](policy.md).
-
-Personal setup backup is future kit work in [issue #5](https://github.com/lmarqs/the-cook/issues/5); agent-session
-orchestration is future work in [issue #6](https://github.com/lmarqs/the-cook/issues/6). Neither defines a profile schema
-or runtime controller here.
+decides what it loads and follows. See [repository guidance](context.md), [skills](skills.md) and
+[program permissions](policy.md).

@@ -15,10 +15,8 @@ Use trusted Groovy [recipes](recipes.md) supplied by a [cookbook](stations.md#co
 order and displays the final combined terminal diff for whole-batch approval. The same flow applies to an empty
 repository and one with existing files. See [the architecture](../architecture.md).
 
-There is no separate `scaffold` command, station-detection protocol, required profile skeleton or adoption workflow in
-the target CLI. No `--adopt`, compatibility alias, import-equivalence gate or `cook.lock` entry is required before
-changing existing content. Existing rules need review because of their meaning; ownership recorded in `cook.lock` never
-blocks a change.
+Setting up a repository is an ordinary apply of the chosen recipes. Existing rules need review because of their
+meaning; ownership recorded in `cook.lock` never blocks a change.
 
 ## Choosing and reviewing setup
 
@@ -34,9 +32,8 @@ Before applying a setup recipe:
    that translation between programs preserves permission meaning.
 
 Personal settings should become shared configuration only when that is a deliberate team choice. Unknown settings
-and rules that cannot be translated need program-specific investigation; Cook does not promise a lossless import or
-automatic to-do resolution. See [program permissions](policy.md), [native hooks](hooks.md),
-[configuration choices](profile.md) and [skills](skills.md).
+and rules that cannot be translated need program-specific investigation. See [program permissions](policy.md),
+[native hooks](hooks.md), [configuration choices](profile.md) and [skills](skills.md).
 
 ## Invoking a setup recipe
 
@@ -51,14 +48,14 @@ cd /work/project
 
 The destination is `/work/project`, regardless of the executable location. Relative recipe and template references
 resolve from their original source locations. The two recipes compose left to right; when both write the same target,
-the later one wins and becomes its owner. This example chooses no model, nesting or injection API.
+the later one wins and becomes its owner.
 
 Without preapproval, Cook asks before changing targets. `--batch-approve`, placed before the recipe operands, displays
 the final diff and proceeds without prompting. Noninteractive execution without that flag does not authorize writes.
 See [CLI grammar](cli.md) and [apply](render.md) for the complete operating contract.
 
 These are target examples. For the build and packaging entry path available today, use [installation](installation.md)
-and the [root README](../../README.md); writing this design does not establish that the target CLI is implemented.
+and the [root README](../../README.md).
 
 ## Files and later changes
 
@@ -71,19 +68,12 @@ Run setup again when you want to propose its declared configuration against curr
 evaluates the supplied recipe versions; it can produce an empty diff, but history does not skip an already-applied
 recipe. Applying a different recipe does not remove output another recipe owns; applying a new version of a recipe
 removes what its previous version owned and the new version no longer declares. Manual edits receive the same actual
-diff review, without a drift veto.
+diff review.
 
 [Revert](remove.md#revert) applies a recorded batch's reverse patches against current content. Cook saves recovery
 patches before target writes, rolls back writes already made if a write fails, and retains the batch record and failure
 in the destination's ignored `.cook/batches/<batchId>/` directory. Ownership is recorded in the committed `cook.lock`.
 
 The [wrapper design](wrapper.md) provides a committed engine version and checksum pin, first-use package download and
-local cache, and explicit upgrades. It does not establish a scaffold-generated wrapper, a published release, a
-cookbook registry or automatic recipe upgrades. Cookbook builds and user-supplied recipe versions remain separate
-from engine delivery.
-
-## Future boundaries
-
-Personal setup backup is kit work in [issue #5](https://github.com/lmarqs/the-cook/issues/5). Agent-session orchestration
-is tracked in [issue #6](https://github.com/lmarqs/the-cook/issues/6). This setup guidance does not design either
-capability, a fixed development lifecycle or recipe hooks.
+local cache, and explicit upgrades. Cookbook builds and user-supplied recipe versions remain separate from engine
+delivery.

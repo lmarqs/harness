@@ -1,0 +1,110 @@
+// External URLs are not fetched, so the check stays offline and deterministic.
+plugins {
+  id 'base'
+}
+
+abstract class DocsLinkCheck extends DefaultTask {
+
+  @InputFiles
+  @PathSensitive(PathSensitivity.RELATIVE)
+  abstract ConfigurableFileCollection getMarkdown()
+
+  @Internal
+  abstract DirectoryProperty getRoot()
+
+  @OutputFile
+  abstract RegularFileProperty getReport()
+
+  @TaskAction
+  void check() {
+    File root = this.root.get().asFile
+    List<String> broken = []
+    int total = 0
+    Map<File, Set<String>> anchors = [:]
+    markdown.files.sort().each { File file ->
+      List<String> lines = proseLines(file)
+      lines.eachWithIndex { String line, int index ->
+        (line =~ /\]\(<?([^)\s>]+)>?(?:\s+"[^"]*")?\)/).each { match ->
+          String url = match[1]
+          if (url ==~ /^[a-zA-Z][a-zA-Z0-9+.-]*:.*/) {
+            return
+          }
+          total++
+          String path = url.contains('#') ? url.substring(0, url.indexOf('#')) : url
+          String fragment = url.contains('#') ? url.substring(url.indexOf('#') + 1) : ''
+          File target = path ? new File(file.parentFile, URLDecoder.decode(path, 'UTF-8')).canonicalFile : file
+          String problem = null
+          if (!target.exists()) {
+            problem = 'missing file'
+          }
+          else if (fragment && target.name.endsWith('.md')) {
+            Set<String> known = anchors.computeIfAbsent(target) { headingAnchors(it) }
+            if (!(fragment in known)) {
+              problem = 'missing anchor'
+            }
+          }
+          if (problem) {
+            broken << "${root.toPath().relativize(file.toPath())}:${index + 1}: ${problem}: ${url}".toString()
+          }
+        }
+      }
+    }
+    report.get().asFile.text = "links ${total}, broken ${broken.size()}\n" + broken.collect { it + '\n' }.join('')
+    if (broken) {
+      throw new GradleException("Broken documentation links:\n" + broken.join('\n'))
+    }
+    logger.lifecycle("Documentation links: ${total} checked, none broken")
+  }
+
+  // Returns the file's lines with fenced code blocks blanked, so line numbers stay accurate.
+  static List<String> proseLines(File file) {
+    String fence = null
+    file.readLines('UTF-8').collect { String line ->
+      def marker = line =~ /^\s{0,3}(`{3,}|~{3,})/
+      if (marker.find()) {
+        String found = marker.group(1)
+        if (fence == null) {
+          fence = found
+          return ''
+        }
+        if (found[0] == fence[0] && found.length() >= fence.length() && line.trim() == found) {
+          fence = null
+          return ''
+        }
+      }
+      fence == null ? line : ''
+    }
+  }
+
+  // Mirrors GitHub's heading anchors: lowercase, punctuation removed, spaces as hyphens, "-N" for repeats.
+  static Set<String> headingAnchors(File file) {
+    Map<String, Integer> seen = [:]
+    Set<String> result = [] as Set
+    proseLines(file).each { String line ->
+      def heading = line =~ /^#{1,6}\s+(.*?)\s*#*\s*$/
+      if (heading.find()) {
+        String text = heading.group(1).replaceAll(/\[([^\]]*)\]\([^)]*\)/, '$1')
+        String slug = text.toLowerCase(Locale.ROOT).replaceAll(/[^\p{L}\p{N}\s_-]/, '').replaceAll(/\s/, '-')
+        int count = seen.getOrDefault(slug, 0)
+        seen[slug] = count + 1
+        result << (count == 0 ? slug : "${slug}-${count}".toString())
+      }
+    }
+    result
+  }
+}
+
+tasks.register('linkCheck', DocsLinkCheck) {
+  group = 'verification'
+  description = 'Checks relative links and heading anchors in the documentation.'
+  root = layout.projectDirectory
+  markdown.from(fileTree(layout.projectDirectory) {
+    include '**/*.md'
+    exclude 'build/**', '.gradle/**'
+  })
+  report = layout.buildDirectory.file('reports/links.txt')
+}
+
+tasks.named('check') {
+  dependsOn 'linkCheck'
+}

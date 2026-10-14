@@ -28,7 +28,7 @@ writes. These definitions describe that design; the [root README](../../README.m
 
 Program knowledge belongs in ingredients; setup choices belong in recipes. The engine handles the resulting file
 operations. Ingredient/recipe APIs, nesting, station roles, decorators, annotations, parameter injection and hooks
-remain a separate model discussion; this division does not select their interfaces.
+remain a separate model discussion.
 
 ## Ordered changes and review
 
@@ -45,12 +45,10 @@ remain in place. Whole-file declarations address the entire file.
 
 The committed `cook.lock` at the repository root records, for each applied recipe, its short name, source, sha256 and
 owned sections, keys and files. Ownership decides what a recipe's later versions update and remove; it never blocks a
-change. Existing content and manual edits use the same actual diff and approval flow. There is no `--adopt`, adoption
-alias or separate adoption gate. Every apply invocation evaluates the supplied recipes, even after an identical
-invocation; unchanged results have an empty diff.
+change. Existing content and manual edits use the same actual diff and approval flow. Every apply invocation evaluates
+the supplied recipes, even after an identical invocation; unchanged results have an empty diff.
 
-Cook displays one final terminal diff. The CLI accepts the whole batch; choosing individual changes belongs to a
-separate interface decision. Without preapproval, Cook asks before changing
+Cook displays one final terminal diff. The CLI accepts the whole batch. Without preapproval, Cook asks before changing
 target files; `--batch-approve` displays the diff and proceeds without prompting. Noninteractive execution without
 that flag does not authorize writes. See the [CLI reference](cli.md) for recipe operands and argument scope.
 
@@ -72,9 +70,8 @@ ownership. Apply needs neither batch history nor `cook.lock`; reverting a partic
 
 ## Files, sources and local history
 
-Native files are consumed directly by the configured programs. A program does not need to invoke Cook to read its
-settings, instructions, skills or ignore rules. Teams choose which resulting files to commit and review; Cook does
-not establish a mandatory repository layout for their guidance or program configuration.
+Native files are consumed directly by the configured programs. Teams choose which resulting files to commit and
+review.
 
 | Material | Location and purpose |
 | --- | --- |
@@ -87,8 +84,7 @@ not establish a mandatory repository layout for their guidance or program config
 
 A batch record captures one reversible patch per touched file (`cook.lock` included), the recipe sources actually
 evaluated, all consumed recipe and template sources (local and downloaded), origins, arguments, execution order and
-result or failure log.
-Source snapshots preserve original resolution; storing a source in `.cook/` does not rebase its references there.
+result or failure log. Source snapshots preserve original resolution.
 
 Save the batch record before the first target write. On a write failure, roll back changes already made by the batch and
 retain the record and failure. Losing `.cook/` loses the ability to revert earlier batches, not the ability to apply
@@ -98,9 +94,9 @@ recipes; ownership survives in the committed `cook.lock`. See
 ## Conventions outlive the tool
 
 Keep useful instructions where people and programs already look. For example, a team can document its working-copy
-location in `AGENTS.md` and declare matching ignore rules in `.gitignore`. These are repository choices, not managed
-workspace requirements. Native permission settings, skills and reviewed knowledge remain useful independently of
-Cook; writing guidance does not guarantee that a program loads or obeys it.
+location in `AGENTS.md` and declare matching ignore rules in `.gitignore`. These are repository choices. Native
+permission settings, skills and reviewed knowledge remain useful independently of Cook; writing guidance does not
+guarantee that a program loads or obeys it.
 
 See [workspace conventions](workspaces.md), [repository memory](memory.md) and
 [repository guidance](context.md) for configuration concerns that support this boundary.
@@ -112,10 +108,6 @@ operations; they do not sandbox arbitrary effects during recipe evaluation. Revi
 running it. A diff of resulting native configuration also deserves review: other programs may execute commands named
 in those files later. Executing external commands is not a batch action.
 
-The CLI is the public cooking interface. Gradle builds and packages Cook and cookbooks. Cook does not own a fixed
-software development lifecycle, worker launches, verification receipts or jails. Programs and teams run their own
-checks, task tracking and delivery. See [workflow boundaries](lifecycle.md) and [safety guidelines](safety.md).
-
-Personal setup backup (kit) and agent-session orchestration are future capabilities tracked in
-[issue #5](https://github.com/lmarqs/the-cook/issues/5) and
-[issue #6](https://github.com/lmarqs/the-cook/issues/6). Their protocols are outside this reference.
+The CLI is the public cooking interface. Gradle builds and packages Cook and cookbooks. Programs and teams run their
+own checks, task tracking and delivery. See [workflow boundaries](lifecycle.md) and [safety guidelines](safety.md).
+Their protocols are outside this reference.

@@ -12,15 +12,15 @@ the resulting file operations.
 
 An ingredient is a **program data model**. It models the files and configuration a program natively consumes, such as
 Git's ignore file or Codex's configuration and skills. [Cook architecture](../architecture.md) establishes this
-responsibility without selecting an ingredient API or storage schema.
+responsibility.
 
 [Recipes](recipes.md) use program models to describe requested file changes in trusted executable Groovy code.
 [Cookbook repositories](stations.md#cookbooks) hold and ship ingredients and recipes; their builds can be separate
 from Cook's build. The engine evaluates recipes into an ordered batch, shows its diff, obtains approval, records
-recovery information and performs writes. It does not run the configured program's workflow.
+recovery information and performs writes.
 
 For current implementation behavior, see the [core implementation guide](../../core/README.md) and cookbook usage
-guides. Existing suppliers are implementation evidence, not a decision about the deferred model API.
+guides.
 
 ## Program knowledge and setup choices
 
@@ -32,10 +32,8 @@ The useful distinction is between a program's configuration concepts and the cho
 | An agent's native configuration | Write the settings selected for this repository |
 | A program's native instructions and skill locations | Supply reviewed guidance or skills where that program consumes them |
 
-Use the program's own formats and supported configuration rather than treating all programs as interchangeable.
-Writing a file does not prove that a program loads it, supports its settings or follows its instructions. Keep such
-support limits clear in cookbook guidance. Configuring an agent or loop runner does not place its launches, sessions,
-permissions enforcement or task completion under Cook's control.
+Use the program's own formats and supported configuration. Writing a file does not prove that a program loads it,
+supports its settings or follows its instructions. Keep such support limits clear in cookbook guidance.
 
 ## Native files and declared targets
 
@@ -61,20 +59,13 @@ approval, destination boundaries and rollback govern declared operations rather 
 Review native configuration in the final diff too: permission changes or commands named in a program's configuration
 can affect what that program does later.
 
-Existing or manually edited files use the normal batch diff and whole-batch approval. There is no `--adopt`, adoption
-alias, separate adoption step or ownership-state prerequisite. Apply evaluates supplied recipes against current
-content on every invocation and needs neither batch history nor `cook.lock`. See [safety guidelines](safety.md).
+Existing or manually edited files use the normal batch diff and whole-batch approval. Apply evaluates supplied recipes
+against current content on every invocation and needs neither batch history nor `cook.lock`. See
+[safety guidelines](safety.md).
 
 ## Model discussion boundary
 
-The ingredient concept does not establish a contract for starting a version-control program, worker or jail. Cook
-models native setup and handles declared file operations; it does not own verification receipts, safety floors or a
-fixed software development lifecycle.
+Cook models native setup and handles declared file operations.
 
 Ingredient/recipe APIs, composition and nesting rules, station roles, lifecycle hooks, decorators, parameter injection
-and annotations need their own discussion. This reference selects no constructors, annotations, neutral model,
-template language or supplier interface, and does not decide to delete dynamic composition or compiled suppliers.
-
-Personal setup backup and agent-session orchestration remain future work in
-[issue #5](https://github.com/lmarqs/the-cook/issues/5) and
-[issue #6](https://github.com/lmarqs/the-cook/issues/6); their design is outside this page.
+and annotations need their own discussion.

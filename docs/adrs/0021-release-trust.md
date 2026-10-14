@@ -19,14 +19,9 @@ that verification proves and what trust remains their responsibility.
   defeats a comparison with that source; the committed checksum is the reference for subsequent downloads.
 - Download transport and publisher identity are different concerns. A download host's identity alone does not prove
   who authored the executable content. Reviewing the wrapper and pin matters because both determine what runs.
-- The agreed architecture does not select release signatures, embedded signing keys, key rotation, a trust-bootstrap
-  protocol, or an online release health check. Checksum pinning must not be described as providing those mechanisms.
 - Recipes are trusted executable Groovy code. Ingredients model native program files and configuration and are held
   and shipped with recipes through cookbook repositories, whose builds can be separate from Cook's. Engine package
   verification does not authenticate those sources or sandbox their evaluation.
-- The current [`cook` launcher](../../cook) does not implement release pinning or download verification. The existing
-  [jpackage build](../../cli/gradle/jpackage.gradle) creates a local image with Java; it does not establish a published
-  release or a working pinned-download wrapper. These decisions describe the intended distribution.
 
 ## Decision
 
@@ -37,14 +32,12 @@ that verification proves and what trust remains their responsibility.
    package, including Java, for subsequent invocations ([0017](0017-engine-version.md)).
 3. State the trust limit: a matching checksum establishes agreement with the reviewed pin, not publisher identity,
    code safety, or protection from an already compromised package. Reviewers remain responsible for the source and
-   package they choose. No signing system is a prerequisite established by this decision.
+   package they choose.
 4. Keep engine integrity separate from recipe trust and file-operation approval. Trust recipe sources before
    evaluation; reviewing the resulting batch diff governs declared writes, not arbitrary recipe side effects.
-   Apply requires neither `cook.lock` nor previous history. The committed pin needs no adoption, and ignored `.cook/`
-   recovery history is not the only copy of it.
+   Apply requires neither `cook.lock` nor previous history.
 5. Do not use distribution trust to decide recipe/ingredient APIs, nesting, station semantics, decorators, injection,
-   annotations, or lifecycle hooks. Those remain separate model questions. Issue #9 supplies review input, not a
-   decision to delete dynamic composition or compiled suppliers; this record selects no replacement model API.
+   annotations, or lifecycle hooks; those remain separate model questions.
 
 ## Reasons
 
@@ -59,7 +52,7 @@ that verification proves and what trust remains their responsibility.
   add decisions absent from the agreed architecture.
 - **4.** Engine packages and cookbook sources have separate distribution responsibilities. A trusted engine does not
   make every recipe trustworthy, and approval cannot undo effects outside the declared batch. Depending on `cook.lock`
-  or adoption gates would add prerequisites unrelated to verifying an engine download.
+  would add a prerequisite unrelated to verifying an engine download.
 - **5.** The ingredient concept remains useful program knowledge regardless of release verification. Packaging and
   trust reasoning do not settle how recipes and models compose or how future session capabilities work.
 
@@ -87,22 +80,19 @@ obsolete Go-only or operating-system-only runtime constraint; it leaves their se
 - A compromised package chosen with its matching checksum still passes verification. A compromised wrapper or an
   unreviewed replacement of the pin can also change what runs. Review and checksum verification have distinct roles.
 - Protect cached executable packages from unintended changes. First-download verification does not by itself protect
-  a cache from later local modification; no cache revalidation schedule or storage layout is selected here.
-- Maintainers need corresponding checksums for the complete platform packages they distribute. This decision adds no
-  signed checksum-file format, key list, rotation release, updater command, online doctor check, or mandatory CI gate.
+  a cache from later local modification.
+- Maintainers need corresponding checksums for the complete platform packages they distribute.
 - Cookbook authors retain responsibility for their program models and recipes. The engine pin does not manage recipe
-  versions, impose a supplier-admission protocol, or provide a registry.
-- Existing or edited target files follow batch diff review and approval. The target CLI has no `--adopt`, adoption
-  alias, separate adoption step, or `cook.lock` prerequisite; removing existing gates remains implementation work.
+  versions.
+- Existing or edited target files follow batch diff review and approval.
 
 ## Confirmation
 
-Review the documented trust flow against these scenarios; no new check command is required:
+Review the documented trust flow against these scenarios:
 
 - A package that differs from the committed checksum cannot execute or become an accepted cache entry.
 - Changing the engine version also changes its matching platform checksums for explicit review; ordinary invocations
   keep using the pin rather than trusting whatever the download source currently advertises.
 - A matching checksum is described as integrity against the pin, with publisher identity and prior compromise left
   as trust limits. Neither recipe trust nor arbitrary-code sandboxing is inferred from package verification.
-- The wrapper and installation references describe the same complete-package flow without promising signatures,
-  adoption, or a finalized model API.
+- The wrapper and installation references describe the same complete-package flow without promising signatures.

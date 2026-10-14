@@ -11,8 +11,7 @@ being present in each agent session.
 ## Context
 
 Repositories keep guidance in instruction files and skills. Some guidance applies broadly; other guidance concerns
-particular files or topics. The original concern about placing all guidance in one instruction file still applies,
-but it does not require Cook to supervise sessions or inject context.
+particular files or topics.
 
 The [architecture](../architecture.md#ingredients-recipes-and-cookbooks) and its
 [requirements](../architecture.md#requirements) FR-1, FR-2 and FR-6 assign native configuration models to ingredients
@@ -30,7 +29,6 @@ while choosing which native files each project receives.
    preserve unrelated text, and receive whole-batch diff review, including when the section was edited manually.
 4. Cook defines no standing-context trigger catalog, role budget, prompt injection channel or session cache here.
    Session orchestration remains future work in [issue #6](https://github.com/lmarqs/the-cook/issues/6).
-   Ingredient/recipe APIs and hooks require the separate model discussion.
 
 ## Reasons
 
@@ -40,9 +38,8 @@ while choosing which native files each project receives.
   Separating file creation from program execution avoids promising delivery or compliance that a file operation
   cannot establish. The trade is that the program and its user determine loading and use.
 - **3.** FR-7 through FR-11 give shared guidance the same reviewable operation contract as other configuration.
-  Boundary markers preserve surrounding prose, and recorded ownership never blocks a change, so there is no
-  manual-edit veto. The trade is that
-  a declared replacement can change local guidance, and the actual diff must make that scope visible.
+  Boundary markers preserve surrounding prose, and recorded ownership never blocks a change. The trade is that a
+  declared replacement can change local guidance, and the actual diff must make that scope visible.
 - **4.** FR-6 and FR-30 leave session execution and recipe hooks outside this design. The useful guidance concern
   remains, without turning a file configuration engine into a context-delivery service.
 
@@ -73,6 +70,4 @@ Must be maintained:
 ## Confirmation
 
 Review against FR-1, FR-2, FR-6, FR-7 through FR-11 and FR-30. In the acme example, a recipe changes the declared
-instruction section or skill file while unrelated text stays intact. Native files remain readable without Cook;
-no engine trigger, delivery budget or prompt channel is needed. These are design review criteria, not execution
-checks or claims that deferred session behavior is implemented.
+instruction section or skill file while unrelated text stays intact. Native files remain readable without Cook.

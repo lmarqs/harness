@@ -4,12 +4,11 @@
 
 When configuration does not work as expected, a contributor needs to distinguish a wrong file change from a program
 that did not load it, an unavailable source, or missing recovery information. Useful diagnostics identify the path,
-operation and cause without treating a repository as a lifecycle setup to be completed.
+operation and cause.
 
 ## Reviewing an operation
 
-The [architecture](../architecture.md) defines Cook's file-operation engine and its result or failure record. It does
-not define a `doctor` command, health-check catalog, JSON diagnostic schema or diagnostic exit-code contract.
+The [architecture](../architecture.md) defines Cook's file-operation engine and its result or failure record.
 
 Use the relevant evidence to investigate a problem:
 
@@ -23,16 +22,12 @@ Use the relevant evidence to investigate a problem:
 
 See [apply](render.md) for review and source resolution, [revert](remove.md) for reversal semantics, and
 [safety](safety.md) for the trusted-code boundary. The batch record captures evaluated and consumed sources, their
-origins, arguments, execution order, reverse patches and result or failure log. It is recovery information, not proof
-that checks passed; ownership is recorded in the committed `cook.lock`.
+origins, arguments, execution order, reverse patches and result or failure log. It is recovery information; ownership
+is recorded in the committed `cook.lock`.
 
 ## Scope
 
-Cook does not diagnose lifecycle stages, verification receipts, worker launches or jails, adoption to-dos, landed
-branches or task delivery. Repository checks run through the team's programs; see [check configuration](verify.md).
-Agent-session orchestration remains future work in
-[issue #6](https://github.com/lmarqs/the-cook/issues/6); this page defines no session health service.
+Repository checks run through the team's programs; see [check configuration](verify.md).
 
 For commands available in the current implementation, use the [root README](../../README.md) and
-[core implementation guide](../../core/README.md). The design requirements here do not establish that the target
-CLI or recovery behaviour is already implemented.
+[core implementation guide](../../core/README.md).

@@ -24,42 +24,38 @@ write their inputs and results.
   changes is a separate interface decision (FR-11).
 - Ingredients model native program files and configuration in cookbooks ([0022](0022-tool-integration.md)). Fixed
   lifecycle, worker and jail contracts are outside the engine's responsibilities (FR-2, FR-3, FR-6).
-- Ports and adapters separates rules, connections to external mechanisms and entry-point wiring. That dependency
-  direction is useful without selecting a complete public interface or a connection for every conceivable dependency.
+- Ports and adapters separates rules, connections to external mechanisms and entry-point wiring.
 
 ## Decision
 
 1. Keep operation rules and the models they require in the core. Connections implement the external mechanisms those
-   rules need; wiring supplies those connections. Dependencies point from connections and wiring toward the core,
-   rather than requiring operation rules to import a terminal, HTTP client or filesystem implementation.
+   rules need; wiring supplies those connections. Dependencies point from connections and wiring toward the core.
 2. Shape those boundaries around the agreed file-operation responsibilities: current content, ordered changes, actual
-   diff review, whole-batch approval, destination containment, recovery and recorded reversal. Do not retain the former
-   three ingredient-filled contracts for version control, workers and jails, or add external command execution to a
-   batch. This decision does not enumerate or finalize method signatures, model APIs or a complete port inventory.
+   diff review, whole-batch approval, destination containment, recovery and recorded reversal. Define no version
+   control, worker or jail contracts, and add no external command execution to a batch. This decision does not
+   enumerate or finalize method signatures, model APIs or a complete port inventory.
 3. Keep the core independent of any interface: it receives accepted changes and writes and records only those. Use the
-   CLI as the public cooking interface; it accepts the whole batch. Gradle builds and packages Cook and cookbooks; it is
-   not a second public cooking interface. The destination is the invocation directory, not a root discovered by walking
-   upward to a configuration directory or by consulting version control.
+   CLI as the public cooking interface; it accepts the whole batch. Gradle builds and packages Cook and cookbooks. The
+   destination is the invocation directory, not a root discovered by walking upward to a configuration directory or by
+   consulting version control.
 4. Local history under the destination's ignored `.cook/batches/<batchId>/` directory keeps one record per batch: one
    reversible patch per touched file, `cook.lock` included, consumed local and remote recipe/template sources, origins,
    arguments, order and outcome. Save recovery patches before the first target write. On write failure, roll back
    changes already made and retain patches and the failure record. History is not a prerequisite for apply, and
-   ownership lives in the committed `cook.lock`; reverting a batch requires its record. Metadata formats and full
-   storage schemas remain undecided.
+   ownership lives in the committed `cook.lock`; reverting a batch requires its record.
 5. Distribution retains platform-specific jpackage packages containing Java and a committed wrapper with an explicit
    engine version and matching checksums. First use downloads and verifies an uncached package, then caches it;
    upgrades explicitly change the pin ([0017](0017-engine-version.md), [0021](0021-release-trust.md)). Cookbook builds
-   and recipe-version selection remain separate. Ingredient/recipe APIs, nesting, station semantics and lifecycle
-   mechanics remain deferred; issue #9 decides no deletion of dynamic composition or compiled suppliers.
+   and recipe-version selection remain separate.
 
 ## Reasons
 
 - **1.** Keeping mechanisms behind core-defined boundaries protects the operation rules when an external mechanism
   changes and supports reasoning with substitutes. The trade is indirection and the need to keep substitutes faithful
   to the relevant behavior. A separate interface is justified by an actual boundary, not merely by a future possibility.
-- **2.** The architecture defines file changes rather than program execution. Retaining lifecycle contracts would
-  encode responsibilities Cook no longer owns. The trade is that future orchestration needs its own design instead of
-  inheriting these old contracts. Ingredient knowledge does not require banning all file-format concepts from the core.
+- **2.** The architecture defines file changes rather than program execution. Lifecycle contracts would encode
+  responsibilities outside Cook's scope. The trade is that future orchestration needs its own design. Ingredient
+  knowledge does not require banning all file-format concepts from the core.
 - **3.** FR-5 gives users one public cooking interface; FR-21 makes the destination explicit. FR-11 keeps acceptance
   outside the core, so another interface can choose individual changes without altering operation rules, and `cook.lock`
   and the batch record describe only what was written. Upward root discovery could redirect writes away from the
@@ -68,9 +64,8 @@ write their inputs and results.
 - **4.** FR-13 and FR-23 through FR-25 separate recovery from ownership. Recording consumed sources and origins makes
   a batch inspectable without using history to skip recipe evaluation. The trade is local recovery storage, and losing
   it loses reversal of those batches while apply remains available.
-- **5.** FR-26 fixes delivery independently of the internal boundary shape; FR-30 leaves model APIs open. The trade
-  is maintaining platform packages and separate cookbook compatibility without treating current composition code or
-  an older issue as the final public contract.
+- **5.** FR-26 fixes delivery independently of the internal boundary shape. The trade is maintaining platform packages
+  and separate cookbook compatibility.
 
 ## Rejected alternatives
 
@@ -102,7 +97,7 @@ Costs:
 Must be maintained:
 
 - Dependency direction and the distinction between recipe choices, file-operation rules and external mechanisms.
-- Independent destination/source resolution and recovery information without ownership gates.
+- Independent destination/source resolution and recovery information.
 
 ## Confirmation
 
@@ -110,5 +105,4 @@ Review dependency direction and scenarios against FR-1, FR-5, FR-11, FR-13, FR-1
 HTTPS recipe still targets the invocation directory; its relative sources keep their origin after capture, and a local
 recipe outside the repository is refused. Apply works without earlier history or `cook.lock`, while reversal requires
 the batch record. A failed batch retains recovery information after rollback. The package pin does not choose recipe
-versions or public model APIs. These criteria guide design review and later implementation validation; they introduce no
-mandatory commands or implementation claims.
+versions.

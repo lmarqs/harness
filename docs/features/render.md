@@ -7,14 +7,13 @@ file changes against that current content, review the combined diff, and approve
 outside the declared targets.
 
 This page follows the intended [architecture](../architecture.md#evaluation-review-and-writes). For commands
-supported by the current implementation, see the [root README](../../README.md). The design examples here do not
-establish that the target behavior is implemented.
+supported by the current implementation, see the [root README](../../README.md).
 
 ## Overview
 
 Apply evaluates trusted Groovy recipes into an ordered batch of file operations. Ingredients model programs' native
 files and configuration; cookbooks supply ingredients and recipes separately from the engine. The CLI accepts recipe
-paths inside the destination repository or `https://` URLs, with no implicit cookbook-name lookup.
+paths inside the destination repository or `https://` URLs.
 
 ```sh
 ./cook ./recipe.groovy
@@ -23,13 +22,13 @@ paths inside the destination repository or `https://` URLs, with no implicit coo
 ```
 
 Apply is the default. Batch options precede recipe operands; recipe arguments follow their recipe as `--name=value`.
-See the [CLI reference](cli.md) for the full grammar. Render flags and commands are not compatibility aliases.
+See the [CLI reference](cli.md) for the full grammar.
 
 ## Ordered operations
 
 Recipes and their operations compose left to right against current content. When two recipes write the same
 section, key, or file, the last one wins and becomes its owner; the diff is the only notice. Cook displays one final
-combined diff for the whole batch, without requiring separate approval for intermediate values.
+combined diff for the whole batch.
 
 Suppose recipe A sets `test = "A"` in `settings.toml` and creates `notes.txt`, and recipe B sets `test = "B"`.
 Applying A followed by B previews B's final value and A's new file, and B owns `test`. Applying B alone after an
@@ -42,9 +41,9 @@ one. History does not mark recipes as already applied or skip them. An unchanged
 
 ## Declared outputs
 
-A batch affects the targets its recipes declare and the targets they owned before. There is no engine-mandated
-catalog of generated configuration, wrapper files, agent instructions, skills, hooks, or ignore entries. A recipe may
-declare those native files; configuring a program does not make Cook its runner.
+A batch affects the targets its recipes declare and the targets they owned before. A recipe may declare native files
+such as generated configuration, wrapper files, agent instructions, skills, hooks, or ignore entries; the configured
+programs consume those files directly.
 
 | Target | Address | Effect of apply |
 | --- | --- | --- |
@@ -55,20 +54,17 @@ declare those native files; configuring a program does not make Cook its runner.
 
 ### Merge-rendering native files
 
-Structured operations target keys rather than claiming ownership of the whole native file. A declared `test` key
-can change while an unrelated `other` key remains. Whole-file targets have whole-file scope, so review their full
-diff. The recipe's declarations determine that scope; the committed `cook.lock` records the sections, keys, and
-files each recipe owns.
+Structured operations target keys. A declared `test` key can change while an unrelated `other` key remains.
+Whole-file targets have whole-file scope, so review their full diff. The recipe's declarations determine that scope;
+the committed `cook.lock` records the sections, keys, and files each recipe owns.
 
 Existing or edited content follows the same diff and approval flow. Ownership never blocks a change: a developer's
-manual edit appears in the next diff like any other difference. Cook requires no `--adopt` flag, compatibility alias,
-or separate adoption step.
+manual edit appears in the next diff like any other difference.
 
 ### Native program files
 
 Recipes may configure a program's own permissions, skills, or hook settings in the files that program consumes.
-Executing external commands is not a batch action. Cook does not prescribe a universal hook command, event mapping,
-safety-floor policy, or lifecycle engine. Recipe/model APIs and lifecycle hooks require a separate discussion.
+Executing external commands is not a batch action.
 
 ## Managed blocks
 
@@ -95,17 +91,16 @@ More unrelated text.
 
 A block ID has the form `<recipe>/<region>`: the owning recipe's short name, such as `agentic/context`, followed by
 the region within that recipe. A recipe declares its short name; without a declaration, the name derives from the
-recipe's path. The block ID is not an engine-wide module catalog. Manual edits within the section are included in the
-next actual diff; ownership never blocks them. Removing a recipe from a later apply invocation does not delete its
-section; a new version of the recipe that no longer declares the section removes it. [Discard](remove.md#discard) is
-deferred; revert the batches that applied a recipe to undo its output.
+recipe's path. Manual edits within the section are included in the next actual diff; ownership never blocks them.
+Removing a recipe from a later apply invocation does not delete its section; a new version of the recipe that no
+longer declares the section removes it. [Discard](remove.md#discard) is deferred; revert the batches that applied a
+recipe to undo its output.
 
 ### Instruction files
 
 Recipes can write sections in `AGENTS.md`, `README.md`, or another program's instruction file. Keep instructions
-concise and put supporting detail in linked documentation when useful. The engine does not mandate the former fixed
-line budgets, block classes, or `explain`/`doctor` commands. Instruction content and its size belong to the recipe's
-configuration choices.
+concise and put supporting detail in linked documentation when useful. Instruction content and its size belong to the
+recipe's configuration choices.
 
 ## Review and recovery
 
@@ -120,8 +115,7 @@ configuration choices.
    the batch record and failure.
 
 The core writes and records only accepted changes. The CLI accepts the whole batch, covering all files and hunks;
-choosing individual changes belongs to a separate interface decision. Terminal review takes the place of render
-drift-check and dry-run flags, which the target CLI does not have.
+choosing individual changes belongs to a separate interface decision.
 
 Recipes are trusted executable code. Diff, approval, output boundaries, and rollback govern declared batch
 operations; they are not a sandbox or protection against arbitrary side effects during recipe evaluation.
@@ -145,8 +139,9 @@ example, when invoked from `/work/project`:
 All consumed recipe/template sources are captured, including local sources and the recipes actually evaluated.
 Recording their origins preserves relative resolution when the sources are snapshotted. Multiple recipes touching
 one file produce one patch for the combined change and one batch record for the whole batch. A single patch
-supports forward and reverse application. Arguments, execution order, and result or failure log are recorded too;
-no patch representation or metadata serialization format is specified here.
+supports forward and reverse application. Arguments, execution order, and result or failure log are recorded too.
+The metadata serialization format belongs to the implementation; the concrete patch representation is a separate
+decision.
 
 Apply requires neither batch history nor `cook.lock`; without a lock entry for a recipe, it removes nothing on that
 recipe's behalf. Losing `.cook/` loses the ability to revert earlier batches, not the ability to apply recipes;

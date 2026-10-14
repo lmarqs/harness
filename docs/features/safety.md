@@ -23,21 +23,18 @@ not a batch action.
 | Protection | Scope and limit |
 | --- | --- |
 | Destination boundary | Declared writes and deletions stay within the invocation directory, including paths resolved through symlinks. Recipes come from paths inside the repository or `https://` URLs; a local recipe or template outside the repository is refused. This does not confine arbitrary recipe code. |
-| Combined terminal diff | Shows the final result of left-to-right composition against current content. When two recipes write the same target, the last one wins and becomes its owner; intermediate results are not separate approvals. |
+| Combined terminal diff | Shows the final result of left-to-right composition against current content. When two recipes write the same target, the last one wins and becomes its owner. |
 | Whole-batch approval | Without preapproval, ask before target writes. With `--batch-approve`, show the diff and proceed without prompting. Noninteractive execution without that flag does not authorize writes. Choosing individual files or hunks belongs to a separate interface decision. |
 | Recovery before writes | Save one reversible patch per touched file before the first target write. On a write failure, roll back changes already made by the batch and retain patches and the failure record. Recovery covers declared file operations. |
 | Declared scope | Whole-file paths, structured key paths and `cook:begin <recipe>/<region>` / `cook:end <recipe>/<region>` text markers determine what changes. Unrelated keys and text outside declared sections are preserved. Markers name the owning recipe; ownership never blocks a change. |
 
-Existing and edited targets use the same actual diff and approval flow. There is no `--adopt`, adoption alias,
-separate adoption step, ownership-state prerequisite or refusal merely because a developer edited a target. Applying
-another recipe does not remove output an earlier recipe owns. See [apply](render.md).
+Existing and edited targets use the same actual diff and approval flow as any other target. Applying another recipe
+does not remove output an earlier recipe owns. See [apply](render.md).
 
 Review deletions as carefully as additions. Applying a new version of a recipe removes what its previous version
 owned and the new version no longer declares, and the diff shows that removal. [Revert](remove.md) applies a recorded
 batch's reverse patches against current content, `cook.lock` included; later edits that do not overlap the batch's
 changes survive, and an overlapping edit makes the revert write nothing and list each conflicting file and section.
-Recovery mechanics for non-text operations need later implementation design; this page does not select a patch
-representation.
 
 ## Reviewing native configuration and guidance
 
@@ -54,8 +51,7 @@ consequences as well as the file diff:
   files. See [memory](memory.md).
 
 Keep guidance focused on the repository. Personal settings may contain one-time approvals, private paths, host names
-or tokens; review anything copied into shared configuration before distributing it. There is no separate Cook import
-or adoption gate that makes that material safe.
+or tokens; review anything copied into shared configuration before distributing it.
 
 ## Secrets
 
@@ -74,9 +70,8 @@ verifies the download and caches it locally. The jpackage distribution contains 
 changes to the source, version and checksum together. A checksum verifies the fetched artifact against the chosen pin;
 it does not prove that the selected release or recipe is trustworthy.
 
-Engine pinning is separate from cookbook distribution and the recipe versions users supply. No recipe updater,
-registry, signature-key protocol or worker tamper check is defined here. The [installation reference](installation.md)
-distinguishes the delivery design from the current local build and launcher.
+Engine pinning is separate from cookbook distribution and the recipe versions users supply. The
+[installation reference](installation.md) distinguishes the delivery design from the current local build and launcher.
 
 ## History and engine boundaries
 
@@ -84,10 +79,6 @@ Each batch record in the ignored `.cook/batches/<batchId>/` directory holds eval
 local ones), origins, arguments, order, reversible patches and result or failure log. Apply requires neither previous
 history nor `cook.lock`. Losing `.cook/` loses local recovery information; ownership survives in the committed
 `cook.lock`, and reverting a particular batch requires its record.
-History is not a verification receipt or a worker supervision log.
 
 Permission enforcement, branch protection, checks, publication and runtime confinement belong to people, configured
-programs and their execution environments. Cook does not supervise unattended sessions, enforce a safety floor,
-launch jailed workers or guard lifecycle delivery. Personal setup backup and agent-session orchestration remain
-future work in [issue #5](https://github.com/lmarqs/the-cook/issues/5) and
-[issue #6](https://github.com/lmarqs/the-cook/issues/6). Ingredient/recipe APIs and hooks remain outside this discussion.
+programs and their execution environments.
