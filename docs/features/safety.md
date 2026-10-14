@@ -256,7 +256,7 @@ In practice:
   production.
 - `the-cook` is never an MCP client. An integration that needs an MCP tool is an `attempt` action, which uses the
   worker's own MCP connections and their credentials under the attempt contract; a deterministic one uses the
-  service's API through `http` or its CLI through `run` ([ADR 0019](../adrs/0019-action-kinds.md)).
+  service's API through `http` or its CLI through `run`.
 
 ## Attempt actions and prompt injection
 

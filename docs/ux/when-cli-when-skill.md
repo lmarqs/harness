@@ -104,7 +104,7 @@ A behaviour is a declared action when all of these hold:
    [coordinating worker](../features/lifecycle.md#the-lifecycle-stage-by-stage) or automatically (`auto: true`).
 
 Why: these are the side effects whose form differs per team, so the team declares them and `the-cook` only fires them
-under its guards ([ADR 0015](../adrs/0015-development-lifecycle.md), [ADR 0019](../adrs/0019-action-kinds.md)).
+under its guards.
 
 A declared action is always declared in the repository's `hooks.yaml`. An action that holds for an organization's
 repositories (open a pull request on a given hosting platform, add the organization's CI-trigger commit, post to the
@@ -135,7 +135,7 @@ declared, visible and recorded.
 ## Standing context
 
 Use a standing-context entry when guidance that already exists must reach a worker at a predictable moment, instead
-of relying on someone to invoke it ([ADR 0020](../adrs/0020-standing-context.md)).
+of relying on someone to invoke it.
 
 | The guidance | Destination | Because |
 | --- | --- | --- |
@@ -153,7 +153,7 @@ entry.
 ## Recipes
 
 Use a recipe when a repository makes the same kind of change many times and each one should arrive verified, like any
-other work ([recipes](../features/recipes.md), [ADR 0025](../adrs/0025-recipes.md)). A recipe run is one pass of one
+other work ([recipes](../features/recipes.md)). A recipe run is one pass of one
 change through the lifecycle's stages: Start creates its workspace, its steps run at Implement, Verify runs every lane
 the change selects and every lane the recipe requires, and the repository's own actions deliver it. Within the recipe,
 each part of the change has one place:

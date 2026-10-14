@@ -17,12 +17,11 @@ its steps run in order, the lanes it needs prove it, and it is delivered the way
 `the-cook` declares a software development lifecycle: the stages a change goes through, the events fired between them,
 the guards that hold between stages and the proof a change carries ([lifecycle](lifecycle.md)). A recipe is one kind
 of change, made many times: the inputs it takes, what it requires of the repository, the steps that make the change,
-mapped onto the stages, and the lanes that must prove it ([ADR 0025](../adrs/0025-recipes.md)). A run of a recipe is
+mapped onto the stages, and the lanes that must prove it. A run of a recipe is
 one pass of one change through the stages.
 
 A recipe is one of three units a repository takes from cookbooks or writes itself, and one rule separates them: facts
-about programs are pinned and rendered; practices are copied and become the repository's own
-([ADR 0025](../adrs/0025-recipes.md)).
+about programs are pinned and rendered; practices are copied and become the repository's own.
 
 | Unit | What it is | How a repository holds it | When it acts |
 | --- | --- | --- | --- |

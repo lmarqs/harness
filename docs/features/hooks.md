@@ -426,5 +426,3 @@ After `the-cook remove --eject`, raw entries stay in the native files as the rep
 and keep working. The `the-cook hook` entries, including notifications and standing-context injection, are removed, and
 listed in the output, because they call a wrapper that eject deletes. Static context entries stay in `AGENTS.md`.
 
-The reasoning for action kinds and notification events is in
-[ADR 0019](../adrs/0019-action-kinds.md).

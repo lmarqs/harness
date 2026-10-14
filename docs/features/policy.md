@@ -172,7 +172,7 @@ ask:
 `render` writes it for each spelling `the-cook` renders. Permitting a worker to run `the-cook lifecycle run deliver`
 permits everything the `deliver` actions do: they run as child processes of `the-cook`, where the worker's per-command
 permissions do not reach. The seeded `ask` keeps a person in the loop before delivery. It is a seeded entry, which the
-repository owns and may change; it is not an invariant ([ADR 0015](../adrs/0015-development-lifecycle.md)). A repository
+repository owns and may change; it is not an invariant. A repository
 whose `deliver` actions only open draft pull requests may move it to `allow`. Lifecycle actions are committed
 configuration; review them like code ([lifecycle](lifecycle.md), [safety](safety.md)).
 

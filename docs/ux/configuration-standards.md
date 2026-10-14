@@ -420,8 +420,7 @@ single meaning.
   checkout. An `attempt` action runs in a fresh workspace at the revision of the shared default line of work, which
   `the-cook` creates under `workspaces.dir` as `landed-<name>-<n>` and records. `the-cook` leaves that workspace with
   the worker's uncommitted edits for a person to review, commit or remove with `the-cook workspace remove`. Why: once
-  work has landed its workspace is about to go, and the primary checkout holds whatever a person is doing there
-  ([ADR 0019](../adrs/0019-action-kinds.md)).
+  work has landed its workspace is about to go, and the primary checkout holds whatever a person is doing there.
 - Prompts that include untrusted values (task titles, worker messages) are a prompt-injection surface; the attempt
   contract bounds what an injected instruction can do.
 - `auto: true` on an `attempt` action is allowed and is reported by `the-cook doctor` as a note, because each automatic
@@ -440,8 +439,7 @@ single meaning.
 
 Standing context puts known guidance in front of a worker at the moment it applies, without anyone invoking it. It is
 declared under `context:` in `.cook/config.yaml`. Reference: [context](../features/context.md). Why: guidance a
-person must remember to invoke is skipped exactly when it matters, while a deterministic trigger applies it every time
-([ADR 0020](../adrs/0020-standing-context.md)).
+person must remember to invoke is skipped exactly when it matters, while a deterministic trigger applies it every time.
 
 ```yaml
 context:
@@ -485,7 +483,7 @@ context:
   hook-delivered. `context.budget` and `COOK_NO_CONTEXT=1` apply to prompt delivery as to hooks. Why: a worker program
   may run no hook unattended, since some run a project's hooks only after a person reviewed them, and nobody reviews
   in an attempt; the binary can place text only in a prompt that passes through it
-  ([context](../features/context.md#delivery-in-the-prompt), [ADR 0020](../adrs/0020-standing-context.md)).
+  ([context](../features/context.md#delivery-in-the-prompt)).
 - A `static` entry works without the binary and survives eject, because it is a convention block; it is not also
   injected by a hook, so it is never loaded twice. Static entries count against `context.budget`, not against the
   `AGENTS.md` block budget.
@@ -582,7 +580,7 @@ workers:
   the value is the profile's and the arguments the pinned ingredient's; a free-form command prefix would leave the
   binary unable to place the worker's launch, tell the jail's arguments from the worker's when it refuses bypass
   arguments, or pass the attempt marks, and every repository would retype the jail's facts
-  ([workers](../features/workers.md#jails), [ADR 0027](../adrs/0027-worker-jails.md)).
+  ([workers](../features/workers.md#jails)).
 - Names are unique within each list: two `ingredients` entries, or two `stations` entries, with the same `name` are a
   validation error (exit 1). Why: every reference to an ingredient, from `vcs`, a worker or the manifest, must resolve
   to exactly one, and applying a station again must resolve to one pin.
@@ -751,8 +749,7 @@ inputs, what it requires, its steps mapped onto the lifecycle's stages and the l
 repository's own: a recipe the repository wrote, or a copy added from a cookbook that records its `origin`.
 `the-cook make <name>` runs it, one change per recipe run ([recipes](../features/recipes.md)). Why: a generator that
 writes files stops before verification, and a skill alone guarantees nothing, while a recipe run carries both the
-deterministic part and the judgement of a repeated change through the same guards as any other work
-([ADR 0025](../adrs/0025-recipes.md)).
+deterministic part and the judgement of a repeated change through the same guards as any other work.
 
 ```yaml
 # .cook/recipes/migration/recipe.yaml
@@ -836,7 +833,7 @@ origin:
 - A recipe can only add: steps, required lanes and requirements. It declares no lifecycle action, skips no lane,
   weakens no guard and fires no event itself; delivery of a recipe run's work follows the repository's own lifecycle
   actions. Why: a recipe is repository data that a worker may have written, and the guards and the delivery convention
-  hold whatever describes the work ([ADR 0015](../adrs/0015-development-lifecycle.md)).
+  hold whatever describes the work.
 - A run reads its recipe once, when it starts, from the base commit of the workspace it creates, the revision of the
   shared default line of work that the version-control ingredient's `default_revision` reports, and keeps the recipe's
   content and digest in its run record, so a recipe runs in a new workspace once it is on that line (for git, pushed),
@@ -874,8 +871,7 @@ file is published.
 ## What never becomes a setting
 
 The following are not keys in any file or flag. They are architecture decisions: changing one is a change to the ADR
-that decides it, because a setting that weakens them would copy along with the file that sets it
-([ADR 0025](../adrs/0025-recipes.md)).
+that decides it, because a setting that weakens them would copy along with the file that sets it.
 
 - An attempt never bypasses permissions: every argument a worker's ingredient marks as a floor bypass argument is
   refused.

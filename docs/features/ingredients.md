@@ -224,7 +224,7 @@ the checkout's git directory, the common directory and, in a linked workspace, i
 
 Version-control operations run outside any jail, with the person's environment, on files a worker may have written.
 An operation that would run code the checkout defines, such as hooks a version control program reads from a tracked
-directory, turns that code off where the program allows it ([ADR 0027](../adrs/0027-worker-jails.md)).
+directory, turns that code off where the program allows it.
 
 The binary finds the repository root itself, as the nearest directory upward that holds `.cook/config.yaml`, so
 reading the profile never needs this contract; workspace, base and history operations do. A command that needs the
@@ -276,8 +276,7 @@ own paths, so the worker program, the version-control program and `the-cook` ins
 A worker declaration that names a jail, `workers.<name>.jail` ([workers](workers.md#jails)), has the binary start the
 worker of each of its attempts through that jail: under `the-cook attempt`, an `attempt` action and a recipe's
 `attempt` step. The binary never starts an interactive session, so no jail wraps one: a person who wants a session
-confined starts it inside the jail, and the rendered files apply there as they do without one
-([ADR 0027](../adrs/0027-worker-jails.md)).
+confined starts it inside the jail, and the rendered files apply there as they do without one.
 
 A container image and another machine are not jails. An image brings its own copies of the programs, so the version
 checks, the floor and the renders would describe a program other than the one that runs, and the binary would need a

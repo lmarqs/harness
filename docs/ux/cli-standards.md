@@ -189,8 +189,7 @@ each task through a recipe.
 - A prompt on stdin carries the `always` entries of the `unattended` role, placed by the binary before the task text,
   and the session-start hook of that attempt adds none; a prompt among the worker arguments is passed unchanged. Why: a
   worker program may run no hook unattended, so the prompt is where the binary can be sure the entries arrive, and the
-  caller's arguments are the caller's, with no way for the binary to tell the prompt among them
-  ([ADR 0020](../adrs/0020-standing-context.md)).
+  caller's arguments are the caller's, with no way for the binary to tell the prompt among them.
 - Nothing in the binary knows when a run of a loop runner starts or ends. Events with scope `run`, and `blocked` for a
   task the loop runner gives up on, are fired by whoever drives the run with `the-cook lifecycle run`. Why: only the
   caller sees the run as a whole, and the attempt command fires events only for a task bound to its checkout.
@@ -610,7 +609,7 @@ Format and wording: [messages-and-docs.md](messages-and-docs.md#error-messages).
 - `the-cook lifecycle run` never asks for confirmation, and a lifecycle action fired automatically at its trigger point
   (`auto: true`) never asks either. The gate for workers is the policy. Scaffolded repositories seed
   `[the-cook, lifecycle, run, deliver]` under `ask`, rendered for every rendered spelling, as a seeded entry the
-  repository owns and may change ([ADR 0015](../adrs/0015-development-lifecycle.md)). Why: the declared action is the
+  repository owns and may change. Why: the declared action is the
   reviewed decision; the policy decides who may trigger it.
 - `the-cook recipe create` and `the-cook make` never ask. Why: `recipe create` writes only a skeleton, into a
   directory that did not exist, under the name a person typed, so there is nothing to accept but the request; a recipe

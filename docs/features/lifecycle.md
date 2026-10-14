@@ -17,7 +17,7 @@ The development lifecycle is `the-cook`'s core abstraction: the stages a change 
 moment its patches are on the default branch; the events `the-cook` fires between them; the guards that hold between
 stages; and the proof a change carries, the [receipt](verify.md#the-receipt) and its replay. `the-cook` knows no
 program. A stage that needs one reaches it through a contract or through an action the repository declares, and
-cookbooks describe the programs ([ADR 0015](../adrs/0015-development-lifecycle.md)). Agentic coding, where coding
+cookbooks describe the programs. Agentic coding, where coding
 agents implement the change, is the main
 example on these pages and one [station](stations.md) among others; a bot or a codemod is a [worker](workers.md) in
 the same place.
@@ -46,8 +46,8 @@ change through the stages. A [recipe](recipes.md) describes one kind of change t
 a database migration: its inputs, what it requires, its steps mapped onto the stages and the lanes it requires. It lives
 in `.cook/recipes/<name>/` as the repository's own file. `the-cook make <recipe>` creates the change's workspace
 (Start), runs the steps (Implement), runs the lanes the change selects and those the recipe requires (Verify) and
-completes (Complete); delivery is the repository's own actions, as for any work ([the run](recipes.md#the-run),
-[ADR 0025](../adrs/0025-recipes.md)). A person, a coordinating worker or a loop runner starts a recipe run, which is
+completes (Complete); delivery is the repository's own actions, as for any work ([the run](recipes.md#the-run)). A person,
+a coordinating worker or a loop runner starts a recipe run, which is
 attended unless its caller passes `--unattended` because nobody drives it. The same guards hold and the same events fire
 whichever way the work enters.
 
@@ -56,8 +56,7 @@ trigger, a notification) is an **action** that the repository declares on a **li
 `.cook/hooks.yaml`. An action is a shell command, an HTTP request `the-cook` makes itself, or an attempt: a declared
 worker started unattended on a prompt. The binary decides when an event fires and enforces its guards. No action runs
 that the repository's files do not declare; a station's actions reach them, as entries, only when a person applies it,
-and a recipe declares none ([ADR 0015](../adrs/0015-development-lifecycle.md),
-[ADR 0019](../adrs/0019-action-kinds.md)).
+and a recipe declares none.
 
 Every lifecycle action and every [notification hook](hooks.md#worker-notifications) a repository runs is written in
 that file, so the people who review a change and the workers that change the repository read there everything an event
@@ -337,7 +336,7 @@ The scaffolded repository policy seeds `[the-cook, lifecycle, run, deliver]` und
 to run an event permits everything its actions do ([safety](safety.md#lifecycle-actions-are-code)). `render` writes it
 for each spelling `the-cook` renders: `the-cook …`, `./cook …` and `cook …`
 ([policy](policy.md#entries-for-the-cook-commands)). It is a seeded entry the repository owns and may change, not an
-invariant ([ADR 0015](../adrs/0015-development-lifecycle.md)). The guards above do not depend on it: the binary enforces
+invariant. The guards above do not depend on it: the binary enforces
 them whoever runs the command.
 
 ## The `lifecycle` block in `AGENTS.md`
@@ -499,8 +498,8 @@ The shell expands the [environment](#environment); `the-cook` substitutes nothin
   the shared default line of work that the version-control ingredient's `default_revision` reports, which holds the
   landed work, `<workspaces.dir>/landed-<name>-<n>` on branch `work/landed-<name>-<n>`, where `<name>` is the landed
   work's workspace name and `<n>` counts from 1, records it, and runs the worker in it. The workspace of landed work is
-  about to be removed, and the primary checkout holds whatever a person is doing, so neither receives the worker's edits
-  ([ADR 0019](../adrs/0019-action-kinds.md)). The fresh workspace stays, with the edits uncommitted, until a person
+  about to be removed, and the primary checkout holds whatever a person is doing, so neither receives the worker's edits.
+  The fresh workspace stays, with the edits uncommitted, until a person
   commits them or runs `the-cook workspace remove landed-<name>-<n>`.
 - `auto: true` is allowed on an `attempt` action, as on any other, and must be written explicitly. `the-cook doctor`
   lists every automatic `attempt` action as a note: each one costs a run of the worker, a model run for a coding

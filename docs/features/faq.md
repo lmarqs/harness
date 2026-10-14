@@ -142,7 +142,7 @@ change what a repository's changes go through without any change to the reposito
 the repository. A copied recipe is the repository's own: its `origin` records where it came from, and
 `./cook recipe update <name> --cookbook <source>@<version>` merges a newer version into the copy as a diff to review.
 Copying loses no safety: a recipe can only add steps, lanes and requirements, and the guards and the floor stay in the
-binary and the ingredients ([ADR 0025](../adrs/0025-recipes.md)).
+binary and the ingredients.
 
 ### Can I use my own version control system or worker?
 
@@ -363,7 +363,7 @@ checks, the floor and the renders would describe a program other than the one th
 build for the image's platform; another machine has its own files, so the tamper check, the replay and the commit could
 not see what the worker changed. Run the whole recipe run or loop run there instead, with `the-cook` installed there:
 a loop runner's command for each task can start `./cook make <recipe> --task {id} --unattended` inside a container or
-on another machine. The core needs nothing for that ([ADR 0027](../adrs/0027-worker-jails.md)).
+on another machine. The core needs nothing for that.
 
 ### Can an attempt run with permission checks bypassed?
 

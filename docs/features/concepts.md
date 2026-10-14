@@ -50,7 +50,7 @@ the programs that do the work, and recipes take one kind of change through it.
 `blocked` fires out of band, at any stage where work stops unfinished or needs a person. The guards between stages, the
 receipt, the replay, the floor and the attempt contract are the core, and none of them is about one kind of program.
 The facts that make a particular worker safe, such as the arguments that start a coding agent unattended or bypass its
-permission checks, are data in that worker's ingredient ([ADR 0015](../adrs/0015-development-lifecycle.md)).
+permission checks, are data in that worker's ingredient.
 
 ### A recipe run: one pass of one change
 
@@ -73,7 +73,7 @@ stops the run as blocked instead, because it needs a person. A failed step, lane
 once a person has fixed what stopped it. A recipe can only add steps, required lanes and requirements: it cannot skip a
 lane, weaken a guard or fire an event itself. A run reads its recipe once, from the base commit of the workspace it
 creates, and follows that content to the end, so no step can change the recipe of the run it is in
-([guards](recipes.md#guards), [ADR 0025](../adrs/0025-recipes.md)).
+([guards](recipes.md#guards)).
 
 ### Events and actions
 
@@ -166,8 +166,7 @@ an [ingredient](ingredients.md).
 ### Ingredients, stations, recipes and cookbooks
 
 A cookbook publishes three kinds of unit, each named and versioned, and one rule separates them: facts about programs
-are pinned and rendered; practices are copied and become the repository's own
-([ADR 0025](../adrs/0025-recipes.md)).
+are pinned and rendered; practices are copied and become the repository's own.
 
 | Unit | What it is | How a repository holds it | When it acts |
 | --- | --- | --- | --- |

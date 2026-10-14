@@ -197,8 +197,7 @@ The binary never starts an interactive session, so a jail applies only to attemp
 confined starts it inside the jail, and the rendered files apply there as without one. Nothing else of the person's
 home reaches the jail, and a lane that needs a variable or a service the jail withholds passes only outside an attempt
 until `jail.args` lets it through. The jail contract, the composed launch and an example are on the
-[ingredients](ingredients.md#the-jail-contract) page; the reasoning is in
-[ADR 0027](../adrs/0027-worker-jails.md).
+[ingredients](ingredients.md#the-jail-contract) page.
 
 ## Trust
 

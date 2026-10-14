@@ -66,8 +66,7 @@ import and behaves like a plain scaffold.
    - `.cook/policy.yaml` with one seeded entry, `[the-cook, lifecycle, run, deliver]` under `shared.ask`, rendered for
      each spelling `the-cook` renders, so a coding agent's own permission prompt asks a person before it runs the
      repository's delivery actions, plus the stations' policy entries, such as `unattended.deny`. The repository owns
-     this seeded entry and may change it ([policy](policy.md#the-seeded-entry),
-     [ADR 0015](../adrs/0015-development-lifecycle.md));
+     this seeded entry and may change it ([policy](policy.md#the-seeded-entry));
    - `.cook/hooks.yaml`: its skeleton, plus the stations' post-edit hooks and lifecycle actions;
    - `.agents/memory/` skeleton, when the `memory` module is on;
    - each template of the chosen stations whose file is absent;

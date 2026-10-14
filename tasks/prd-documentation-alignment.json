@@ -261,11 +261,12 @@
         "Review ADRs 0015, 0019, 0020, 0025, and 0027 individually; preserve relevant reasoning and remove definitions that require a fixed lifecycle engine."
       ],
       "priority": 14,
-      "passes": false,
+      "passes": true,
       "notes": "",
       "dependsOn": [
         "US-013"
-      ]
+      ],
+      "completionNotes": "Completed by agent"
     },
     {
       "id": "US-015",
@@ -516,6 +517,6 @@
     }
   ],
   "metadata": {
-    "updatedAt": "2026-10-14T04:58:09.599Z"
+    "updatedAt": "2026-10-14T05:02:43.472Z"
   }
 }

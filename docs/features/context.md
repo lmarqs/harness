@@ -180,8 +180,6 @@ session instead: `the-cook v0.9.0 is not cached on this machine; run ./cook vers
 without standing context: hooks inject nothing, and an attempt puts no entry in its worker's prompt. Static entries
 stay, because they are part of `AGENTS.md`.
 
-The reasoning behind this design is in [ADR 0020](../adrs/0020-standing-context.md).
-
 ## Reference
 
 ### `context`

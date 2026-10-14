@@ -77,8 +77,7 @@ in every repository, while a guess made by code is wrong in the first repository
 them, the guards that hold between stages and the proof a change carries. It runs those rules for the work that goes
 through it, whoever does that work (people and the workers they choose, such as coding agents), and it never takes a
 worker's place. Why: the coding agents people already use are developed by their vendors and follow every model change.
-A tool that competed with them would carry credentials and cost, and a loop of its own to maintain
-([ADR 0015](../adrs/0015-development-lifecycle.md)).
+A tool that competed with them would carry credentials and cost, and a loop of its own to maintain.
 
 - The binary never calls a model and is never a client of a tool server (MCP). Work that needs a model or an MCP tool
   is done by a worker: the [coordinating worker](../features/lifecycle.md#the-lifecycle-stage-by-stage), or an
@@ -181,8 +180,7 @@ The binary contains no logic for any hosting platform. Everything that leaves th
 trigger, a notification, a call to a service) happens only through a **declared action**: an action that the repository
 declares on a lifecycle event (`start`, `verified`, `completed`, `deliver`, `landed`, or the out-of-band `blocked`) or
 on a worker's notification event (`attention`, `turn_end`). Why: a side effect outside the clone is visible to others
-and hard to undo, so it must be written down, reviewed and guarded before it can happen
-([ADR 0015](../adrs/0015-development-lifecycle.md), [ADR 0019](../adrs/0019-action-kinds.md)). The
+and hard to undo, so it must be written down, reviewed and guarded before it can happen. The
 [lifecycle guide](../features/lifecycle.md) has the stages, trigger points and full reference.
 
 - **Declared.** Actions live in `.cook/hooks.yaml`, and no action runs that the repository does not declare there. A
@@ -221,8 +219,8 @@ and hard to undo, so it must be written down, reviewed and guarded before it can
 Permission to run `the-cook lifecycle run <event>` is permission for everything that event's actions do: the actions run
 as child processes of `the-cook`, outside the worker's per-command permission checks. The scaffolded repository policy
 therefore seeds `[the-cook, lifecycle, run, deliver]` under `ask`, rendered for every rendered spelling (`the-cook`,
-`./cook` and `cook`). It is a seeded entry: the repository owns it and MAY change it
-([ADR 0015](../adrs/0015-development-lifecycle.md)). The rendered entries are defence in depth. Other spellings, such as
+`./cook` and `cook`). It is a seeded entry: the repository owns it and MAY change it. The rendered entries are defence
+in depth. Other spellings, such as
 an absolute path to the binary, match no prefix rule, and the binary enforces the guards itself. Permission to start
 `the-cook make` is, for the same reason, permission for every step of the recipe and for the automatic actions its
 events fire.
