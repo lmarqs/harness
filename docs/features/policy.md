@@ -17,7 +17,7 @@ whatever anyone edits.
 
 The policy says what workers may do without asking (`allow`), only after a person confirms (`ask`), or
 never (`deny`), plus what is denied only to attempts, the unattended runs
-`the-cook attempt`, `attempt` actions and the `attempt` steps of [recipes](recipes.md#step-kinds) start. It is written
+`the-cook attempt`, `attempt` actions and the `attempt` steps of recipes start. It is written
 once, neutrally where the workers allow it, and each worker's ingredient renders it
 into that program's native permission format. The [floor](#the-floor) is always added and cannot be removed or weakened:
 the floor rules of the ingredients in use, such as a version-control ingredient's deny of a force push to the default
@@ -53,7 +53,7 @@ The effective policy is the union of:
 2. allow entries for the commands of each enabled [module](profile.md#modules), rendered for each spelling `the-cook`
    renders ([below](#entries-for-the-cook-commands));
 3. the entries in `.cook/policy.yaml`, including those a station's entries added when it was applied, which are the
-   repository's own from then on ([stations](stations.md#entries)).
+   repository's own from then on.
 
 Nothing else contributes an entry: no file outside the repository is read. Lists are unions: no source removes an
 entry from another, and
@@ -101,7 +101,7 @@ strings for a `claude` worker, while `"gh pr merge *--admin*"` matches none of i
 
 ### How entries render
 
-Each worker ingredient's [renders](ingredients.md#renders) write the entries into its program's native permission
+Each worker ingredient's renders write the entries into its program's native permission
 file; its page in its cookbook shows the exact output:
 
 | Policy | Rendered by each worker ingredient as |
@@ -138,7 +138,7 @@ entries are defence in depth: they make a worker stop or ask before it runs the 
 ### The floor
 
 The floor holds the rules no repository may lose. An ingredient marks the facts about its program that the
-safety invariants depend on as floor ([ingredients](ingredients.md#the-floor)); the
+safety invariants depend on as floor; the
 binary adds entries for its own commands. The floor is never written in `.cook/policy.yaml`: `render` adds it to every
 worker's output on every render, as long as the ingredient is in the profile's `ingredients:`, and shows it in the
 `policy` block of `AGENTS.md` with the ingredient each rule comes from.
@@ -156,7 +156,7 @@ rules.
 
 Organization choices are not in the floor: denying the remote sync of a task tracker, allowing deploy status
 tasks, MCP read rules. They belong in each repository's policy file, written there by a person, by a worker, or by the
-entries of a station the repository applied, and reviewed like any other change ([stations](stations.md)).
+entries of a station the repository applied, and reviewed like any other change.
 
 ### The seeded entry
 
@@ -189,7 +189,7 @@ source, such as `# imported from <file> (project)`, and an equivalence check pro
 decision order, then every entry grouped by decision, with each floor rule marked with the ingredient it comes from and
 each entry a worker does not enforce marked with that worker's name.
 
-`policy` is a convention block ([concepts](concepts.md#conventions-outlive-the-tool)): it describes the permissions the
+`policy` is a convention block: it describes the permissions the
 workers' native settings enforce, and stays true when `the-cook` is gone. Entries for `the-cook`'s own commands are
 therefore left out of it, since those commands do not exist after an eject
 (`the-cook remove --eject`). `./cook explain policy` prints the complete effective policy, those entries included.
@@ -302,8 +302,7 @@ More:
 - Do comment each group of entries with the reason; the reason is what a reviewer evaluates.
 - Do write an organization's entries into each repository's policy through a reviewed change, for example by a coding
   agent following a skill the organization publishes, such as one installed from `acme/agent-skills`, or by applying a
-  station from the organization's cookbook: each repository reviews them, and they are readable where they apply
-  ([stations](stations.md)).
+  station from the organization's cookbook: each repository reviews them, and they are readable where they apply.
 - Do express a rule as a prefix list whenever every worker must enforce it.
 - Do write an entry for a `the-cook` command once, as `[the-cook, …]`; `render` writes it for each spelling it renders,
   and the binary's own guards catch the others.

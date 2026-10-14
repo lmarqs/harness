@@ -15,7 +15,7 @@ reader can check that for each tool before adopting.
 
 `the-cook` runs the lifecycle a repository declares and shares the repository with the tools, settings and records
 below. It never reconfigures state it did not create and never writes knowledge. The binary contains code for no
-external program and ships no ingredient, station or recipe: the [ingredients](ingredients.md) the repository pins from
+external program and ships no ingredient, station or recipe: the ingredients the repository pins from
 a cookbook describe version control, every worker and every other program, and the binary has no code for any loop
 runner, task tracker, skills installer, task runner or hosting platform.
 A program reaches a repository as data: an ingredient's renders, a station's entries and templates, a recipe's steps, a
@@ -82,8 +82,8 @@ Creating and configuring the tracker's data, and every other use of the tracker,
 
 A loop runner works through a list of tasks unattended, starting a worker for each. The binary has no code for any loop
 runner and reads none of its configuration. A station such as `agentic-coding` can write the runner's configuration as a
-[template](stations.md#templates), only when it is absent, with `./cook make implement-task --task <id> --unattended` as
-the command it runs for each task, and add the `implement-task` [recipe](recipes.md) that command runs, so every task is
+template, only when it is absent, with `./cook make implement-task --task <id> --unattended` as
+the command it runs for each task, and add the `implement-task` recipe that command runs, so every task is
 attempted under the attempt contract and verified before the runner sees it complete. A team's own script may name
 `./cook attempt <worker>` instead. From then on the file is the repository's. Starting the
 runner, choosing its task source and firing the events of a run as a whole are the team's.
@@ -125,8 +125,8 @@ The profile's `context` names skills by name, and `doctor` reports a skill named
 
 ## Native worker files
 
-Each worker's own files, its settings, rules, hooks and instructions, are rendered only through its ingredient
-([the worker contract](ingredients.md#the-worker-contract)), which names the keys and entries it owns.
+Each worker's own files, its settings, rules, hooks and instructions, are rendered only through its ingredient,
+which names the keys and entries it owns.
 
 | File or shape | Behaviour |
 | --- | --- |
@@ -145,7 +145,7 @@ Merge-rendering rewrites only the owned keys and entries; every other key keeps 
 ## Version control
 
 The binary contains no code for any version control system. The repository's version-control ingredient fills the
-[version-control contract](ingredients.md#the-version-control-contract), and `vcs:` in the profile names it. The start,
+version-control contract, and `vcs:` in the profile names it. The start,
 complete and landed stages of the lifecycle reach version control only through it.
 
 - `the-cook` never installs or changes version-control hooks.
@@ -217,8 +217,7 @@ Adopting `the-cook` leaves a repository's CI/CD unchanged:
   and refuses a mismatch with exit 1. A recipe's copy changes through `the-cook recipe add`, `recipe update` or a
   station that adds it, which verify the recipe's archive the same way and show the copy as a diff, and through any
   edit, like every file of the repository's own. Only those commands and `fetch` download from a cookbook; every other
-  command reads the per-user cache, so a clone works offline once its ingredients are cached
-  ([ingredients](ingredients.md), [recipes](recipes.md)).
+  command reads the per-user cache, so a clone works offline once its ingredients are cached.
 - Each ingredient declares its schema and, when it fills a contract, the contract version it is written for; each
   station and each recipe declares its schema. The binary refuses an ingredient, a station or a recipe whose schema is
   newer than it supports, naming the release needed.

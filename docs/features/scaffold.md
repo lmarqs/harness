@@ -16,9 +16,9 @@ written. Whatever needs a person's judgement is listed as work to do instead of 
 ## Overview
 
 `the-cook scaffold` sets a repository up for `the-cook`. On a repository with no setup of its own it seeds the
-repository files from its own templates and, with `--cookbook <source>@<version>`, applies the [stations](stations.md)
+repository files from its own templates and, with `--cookbook <source>@<version>`, applies the stations
 of that cookbook tag whose detect rule matches, or those named with `--station`, which pins the
-[ingredients](ingredients.md) they list and copies the [recipes](recipes.md) they add (greenfield). With `--adopt` it
+ingredients they list and copies the recipes they add (greenfield). With `--adopt` it
 takes over an existing hand-written setup, imports every permission rule and hook it finds into the repository files
 without losing one, and lists what needs judgement as a to-do for a person or a coding agent. Either way it writes the
 repository's [wrapper](wrapper.md), `cook`, pinned to the release that runs it.
@@ -33,7 +33,7 @@ with a global install, `the-cook <command>` is equivalent.
 | --- | --- |
 | No worker permissions or hooks yet | `the-cook scaffold --cookbook github:acme/cookbook@v1.2.0 --station agentic-coding` |
 | Hand-written permissions or hooks in a worker's native files, an instruction file with content, existing skills | `the-cook scaffold --cookbook github:acme/cookbook@v1.2.0 --station agentic-coding --adopt` |
-| Only the skeleton now, stations later | `the-cook scaffold`, then [`./cook station apply <name> --cookbook <source>@<version>`](stations.md#how-apply-works) |
+| Only the skeleton now, stations later | `the-cook scaffold`, then `./cook station apply <name> --cookbook <source>@<version>` |
 | A program to wire in after scaffolding, such as a loop runner or a tracker | a station that uses it: `./cook station apply <name> --cookbook <source>@<version>`; or its ingredient alone: `./cook ingredient pin <name> --cookbook <source>@<version>` |
 | The repository already has `.cook/config.yaml` | Not `scaffold`: edit the files and run [`./cook render`](render.md) |
 
@@ -56,10 +56,10 @@ import and behaves like a plain scaffold.
 3. **Confirm.** Show the plan and ask. `--yes` skips the question. Without a terminal and without `--yes`, nothing is
    written and the command exits 3.
 4. **Seed** the repository files from the templates `scaffold` holds, once, then apply the chosen stations, as
-   [`the-cook station apply`](stations.md#how-apply-works) does:
+   `the-cook station apply` does:
    - `.cook/config.yaml`: its skeleton, with `ingredients:` pinning every ingredient the chosen stations list, at the
      sha256 each lists, `stations:` recording each chosen station at the tag and its hash from the tag's
-     `checksums.txt`, `vcs:` and `workers:` from the stations' [stages](stations.md#stages), plus the stations' entries
+     `checksums.txt`, `vcs:` and `workers:` from the stations' stages, plus the stations' entries
      (commands, lanes, validators, standing context); without `--cookbook`, `ingredients:` and `stations:` are empty
      and `vcs:` and `workers:` are absent;
    - `.cook/policy.yaml` with one seeded entry, `[the-cook, lifecycle, run, deliver]` under `shared.ask`, rendered for
@@ -90,14 +90,14 @@ only through `the-cook wrapper`.
 ### Station detection
 
 With `--cookbook <source>@<version>`, `scaffold` reads every station the tag publishes and chooses each one whose
-[detect rule](stations.md#detect-rule) matches the repository's files, plus each one `--station` names. It applies the
-chosen stations in one plan and one confirmation, with the same [merge rules](stations.md#merge-rules) as
+detect rule matches the repository's files, plus each one `--station` names. It applies the
+chosen stations in one plan and one confirmation, with the same merge rules as
 `the-cook station apply`: first the stations `--station` names, in the order given, then the detected ones in name
 order. The detect rules are the cookbook's data; `scaffold` holds none of its own.
 
 A polyglot repository gets the stations of every detected stack. Their lanes and hooks sit side by side. For an item two
 stations name, such as `commands.lint` or `vcs`, the repository gets the first station's entry, and the other station's
-differing entry is reported, as [`station apply`](stations.md#how-apply-works) reports every difference it does not
+differing entry is reported, as `station apply` reports every difference it does not
 write. A repository whose stack no station of the tag detects gets no stack station: the seeded files hold their
 skeleton, what the other chosen stations add, and the seeded delivery `ask` entry.
 
@@ -153,7 +153,7 @@ enumeration `project`, `local`, `user`, `none`. With `--adopt` the default is `p
 | `user` | the files `native_rules` names in the person's home directory | marked for review in the to-do, for the same reason |
 | `none` | nothing | nothing |
 
-The [worker contract](ingredients.md#the-worker-contract) says which files and keys hold each worker's rules in each
+The worker contract says which files and keys hold each worker's rules in each
 scope; `scaffold` holds no list of its own. Source files of every scope are read, never written. Personal settings
 keep applying to the person who has them, alongside the policy.
 
@@ -168,8 +168,7 @@ keep applying to the person who has them, alongside the policy.
 
 See [policy](policy.md#entry-forms) for the three entry forms.
 
-Every imported entry carries a provenance comment naming its file and scope. With the
-[example ingredient](ingredients.md#an-example-ingredient) `acme-agent`:
+Every imported entry carries a provenance comment naming its file and scope. For `acme-agent`:
 
 ```yaml
 shared:
@@ -188,7 +187,7 @@ shared:
 | --- | --- |
 | The same entry under the same decision in several sources | one entry; its provenance comment names every source |
 | The same pattern under `allow` and under `deny` | the entry is kept under `deny` only, and a to-do item asks a person to confirm |
-| An entry that would weaken a [floor rule](ingredients.md#the-floor) of a pinned ingredient, such as allowing a force push to the default branch, or a [built-in invariant](concepts.md#built-in-invariants), such as allowing a permission-bypass argument | dropped, and reported by name in the output |
+| An entry that would weaken a floor rule of a pinned ingredient, such as allowing a force push to the default branch, or a built-in invariant, such as allowing a permission-bypass argument | dropped, and reported by name in the output |
 
 ### Not policy: notes
 
@@ -236,7 +235,7 @@ What adoption cannot resolve deterministically, it prints as a to-do.
 | Allow/deny conflict | a pattern was both allowed and denied | its `review:` marker is gone: the deny stays, or a person removes it |
 | Foreign permission dialect | a rule file of a worker no chosen station declares was found | a person or a coding agent has expressed its rules in `policy.yaml` and the file is retired |
 | `.agents/AGENTS.md` instead of a root `AGENTS.md` | the repository keeps instructions under `.agents/` | the content is moved to the root `AGENTS.md`, which every worker ingredient's `instructions` reach |
-| Unfilled contract | `vcs:` names no pinned ingredient that fills the [version-control contract](ingredients.md#the-version-control-contract), or no worker is declared and so no ingredient fills a [worker contract](ingredients.md#the-worker-contract); the item names the commands that exit 3 until one does: workspaces, `verify`, `attempt`, `lifecycle run` and landed branches for the first, `attempt`, `attempt` actions and worker hooks for the second | a station whose stages fill it is applied, `./cook station apply <name> --cookbook <source>@<version>`, or an ingredient that fills it is pinned with `./cook ingredient pin` and named in `vcs:` or a worker's `ingredient` |
+| Unfilled contract | `vcs:` names no pinned ingredient that fills the version-control contract, or no worker is declared and so no ingredient fills a worker contract; the item names the commands that exit 3 until one does: workspaces, `verify`, `attempt`, `lifecycle run` and landed branches for the first, `attempt`, `attempt` actions and worker hooks for the second | a station whose stages fill it is applied, `./cook station apply <name> --cookbook <source>@<version>`, or an ingredient that fills it is pinned with `./cook ingredient pin` and named in `vcs:` or a worker's `ingredient` |
 
 `doctor` derives every item from the repository's current state, so an item closes as soon as its condition is gone.
 
@@ -262,7 +261,7 @@ the-cook scaffold [--cookbook <source>@<version>] [--station <name>]... [--no-de
 
 | Flag | Default | Meaning |
 | --- | --- | --- |
-| `--cookbook <source>@<version>` | none | The [cookbook](stations.md#cookbooks) tag whose stations are detected and applied, and whose ingredients they pin. Without it, `scaffold` applies no station ([without a cookbook](#without-a-cookbook)) |
+| `--cookbook <source>@<version>` | none | The cookbook tag whose stations are detected and applied, and whose ingredients they pin. Without it, `scaffold` applies no station ([without a cookbook](#without-a-cookbook)) |
 | `--station <name>` | none | Apply this station of the tag besides the detected ones, ahead of them; repeatable, applied in the order given; needs `--cookbook` |
 | `--no-detect` | off | Apply only the stations named with `--station` |
 | `--adopt` | off | Import an existing setup and emit a to-do |
@@ -274,7 +273,7 @@ the-cook scaffold [--cookbook <source>@<version>] [--station <name>]... [--no-de
 Global flags `-C <dir>`, `--json`, `--verbose` also apply; see [CLI reference](cli.md).
 
 **Jump to:** [flags](#reference) | [exit codes](#reference) | [greenfield](#greenfield) | [adopt](#adopt) |
-[station detection](#station-detection) | [import scopes](#import-scopes) | [merge rules](stations.md#merge-rules)
+[station detection](#station-detection) | [import scopes](#import-scopes)
 
 | Exit code | Meaning |
 | --- | --- |
@@ -366,7 +365,7 @@ network.
 
 ### A repository with a hand-written setup
 
-The repository uses `acme-agent`, whose ingredient is the [example ingredient](ingredients.md#an-example-ingredient),
+The repository uses `acme-agent`, whose ingredient describes its native configuration,
 and `agentic-coding` declares a worker for it:
 
 ```sh

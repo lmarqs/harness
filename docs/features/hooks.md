@@ -41,7 +41,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 | You want | Declare |
 | --- | --- |
 | The edited file formatted or linted right after every edit a worker makes | a `post_edit` entry |
-| The stack's usual format-on-edit or lint-on-edit hook | `./cook station apply <name> --cookbook <source>@<version>` with a stack station, such as `node`, whose [entries](stations.md#entries) add it as a `post_edit` entry |
+| The stack's usual format-on-edit or lint-on-edit hook | `./cook station apply <name> --cookbook <source>@<version>` with a stack station, such as `node`, whose entries add it as a `post_edit` entry |
 | A repository check run when certain files are edited | `validators` |
 | A session in a managed workspace to know its task | `session_start.context: true` |
 | A message when a worker waits for you: a permission prompt, a question, idle input | an `attention` action |
@@ -175,7 +175,7 @@ shows a hook's stderr to its model as feedback, as its ingredient's page states,
 The edit itself is never undone, and no tool call is blocked.
 
 Post-edit hooks run on a worker's edits only. The files that the `run` and `template` steps of a
-[recipe](recipes.md#step-kinds) write fire no hook, because no worker event reports them; the lint command and the lanes
+recipe write fire no hook, because no worker event reports them; the lint command and the lanes
 of the run's Verify stage check them. The worker of an `attempt` step gets post-edit
 feedback as in any attempt.
 
@@ -269,7 +269,7 @@ The rules for actions:
 - lifecycle actions never run inside the worker of an attempt, whether `the-cook attempt`, an `attempt` action or a
   recipe's `attempt` step started it;
 - every action is one the repository declares in this file: the seeded files hold none, a
-  [station](stations.md#entries) that declares actions writes them here, as entries, only when a person applies it,
+  station that declares actions writes them here, as entries, only when a person applies it,
   and a recipe declares none: a recipe run fires the events, and the actions here run at them.
 
 An action runs with the permissions of the process that fired it, outside any worker's permission checks. Review
@@ -314,7 +314,7 @@ worker does not support is not rendered for that worker.
 | 2 | A post-edit command or validator failed; its output is on stderr for the worker |
 
 When the pinned binary is not cached, the wrapper exits 0 and `the-cook hook` does not run. When a pinned
-[ingredient](ingredients.md) the hook needs is not cached, `the-cook hook` prints one line on stderr naming
+ingredient the hook needs is not cached, `the-cook hook` prints one line on stderr naming
 `./cook fetch` and exits 0; when no pinned ingredient fills a contract the hook needs, it prints one line naming
 `./cook ingredient pin` and exits 0. Hooks never fetch and never fail. `COOK_NO_CONTEXT=1` turns off standing-context
 injection only.

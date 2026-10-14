@@ -16,9 +16,8 @@ its mistake named, never partly applied.
 ## Overview
 
 These rules cover the files that people and workers edit and `the-cook` reads. The field-by-field reference is in
-[../features/](../features/) and in `the-cook explain profile|policy|hooks|lifecycle|context`. Terms used here in a
-precise sense, such as profile, seeded, owned, receipt, worker, ingredient, station and recipe, are defined in the
-[glossary](../features/glossary.md).
+[../features/](../features/) and in `the-cook explain profile|policy|hooks|lifecycle|context`. The
+[glossary](../features/glossary.md) defines the agreed engine vocabulary.
 
 ## Where files live
 
@@ -239,8 +238,8 @@ before:
 
 Code in the binary for a program is not on this list: a key, a value or a command that exists to serve one version
 control system, worker, loop runner, tracker, skills installer, task runner or hosting platform is never added. A need
-the ingredient format cannot express is a change to the ingredient schema or to a contract
-([ingredients](../features/ingredients.md)). Why: each program has its own formats and releases, so code for one follows
+the ingredient format cannot express is a change to the ingredient schema or to a contract.
+Why: each program has its own formats and releases, so code for one follows
 every release of a program the project does not own and serves no team that chose another.
 
 A file that uses a key newer than the running binary fails validation: that binary refuses the file rather than
@@ -494,10 +493,10 @@ context:
 `the-cook` is a declared software development lifecycle that knows no program: a stage that needs one reaches it through
 a contract an ingredient fills, or through an action the repository declares. A
 cookbook publishes three kinds of unit. An **ingredient** is a named, versioned description of one program: the version
-control system, a worker such as a coding agent, a loop runner, a task tracker, a task runner or a skills installer
-([ingredients](../features/ingredients.md)). A **station** is what one way of working needs in place: the ingredients
+control system, a worker such as a coding agent, a loop runner, a task tracker, a task runner or a skills installer.
+A **station** is what one way of working needs in place: the ingredients
 to pin, the workers and their roles, entries for the repository's files, templates and the recipes to add, such as
-agentic coding, or the commands and lanes of one stack ([stations](../features/stations.md)). A **recipe** is one kind
+agentic coding, or the commands and lanes of one stack. A **recipe** is one kind
 of change, made many times ([below](#recipes)). The binary contains code and data for no program and ships no
 ingredient, no station and no recipe; every one comes from a cookbook, or, for a recipe, from the repository itself.
 This section governs how a repository pins ingredients and applies stations, and what each part may write.
@@ -548,11 +547,11 @@ workers:
 | `ingredients[].version` | exact version | required | the cookbook tag; never a range |
 | `ingredients[].sha256` | sha256 | required | the sha256 of the ingredient's archive, as the tag's `checksums.txt` states it; `the-cook` loads the ingredient only when its archive matches |
 | `stations` | list | empty; `the-cook scaffold --cookbook` writes the stations it applies | every station applied to the repository, with the pin it was applied at: `name` (equal to the `name` in its `station.yaml`, unique within `stations`), `source`, `version` and `sha256`, as under `ingredients` |
-| `vcs` | ingredient name | none; applying a station writes the one its stages name | the ingredient that fills the [version-control contract](../features/ingredients.md#the-version-control-contract) |
+| `vcs` | ingredient name | none; applying a station writes the one its stages name | the ingredient that fills the version-control contract |
 | `workers.<name>` | map | none; applying a station adds the workers its stages declare | a worker the repository uses, with `ingredient`, `role`, `writable_roots`, `network`, `jail`, `model` and `effort` |
-| `workers.<name>.ingredient` | ingredient name | the worker's name | the ingredient that fills the [worker contract](../features/ingredients.md#the-worker-contract) for that worker |
+| `workers.<name>.ingredient` | ingredient name | the worker's name | the ingredient that fills the worker contract for that worker |
 | `workers.<name>.network` | boolean | `false` | whether the worker's attempts may use the network; `true` passes the ingredient's `launch.network` arguments at every unattended launch |
-| `workers.<name>.jail.ingredient` | ingredient name | none; required with `jail` | the ingredient that fills the [jail contract](../features/ingredients.md#the-jail-contract) around the worker's attempts |
+| `workers.<name>.jail.ingredient` | ingredient name | none; required with `jail` | the ingredient that fills the jail contract around the worker's attempts |
 | `workers.<name>.jail.args` | list of arguments | `[]` | the jail's options this repository chooses, placed before the jail's separator |
 
 - `vcs`, every `workers.<name>.ingredient` and every `workers.<name>.jail.ingredient` name an ingredient listed in
@@ -593,8 +592,7 @@ workers:
 - An archive is downloaded only by the commands that pin, apply, fetch or read a cookbook tag, cached in the per-user
   cache under its hash (`$COOK_HOME/cookbook/<sha256>.tar.gz`), and verified against its `sha256` on every download and
   every load; a mismatch exits 1 and the archive is not used. Why: the reviewed pin is the trust decision, and no
-  release key vouches for an ingredient or a station, so the hash keeps every later load equal to what the reviewer read
-  ([ingredients](../features/ingredients.md#trust)).
+  release key vouches for an ingredient or a station, so the hash keeps every later load equal to what the reviewer read.
 - Hooks and unattended attempts never download. A pinned ingredient that is not in the cache when a command needs it,
   `the-cook render` or `the-cook attempt`, is a missing prerequisite, exit 3, and the message names `./cook fetch`; a
   hook prints one stderr line and exits 0. A command that needs the version-control contract, or the worker contract for
@@ -607,9 +605,9 @@ workers:
 
 ### What each part writes
 
-An ingredient holds up to four parts: operations, renders, floor and checks ([ingredients](../features/ingredients.md)).
-A station holds the ingredients and the recipes it pins, its stages, entries, templates and an optional detect rule
-([stations](../features/stations.md)). Renders and floor stay owned by `the-cook` and are written on every render; a
+An ingredient holds up to four parts: operations, renders, floor and checks.
+A station holds the ingredients and the recipes it pins, its stages, entries, templates and an optional detect rule.
+Renders and floor stay owned by `the-cook` and are written on every render; a
 station's pins, stages, entries and templates are written once, when it is applied, and the recipes it adds are copied
 then, and all of them become the repository's own; operations, checks and detect rules write nothing.
 
@@ -655,8 +653,8 @@ program floor comes from the ingredients the repository pins, and a station has 
 | --- | --- |
 | a version control system | deny a force push to the default branch the ingredient reports |
 | a task runner | deny the syntax that chains a second task into one invocation |
-| a worker | the arguments that bypass its permission checks, refused at every launch ([ingredients](../features/ingredients.md#the-floor)) |
-| a jail | the arguments that turn its confinement off, refused wherever they appear in a jailed launch, `jail.args` included ([the jail contract](../features/ingredients.md#the-jail-contract)) |
+| a worker | the arguments that bypass its permission checks, refused at every launch |
+| a jail | the arguments that turn its confinement off, refused wherever they appear in a jailed launch, `jail.args` included |
 
 - The `policy` block of `AGENTS.md` lists each floor rule with the ingredient it comes from, such as
   `(*floor rule of the git ingredient*)` for an ingredient named `git`. Why: the rule is enforced but is not in
@@ -743,7 +741,7 @@ A recipe is one kind of change the repository makes many times, such as a databa
 inputs, what it requires, its steps mapped onto the lifecycle's stages and the lanes it requires. It lives in
 `.cook/recipes/<name>/recipe.yaml`, with the sources of its `template` steps in `files/` beside it, and it is the
 repository's own: a recipe the repository wrote, or a copy added from a cookbook that records its `origin`.
-`the-cook make <name>` runs it, one change per recipe run ([recipes](../features/recipes.md)). Why: a generator that
+`the-cook make <name>` runs it, one change per recipe run. Why: a generator that
 writes files stops before verification, and a skill alone guarantees nothing, while a recipe run carries both the
 deterministic part and the judgement of a repeated change through the same guards as any other work.
 
@@ -794,7 +792,7 @@ origin:
 | Step kind | Value | What it does |
 | --- | --- | --- |
 | `run` | list of strings | runs the argument list in the workspace as a child process of `the-cook`, like a `run` action, never through a shell; a non-zero exit stops the run |
-| `template` | map: `from`, `to` | writes the path `to` in the workspace from the file `from` in the recipe's `files/`, rendered in the [template language](../features/ingredients.md#the-template-language) with the inputs and `task` as its values; a path that exists stops the run |
+| `template` | map: `from`, `to` | writes the path `to` in the workspace from the file `from` in the recipe's `files/`, rendered in the template language with the inputs and `task` as its values; a path that exists stops the run |
 | `attempt` | map: `worker`, `prompt`, `model`, `effort` | starts `worker`, a declared worker with role `unattended` (by default the only one), on `prompt` (by default the prompt the caller passes on stdin), in the workspace, under the attempt contract; its edits stay for the next steps, a `the-cook verify` its worker runs is feedback for the worker and not the run's proof, and a failed attempt stops the run |
 | `handoff` | string | prints the text for whoever drives the run and exits 3: in an attended run it pauses the run and fires nothing, and `the-cook make --continue` resumes after it; in a run the caller marks `--unattended` it stops the run as blocked |
 

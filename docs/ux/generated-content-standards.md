@@ -37,7 +37,7 @@ says what `the-cook` created.
 
 The manifest also records the owner of each piece of owned content: the binary, for what it renders from the neutral
 model alone (`cook`, `wrapper.yaml`, the shipped skill, the manifest, the `AGENTS.md` and `README.md` blocks), or the
-[ingredient](../features/ingredients.md#renders) whose renders produce it (a worker ingredient's keys in its worker's
+ingredient whose renders produce it (a worker ingredient's keys in its worker's
 settings file and its instructions-file import, a whole rules file, the version-control ingredient's ignore-file
 blocks). Renders come only from ingredients: a station has none, so no owned content belongs to a station. Deleting an
 ingredient from `ingredients:` and rendering removes exactly the content the manifest records under that ingredient.

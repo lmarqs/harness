@@ -15,8 +15,8 @@ it the same way. A reader of any documentation page finds what is true now, in t
 
 These rules set the voice, tone and structure of every text `the-cook` produces or ships: CLI messages, hook output,
 `doctor` findings, injected standing context, the shipped skill, `the-cook explain`, managed-block content and the
-documentation in this repository, and the names the documentation gives the parts of the lifecycle. Terms such as
-standing context, managed block, module and shipped skill are defined in the [glossary](../features/glossary.md).
+documentation in this repository, and the names the documentation gives the parts of the lifecycle.
+The [glossary](../features/glossary.md) defines the agreed engine vocabulary.
 
 ## Voice
 
@@ -232,8 +232,7 @@ A section with no content is omitted rather than left empty.
   the program.
 - An ADR names a product only in its Context, as checkable evidence of what exists. Why: the binary contains code and
   data for no program and ships no ingredient, no station and no recipe, so a page that describes a program's behaviour
-  documents something `the-cook` does not hold and goes stale with that program's releases
-  ([ingredients](../features/ingredients.md)).
+  documents something `the-cook` does not hold and goes stale with that program's releases.
 - What `the-cook` does with a program is attributed to the ingredient that fills its role: "the version-control
   ingredient reports the default branch", "a floor rule of the version-control ingredient". Why: a page that says
   `the-cook` runs a particular program describes a binary that does not exist.
@@ -242,7 +241,7 @@ A section with no content is omitted rather than left empty.
 - One system's terms, such as a remote, `origin` or a fetch, appear only in an example of that system's ingredient, such
   as the `origin/<branch>` a git ingredient answers as the default revision. Why: `the-cook` depends on no version
   control system and asks as little of one as it can, and a page written in one system's words describes a contract the
-  others seem unable to fill ([the version-control contract](../features/ingredients.md#the-version-control-contract)).
+  others seem unable to fill.
 - Example commands are complete and run as written; example output is copied from a real run of the documented
   release, so a reader can trust what they copy.
 - Commands that run inside a repository are written as `./cook <command>`, with `the-cook <command>` shown as the

@@ -59,11 +59,11 @@ Engine and delivery
 
 Vocabulary and configuration
 
-- [Concepts](concepts.md)
-- [Glossary](glossary.md)
-- [Ingredients](ingredients.md)
-- [Recipes](recipes.md)
-- [Stations](stations.md)
+- [Concepts](concepts.md): program models, ordered operations, native files, history and execution boundaries
+- [Glossary](glossary.md): vocabulary for the agreed engine responsibilities
+- [Ingredients](ingredients.md): program data models and native configuration
+- [Recipes](recipes.md): trusted Groovy file declarations, ordered composition, sources and reversal
+- [Composition boundaries and cookbooks](stations.md): deferred station role and separate cookbook distribution
 - [Profile](profile.md)
 - [Policy](policy.md)
 - [Hooks](hooks.md)

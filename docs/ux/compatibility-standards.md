@@ -66,7 +66,7 @@ state each promise and how it changes.
 | Standing context | removing a trigger or a role; changing what a trigger matches | adding an optional key whose absence keeps existing behaviour |
 | JSON output | removing, renaming or retyping a field; changing array order | adding a field |
 | Repository files | removing, renaming or redefining a key; changing a default; tightening validation of values that used to be accepted | adding an optional key whose absence keeps existing behaviour |
-| Rendered output | for unchanged inputs and schema, a change in what the rendered files make a worker do, other than a new [invariant](../features/concepts.md#built-in-invariants) or floor rule | for unchanged inputs and schema, different bytes that leave worker behaviour unchanged (the shipped skill's text, formatting), shipped in a minor release and reviewed in the upgrade diff; different bytes because the inputs changed |
+| Rendered output | for unchanged inputs and schema, a change in what the rendered files make a worker do, other than a new invariant or floor rule | for unchanged inputs and schema, different bytes that leave worker behaviour unchanged (the shipped skill's text, formatting), shipped in a minor release and reviewed in the upgrade diff; different bytes because the inputs changed |
 | Managed blocks and header | changing marker syntax, a block id, a block's class or the header line | adding a new block id |
 | Invariants | weakening one (never allowed) | adding one; it changes rendered output and therefore follows the rendered-output rule |
 | Ingredient, station and recipe schemas, contracts | removing, renaming or redefining a field, an operation or a step kind; changing an operation's output kind; changing how a step kind substitutes inputs; dropping an ingredient, station or recipe schema, or a contract version, from the support window before its deprecation ends | adding an optional field, operation or step kind whose absence keeps existing behaviour; reading a new schema or contract version |
@@ -185,7 +185,7 @@ is worse than none.
 ## Supported workers and tools
 
 - `the-cook` supports any worker a repository describes with an ingredient it pins. The
-  [worker contract](../features/ingredients.md#the-worker-contract) such an ingredient fills is public.
+  worker contract such an ingredient fills is public.
 - Every supported version range lives in the checks of the ingredient that describes the program. A program no
   ingredient in use describes has no range, because the binary contains code and data for no program.
 - `the-cook doctor` runs the version command of each ingredient in use and reports each program outside its ingredient's
@@ -205,7 +205,7 @@ is worse than none.
 - Each worker ingredient documents which worker events it renders for hooks, notifications (`attention`, `turn_end`)
   and standing context. Where a worker lacks an event, nothing is rendered for it and `the-cook doctor` reports a note,
   so a missing notification or injection is explained.
-- Each jail ingredient's page says what no argument of the [jail contract](../features/ingredients.md#the-jail-contract)
+- Each jail ingredient's page says what no argument of the jail contract
   can declare for its program: that stdin, stdout and stderr pass through unchanged, that the jail exits with the
   confined command's status, that a read share inside the working directory takes precedence over it, what the jail
   reaches on the network by default, and how a worker program's login and settings reach it. Why: the binary relies on

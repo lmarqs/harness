@@ -20,7 +20,7 @@ see, **why** it happens, what **`the-cook` does** about it, and what **you do**.
 For the principles behind these entries, read [safety](safety.md). For the terms, see the [glossary](glossary.md). The
 entries below are about the core: the lifecycle, its guards and proof, the three contracts and recipe runs. A trap of
 one particular program, a coding agent, a loop runner, a task tracker or a task runner, is documented with the
-[ingredient](ingredients.md) that describes it, in the cookbook that publishes that ingredient.
+ingredient that describes it, in the cookbook that publishes that ingredient.
 
 Commands are named `the-cook <command>` on this page. Run them through the repository's wrapper,
 `./cook <command>`, from the root of a checkout; with a global install, `the-cook <command>` is equivalent
@@ -349,8 +349,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 - **Why.** A handoff pauses an attended run for whoever drives it, a person or the interactive worker in their
   session. A run started with `--unattended`, as a loop runner's command starts it, has nobody to hand off to, so a
   handoff stops it as blocked: it needs a person.
-- **What `the-cook` does.** Stops at the handoff, fires `blocked` with the step and its text, and keeps the workspace
-  ([the run](recipes.md#the-run)).
+- **What `the-cook` does.** Stops at the handoff, fires `blocked` with the step and its text, and keeps the workspace.
 - **What you do.** Keep handoffs out of recipes a loop runner runs for every task, such as `implement-task`, and turn
   the check a handoff asks for into a lane when a command can make it. When a run does stop at one, a person does what
   it says in the kept workspace and runs `the-cook make --continue <workspace>`.
@@ -362,8 +361,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 - **Why.** The caller declares whether someone drives a run. Without `--unattended` a run is attended, whatever starts
   it and whether or not a terminal is attached, so a handoff pauses it for a person who is not there.
 - **What `the-cook` does.** Pauses the run at the handoff, prints its text and the command that resumes it, fires
-  nothing, exits 3, and prints no completion text, which only a completed run prints
-  ([attended and unattended runs](recipes.md#attended-and-unattended-runs)).
+  nothing, exits 3, and prints no completion text, which only a completed run prints.
 - **What you do.** Name `./cook make <recipe> --task <id> --unattended` as the loop runner's command for each task, as
   a station's template writes it, and keep handoffs out of recipes a loop runner runs.
 
@@ -375,8 +373,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
   lanes by name. A recipe written for another repository can name a lane this profile lacks or calls something else, and
   a profile change that renames or removes a lane breaks a recipe that passed when it was added.
 - **What `the-cook` does.** Checks `requires` when the recipe is added and every time it runs, before any step, and
-  names what is missing; `the-cook doctor` lists every recipe's unmet requirements. It never skips a required lane
-  ([guards](recipes.md#guards)).
+  names what is missing; `the-cook doctor` lists every recipe's unmet requirements. It never skips a required lane.
 - **What you do.** Declare the lane in the profile, with commands that prove what the recipe needs, or edit the
   recipe's copy to require the lane this repository uses for it; review and commit the change either way.
 
@@ -422,8 +419,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
   in. An edit that is only committed in this clone (for git, not pushed), that the checkout has not learned of yet, or
   that comes after the run started, is not what runs.
 - **What `the-cook` does.** Runs the recipe as that revision held it when the run started, learns nothing about what is
-  shared on its own, and fails an `attempt` step whose worker changes a file under `.cook/`, the recipes included
-  ([concepts](concepts.md#built-in-invariants)).
+  shared on its own, and fails an `attempt` step whose worker changes a file under `.cook/`, the recipes included.
 - **What you do.** Get a recipe change onto the shared default line of work, reviewed like any change to the policy,
   before running it in a new workspace, and have the version control program learn what is shared. Try a draft with
   `the-cook make <recipe> --here` in a managed workspace that holds it.
@@ -650,7 +646,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
 - **What `the-cook` does.** `the-cook station apply <name> --cookbook <source>@<version>` adds only the entries the
   repository lacks: every entry it holds stays as it is, an item it names that differs from the station's is kept and
   reported, and a second apply of the same version adds nothing. It also moves the station's record in `stations:` and
-  the ingredient pins the station lists ([stations](stations.md)).
+  the ingredient pins the station lists.
 - **What you do.** Run `./cook station apply <name> --cookbook <source>@<version> --dry-run` with the newer version to
   see what it would add, then apply it, review the diff and commit. Applying again also adds back an entry the
   repository deleted on purpose, so read the diff before confirming. For the engine boundary across repositories, see

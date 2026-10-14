@@ -17,8 +17,8 @@ runs, and ends in a result a check confirms rather than one taken on trust.
 A skill is a directory with a `SKILL.md` that a worker loads when its description matches the task, or that `the-cook`
 injects through standing context. Skills carry the judgement half of the work; the binary carries the deterministic half
 ([when-cli-when-skill.md](when-cli-when-skill.md)). This page covers the skill `the-cook` ships and the rules `the-cook`
-expects of the skills around it. Terms such as standing context, pin and profile are defined in the
-[glossary](../features/glossary.md).
+expects of the skills around it.
+The [glossary](../features/glossary.md) defines the agreed engine vocabulary.
 
 ## Three kinds of skill
 
@@ -45,8 +45,8 @@ share, so a skills installer, the workers and people find them in one place. The
 | A convention holds across one organization's repositories, as judgement or as entries `the-cook` enforces (a deny, a delivery action) | organization skill that guides a coding agent to write it into each repository's files ([below](#organization-skills-that-write-repository-entries)) | the organization owns and reviews the skill once; applying it to a repository takes judgement, and each repository reviews the result |
 | A procedure or body of knowledge is specific to one repository | repository skill | it is reviewed where it applies |
 | Known guidance must apply every session, or whenever certain files or words appear | an existing skill plus a standing-context entry ([configuration-standards.md](configuration-standards.md#standing-context)) | the trigger is deterministic; the skill stays the single text |
-| The behaviour is deterministic and organization neutral | not a skill: a command, flag, profile field, [ingredient](../features/ingredients.md) or [station](../features/stations.md) | prose would drift from the behaviour |
-| A kind of change a repository makes many times, part deterministic and part judgement (a migration, a new module) | a [recipe](../features/recipes.md), whose `attempt` steps name the skill that guides the judgement ([below](#skills-a-recipe-step-names)) | the recipe makes the change the same way and verified every time, and the skill keeps the guidance in one text |
+| The behaviour is deterministic and organization neutral | not a skill: a command, flag, profile field, ingredient or station | prose would drift from the behaviour |
+| A kind of change a repository makes many times, part deterministic and part judgement (a migration, a new module) | a recipe, whose `attempt` steps name the skill that guides the judgement ([below](#skills-a-recipe-step-names)) | the recipe makes the change the same way and verified every time, and the skill keeps the guidance in one text |
 | A one-off instruction for a single session | not a skill: the prompt | a skill outlives the session it was written for |
 
 The shipped skill names no organization, vendor or company convention, because it ships to every user of an open-source

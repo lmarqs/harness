@@ -14,13 +14,13 @@ and every worker and tool working there uses the same answer.
 ## Overview
 
 The profile tells `the-cook` what a repository is and how its lifecycle runs: which
-[ingredients](ingredients.md) describe the programs it uses and which one fills version control, which
-[stations](stations.md) it applied, which modules it uses, how to bootstrap a checkout, how to lint and build, which
+ingredients describe the programs it uses and which one fills version control, which
+stations it applied, which modules it uses, how to bootstrap a checkout, how to lint and build, which
 verification lanes (named families of test commands) exist, which workers it declares, in which role, and what an
 attempt may write, and the standing context workers receive. It is seeded and then repository-owned.
 `scaffold` seeds it once, with the stations of a cookbook tag it applies. From then on people and workers edit it,
 `the-cook station apply` adds a station's pins, stages and entries, `the-cook ingredient pin` adds or moves an
-ingredient's pin, and `the-cook render` reads it. [Recipes](recipes.md), those a station adds included, live beside it
+ingredient's pin, and `the-cook render` reads it. Recipes, those a station adds included, live beside it
 in `.cook/recipes/`, not in the profile.
 
 Examples on this page run commands as `./cook <command>`, through the repository's [wrapper](wrapper.md); with a
@@ -30,9 +30,9 @@ global install, `the-cook <command>` is equivalent.
 
 | You want to | Edit |
 | --- | --- |
-| Take up a way of working or a stack's starting entries | nothing by hand: `./cook station apply <name> --cookbook <source>@<version>` writes `ingredients`, `stations`, `vcs`, `workers` and the entries ([stations](stations.md)) |
-| Make one kind of change the same way every time | nothing here: a [recipe](recipes.md) in `.cook/recipes/<name>/`, whose `requires` names lanes of `verify.lanes` and roles of `workers` |
-| Use a program, move it to a newer version, or stop using it | `ingredients` ([ingredients](ingredients.md)); `./cook ingredient pin <name> --cookbook <source>@<version>` adds or moves a pin; deleting the pin stops it |
+| Take up a way of working or a stack's starting entries | nothing by hand: `./cook station apply <name> --cookbook <source>@<version>` writes `ingredients`, `stations`, `vcs`, `workers` and the entries |
+| Make one kind of change the same way every time | nothing here: a recipe in `.cook/recipes/<name>/`, whose `requires` names lanes of `verify.lanes` and roles of `workers` |
+| Use a program, move it to a newer version, or stop using it | `ingredients`; `./cook ingredient pin <name> --cookbook <source>@<version>` adds or moves a pin; deleting the pin stops it |
 | Use another version control system | `vcs`, after pinning its ingredient |
 | Turn a feature on or off | `modules` |
 | Change what a new workspace runs before use | `bootstrap` |
@@ -80,15 +80,15 @@ Run `./cook render` after every edit, and `./cook doctor` to check globs and com
 
 ### `ingredients`
 
-The [ingredients](ingredients.md) the repository uses: their renders and floor rules are rendered on every
+The ingredients the repository uses: their renders and floor rules are rendered on every
 `the-cook render`, and their operations answer the binary's questions and start its workers. Every entry is a
-[pin](ingredients.md#pinning) with four fields, written by `the-cook station apply` for the ingredients a station lists
+pin with four fields, written by `the-cook station apply` for the ingredients a station lists
 and by `the-cook ingredient pin`:
 
 | Field | Type | Meaning |
 | --- | --- | --- |
 | `name` | string | The ingredient's name; unique within `ingredients` |
-| `source` | string | The [cookbook](stations.md#cookbooks): `github:<owner>/<repo>`, or an HTTPS base URL for cookbook releases |
+| `source` | string | The cookbook: `github:<owner>/<repo>`, or an HTTPS base URL for cookbook releases |
 | `version` | string | The cookbook tag, `<source>/download/<version>/ingredient-<name>.tar.gz` |
 | `sha256` | string | The archive's sha256, 64 hexadecimal characters, from the tag's `checksums.txt` or the station that lists the ingredient; checked on download and on every load |
 
@@ -105,7 +105,7 @@ ingredients:
 vcs: git
 ```
 
-`vcs` names the ingredient that fills the [version-control contract](ingredients.md#the-version-control-contract),
+`vcs` names the ingredient that fills the version-control contract,
 which a station's stages write when it is applied. It must be in `ingredients` and fill that contract, and every
 worker's [ingredient](#workers) must be in `ingredients` and fill the worker contract; otherwise the profile fails
 validation with exit 1, as do two entries with the same name. Deleting an entry from `ingredients` and rendering
@@ -113,13 +113,13 @@ removes that ingredient's renders and its floor.
 
 ### `stations`
 
-The [stations](stations.md) the repository applied, each with the pin it was applied at: the same four fields as an
+The stations the repository applied, each with the pin it was applied at: the same four fields as an
 entry of `ingredients`, for the archive `station-<name>.tar.gz`, written by `the-cook station apply` and
 `scaffold --cookbook`. `stations` is a record, so a
-person can tell where the repository started from and apply a newer version later
-([applying again](stations.md#applying-again)). Nothing rendered or run depends on it: deleting an entry changes
-nothing rendered, and the station's applied entries, templates and recipes stay
-([stations](stations.md#after-applying)). Names are unique within `stations`; an ingredient, a station and a recipe may
+person can tell where the repository started from and apply a newer version later.
+Nothing rendered or run depends on it: deleting an entry changes
+nothing rendered, and the station's applied entries, templates and recipes stay.
+Names are unique within `stations`; an ingredient, a station and a recipe may
 share a name.
 
 ```yaml
@@ -172,23 +172,23 @@ A validator:
 | `run` | command | The check |
 
 Lane names are free: `unit`, `e2e`, `validate`, `plan`, `glue`. They appear in the receipt, in `--lane` and `--skip`, in
-the `commands` block, and in a recipe's `requires.lanes` and `verify.require` ([recipes](recipes.md#verify)).
+the `commands` block, and in a recipe's `requires.lanes` and `verify.require`.
 
 ### `workers`
 
 A map from worker name to its declaration. A worker is a program that changes the repository for someone, such as a
 coding agent, a bot or a codemod. Only declared workers are rendered. Each
 worker is served by an ingredient the repository pins that fills the
-[worker contract](ingredients.md#the-worker-contract). A station's stages declare the workers it uses when it is
-applied ([stations](stations.md#stages)).
+worker contract. A station's stages declare the workers it uses when it is
+applied.
 
 | Field | Type | Default | Meaning |
 | --- | --- | --- | --- |
 | `ingredient` | ingredient name | the worker's name | The ingredient that serves the worker; it must be in `ingredients` and fill the worker contract. Example: `reviewer: { ingredient: claude, role: interactive }` |
-| `role` | `interactive` \| `unattended` | required | `interactive`: people use the worker in this repository; its native files carry the shared policy. `unattended`: the worker runs here only in attempts, started by `the-cook attempt`, an `attempt` action or a recipe's [`attempt` step](recipes.md#attempt); its native files also carry `unattended.deny`. |
+| `role` | `interactive` \| `unattended` | required | `interactive`: people use the worker in this repository; its native files carry the shared policy. `unattended`: the worker runs here only in attempts, started by `the-cook attempt`, an `attempt` action or a recipe's `attempt` step; its native files also carry `unattended.deny`. |
 | `writable_roots` | list of paths | `[]` | Directories an attempt may write besides the task checkout, relative to the primary checkout root. Only for workers with `launch.sandbox_roots` or a `jail`. See below for rules |
 | `network` | boolean | `false` | Whether the worker's attempts may use the network. `true` passes its ingredient's `launch.network` arguments at every unattended launch, and is a validation error for a worker whose ingredient has none; `false` passes nothing about the network, so the program's default holds, which the ingredient's page in its cookbook explains. |
-| `jail.ingredient` | ingredient name | none; required with `jail` | A pinned ingredient that fills the [jail contract](ingredients.md#the-jail-contract): the worker's attempts start inside that jail, and their replay runs in it. Requires a version-control ingredient that fills `metadata`. |
+| `jail.ingredient` | ingredient name | none; required with `jail` | A pinned ingredient that fills the jail contract: the worker's attempts start inside that jail, and their replay runs in it. Requires a version-control ingredient that fills `metadata`. |
 | `jail.args` | list of arguments | `[]` | The jail's options this repository chooses, placed before the jail's separator, such as how the worker program's login reaches the jail; a floor bypass argument of the jail is a validation error |
 | `model` | string | none | The model the binary starts the worker with, in attempts and `attempt` actions, passed as its ingredient's `launch.model` says; an action's `attempt.model` overrides it. A worker whose ingredient maps no model ignores it, and `doctor` notes it |
 | `effort` | string | none | The effort level, passed and overridden like `model`, through `launch.effort` and `attempt.effort` |
@@ -267,7 +267,7 @@ workspaces:
 
 | Field | Type | Default | Holds | Blocks it produces |
 | --- | --- | --- | --- | --- |
-| `state.dir` | path | `.work` | `lifecycle.jsonl` and locks (primary checkout); `session.json`, `verified.json`, `hook-checks.json`, `run.json`, `last-attempt-output`, `last-attempt.patch` (per checkout). See [recipes](recipes.md#the-run-record) | `.gitignore` `state` (`/.work/`); named in the `AGENTS.md` `layout` block |
+| `state.dir` | path | `.work` | `lifecycle.jsonl` and locks (primary checkout); `session.json`, `verified.json`, `hook-checks.json`, `run.json`, `last-attempt-output`, `last-attempt.patch` (per checkout) | `.gitignore` `state` (`/.work/`); named in the `AGENTS.md` `layout` block |
 | `workspaces.dir` | path | `.work/workspaces` | each managed workspace, at `<dir>/<name>` | `AGENTS.md` `workspaces` (where workspaces are created, their `work/<name>` branch, that they start from committed code); `.gitignore` `workspaces` (`/.work/workspaces/`) |
 
 Rules for the paths:
@@ -294,7 +294,7 @@ Nothing else in `the-cook` learns what is shared on its own: `the-cook make`, `t
 `the-cook doctor` never run `update`, and `fleet` runs its own. A repository whose work
 lands on the shared default line of work somewhere else, such as through a hosting platform's merge, sets the field to
 `true`, so removing a workspace fires `landed` without anyone first updating the checkout by hand. A station may write
-it as one of its [entries](stations.md#entries).
+it as one of its entries.
 
 ## Examples
 

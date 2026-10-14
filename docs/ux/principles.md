@@ -97,7 +97,7 @@ A tool that competed with them would carry credentials and cost, and a loop of i
   clone, a pull request included, is a declared action ([principle 7](#7-nothing-leaves-the-clone-undeclared)).
 - The binary contains no code for any external program, including the version control system, the workers and the
   jails, and reads no program's own configuration. A stage that needs a program reaches it through a contract that an
-  [ingredient](../features/ingredients.md) fills, or through the commands the profile declares and the actions lifecycle
+  ingredient fills, or through the commands the profile declares and the actions lifecycle
   events fire. Why: each team picks different programs, and code for one would follow every release of a program the
   project does not own while serving no team that chose another.
 - The binary never reconfigures state it did not create (a task tracker's existing database; the version control

@@ -27,7 +27,7 @@ No. It runs the lifecycle the workers work in, coding agents among them, and doe
 calls a model. When a loop runner needs a worker for a task, it calls `./cook make <recipe> --task <id> --unattended` or
 `./cook attempt <worker>`, and either one starts the worker's own program under the
 attempt contract; an `attempt` action and a recipe's
-[`attempt` step](recipes.md#step-kinds) do the same.
+`attempt` step do the same.
 
 ### Is `the-cook` a coding-agent tool?
 
@@ -35,7 +35,7 @@ It is a software development lifecycle a repository declares, and the binary tha
 through, the events between them, the guards that hold and the proof a change carries.
 Coding agents are the workers it is used with most, and agentic coding is the first station, but the lifecycle knows no
 program: a bot, a codemod or a person moves a change through the same stages, each program is described by an
-[ingredient](ingredients.md) the repository pins, and a [recipe](recipes.md) whose steps run no worker at all, only
+ingredient the repository pins, and a recipe whose steps run no worker at all, only
 commands and templates, goes through the same verification as one that does.
 
 ### Does it use MCP servers?
@@ -80,8 +80,8 @@ No. Nothing in a repository's build, test, deploy or release depends on it. `./c
 ### Does it work offline?
 
 Yes, once the pinned release and the pinned ingredients are cached: the wrapper makes no network request after the first
-download, and only the commands that pin, apply, add, update, fetch or read a cookbook tag download from a cookbook
-([fetching](ingredients.md#fetching)). Running a recipe downloads nothing from a cookbook: it is a file in the
+download, and only the commands that pin, apply, add, update, fetch or read a cookbook tag download from a cookbook.
+Running a recipe downloads nothing from a cookbook: it is a file in the
 repository. A machine that never has network access uses `COOK_BINARY` or a pre-filled cache
 ([wrapper](wrapper.md#air-gapped-machines)). Adoption works offline too: `the-cook scaffold --offline` writes everything
 and leaves the pin pending until a later `the-cook wrapper --version <tag>` with network
@@ -107,8 +107,7 @@ cookbook), `version` (the tag) and `sha256`, and records every station it applie
 shows their entries, templates, recipes and ingredient pins as one diff to review; `./cook ingredient pin` adds or moves
 one ingredient pin; `./cook recipe add <name>... --cookbook <source>@<version>` copies recipes into `.cook/recipes/`,
 each with its `origin`. `the-cook` ships no ingredient, station or recipe and names no default cookbook, so a repository
-may take them from any number of cookbooks, its own included ([cookbooks](stations.md#cookbooks),
-[ingredients](ingredients.md), [recipes](recipes.md)).
+may take them from any number of cookbooks, its own included.
 
 ### Can a repository have several recipes?
 
@@ -119,7 +118,7 @@ added from a cookbook with `./cook recipe add`, such as a `nestjs-module` recipe
 come with a station, such as `implement-task`, which the `agentic-coding` station adds for a loop runner to run for each
 task. Once in the repository they are all alike: its own files, edited and reviewed like any other. `./cook recipe list`
 lists them. A recipe's name is unique in the repository, and a station and a recipe may share a name. A recipe runs
-only as `./cook make <name>`, so its name never meets a command's ([recipes](recipes.md)).
+only as `./cook make <name>`, so its name never meets a command's.
 
 ### Is monitoring a recipe?
 
@@ -148,9 +147,9 @@ binary and the ingredients.
 
 Yes. Nothing in the binary sets any program apart: it contains code and data for no external program. A version
 control system needs an ingredient that fills the
-[version-control contract](ingredients.md#the-version-control-contract), named with `vcs:` in the profile; a worker
-needs an ingredient that fills the [worker contract](ingredients.md#the-worker-contract), and a jail around a worker's
-attempts one that fills the [jail contract](ingredients.md#the-jail-contract). The version-control contract asks little
+version-control contract, named with `vcs:` in the profile; a worker
+needs an ingredient that fills the worker contract, and a jail around a worker's
+attempts one that fills the jail contract. The version-control contract asks little
 of a system: what history a checkout has and where the shared default line of work is, and an ingredient for a system
 with no shared copies can leave out the optional `default_revision` and `update`, because there the branch itself is the
 shared line and there is nothing to learn. A team writes the ingredient as data, publishes it in a cookbook, and each
@@ -166,7 +165,7 @@ action. A loop runner names
 tracker is updated by lifecycle actions on `start`, `completed` and `blocked` that read `COOK_TASK` and `COOK_ACTOR` in
 a workspace created with `--task`. A station can write those entries for you, and add the recipe the loop runner runs,
 as `agentic-coding` does with `implement-task`:
-`./cook station apply agentic-coding --cookbook github:acme/cookbook@v1.2.0` ([stations](stations.md)). Otherwise
+`./cook station apply agentic-coding --cookbook github:acme/cookbook@v1.2.0`. Otherwise
 declare the action yourself, for example a `completed` action that runs `./scripts/close-task "$COOK_TASK"`, or write a
 station that holds it.
 
@@ -199,8 +198,7 @@ rendered diff.
 They have different owners. `.cook/` is `the-cook`'s own versioned configuration: the three repository files, the
 pin, the manifest. `.agents/` is the cross-tool home of agent content (skills, memory, agent commands, the review
 guide), a convention of the coding-agent ecosystem that other tools read too and that stays meaningful without
-`the-cook`. State lives in neither
-([concepts](concepts.md#two-directories-two-owners)).
+`the-cook`. State lives in neither.
 
 ### Can I edit a worker's native settings by hand?
 
@@ -240,7 +238,7 @@ wrote stay as they are, so a loop runner's configuration whose command for each 
 
 ### Can a repository remove the force-push deny?
 
-No. It is a [floor rule](ingredients.md#the-floor) of the version-control ingredient that marks it: rendered into every
+No. It is a floor rule of the version-control ingredient that marks it: rendered into every
 worker's output on every render, never written into `.cook/policy.yaml`, and out of reach of every repository file.
 Floor rules are few by design: they cover only what is unsafe in every repository that uses the program.
 
@@ -268,8 +266,7 @@ that applies, and the same commit renders the same bytes on every machine.
   destination. Repository selection and delivery belong to external tools; see
   [configuration across repositories](fleet.md).
 - **Stack facts**, such as how to lint, test and build a Node project: these come from a stack station in a cookbook,
-  which `scaffold --cookbook` applies when its detect rule matches and `the-cook station apply` applies on request
-  ([stations](stations.md)).
+  which `scaffold --cookbook` applies when its detect rule matches and `the-cook station apply` applies on request.
 
 ### An allowed command still prompts. Why?
 
@@ -417,7 +414,7 @@ it. `the-cook fleet wrapper --version <tag> --deliver` does the same across many
 A station is applied once: its entries reached the repository when someone applied it, and they are the repository's
 own. Run `./cook station apply node --cookbook github:acme/cookbook@v1.3.0 --dry-run` to see what the newer `node`
 station would add. Without `--dry-run` it shows the same diff, asks, adds only what the repository lacks, moves the
-station's record in `stations:` and the ingredient pins it lists, and renders ([stations](stations.md)). An ingredient's
+station's record in `stations:` and the ingredient pins it lists, and renders. An ingredient's
 renders and floor rules follow its pin on every render, so `./cook ingredient pin <name> --cookbook <source>@<version>`
 alone updates them. Upgrading the release moves no pin.
 
@@ -428,7 +425,7 @@ the version the copy came from, which its `origin` names, and the newer one. Cle
 marked in the recipe's files for a person or a worker to resolve, and `origin` moves to the newer version either way; it
 shows the diff and asks before writing. Until every conflict is resolved, `./cook make` refuses the recipe, and
 resolving them is all that is left to do ([pitfalls](pitfalls.md#a-recipe-update-leaves-conflicts-in-the-recipe)). A
-recipe of the repository's own has no origin and nothing to update ([recipes](recipes.md)).
+recipe of the repository's own has no origin and nothing to update.
 
 ### A teammate's `the-cook` refuses our repository.
 

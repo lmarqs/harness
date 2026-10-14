@@ -16,9 +16,8 @@ from the result alone.
 
 These rules apply to every command, flag, output stream and exit code of `the-cook`. The
 [reference surface](#reference-surface) below is the command set they govern. A new command or flag MUST follow them,
-and a deviation is a change to this standard, with its reason ([README.md](README.md#changing-a-standard)). Terms used
-here in a precise sense, such as worker, attempt, ingredient, station, recipe, recipe run, receipt and lane, are
-defined in the [glossary](../features/glossary.md).
+and a deviation is a change to this standard, with its reason ([README.md](README.md#changing-a-standard)).
+The [glossary](../features/glossary.md) defines the agreed engine vocabulary.
 
 ## Entry points
 
@@ -150,7 +149,7 @@ conventions differ per organization and platform, and a declared action is revie
 
 The binary contains code for no program, the version control system and the workers included. Each lifecycle stage
 that needs a program reaches it through the
-contract an [ingredient](../features/ingredients.md) fills
+contract an ingredient fills
 ([configuration-standards.md](configuration-standards.md#ingredients-and-stations)), the commands the profile declares
 or the actions lifecycle events fire, and other programs call `the-cook` through its commands. Why: every team picks
 different programs, and code for one of them would follow that program's releases while serving no team that picked
@@ -197,7 +196,7 @@ each task through a recipe.
 ### The make command
 
 `the-cook make <recipe>` runs one recipe run: one pass of one change through the lifecycle's stages, as the recipe in
-`.cook/recipes/<recipe>/` describes it ([recipes](../features/recipes.md)). A person runs it, a coordinating worker runs
+`.cook/recipes/<recipe>/` describes it. A person runs it, a coordinating worker runs
 it for a person, and a loop runner may name `the-cook make <recipe> --task <id> --unattended` as the command it runs for
 each task.
 
@@ -285,8 +284,8 @@ a scope and `lifecycle run`.
 
 Internal commands are called by workers, not by people: `the-cook hook` reads a worker's hook payload on stdin. They
 appear in help under a separate **Internal** heading, and their interface is the worker contract: each worker ingredient
-maps its worker's hook payload onto one neutral worker event
-([ingredients](../features/ingredients.md#the-worker-contract)). Where the calling worker's protocol and the rules in
+maps its worker's hook payload onto one neutral worker event.
+Where the calling worker's protocol and the rules in
 this page differ, their I/O follows the protocol, because the worker, not `the-cook`, defines what a hook must print and
 return.
 
