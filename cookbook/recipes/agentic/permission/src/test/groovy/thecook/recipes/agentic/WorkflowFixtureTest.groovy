@@ -51,11 +51,14 @@ class WorkflowFixtureTest {
     Files.createSymbolicLink(destination.toPath(), new File(target).toPath())
   }
 
-  private void invoke(File root, String recipe, List harnesses, String policy = null) {
+  private void invoke(File root, String recipe, List harnesses, String policy = null, boolean adopt = false) {
     Kitchen kitchen = new Kitchen(root)
     Map options = [harness: harnesses]
     if (policy != null) {
       options.policy = '.agents/' + policy
+    }
+    if (adopt) {
+      options.adopt = 'true'
     }
     book.recipe('agentic/' + recipe, kitchen, options).mount()
     kitchen.plan().apply()
@@ -121,6 +124,68 @@ class WorkflowFixtureTest {
         'cookbook.codex/approval_policy',
         'cookbook.codex/sandbox_workspace_write/network_access'
       ])
+    }
+  }
+
+  @Test void trackedFreshCloneRequiresExplicitAdoptionAndThenRecooksUnchanged() {
+    workspace('tracked') { root ->
+      Map tracked = snapshot(root)
+      assert !new File(root, '.cook').exists()
+      try {
+        invoke(root, 'context', ['claude', 'codex'])
+        assert false: 'Unmanaged context block accepted'
+      } catch (IllegalStateException expected) {
+        assert expected.message.contains('Unmanaged region already exists')
+        assert snapshot(root) == tracked
+      }
+      invoke(root, 'context', ['claude', 'codex'], null, true)
+      Map beforeClaude = snapshot(root)
+      try {
+        invoke(root, 'permission', ['claude'], 'policy.interactive.yaml')
+        assert false: 'Unmanaged Claude permissions accepted'
+      } catch (IllegalStateException expected) {
+        assert expected.message.contains('Unmanaged region already exists')
+        assert snapshot(root) == beforeClaude
+      }
+      invoke(root, 'permission', ['claude'], 'policy.interactive.yaml', true)
+      Map beforeCodex = snapshot(root)
+      try {
+        invoke(root, 'permission', ['codex'], 'policy.unattended.yaml')
+        assert false: 'Unmanaged Codex rules accepted'
+      } catch (IllegalStateException expected) {
+        assert expected.message.contains('Unmanaged region already exists')
+        assert snapshot(root) == beforeCodex
+      }
+      invoke(root, 'permission', ['codex'], 'policy.unattended.yaml', true)
+      Map cooked = snapshot(root)
+      assert cooked.subMap(tracked.keySet()) == tracked
+      assert state(root).applications.keySet() == [
+        'agentic.context/default',
+        'agentic.context/claude',
+        'agentic.context/codex',
+        'agentic.permissions/default',
+        'agentic.permissions/claude',
+        'agentic.permissions/codex'
+      ] as Set
+      assertManaged(root, true, true)
+      assert state(root).provenance['agentic.context/claude'].recipe == 'recipes/agentic/context/recipe.groovy'
+      assert state(root).provenance['agentic.context/codex'].recipe == 'recipes/agentic/context/recipe.groovy'
+      assert state(root).provenance['agentic.permissions/claude'].inputs.policy == '.agents/policy.interactive.yaml'
+      assert state(root).provenance['agentic.permissions/codex'].inputs.policy == '.agents/policy.unattended.yaml'
+      invoke(root, 'context', ['claude', 'codex'])
+      invoke(root, 'permission', ['claude'], 'policy.interactive.yaml')
+      invoke(root, 'permission', ['codex'], 'policy.unattended.yaml')
+      assert snapshot(root) == cooked
+      File rules = new File(root, '.codex/rules/cookbook.rules')
+      rules.text = rules.text.replace('"status"', '"drift"')
+      Map drifted = snapshot(root)
+      try {
+        invoke(root, 'permission', ['codex'], 'policy.unattended.yaml', true)
+        assert false: 'Adoption bypassed managed drift'
+      } catch (IllegalStateException expected) {
+        assert expected.message.contains('Edited managed region')
+        assert snapshot(root) == drifted
+      }
     }
   }
 

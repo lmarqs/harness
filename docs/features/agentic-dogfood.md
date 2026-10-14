@@ -15,7 +15,17 @@ live in `AGENTS.md`; policy `instructions` are not rendered by these recipes.
 Neither policy changes agent bypass settings. Native settings and rules need
 review when the policy changes.
 
-From the repository root, generate or update the setup with:
+In a fresh clone, the seven tracked files above already exist but `.cook/state.json`
+does not. From the repository root, claim the rendered blocks and keys once with
+explicit adoption. Keep `AGENTS.md` and both policy sources in place:
+
+```sh
+./cook agentic/context --harness=claude --harness=codex --adopt=true
+./cook agentic/permission --policy=.agents/policy.interactive.yaml --harness=claude --adopt=true
+./cook agentic/permission --policy=.agents/policy.unattended.yaml --harness=codex --adopt=true
+```
+
+For ordinary updates after ownership is established, omit adoption:
 
 ```sh
 ./cook agentic/context --harness=claude --harness=codex
@@ -23,33 +33,36 @@ From the repository root, generate or update the setup with:
 ./cook agentic/permission --policy=.agents/policy.unattended.yaml --harness=codex
 ```
 
-On 2026-10-13, the first context command reported `Cooked AGENTS.md` and
-`Cooked CLAUDE.md`. The permission commands reported `Cooked
-.claude/settings.json`, then `Cooked .codex/config.toml` and `Cooked
-.codex/rules/cookbook.rules`. After updating the policies, the two permission
-commands reconciled the affected native files. Rerunning all three commands
-reported `Already cooked.` each time, and SHA-256 hashes of the outputs and
-`.cook/state.json` were unchanged.
+The first three commands preserve the tracked source and rendered file bytes
+and record ownership of the Claude import block, Claude permission keys, Codex
+configuration keys, and Codex rules block. They do not claim `AGENTS.md`.
+The next three commands report `Already cooked.` and leave outputs and
+`.cook/state.json` unchanged. Managed edits still cause a drift error even
+when `--adopt=true` is supplied.
 
-Fresh-repository check, using the tracked recipes in this checkout and copies
-of the two policy sources:
+To check the first-run workflow against a temporary destination using this
+checkout's recipes and launcher, copy all seven tracked files without copying
+`.cook/state.json`:
 
 ```sh
 fixture=$(mktemp -d)
-git -C "$fixture" init -q
-mkdir -p "$fixture/.agents"
+mkdir -p "$fixture/.agents" "$fixture/.claude" "$fixture/.codex/rules"
+cp AGENTS.md CLAUDE.md "$fixture/"
 cp .agents/policy.interactive.yaml .agents/policy.unattended.yaml "$fixture/.agents/"
+cp .claude/settings.json "$fixture/.claude/"
+cp .codex/config.toml "$fixture/.codex/"
+cp .codex/rules/cookbook.rules "$fixture/.codex/rules/"
+./cook agentic/context --repo "$fixture" --harness=claude --harness=codex --adopt=true
+./cook agentic/permission --repo "$fixture" --policy=.agents/policy.interactive.yaml --harness=claude --adopt=true
+./cook agentic/permission --repo "$fixture" --policy=.agents/policy.unattended.yaml --harness=codex --adopt=true
 ./cook agentic/context --repo "$fixture" --harness=claude --harness=codex
 ./cook agentic/permission --repo "$fixture" --policy=.agents/policy.interactive.yaml --harness=claude
 ./cook agentic/permission --repo "$fixture" --policy=.agents/policy.unattended.yaml --harness=codex
 ```
 
-The fixture generated the same five outputs without `cook.groovy` or a starter
-`.agents/policy.yaml`. Its ownership state listed the two context and two
-permission harness applications plus their defaults. It owned `CLAUDE.md`,
-Claude settings, Codex config, and Codex rules; it did not own the seeded
-`AGENTS.md`. Rerunning the three commands reported `Already cooked.` and left
-output and state hashes unchanged.
+The resulting state lists both context and permission harness applications
+and their defaults. Review the native files and `.cook/state.json` after any
+policy edit.
 
 The complete project gate is
 `./gradlew check cliBuild cookbookBuild jpackageTest`, followed by

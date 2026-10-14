@@ -106,7 +106,7 @@ class Cookbook {
     component.definition.children.each { Component child -> markProvenance(child, source) }
   }
   private static Map provenance(String recipe, Map config) {
-    [recipe: recipe, inputs: config.keySet().sort().collectEntries { key ->
+    [recipe: recipe, inputs: config.keySet().findAll { it != 'adopt' }.sort().collectEntries { key ->
         def value = config[key]
         [(key.toString()): value instanceof List && value.size() == 1 ? String.valueOf(value[0]) :
           value instanceof Map || value instanceof List ?
