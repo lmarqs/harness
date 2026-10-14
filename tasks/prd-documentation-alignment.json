@@ -481,11 +481,12 @@
         "Do not change source, tests, build files, recipes, or fixtures to make the documentation examples true."
       ],
       "priority": 26,
-      "passes": false,
+      "passes": true,
       "notes": "",
       "dependsOn": [
         "US-025"
-      ]
+      ],
+      "completionNotes": "Completed by agent"
     },
     {
       "id": "US-027",
@@ -528,6 +529,6 @@
     }
   ],
   "metadata": {
-    "updatedAt": "2026-10-14T05:59:30.635Z"
+    "updatedAt": "2026-10-14T06:04:04.590Z"
   }
 }
