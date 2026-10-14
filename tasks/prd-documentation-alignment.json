@@ -1,0 +1,505 @@
+{
+  "name": "Documentation alignment with the agreed Cook architecture",
+  "branchName": "ralph/documentation-alignment",
+  "description": "Documentation-only cleanup for issue #1. Source: tasks/prd-documentation-alignment.md. Document the agreed intended architecture and reconcile stale definitions case by case; keep current-implementation claims accurate. No mandatory quality gates. Do not implement product changes, finalize model APIs, enforce acyclic documentation links, or update GitHub issues. Stories split large PRD groups into focused page groups and run sequentially because they edit shared indexes and cross-references. Do not modify the unrelated tasks/prd.json.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Establish the architecture's responsibilities",
+      "description": "As a contributor, I want one authoritative explanation of Cook's responsibilities so that I do not build features from an obsolete product definition. Read tasks/prd-documentation-alignment.md, including its architecture requirements, non-goals, and open questions. This task changes documentation only; do not implement product behavior or settle the deferred ingredient/recipe model and hooks. No mandatory quality gates or check commands are requested. Preserve unrelated working-tree changes and tasks/prd.json. Source PRD story: US-001.",
+      "acceptanceCriteria": [
+        "Rewrite the scope, responsibilities, and boundaries in `docs/architecture.md` around FR-1 through FR-6.",
+        "Remove the Go-only, no-code, fixed-SDLC-core, and three-current-product-parts claims from the intended architecture.",
+        "Preserve ingredients as program data models and cookbook distribution as separate from the engine.",
+        "Keep model APIs and hooks explicitly outside the decisions made by this document, without adopting exploratory syntax.",
+        "Remove document lifecycle/status machinery; architecture states the design rather than an implementation progress table."
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": []
+    },
+    {
+      "id": "US-002",
+      "title": "Specify ordered file operations",
+      "description": "As a recipe author, I want the architecture to define exactly what Cook applies and discards so that overlap and manual edits have predictable results. Read tasks/prd-documentation-alignment.md, including its architecture requirements, non-goals, and open questions. This task changes documentation only; do not implement product behavior or settle the deferred ingredient/recipe model and hooks. No mandatory quality gates or check commands are requested. Preserve unrelated working-tree changes and tasks/prd.json. Source PRD story: US-002.",
+      "acceptanceCriteria": [
+        "Document FR-7 through FR-16 in the architecture.",
+        "Include an example where recipe A sets a key and recipe B overrides it; the final preview shows B's result.",
+        "Include an example where applying B leaves A's unrelated output intact.",
+        "Contrast discard and revert using a key changed from `old` to `new`, then manually to `custom`: discard proposes deletion; reverting the original run proposes `custom` to `old`.",
+        "Explain markers as text boundaries and remove ownership/adoption/drift enforcement from the target operation contract.",
+        "State that apply/discard always evaluate the supplied recipes against current content, even after an earlier identical invocation; history does not mark recipes as already applied."
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001"
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Document the CLI grammar",
+      "description": "As a developer, I want one unambiguous command reference so that I can compose recipes and approve a batch without guessing argument scope. Read tasks/prd-documentation-alignment.md, including its architecture requirements, non-goals, and open questions. This task changes documentation only; do not implement product behavior or settle the deferred ingredient/recipe model and hooks. No mandatory quality gates or check commands are requested. Preserve unrelated working-tree changes and tasks/prd.json. Source PRD story: US-003.",
+      "acceptanceCriteria": [
+        "Align the architecture's CLI section and `docs/features/cli.md` with FR-17 through FR-20.",
+        "Show default and explicit apply, discard, revert, multiple recipes, and per-recipe arguments.",
+        "Explain exact paths/URIs, reserved initial command names, and a recipe path such as `./revert`.",
+        "Include the argument-value versus second-recipe example and the misplaced batch-option error.",
+        "Remove obsolete target CLI commands and tentative flag spellings rather than promising compatibility aliases.",
+        "Explicitly exclude `--adopt`, adoption aliases, and separate adoption steps from the target CLI; existing content follows the same diff and batch-approval flow."
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-002"
+      ]
+    },
+    {
+      "id": "US-004",
+      "title": "Document history, sources, and destination boundaries",
+      "description": "As a developer, I want to know what a run records and how paths resolve so that I can inspect and reverse an operation. Read tasks/prd-documentation-alignment.md, including its architecture requirements, non-goals, and open questions. This task changes documentation only; do not implement product behavior or settle the deferred ingredient/recipe model and hooks. No mandatory quality gates or check commands are requested. Preserve unrelated working-tree changes and tasks/prd.json. Source PRD story: US-004.",
+      "acceptanceCriteria": [
+        "Document FR-21 through FR-25 in the architecture. Review all of `docs/features/render.md` and `docs/features/remove.md` against FR-7 through FR-25, replacing obsolete render/remove/eject contracts, flags, ownership gates, and restoration rules with apply/discard/revert, whole-batch approval, and stateless operations. Preserve useful paths and repair affected references.",
+        "Show local and remote recipes using the invocation directory as their destination while resolving source references from the recipe origin.",
+        "State that all consumed recipe/template sources are captured, including local ones.",
+        "Explain one patch per touched file, saved before target writes, and one recorded operation for the whole batch.",
+        "Distinguish optional prior history for apply/discard from required history for reverting a particular run; do not prohibit JSON metadata merely because ownership state is removed."
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-003"
+      ]
+    },
+    {
+      "id": "US-005",
+      "title": "Align distribution and cookbook documentation",
+      "description": "As a user, I want the installation design to describe the chosen delivery mechanism so that I understand what must be installed and versioned. Read tasks/prd-documentation-alignment.md, including its architecture requirements, non-goals, and open questions. This task changes documentation only; do not implement product behavior or settle the deferred ingredient/recipe model and hooks. No mandatory quality gates or check commands are requested. Preserve unrelated working-tree changes and tasks/prd.json. Source PRD story: US-005.",
+      "acceptanceCriteria": [
+        "Align the distribution portions of the architecture, `docs/features/installation.md`, and `docs/features/wrapper.md` with FR-26.",
+        "Describe jpackage, bundled Java, the pinned wrapper, checksums, first-use download/cache, and explicit upgrades.",
+        "Keep cookbook repositories and builds distinct from engine release responsibilities.",
+        "Do not introduce recipe-version management, a registry, or an updater not agreed in the grilling.",
+        "Do not claim a published release or working pinned-download wrapper exists unless the implementation evidence supports that claim."
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-004"
+      ]
+    },
+    {
+      "id": "US-006",
+      "title": "Align philosophy and documentation authority",
+      "description": "As a reader, I want the project's goals and reading path to agree with the architecture so that earlier decisions cannot silently override it. Read tasks/prd-documentation-alignment.md, including its architecture requirements, non-goals, and open questions. This task changes documentation only; do not implement product behavior or settle the deferred ingredient/recipe model and hooks. No mandatory quality gates or check commands are requested. Preserve unrelated working-tree changes and tasks/prd.json. Source PRD story: US-006.",
+      "acceptanceCriteria": [
+        "Update `docs/philosophy.md` to reflect the file-operation engine, trusted recipes, separate cookbooks, and deferred kit/session responsibilities.",
+        "Update authority statements in `docs/adrs/README.md`, `docs/features/README.md`, and `docs/ux/README.md` to follow `docs/architecture.md`.",
+        "Remove instructions that make an obsolete ADR or standard override the agreed architecture.",
+        "Retain existing directories and useful cross-references; do not introduce status banners, a supersession registry, or an acyclic reading-order scheme."
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-005"
+      ]
+    },
+    {
+      "id": "US-007",
+      "title": "Reconcile ADRs about role, deterministic work, and stack",
+      "description": "As a maintainer, I want architectural reasoning to match the chosen responsibilities so that old constraints do not direct new implementation. Read tasks/prd-documentation-alignment.md, including its architecture requirements, non-goals, and open questions. This task changes documentation only; do not implement product behavior or settle the deferred ingredient/recipe model and hooks. No mandatory quality gates or check commands are requested. Preserve unrelated working-tree changes and tasks/prd.json. Source PRD story: US-007. This split task covers ADRs 0001, 0002, 0003, and 0004. Other parts of the source story are assigned separately. Update inbound references required by this task, without rewriting unrelated topics.",
+      "acceptanceCriteria": [
+        "Review ADRs 0001, 0002, 0003, and 0004 individually against the agreed architecture; limit substantive ADR rewrites/removals to this group.",
+        "For the assigned ADRs: retain valid objectives and reasons, rewrite conflicting decisions, and remove records whose entire subject is obsolete.",
+        "For the assigned ADRs: reconcile data-only repository claims with trusted Groovy recipes and Go-only claims with the jpackage/JVM distribution.",
+        "For the assigned ADRs: scope output-boundary guarantees to Cook's batch operations without claiming arbitrary recipe code is sandboxed.",
+        "For the assigned ADRs: update references and index entries affected by these edits or removals."
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-006"
+      ]
+    },
+    {
+      "id": "US-008",
+      "title": "Reconcile ADRs about repository code and output boundaries",
+      "description": "As a maintainer, I want architectural reasoning to match the chosen responsibilities so that old constraints do not direct new implementation. Read tasks/prd-documentation-alignment.md, including its architecture requirements, non-goals, and open questions. This task changes documentation only; do not implement product behavior or settle the deferred ingredient/recipe model and hooks. No mandatory quality gates or check commands are requested. Preserve unrelated working-tree changes and tasks/prd.json. Source PRD story: US-007. This split task covers ADRs 0006, 0012, and 0028. Other parts of the source story are assigned separately. Update inbound references required by this task, without rewriting unrelated topics.",
+      "acceptanceCriteria": [
+        "Review ADRs 0006, 0012, and 0028 individually against the agreed architecture; limit substantive ADR rewrites/removals to this group.",
+        "For the assigned ADRs: retain valid objectives and reasons, rewrite conflicting decisions, and remove records whose entire subject is obsolete.",
+        "For the assigned ADRs: reconcile data-only repository claims with trusted Groovy recipes and Go-only claims with the jpackage/JVM distribution.",
+        "For the assigned ADRs: scope output-boundary guarantees to Cook's batch operations without claiming arbitrary recipe code is sandboxed.",
+        "For the assigned ADRs: update references and index entries affected by these edits or removals."
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-007"
+      ]
+    },
+    {
+      "id": "US-009",
+      "title": "Reconcile ADRs about schemas, ownership, and shared files",
+      "description": "As a maintainer, I want file-editing decisions to support explicit review instead of persistent ownership reconciliation. Read tasks/prd-documentation-alignment.md, including its architecture requirements, non-goals, and open questions. This task changes documentation only; do not implement product behavior or settle the deferred ingredient/recipe model and hooks. No mandatory quality gates or check commands are requested. Preserve unrelated working-tree changes and tasks/prd.json. Source PRD story: US-008. This split task covers ADRs 0005, 0007, and 0008. Other parts of the source story are assigned separately. Update inbound references required by this task, without rewriting unrelated topics.",
+      "acceptanceCriteria": [
+        "Review ADRs 0005, 0007, and 0008 individually against the agreed architecture; limit substantive ADR rewrites/removals to this group.",
+        "For the assigned ADRs: remove target requirements for committed/local ownership manifests, automatic withdrawal, adopted-original restoration during discard, and drift vetoes.",
+        "For the assigned ADRs: retain relevant format-preservation and native-file reasoning where consistent with ordered operations.",
+        "For the assigned ADRs: remove obsolete safety-floor obligations and avoid replacing them with an unrequested sandbox or enforcement system.",
+        "For the assigned ADRs: repair affected references without mechanically banning historical words inside necessary explanations."
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-008"
+      ]
+    },
+    {
+      "id": "US-010",
+      "title": "Reconcile ADRs about agent support, safety, and adoption",
+      "description": "As a maintainer, I want file-editing decisions to support explicit review instead of persistent ownership reconciliation. Read tasks/prd-documentation-alignment.md, including its architecture requirements, non-goals, and open questions. This task changes documentation only; do not implement product behavior or settle the deferred ingredient/recipe model and hooks. No mandatory quality gates or check commands are requested. Preserve unrelated working-tree changes and tasks/prd.json. Source PRD story: US-008. This split task covers ADRs 0009, 0011, 0016, and 0018. Other parts of the source story are assigned separately. Update inbound references required by this task, without rewriting unrelated topics.",
+      "acceptanceCriteria": [
+        "Review ADRs 0009, 0011, 0016, and 0018 individually against the agreed architecture; limit substantive ADR rewrites/removals to this group.",
+        "For the assigned ADRs: remove target requirements for committed/local ownership manifests, automatic withdrawal, adopted-original restoration during discard, and drift vetoes.",
+        "For the assigned ADRs: retain relevant format-preservation and native-file reasoning where consistent with ordered operations.",
+        "For the assigned ADRs: remove obsolete safety-floor obligations and avoid replacing them with an unrequested sandbox or enforcement system.",
+        "For the assigned ADRs: repair affected references without mechanically banning historical words inside necessary explanations."
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-009"
+      ]
+    },
+    {
+      "id": "US-011",
+      "title": "Reconcile ADRs about binary dependence, content, and layout",
+      "description": "As a maintainer, I want distribution and cookbook decisions to reflect the agreed architecture without prematurely deciding the model API. Read tasks/prd-documentation-alignment.md, including its architecture requirements, non-goals, and open questions. This task changes documentation only; do not implement product behavior or settle the deferred ingredient/recipe model and hooks. No mandatory quality gates or check commands are requested. Preserve unrelated working-tree changes and tasks/prd.json. Source PRD story: US-009. This split task covers ADRs 0010, 0013, and 0014. Other parts of the source story are assigned separately. Update inbound references required by this task, without rewriting unrelated topics.",
+      "acceptanceCriteria": [
+        "Review ADRs 0010, 0013, and 0014 individually against the agreed architecture; limit substantive ADR rewrites/removals to this group.",
+        "For the assigned ADRs: align wrapper/release reasoning with jpackage and explicit version/checksum pinning.",
+        "For the assigned ADRs: replace conflicting program-knowledge and ownership-storage requirements using the agreed responsibilities.",
+        "For the assigned ADRs: preserve the ingredient concept while leaving recipe/ingredient APIs, station semantics, and lifecycle mechanics for the separate model discussion.",
+        "For the assigned ADRs: do not infer a decision to delete dynamic composition or compiled suppliers from issue #9."
+      ],
+      "priority": 11,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-010"
+      ]
+    },
+    {
+      "id": "US-012",
+      "title": "Reconcile ADRs about engine pinning and release trust",
+      "description": "As a maintainer, I want distribution and cookbook decisions to reflect the agreed architecture without prematurely deciding the model API. Read tasks/prd-documentation-alignment.md, including its architecture requirements, non-goals, and open questions. This task changes documentation only; do not implement product behavior or settle the deferred ingredient/recipe model and hooks. No mandatory quality gates or check commands are requested. Preserve unrelated working-tree changes and tasks/prd.json. Source PRD story: US-009. This split task covers ADRs 0017 and 0021. Other parts of the source story are assigned separately. Update inbound references required by this task, without rewriting unrelated topics.",
+      "acceptanceCriteria": [
+        "Review ADRs 0017 and 0021 individually against the agreed architecture; limit substantive ADR rewrites/removals to this group.",
+        "For the assigned ADRs: align wrapper/release reasoning with jpackage and explicit version/checksum pinning.",
+        "For the assigned ADRs: replace conflicting program-knowledge and ownership-storage requirements using the agreed responsibilities.",
+        "For the assigned ADRs: preserve the ingredient concept while leaving recipe/ingredient APIs, station semantics, and lifecycle mechanics for the separate model discussion.",
+        "For the assigned ADRs: do not infer a decision to delete dynamic composition or compiled suppliers from issue #9."
+      ],
+      "priority": 12,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-011"
+      ]
+    },
+    {
+      "id": "US-013",
+      "title": "Reconcile ADRs about integrations, models, and cookbook trust",
+      "description": "As a maintainer, I want distribution and cookbook decisions to reflect the agreed architecture without prematurely deciding the model API. Read tasks/prd-documentation-alignment.md, including its architecture requirements, non-goals, and open questions. This task changes documentation only; do not implement product behavior or settle the deferred ingredient/recipe model and hooks. No mandatory quality gates or check commands are requested. Preserve unrelated working-tree changes and tasks/prd.json. Source PRD story: US-009. This split task covers ADRs 0022, 0023, 0024, and 0026. Other parts of the source story are assigned separately. Update inbound references required by this task, without rewriting unrelated topics.",
+      "acceptanceCriteria": [
+        "Review ADRs 0022, 0023, 0024, and 0026 individually against the agreed architecture; limit substantive ADR rewrites/removals to this group.",
+        "For the assigned ADRs: align wrapper/release reasoning with jpackage and explicit version/checksum pinning.",
+        "For the assigned ADRs: replace conflicting program-knowledge and ownership-storage requirements using the agreed responsibilities.",
+        "For the assigned ADRs: preserve the ingredient concept while leaving recipe/ingredient APIs, station semantics, and lifecycle mechanics for the separate model discussion.",
+        "For the assigned ADRs: do not infer a decision to delete dynamic composition or compiled suppliers from issue #9."
+      ],
+      "priority": 13,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-012"
+      ]
+    },
+    {
+      "id": "US-014",
+      "title": "Reconcile ADRs defining the obsolete lifecycle engine",
+      "description": "As a contributor, I want the reference pages to stop presenting a retired lifecycle engine as Cook's contract. Read tasks/prd-documentation-alignment.md, including its architecture requirements, non-goals, and open questions. This task changes documentation only; do not implement product behavior or settle the deferred ingredient/recipe model and hooks. No mandatory quality gates or check commands are requested. Preserve unrelated working-tree changes and tasks/prd.json. Source PRD story: US-010. This split task covers ADRs 0015, 0019, 0020, 0025, and 0027. Other parts of the source story are assigned separately. Update inbound references required by this task, without rewriting unrelated topics.",
+      "acceptanceCriteria": [
+        "Review ADRs 0015, 0019, 0020, 0025, and 0027 for definitions inherited from the obsolete lifecycle engine.",
+        "Remove obsolete lifecycle-engine material; retain or relocate a passage only when it supports an agreed responsibility.",
+        "Keep future kit/session work as a brief boundary/reference to its existing issue, without designing it here.",
+        "Preserve useful material case by case and repair affected navigation; neither deleting everything nor keeping everything is the default.",
+        "Review ADRs 0015, 0019, 0020, 0025, and 0027 individually; preserve relevant reasoning and remove definitions that require a fixed lifecycle engine."
+      ],
+      "priority": 14,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-013"
+      ]
+    },
+    {
+      "id": "US-015",
+      "title": "Reconcile lifecycle, attempts, verification, and task references",
+      "description": "As a contributor, I want the reference pages to stop presenting a retired lifecycle engine as Cook's contract. Read tasks/prd-documentation-alignment.md, including its architecture requirements, non-goals, and open questions. This task changes documentation only; do not implement product behavior or settle the deferred ingredient/recipe model and hooks. No mandatory quality gates or check commands are requested. Preserve unrelated working-tree changes and tasks/prd.json. Source PRD story: US-010. This split task covers docs/features/lifecycle.md, attempts.md, verify.md, and tasks.md. Other parts of the source story are assigned separately. Update inbound references required by this task, without rewriting unrelated topics.",
+      "acceptanceCriteria": [
+        "Review docs/features/lifecycle.md, attempts.md, verify.md, and tasks.md for definitions inherited from the obsolete lifecycle engine.",
+        "Remove obsolete lifecycle-engine material; retain or relocate a passage only when it supports an agreed responsibility.",
+        "Keep future kit/session work as a brief boundary/reference to its existing issue, without designing it here.",
+        "Preserve useful material case by case and repair affected navigation; neither deleting everything nor keeping everything is the default."
+      ],
+      "priority": 15,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-014"
+      ]
+    },
+    {
+      "id": "US-016",
+      "title": "Reconcile worker, workspace, and fleet references",
+      "description": "As a contributor, I want the reference pages to stop presenting a retired lifecycle engine as Cook's contract. Read tasks/prd-documentation-alignment.md, including its architecture requirements, non-goals, and open questions. This task changes documentation only; do not implement product behavior or settle the deferred ingredient/recipe model and hooks. No mandatory quality gates or check commands are requested. Preserve unrelated working-tree changes and tasks/prd.json. Source PRD story: US-010. This split task covers docs/features/workers.md, workspaces.md, and fleet.md. Other parts of the source story are assigned separately. Update inbound references required by this task, without rewriting unrelated topics.",
+      "acceptanceCriteria": [
+        "Review docs/features/workers.md, workspaces.md, and fleet.md for definitions inherited from the obsolete lifecycle engine.",
+        "Remove obsolete lifecycle-engine material; retain or relocate a passage only when it supports an agreed responsibility.",
+        "Keep future kit/session work as a brief boundary/reference to its existing issue, without designing it here.",
+        "Preserve useful material case by case and repair affected navigation; neither deleting everything nor keeping everything is the default."
+      ],
+      "priority": 16,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-015"
+      ]
+    },
+    {
+      "id": "US-017",
+      "title": "Reconcile context, memory, diagnostics, and safety references",
+      "description": "As a contributor, I want the reference pages to stop presenting a retired lifecycle engine as Cook's contract. Read tasks/prd-documentation-alignment.md, including its architecture requirements, non-goals, and open questions. This task changes documentation only; do not implement product behavior or settle the deferred ingredient/recipe model and hooks. No mandatory quality gates or check commands are requested. Preserve unrelated working-tree changes and tasks/prd.json. Source PRD story: US-010. This split task covers docs/features/context.md, memory.md, doctor.md, explain.md, and safety.md. Other parts of the source story are assigned separately. Update inbound references required by this task, without rewriting unrelated topics.",
+      "acceptanceCriteria": [
+        "Review docs/features/context.md, memory.md, doctor.md, explain.md, and safety.md for definitions inherited from the obsolete lifecycle engine.",
+        "Remove obsolete lifecycle-engine material; retain or relocate a passage only when it supports an agreed responsibility.",
+        "Keep future kit/session work as a brief boundary/reference to its existing issue, without designing it here.",
+        "Preserve useful material case by case and repair affected navigation; neither deleting everything nor keeping everything is the default."
+      ],
+      "priority": 17,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-016"
+      ]
+    },
+    {
+      "id": "US-018",
+      "title": "Reconcile domain vocabulary and composition reference pages",
+      "description": "As a contributor, I want the reference pages to stop presenting a retired lifecycle engine as Cook's contract. Read tasks/prd-documentation-alignment.md, including its architecture requirements, non-goals, and open questions. This task changes documentation only; do not implement product behavior or settle the deferred ingredient/recipe model and hooks. No mandatory quality gates or check commands are requested. Preserve unrelated working-tree changes and tasks/prd.json. Source PRD story: US-010. This split task covers docs/features/concepts.md, glossary.md, ingredients.md, recipes.md, and stations.md. Other parts of the source story are assigned separately. Update inbound references required by this task, without rewriting unrelated topics.",
+      "acceptanceCriteria": [
+        "Review docs/features/concepts.md, glossary.md, ingredients.md, recipes.md, and stations.md for definitions inherited from the obsolete lifecycle engine.",
+        "Remove obsolete lifecycle-engine material; retain or relocate a passage only when it supports an agreed responsibility.",
+        "Keep future kit/session work as a brief boundary/reference to its existing issue, without designing it here.",
+        "Preserve useful material case by case and repair affected navigation; neither deleting everything nor keeping everything is the default.",
+        "Preserve ingredients as program data models. Correct stale definitions without selecting a recipe API, station role, nesting rule, or lifecycle hook design."
+      ],
+      "priority": 18,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-017"
+      ]
+    },
+    {
+      "id": "US-019",
+      "title": "Reconcile policy, hooks, profile, scaffold, and skills references",
+      "description": "As a contributor, I want the reference pages to stop presenting a retired lifecycle engine as Cook's contract. Read tasks/prd-documentation-alignment.md, including its architecture requirements, non-goals, and open questions. This task changes documentation only; do not implement product behavior or settle the deferred ingredient/recipe model and hooks. No mandatory quality gates or check commands are requested. Preserve unrelated working-tree changes and tasks/prd.json. Source PRD story: US-010. This split task covers docs/features/policy.md, hooks.md, profile.md, scaffold.md, and skills.md. Other parts of the source story are assigned separately. Update inbound references required by this task, without rewriting unrelated topics.",
+      "acceptanceCriteria": [
+        "Review docs/features/policy.md, hooks.md, profile.md, scaffold.md, and skills.md for definitions inherited from the obsolete lifecycle engine.",
+        "Remove obsolete lifecycle-engine material; retain or relocate a passage only when it supports an agreed responsibility.",
+        "Keep future kit/session work as a brief boundary/reference to its existing issue, without designing it here.",
+        "Preserve useful material case by case and repair affected navigation; neither deleting everything nor keeping everything is the default.",
+        "Preserve relevant program-configuration guidance while removing fixed lifecycle-engine assumptions; do not design recipe hooks or injection APIs."
+      ],
+      "priority": 19,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-018"
+      ]
+    },
+    {
+      "id": "US-020",
+      "title": "Reconcile compatibility, FAQ, and pitfalls references",
+      "description": "As a contributor, I want the reference pages to stop presenting a retired lifecycle engine as Cook's contract. Read tasks/prd-documentation-alignment.md, including its architecture requirements, non-goals, and open questions. This task changes documentation only; do not implement product behavior or settle the deferred ingredient/recipe model and hooks. No mandatory quality gates or check commands are requested. Preserve unrelated working-tree changes and tasks/prd.json. Source PRD story: US-010. This split task covers docs/features/compatibility.md, faq.md, and pitfalls.md. Other parts of the source story are assigned separately. Update inbound references required by this task, without rewriting unrelated topics.",
+      "acceptanceCriteria": [
+        "Review docs/features/compatibility.md, faq.md, and pitfalls.md for definitions inherited from the obsolete lifecycle engine.",
+        "Remove obsolete lifecycle-engine material; retain or relocate a passage only when it supports an agreed responsibility.",
+        "Keep future kit/session work as a brief boundary/reference to its existing issue, without designing it here.",
+        "Preserve useful material case by case and repair affected navigation; neither deleting everything nor keeping everything is the default."
+      ],
+      "priority": 20,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-019"
+      ]
+    },
+    {
+      "id": "US-021",
+      "title": "Align CLI interaction standards",
+      "description": "As a user, I want the standards to describe the same commands and approval flow as the architecture. Read tasks/prd-documentation-alignment.md, including its architecture requirements, non-goals, and open questions. This task changes documentation only; do not implement product behavior or settle the deferred ingredient/recipe model and hooks. No mandatory quality gates or check commands are requested. Preserve unrelated working-tree changes and tasks/prd.json. Source PRD story: US-011. This split task covers docs/ux/cli-standards.md. Other parts of the source story are assigned separately. Update inbound references required by this task, without rewriting unrelated topics.",
+      "acceptanceCriteria": [
+        "Align the CLI standard with the agreed grammar, terminal diffs, whole-batch approval, and explicit apply/discard/revert operations.",
+        "Repair references and index entries affected by edits or removals in the assigned pages.",
+        "Remove acyclic-link obligations wherever present; do not add graph tooling or directory-order requirements.",
+        "Avoid specifying new exit codes, hook phases, patch formats, or metadata schemas not decided in this session."
+      ],
+      "priority": 21,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-020"
+      ]
+    },
+    {
+      "id": "US-022",
+      "title": "Align generated-content and configuration standards",
+      "description": "As a user, I want the standards to describe the same commands and approval flow as the architecture. Read tasks/prd-documentation-alignment.md, including its architecture requirements, non-goals, and open questions. This task changes documentation only; do not implement product behavior or settle the deferred ingredient/recipe model and hooks. No mandatory quality gates or check commands are requested. Preserve unrelated working-tree changes and tasks/prd.json. Source PRD story: US-011. This split task covers docs/ux/generated-content-standards.md and configuration-standards.md. Other parts of the source story are assigned separately. Update inbound references required by this task, without rewriting unrelated topics.",
+      "acceptanceCriteria": [
+        "Align the assigned standards with ordered overlap, explicit operations, destination boundaries, and local history; remove ownership-reconciliation requirements.",
+        "Repair references and index entries affected by edits or removals in the assigned pages.",
+        "Remove acyclic-link obligations wherever present; do not add graph tooling or directory-order requirements.",
+        "Avoid specifying new exit codes, hook phases, patch formats, or metadata schemas not decided in this session."
+      ],
+      "priority": 22,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-021"
+      ]
+    },
+    {
+      "id": "US-023",
+      "title": "Align documentation language and UX principles",
+      "description": "As a user, I want the standards to describe the same commands and approval flow as the architecture. Read tasks/prd-documentation-alignment.md, including its architecture requirements, non-goals, and open questions. This task changes documentation only; do not implement product behavior or settle the deferred ingredient/recipe model and hooks. No mandatory quality gates or check commands are requested. Preserve unrelated working-tree changes and tasks/prd.json. Source PRD story: US-011. This split task covers docs/ux/messages-and-docs.md and principles.md. Other parts of the source story are assigned separately. Update inbound references required by this task, without rewriting unrelated topics.",
+      "acceptanceCriteria": [
+        "Update terminology and principles that prescribe the obsolete lifecycle engine. The architecture is the intended design; avoid document status and supersession machinery.",
+        "Repair references and index entries affected by edits or removals in the assigned pages.",
+        "Remove acyclic-link obligations wherever present; do not add graph tooling or directory-order requirements.",
+        "Avoid specifying new exit codes, hook phases, patch formats, or metadata schemas not decided in this session."
+      ],
+      "priority": 23,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-022"
+      ]
+    },
+    {
+      "id": "US-024",
+      "title": "Align compatibility, skills, and CLI-versus-skill standards",
+      "description": "As a user, I want the standards to describe the same commands and approval flow as the architecture. Read tasks/prd-documentation-alignment.md, including its architecture requirements, non-goals, and open questions. This task changes documentation only; do not implement product behavior or settle the deferred ingredient/recipe model and hooks. No mandatory quality gates or check commands are requested. Preserve unrelated working-tree changes and tasks/prd.json. Source PRD story: US-011. This split task covers docs/ux/compatibility-standards.md, skills-standards.md, and when-cli-when-skill.md. Other parts of the source story are assigned separately. Update inbound references required by this task, without rewriting unrelated topics.",
+      "acceptanceCriteria": [
+        "Review the assigned standards case by case against the agreed scope; retain relevant guidance and remove obsolete obligations.",
+        "Repair references and index entries affected by edits or removals in the assigned pages.",
+        "Remove acyclic-link obligations wherever present; do not add graph tooling or directory-order requirements.",
+        "Avoid specifying new exit codes, hook phases, patch formats, or metadata schemas not decided in this session."
+      ],
+      "priority": 24,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-023"
+      ]
+    },
+    {
+      "id": "US-025",
+      "title": "Keep root and core implementation documentation truthful",
+      "description": "As a developer using the repository today, I want implementation documentation to distinguish what runs from what the architecture requires. Read tasks/prd-documentation-alignment.md, including its architecture requirements, non-goals, and open questions. This task changes documentation only; do not implement product behavior or settle the deferred ingredient/recipe model and hooks. No mandatory quality gates or check commands are requested. Preserve unrelated working-tree changes and tasks/prd.json. Source PRD story: US-012. This split task covers README.md and core/README.md. Other parts of the source story are assigned separately. Update inbound references required by this task, without rewriting unrelated topics.",
+      "acceptanceCriteria": [
+        "Review README.md and core/README.md for claims about current execution.",
+        "Preserve accurate descriptions of existing behavior when explicitly documenting implementation, and link to the intended architecture without presenting existing behavior as its authority.",
+        "Do not claim the target CLI, stateless operations, snapshots, or pinned wrapper are implemented merely because the architecture specifies them.",
+        "Replace the broken fresh-clone quickstart with an honest entry path supported by the implementation, such as build/help instructions; do not require untracked policy or personal skill files without explaining the prerequisites.",
+        "Do not change source, tests, build files, recipes, or fixtures to make the documentation examples true."
+      ],
+      "priority": 25,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-024"
+      ]
+    },
+    {
+      "id": "US-026",
+      "title": "Keep agent-setup cookbook guides truthful",
+      "description": "As a developer using the repository today, I want implementation documentation to distinguish what runs from what the architecture requires. Read tasks/prd-documentation-alignment.md, including its architecture requirements, non-goals, and open questions. This task changes documentation only; do not implement product behavior or settle the deferred ingredient/recipe model and hooks. No mandatory quality gates or check commands are requested. Preserve unrelated working-tree changes and tasks/prd.json. Source PRD story: US-012. This split task covers README files under cookbook/recipes/agentic/. Other parts of the source story are assigned separately. Update inbound references required by this task, without rewriting unrelated topics.",
+      "acceptanceCriteria": [
+        "Review all README files under cookbook/recipes/agentic/ for architectural and current-execution claims.",
+        "Preserve accurate descriptions of existing behavior when explicitly documenting implementation, and link to the intended architecture without presenting existing behavior as its authority.",
+        "Do not claim the target CLI, stateless operations, snapshots, or pinned wrapper are implemented merely because the architecture specifies them.",
+        "Keep cookbook usage examples honest about implemented commands and required policy/source files; replace unsupported claims with accurate prerequisites or references without implementing missing behavior.",
+        "Do not change source, tests, build files, recipes, or fixtures to make the documentation examples true."
+      ],
+      "priority": 26,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-025"
+      ]
+    },
+    {
+      "id": "US-027",
+      "title": "Keep remaining cookbook guides truthful",
+      "description": "As a developer using the repository today, I want implementation documentation to distinguish what runs from what the architecture requires. Read tasks/prd-documentation-alignment.md, including its architecture requirements, non-goals, and open questions. This task changes documentation only; do not implement product behavior or settle the deferred ingredient/recipe model and hooks. No mandatory quality gates or check commands are requested. Preserve unrelated working-tree changes and tasks/prd.json. Source PRD story: US-012. This split task covers cookbook/recipes/README.md and recipe README files outside cookbook/recipes/agentic/. Other parts of the source story are assigned separately. Update inbound references required by this task, without rewriting unrelated topics.",
+      "acceptanceCriteria": [
+        "Review cookbook/recipes/README.md and every recipe README outside cookbook/recipes/agentic/ for architectural and current-execution claims.",
+        "Preserve accurate descriptions of existing behavior when explicitly documenting implementation, and link to the intended architecture without presenting existing behavior as its authority.",
+        "Do not claim the target CLI, stateless operations, snapshots, or pinned wrapper are implemented merely because the architecture specifies them.",
+        "Keep cookbook usage examples honest about implemented commands and required policy/source files; replace unsupported claims with accurate prerequisites or references without implementing missing behavior.",
+        "Do not change source, tests, build files, recipes, or fixtures to make the documentation examples true."
+      ],
+      "priority": 27,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-026"
+      ]
+    },
+    {
+      "id": "US-028",
+      "title": "Prepare the issue #1 closeout",
+      "description": "As the maintainer, I want a concise closure assessment so that documentation work and implementation work remain separately accountable. Read tasks/prd-documentation-alignment.md, including its architecture requirements, non-goals, and open questions. This task changes documentation only; do not implement product behavior or settle the deferred ingredient/recipe model and hooks. No mandatory quality gates or check commands are requested. Preserve unrelated working-tree changes and tasks/prd.json. Source PRD story: US-013.",
+      "acceptanceCriteria": [
+        "Produce `tasks/issue-1-closeout.md` listing the documentation changes and any remaining documentation blockers.",
+        "Identify implementation gaps for separate tracking under #9 or successor work, without making completion of those features a condition of #1.",
+        "State that the acyclic-link requirement was withdrawn and no mandatory quality gates were requested.",
+        "Identify the ingredient/recipe model and hooks as a separate discussion; do not treat exploratory sketches as approved APIs.",
+        "Record material corrections to #9 after checking current evidence, including CLI reachability of dynamic factories and whether the BatchAdapter reference is still broken.",
+        "Treat the note as a draft handoff; do not post comments, edit issues, or close #1 automatically.",
+        "Review the completed architecture, feature references, ADRs, UX standards, and implementation guides together for contradictions and affected cross-references. Record unresolved documentation conflicts as closeout blockers; no new check tooling or mandatory command is required.",
+        "Explicitly hand off removal of `--adopt` wherever exposed and removal of underlying adoption gates as required product implementation work. The replacement behavior is review and approval of the actual batch diff for existing or edited content, with no adoption alias or ownership-state prerequisite. Documentation completion alone does not complete this code change."
+      ],
+      "priority": 28,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-027"
+      ]
+    }
+  ]
+}
