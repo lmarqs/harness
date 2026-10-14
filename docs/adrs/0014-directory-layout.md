@@ -47,7 +47,7 @@ Other forces:
   [0026](0026-cookbook-trust.md)).
 - The XDG Base Directory Specification (0.8) defines a per-user cache directory, `$XDG_CACHE_HOME`, by default
   `~/.cache`, for data a program can fetch again.
-- A worker can edit anything in the working tree it works in ([0011](0011-safety-invariants.md)).
+- A worker can edit anything in the working tree it works in.
 
 ## Decision
 
@@ -64,7 +64,7 @@ Other forces:
 5. Third-party state and configuration stay where their tool requires them and are never relocated through environment
    variables or path overrides: the task tracker's directory at the root of the primary checkout, found by its upward
    walk from nested working copies; the loop runner's configuration in the fixed directory it reads.
-6. Ignore rules are managed blocks, one set per capability ([0018](0018-conventions.md)), and omit any path the
+6. Ignore rules are managed blocks, one set per capability, and omit any path the
    repository tracks.
 7. A repository holds none of the ingredients and stations it pins. Each lives in
    the user's cache directory, outside every repository, under its content hash, and one copy serves every repository on
@@ -93,8 +93,8 @@ Other forces:
   station's template wrote it ([0013](0013-organization-content.md)), lives where the loop runner looks, and a committed
   file reaches every working copy through version control. Relocating the task tracker through an override would make
   every invocation depend on that override, and people who run the tracker directly would see different state.
-- **6.** One set of ignore blocks per capability lets one capability be removed without un-ignoring another's paths
-  ([0018](0018-conventions.md)). A tracked path in an ignore rule would stop new files in a committed directory, such as
+- **6.** One set of ignore blocks per capability lets one capability be removed without un-ignoring another's paths. A
+  tracked path in an ignore rule would stop new files in a committed directory, such as
   the task tracker's directory in a repository that commits it, from being added.
 - **7.** An ingredient in the working tree would be a description that the worker in that tree can edit before the next
   attempt reads it ([0022](0022-tool-integration.md)), and a copy of an ingredient or a station in every repository that

@@ -59,7 +59,7 @@ global install, `the-cook <command>` is equivalent.
 | Globs | `verify.app_paths`, `verify.lint_paths`, lane `required_when`, validator `when` and post-edit `paths` that match no tracked file |
 | Default branch | the version-control ingredient reports no default branch, so a floor rule that names the default branch, such as a deny of a force push to it, cannot name the branch |
 | Program versions | a program whose version, read with its ingredient's version command, is outside the range the ingredient's checks declare. Every pinned ingredient is checked the same way, a jail's included. A program no pinned ingredient describes has no version check |
-| Policy | an entry that would weaken a [floor rule](ingredients.md#the-floor) of a pinned ingredient, such as an `allow` for a force push to the default branch that the version-control ingredient denies; `render` leaves it out and renders the floor rule, and the entry stays a finding until it is removed ([ADR 0011](../adrs/0011-safety-invariants.md)) |
+| Policy | an entry that would weaken a [floor rule](ingredients.md#the-floor) of a pinned ingredient, such as an `allow` for a force push to the default branch that the version-control ingredient denies; `render` leaves it out and renders the floor rule, and the entry stays a finding until it is removed |
 | Context | invalid `context` declarations, a skill an entry names that does not exist under `.agents/skills/`, and a file an entry names that does not exist ([context](context.md#sources-and-trust)) |
 | Adoption to-do | the open items described in [scaffold](scaffold.md#the-to-do) |
 

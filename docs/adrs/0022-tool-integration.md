@@ -16,9 +16,9 @@ description of that program, and neither the tool's code nor its release names a
 
 - The tool runs a repository's development lifecycle and renders the setup that the programs in its stages read. To do
   that it needs two kinds of answer from outside: from a version control
-  system, which revision is the base and what a file held there ([0011](0011-safety-invariants.md)); from a worker,
+  system, which revision is the base and what a file held there; from a worker,
   how to start it and, for a coding agent's harness, what to write in its native files and which arguments start it
-  unattended ([0009](0009-agent-support.md)).
+  unattended.
 - Every one of these programs is driven by a command line, and the answers the tool needs come back as a short
   string, a list of lines, a file's bytes or an exit status. git 2.x prints the current revision with `rev-parse`
   and a file at a revision with `show`. Claude Code 2.1.x and Codex CLI 0.16x take their permission mode and their
@@ -35,7 +35,7 @@ description of that program, and neither the tool's code nor its release names a
   releases.
 - A program can matter to the safety rules without the tool needing any answer from it: a task runner is reached only
   through the commands the repository declares, and its syntax for running several tasks in one invocation still needs
-  a deny rule ([0011](0011-safety-invariants.md)).
+  a deny rule.
 - ralph-tui merges a person's own configuration, `~/.config/ralph-tui/config.toml`, into every run it starts, and
   anyone can start it, or a script around it, without the tool. No tool can know every way a person runs programs on
   their machine.
@@ -48,7 +48,7 @@ description of that program, and neither the tool's code nor its release names a
   installs. It says nothing about whether a team should use that program.
 - A description read from the repository's own working tree can be edited by the worker that runs in that tree, and a
   description fetched during an unattended run can be swapped by whoever controls the source
-  ([0011](0011-safety-invariants.md), [0026](0026-cookbook-trust.md)).
+  ([0026](0026-cookbook-trust.md)).
 - semantic-release, a release tool in wide use, keeps its own git commands in its core and reaches every other program
   through plugins. Chef ships resources for the common systems inside its client. Terraform's core binary contains no
   provider: a configuration declares each provider it uses by source and version constraint, providers are downloaded
@@ -84,7 +84,7 @@ description of that program, and neither the tool's code nor its release names a
    arguments that bypass a worker's permission checks, and deny rules such as a force push to the default branch or a
    task runner's chaining syntax. The binary renders floor rules into every worker's output on every render and
    refuses floor arguments at every launch, and repository data cannot remove or weaken either. The process around
-   them is built in ([0011](0011-safety-invariants.md)).
+   them is built in.
 6. The binary reads no program's own configuration and does not try to detect how a person runs a program outside
    it. The invariants hold for what the binary renders and for every worker the binary starts.
 7. Other programs reach the binary only through its command line. The attempt command's arguments, exit statuses and
@@ -134,7 +134,7 @@ description of that program, and neither the tool's code nor its release names a
 - **5.** The bypass arguments of a worker and the chaining syntax of a task runner are facts about those programs, so
   they belong with the program's description, and they change when the program changes. Marking them as floor, and
   rendering them on every render instead of applying them once as entries, is what keeps them from being lost the way
-  editable entries are lost ([0011](0011-safety-invariants.md)): a repository can edit its own data, not an
+  editable entries are lost: a repository can edit its own data, not an
   ingredient's floor. The process that applies them, refusing before launch, rendering a deny in every output,
   replaying proof from the base, is what must not depend on any program, and it stays in the binary. The trade: a
   program's floor is what its ingredient marks, so it is as strong as the cookbook that wrote it and the review that

@@ -185,11 +185,12 @@
         "For the assigned ADRs: repair affected references without mechanically banning historical words inside necessary explanations."
       ],
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "notes": "",
       "dependsOn": [
         "US-009"
-      ]
+      ],
+      "completionNotes": "Completed by agent"
     },
     {
       "id": "US-011",
@@ -512,6 +513,6 @@
     }
   ],
   "metadata": {
-    "updatedAt": "2026-10-14T04:33:36.526Z"
+    "updatedAt": "2026-10-14T04:40:22.892Z"
   }
 }

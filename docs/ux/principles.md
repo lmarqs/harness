@@ -210,7 +210,7 @@ and hard to undo, so it must be written down, reviewed and guarded before it can
   [`the-cook attempt`](cli-standards.md#the-attempt-command) starts for one task) or an `attempt` action: the binary
   refuses `lifecycle run` there itself, whatever spelling invoked it. `deliver` always refuses on the default branch and
   with uncommitted changes and, when the verify module is enabled, without a valid receipt (the record a passing
-  `the-cook verify` writes). These guards are built-in invariants ([ADR 0011](../adrs/0011-safety-invariants.md)).
+  `the-cook verify` writes). These guards are built-in invariants.
 - **Code, not settings.** Actions are committed and reviewed like code. They receive values only as environment
   variables, never substituted into a command string, so a task title or a branch name cannot inject shell syntax.
   Secrets reach an action only from the environment (`url_env`, `headers_env`, or the environment a `run` command
@@ -234,7 +234,7 @@ events fire.
 Every convention `the-cook` establishes is written down as plain-language text where people and other tools already
 look, and stays valid after `the-cook` is removed. Why: people, workers and the other tools in a repository rely on
 where workspaces and state live. If those conventions existed only in the configuration of `the-cook`, removing
-`the-cook` would leave state that follows rules nobody wrote down ([ADR 0018](../adrs/0018-conventions.md)).
+`the-cook` would leave state that follows rules nobody wrote down.
 
 - Two classes of managed block carry the text `the-cook` writes into `AGENTS.md`
   ([generated-content-standards.md](generated-content-standards.md#block-classes)):
@@ -291,8 +291,8 @@ cannot be read by anyone working there, and a reviewer sees its effect without i
 
 Apply them in this order, because each earlier principle protects something harder to recover than the next:
 
-1. The built-in invariants and the floor of the ingredients in use ([ADR 0011](../adrs/0011-safety-invariants.md),
-   [ADR 0022](../adrs/0022-tool-integration.md)). No principle, setting or flag weakens them.
+1. The built-in invariants and the floor of the ingredients in use ([ADR 0022](../adrs/0022-tool-integration.md)). No
+   principle, setting or flag weakens them.
 2. Never destroy (principle 5).
 3. Nothing leaves the clone undeclared (principle 7).
 4. Optional and transparent (principle 1).

@@ -128,8 +128,8 @@ past every rule.
 The process that applies the floor belongs to the binary, because it is about the lifecycle and not about a program:
 refusing bypass arguments before a launch, rendering the deny rules into every worker's output, replaying from the
 base, withholding completion, the tamper check, and its own `unattended.deny` entry `[the-cook, lifecycle]`, which
-names the binary's own command ([concepts](concepts.md#built-in-invariants),
-[ADR 0011](../adrs/0011-safety-invariants.md)). The `policy` block of `AGENTS.md` lists each floor rule with the
+names the binary's own command ([concepts](concepts.md#built-in-invariants)). The `policy` block of `AGENTS.md` lists
+each floor rule with the
 ingredient it comes from.
 
 A floor protects only while its ingredient is pinned: deleting an ingredient from `ingredients:` removes its floor
@@ -238,8 +238,8 @@ command exits 3 and names the program.
 One ingredient per declared worker fills this contract: the ingredient `workers.<name>.ingredient` names, by default
 the ingredient named like the worker. A worker is any program that changes the repository for someone, such as a
 coding agent, a bot or a codemod. Adding a worker means pinning an ingredient that fills this contract and declaring
-the worker; the policy, the hooks file and the other ingredients do not change
-([ADR 0009](../adrs/0009-agent-support.md)). Every item is optional except `launch.command`, because a program with no
+the worker; the policy, the hooks file and the other ingredients do not change. Every item is optional except
+`launch.command`, because a program with no
 permission prompts, hooks or instruction file still runs as a worker:
 
 | Item | Declares | When the ingredient leaves it out |

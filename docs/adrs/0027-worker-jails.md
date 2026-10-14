@@ -44,7 +44,7 @@ while the binary's own work and its guards stay outside the confinement and out 
   directory, on a commit, and its configuration names programs that other commands start, such as a file system
   monitor on `git status`.
 - The binary recognises a worker it started unattended by a mark in that worker's environment, and the guards that keep
-  lifecycle events out of the worker's hands rest on it ([0011](0011-safety-invariants.md)). A second mark tells the
+  lifecycle events out of the worker's hands rest on it. A second mark tells the
   session-start hook that the prompt already carried the standing context ([0020](0020-standing-context.md)). A jail
   that passes only the variables it is given drops every mark it is not given.
 - Each working copy keeps its own state directory inside itself: the proof of verification, the session, the hook
@@ -52,15 +52,15 @@ while the binary's own work and its guards stay outside the confinement and out 
   log and the lock for creating working copies, which the binary writes outside any worker, and by default it holds
   every managed working copy as well ([0014](0014-directory-layout.md)).
 - The tamper check, the replay and the commit of an attempt read and write the attempt's working copy and its version
-  control metadata from outside the worker ([0011](0011-safety-invariants.md)).
+  control metadata from outside the worker.
 - The replay of a proof runs the repository's lane commands and validators on the content the worker left, so it runs
-  code the worker wrote, such as a test the worker added or a script a lane calls ([0011](0011-safety-invariants.md)).
+  code the worker wrote, such as a test the worker added or a script a lane calls.
   The later steps of a recipe run run on the same content ([0025](0025-recipes.md)).
 - The binary resolves every ingredient an attempt uses from the per-user cache before the worker starts, and nothing
   downloads during an attempt ([0022](0022-tool-integration.md)). The tool's commands that a worker runs, such as a
   verification and the hooks, load the pinned release and the ingredients from that cache.
-- A worker program reads its login and its settings from the person's home, in places that differ per program
-  ([0009](0009-agent-support.md)). A jail with a fresh home sees none of them unless something shares them.
+- A worker program reads its login and its settings from the person's home, in places that differ per program. A jail
+  with a fresh home sees none of them unless something shares them.
 - A container image brings its own copies of the programs it runs, built for the image's platform; docker starts a
   container from an image and binds host directories into it with arguments of its own. A program started over ssh runs
   on the other machine's filesystem, and OpenSSH appends the arguments of a remote command to it, separated by spaces,
@@ -135,7 +135,7 @@ while the binary's own work and its guards stay outside the confinement and out 
 
 - **1.** Which program confines a worker, and with which options, differs between repositories and machines, and so
   does which worker needs it, so the choice is repository data on the worker declaration, like the worker's role and
-  network access ([0009](0009-agent-support.md)). Attempts are where nobody watches ([0011](0011-safety-invariants.md)),
+  network access. Attempts are where nobody watches,
   and they are what the binary starts; it starts no interactive session, so it has none to wrap, and a person in a
   session can see what the worker does. The trade: an interactive session is confined only when a person starts it so.
 - **2.** A jail's arguments are facts about its program, and they differ between programs (Context), so an ingredient
@@ -145,7 +145,7 @@ while the binary's own work and its guards stay outside the confinement and out 
   metadata out of the worker's reach or pass the marks (point 4). The working-directory share is optional because some
   jails share the directory they start in by themselves and others take arguments for it (Context); the separator and
   the network are optional because some jails need neither. The floor marks the arguments that would undo the
-  confinement, as a worker's floor marks those that undo its permission checks ([0011](0011-safety-invariants.md)).
+  confinement, as a worker's floor marks those that undo its permission checks.
   Passing the streams through, the exit status and the precedence of a read share inside the working directory do not
   show in arguments and depend on a program's mode (Context), so documentation states them and the cookbook that
   publishes the ingredient tests them. The contract asks for precedence only there because that is all the binary
@@ -155,7 +155,7 @@ while the binary's own work and its guards stay outside the confinement and out 
   the jail. One fixed order makes every jail's launch read the same, with the read shares after the shares they sit
   inside. The working copy goes in as the working directory and never as a write share, because a write share over a
   read share may be dropped by the jail with only a message (Context). The network opens only when the worker's own
-  arguments and the jail's both open it, because each program closes it in its own way ([0009](0009-agent-support.md)).
+  arguments and the jail's both open it, because each program closes it in its own way.
   A jail bypass argument in the repository's data is caught when the data is validated, before any attempt; one among a
   caller's arguments can only be caught at launch.
 - **4.** The worker writes its working copy, and the writable directories the declaration lists serve the repository's
@@ -168,7 +168,7 @@ while the binary's own work and its guards stay outside the confinement and out 
   anyway (Context), and the worker would then lack a directory the repository declared, or, in a jail with the opposite
   precedence, could write the metadata. The cache holds what the tool's commands inside the jail load (Context);
   read-only, it cannot be changed under a later attempt. Sharing nothing else of the home keeps the person's keys and
-  tokens out, which is what a jail is for. Passing the marks keeps the guards of [0011](0011-safety-invariants.md) and
+  tokens out, which is what a jail is for. Passing the marks keeps the lifecycle guards and
   the delivery of [0020](0020-standing-context.md) working inside a jail that drops what it is not given (Context), and
   passing the cache's location lets the tool inside find it whatever home the jail gives. Nothing inside needs to
   download, because the attempt resolved everything before the worker started (Context). The trade: the worker
@@ -213,7 +213,7 @@ jail works with no contract and no ingredient, and the repository writes exactly
 loses because the binary cannot place the worker's launch where the jail expects it, cannot tell the jail's arguments
 from the worker's when it refuses bypass arguments, and cannot add the shares and pass the marks, and because every
 repository retypes the jail's facts instead of pinning them, where they drift as hand-kept configuration does
-([0009](0009-agent-support.md), [0022](0022-tool-integration.md)).
+([0022](0022-tool-integration.md)).
 
 ### Container images as jails
 

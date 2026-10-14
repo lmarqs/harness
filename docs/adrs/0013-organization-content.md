@@ -42,7 +42,7 @@ choices, stack facts and the wiring of a tool still reach each repository throug
 ## Decision
 
 1. The binary contains no organization-specific content: no organization names, hosts, services, policy entries or
-   conventions. The content the release carries is limited to the invariants ([0011](0011-safety-invariants.md)), the
+   conventions. The content the release carries is limited to the invariants, the
    templates and starting entries of the tool's own files seeded into a newly adopted repository
    ([0015](0015-development-lifecycle.md)), and the documentation and skill the tool ships.
    It carries no ingredient, no station and no recipe
@@ -204,7 +204,7 @@ contracts itself. At its best, nothing from outside the repository acts on a ren
 the repository's files and the release. It loses because the binary would then carry knowledge of every program it
 renders for, which [0022](0022-tool-integration.md) rejects, an organization's own program or a worker the binary does
 not know could not be described at all, and a program used without a floor of its own runs without the deny rules
-that protect it ([0011](0011-safety-invariants.md)).
+that protect it.
 
 ## Consequences
 

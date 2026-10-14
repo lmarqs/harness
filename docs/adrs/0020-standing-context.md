@@ -20,19 +20,18 @@ the sessions that do not need it.
   names the SQL review checklist and the timezone rules at the start of each session, and in the session where they
   forget, the agent writes date handling without the timezone rules.
 - Much guidance applies to specific files (SQL rules to migrations) or topics (timezone rules to date handling).
-  Instruction files are read at the start of every session ([0018](0018-conventions.md)), so guidance placed there
+  Instruction files are read at the start of every session, so guidance placed there
   costs context in every session, including the many where it does not apply.
 - Coding agents expose hook points where a hook can add text to the agent's context. Claude Code 2.1.x has them at
   session start, which it fires again after compacting a conversation, after a tool use, and when the person submits a
-  prompt. The set of events differs between worker programs ([0009](0009-agent-support.md)).
+  prompt. The set of events differs between worker programs.
 - Interactive sessions and attempts need different directives: a rule for how a worker in an attempt reports a blocked
   task means nothing to a person at the terminal.
 - A repository's skills are files under `.agents/skills/`, committed like its other files
   ([0014](0014-directory-layout.md)), whether a person wrote them or the team installed them with a tool of its choice
   ([0022](0022-tool-integration.md)).
 - Text added to a worker's context acts as instructions. A source that someone can change without review is a channel
-  for instructions. A worker in an attempt can write files in its working copy, skills and directive files included
-  ([0011](0011-safety-invariants.md)).
+  for instructions. A worker in an attempt can write files in its working copy, skills and directive files included.
 - A hook invocation adds at most 50 ms at p95, and hooks do nothing on a
   machine where the pinned release is not cached ([0017](0017-engine-version.md)).
 - A worker program may run no hook when it runs unattended. Codex CLI 0.160 runs a project's hook only after a person
@@ -50,15 +49,14 @@ the sessions that do not need it.
    both, and is delivered either as its content or as a one-line pointer to it. A path or prompt entry is delivered at
    most once per session.
 2. Entries are delivered through the hooks of worker programs, which each worker ingredient renders and maps onto the
-   native events that carry each trigger ([0009](0009-agent-support.md)), except where point 7 places them in an
+   native events that carry each trigger, except where point 7 places them in an
    attempt's prompt. Where a worker program lacks the event a trigger needs, nothing is rendered for it and the health
    check reports the gap.
-3. An entry may be declared static. A static entry is written as a convention block in `AGENTS.md`
-   ([0018](0018-conventions.md)), works without the binary, and is not also delivered by hook.
+3. An entry may be declared static. A static entry is written as a convention block in `AGENTS.md`, works without the
+   binary, and is not also delivered by hook.
 4. Entries come only from versioned repository files, skills included: a skill is delivered as the file committed under
    `.agents/skills/`, and the health check reports an entry that names a skill the repository does not have. Nothing is
-   fetched when a hook runs. For a worker the binary starts unattended, entries are read from the session's base commit
-   ([0011](0011-safety-invariants.md)).
+   fetched when a hook runs. For a worker the binary starts unattended, entries are read from the session's base commit.
 5. Always-on content has a budget per role. The health check reports a role whose always-on content exceeds it, with
    the size of each entry.
 6. A deterministic preview shows what would be delivered for a role, a set of files and a prompt, and which trigger
@@ -79,7 +77,7 @@ the sessions that do not need it.
   line and leaves the reading to the worker; content costs its full length and guarantees the text is present.
   Delivering a path or prompt entry once per session keeps repeated matches from repeating the same text.
 - **2.** In a session a person drives, a hook is the only point where text enters a worker's context without the
-  person typing it, and worker ingredients already render hooks per worker program ([0009](0009-agent-support.md)).
+  person typing it, and worker ingredients already render hooks per worker program.
   Reporting a missing event, instead of emulating it, keeps the difference between programs visible.
 - **3.** Hook delivery depends on the binary being cached on the machine ([0017](0017-engine-version.md)). A directive
   that must reach every worker in every clone belongs where workers read without the tool, and as a convention block it
@@ -90,7 +88,7 @@ the sessions that do not need it.
   what makes a skill reviewed. Fetching at hook time would make each hook depend on the network and the 50 ms budget,
   and would deliver content no one reviewed. Reading from the base commit for
   unattended workers means a worker cannot rewrite the instructions of its next attempt at a task, as with the rest of
-  the data that drives it ([0011](0011-safety-invariants.md)). Reporting a named skill that does not exist tells the
+  the data that drives it. Reporting a named skill that does not exist tells the
   team that a declared entry delivers nothing. The trade: a skill edited by hand after a team installed it is delivered
   as edited, once committed.
 - **5.** Every always-on line costs context in every session of the role. A budget makes that cost visible as a number.
@@ -124,7 +122,7 @@ interactive sessions and attempts different directives.
 
 Some coding agents scope rule files by path or load memory files per directory. At its best, no hooks are needed for the
 programs that have them. It loses because the mechanisms differ between programs and some have none, so one declaration
-would become one configuration per program ([0009](0009-agent-support.md)).
+would become one configuration per program.
 
 ### Hooks only, in attempts too
 

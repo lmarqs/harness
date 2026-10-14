@@ -1,123 +1,90 @@
-# 0018. Conventions the tool establishes are written to outlive it
+# 0018. Native instruction text states conventions independently of Cook
 
 ## Objective
 
-**Problem.** Teams can stop using the tool at any time, and many teammates never use it. The working agreements it sets
-up, such as where working copies live and which branch work starts from, must stay readable and true without the tool,
-without filling every coding agent session's context with text about the tool.
+**Problem.** Teammates and coding agents need to understand repository conventions even when they do not use the tool
+that configured them. Instructions can become misleading when they assume that tool is always present, and long
+instruction files add reading cost to every session.
 
-**Goal.** A repository's conventions read correctly and hold whether or not anyone runs the tool, at a small, fixed cost
-to every coding agent session.
+**Goal.** Repository conventions remain readable without Cook, with concise instructions that explain the actual
+setup readers encounter.
 
 ## Context
 
-- Coding agents read instruction files, not the tool's configuration. Claude Code 2.1.x reads `CLAUDE.md` and the files
-  it imports; Codex CLI 0.16x reads `AGENTS.md`.
-- People, workers and third-party tools use the tool's clone-local state directly: they work inside the working copies
-  the tool creates, and a loop runner, a program that starts a worker for each task in a list, unattended, runs inside
-  them ([0014](0014-directory-layout.md)). Where these live and which branch work starts from are conventions all of
-  them rely on.
-- Not every teammate installs the tool ([0010](0010-dependence-on-the-binary.md)); everyone shares the committed files.
-- Working copies can hold uncommitted work, and cleanup acts only on what the binary recorded creating, so removing the
-  tool leaves clone-local state in place.
-  State whose conventions and ignore entries are gone is unexplained, and git lists it as untracked.
-- Some instructions hold with or without the tool: where working copies are, which branch work starts from, which
-  permissions are in effect. Others are true only while the tool is present: which of its commands checks work, how to
-  trigger delivery.
-- Instruction files are read at the start of every session; every line costs context in every session of every coding
-  agent.
-- In git's `.gitignore`, a path stays ignored while any entry covers it; removing an entry un-ignores what only that
-  entry covered.
-- Managed blocks are tool output, rendered from templates and the repository's data; they
-  are not the prose, memory or domain skills the binary never writes
-  ([0011](0011-safety-invariants.md)).
+- The [architecture](../architecture.md#ingredients-recipes-and-cookbooks) uses native files that configured programs
+  consume directly, without invoking Cook to read them.
+- Worked example: `acme/api` uses a recipe to write a marked section in an agent instruction file describing its test
+  command, and a section in its ignore file. A teammate without Cook can read the instructions and use the command.
+- A path remains ignored while an ignore entry covers it. Deleting the last covering entry can expose existing files
+  as untracked; deleting an ignore entry does not delete those files.
+- Instructions about repository practice and instructions for invoking Cook have different readers and dependencies.
+  Cook does not create or supervise agent sessions or working-copy lifecycles under this design.
 
 ## Decision
 
-1. Every convention the tool establishes is stated in plain language in a managed block of `AGENTS.md`, and every path
-   it establishes that the repository does not track is listed in a managed block of the version control system's ignore
-   file ([0014](0014-directory-layout.md)).
-2. Managed blocks are of two classes. Convention blocks state facts that stay true without the tool and never name its
-   commands. Tool blocks describe how to use the tool and may name its commands.
-3. Eject keeps convention blocks as plain text without markers and removes tool blocks.
-4. Each block belongs to the capability or the ingredient that establishes its convention, and removing the capability,
-   or ending the ingredient's use, removes its blocks ([0010](0010-dependence-on-the-binary.md),
-   [0022](0022-tool-integration.md)). Each capability and each ingredient writes its own ignore entries even when
-   another one's entry already covers them.
-5. The tool's content in instruction files is bounded; detail lives in the shipped documentation. The health check
-   reports a repository whose blocks exceed the bound.
-6. Block text states conventions as facts; only the markers identify it as managed.
+1. Recipe-declared instruction text states repository conventions in plain language. Describe the configured program
+   or repository practice directly; references to Cook belong where readers need to invoke Cook. Keep frequently read
+   instructions concise and put supporting detail in documentation, without an engine-enforced length bound.
+2. Sections in shared text files use begin/end markers with the format's appropriate comment syntax, including HTML
+   comments in Markdown. Markers identify boundaries, not ownership or a permanent recipe identity. Text outside the
+   declared section is preserved ([0008](0008-native-configuration.md)).
+3. Applying recipes composes declared instruction and ignore-file operations in order. Applying another recipe does
+   not withdraw earlier unrelated text or ignore entries. Discard deletes contributions declared by the supplied
+   recipe version after whole-batch review, even when their current content was edited. It neither automatically
+   deletes the paths those entries describe nor strips markers to preserve a special class of block.
+4. Stopping use of Cook requires no eject operation or transfer of ownership: native files and their markers can stay
+   as they are. Reverting a recorded operation restores its prior values using history, subject to actual batch diff
+   review rather than a drift veto. The [operation reference](../features/remove.md) explains these distinct requests.
 
 ## Reasons
 
-- **1.** Coding agents act on what instruction files say, not on what the tool's configuration holds, so a convention
-  that is only in the configuration is invisible to them. `AGENTS.md` is a file every coding agent in Context reaches:
-  one reads it directly, another through an import line its worker ingredient renders in that program's own instruction
-  file, itself a convention block. Writing every untracked path into the ignore file keeps clone-local state untracked
-  in every clone, including clones without the tool; a path the repository chose to track stays tracked. People and
-  third-party tools working without the tool read the same text, and after a removal the remaining state is still
-  explained.
-- **2, 3.** A sentence that names one of the tool's commands becomes false the moment the tool is gone, and a worker
-  that reads it runs a command that is not there. Splitting blocks by whether their text holds without the tool lets
-  eject keep everything that stays true and remove everything that would mislead. The trade is that every block's class
-  is a design decision that must be made and kept.
-- **4.** Capabilities are adopted and removed independently ([0010](0010-dependence-on-the-binary.md)), and so are
-  ingredients, so their text must be too. With shared ignore entries, removing one would
-  un-ignore paths another still creates, and the version control system would start listing that state as untracked.
-  Duplicate entries cost one line each and make removal local.
-- **5.** Every line in an instruction file is read in every session, so the tool's share of that file is a recurring
-  cost multiplied by every session of every coding agent. Bounding it keeps the cost fixed, while the full rules are
-  read on demand from the shipped documentation. A report instead of a refusal leaves the choice with a repository that
-  accepts a larger block, for example one that declares many standing-context entries.
-- **6.** A reader needs the convention, not a note about the tool. Text that does not describe itself as generated
-  reads correctly after eject strips the markers.
+- **1.** The example's teammate needs the test command, not an account of how it was generated. Direct, concise wording
+  serves readers without requiring Cook. Recipe authors remain responsible for the relevance and length of their text.
+- **2.** Boundaries let a recipe address one section without rewriting the rest of a shared file. Native comment syntax
+  keeps those boundaries compatible with the consuming format, and manual edits remain part of current-content review.
+- **3.** Explicit operations keep omission from becoming implicit deletion. Ignore entries affect visibility of paths,
+  so their deletion must be reviewed even though it leaves those paths in place. Overlapping declared targets still
+  follow order; no ownership catalog decides which recipe's entry should survive.
+- **4.** Native files already outlive the configuring invocation. An eject classifier would add cleanup semantics that
+  the agreed apply/discard/revert contract does not need. A reviewer decides whether a particular deletion or reversal
+  leaves instructions that accurately describe the remaining setup.
 
 ## Rejected alternatives
 
-### Conventions only in the tool's configuration
+### State conventions only in recipe sources
 
-The configuration is the one place the conventions are stated, and the tool's documentation explains them. At its best,
-nothing is stated twice and no instruction file grows. It loses because coding agents read instruction files, not the
-tool's configuration. People and third-party tools working without the tool find no statement of its conventions, and
-after removal the remaining state follows rules nobody wrote down.
+At its best, each choice is described once. It leaves people and agents reading native instructions without the
+information they need; recipe sources are not the consuming program's instruction file.
 
-### One block holding everything the tool writes
+### Classify blocks for automatic retention or withdrawal
 
-At its best, there is one pair of markers per file and one place to read the tool's text. It loses because eject cannot
-keep part of a block, so it would keep text that names missing commands or drop conventions that still hold. Removing
-one capability would also rewrite text that belongs to the others.
+At its best, cleanup can keep conventions while removing instructions tied to the configuring tool. It requires
+persistent block classes and lifecycle reconciliation. Declared deletion and history-based reversal instead expose
+exactly what will change for approval.
 
-### Conventions in a separate file linked from the instruction file
+### Enforce a fixed instruction-size budget in the engine
 
-At its best, the instruction file stays short and the conventions sit in one file of their own. It loses because a
-coding agent that reads `AGENTS.md` itself (Context) follows a link only when it judges the link relevant, so whether it
-learns a convention becomes a matter of chance.
+At its best, every session gets a bounded amount of generated text. It adds an unrequested enforcement system and
+cannot decide which repository instructions are useful. Concision remains authoring guidance.
 
 ## Consequences
 
 Costs:
 
-- Each convention is stated twice, in the repository's data and in the instruction file; the drift check keeps the two
-  equal.
-- Managed blocks lengthen the instruction file that coding agents read at the start of every session.
-- After an eject, convention blocks and native configuration have no source to render from; later changes are hand
-  edits.
-- After an undo, clone-local state remains without its conventions or ignore entries until someone deletes it.
-- The ignore file carries entries that overlap.
+- Recipe authors must keep instruction text concise and accurate for its readers.
+- Deleting instructions or ignore entries can leave retained files unexplained or visible to version control; review
+  must consider the remaining setup.
+- Keeping native files after stopping Cook leaves future edits to people or another configuring invocation.
 
 Must be maintained:
 
-- For each capability, the conventions it establishes, the blocks that state them, and each block's class. Block ids
-  and classes are part of the public contract.
+- Clear native instruction text and format-compatible section boundaries.
+- Reviewable instruction and ignore-file changes that preserve unrelated content.
 
 ## Confirmation
 
-- For each capability, a fixture asserts that every convention it establishes appears as a block in `AGENTS.md` and
-  every path it establishes in the ignore file; disabling the capability removes those blocks.
-- A scan of every rendered convention block in the fixture suite finds none of the tool's commands.
-- Fixture blocks contain no statement, outside their markers, that they are managed or generated.
-- After an eject, every convention block's text and every ignore entry remain without markers, and no tool block
-  remains.
-- After removing one capability from a fixture, every path the remaining capabilities create is still ignored by the
-  version control system.
-- The health check reports a fixture whose blocks exceed the bound.
+- Read the example's resulting native files without Cook: the repository convention remains understandable.
+- Review a Markdown section update: HTML comment markers bound the change and unrelated text remains intact.
+- Review a later unrelated apply: the earlier instruction and ignore sections remain in place.
+- Review discard of an edited section and an ignore entry: the actual deletions appear for approval, with no automatic
+  deletion of the described path or restoration of earlier text.

@@ -302,7 +302,7 @@ the-cook: .cook/config.yaml:14:5: unknown key "verify.lanes.e2e.requried_when"
 `.cook/policy.yaml` holds the repository's permission entries under `shared.allow`, `shared.ask`, `shared.deny` and
 `unattended.deny`; the floor of the ingredients in use is rendered beside them ([below](#the-floor)). Every native rule
 a worker understands is expressible, in one of three forms, because a rule the policy cannot express is lost when
-`the-cook` takes ownership of the native key ([ADR 0016](../adrs/0016-permission-adoption.md)):
+`the-cook` takes ownership of the native key:
 
 | Form | Example | Renders as |
 | --- | --- | --- |
@@ -313,8 +313,7 @@ a worker understands is expressible, in one of three forms, because a rule the p
 - An entry that names a `the-cook` command is written once with the program name, `[the-cook, lifecycle, run, deliver]`,
   and rendered for every rendered spelling: `the-cook …`, `./cook …` and `cook …`. Why: an entry written for one
   spelling leaves the others open, and writing all of them by hand drifts. Other spellings (an absolute path to the
-  binary, `sh cook …`) match no prefix rule; the binary's own guards catch them
-  ([ADR 0011](../adrs/0011-safety-invariants.md)).
+  binary, `sh cook …`) match no prefix rule; the binary's own guards catch them.
 - A tool other than the shell, such as an MCP tool, gets a native rule string under `allow`, `ask` or `deny`, in the
   syntax of a worker whose ingredient declares patterns for it.
 - Precedence is the same for every worker: deny, then ask, then allow, so one policy means the same thing in each.
@@ -333,8 +332,7 @@ a worker understands is expressible, in one of three forms, because a rule the p
   or a force push to the default branch a version-control ingredient denies) is never rendered: `the-cook render` drops
   it and reports it, the floor rule is rendered regardless, and `the-cook doctor` reports the entry as a finding. Why:
   floor rules hold in every repository that uses the ingredient, and a policy file that claims otherwise misleads its
-  readers until someone removes the entry ([ADR 0011](../adrs/0011-safety-invariants.md),
-  [ADR 0016](../adrs/0016-permission-adoption.md)).
+  readers until someone removes the entry.
 
 ## Declared actions
 
@@ -682,8 +680,7 @@ program floor comes from the ingredients the repository pins, and a station has 
 - The process that applies the floor is built into the binary: refusing before a launch, rendering a deny into every
   output, restoring and comparing the rendered files around an attempt. The program facts are the ingredient's. Why: a
   bypass argument or a chaining syntax changes when its program changes, while the guarantee that no repository data
-  can lower it must hold for every program ([ADR 0011](../adrs/0011-safety-invariants.md),
-  [ADR 0022](../adrs/0022-tool-integration.md)).
+  can lower it must hold for every program ([ADR 0022](../adrs/0022-tool-integration.md)).
 - A repository that does not pin an ingredient does not get its floor.
   `the-cook ingredient list --cookbook <source>@<version>` shows which ingredients of a tag detect their program in the
   repository, so a person finds a program in use whose ingredient, and floor, the repository does not pin. Why: a
@@ -887,8 +884,7 @@ file is published.
 
 The following are not keys in any file or flag. They are architecture decisions: changing one is a change to the ADR
 that decides it, because a setting that weakens them would copy along with the file that sets it
-([ADR 0011](../adrs/0011-safety-invariants.md),
-[ADR 0013](../adrs/0013-organization-content.md), [ADR 0014](../adrs/0014-directory-layout.md),
+([ADR 0013](../adrs/0013-organization-content.md), [ADR 0014](../adrs/0014-directory-layout.md),
 [ADR 0017](../adrs/0017-engine-version.md), [ADR 0021](../adrs/0021-release-trust.md),
 [ADR 0022](../adrs/0022-tool-integration.md), [ADR 0025](../adrs/0025-recipes.md),
 [ADR 0026](../adrs/0026-cookbook-trust.md)).

@@ -59,8 +59,8 @@ Nothing else contributes an entry: no file outside the repository is read
 ([ADR 0013](../adrs/0013-organization-content.md)). Lists are unions: no source removes an entry from another, and
 nothing removes a floor rule. An entry in the policy file that would weaken a floor rule, such as an `allow` for a force
 push to the default branch, is not a validation error. `render` drops it from the output, renders the floor rule and
-reports the entry. [`doctor`](doctor.md) reports it as a finding until it is removed
-([ADR 0011](../adrs/0011-safety-invariants.md)). When a command matches entries with different decisions, the decision
+reports the entry. [`doctor`](doctor.md) reports it as a finding until it is removed. When a command matches entries
+with different decisions, the decision
 is taken in this order, in every worker:
 
 ```text
@@ -139,7 +139,7 @@ entries are defence in depth: they make a worker stop or ask before it runs the 
 ### The floor
 
 The floor holds the rules no repository may lose. An ingredient marks the facts about its program that the
-[safety invariants](../adrs/0011-safety-invariants.md) depend on as floor ([ingredients](ingredients.md#the-floor)); the
+safety invariants depend on as floor ([ingredients](ingredients.md#the-floor)); the
 binary adds entries for its own commands. The floor is never written in `.cook/policy.yaml`: `render` adds it to every
 worker's output on every render, as long as the ingredient is in the profile's `ingredients:`, and shows it in the
 `policy` block of `AGENTS.md` with the ingredient each rule comes from.

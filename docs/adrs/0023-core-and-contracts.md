@@ -13,7 +13,7 @@ reached through an interface the rules declare.
 ## Context
 
 - The binary's rules are the development lifecycle's ([0015](0015-development-lifecycle.md)): ownership, rendering,
-  events, guards, attempts, proof and removal ([0011](0011-safety-invariants.md)). None of
+  events, guards, attempts, proof and removal. None of
   them is about any program in particular.
 - What the rules need from outside is small and regular. From version control: the base revision, a file at a revision,
   whether the tree is clean, whether a path is tracked, what changed since a revision, the common ancestor of two
@@ -61,7 +61,7 @@ reached through an interface the rules declare.
    optional too, and only a worker that runs in a jail needs it ([0027](0027-worker-jails.md)). The worker contract is
    the launch of one worker, its one required part, and, where the worker has them, its unattended arguments, its bypass
    arguments, its network arguments, its renders, its hook payload mapping, its instructions location, its skill
-   location and its native rule import ([0009](0009-agent-support.md)). The jail contract, optional and used only around
+   location and its native rule import. The jail contract, optional and used only around
    the attempts of a worker whose declaration names a jail, is the jail's launch and its arguments that share a
    directory, read-only or with write access, pass a variable or keep the environment, and, where the jail has them,
    share its working directory, end its own arguments, open the network and would turn the confinement off
@@ -98,8 +98,8 @@ reached through an interface the rules declare.
   no other revision to give and nothing to learn, so those two operations are optional with a defined behaviour in their
   absence, which is part of the contract, not a description of any program. The metadata operation is optional for the
   same reason a jail is: a repository that confines no worker needs nothing new from its version control system. The
-  worker contract requires only the launch because a worker can have no configuration of its own
-  ([0009](0009-agent-support.md)). The jail contract is the third because only the binary can place the worker's launch
+  worker contract requires only the launch because a worker can have no configuration of its own. The jail contract is
+  the third because only the binary can place the worker's launch
   inside the jail's and keep both programs' bypass arguments out of it, and it is optional because most repositories
   confine no worker ([0027](0027-worker-jails.md)).
 - **4.** The remaining needs are not about any program. One generic connection for each keeps the list of connections
@@ -107,8 +107,7 @@ reached through an interface the rules declare.
   network, a version control program, a worker or a jail on the machine.
 - **5.** Resolving before the use case runs is what [0022](0022-tool-integration.md) requires of attempts, and doing
   it in the entry point keeps resolution, caching and verification out of the rules. Data that could supply a
-  connection would let the repository, and a worker running in it, choose how the repository is read
-  ([0011](0011-safety-invariants.md)).
+  connection would let the repository, and a worker running in it, choose how the repository is read.
 - **6.** One entry means one place where arguments are checked, ingredients are resolved and exit statuses are mapped,
   and it is what lets any program drive the binary without code on either side.
 - **7.** A repository can have pinned no ingredient (Context), and it is exactly then that a person needs the binary
@@ -154,7 +153,7 @@ nearly every repository uses, and when a worker has no ingredient, it renders no
 arguments. At its best, a repository works the moment it is adopted, before anyone picks a cookbook. It loses because
 the assumed commands are an ingredient shipped under another name ([0022](0022-tool-integration.md)), unpinned and
 unreviewed, they fail in a different way in every repository that uses another program, and a worker started without
-its ingredient runs without that ingredient's floor ([0011](0011-safety-invariants.md)).
+its ingredient runs without that ingredient's floor.
 
 ### The repository root found through version control
 
@@ -184,7 +183,7 @@ Must be maintained:
 
 - A CI check fails when a core package imports a connection or the entry point, or when the core's source contains the
   name of an external program.
-- Every contract test for an invariant in [0011](0011-safety-invariants.md) runs with the in-memory stand-ins only,
+- Every contract test for a lifecycle invariant runs with the in-memory stand-ins only,
   in a job with no version control program and no worker installed.
 - Each connection and its stand-in pass the same behavioural suite.
 - In a fixture repository that pins no ingredient, with no version control program installed, validation and the health

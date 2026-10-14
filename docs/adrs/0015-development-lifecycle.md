@@ -30,15 +30,14 @@ work that is not ready, and a stopped run can reach a person through an event.
   no hosting-platform logic and no organization content ([0012](0012-write-boundary.md),
   [0013](0013-organization-content.md)).
 - Delivery leaves the clone, so its mistakes are visible to others and hard to undo. Publishing from the default
-  branch, publishing uncommitted work and publishing unverified work are never wanted
-  ([0011](0011-safety-invariants.md)).
+  branch, publishing uncommitted work and publishing unverified work are never wanted.
 - Steps are started by different actors: a person at the terminal, a coordinating worker following shipped
   documentation, a script a team writes around its loop runner, or the tool itself at a point of its own work, such as
   the end of a verified attempt. A workflow copied by hand drifts into dialects: suppose acme copies one coding-agent
   workflow into `acme/api` and `acme/web`, and a year later delivery in `acme/api` runs the tests and opens a draft pull
   request, while delivery in `acme/web` pushes without running them. A step defined once per actor drifts in the same
   way: the person, the coordinating worker and the end of the attempt each do it their own way.
-- A worker in an attempt is the least trusted actor ([0011](0011-safety-invariants.md)).
+- A worker in an attempt is the least trusted actor.
 - Values such as task titles and branch names are written by people and workers. Substituted into command text, they
   are an injection path.
 - A step a coding agent carries out by following prose gives a different result on each run.
@@ -56,7 +55,7 @@ work that is not ready, and a stopped run can reach a person through an event.
 1. The binary's core is the development lifecycle: a fixed, ordered sequence of stages that every change goes through,
    plan, start, implement, verify, complete, deliver, review and merge, and landed, with events fired between them. The
    core holds the guards between stages, the proof of verification bound to a change's base and content, its replay
-   from the base, the floor process and the attempt contract ([0011](0011-safety-invariants.md)). Nothing in the core is
+   from the base, the floor process and the attempt contract. Nothing in the core is
    about one kind of worker: a program's own safety facts, such as the arguments that bypass a worker's permission
    checks, are data in its ingredient ([0022](0022-tool-integration.md)).
 2. At each stage the core does only the following, and reaches every program the stage needs through a contract or a
@@ -89,7 +88,7 @@ work that is not ready, and a stopped run can reach a person through an event.
    their order and their scopes are part of the binary; repositories cannot add stages or events.
 6. The binary decides when an event fires and enforces the guards that apply to it. The ready-for-delivery event fires
    only for concluded work: committed, with a clean tree, on a branch other than the default branch and, when
-   verification is enabled, with a valid proof of verification for the work's base ([0011](0011-safety-invariants.md)).
+   verification is enabled, with a valid proof of verification for the work's base.
    When verification is enabled, the work-completed event at the scope of a task fires only with a valid proof of
    verification, whoever triggers it.
 7. The repository declares the actions for each event ([0019](0019-action-kinds.md)): run in order, optionally limited
@@ -117,7 +116,7 @@ work that is not ready, and a stopped run can reach a person through an event.
 9. Event data reaches actions only through environment variables the binary sets for each run
    ([0019](0019-action-kinds.md)).
 10. Actions never run inside an attempt. The binary fires events in its own process after the worker exits, and a
-    worker in an attempt is denied triggering events ([0011](0011-safety-invariants.md)).
+    worker in an attempt is denied triggering events.
 11. Every run of an event is recorded in the clone's own state: the event, the scope, and for each action its name,
     kind, exit status and duration. The record never holds secrets, request bodies or prompts. A preview shows the
     actions and the environment they would receive without running them.
@@ -154,8 +153,8 @@ work that is not ready, and a stopped run can reach a person through an event.
   attempt rule because it publishes no work; the guards of point 6 exist because delivery does.
 - **6.** A guard is sound only when the component that checks it is the one that fires the event; if the trigger were
   trusted to check, a person, a worker and the automatic trigger could each skip it differently. The delivery guards
-  apply invariant 10 of [0011](0011-safety-invariants.md): the three conditions are never a legitimate choice, so no
-  trigger can bypass them. The completion guard applies invariant 4 of [0011](0011-safety-invariants.md) to every
+  require the three conditions of point 6: these conditions are never a legitimate choice, so no
+  trigger can bypass them. The completion guard requires verification for every
   trigger: a tracker's action on work completed marks the task done (Context), so a person or a script that fires the
   event by hand would otherwise record as done work that no verification passed.
 - **7.** What happens at each event differs per repository and organization, and the binary carries neither platform
@@ -187,7 +186,7 @@ work that is not ready, and a stopped run can reach a person through an event.
   applies the guards to the result, so judgement never bypasses them.
 - **13.** Permitting a worker to trigger delivery permits every action declared for it, and those actions run outside
   the worker's per-command checks. Until a team has seen what its delivery actions do, a person confirms each one. The
-  entry is seeded rather than made an invariant ([0011](0011-safety-invariants.md)) because the choice is the
+  entry is seeded rather than made an invariant because the choice is the
   repository's: a team that trusts its actions may let its coordinating worker deliver unattended.
 
 ## Rejected alternatives

@@ -32,8 +32,7 @@ recipe enters a repository only as the bytes its cookbook published, through a r
 - Ingredients, stations and recipes are data: a reviewer can read all of one before pinning or copying it, which a
   compiled binary does not allow.
 - A per-user cache can be written by every process the person runs.
-- A hook runs on every matching worker event, and an attempt runs with nobody watching
-  ([0011](0011-safety-invariants.md)).
+- A hook runs on every matching worker event, and an attempt runs with nobody watching.
 
 ## Decision
 

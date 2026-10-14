@@ -38,12 +38,12 @@ change to its repository and still takes a newer version of it in one reviewed c
   ([0022](0022-tool-integration.md)). The attempt runs in whatever working copy the loop runner runs in, and fires
   work completed only when that copy is bound to a task ([0015](0015-development-lifecycle.md)).
 - A worker in an attempt can edit every file in its working copy, the repository's data included, and a run nobody
-  watches has nobody to answer a question ([0011](0011-safety-invariants.md), [0015](0015-development-lifecycle.md)).
+  watches has nobody to answer a question ([0015](0015-development-lifecycle.md)).
 - A worker in a person's session runs the tool's commands with no terminal attached, as a loop runner and a script do:
   Claude Code 2.1.x attaches no terminal to the standard input, output or error of the shell commands it runs. Whether a
   terminal is attached does not tell whether a person will answer.
-- A verification a worker runs checks the lanes it selects for its change, and its proof records that selection
-  ([0011](0011-safety-invariants.md)). A lane the change selects nothing for runs nothing.
+- A verification a worker runs checks the lanes it selects for its change, and its proof records that selection. A
+  lane the change selects nothing for runs nothing.
 - A value substituted into shell text can add a command ([0019](0019-action-kinds.md)). A value passed as one element of
   an argument list, with no shell in between, reaches the program as that one argument, which the program may still read
   as an option when it begins with a dash.
@@ -84,7 +84,7 @@ change to its repository and still takes a newer version of it in one reviewed c
    - a template: a file the recipe carries, rendered with the inputs and written into the working copy; a path that
      exists stops the run and stays as it is;
    - an attempt: a worker the repository declares in the unattended role, started on a prompt in the working copy under
-     the attempt contract ([0011](0011-safety-invariants.md)); its edits stay for the next steps, the run's verification
+     the attempt contract; its edits stay for the next steps, the run's verification
      and completion cover them, and an attempt that fails stops the run and leaves its changes in place;
    - a handoff: a text shown to whoever drives the run, after which a run a person drives pauses until it is
      continued, and fires nothing.
@@ -102,8 +102,7 @@ change to its repository and still takes a newer version of it in one reviewed c
    and before each run, and a missing one is a missing prerequisite, named before any step runs
    ([0023](0023-core-and-contracts.md)).
 6. What a recipe can and cannot change about the lifecycle's guards, how a run reads its recipe, how a run a worker
-   drives treats its handoffs, and what a failed attempt step leaves, are invariants
-   ([0011](0011-safety-invariants.md)).
+   drives treats its handoffs, and what a failed attempt step leaves, are invariants.
 7. A run that stops fires the blocked event with the step and the reason ([0015](0015-development-lifecycle.md)) and
    keeps its working copy. It stops at a step that fails, at a verification that lacks a lane the repository's lane
    rules demand, or at a handoff in a run a worker drives. Continued, after a person has inspected or discarded what the
@@ -153,7 +152,7 @@ change to its repository and still takes a newer version of it in one reviewed c
 - **3.** A command does deterministic local
   work, such as running the stack's generator (Context). A template writes a file that every instance adds,
   deterministically from the inputs. An attempt gives judgement to a worker, under the contract that already bounds
-  every worker started unattended ([0011](0011-safety-invariants.md)). A handoff is for what needs a person, such as
+  every worker started unattended. A handoff is for what needs a person, such as
   checking SQL against production data volumes (Context); the person, or the worker in their session, continues the run.
   A closed set means each guard is proven once per kind and no engine code enters the repository; anything else a step
   must do is a command. A template never writes over a path
@@ -171,7 +170,7 @@ change to its repository and still takes a newer version of it in one reviewed c
   as the argument the generator expects, and it cannot add a command (Context); the environment values serve commands
   that read them instead. In a prompt or a handoff, an input is text a worker or a person reads, the injection surface
   of an attempt action's prompt ([0019](0019-action-kinds.md)), and the attempt contract bounds what a misled worker can
-  do ([0011](0011-safety-invariants.md)). Refusing any input that begins with a hyphen means no input can be read as an
+  do. Refusing any input that begins with a hyphen means no input can be read as an
   option by the program it reaches (Context). The trade: a free-text value cannot start with a hyphen.
 - **5.** A recipe written for one repository reaches others through a cookbook or a station (point 8), and their
   contracts, workers and lanes differ. Checking its requirements when it is added shows the gap in the review of the
@@ -180,16 +179,16 @@ change to its repository and still takes a newer version of it in one reviewed c
   case that needs something the repository lacks.
 - **6.** A recipe is a file of the repository, which a worker in an attempt can edit (Context). Rules about what such a
   file may change in the guards, and about where a run reads it from, are never a legitimate choice, so they are
-  invariants, out of the reach of the repository's data ([0011](0011-safety-invariants.md)).
+  invariants, out of the reach of the repository's data.
 - **7.** A stop in a run nobody watches has to reach a person, and the blocked event is how every stop does
   ([0015](0015-development-lifecycle.md)). Keeping the working copy keeps the steps already done, and running again only
   the step that stopped avoids repeating them, which matters when an earlier step was an attempt whose result differs on
   each run ([0019](0019-action-kinds.md)). For the same reason a failed attempt step keeps its changes instead of
   returning to the base: the stopped run is the retry boundary, a person decides what to keep, and the run's
-  verification and the replay from the base still stand between those changes and completion
-  ([0011](0011-safety-invariants.md)). The record is what resuming reads, and what a person reads to see where a run
+  verification and the replay from the base still stand between those changes and completion. The record is what
+  resuming reads, and what a person reads to see where a run
   stands. It holds the recipe's content, not only its name, so a continued run follows the recipe it started with even
-  when the file changed while the run was stopped ([0011](0011-safety-invariants.md)). The proof carries the recipe and
+  when the file changed while the run was stopped. The proof carries the recipe and
   its inputs because delivery decides from the proof (point 2), and the hash ties the delivered change to the exact
   recipe that made it. The trade: a stopped run holds its working copy until a person continues it or removes it.
 - **8.** A recipe is a practice a team adapts to its repository: its paths, its lanes, its prompts (Context). As a copy,
@@ -301,7 +300,7 @@ Costs:
   runs with nobody watching must declare it, or its runs pause at their first handoff.
 - A change to a recipe reaches a run a worker drives only once it is on the shared default line of work, not merely
   committed in one clone, and only once the clone has learned it; a stopped run continues with the recipe it started
-  with ([0011](0011-safety-invariants.md)).
+  with.
 - A required lane the change selects nothing for runs in full in every instance.
 - A stopped run keeps its working copy until a person continues it or removes it.
 - A kind of change cannot declare its own delivery; a repository that delivers some kinds of change differently says so

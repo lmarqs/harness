@@ -145,7 +145,7 @@ repository cannot be explained from the repository, and the repository's edits t
 
 `the-cook scaffold --adopt` promises that adopting `the-cook` changes no permission a project already enforces. Why: a
 lost deny widens what workers may do and a lost allow stalls attempts on prompts, so an adoption that drops rules
-is worse than none ([ADR 0016](../adrs/0016-permission-adoption.md)).
+is worse than none.
 
 - After importing, the binary renders the policy and compares the effective rule set per worker with the set in effect
   before adoption. Every project-scope rule (one in the repository's committed worker settings, the files each worker
@@ -188,8 +188,7 @@ is worse than none ([ADR 0016](../adrs/0016-permission-adoption.md)).
 ## Supported workers and tools
 
 - `the-cook` supports any worker a repository describes with an ingredient it pins. The
-  [worker contract](../features/ingredients.md#the-worker-contract) such an ingredient fills is public
-  ([ADR 0009](../adrs/0009-agent-support.md)).
+  [worker contract](../features/ingredients.md#the-worker-contract) such an ingredient fills is public.
 - Every supported version range lives in the checks of the ingredient that describes the program. A program no
   ingredient in use describes has no range, because the binary contains code and data for no program
   ([ADR 0022](../adrs/0022-tool-integration.md)).

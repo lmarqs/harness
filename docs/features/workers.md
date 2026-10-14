@@ -101,7 +101,7 @@ only through rendered rules is one or the other: a repository where people use i
 attempts chooses one. A worker whose ingredient neither passes deny arguments at launch nor renders permissions has no
 way to receive `unattended.deny`, so it cannot run attempts: `the-cook attempt`, `attempt` actions and `attempt` steps
 refuse it with exit 3, naming the gap, because the binary's own deny on lifecycle actions and the repository's
-unattended denies hold in every attempt ([ADR 0011](../adrs/0011-safety-invariants.md)). Such a worker may still be
+unattended denies hold in every attempt. Such a worker may still be
 declared `interactive`, and the `policy` block marks the entries it does not receive as not enforced in it.
 
 A worker whose unattended denies live in rendered rules reads them from files inside its own checkout, which it can

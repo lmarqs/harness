@@ -19,7 +19,7 @@ that combines several programs reaches a repository in one reviewed change.
   program reads, the arguments that start it, the arguments that bypass its checks, the paths in its hook payload
   ([0022](0022-tool-integration.md)). When a deny rule that protects a program, such as one on a force push to the
   default branch, is an entry the repository owns, a repository that never applies it, or edits it away, runs without
-  it ([0011](0011-safety-invariants.md)).
+  it.
 - What a repository needs from a way of working is starting content that the team then owns and edits: the commands
   and lanes of its stack, its validators, which workers it uses in which role, the deny rules for unattended work, the
   lifecycle actions that update a tracker or open a pull request, standing-context entries, and whole files such as a
@@ -32,7 +32,7 @@ that combines several programs reaches a repository in one reviewed change.
 - A technology stack's starting content is commands, lanes and post-edit hooks, which a repository declares as its own
   data. Example: `acme/api` and `acme/web` lint, test and build the same Node way.
   A stack whose commands go through a task runner also relies on the deny rule against chaining several tasks in one
-  invocation of that task runner ([0011](0011-safety-invariants.md)).
+  invocation of that task runner.
 - ESLint and semantic-release each have two units of extension. ESLint's plugins add rules, and its shareable
   configurations are packages that export a configuration choosing and setting rules. semantic-release's plugins carry
   out release steps, and its shareable configurations package a set of options. In both, a project's configuration
@@ -58,8 +58,8 @@ that combines several programs reaches a repository in one reviewed change.
    holds no entries and no templates. While a repository pins it, its renders and its floor act on every render.
 3. A station describes one way of running the lifecycle ([0015](0015-development-lifecycle.md)). It lists the
    ingredients it uses, each pinned by cookbook, version and content hash. It assigns them to the lifecycle: which one
-   fills the version control contract, and which workers it declares, each with its ingredient and its role
-   ([0009](0009-agent-support.md)). It holds entries for the repository's data, templates, and optionally a detect rule
+   fills the version control contract, and which workers it declares, each with its ingredient and its role. It holds
+   entries for the repository's data, templates, and optionally a detect rule
    that tells adoption the station fits the repository. It holds no renders and no floor. A station may list no
    ingredient, such as one for a technology stack whose content is commands, lanes and hooks. It may also pin recipes
    from its own cookbook version that it adds to the repository, each by its content hash, as it pins its ingredients.
@@ -159,7 +159,7 @@ alternative above for those rules, and the list of applied stations would become
 deny that protects a program belongs in that program's ingredient, where it reaches every repository that uses the
 program ([0022](0022-tool-integration.md)), and an organization that wants a rule of its own as floor publishes it in
 the ingredient of the program the rule protects ([0013](0013-organization-content.md)). A rule that is a team's choice
-is policy, which the repository owns ([0011](0011-safety-invariants.md)).
+is policy, which the repository owns.
 
 ## Consequences
 

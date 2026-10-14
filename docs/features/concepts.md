@@ -300,8 +300,7 @@ Text outside markers, and keys `the-cook` does not own, are preserved byte for b
 
 ## Conventions outlive the tool
 
-Every convention a module establishes is written down where people and other tools already look, in plain language
-([ADR 0018](../adrs/0018-conventions.md)):
+Every convention a module establishes is written down where people and other tools already look, in plain language:
 
 - in a managed block of `AGENTS.md`: where managed workspaces live and how their branches are named, the permissions
   workers work under, the memory index, and the [standing context](context.md) entries declared `static`;
@@ -415,12 +414,12 @@ A repository adopts `the-cook` without forcing anyone else to.
 ## Built-in invariants
 
 These hold in every repository, for what the binary renders and for every worker the binary starts, and cannot be
-turned off by any repository file ([ADR 0011](../adrs/0011-safety-invariants.md)). They are rules of the process, built
+turned off by any repository file. They are rules of the process, built
 into the binary. The facts about a program they apply, such as which arguments bypass a worker's permission checks or
 which command rewrites the default branch, are [floor](ingredients.md#the-floor) rules of that program's ingredient:
 rendered on every render, never written into the policy and out of its reach. A worker a person starts some other way,
 such as from their own loop-runner configuration, is outside them: `the-cook` neither detects nor prevents it
-([ADR 0022](../adrs/0022-tool-integration.md)). The numbers match ADR 0011.
+([ADR 0022](../adrs/0022-tool-integration.md)).
 
 1. Workers `the-cook attempt` starts never run with permission bypass: every argument the worker's ingredient marks as a
    floor bypass argument is refused with exit 1, naming the argument.

@@ -66,8 +66,7 @@ for one task, and inside an `attempt` action, the unattended run of a worker tha
 `COOK_ATTEMPT=1` in the worker's environment, and the binary checks it. It refuses both commands inside a step of a
 recipe run as well, where `COOK_RUN` is set, so a recipe never fires an event itself. The binary also enforces the
 [`deliver` guards](../features/lifecycle.md#built-in-guards) itself. Why: an absolute path or `sh cook` slips past any
-prefix rule, so policy entries are defence in depth and the binary is the enforcement
-([ADR 0011](../adrs/0011-safety-invariants.md)).
+prefix rule, so policy entries are defence in depth and the binary is the enforcement.
 
 ## Reference surface
 

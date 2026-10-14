@@ -139,7 +139,7 @@ Workspaces in this project are created in `.work/workspaces/<name>`, on branch `
 
 Every block belongs to one of two classes. Why: some of the text `the-cook` writes states facts that stay true without
 it, and some only explains how to use it. Eject (`the-cook remove --eject`) must keep the first and must not leave the
-second behind ([ADR 0018](../adrs/0018-conventions.md)).
+second behind.
 
 | Class | States | Mentions `the-cook` commands | On `the-cook remove --eject` |
 | --- | --- | --- | --- |

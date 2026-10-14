@@ -155,16 +155,16 @@ Must be maintained:
 | [0006](0006-repository-contract.md) | What does a repository hold? | Repositories hold trusted recipes separately from the shared engine |
 | [0007](0007-ownership.md) | What defines the scope of a file change? | Declared targets define changes reviewed against current content |
 | [0008](0008-native-configuration.md) | How does Cook edit shared native files? | Declared native-file targets preserve unrelated content |
-| [0009](0009-agent-support.md) | How are several workers supported? | Worker ingredients render worker-neutral sources into each worker's native files |
+| [0009](0009-agent-support.md) | How are several agents configured? | Ingredients model each agent's native configuration |
 | [0010](0010-dependence-on-the-binary.md) | What depends on the binary being installed? | Nothing in an adopted repository depends on the binary |
-| [0011](0011-safety-invariants.md) | Where do safety rules live? | Safety invariants are built into the binary, never configured |
+| [0011](0011-safety-invariants.md) | What do Cook's guarantees cover? | Cook's guarantees cover declared batch operations |
 | [0012](0012-write-boundary.md) | What may Cook write? | Cook confines declared batch operations to reviewed destination targets |
 | [0013](0013-organization-content.md) | Where does organization-specific content live? | Organization-specific content lives in each repository's own files |
 | [0014](0014-directory-layout.md) | Where does each kind of file live? | Tool configuration, agent content and state have separate homes |
 | [0015](0015-development-lifecycle.md) | What abstraction is the binary built around? | The binary's core is a fixed software development lifecycle |
-| [0016](0016-permission-adoption.md) | What happens to existing permission rules at adoption? | Adoption keeps every native permission rule in effect |
+| [0016](0016-permission-adoption.md) | How are existing permission changes reviewed? | Existing permission changes receive explicit native-file review |
 | [0017](0017-engine-version.md) | Which release runs in a repository? | Each repository pins its engine release through a committed wrapper |
-| [0018](0018-conventions.md) | What remains when the tool is gone? | Conventions the tool establishes are written to outlive it |
+| [0018](0018-conventions.md) | How do conventions remain readable without Cook? | Native instruction text states conventions independently of Cook |
 | [0019](0019-action-kinds.md) | What can a declared action do? | Declared actions are commands, HTTP requests or worker attempts |
 | [0020](0020-standing-context.md) | How does known guidance reach a worker? | Guidance enters worker context through declared deterministic triggers |
 | [0021](0021-release-trust.md) | How is a release trusted? | Only an already trusted binary admits a release |

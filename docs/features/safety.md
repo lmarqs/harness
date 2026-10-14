@@ -134,7 +134,7 @@ The guards that matter therefore never rest on policy entries. The binary refuse
 `the-cook make` inside an attempt on its own: `the-cook attempt`, `attempt` actions and `attempt` steps set
 `COOK_ATTEMPT=1` for the worker they start, and the binary checks it. The binary also enforces the `deliver` guards
 whoever runs the command and however it is spelled. The entries are defence in depth: they make a worker stop or ask
-before it runs the command at all ([ADR 0011](../adrs/0011-safety-invariants.md)).
+before it runs the command at all.
 
 ## Unattended runs
 
