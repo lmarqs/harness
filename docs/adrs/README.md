@@ -6,18 +6,20 @@ alternatives that lose and why, and what the project maintains because of it.
 
 ## Authority
 
-ADRs are the source of truth for the architecture. The binary, the shipped skill, the [features](../features/) pages
-and the [user-experience standards](../ux/) follow them. When any of these disagrees with an ADR, that artifact is
-wrong and is corrected.
+[Cook architecture](../architecture.md) states the intended design. ADRs explain decisions and their reasons within
+that design; the [features](../features/) pages and [user-experience standards](../ux/) follow it too. When an ADR or
+standard conflicts with the architecture, correct the supporting document. An earlier decision does not override
+the agreed architecture.
 
 No two ADRs contradict each other. A point decided in one ADR is referenced from the others, never restated in
 different words.
 
 ## An ADR states what is true now
 
-An ADR has no status, no date and no history. It describes the decision in force, in the present tense. When a
-decision changes, its ADR is edited in the same pull request that changes the behaviour, and every ADR that references
-it is checked in that pull request. Git history holds the earlier versions.
+An ADR describes the intended decision in the present tense, without status labels or a chain of replacements.
+Correct contradictory definitions in place and review affected references. Documentation can record an agreed
+decision before implementation catches up; descriptions of current behaviour must remain accurate, and implementation
+progress belongs in issues. Git history holds the earlier versions.
 
 A decision that stops applying is deleted, together with every reference to it. Its number is not reused.
 
@@ -66,8 +68,8 @@ An ADR whose Reasons section does not cover every point is incomplete, whatever 
 ## When to write one
 
 Write an ADR for a decision that is hard to reverse or that constrains how other parts are built: the implementation
-language, the contract between the tool and the repositories that adopt it, what the tool may and may not write, how
-ownership of generated files is recorded, how releases are trusted.
+language, the contract between the tool and its destination, the boundaries on declared writes, how recovery
+information is recorded, how releases are trusted.
 
 Do not write an ADR for a feature, a command, a flag, a file field, a task or a plan. Those belong in the
 [features](../features/) pages and the [user-experience standards](../ux/). If a proposed ADR reads as a description of
@@ -89,8 +91,8 @@ One ADR holds one decision. If its points serve two decisions, it is two ADRs.
 
 - Present tense, no hedges.
 - No names of the tool's commands, flags, settings, environment variables, exit codes or files. Mechanisms are named
-  generically: the wrapper, the manifest, the drift check, the health check, the repository's data, an ingredient, a
-  station, a recipe. The [glossary](../features/glossary.md) and the [features](../features/) pages give the tool's own
+  generically: the wrapper, the batch, the recovery record, the destination, an ingredient, a recipe.
+  The [glossary](../features/glossary.md) and the [features](../features/) pages give the tool's own
   name for each. The directory layout ADR names directories because the layout is its decision.
 - A third-party product whose behaviour a decision depends on is named with the version that behaviour was checked
   against. Prior art and rejected tools are named without a version, because nothing depends on their behaviour.
