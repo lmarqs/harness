@@ -116,7 +116,7 @@ task, and `the-cook` runs it like any other command. People and workers run `the
 ## Skills installers
 
 A skills installer puts shared skills into `.agents/skills/` and may record them in a lock file. The binary has no code
-for any installer and never runs one of its own accord ([ADR 0004](../adrs/0004-runtime-dependencies.md)). Installing
+for any installer and never runs one of its own accord. Installing
 shared skills is the team's own step, with the installer of its choice, committed with its lock file.
 
 The profile's `context` names skills by name, and `doctor` reports a skill named there that does not exist under

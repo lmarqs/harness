@@ -429,7 +429,7 @@ Every action has exactly one kind. The same kinds, except `attempt`, serve the n
 `the-cook` is never a client of an MCP server. Work that needs an MCP tool, such as posting through a chat
 integration a coding agent is connected to, is an `attempt` action or the coordinating worker's job: the worker owns
 its MCP connections and their credentials. A deterministic integration uses the service's API through `http`, or its
-CLI through `run` ([ADR 0001](../adrs/0001-role-of-the-tool.md)).
+CLI through `run`.
 
 #### `run`
 

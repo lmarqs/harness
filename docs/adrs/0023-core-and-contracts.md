@@ -145,7 +145,7 @@ the mechanism differs from every other program's.
 
 Connections are loaded at run time from outside the binary. At its best, anyone adds a program without a release. It
 loses because loadable code is engine code outside the binary ([0006](0006-repository-contract.md)), needs a runtime
-or a loading protocol ([0004](0004-runtime-dependencies.md)), and a data ingredient already lets anyone add a program.
+or a loading protocol, and a data ingredient already lets anyone add a program.
 
 ### A fallback when no ingredient fills a contract
 

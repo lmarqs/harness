@@ -443,7 +443,7 @@ single meaning.
   reviewed, committed decision.
 - `the-cook` is never an MCP client. Work that needs an MCP tool is an `attempt` action or the coordinating worker's
   job; a deterministic integration uses the service's API (`http`) or CLI (`run`). Why: the worker owns its MCP
-  connections, their credentials and their permissions ([ADR 0001](../adrs/0001-role-of-the-tool.md)).
+  connections, their credentials and their permissions.
 
 ## Standing context
 

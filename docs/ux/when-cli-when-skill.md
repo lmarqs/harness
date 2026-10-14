@@ -14,7 +14,7 @@ agents who can exercise it.
 
 ## Overview
 
-These rules choose where each capability belongs ([ADR 0002](../adrs/0002-division-of-work.md)). They apply to proposals
+These rules choose where each capability belongs. They apply to proposals
 for `the-cook` itself and to the advice `the-cook` gives repositories through its skill. A capability is placed whole,
 or split when it has both a deterministic half and a judgement half ([below](#when-behaviour-splits)).
 

@@ -144,7 +144,7 @@ bound it are the attempt contract.
 - **5.** Permissions decided in hooks would live in code paths reviewers do not read, beside the policy they do. One
   reviewable source keeps every worker's permissions explainable ([0009](0009-agent-support.md)).
 - **6, 7.** These hold whatever a worker asks the binary to do, because workers nobody watches run the binary too
-  ([0002](0002-division-of-work.md), [0012](0012-write-boundary.md)).
+  ([0012](0012-write-boundary.md)).
 - **8.** Restoring before launch removes edits left by an earlier attempt, and comparing after exit catches edits made
   during this one. Reading the replay's data and the injected guidance from the base commit means a worker cannot
   rewrite its checks or its own instructions between retries. Resolving the ingredients before launch, from outside the

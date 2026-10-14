@@ -46,7 +46,7 @@ anything is written.
    becomes committed and shared. Which native keys hold a worker program's permission rules comes from that program's
    worker ingredient ([0009](0009-agent-support.md)). Source files are read and never written.
 4. Every imported entry carries its provenance. Exact duplicates merge. A pattern present under both allow and deny
-   resolves to deny and is listed as unresolved ([0002](0002-division-of-work.md)).
+   resolves to deny and is listed as unresolved.
 5. Invariants and the floor rules of the ingredients in use override imported rules. An imported entry that would weaken
    either is dropped and reported ([0011](0011-safety-invariants.md)).
 6. Before writing anything, adoption renders the imported sources and compares the effective rule set of each worker
@@ -73,7 +73,7 @@ anything is written.
   file layout.
 - **4.** Provenance shows a reviewer which entries came from where, so entries nobody chose for the team can be found
   and pruned. Duplicates across scopes carry no information. An allow and a deny on the same pattern is a conflict only
-  a person can settle ([0002](0002-division-of-work.md)); resolving it to deny until then keeps the narrower effect.
+  a person can settle; resolving it to deny until then keeps the narrower effect.
 - **5.** The invariants and the floor rules are the set that is never a legitimate choice
   ([0011](0011-safety-invariants.md)). Importing an entry that weakens one would carry the weakness into the source,
   where the invariants and the floor exist to prevent it.

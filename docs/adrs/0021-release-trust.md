@@ -22,8 +22,7 @@ unmodified.
 - The wrapper is a POSIX shell script. Verifying a signature from such a script needs a tool such as gpg or a recent
   OpenSSL, whose presence and version differ between machines.
 - The Go standard library verifies Ed25519 signatures (the `crypto/ed25519` package, since Go 1.13), so the binary can
-  verify signatures with no runtime dependency ([0003](0003-implementation-language.md),
-  [0004](0004-runtime-dependencies.md)).
+  verify signatures with no runtime dependency.
 - Every change to a pin is a committed diff that the repository reviews ([0017](0017-engine-version.md)).
 - Signing keys are rotated, and can be lost or compromised.
 
@@ -52,8 +51,8 @@ unmodified.
   verified, which closes the gap that checksums alone leave. Writing nothing on failure keeps the repository on its last
   verified pin, and every accepted change still arrives as a diff for review. A pin without checksums gives the wrapper
   nothing to compare a download with, so it admits none. Verification can be deferred, but it cannot be skipped.
-- **4.** A shell script cannot verify signatures portably, and the binary can with no runtime dependency
-  ([0004](0004-runtime-dependencies.md)). Because a verifying binary wrote the committed checksums (point 3), the
+- **4.** A shell script cannot verify signatures portably, and the binary can with no runtime dependency. Because a
+  verifying binary wrote the committed checksums (point 3), the
   wrapper's checksum comparison carries that verification over to each download.
 - **5.** Some first binary has to be trusted without a prior one. Installing it from the release page over HTTPS or
   through a package manager is the one step that rests on host authentication alone. Every later release is admitted by
@@ -73,13 +72,12 @@ it is: a release compromised before its checksum was recorded passes every later
 
 At its best, there is no long-lived key to protect, and every signature leaves a public audit trail. It loses because
 verification needs a large verification library or an external tool, and depends on trust roots and log state that live
-outside the release. Neither fits a shell wrapper or a binary limited to the operating system
-([0004](0004-runtime-dependencies.md)).
+outside the release. Neither fits a shell wrapper or a binary limited to the operating system.
 
 ### OpenPGP signatures
 
 At its best, the format is widely known and many people already have tooling for it. It loses because verification in
-the wrapper needs gpg on every machine ([0004](0004-runtime-dependencies.md)), and in the binary it adds a large format
+the wrapper needs gpg on every machine, and in the binary it adds a large format
 for no gain over a plain signature with embedded keys.
 
 ### HTTPS alone
@@ -89,8 +87,7 @@ At its best, nothing beyond the download is needed. It loses because a release r
 ### Signature verification in the wrapper
 
 At its best, even a first download is checked against a signature, without relying on the committed checksum. It loses
-because the wrapper would need a signature tool on every machine, which is the dependency the binary avoids
-([0004](0004-runtime-dependencies.md)).
+because the wrapper would need a signature tool on every machine, which is the dependency the binary avoids.
 
 ## Consequences
 

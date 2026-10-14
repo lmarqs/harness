@@ -57,7 +57,7 @@ controls the facts only it knows.
 - **1.** With the engine in one binary, a fix ships as one release and reaches a repository through one reviewed change
   to its pin ([0017](0017-engine-version.md)). There is no copy to edit locally, which is how the `acme/web` renderer in
   Context forks. A repository changes only when its own facts change.
-- **2.** YAML reads well in diffs, takes comments, and parses without a runtime ([0004](0004-runtime-dependencies.md)).
+- **2.** YAML reads well in diffs, takes comments, and parses without a runtime.
   Coding agents edit it reliably. One concern per file lets a permission change be reviewed as a diff of a file that
   holds only permissions. Hook declarations and actions share a file because both state what runs when an event occurs.
   The standing-context declarations sit with the repository's facts because they describe the repository, not what runs.
@@ -73,7 +73,7 @@ controls the facts only it knows.
 - **6.** An ingredient describes a program as data the binary interprets, and a station is data too, so the engine stays
   in the binary for every program a repository uses and every way of working it applies
   ([0022](0022-tool-integration.md)). Executable ingredients or stations would be engine code beside the binary, with
-  the divergence of point 4 and a runtime the binary does not have ([0004](0004-runtime-dependencies.md)).
+  the divergence of point 4 and a runtime the binary does not have.
   - Which ingredients and stations a repository uses, and at which version and hash, is a fact only that repository
     knows, so it lives in its data and changes by a reviewed diff. An ingredient is shared by every repository that uses
     the program (Context) and fixed by its hash, so a copy in each repository would be one more copy to edit locally,
@@ -108,15 +108,14 @@ a permission change is easiest to review as a change to a file that holds only p
 ### Configuration as code
 
 The repository holds its configuration in a scripting language or a DSL. At its best, it is expressive. It loses because
-it needs a runtime, it cannot be validated or rendered deterministically ([0002](0002-division-of-work.md)), and readers
+it needs a runtime, it cannot be validated or rendered deterministically, and readers
 must execute it in their heads to know its effect.
 
 ## Consequences
 
 Costs:
 
-- Coding agents cannot read engine source inside the repository; the embedded documentation compensates
-  ([0002](0002-division-of-work.md)).
+- Coding agents cannot read engine source inside the repository; the embedded documentation compensates.
 - The schemas are a public contract; a breaking change needs a migration ([0005](0005-schema-compatibility.md)).
 
 Must be maintained:

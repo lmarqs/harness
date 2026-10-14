@@ -24,17 +24,16 @@ first command works with nothing installed beforehand.
 - A newcomer to a repository has installed nothing; the first command they run is the one the repository's
   instructions name.
 - Some task runners, such as mise (2026.6), also install tools: their own file holds a tool list that names a version
-  for each tool. Repositories differ in their task runners, and some use none ([0004](0004-runtime-dependencies.md)). A
+  for each tool. Repositories differ in their task runners, and some use none. A
   pin kept in one task runner's tool list does not reach a repository, machine or pipeline without that task runner.
 - A version pinned in two places drifts: after the first upgrade that touches only one of them, the two disagree.
 - A worker's hooks must not fail or stall a session because the binary is missing
-  ([0010](0010-dependence-on-the-binary.md)), and a hook invocation adds at most 50 ms at p95
-  ([0003](0003-implementation-language.md)). A download inside a hook breaks both.
+  ([0010](0010-dependence-on-the-binary.md)), and a hook invocation adds at most 50 ms at p95. A download inside a
+  hook breaks both.
 - A fresh clone whose hooks find no binary runs worker sessions without the tool's hooks, and the worker has no way to
   know why.
-- The tool is one executable with its own templates and documentation embedded
-  ([0003](0003-implementation-language.md)); it needs only the operating system at runtime
-  ([0004](0004-runtime-dependencies.md)); a repository holds no engine code ([0006](0006-repository-contract.md)).
+- The tool is one executable with its own templates and documentation embedded; it needs only the operating system at
+  runtime; a repository holds no engine code ([0006](0006-repository-contract.md)).
 - Starting a container, even from an image already present, takes a container runtime hundreds of milliseconds; anyone
   with a runtime can time it on their own machine.
 - Releases appear while repositories stay on what they pinned; a person learns of a newer release only when something
@@ -48,7 +47,7 @@ first command works with nothing installed beforehand.
 ## Decision
 
 1. The default entry point to the tool in a repository is a wrapper script committed at the repository root. The binary
-   renders it from a template embedded in itself ([0003](0003-implementation-language.md)) and records it as owned
+   renders it from a template embedded in itself and records it as owned
    ([0007](0007-ownership.md)).
 2. The repository pins one exact release in a committed file in the tool configuration directory
    ([0014](0014-directory-layout.md)), together with the SHA-256 checksum of that release's binary for each supported
@@ -115,7 +114,7 @@ first command works with nothing installed beforehand.
   keeps the drift check exact: the pinned release's output and the committed artefacts always agree, so a difference
   is always a real one.
 - **5.** A download inside a hook breaks both the no-failure rule of [0010](0010-dependence-on-the-binary.md) and the
-  50 ms budget of [0003](0003-implementation-language.md). Without a hint, a fresh clone's worker works without the
+  50 ms budget. Without a hint, a fresh clone's worker works without the
   tool's hooks and cannot tell why; one line in its context per session tells it the fix, and limiting it to one line
   keeps the cost in tokens and noise fixed. Only the wrapper is present at that moment, so only the wrapper can say it.
 - **6.** A machine without network access, or a person developing the tool, needs to run a binary that no pin names.
@@ -170,23 +169,23 @@ its own release, and a newcomer installs the tool before the first command works
 The repository lists the tool and its version in the tool list of the task runner it already uses, and the task runner
 installs and selects that version. At its best, there is no new script and no new file, and the pin sits beside the
 repository's other tool versions. It loses because the pin reaches only machines where that task runner is installed,
-which excludes repositories that use another task runner or none ([0004](0004-runtime-dependencies.md)). A worker's
+which excludes repositories that use another task runner or none. A worker's
 hooks get the pinned version only when the task runner's activation is present in the worker's environment, and pinning
 depends on a third-party tool.
 
 ### Vendored binary in the repository
 
 The repository commits the binary for each platform. At its best, a clone runs the pinned version offline from its first
-command, with no download, cache or checksum step. It loses because every release adds four platform binaries
-([0003](0003-implementation-language.md)) to the permanent history of every repository. A change to a binary cannot be
+command, with no download, cache or checksum step. It loses because every release adds four platform binaries to the
+permanent history of every repository. A change to a binary cannot be
 reviewed as a diff, and the repository carries engine content ([0006](0006-repository-contract.md)).
 
 ### Container image
 
 The repository names an image that contains the pinned binary, and entry points run the tool inside it. At its best, the
 image pins the binary and its environment together, and CI systems that run jobs in images use it directly. It loses
-because every machine needs a container runtime ([0004](0004-runtime-dependencies.md)). A container start takes hundreds
-of milliseconds against the 50 ms hook budget ([0003](0003-implementation-language.md)), and the tool must reach the
+because every machine needs a container runtime. A container start takes hundreds
+of milliseconds against the 50 ms hook budget, and the tool must reach the
 working tree and the version control state from inside the container.
 
 ### Refuse adoption without access to the release source
@@ -213,7 +212,7 @@ effect, and the checksums would reach the repository outside the one operation t
 Costs:
 
 - The first explicit run on a machine needs network access, a POSIX shell, a downloader and a checksum tool. These are
-  requirements of the wrapper, not runtime dependencies of the binary ([0004](0004-runtime-dependencies.md)).
+  requirements of the wrapper, not runtime dependencies of the binary.
 - Each release reaches a repository only through a change to its pin. The change is generated and can be produced for
   many repositories in one operation, but each repository reviews its own.
 - A teammate who never runs an explicit entry point gets nothing from the tool's hooks beyond the stderr line and the
@@ -223,14 +222,14 @@ Costs:
 - The repository carries one tool-owned script; a hand edit to it is drift ([0007](0007-ownership.md)).
 - A committed pending pin leaves every machine that lacks the pinned release in its cache unable to run explicit entry
   points until someone completes the pin.
-- Windows is not served ([0003](0003-implementation-language.md)).
+- Windows is not served.
 
 Must be maintained:
 
 - The wrapper's portability across POSIX shells, downloaders and checksum tools on Linux and macOS, and its scope:
   resolve, download, verify, execute.
 - A published checksum for every platform binary of every release ([0021](0021-release-trust.md)).
-- The hook budget of [0003](0003-implementation-language.md), measured through the wrapper.
+- The hook budget, measured through the wrapper.
 
 ## Confirmation
 
@@ -256,4 +255,4 @@ Must be maintained:
   only the pin and the pin's manifest entry.
 - An upgrade fixture whose release source is unreachable writes nothing.
 - CI runs the wrapper tests on Linux and macOS with each supported downloader and checksum tool.
-- The hook benchmark of [0003](0003-implementation-language.md) runs through the wrapper and fails above 50 ms at p95.
+- The hook benchmark runs through the wrapper and fails above 50 ms at p95.

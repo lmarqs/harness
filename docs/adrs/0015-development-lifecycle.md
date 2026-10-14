@@ -15,8 +15,8 @@ work that is not ready, and a stopped run can reach a person through an event.
 
 - The same steps recur at the same points of every change: something to do once work starts, once it is verified,
   once it is complete, when it is ready to leave the clone, and once it has landed on the default branch.
-- The work between those points is done by people and by workers, the programs that change a repository for someone
-  ([0001](0001-role-of-the-tool.md)): a coding agent used interactively or in an attempt, a bot, a codemod. Each point
+- The work between those points is done by people and by workers, the programs that change a repository for someone: a
+  coding agent used interactively or in an attempt, a bot, a codemod. Each point
   that needs a program needs something different from it: a working copy, a base and the history of a branch from
   version control; a launch and configuration from a worker; a command from the repository
   ([0022](0022-tool-integration.md), [0023](0023-core-and-contracts.md)).
@@ -42,8 +42,7 @@ work that is not ready, and a stopped run can reach a person through an event.
 - A worker in an attempt is the least trusted actor ([0011](0011-safety-invariants.md)).
 - Values such as task titles and branch names are written by people and workers. Substituted into command text, they
   are an injection path.
-- A step a coding agent carries out by following prose gives a different result on each run
-  ([0002](0002-division-of-work.md)).
+- A step a coding agent carries out by following prose gives a different result on each run.
 - Work also stops before it concludes: an unattended run ends with tasks unfinished, a task is skipped after its
   retries, a command run without a terminal refuses because a person must act. Nobody watches an unattended run; the
   person learns of the stop only by looking.
@@ -124,8 +123,8 @@ work that is not ready, and a stopped run can reach a person through an event.
     kind, exit status and duration. The record never holds secrets, request bodies or prompts. A preview shows the
     actions and the environment they would receive without running them.
 12. Delivery that needs judgement, such as choosing which commits of an unattended run go together or rewording their
-    messages, stays with a person or a coordinating worker guided by shipped documentation
-    ([0002](0002-division-of-work.md)), who then triggers the ready-for-delivery event.
+    messages, stays with a person or a coordinating worker guided by shipped documentation, who then triggers the
+    ready-for-delivery event.
 13. The policy a newly adopted repository starts with asks a person before a worker triggers the ready-for-delivery
     event. It is a seeded entry: the repository owns it and may change it ([0007](0007-ownership.md)).
 
@@ -137,9 +136,9 @@ work that is not ready, and a stopped run can reach a person through an event.
   facts are data in its ingredient ([0022](0022-tool-integration.md)), so a bot or a codemod is guarded the way a coding
   agent is. Each stage needs something different from programs (Context); reaching each through a contract or a declared
   action keeps program code out of the core ([0023](0023-core-and-contracts.md)). Doing nothing at plan and at review
-  and merge keeps the binary out of judgement and off the hosting platform (Context, [0002](0002-division-of-work.md),
+  and merge keeps the binary out of judgement and off the hosting platform (Context,
   [0012](0012-write-boundary.md)). Requiring every capability to serve a stage, or the setup the stages read, gives each
-  one a reason a reviewer can check and keeps the binary from growing into a worker ([0001](0001-role-of-the-tool.md)).
+  one a reason a reviewer can check and keeps the binary from growing into a worker.
   A recipe run goes through the same stages instead of adding its own, so a kind of change a repository repeats has the
   guards every change has ([0025](0025-recipes.md)). Detecting landed work against what the clone last learned keeps
   removal from reaching beyond the clone unasked (Context); a repository whose work lands elsewhere chooses to learn
@@ -221,8 +220,8 @@ person without a coding agent has no repeatable path, and nothing runs at a trig
 
 Extensions hook any point of the binary's operation with their own code. At its best, every extension need is met. It
 loses because extension code is engine code in repositories ([0006](0006-repository-contract.md)) that may need a
-runtime ([0004](0004-runtime-dependencies.md)). An open set of hook points has no guard that covers all of them, and the
-tool grows into a worker ([0001](0001-role-of-the-tool.md)). An ingredient is data that fills fixed contracts
+runtime. An open set of hook points has no guard that covers all of them, and the
+tool grows into a worker. An ingredient is data that fills fixed contracts
 ([0022](0022-tool-integration.md), [0023](0023-core-and-contracts.md)), a station is starting content applied once
 ([0024](0024-ingredients-and-stations.md)), and a recipe's steps are a closed set of kinds that run inside the stages
 ([0025](0025-recipes.md)), so none adds a hook point.

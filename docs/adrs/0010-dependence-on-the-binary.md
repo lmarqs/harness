@@ -16,7 +16,7 @@ withdraw one practice at a time.
 - Repositories commonly run hosted CI workflows, and their build, test, deploy and release outputs are what the team
   ships.
 - Hooks run inside a worker's sessions on every matching worker event. A hook that fails interrupts every session of
-  every teammate, and a hook invocation has a budget of 50 ms at p95 ([0003](0003-implementation-language.md)).
+  every teammate, and a hook invocation has a budget of 50 ms at p95.
 - The committed wrapper fetches the pinned release over the network on first use and keeps it in a per-user cache
   ([0017](0017-engine-version.md)). Until then, a machine has no binary to run.
 - Entry points are called in two ways. Worker programs call hooks implicitly, on events, without anyone asking for a

@@ -44,8 +44,8 @@ choices, stack facts and the wiring of a tool still reach each repository throug
 1. The binary contains no organization-specific content: no organization names, hosts, services, policy entries or
    conventions. The content the release carries is limited to the invariants ([0011](0011-safety-invariants.md)), the
    templates and starting entries of the tool's own files seeded into a newly adopted repository
-   ([0007](0007-ownership.md), [0015](0015-development-lifecycle.md)), and the documentation and skill the tool ships
-   ([0002](0002-division-of-work.md)). It carries no ingredient, no station and no recipe
+   ([0007](0007-ownership.md), [0015](0015-development-lifecycle.md)), and the documentation and skill the tool ships.
+   It carries no ingredient, no station and no recipe
    ([0022](0022-tool-integration.md), [0024](0024-ingredients-and-stations.md), [0025](0025-recipes.md)).
 2. What the tool renders and runs in a repository is determined by that repository's own files, the release it pins
    ([0017](0017-engine-version.md)) and the ingredients it pins ([0022](0022-tool-integration.md)), and by nothing else.
@@ -107,7 +107,7 @@ choices, stack facts and the wiring of a tool still reach each repository throug
   outside the repository; the programs it starts read their own ([0022](0022-tool-integration.md)). The trade is that
   a choice shared by many repositories is written in each of them.
 - **3.** Stack facts are the same in every repository on that stack, and a program's wiring is the same in every
-  repository that uses it (Context), so a station can supply them deterministically ([0002](0002-division-of-work.md)).
+  repository that uses it (Context), so a station can supply them deterministically.
   Applying only on request keeps every write to a repository's files something a person asked for. Adding only what is
   missing keeps the repository's own entries authoritative and makes a second application harmless, so a repository can
   take a later version's improvements to a station by applying it again and reading the diff. A template is a whole file

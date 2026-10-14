@@ -28,8 +28,8 @@ to every coding agent session.
   agent.
 - In git's `.gitignore`, a path stays ignored while any entry covers it; removing an entry un-ignores what only that
   entry covered.
-- Managed blocks are tool output ([0007](0007-ownership.md)), rendered from templates and the repository's data
-  ([0002](0002-division-of-work.md)); they are not the prose, memory or domain skills the binary never writes
+- Managed blocks are tool output ([0007](0007-ownership.md)), rendered from templates and the repository's data; they
+  are not the prose, memory or domain skills the binary never writes
   ([0011](0011-safety-invariants.md)).
 
 ## Decision
@@ -44,8 +44,8 @@ to every coding agent session.
    or ending the ingredient's use, removes its blocks ([0010](0010-dependence-on-the-binary.md),
    [0022](0022-tool-integration.md)). Each capability and each ingredient writes its own ignore entries even when
    another one's entry already covers them.
-5. The tool's content in instruction files is bounded; detail lives in the shipped documentation
-   ([0002](0002-division-of-work.md)). The health check reports a repository whose blocks exceed the bound.
+5. The tool's content in instruction files is bounded; detail lives in the shipped documentation. The health check
+   reports a repository whose blocks exceed the bound.
 6. Block text states conventions as facts; only the markers identify it as managed.
 
 ## Reasons

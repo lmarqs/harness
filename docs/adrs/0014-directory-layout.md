@@ -54,7 +54,7 @@ Other forces:
 1. The native directories of worker programs stay where those programs look (Context). They hold rendered configuration
    ([0008](0008-native-configuration.md)) and per-entry links into `.agents/`. Existing real directories and existing
    whole-directory links stay as they are.
-2. `.agents/` holds agent content only: skills, including the skill the tool ships ([0002](0002-division-of-work.md)),
+2. `.agents/` holds agent content only: skills, including the skill the tool ships,
    memory, commands and review guidance. It stays meaningful to people, coding agents and other tools without the tool.
 3. The tool's configuration directory holds the tool's committed configuration: the repository's data
    ([0006](0006-repository-contract.md)), the manifest ([0007](0007-ownership.md)) and the pin of the engine release

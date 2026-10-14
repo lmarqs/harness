@@ -30,7 +30,7 @@ change to its repository and still takes a newer version of it in one reviewed c
   in the project. None of the three has a notion of checks the generated change must pass, or of the change being done:
   a run ends once its files are written and any follow-up task it schedules, such as installing packages, has run.
 - A skill is instructions a coding agent reads and applies with judgement. Nothing fixes its output, so two runs on one
-  repository can make two different changes ([0002](0002-division-of-work.md)), and nothing outside the agent records
+  repository can make two different changes, and nothing outside the agent records
   which of its steps ran or whether the checks it names passed.
 - Every change goes through the stages of the lifecycle, with guards between them, a proof of verification bound to its
   base and content, and events that fire whoever starts the work ([0015](0015-development-lifecycle.md)).
@@ -150,7 +150,7 @@ change to its repository and still takes a newer version of it in one reviewed c
   clone would depend on which recipe made it. The trade: a required lane the change selects nothing for costs its full
   run in every such instance, and a kind of change cannot bring its own delivery; the repository's delivery actions read
   the recipe and its inputs (point 7) and decide in the repository's own declarations.
-- **3.** The kinds follow the division of work of [0002](0002-division-of-work.md). A command does deterministic local
+- **3.** A command does deterministic local
   work, such as running the stack's generator (Context). A template writes a file that every instance adds,
   deterministically from the inputs. An attempt gives judgement to a worker, under the contract that already bounds
   every worker started unattended ([0011](0011-safety-invariants.md)). A handoff is for what needs a person, such as
@@ -247,7 +247,7 @@ around it.
 Recipes or cookbooks define new step kinds, as code the binary loads or calls. At its best, any step a team needs, such
 as taking a database snapshot or calling a service, is a first-class step with its own options. It loses because a step
 kind is code, so it is engine code in the repository or a cookbook ([0006](0006-repository-contract.md)) that may need a
-runtime ([0004](0004-runtime-dependencies.md)), and an open set has no rule set that covers every kind, which
+runtime, and an open set has no rule set that covers every kind, which
 [0015](0015-development-lifecycle.md) and [0019](0019-action-kinds.md) reject for extensions. A generator is such code
 (Context); inside a recipe it runs as a command, with the guards around it.
 

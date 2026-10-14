@@ -14,8 +14,8 @@ description of that program, and neither the tool's code nor its release names a
 
 ## Context
 
-- The tool runs a repository's development lifecycle and renders the setup that the programs in its stages read
-  ([0001](0001-role-of-the-tool.md)). To do that it needs two kinds of answer from outside: from a version control
+- The tool runs a repository's development lifecycle and renders the setup that the programs in its stages read. To do
+  that it needs two kinds of answer from outside: from a version control
   system, which revision is the base and what a file held there ([0011](0011-safety-invariants.md)); from a worker,
   how to start it and, for a coding agent's harness, what to write in its native files and which arguments start it
   unattended ([0009](0009-agent-support.md)).
@@ -202,9 +202,8 @@ partial anyway.
 Ingredients are programs or libraries the binary loads, as a release tool's plugins are packages in its language. At
 its best, an ingredient can do anything the program needs, and the description format never limits it. It loses
 because executable ingredients are engine code beside the binary, which the repository contract excludes
-([0006](0006-repository-contract.md)), they bring a runtime the binary does not have
-([0004](0004-runtime-dependencies.md)), and the parts the binary needs from a program (Context) are small enough to
-describe.
+([0006](0006-repository-contract.md)), they bring a runtime the binary does not have, and the parts the binary needs
+from a program (Context) are small enough to describe.
 
 ### Descriptions read from the repository's working tree
 

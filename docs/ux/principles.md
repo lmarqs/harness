@@ -55,8 +55,7 @@ the committed files of those that did, so anything `the-cook` requires of them i
 
 From the user's side, everything `the-cook` does is predictable. A person, or a worker such as a coding agent, does
 whatever needs judgement, and `the-cook` checks the result. Why: deterministic output can be reviewed once and trusted
-in every repository, while a guess made by code is wrong in the first repository nobody anticipated
-([ADR 0002](../adrs/0002-division-of-work.md)).
+in every repository, while a guess made by code is wrong in the first repository nobody anticipated.
 
 - Every binary command produces the same result for the same inputs on every supported machine, so a user can read
   the repository files in `.cook/` and know what `the-cook render` will write.
@@ -80,7 +79,7 @@ them, the guards that hold between stages and the proof a change carries. It run
 through it, whoever does that work (people and the workers they choose, such as coding agents), and it never takes a
 worker's place. Why: the coding agents people already use are developed by their vendors and follow every model change.
 A tool that competed with them would carry credentials and cost, and a loop of its own to maintain
-([ADR 0001](../adrs/0001-role-of-the-tool.md), [ADR 0015](../adrs/0015-development-lifecycle.md)).
+([ADR 0015](../adrs/0015-development-lifecycle.md)).
 
 - The binary never calls a model and is never a client of a tool server (MCP). Work that needs a model or an MCP tool
   is done by a worker: the [coordinating worker](../features/lifecycle.md#the-lifecycle-stage-by-stage), or an

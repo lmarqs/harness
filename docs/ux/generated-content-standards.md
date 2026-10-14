@@ -128,7 +128,7 @@ Workspaces in this project are created in `.work/workspaces/<name>`, on branch `
 - Block text comes only from the binary's templates and the repository's values: fixed sentences that state a
   convention with its configured values, tables, lists, one-line imports, and, in the `context` block, the text of the
   repository files and installed skills that `static` entries name. It is never free prose, opinion or knowledge,
-  because the binary does only deterministic work ([ADR 0002](../adrs/0002-division-of-work.md)). No source
+  because the binary does only deterministic work. No source
   outside the repository adds text to a block, because text there acts in every session while its source would sit
   where nobody working in the repository reads it ([ADR 0013](../adrs/0013-organization-content.md)).
 - A `.gitignore` block omits any path the repository tracks, so ignoring never hides a committed file.

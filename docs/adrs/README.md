@@ -148,10 +148,10 @@ Must be maintained:
 
 | ADR | Question | Decision |
 | --- | --- | --- |
-| [0001](0001-role-of-the-tool.md) | What is the tool's role? | The tool is a software development lifecycle, never a worker |
-| [0002](0002-division-of-work.md) | Which work does the binary do? | The binary does only deterministic work |
-| [0003](0003-implementation-language.md) | In what language, and as what artefact? | The tool is one executable written in Go |
-| [0004](0004-runtime-dependencies.md) | What does the binary need at runtime? | The binary needs only the operating system at runtime |
+| [0001](0001-role-of-the-tool.md) | What is the tool's role? | Cook reviews and performs recipe-declared file operations |
+| [0002](0002-division-of-work.md) | How are recipe choices separated from batch execution? | Cook separates recipe choices from batch execution |
+| [0003](0003-implementation-language.md) | In what language, and as what artefact? | Cook retains its JVM stack |
+| [0004](0004-runtime-dependencies.md) | How is the runtime supplied? | Cook packages its Java runtime |
 | [0005](0005-schema-compatibility.md) | How do repository files, ingredients, stations and binaries stay compatible? | Repository files, ingredients and stations carry a schema version the binary enforces |
 | [0006](0006-repository-contract.md) | What does a repository hold? | A repository holds declarative data, never engine code |
 | [0007](0007-ownership.md) | How is ownership of generated content known? | A committed manifest records everything the tool owns |

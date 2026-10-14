@@ -128,11 +128,12 @@
         "For the assigned ADRs: update references and index entries affected by these edits or removals."
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "notes": "",
       "dependsOn": [
         "US-006"
-      ]
+      ],
+      "completionNotes": "Completed by agent"
     },
     {
       "id": "US-008",
@@ -509,6 +510,6 @@
     }
   ],
   "metadata": {
-    "updatedAt": "2026-10-14T04:00:35.272Z"
+    "updatedAt": "2026-10-14T04:22:15.107Z"
   }
 }
