@@ -98,7 +98,7 @@ Costs:
 - A lost signing key cannot introduce its successor, so people install a new binary as a new trust root.
 - The first installation rests on host authentication alone.
 - The wrapper checks the downloaded asset against the committed checksum, not the signature. A checksum edited by hand
-  in the pin passes the wrapper and is caught by the drift check ([0007](0007-ownership.md)) and the health check.
+  in the pin passes the wrapper and is caught by the drift check and the health check.
 - The release process holds a signing key that must be protected.
 
 Must be maintained:

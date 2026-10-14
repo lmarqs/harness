@@ -196,14 +196,13 @@ the ingredients it pins by hash, and by nothing else ([ADR 0013](../adrs/0013-or
 
 Every repository file starts with `schema: <integer>`. The schema is per file and changes only for a breaking change
 to that file's format ([compatibility-standards.md](compatibility-standards.md#what-counts-as-breaking)). Why: a binary
-must recognise a file it does not understand before it rewrites that file with outdated rules
-([ADR 0005](../adrs/0005-schema-compatibility.md)).
+must recognise a file it does not understand before it rewrites that file with outdated rules.
 
 | The file's schema is… | `the-cook`… |
 | --- | --- |
 | the current one | reads it |
 | older and supported | reads it as written; rendering is unchanged; the migration is offered, never applied silently |
-| newer than the binary knows | refuses, exit 3 (a person must decide which version to run), naming the file, the schema found, the highest schema this binary supports, and the release to run: the pinned release from `.cook/wrapper.yaml`, which `./cook <command>` runs ([ADR 0005](../adrs/0005-schema-compatibility.md)) |
+| newer than the binary knows | refuses, exit 3 (a person must decide which version to run), naming the file, the schema found, the highest schema this binary supports, and the release to run: the pinned release from `.cook/wrapper.yaml`, which `./cook <command>` runs |
 | missing or not an integer | refuses, exit 1, with the expected first line |
 
 Every machine running through the wrapper runs the pinned version, so a newer-schema refusal occurs only when the pin is
@@ -621,7 +620,7 @@ workers:
   the network ([ADR 0022](../adrs/0022-tool-integration.md)).
 - Each ingredient and each station declares the schema of its format, and an ingredient that fills a contract also
   declares the contract and its version. A release refuses one whose schema or contract version is newer than it
-  supports, exit 1, naming the release needed ([ADR 0005](../adrs/0005-schema-compatibility.md)).
+  supports, exit 1, naming the release needed.
 
 ### What each part writes
 
@@ -659,8 +658,7 @@ then, and all of them become the repository's own; operations, checks and detect
   from ingredients. The manifest records each one under the ingredient's name, the drift check covers it, and
   `the-cook remove` removes it
   ([generated-content-standards.md](generated-content-standards.md#kinds-of-generated-content)). Why: a program's native
-  files follow the repository's neutral sources, so they are computed every time rather than edited
-  ([ADR 0007](../adrs/0007-ownership.md), [ADR 0008](../adrs/0008-native-configuration.md)).
+  files follow the repository's neutral sources, so they are computed every time rather than edited.
 
 ### The floor
 

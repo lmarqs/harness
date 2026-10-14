@@ -33,7 +33,7 @@ choices, stack facts and the wiring of a tool still reach each repository throug
   Content resolved from another repository or from a per-user cache is not among those files.
 - Content identified by a cryptographic hash, such as SHA-256, is the same bytes wherever and whenever it is fetched;
   any change to the content changes the hash.
-- Drift checks run in CI and on developer machines ([0007](0007-ownership.md)). A check whose result changes when
+- Drift checks run in CI and on developer machines. A check whose result changes when
   someone else publishes a change fails pipelines that changed nothing.
 - Every change a repository accepts is reviewed in that repository. A shared source pinned per repository still needs
   a reviewed change in every repository to move to a newer version of it.
@@ -44,7 +44,7 @@ choices, stack facts and the wiring of a tool still reach each repository throug
 1. The binary contains no organization-specific content: no organization names, hosts, services, policy entries or
    conventions. The content the release carries is limited to the invariants ([0011](0011-safety-invariants.md)), the
    templates and starting entries of the tool's own files seeded into a newly adopted repository
-   ([0007](0007-ownership.md), [0015](0015-development-lifecycle.md)), and the documentation and skill the tool ships.
+   ([0015](0015-development-lifecycle.md)), and the documentation and skill the tool ships.
    It carries no ingredient, no station and no recipe
    ([0022](0022-tool-integration.md), [0024](0024-ingredients-and-stations.md), [0025](0025-recipes.md)).
 2. What the tool renders and runs in a repository is determined by that repository's own files, the release it pins
@@ -117,7 +117,7 @@ choices, stack facts and the wiring of a tool still reach each repository throug
   nothing it could later use to change them by itself. An ingredient's renders differ in kind from entries: they are the
   program's side of the repository's data, which nobody writes by hand, so they follow the ingredient on every render,
   and a repository that stops pinning an ingredient loses exactly its renders while the entries a station applied stay
-  ([0007](0007-ownership.md), [0024](0024-ingredients-and-stations.md)).
+  ([0024](0024-ingredients-and-stations.md)).
 - **4.** An organization's choices differ between its repositories (Context), so applying them takes judgement, which
   belongs to people and coding agents guided by documentation and skills ([0002](0002-division-of-work.md)). A station
   the organization publishes writes the same kind of change mechanically, and the person who applies it still reviews

@@ -152,10 +152,9 @@ Must be maintained:
 | [0002](0002-division-of-work.md) | How are recipe choices separated from batch execution? | Cook separates recipe choices from batch execution |
 | [0003](0003-implementation-language.md) | In what language, and as what artefact? | Cook retains its JVM stack |
 | [0004](0004-runtime-dependencies.md) | How is the runtime supplied? | Cook packages its Java runtime |
-| [0005](0005-schema-compatibility.md) | How do repository files, ingredients, stations and binaries stay compatible? | Repository files, ingredients and stations carry a schema version the binary enforces |
 | [0006](0006-repository-contract.md) | What does a repository hold? | Repositories hold trusted recipes separately from the shared engine |
-| [0007](0007-ownership.md) | How is ownership of generated content known? | A committed manifest records everything the tool owns |
-| [0008](0008-native-configuration.md) | How does the tool write files that workers and people share? | The tool owns only named keys inside shared native files |
+| [0007](0007-ownership.md) | What defines the scope of a file change? | Declared targets define changes reviewed against current content |
+| [0008](0008-native-configuration.md) | How does Cook edit shared native files? | Declared native-file targets preserve unrelated content |
 | [0009](0009-agent-support.md) | How are several workers supported? | Worker ingredients render worker-neutral sources into each worker's native files |
 | [0010](0010-dependence-on-the-binary.md) | What depends on the binary being installed? | Nothing in an adopted repository depends on the binary |
 | [0011](0011-safety-invariants.md) | Where do safety rules live? | Safety invariants are built into the binary, never configured |

@@ -125,7 +125,7 @@ work that is not ready, and a stopped run can reach a person through an event.
     messages, stays with a person or a coordinating worker guided by shipped documentation, who then triggers the
     ready-for-delivery event.
 13. The policy a newly adopted repository starts with asks a person before a worker triggers the ready-for-delivery
-    event. It is a seeded entry: the repository owns it and may change it ([0007](0007-ownership.md)).
+    event. It is a seeded entry: the repository owns it and may change it.
 
 ## Reasons
 

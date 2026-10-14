@@ -31,7 +31,7 @@ state each promise and how it changes.
 | The ingredient format, the station format, the recipe format and each contract | an integer `schema` per format, an integer version per contract; an ingredient declares its schema and the contract it fills, a station and a recipe their schema | `schema` and `contract` in `ingredient.yaml`, `schema` in `station.yaml` and in `recipe.yaml`; `the-cook version` prints the ones the running release supports |
 | Rendered files and [managed blocks](generated-content-standards.md#managed-blocks) | the schema of their sources | the [generated-file header](generated-content-standards.md#header) and the manifest (`.cook/manifest.json`) |
 
-- Rendered content carries the schema, never the binary version ([ADR 0005](../adrs/0005-schema-compatibility.md)). It
+- Rendered content carries the schema, never the binary version. It
   depends only on the repository files, the pinned release and the ingredients the repository pins by hash
   ([ADR 0013](../adrs/0013-organization-content.md)), and `the-cook wrapper --version <tag>` renders the repository with
   the new release in the same change as the pin, so moving the pin never leaves drift behind (drift is owned content
@@ -91,8 +91,7 @@ new release in the same change as the pin, `cook` and the shipped skill included
 review as one diff. The pinned release runs the drift check (`the-cook render --check`), and no owned file is exempt
 from it. A binary other than the pinned release (`COOK_BINARY`) gets a `the-cook doctor` note naming both versions,
 because its drift results may differ. Why: with upgrades rendered in their own diff, the pinned release's output and the
-repository always agree, and an exemption would hide exactly the hand edits the check exists to catch
-([ADR 0007](../adrs/0007-ownership.md)).
+repository always agree, and an exemption would hide exactly the hand edits the check exists to catch.
 
 ### Ingredients and stations across versions
 
@@ -113,7 +112,7 @@ explained from the repository ([ADR 0013](../adrs/0013-organization-content.md),
   newer template is written only where its file is absent; where the file exists, applying reports `kept <path>: exists`
   and leaves it, because the file is the repository's own.
 - A release reads every ingredient and station schema and contract version in its support window and refuses a newer
-  one, naming the release needed ([ADR 0005](../adrs/0005-schema-compatibility.md)), so moving the release pin never
+  one, naming the release needed, so moving the release pin never
   silently changes how a pinned ingredient or a station is read.
 - Nothing records which entries a station added, so no command reports that a station gained entries. Why: such a report
   would nag a repository that removed an entry on purpose. A repository that wants a newer station's entries applies it
@@ -138,7 +137,7 @@ repository cannot be explained from the repository, and the repository's edits t
 - Applying a newer version of a station never changes a recipe the repository already has: it reports the directory as
   kept, and `the-cook recipe update` merges the newer recipe.
 - Moving the release pin never changes a recipe. A release reads every recipe schema in its support window and refuses
-  a newer one, naming the release needed ([ADR 0005](../adrs/0005-schema-compatibility.md)), and a step kind keeps its
+  a newer one, naming the release needed, and a step kind keeps its
   meaning across releases within a major version.
 - A recipe without `origin` is the repository's own, with no other version to merge from.
 

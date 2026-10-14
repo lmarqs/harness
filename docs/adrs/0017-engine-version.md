@@ -14,7 +14,7 @@ first command works with nothing installed beforehand.
 - A person may work across many repositories, with teammates and CI runners working in the same ones. Unless something
   pins the release, a teammate's machine, a CI runner and the release a repository was last rendered with can all
   differ.
-- Generated artefacts are committed and drift-checked ([0007](0007-ownership.md)). Rendering rules change between
+- Generated artefacts are committed and drift-checked. Rendering rules change between
   releases, so with different releases on different machines, the drift check passes on one machine and fails on
   another for the same commit.
 - Build tools pin themselves per repository with a committed wrapper. Gradle's wrapper, as its user guide documents, is
@@ -47,12 +47,11 @@ first command works with nothing installed beforehand.
 ## Decision
 
 1. The default entry point to the tool in a repository is a wrapper script committed at the repository root. The binary
-   renders it from a template embedded in itself and records it as owned
-   ([0007](0007-ownership.md)).
+   renders it from a template embedded in itself and records it as owned.
 2. The repository pins one exact release in a committed file in the tool configuration directory
    ([0014](0014-directory-layout.md)), together with the SHA-256 checksum of that release's binary for each supported
-   platform, or a mark that they are pending (point 13). The pin is owned content recorded in the manifest
-   ([0007](0007-ownership.md)), and it exists in exactly one place.
+   platform, or a mark that they are pending (point 13). The pin is owned content recorded in the manifest,
+   and it exists in exactly one place.
 3. A pin is written only by adoption and by an explicit upgrade operation. Its checksums come only from a release
    admitted under [0021](0021-release-trust.md), except that point 13 lets adoption leave them pending. The upgrade
    renders the repository with the new release in the same change, so the pin and every artefact the new release
@@ -96,7 +95,7 @@ first command works with nothing installed beforehand.
 - **1, 4.** Build tools use the same pattern (Context): a committed wrapper is the one entry point every clone has
   without an installation step, so a newcomer runs the command the repository's instructions name and gets the right
   release. Rendering it from a template in the binary keeps it consistent with the release that wrote it, and recording
-  it as owned makes a hand edit visible as drift ([0007](0007-ownership.md)). Downloading on first explicit use into a
+  it as owned makes a hand edit visible as drift. Downloading on first explicit use into a
   per-user cache costs the network once per release per machine; every later run is offline.
 - **2.** One exact release per repository makes every machine, every pipeline and the committed artefacts agree, so the
   drift check gives the same answer everywhere. Per-platform checksums let the wrapper verify what it downloads without
@@ -106,7 +105,7 @@ first command works with nothing installed beforehand.
   release of the binary each reach a repository in a change of its own. The pin is owned, not seeded: its checksums are
   worth something only if an admitted release verified them ([0021](0021-release-trust.md)), so a hand edit has to show
   as drift instead of becoming the repository's choice.
-- **3.** A new release can change rendering and migrate schemas ([0005](0005-schema-compatibility.md)). An explicit,
+- **3.** A new release can change rendering and migrate schemas. An explicit,
   reviewed upgrade lands that change in one diff, instead of whenever a teammate's machine updates. Requiring an
   admitted release ([0021](0021-release-trust.md)) means the committed checksums are ones an already trusted binary
   verified, not whatever the person upgrading happened to download. Rendering with the new release inside the upgrade
@@ -161,7 +160,7 @@ first command works with nothing installed beforehand.
 One installation per machine serves every repository. At its best, no repository carries a script or a pin, a release
 costs no change in any repository, and no first run needs the network. It loses because releases skew between machines,
 pipelines and the rendered repository, so the drift check passes on one machine and fails on another. A teammate with an
-older binary is refused by a newer schema ([0005](0005-schema-compatibility.md)) until they update, every CI job chooses
+older binary is refused by a newer schema until they update, every CI job chooses
 its own release, and a newcomer installs the tool before the first command works.
 
 ### Pin through a task runner's tool list
@@ -219,7 +218,7 @@ Costs:
   session hint ([0010](0010-dependence-on-the-binary.md)).
 - The environment override skips the checksum; what runs is whatever the person placed at that path. The override,
   and a global binary too old to defer to pins, are the two ways to run another release inside a pinned repository.
-- The repository carries one tool-owned script; a hand edit to it is drift ([0007](0007-ownership.md)).
+- The repository carries one tool-owned script; a hand edit to it is drift.
 - A committed pending pin leaves every machine that lacks the pinned release in its cache unable to run explicit entry
   points until someone completes the pin.
 - Windows is not served.

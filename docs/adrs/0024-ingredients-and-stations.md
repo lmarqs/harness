@@ -84,14 +84,14 @@ that combines several programs reaches a repository in one reviewed change.
 - **1.** The two kinds of content differ in when they act (Context): a program's side of the repository has to follow
   the program and hold on every render, while a way of working is starting content the team owns once it has it. A unit
   for each keeps every pin meaning one thing. The linter and the release tool in Context draw the same line between the
-  unit that adds a capability and the unit that chooses how to use it. The trade: two formats to version
-  ([0005](0005-schema-compatibility.md)) and to learn, and a cookbook author decides for each piece of content which
+  unit that adds a capability and the unit that chooses how to use it. The trade: two formats to version and to learn,
+  and a cookbook author decides for each piece of content which
   unit it belongs to.
 - **2.** What a repository writes once about a program depends on how its team works, not on the program: `acme/api`
   and `acme/infra` need one coding agent described the same way and start from different lanes, deny rules and actions
   (Context). Without entries and templates, one ingredient serves both, and the difference is in what each repository
   applied. Everything an ingredient holds acts while it is pinned and stops when it is not, so the
-  pin alone says what the ingredient does to the repository ([0007](0007-ownership.md)).
+  pin alone says what the ingredient does to the repository.
 - **3.** A way of working is a combination of programs and repository facts (Context), so it needs a unit that names
   all of them. Listing each ingredient by hash ties the station to the exact program descriptions its entries were
   written against, and assigning them to the version control contract and to worker roles states the combination in the
@@ -176,7 +176,7 @@ Costs:
 
 Must be maintained:
 
-- The ingredient and station schemas ([0005](0005-schema-compatibility.md)), and the validation that refuses entries or
+- The ingredient and station schemas, and the validation that refuses entries or
   templates in an ingredient and renders or floor rules in a station.
 - The application rules, shared with [0013](0013-organization-content.md), and the report of every difference they
   leave, a kept recipe included.
@@ -190,7 +190,7 @@ Must be maintained:
 - In a fixture that already pins one of those ingredients at another content hash, applying the station keeps the
   fixture's pin and reports the difference.
 - Removing a station from a fixture's list of applied stations changes no rendered byte, and unpinning an ingredient
-  removes exactly its renders ([0007](0007-ownership.md)).
+  removes exactly its renders.
 - A fixture whose data names one ingredient twice, or one applied station twice, fails validation.
 - Applying two fixture stations that set one entry to different values keeps the first station's value and reports the
   second's.

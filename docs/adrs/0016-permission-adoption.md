@@ -18,11 +18,10 @@ anything is written.
 - Native rule languages cover more than shell commands. Claude Code 2.1.x rules name tools with specifiers: web
   domains, file paths, and tools served by external tool servers, with globs. Codex CLI 0.16x rule files match the
   leading words of a shell command and decide allow, prompt or forbid.
-- Taking ownership of a native permission key replaces its content with the rendered policy
-  ([0008](0008-native-configuration.md)). A rule the source cannot express is lost at that moment. A lost deny widens
+- Taking ownership of a native permission key replaces its content with the rendered policy. A rule the source
+  cannot express is lost at that moment. A lost deny widens
   what workers may do; a lost allow stalls attempts on prompts.
-- Claude Code's project settings hold one permission list per kind and cannot include another file
-  ([0008](0008-native-configuration.md)).
+- Claude Code's project settings hold one permission list per kind and cannot include another file.
 - Permissions also live in personal scopes: a per-clone override file and per-user settings, for Claude Code
   `.claude/settings.local.json` and `~/.claude/settings.json`. They are not shared. Committing them publishes one
   person's choices to the team.
@@ -57,7 +56,7 @@ anything is written.
 
 ## Reasons
 
-- **1.** Ownership of a native permission key replaces its content ([0008](0008-native-configuration.md)), so any rule
+- **1.** Ownership of a native permission key replaces its content, so any rule
   the source cannot hold is lost at the moment of adoption, and a hand-written rule set such as the one in Context holds
   about a hundred rules, including domain, path and tool-server rules. A source that holds every native rule makes
   adoption safe for every repository, not only for those whose rules fit a common subset. The trade is that the source
@@ -80,7 +79,7 @@ anything is written.
 - **6.** The equivalence check turns the promise of point 1 into a fact for each repository: either every project-scope
   rule is still in effect, or nothing is written and the failing rule is named. Running it before any write means a
   failed adoption leaves the repository untouched. The preview lets a person review the import before it happens.
-- **7.** These settings are outside the keys the tool owns ([0008](0008-native-configuration.md)); moving or
+- **7.** These settings are outside the keys the tool owns; moving or
   translating them would change behaviour the tool does not model.
 
 ## Rejected alternatives

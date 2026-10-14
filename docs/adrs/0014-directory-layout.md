@@ -39,7 +39,7 @@ Other forces:
 - Committed configuration is reviewed; clone-local state is ignored and can hold uncommitted work.
 - People, workers and third-party tools use parts of the tool's clone-local state directly: they work inside the working
   copies the tool creates, and a loop runner runs inside them.
-- Removal deletes what the manifest lists ([0007](0007-ownership.md)).
+- Removal deletes what the manifest lists.
 - A directory name at the repository root is not reserved: any program or person may create one, so a directory the
   tool would use can already exist when it arrives.
 - Every ingredient and every station comes from a cookbook: it is fetched, verified by its content hash on every load,
@@ -57,7 +57,7 @@ Other forces:
 2. `.agents/` holds agent content only: skills, including the skill the tool ships,
    memory, commands and review guidance. It stays meaningful to people, coding agents and other tools without the tool.
 3. The tool's configuration directory holds the tool's committed configuration: the repository's data, the manifest
-   ([0007](0007-ownership.md)) and the pin of the engine release
+   and the pin of the engine release
    ([0017](0017-engine-version.md)). Every path in it is tracked; none is ignored.
 4. The tool's clone-local state lives at paths the repository's data sets, with defaults under the clone's state
    directory. No state path is inside the tool's configuration directory or `.agents/`, and state is never committed.

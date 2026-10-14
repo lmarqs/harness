@@ -41,13 +41,12 @@ withdraw one practice at a time.
    one.
 5. Tool-owned files add no required CI step, no dependency and no change to build, test, deploy or release outputs. A
    team may add the tool's checks to CI as an optional step.
-6. Each capability is enabled separately in the repository's data and can be removed on its own
-   ([0007](0007-ownership.md)).
+6. Each capability is enabled separately in the repository's data and can be removed on its own.
 
 ## Reasons
 
 - **1.** If committed files depended on the binary, one person's adoption would become a mandate for everyone who clones
-  the repository. Rendered configuration is committed ([0007](0007-ownership.md)), so worker programs read it whether or
+  the repository. Rendered configuration is committed, so worker programs read it whether or
   not the binary exists on the machine.
 - **2, 3.** A failing hook stops sessions, so an implicit entry point must not fail for lack of the binary. A download
   inside a hook needs the network and cannot fit the 50 ms budget. It would make every first session on a machine slow

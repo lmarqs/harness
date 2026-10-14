@@ -131,7 +131,7 @@ change to its repository and still takes a newer version of it in one reviewed c
   (Context). Describing that shape once, as data the repository holds, lets every instance follow it. The inputs are
   what varies between instances; the requirements, the working copy, the steps and the lanes are what does not. A recipe
   a cookbook publishes and one a repository writes are the same unit, because both are the repository's own once it
-  holds them (point 8). The trade: one more format to version ([0005](0005-schema-compatibility.md)), and a kind of
+  holds them (point 8). The trade: one more format to version, and a kind of
   change made too rarely to describe gains nothing from one.
 - **2.** A generator stops once its files are written, and a skill is applied as the agent judges (Context), so in both
   the checks the change needs are left to whoever ran it. Running a recipe as one pass through the stages puts every
@@ -290,7 +290,7 @@ proof (point 7), so a repository can still deliver a migration differently, in i
 
 Costs:
 
-- A recipe is one more format with a schema to version ([0005](0005-schema-compatibility.md)), and a step that fits none
+- A recipe is one more format with a schema to version, and a step that fits none
   of the four kinds becomes a command.
 - A cookbook's improvement to a recipe reaches a repository only when someone updates the copy, and an update can leave
   conflicts for a person or a worker to resolve ([0013](0013-organization-content.md)).

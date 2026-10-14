@@ -221,7 +221,7 @@ Adopting `the-cook` leaves a repository's CI/CD unchanged:
   ([ingredients](ingredients.md), [recipes](recipes.md)).
 - Each ingredient declares its schema and, when it fills a contract, the contract version it is written for; each
   station and each recipe declares its schema. The binary refuses an ingredient, a station or a recipe whose schema is
-  newer than it supports, naming the release needed ([ADR 0005](../adrs/0005-schema-compatibility.md)).
+  newer than it supports, naming the release needed.
 - `the-cook wrapper --version <tag>` renders the repository with the new release in the same change, migrating
   older-schema files, so the pin and every artefact the new release renders differently land in one diff
   ([wrapper](wrapper.md#upgrading)). A binary older than the repository's schema refuses, naming the pinned release to
@@ -232,8 +232,8 @@ Adopting `the-cook` leaves a repository's CI/CD unchanged:
   a finding ([Supported program versions](#supported-program-versions)). A program no ingredient in use describes gets
   no version check; `doctor` still reports a program that an ingredient, a declared command, a lane, a validator or an
   action names and that is not on PATH.
-- The pinned release runs the drift check, which fails on any difference, the shipped skill included
-  ([ADR 0007](../adrs/0007-ownership.md)). A binary other than the pinned release, run through `COOK_BINARY`, gets a
+- The pinned release runs the drift check, which fails on any difference, the shipped skill included.
+  A binary other than the pinned release, run through `COOK_BINARY`, gets a
   `doctor` note, because its drift results may differ.
 
 ### Supported program versions

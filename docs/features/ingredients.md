@@ -678,7 +678,7 @@ workers. A string that matches a pattern of any declared worker is never a bare 
 any declared worker is a bare string, shorthand for a shell command rule. The binary holds no rule syntax of its own.
 
 The binary refuses an ingredient whose `schema` or `contract.version` is newer than it supports, with exit 1 naming
-the release needed, and reads older ones inside its support window ([ADR 0005](../adrs/0005-schema-compatibility.md)).
+the release needed, and reads older ones inside its support window.
 `the-cook version` prints the ingredient and station schemas and the contract versions the running release supports.
 
 Unknown keys are an error, and so are `entries` and `templates`, which only a station holds. A command, in `checks` or

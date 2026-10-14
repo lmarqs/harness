@@ -13,7 +13,7 @@ reached through an interface the rules declare.
 ## Context
 
 - The binary's rules are the development lifecycle's ([0015](0015-development-lifecycle.md)): ownership, rendering,
-  events, guards, attempts, proof and removal ([0007](0007-ownership.md), [0011](0011-safety-invariants.md)). None of
+  events, guards, attempts, proof and removal ([0011](0011-safety-invariants.md)). None of
   them is about any program in particular.
 - What the rules need from outside is small and regular. From version control: the base revision, a file at a revision,
   whether the tree is clean, whether a path is tracked, what changed since a revision, the common ancestor of two

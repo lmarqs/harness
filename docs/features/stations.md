@@ -426,7 +426,7 @@ A station is a directory:
 | `detect` | list of globs | no | The [detect rule](#detect-rule): paths relative to the repository root whose match shows the station fits; a trailing `/` matches a directory |
 
 The binary refuses a station whose `schema` is newer than it supports, with exit 1 naming the release needed, and reads
-older ones inside its support window ([ADR 0005](../adrs/0005-schema-compatibility.md)). `the-cook version` prints the
+older ones inside its support window. `the-cook version` prints the
 station and ingredient schemas and the contract versions the running release supports. Unknown keys are an error, and
 so are `renders`, `floor`, `operations` and `checks`, which only an ingredient holds. Templates read the
 [neutral model](ingredients.md#the-neutral-model).

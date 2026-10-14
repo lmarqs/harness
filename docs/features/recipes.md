@@ -138,7 +138,7 @@ verify: { require: [unit, migrations] }                                        #
 | `verify.require` | list of lane names | no | Lanes every run runs, and never skips, on top of those the change selects ([Verify](#verify)) |
 
 Unknown keys are an error. The binary refuses a recipe whose `schema` is newer than it supports, with exit 1 naming the
-release needed, and reads older ones inside its support window ([ADR 0005](../adrs/0005-schema-compatibility.md));
+release needed, and reads older ones inside its support window;
 `the-cook version` prints the recipe schema the running release supports. A recipe is also invalid when a lane of
 `verify.require` is missing from `requires.lanes`, when an input takes the name of a flag of `the-cook make`, when a
 placeholder names no input, when a step has no kind or more than one, and when any of its files holds a conflict

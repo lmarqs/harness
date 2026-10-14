@@ -44,7 +44,7 @@ Version-three `.cook/state.json` records each partial region by contribution add
 
 Version-one and version-two records are converted in memory during planning. Unclaimed older contributions become legacy ownership. An application cannot claim an overlapping legacy contribution, even with equal content or a matching recipe name; withdraw that contribution in an applied transaction first. Existing markers and adopted originals are preserved; the transaction writes the converted record only on successful application. A preview leaves state bytes unchanged. Existing saved plans remain readable, and rollback restores their exact previous state.
 
-This implementation keeps ownership state in the ignored `.cook` directory. That differs from [ADR 0007](../docs/adrs/0007-ownership.md), which calls for a committed manifest. A fresh clone without the state cannot infer ownership or adopted originals from generated files alone. Markers cannot represent JSON ownership.
+This implementation keeps ownership state in the ignored `.cook` directory. That differs from [ADR 0007](../docs/adrs/0007-ownership.md), which defines changes from supplied declarations and current content without an ownership manifest. A fresh clone without the state cannot infer ownership or adopted originals from generated files alone. Markers cannot represent JSON ownership.
 
 The current executable Groovy suppliers also differ from the data-only model in [ADR 0023](../docs/adrs/0023-core-and-contracts.md) and [ADR 0024](../docs/adrs/0024-ingredients-and-stations.md). This describes the implemented model; those older decisions need reconciliation before release.
 

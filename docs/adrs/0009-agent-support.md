@@ -43,7 +43,7 @@ and supporting another worker changes no repository's declarations.
    ([0023](0023-core-and-contracts.md)). The contract's one required part is how the worker is launched. Where the
    worker has them, the ingredient also gives the arguments that start it unattended, the arguments that bypass its
    permission checks, marked as floor, the renders that turn the neutral sources into its native files under the
-   ownership rules of [0008](0008-native-configuration.md), the mapping of its hook payload, the location of its
+   file-preservation rules of [0008](0008-native-configuration.md), the mapping of its hook payload, the location of its
    instructions file and of its skills, how its native permission rules are imported, and the arguments that let the
    worker's attempts use the network. Its checks declare the worker versions it supports. A worker runs attempts only
    when its ingredient delivers the repository's unattended deny rules, as launch arguments or through the permissions
@@ -87,8 +87,7 @@ and supporting another worker changes no repository's declarations.
   missing event or a missing part, and saying so, tells a person which worker lacks a behaviour instead of letting them
   assume it works.
 - **4.** New workers keep appearing. A public contract lets one be supported without touching the data every adopting
-  repository has committed or the schema it follows
-  ([0005](0005-schema-compatibility.md)).
+  repository has committed or the schema it follows.
 - **5.** The neutral model always lags the workers. Without a passthrough, a repository whose rules or hooks fall
   outside the model cannot adopt without losing them, which [0016](0016-permission-adoption.md) forbids. Skipping a
   raw entry for workers that cannot express it keeps every other ingredient's output valid.

@@ -63,8 +63,8 @@ description of that program, and neither the tool's code nor its release names a
 2. An ingredient holds up to four parts, each of which acts on every render or every use while a repository pins it.
    Operations: the commands and mappings that fill one of the binary's contracts, or none
    ([0023](0023-core-and-contracts.md)). Renders: files, keys and blocks the binary renders on every render from the
-   repository's declared data, owned and recorded under the ingredient's name ([0007](0007-ownership.md),
-   [0008](0008-native-configuration.md)). Floor: the facts of point 5. Checks: a version command with a supported
+   repository's declared data, owned and recorded under the ingredient's name. Floor: the facts of point 5.
+   Checks: a version command with a supported
    range, and a detect rule that tells the health check the program is in use. Content written once into the
    repository, entries and templates, belongs to stations, never to an ingredient
    ([0024](0024-ingredients-and-stations.md)).
@@ -100,8 +100,8 @@ description of that program, and neither the tool's code nor its release names a
 - **1.** Context shows how many programs a team may choose and how often each changes. Code for any of them would grow
   with every team's choices and break with every one of their releases, and a program given code in the binary is a
   choice imposed on every repository. A description is small (Context) and changes with the program, not with the
-  binary. The trade: the binary gains an interpreter for descriptions, one more format to version
-  ([0005](0005-schema-compatibility.md)), and the pull to grow that format every time a program does something it
+  binary. The trade: the binary gains an interpreter for descriptions, one more format to version,
+  and the pull to grow that format every time a program does something it
   cannot express.
 - **2.** The four parts are the ways a program touches a repository while it is in use: on every render (renders,
   floor), when the binary needs an answer or starts it (operations), and when a person checks the machine (checks).

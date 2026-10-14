@@ -139,8 +139,7 @@ A tool that competed with them would carry credentials and cost, and a loop of i
 
 ## 5. Never destroy; always show what will change
 
-Why: a repository is the team's work, and a tool that loses part of it is removed and not trusted again
-([ADR 0007](../adrs/0007-ownership.md)).
+Why: a repository is the team's work, and a tool that loses part of it is removed and not trusted again.
 
 - Every mutating command accepts `--dry-run` and prints exactly the change set it would apply, so the change can be
   judged before it happens.

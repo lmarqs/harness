@@ -19,7 +19,7 @@ to every coding agent session.
   them rely on.
 - Not every teammate installs the tool ([0010](0010-dependence-on-the-binary.md)); everyone shares the committed files.
 - Working copies can hold uncommitted work, and cleanup acts only on what the binary recorded creating, so removing the
-  tool leaves clone-local state in place ([0007](0007-ownership.md)).
+  tool leaves clone-local state in place.
   State whose conventions and ignore entries are gone is unexplained, and git lists it as untracked.
 - Some instructions hold with or without the tool: where working copies are, which branch work starts from, which
   permissions are in effect. Others are true only while the tool is present: which of its commands checks work, how to
@@ -28,7 +28,7 @@ to every coding agent session.
   agent.
 - In git's `.gitignore`, a path stays ignored while any entry covers it; removing an entry un-ignores what only that
   entry covered.
-- Managed blocks are tool output ([0007](0007-ownership.md)), rendered from templates and the repository's data; they
+- Managed blocks are tool output, rendered from templates and the repository's data; they
   are not the prose, memory or domain skills the binary never writes
   ([0011](0011-safety-invariants.md)).
 
@@ -39,7 +39,7 @@ to every coding agent session.
    file ([0014](0014-directory-layout.md)).
 2. Managed blocks are of two classes. Convention blocks state facts that stay true without the tool and never name its
    commands. Tool blocks describe how to use the tool and may name its commands.
-3. Eject keeps convention blocks as plain text without markers and removes tool blocks ([0007](0007-ownership.md)).
+3. Eject keeps convention blocks as plain text without markers and removes tool blocks.
 4. Each block belongs to the capability or the ingredient that establishes its convention, and removing the capability,
    or ending the ingredient's use, removes its blocks ([0010](0010-dependence-on-the-binary.md),
    [0022](0022-tool-integration.md)). Each capability and each ingredient writes its own ignore entries even when
@@ -62,7 +62,7 @@ to every coding agent session.
   eject keep everything that stays true and remove everything that would mislead. The trade is that every block's class
   is a design decision that must be made and kept.
 - **4.** Capabilities are adopted and removed independently ([0010](0010-dependence-on-the-binary.md)), and so are
-  ingredients ([0007](0007-ownership.md)), so their text must be too. With shared ignore entries, removing one would
+  ingredients, so their text must be too. With shared ignore entries, removing one would
   un-ignore paths another still creates, and the version control system would start listing that state as untracked.
   Duplicate entries cost one line each and make removal local.
 - **5.** Every line in an instruction file is read in every session, so the tool's share of that file is a recurring
@@ -98,7 +98,7 @@ learns a convention becomes a matter of chance.
 Costs:
 
 - Each convention is stated twice, in the repository's data and in the instruction file; the drift check keeps the two
-  equal ([0007](0007-ownership.md)).
+  equal.
 - Managed blocks lengthen the instruction file that coding agents read at the start of every session.
 - After an eject, convention blocks and native configuration have no source to render from; later changes are hand
   edits.
@@ -108,7 +108,7 @@ Costs:
 Must be maintained:
 
 - For each capability, the conventions it establishes, the blocks that state them, and each block's class. Block ids
-  and classes are part of the public contract ([0007](0007-ownership.md)).
+  and classes are part of the public contract.
 
 ## Confirmation
 

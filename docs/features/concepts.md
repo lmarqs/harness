@@ -262,7 +262,7 @@ beside the repository's own.
 
 ## Ownership and the manifest
 
-`the-cook` never guesses what it owns ([ADR 0007](../adrs/0007-ownership.md)). `.cook/manifest.json` records two
+`the-cook` never guesses what it owns. `.cook/manifest.json` records two
 kinds of content:
 
 | Kind | What it is | Entries |
