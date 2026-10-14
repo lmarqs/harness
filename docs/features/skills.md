@@ -23,7 +23,7 @@ one folder per skill, following the file conventions of the agent ecosystem.
 repository. It injects skills into worker sessions when the repository names them as [standing context](context.md).
 
 It never writes a domain skill, and it contains no code for any skills installer: shared skills are installed by the
-team with the tool of its choice and committed like any other file ([ADR 0022](../adrs/0022-tool-integration.md)). An
+team with the tool of its choice and committed like any other file. An
 [ingredient](ingredients.md) can describe such an installer, as it describes any program.
 
 A skill guides a worker and guarantees nothing about what the worker does with it. A [recipe](recipes.md) takes one kind
@@ -125,7 +125,7 @@ context:
 A skill a `context` entry names that does not exist under `.agents/skills/` is a [`the-cook doctor`](doctor.md)
 finding, and nothing is injected for it. A skill is injected as it is committed under `.agents/skills/`, whoever wrote
 it; for an attempt, as it is in the base commit. `the-cook` reads no installer's lock file, so a reviewer approves a
-skill's content in the diff that adds or changes it ([ADR 0022](../adrs/0022-tool-integration.md)). A hook fetches
+skill's content in the diff that adds or changes it. A hook fetches
 nothing when it runs: a skill is injected only once it is installed and committed.
 
 Skills written to be injected follow the [skills standards](../ux/skills-standards.md): a short body, self-contained,

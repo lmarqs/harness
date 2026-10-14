@@ -83,8 +83,7 @@ commands, such as [`the-cook attempt`](cli-standards.md#the-attempt-command) as 
 task, and `the-cook` reaches the program through the operations of its ingredient and the commands the repository
 declares. Why: each team picks different programs and each program follows its own release schedule, so code in the
 binary for one of them breaks with its releases and serves no team that chose another, while an ingredient or an action
-is data a repository can replace ([ADR 0022](../adrs/0022-tool-integration.md),
-[ADR 0023](../adrs/0023-core-and-contracts.md)).
+is data a repository can replace.
 
 A safety-relevant rule that is organization specific (a deploy deny, a protected branch other than the default) is an
 entry in each repository's `policy.yaml`, written there by a person or by a coding agent following the organization's
@@ -301,7 +300,7 @@ Each of these breaks a principle, for the reason given after it.
   Each repository pins its own.
 - A station that renders or carries floor, or an ingredient with entries or templates: what acts on every render and
   what is applied once would share one pin, which would then mean two things at once, and a reader could not tell from
-  the repository what still acts on it ([ADR 0024](../adrs/0024-ingredients-and-stations.md)).
+  the repository what still acts on it.
 - A station's entries applied by a command that was not asked to apply them (a render, an upgrade), or a record of which
   entries a station added: every write to a repository's files is one someone asked for, and a record would tie the
   repository's own entries to a definition outside its files.

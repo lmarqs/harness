@@ -42,7 +42,7 @@ settings file and its instructions-file import, a whole rules file, the version-
 blocks). Renders come only from ingredients: a station has none, so no owned content belongs to a station. Deleting an
 ingredient from `ingredients:` and rendering removes exactly the content the manifest records under that ingredient.
 Why: the binary contains no program's format, so what a program's files hold is the ingredient's, and only an owner in
-the record tells a render which content leaves with the ingredient ([ADR 0022](../adrs/0022-tool-integration.md)).
+the record tells a render which content leaves with the ingredient.
 
 Owned content is rendered and replaced on every render, and a hand edit to it is drift. Seeded content is written once
 and then edited by people and workers. `the-cook` never re-renders it. It writes to the repository files again only when
@@ -206,7 +206,7 @@ Every convention a module establishes is written where people and other tools re
 ## Owned keys in native files
 
 Why: native files are shared with people and other tools, so `the-cook` owns only the keys and entries the renders of
-the worker's ingredient name, and nothing else ([ADR 0022](../adrs/0022-tool-integration.md)).
+the worker's ingredient name, and nothing else.
 
 - `the-cook` changes only the keys it owns. Every other key, its value, its order and its formatting are preserved byte
   for byte.
@@ -234,8 +234,7 @@ the worker's ingredient name, and nothing else ([ADR 0022](../adrs/0022-tool-int
 Why: two teammates rendering the same commit must produce the same diff, or every render is noise in review.
 
 - The same repository files, pinned release and ingredients pinned by hash produce the same bytes on every supported
-  operating system, with no network access, because nothing else is an input
-  ([ADR 0022](../adrs/0022-tool-integration.md)).
+  operating system, with no network access, because nothing else is an input.
 - The per-user cache supplies only ingredients whose archive matches their `sha256`. Neither a station nor a recipe is
   an input to rendering.
 - A new release may render differently, the shipped skill and `cook` included. A new version of an ingredient may

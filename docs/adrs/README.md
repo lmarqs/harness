@@ -168,10 +168,10 @@ Must be maintained:
 | [0019](0019-action-kinds.md) | What can a declared action do? | Declared actions are commands, HTTP requests or worker attempts |
 | [0020](0020-standing-context.md) | How does known guidance reach a worker? | Guidance enters worker context through declared deterministic triggers |
 | [0021](0021-release-trust.md) | What does release verification prove? | Reviewed engine pins verify package integrity without proving publisher identity |
-| [0022](0022-tool-integration.md) | How does the binary reach external programs? | Every program the binary uses is described by an ingredient |
-| [0023](0023-core-and-contracts.md) | How is the binary's code divided? | The binary is a core behind contracts it declares |
-| [0024](0024-ingredients-and-stations.md) | What separates a program's description from a way of working? | An ingredient describes one program, a station one way of working |
+| [0022](0022-tool-integration.md) | How is program configuration knowledge supplied? | Ingredients model programs' native configuration |
+| [0023](0023-core-and-contracts.md) | How are operation rules separated from external mechanisms? | The core separates operation rules from external mechanisms |
+| [0024](0024-ingredients-and-stations.md) | What separates program knowledge from reusable setup choices? | Program models remain distinct from reusable setup choices |
 | [0025](0025-recipes.md) | How does a repository make a kind of change it repeats? | A recipe is one kind of change, run through the lifecycle |
-| [0026](0026-cookbook-trust.md) | How is a cookbook's content trusted? | A cookbook's content is admitted by a reviewed pin |
+| [0026](0026-cookbook-trust.md) | What does batch approval establish about cookbook trust? | Cookbook execution requires trust beyond batch approval |
 | [0027](0027-worker-jails.md) | How are a worker's attempts confined? | A worker's attempts run inside the jail its declaration names |
 | [0028](0028-place-of-the-tool.md) | What place does the tool take among the people who use it? | Cook supports shared setup without controlling how people work |

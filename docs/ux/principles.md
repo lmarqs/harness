@@ -100,8 +100,7 @@ A tool that competed with them would carry credentials and cost, and a loop of i
   jails, and reads no program's own configuration. A stage that needs a program reaches it through a contract that an
   [ingredient](../features/ingredients.md) fills, or through the commands the profile declares and the actions lifecycle
   events fire. Why: each team picks different programs, and code for one would follow every release of a program the
-  project does not own while serving no team that chose another ([ADR 0022](../adrs/0022-tool-integration.md),
-  [ADR 0023](../adrs/0023-core-and-contracts.md)).
+  project does not own while serving no team that chose another.
 - The binary never reconfigures state it did not create (a task tracker's existing database; the version control
   system's hook settings; a task runner's tasks and tool list; the content of a worker's instructions file; a `.cook/`
   directory that another product created), because its owners depend on it as it is.
@@ -289,7 +288,7 @@ cannot be read by anyone working there, and a reviewer sees its effect without i
 
 Apply them in this order, because each earlier principle protects something harder to recover than the next:
 
-1. The built-in invariants and the floor of the ingredients in use ([ADR 0022](../adrs/0022-tool-integration.md)). No
+1. The built-in invariants and the floor of the ingredients in use. No
    principle, setting or flag weakens them.
 2. Never destroy (principle 5).
 3. Nothing leaves the clone undeclared (principle 7).

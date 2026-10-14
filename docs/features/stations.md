@@ -19,8 +19,8 @@ another reviewed change.
 the guards that hold between stages and the proof a change carries ([lifecycle](lifecycle.md)). It knows no program;
 [ingredients](ingredients.md) describe the programs the stages reach. A station is a named, versioned description of
 one way of running that lifecycle, built from ingredients: which ingredient serves version control, which workers
-implement a change and in which role, and the lanes, denies, actions and files that go with them
-([ADR 0024](../adrs/0024-ingredients-and-stations.md)). A station holds up to six parts:
+implement a change and in which role, and the lanes, denies, actions and files that go with them. A station holds up
+to six parts:
 
 | Part | What it is | What applying does |
 | --- | --- | --- |

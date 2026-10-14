@@ -148,8 +148,8 @@ request or writes to a hosting platform by itself. Those effects exist
 only as declared actions ([principles.md](principles.md#7-nothing-leaves-the-clone-undeclared)). Why: delivery
 conventions differ per organization and platform, and a declared action is reviewed where the convention is decided.
 
-The binary contains code for no program, the version control system and the workers included
-([ADR 0022](../adrs/0022-tool-integration.md)). Each lifecycle stage that needs a program reaches it through the
+The binary contains code for no program, the version control system and the workers included. Each lifecycle stage
+that needs a program reaches it through the
 contract an [ingredient](../features/ingredients.md) fills
 ([configuration-standards.md](configuration-standards.md#ingredients-and-stations)), the commands the profile declares
 or the actions lifecycle events fire, and other programs call `the-cook` through its commands. Why: every team picks
@@ -179,14 +179,13 @@ each task through a recipe.
 - Before anything else, the attempt command resolves the version-control ingredient, the worker's ingredient and its
   jail's from the per-user cache, and uses that resolution for every read, comparison, reset and launch of the attempt.
   It never fetches. Why: an ingredient fetched during an attempt would hand the attempt to whoever controls its source,
-  and one read from the working tree would hand it to the worker ([ADR 0022](../adrs/0022-tool-integration.md)).
+  and one read from the working tree would hand it to the worker.
 - The attempt command's flags, exit codes, output and environment are a stable interface: changing one is a breaking
   change ([compatibility-standards.md](compatibility-standards.md#versioning)). Why: other tools' configuration names
-  them, and those files belong to repositories that upgrade `the-cook` at their own pace
-  ([ADR 0022](../adrs/0022-tool-integration.md)).
+  them, and those files belong to repositories that upgrade `the-cook` at their own pace.
 - The attempt command reads no configuration of the tool that starts it. Why: the attempt contract holds inside the
   command whoever starts it, so knowing the caller adds no guarantee, and a person can always start the caller some way
-  the binary cannot see ([ADR 0022](../adrs/0022-tool-integration.md)).
+  the binary cannot see.
 - A prompt on stdin carries the `always` entries of the `unattended` role, placed by the binary before the task text,
   and the session-start hook of that attempt adds none; a prompt among the worker arguments is passed unchanged. Why: a
   worker program may run no hook unattended, so the prompt is where the binary can be sure the entries arrive, and the
@@ -789,8 +788,8 @@ caller sees the correct form and where to read more.
   names the version found and the ingredient's supported range, so an unsupported version is found before it renders
   wrong output. A program no ingredient in use describes has no version check. `the-cook doctor` also reports a program
   that an ingredient, a declared command, lane, validator or action, or a recipe's `run` step, names and that is not on
-  `PATH`, and each contract no pinned ingredient fills, with the commands unavailable because of it
-  ([ADR 0022](../adrs/0022-tool-integration.md)). `the-cook ingredient list --cookbook <source>@<version>` shows which
+  `PATH`, and each contract no pinned ingredient fills, with the commands unavailable because of it.
+  `the-cook ingredient list --cookbook <source>@<version>` shows which
   ingredients of a tag detect their program in the repository.
 - Rules for what a version promises: [compatibility-standards.md](compatibility-standards.md).
 

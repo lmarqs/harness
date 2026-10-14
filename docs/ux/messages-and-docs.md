@@ -233,7 +233,7 @@ A section with no content is omitted rather than left empty.
 - An ADR names a product only in its Context, as checkable evidence of what exists. Why: the binary contains code and
   data for no program and ships no ingredient, no station and no recipe, so a page that describes a program's behaviour
   documents something `the-cook` does not hold and goes stale with that program's releases
-  ([ingredients](../features/ingredients.md), [ADR 0022](../adrs/0022-tool-integration.md)).
+  ([ingredients](../features/ingredients.md)).
 - What `the-cook` does with a program is attributed to the ingredient that fills its role: "the version-control
   ingredient reports the default branch", "a floor rule of the version-control ingredient". Why: a page that says
   `the-cook` runs a particular program describes a binary that does not exist.

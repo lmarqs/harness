@@ -17,10 +17,10 @@ The development lifecycle is `the-cook`'s core abstraction: the stages a change 
 moment its patches are on the default branch; the events `the-cook` fires between them; the guards that hold between
 stages; and the proof a change carries, the [receipt](verify.md#the-receipt) and its replay. `the-cook` knows no
 program. A stage that needs one reaches it through a contract or through an action the repository declares, and
-cookbooks describe the programs ([ADR 0015](../adrs/0015-development-lifecycle.md),
-[ADR 0023](../adrs/0023-core-and-contracts.md)). Agentic coding, where coding agents implement the change, is the main
-example on these pages and one [station](stations.md) among others
-([ADR 0024](../adrs/0024-ingredients-and-stations.md)); a bot or a codemod is a [worker](workers.md) in the same place.
+cookbooks describe the programs ([ADR 0015](../adrs/0015-development-lifecycle.md)). Agentic coding, where coding
+agents implement the change, is the main
+example on these pages and one [station](stations.md) among others; a bot or a codemod is a [worker](workers.md) in
+the same place.
 
 | Stage | Who acts | What the core does | Reached through |
 | --- | --- | --- | --- |

@@ -18,13 +18,12 @@ work that is not ready, and a stopped run can reach a person through an event.
 - The work between those points is done by people and by workers, the programs that change a repository for someone: a
   coding agent used interactively or in an attempt, a bot, a codemod. Each point
   that needs a program needs something different from it: a working copy, a base and the history of a branch from
-  version control; a launch and configuration from a worker; a command from the repository
-  ([0022](0022-tool-integration.md), [0023](0023-core-and-contracts.md)).
+  version control; a launch and configuration from a worker; a command from the repository.
 - Some of a change happens outside the clone and the binary: a team plans in its tracker, and reviews and merges on its
   hosting platform, in CI and among reviewers.
 - A change lands on the shared default line of work, which a clone knows only as it last learned it. Learning what is
   shared asks the version control system to reach beyond the clone, often over the network, so a merge made on a
-  hosting platform reaches the clone only when something asks ([0023](0023-core-and-contracts.md)).
+  hosting platform reaches the clone only when something asks.
 - What happens at those points differs between repositories and organizations. Delivery follows each team's hosting
   platform and conventions: draft or ready pull requests, a commit that triggers CI, a notification. The binary carries
   no hosting-platform logic and no organization content ([0012](0012-write-boundary.md),
@@ -45,7 +44,7 @@ work that is not ready, and a stopped run can reach a person through an event.
   retries, a command run without a terminal refuses because a person must act. Nobody watches an unattended run; the
   person learns of the stop only by looking.
 - An unattended run as a whole, with its start, its end and its retries, belongs to the loop runner that drives it, not
-  to the binary ([0022](0022-tool-integration.md)). The tool sees one task at a time, through the command a loop runner
+  to the binary. The tool sees one task at a time, through the command a loop runner
   calls for each: the attempt command, or a run of a recipe ([0025](0025-recipes.md)).
 - A task tracker marks a task done when it is told the task is complete, whoever tells it.
 - The clone's state is readable by every process in it, workers included.
@@ -57,9 +56,9 @@ work that is not ready, and a stopped run can reach a person through an event.
    core holds the guards between stages, the proof of verification bound to a change's base and content, its replay
    from the base, the floor process and the attempt contract. Nothing in the core is
    about one kind of worker: a program's own safety facts, such as the arguments that bypass a worker's permission
-   checks, are data in its ingredient ([0022](0022-tool-integration.md)).
+   checks, are data in its ingredient.
 2. At each stage the core does only the following, and reaches every program the stage needs through a contract or a
-   declared action ([0023](0023-core-and-contracts.md), [0019](0019-action-kinds.md)):
+   declared action ([0019](0019-action-kinds.md)):
    - Plan: nothing beyond the task's identifier; people and their tracker plan, and declared actions reach the tracker.
    - Start: creates the working copy and records its base, its actor and its task, through the version control
      contract.
@@ -93,8 +92,7 @@ work that is not ready, and a stopped run can reach a person through an event.
    verification, whoever triggers it.
 7. The repository declares the actions for each event ([0019](0019-action-kinds.md)): run in order, optionally limited
    to some of the event's scopes, each with a rule for whether its failure stops the remaining actions. No action runs
-   that the repository's files do not declare; a station's actions reach them only as entries a person applies
-   ([0024](0024-ingredients-and-stations.md)).
+   that the repository's files do not declare; a station's actions reach them only as entries a person applies.
 8. Every event can be triggered by a person, by a coordinating worker or by a script, or automatically at a trigger
    point of the binary's own work, and every trigger runs the same declared actions under the same guards. Automatic
    triggering applies only to actions that opt in to it. The automatic trigger points are:
@@ -131,9 +129,9 @@ work that is not ready, and a stopped run can reach a person through an event.
 - **1, 2.** Context shows the same points in every change, reached by different actors and done by different programs.
   With the lifecycle as the core, the stages, guards and proof are the same whoever does the work, and a worker of
   another kind needs an ingredient, not a change to the core. The core is about no kind of worker because a worker's own
-  facts are data in its ingredient ([0022](0022-tool-integration.md)), so a bot or a codemod is guarded the way a coding
+  facts are data in its ingredient, so a bot or a codemod is guarded the way a coding
   agent is. Each stage needs something different from programs (Context); reaching each through a contract or a declared
-  action keeps program code out of the core ([0023](0023-core-and-contracts.md)). Doing nothing at plan and at review
+  action keeps program code out of the core. Doing nothing at plan and at review
   and merge keeps the binary out of judgement and off the hosting platform (Context,
   [0012](0012-write-boundary.md)). Requiring every capability to serve a stage, or the setup the stages read, gives each
   one a reason a reviewer can check and keeps the binary from growing into a worker.
@@ -219,9 +217,8 @@ person without a coding agent has no repeatable path, and nothing runs at a trig
 Extensions hook any point of the binary's operation with their own code. At its best, every extension need is met. It
 loses because extension code is engine code in repositories that may need a
 runtime. An open set of hook points has no guard that covers all of them, and the
-tool grows into a worker. An ingredient is data that fills fixed contracts
-([0022](0022-tool-integration.md), [0023](0023-core-and-contracts.md)), a station is starting content applied once
-([0024](0024-ingredients-and-stations.md)), and a recipe's steps are a closed set of kinds that run inside the stages
+tool grows into a worker. An ingredient is data that fills fixed contracts, a station is starting content applied
+once, and a recipe's steps are a closed set of kinds that run inside the stages
 ([0025](0025-recipes.md)), so none adds a hook point.
 
 ### Stops reported only in the command's output

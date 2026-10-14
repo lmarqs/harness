@@ -20,7 +20,7 @@ files say, and a team can describe a new program without waiting for a release o
 the guards that hold between stages and the proof a change carries ([lifecycle](lifecycle.md)). The binary knows no
 program. A stage that needs one reaches it through one of the three [contracts](#contracts) the binary declares, or
 through an action the repository declares. An ingredient is a named, versioned description of one program, in data the
-binary interprets ([ADR 0022](../adrs/0022-tool-integration.md)). It holds up to four parts:
+binary interprets. It holds up to four parts:
 
 | Part | What it is | When it acts |
 | --- | --- | --- |
@@ -74,7 +74,7 @@ templates) → [the template language](ingredients.md#the-template-language) →
 ### Operations
 
 Operations are what the binary asks of a program and how it starts one. They fill one of the three
-[contracts](#contracts) the binary declares ([ADR 0023](../adrs/0023-core-and-contracts.md)):
+[contracts](#contracts) the binary declares:
 
 - the [version-control contract](#the-version-control-contract), filled by one ingredient per repository, the one the
   profile's `vcs:` names;

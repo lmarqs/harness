@@ -135,8 +135,8 @@ tool would do a worker's job. A worker already owns those connections.
 
 At its best, any integration runs in process with full control. It loses because extension code is engine code in
 repositories that may need a runtime, and
-an open extension surface has no rule set that covers it. An ingredient is data that fills fixed contracts
-([0022](0022-tool-integration.md)), not code that runs in process.
+an open extension surface has no rule set that covers it. An ingredient is data that fills fixed contracts, not code
+that runs in process.
 
 ### Attempt actions on notification events
 

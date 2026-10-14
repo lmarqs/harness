@@ -22,7 +22,7 @@ one pass of one change through the stages.
 
 A recipe is one of three units a repository takes from cookbooks or writes itself, and one rule separates them: facts
 about programs are pinned and rendered; practices are copied and become the repository's own
-([ADR 0024](../adrs/0024-ingredients-and-stations.md), [ADR 0025](../adrs/0025-recipes.md)).
+([ADR 0025](../adrs/0025-recipes.md)).
 
 | Unit | What it is | How a repository holds it | When it acts |
 | --- | --- | --- | --- |

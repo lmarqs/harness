@@ -34,8 +34,8 @@ change to its repository and still takes a newer version of it in one reviewed c
   which of its steps ran or whether the checks it names passed.
 - Every change goes through the stages of the lifecycle, with guards between them, a proof of verification bound to its
   base and content, and events that fire whoever starts the work ([0015](0015-development-lifecycle.md)).
-- A loop runner runs one command for each task, the tool's attempt command when it starts workers through the tool
-  ([0022](0022-tool-integration.md)). The attempt runs in whatever working copy the loop runner runs in, and fires
+- A loop runner runs one command for each task, the tool's attempt command when it starts workers through the tool.
+  The attempt runs in whatever working copy the loop runner runs in, and fires
   work completed only when that copy is bound to a task ([0015](0015-development-lifecycle.md)).
 - A worker in an attempt can edit every file in its working copy, the repository's data included, and a run nobody
   watches has nobody to answer a question ([0015](0015-development-lifecycle.md)).
@@ -47,17 +47,16 @@ change to its repository and still takes a newer version of it in one reviewed c
 - A value substituted into shell text can add a command ([0019](0019-action-kinds.md)). A value passed as one element of
   an argument list, with no shell in between, reaches the program as that one argument, which the program may still read
   as an option when it begins with a dash.
-- ESLint loads a shareable configuration that a project names on every run, and the project's own settings override it
-  ([0024](0024-ingredients-and-stations.md)).
+- ESLint loads a shareable configuration that a project names on every run, and the project's own settings override it.
 - shadcn/ui distributes components as source: its command line copies a component's code into the project, which from
   then on owns it and edits it like code it wrote, instead of importing it from a package.
-- Copier records in the project which template and which version generated it
-  ([0024](0024-ingredients-and-stations.md)). Its update applies the template's changes between that version and a newer
+- Copier records in the project which template and which version generated it. Its update applies the template's
+  changes between that version and a newer
   one while keeping the project's own changes, and marks for a person, inline or in reject files, the places where both
   changed the same lines.
 - A station sets up a way of working once: it pins the ingredients that fill the version control and worker contracts,
-  and declares the workers ([0024](0024-ingredients-and-stations.md)). Starting a working copy needs the version control
-  contract, and an attempt needs a declared worker ([0023](0023-core-and-contracts.md)).
+  and declares the workers. Starting a working copy needs the version control
+  contract, and an attempt needs a declared worker.
 - Delivery follows each team's conventions and hosting platform, declared once in the repository as actions on lifecycle
   events ([0015](0015-development-lifecycle.md)).
 - Some recurring work changes nothing in the repository, such as watching a running system for errors. Acting on what it
@@ -67,8 +66,8 @@ change to its repository and still takes a newer version of it in one reviewed c
 
 1. A recipe describes one kind of change that a repository makes many times: the inputs that vary between instances,
    what the change requires of the repository, the working copy it starts in, the steps that implement it, and the lanes
-   its verification must include. A cookbook may publish recipes beside its ingredients and stations
-   ([0024](0024-ingredients-and-stations.md)), and a repository may write its own.
+   its verification must include. A cookbook may publish recipes beside its ingredients and stations, and a repository
+   may write its own.
 2. A run of a recipe is one pass of one change through the stages of the lifecycle
    ([0015](0015-development-lifecycle.md)). It creates the change's working copy, on a branch of its own at the revision
    of the shared default line of work, as the clone last learned it, or runs in the managed working copy it is started
@@ -99,8 +98,7 @@ change to its repository and still takes a newer version of it in one reviewed c
    substituted into whole elements of its argument list, and as environment values; a prompt and a handoff's text
    receive them as plain text.
 5. A recipe declares the contracts, worker roles and lanes it requires. The binary checks them when the recipe is added
-   and before each run, and a missing one is a missing prerequisite, named before any step runs
-   ([0023](0023-core-and-contracts.md)).
+   and before each run, and a missing one is a missing prerequisite, named before any step runs.
 6. What a recipe can and cannot change about the lifecycle's guards, how a run reads its recipe, how a run a worker
    drives treats its handoffs, and what a failed attempt step leaves, are invariants.
 7. A run that stops fires the blocked event with the step and the reason ([0015](0015-development-lifecycle.md)) and
@@ -114,11 +112,11 @@ change to its repository and still takes a newer version of it in one reviewed c
 8. A recipe reaches a repository as a copy, made on a person's request, and the copy is the repository's own from then
    on: its team edits it like any of its files, and a run follows the copy as the repository holds it. The copy records
    its origin, the cookbook, version and content hash it came from, and a newer version reaches it through a merge that
-   keeps the team's changes. Adding and updating a recipe verify it as
-   [0026](0026-cookbook-trust.md) decides. A station may pin recipes it adds, each by its content hash, as it pins its
-   ingredients, and applying it copies them in the same change ([0024](0024-ingredients-and-stations.md)).
-9. A loop runner can run a recipe for each task, through the same caller interface as the attempt command
-   ([0022](0022-tool-integration.md)). Each task is then one run, in a working copy bound to that task. The attempt
+   keeps the team's changes. Adding and updating a recipe verify content before copying it. A station may pin recipes
+   it adds, each by its content hash, as it pins its
+   ingredients, and applying it copies them in the same change.
+9. A loop runner can run a recipe for each task, through the same caller interface as the attempt command. Each task
+   is then one run, in a working copy bound to that task. The attempt
    command stays the primitive that scripts call and that attempt steps use.
 10. Work that changes nothing in the repository, such as watching a running system, is not a recipe: it has no working
     copy, no proof and nothing to deliver. Acting on what such work finds is one: a recipe whose inputs carry the
@@ -175,8 +173,7 @@ change to its repository and still takes a newer version of it in one reviewed c
 - **5.** A recipe written for one repository reaches others through a cookbook or a station (point 8), and their
   contracts, workers and lanes differ. Checking its requirements when it is added shows the gap in the review of the
   change that adds it; checking again before each run catches a requirement the repository has lost since, before any
-  step changes the working copy. Naming the missing piece is what [0023](0023-core-and-contracts.md) does for every use
-  case that needs something the repository lacks.
+  step changes the working copy. Naming the missing piece identifies the prerequisite this record requires.
 - **6.** A recipe is a file of the repository, which a worker in an attempt can edit (Context). Rules about what such a
   file may change in the guards, and about where a run reads it from, are never a legitimate choice, so they are
   invariants, out of the reach of the repository's data.
@@ -198,7 +195,7 @@ change to its repository and still takes a newer version of it in one reviewed c
   (Context), gives an update the version it needs to tell the team's changes from the cookbook's. A station that relies
   on a recipe, such as one whose loop runner runs a recipe for each task, adds it in the same change, so its entries
   never name a recipe the repository lacks. It pins each recipe by content hash, as it pins its ingredients, so the
-  recipe it copies is the one its own version was published with, verified as [0026](0026-cookbook-trust.md) decides.
+  recipe it copies is the one its own version was published with, verified against that content hash.
   The trade: a cookbook's fix to a recipe reaches a repository only when someone there updates the copy.
 - **9.** A loop runner runs one command for each task, and through the attempt command an attempt fires nothing in a
   working copy bound to no task (Context). Through the same caller interface, a recipe run gives each task its own
@@ -217,8 +214,7 @@ change to its repository and still takes a newer version of it in one reviewed c
 The repository pins each recipe by cookbook, version and content hash, as it pins an ingredient, and runs it from the
 verified cache. At its best, a fix to a recipe reaches a repository with one move of its pin, and no merge is ever
 needed. It loses because a recipe is a practice a team adapts (Context): bytes fixed by a hash cannot be edited, so
-adapting one means publishing a cookbook of one's own, or override rules a person must learn: the inheritance that
-[0024](0024-ingredients-and-stations.md) rejects for shared entries, and that a
+adapting one means publishing a cookbook of one's own, or override rules a person must learn: the inheritance that a
 shareable configuration loaded on every run brings (Context). The steps a run follows would also sit in a per-user
 cache, not among the files a reviewer and a worker read. Each repository still
 reviews every move of the pin, so only the merge is saved.
@@ -312,7 +308,7 @@ Must be maintained:
 - The recipe schema, the closed set of step kinds with their rules, and the run record with the recipe content it
   holds, as part of the public contract.
 - The check of a recipe's requirements when it is added and before each run.
-- The caller interface of a recipe run, beside the attempt command's ([0022](0022-tool-integration.md)).
+- The caller interface of a recipe run, beside the attempt command's.
 
 ## Confirmation
 

@@ -51,8 +51,7 @@ state each promise and how it changes.
   tool), the generated-file header, the manifest location, and the format of the release's signed checksum file. Why:
   each of these is read by scripts, workers, policy entries, ingredients, stations, recipes, other tools' configuration
   or other repositories, and changes there break them. The attempt command and the run command are named in files such
-  as a loop runner's configuration, which a repository keeps unchanged across upgrades of `the-cook`
-  ([ADR 0022](../adrs/0022-tool-integration.md)).
+  as a loop runner's configuration, which a repository keeps unchanged across upgrades of `the-cook`.
 - Human-readable output text is not part of the contract and may change in any release, because people read it and
   JSON exists for programs.
 
@@ -100,7 +99,7 @@ ingredient's pin, that is, changes its `version` and `sha256`; moving the releas
 not an input to rendering: its pins, entries and templates take effect only once they are written into the repository's
 files, and from then on they are the repository's own. Why: a check whose result changes when someone else publishes a
 change fails pipelines that changed nothing, and an entry that changes without a change in the repository cannot be
-explained from the repository ([ADR 0022](../adrs/0022-tool-integration.md)).
+explained from the repository.
 
 - Moving an ingredient's pin with `the-cook ingredient pin` renders in the same change, so the newer version's renders
   and floor reach review as one diff with the pin.
@@ -188,8 +187,7 @@ is worse than none.
 - `the-cook` supports any worker a repository describes with an ingredient it pins. The
   [worker contract](../features/ingredients.md#the-worker-contract) such an ingredient fills is public.
 - Every supported version range lives in the checks of the ingredient that describes the program. A program no
-  ingredient in use describes has no range, because the binary contains code and data for no program
-  ([ADR 0022](../adrs/0022-tool-integration.md)).
+  ingredient in use describes has no range, because the binary contains code and data for no program.
 - `the-cook doctor` runs the version command of each ingredient in use and reports each program outside its ingredient's
   range as a finding (exit 2), naming the version found and the range supported. `the-cook` never renders silently for
   an unsupported version, because output rendered for a format the program no longer reads fails without a message.
@@ -261,19 +259,19 @@ owners depend on them as they are.
 | A hosting platform's issues, projects, boards, comments, reviews and labels as the record of work | never written; the binary has no logic for the platform that hosts the team's work; task state `the-cook` creates stays clone-local; linking work to issues is a coding agent's job |
 | Pull requests, pushes, CI conventions and notification channels | produced only by actions the repository declares in `hooks.yaml`; the binary ships none |
 | MCP servers a worker is configured to use | never contacted by `the-cook`; work that needs them is an `attempt` action or the job of the [coordinating worker](../features/lifecycle.md#the-lifecycle-stage-by-stage) |
-| A task tracker's existing data | never read, initialised or configured by the binary; actions the repository declares, such as those a station applied for the tracker, run the tracker's commands on it, and what they write travels wherever the repository synchronises it ([ADR 0022](../adrs/0022-tool-integration.md)) |
-| A loop runner's repository and global configuration | never read; a station's template writes the loop runner's repository file only when it is absent, and from then on it is the repository's file. Why: the binary reads no program's configuration; a bypass argument set there reaches `the-cook attempt`, which refuses it at the first task ([ADR 0022](../adrs/0022-tool-integration.md)) |
-| A loop runner, a tracker or a script around them that a person runs outside the binary | neither detected nor prevented; the invariants hold for what the binary renders and for every worker the binary starts (`the-cook attempt`, `attempt` actions) ([ADR 0022](../adrs/0022-tool-integration.md)) |
+| A task tracker's existing data | never read, initialised or configured by the binary; actions the repository declares, such as those a station applied for the tracker, run the tracker's commands on it, and what they write travels wherever the repository synchronises it |
+| A loop runner's repository and global configuration | never read; a station's template writes the loop runner's repository file only when it is absent, and from then on it is the repository's file. Why: the binary reads no program's configuration; a bypass argument set there reaches `the-cook attempt`, which refuses it at the first task |
+| A loop runner, a tracker or a script around them that a person runs outside the binary | neither detected nor prevented; the invariants hold for what the binary renders and for every worker the binary starts (`the-cook attempt`, `attempt` actions) |
 | Workspaces a worker keeps in its own directories | the worker's; never scanned or cleaned |
 | A generator the repository already uses (a framework's command that creates a module or a migration, a task-runner task) | never replaced or read; a recipe's `run` step calls it by its argument list, and it keeps working without `the-cook` |
-| A task runner's tasks and tool list (its configuration files, a `Makefile`, `package.json` scripts) | never read or written, though a file's presence can match the detect rule of an ingredient or a station; a task that runs `./cook` is the repository's own; a `the-cook` a tool installs globally defers to `wrapper.yaml` inside the repository ([ADR 0022](../adrs/0022-tool-integration.md)) |
+| A task runner's tasks and tool list (its configuration files, a `Makefile`, `package.json` scripts) | never read or written, though a file's presence can match the detect rule of an ingredient or a station; a task that runs `./cook` is the repository's own; a `the-cook` a tool installs globally defers to `wrapper.yaml` inside the repository |
 | A `.cook/` directory another program created | never written; `the-cook scaffold` refuses with exit 3 and names the conflict |
 | Another program named `the-cook` earlier on `PATH` | `./cook` always runs its own pinned binary from its cache, so wrapper invocations are unaffected; only the optional global command can be shadowed, and `the-cook doctor` reports it as a note |
 | The version control system's hook settings and hook managers | never changed |
 | A worker's instructions file with content | left as written; only the managed block its ingredient renders is added |
 | Sections other tools write into `AGENTS.md`, and entries other tools or people write into the version control system's ignore file | untouched; `the-cook` writes only inside its own markers |
 | `.agents/` content from other tools and people (skills a skills installer put there, memory, commands, `REVIEW.md`) | untouched; `the-cook` owns only `.agents/skills/the-cook/` and never puts its configuration or state in `.agents/` |
-| A skills installer's lock file | never read or written; standing context delivers a skill as the file committed under `.agents/skills/` ([ADR 0022](../adrs/0022-tool-integration.md)) |
+| A skills installer's lock file | never read or written; standing context delivers a skill as the file committed under `.agents/skills/` |
 | A worker's own description-based skill loading | left as it is; a skill injected by standing context may also load by its description, so injected skills are written to read correctly twice ([skills-standards.md](skills-standards.md#skills-used-as-standing-context)) |
 | A global `the-cook` install of another version | defers to the repository's pin inside the repository; runs itself elsewhere |
 | Hand-written worker settings | merge-rendered: the renders of each worker's ingredient own their keys, everything else is preserved |

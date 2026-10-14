@@ -142,12 +142,12 @@ change what a repository's changes go through without any change to the reposito
 the repository. A copied recipe is the repository's own: its `origin` records where it came from, and
 `./cook recipe update <name> --cookbook <source>@<version>` merges a newer version into the copy as a diff to review.
 Copying loses no safety: a recipe can only add steps, lanes and requirements, and the guards and the floor stay in the
-binary and the ingredients ([ADR 0024](../adrs/0024-ingredients-and-stations.md), [ADR 0025](../adrs/0025-recipes.md)).
+binary and the ingredients ([ADR 0025](../adrs/0025-recipes.md)).
 
 ### Can I use my own version control system or worker?
 
-Yes. Nothing in the binary sets any program apart: it contains code and data for no external program
-([ADR 0022](../adrs/0022-tool-integration.md)). A version control system needs an ingredient that fills the
+Yes. Nothing in the binary sets any program apart: it contains code and data for no external program. A version
+control system needs an ingredient that fills the
 [version-control contract](ingredients.md#the-version-control-contract), named with `vcs:` in the profile; a worker
 needs an ingredient that fills the [worker contract](ingredients.md#the-worker-contract), and a jail around a worker's
 attempts one that fills the [jail contract](ingredients.md#the-jail-contract). The version-control contract asks little
@@ -161,7 +161,7 @@ repository pins it with `./cook ingredient pin`. Reviewing the pin is the trust 
 
 Yes, with any that runs a command. The binary contains code for no external program; every program reaches a repository
 as data: an ingredient's renders, a station's entries and templates, a recipe's steps, a declared command or a lifecycle
-action ([ADR 0022](../adrs/0022-tool-integration.md)). A loop runner names
+action. A loop runner names
 `./cook make <recipe> --task <id> --unattended`, or `./cook attempt <worker>`, as the command it runs for each task. A
 tracker is updated by lifecycle actions on `start`, `completed` and `blocked` that read `COOK_TASK` and `COOK_ACTOR` in
 a workspace created with `--task`. A station can write those entries for you, and add the recipe the loop runner runs,
@@ -370,7 +370,7 @@ on another machine. The core needs nothing for that ([ADR 0027](../adrs/0027-wor
 Not under `the-cook attempt`. It refuses every argument the worker's ingredient marks as a floor bypass argument with
 exit 1 naming the argument, so a loop runner configured to pass one fails at its first task. A worker a person starts
 some other way, for example from their own loop-runner configuration, is outside `the-cook`, which neither detects nor
-prevents it ([ADR 0022](../adrs/0022-tool-integration.md)).
+prevents it.
 
 ### Why does an attempt replay verification instead of trusting the receipt?
 

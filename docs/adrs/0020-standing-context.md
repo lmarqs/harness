@@ -28,8 +28,7 @@ the sessions that do not need it.
 - Interactive sessions and attempts need different directives: a rule for how a worker in an attempt reports a blocked
   task means nothing to a person at the terminal.
 - A repository's skills are files under `.agents/skills/`, committed like its other files, whether a person wrote them
-  or the team installed them with a tool of its choice
-  ([0022](0022-tool-integration.md)).
+  or the team installed them with a tool of its choice.
 - Text added to a worker's context acts as instructions. A source that someone can change without review is a channel
   for instructions. A worker in an attempt can write files in its working copy, skills and directive files included.
 - A hook invocation adds at most 50 ms at p95, and hooks do nothing on a
@@ -84,7 +83,7 @@ the sessions that do not need it.
   survives an eject. Delivering it by hook as well would pay its cost twice.
 - **4.** Delivered text acts as instructions, so it may come only from sources that are reviewed: files committed in the
   repository, and a committed skill is one like any other. How a skill got there is the team's own step, and the binary
-  reads no other tool's files, such as an installer's lock file ([0022](0022-tool-integration.md)), so the commit is
+  reads no other tool's files, such as an installer's lock file, so the commit is
   what makes a skill reviewed. Fetching at hook time would make each hook depend on the network and the 50 ms budget,
   and would deliver content no one reviewed. Reading from the base commit for
   unattended workers means a worker cannot rewrite the instructions of its next attempt at a task, as with the rest of

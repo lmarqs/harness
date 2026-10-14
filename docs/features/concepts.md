@@ -50,8 +50,7 @@ the programs that do the work, and recipes take one kind of change through it.
 `blocked` fires out of band, at any stage where work stops unfinished or needs a person. The guards between stages, the
 receipt, the replay, the floor and the attempt contract are the core, and none of them is about one kind of program.
 The facts that make a particular worker safe, such as the arguments that start a coding agent unattended or bypass its
-permission checks, are data in that worker's ingredient ([ADR 0015](../adrs/0015-development-lifecycle.md),
-[ADR 0023](../adrs/0023-core-and-contracts.md)).
+permission checks, are data in that worker's ingredient ([ADR 0015](../adrs/0015-development-lifecycle.md)).
 
 ### A recipe run: one pass of one change
 
@@ -162,14 +161,13 @@ repository. Rendering reads nothing else and needs no network once
 the pinned ingredients are cached, so the same commit renders the same bytes on every machine, and people and workers
 learn what a repository does by reading its files. The binary contains code for no program and data for none either:
 every program it starts, calls or writes files for, the version control system and the workers included, is described by
-an [ingredient](ingredients.md) ([ADR 0022](../adrs/0022-tool-integration.md),
-[ADR 0023](../adrs/0023-core-and-contracts.md)).
+an [ingredient](ingredients.md).
 
 ### Ingredients, stations, recipes and cookbooks
 
 A cookbook publishes three kinds of unit, each named and versioned, and one rule separates them: facts about programs
 are pinned and rendered; practices are copied and become the repository's own
-([ADR 0024](../adrs/0024-ingredients-and-stations.md), [ADR 0025](../adrs/0025-recipes.md)).
+([ADR 0025](../adrs/0025-recipes.md)).
 
 | Unit | What it is | How a repository holds it | When it acts |
 | --- | --- | --- | --- |
@@ -418,8 +416,7 @@ turned off by any repository file. They are rules of the process, built
 into the binary. The facts about a program they apply, such as which arguments bypass a worker's permission checks or
 which command rewrites the default branch, are [floor](ingredients.md#the-floor) rules of that program's ingredient:
 rendered on every render, never written into the policy and out of its reach. A worker a person starts some other way,
-such as from their own loop-runner configuration, is outside them: `the-cook` neither detects nor prevents it
-([ADR 0022](../adrs/0022-tool-integration.md)).
+such as from their own loop-runner configuration, is outside them: `the-cook` neither detects nor prevents it.
 
 1. Workers `the-cook attempt` starts never run with permission bypass: every argument the worker's ingredient marks as a
    floor bypass argument is refused with exit 1, naming the argument.

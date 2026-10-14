@@ -17,7 +17,7 @@ reader can check that for each tool before adopting.
 below. It never reconfigures state it did not create and never writes knowledge. The binary contains code for no
 external program and ships no ingredient, station or recipe: the [ingredients](ingredients.md) the repository pins from
 a cookbook describe version control, every worker and every other program, and the binary has no code for any loop
-runner, task tracker, skills installer, task runner or hosting platform ([ADR 0022](../adrs/0022-tool-integration.md)).
+runner, task tracker, skills installer, task runner or hosting platform.
 A program reaches a repository as data: an ingredient's renders, a station's entries and templates, a recipe's steps, a
 command the profile declares, or a lifecycle action. What `the-cook` sets up does not depend on it either: every
 convention is written down in plain text, and an eject keeps it.

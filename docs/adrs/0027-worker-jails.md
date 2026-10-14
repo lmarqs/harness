@@ -57,7 +57,7 @@ while the binary's own work and its guards stay outside the confinement and out 
   code the worker wrote, such as a test the worker added or a script a lane calls.
   The later steps of a recipe run run on the same content ([0025](0025-recipes.md)).
 - The binary resolves every ingredient an attempt uses from the per-user cache before the worker starts, and nothing
-  downloads during an attempt ([0022](0022-tool-integration.md)). The tool's commands that a worker runs, such as a
+  downloads during an attempt. The tool's commands that a worker runs, such as a
   verification and the hooks, load the pinned release and the ingredients from that cache.
 - A worker program reads its login and its settings from the person's home, in places that differ per program. A jail
   with a fresh home sees none of them unless something shares them.
@@ -76,8 +76,8 @@ while the binary's own work and its guards stay outside the confinement and out 
    command runs it on its own, for a lifecycle action or as a recipe step. The binary starts no interactive session, so
    no jail wraps one: a person who wants a session confined starts it inside the jail, and the rendered files apply
    there as they do without one.
-2. The core declares a third contract, the jail contract, beside the version control and worker contracts
-   ([0023](0023-core-and-contracts.md)). A jail ingredient gives the jail's launch, the arguments that share one
+2. The core declares a third contract, the jail contract, beside the version control and worker contracts. A jail
+   ingredient gives the jail's launch, the arguments that share one
    directory with write access, the arguments that share one directory read-only, and either the arguments that pass
    one variable or the statement that the jail keeps the environment it is started with, exactly one of the two. Where
    the jail has them, it also gives the arguments that share the jail's working directory read-write and start the
@@ -139,8 +139,8 @@ while the binary's own work and its guards stay outside the confinement and out 
   and they are what the binary starts; it starts no interactive session, so it has none to wrap, and a person in a
   session can see what the worker does. The trade: an interactive session is confined only when a person starts it so.
 - **2.** A jail's arguments are facts about its program, and they differ between programs (Context), so an ingredient
-  holds them, pinned and reviewed like any program's facts ([0022](0022-tool-integration.md),
-  [0026](0026-cookbook-trust.md)), and the core holds only what they mean and their order. Both kinds of share and one
+  holds them, pinned and reviewed like any program's facts, and the core holds only what they mean and their order.
+  Both kinds of share and one
   way to pass variables are required because without them the binary cannot open the writable directories, keep the
   metadata out of the worker's reach or pass the marks (point 4). The working-directory share is optional because some
   jails share the directory they start in by themselves and others take arguments for it (Context); the separator and
@@ -184,15 +184,15 @@ while the binary's own work and its guards stay outside the confinement and out 
   worker wrote, outside the jail.
 - **6.** Where the metadata lives is a fact of the version control system and of the working copy's layout, and it is
   not one place in every layout (Context), so the version control ingredient answers it, as the contract answers every
-  question about history ([0023](0023-core-and-contracts.md)). It is optional because only a jail needs it: a
+  question about history. It is optional because only a jail needs it: a
   repository with no jailed worker needs nothing new from its version control ingredient. A jailed worker without it
   fails validation because the metadata would then stay writable inside the jail, and the binary's own commit, outside
   the jail, would run the hooks and configuration the worker wrote (Context): the binary would undo the confinement
   itself.
 - **7.** Each refused state is one in which the jail would confine less than the declaration says, or the binary could
   not keep the guarantees of points 3 to 6. Validating the repository's data before anything runs, as for every
-  declaration, stops it before any worker starts ([0023](0023-core-and-contracts.md)). A missing program or an uncached
-  ingredient is a step a person takes, reported as for a worker ([0022](0022-tool-integration.md)).
+  declaration, stops it before any worker starts. A missing program or an uncached
+  ingredient is a step a person takes, reported as for a worker.
 
 ## Rejected alternatives
 
@@ -212,8 +212,7 @@ The worker declaration holds a list of arguments that the binary puts before the
 jail works with no contract and no ingredient, and the repository writes exactly the command a person would type. It
 loses because the binary cannot place the worker's launch where the jail expects it, cannot tell the jail's arguments
 from the worker's when it refuses bypass arguments, and cannot add the shares and pass the marks, and because every
-repository retypes the jail's facts instead of pinning them, where they drift as hand-kept configuration does
-([0022](0022-tool-integration.md)).
+repository retypes the jail's facts instead of pinning them, where they drift as hand-kept configuration does.
 
 ### Container images as jails
 
