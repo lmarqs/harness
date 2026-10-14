@@ -73,7 +73,6 @@ path, see [installation](installation.md) and the [root README](../../README.md)
 - [Repository checks and configuration](verify.md): check instructions beside native setup, run by the team's tools
 - [Task-tracker configuration](tasks.md): shared tracker configuration and guidance
 - [Workspace conventions and configuration](workspaces.md): workspace guidance in native configuration and instructions
-- [Agent configuration](workers.md): shared configuration for the programs people run
 - [Configuration across repositories](fleet.md): reusing recipes with each destination's own diff and approval
 - [Repository guidance and context](context.md): instructions, coding standards and skills
 - [Repository memory](memory.md): durable, reviewed repository knowledge

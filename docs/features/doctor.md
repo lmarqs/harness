@@ -19,7 +19,7 @@ Use the relevant evidence to investigate a problem:
 | Why is a different file changing? | Review declared paths and symlink resolution against the destination; see [destination and source paths](apply.md#destination-and-source-paths). |
 | Why is a value replaced? | The last recipe to write a section, key or file wins; see [ordered operations](apply.md#ordered-operations). |
 | Why does the program ignore a setting or instruction? | The program's native configuration rules and the ingredient's cookbook documentation decide what loads. |
-| Why did a write fail? | The batch record retains the failure log and patches; `./cook batch inspect <batchId>` shows its recipes, arguments, files and patches. |
+| Why did a write fail? | `./cook batch inspect <batchId>` shows the batch's failure log, files and retained patches. |
 | Why does a prior batch fail to revert? | Revert needs the batch record and writes nothing when a later edit overlaps; see [revert](revert.md#revert). |
 
 Writing configuration does not enforce its loading; check the program's supported settings and trust prerequisites.

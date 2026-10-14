@@ -27,7 +27,7 @@ Shared coding guidance lives in `.agents/skills/coding-guidelines/SKILL.md`.
 These paths and the region name are repository choices. The HTML comment markers bound the section and name its owning
 recipe and region; text outside the section stays in place, and changes follow the ordinary [batch diff and
 approval](apply.md). Writing a pointer does not guarantee that a program reads it or follows its instructions.
-Program-specific loading rules belong with the ingredient's cookbook reference; see [agent configuration](workers.md).
+Program-specific loading rules belong with the ingredient's cookbook reference; see [ingredients](ingredients.md).
 
 ## Sources and trust
 

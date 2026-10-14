@@ -226,7 +226,10 @@ hand.
 
 ### Destination and source origins
 
-The invocation's current working directory is the destination, regardless of where the Cook executable lives.
+The invocation's current working directory is the destination, regardless of where the Cook executable lives. Cook
+never searches parent directories or asks version control for the destination
+([core and contracts ADR](adrs/0023-core-and-contracts.md)). An existing directory inside the destination is a valid
+target even when Cook did not create it ([directory layout ADR](adrs/0014-directory-layout.md)).
 Declared writes and deletions stay within that directory, including paths resolved through symlinks. A target that
 reaches outside the destination through a symlink is outside the permitted output boundary (FR-21). See the
 [write boundary ADR](adrs/0012-write-boundary.md).

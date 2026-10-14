@@ -28,7 +28,7 @@ suffix when two batches start in the same second.
 | Apply, implicit or explicit | One or more recipes, with arguments for each | Declared additions and updates against current content, and removal of what each recipe's previous version owned and no longer declares |
 | Revert | One batch ID | Use the batch's reverse patches against current content; recipes are not evaluated again |
 | Batch list | None | Show the recorded batches; read only |
-| Batch inspect | One batch ID | Show one batch's recipes, arguments, files, and patches; read only |
+| Batch inspect | One batch ID | Show one batch's recipes, arguments, files, patches and, for a failed batch, its failure log; read only |
 
 The [architecture](../architecture.md#apply-discard-and-revert) defines these operations, including the deferred
 discard; [apply](apply.md) and [revert](revert.md) explain them with examples.

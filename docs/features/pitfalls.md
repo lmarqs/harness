@@ -131,8 +131,8 @@ terms.
 - **Symptom.** Project hooks or rules do not take effect in another working copy.
 - **Why.** Loading settings and inheriting trust are program-specific; a nested folder does not guarantee either.
 - **Cook's responsibility.** Write declared configuration.
-- **What you do.** Inspect that program's lookup and trust rules in the actual folder. See [agent
-  configuration](workers.md).
+- **What you do.** Inspect that program's lookup and trust rules in the actual folder. See [workspace
+  conventions](workspaces.md).
 
 ### A native hook has missing dependencies or a different working directory
 

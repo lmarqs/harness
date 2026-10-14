@@ -14,7 +14,7 @@ see the [root README](../../README.md) and [core implementation guide](../../cor
 
 | Term | Meaning |
 | --- | --- |
-| Agent harness | A program that runs an agent and consumes its native configuration and guidance. See [agent configuration](workers.md). |
+| Agent harness | A program that runs an agent and consumes its native configuration and guidance. See [ingredients](ingredients.md). |
 | Agent-content directory | A repository convention such as `.agents/` for skills, memory and guidance. Program support determines what is consumed. |
 | Apply | The operation that evaluates supplied recipes against current content and proposes their declared additions and updates, with removal of what each recipe's previous version owned and the supplied version no longer declares. See [apply](apply.md). |
 | Batch | An ordered collection of declared file operations, reviewed as one final diff and approved as a whole. It can include directory and symlink operations, but external command execution is not a batch action. |

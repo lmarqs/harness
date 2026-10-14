@@ -38,7 +38,7 @@ recipe's output: revert the batches that applied the recipe.
 ```
 
 Batch options precede the batch ID. `batch list` shows the recorded batches, and `batch inspect` shows one batch's
-recipes, arguments, files, and patches; both only read. The [CLI reference](cli.md) defines the grammar and
+recipes, arguments, files, patches and, for a failed batch, its failure log; both only read. The [CLI reference](cli.md) defines the grammar and
 `--batch-approve`.
 
 ## Revert
