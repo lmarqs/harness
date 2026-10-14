@@ -18,7 +18,7 @@ a tracker, and Complete, where the `completed` guard decides when a task counts 
 `the-cook` binds a [managed workspace](workspaces.md) to a task and fires [lifecycle events](lifecycle.md) around the
 work on it. It contains no code for any task tracker: it never reads or writes a tracker's data and never checks that a
 task id exists. A tracker is wired by actions the repository declares on the events `start`, `completed` and `blocked`,
-which read the task id and the actor from the environment ([ADR 0022](../adrs/0022-tool-integration.md)).
+which read the task id and the actor from the environment.
 
 The feature has three parts:
 
@@ -255,7 +255,7 @@ Create workspaces without `--task` and declare no tracker actions; workspaces an
   declares.
 - A tracker's data in the clone, including data synchronised across machines or tracked in version control, is the
   tracker's own: `the-cook` neither reads nor configures it, and what the actions write into it travels where its
-  synchronisation sends it ([ADR 0012](../adrs/0012-write-boundary.md)).
+  synchronisation sends it.
 - `the-cook` installs and changes no version-control hooks.
 
 See [compatibility](compatibility.md#task-trackers).

@@ -20,7 +20,7 @@ files say, and a team can describe a new program without waiting for a release o
 the guards that hold between stages and the proof a change carries ([lifecycle](lifecycle.md)). The binary knows no
 program. A stage that needs one reaches it through one of the three [contracts](#contracts) the binary declares, or
 through an action the repository declares. An ingredient is a named, versioned description of one program, in data the
-binary interprets ([ADR 0022](../adrs/0022-tool-integration.md)). It holds up to four parts:
+binary interprets. It holds up to four parts:
 
 | Part | What it is | When it acts |
 | --- | --- | --- |
@@ -74,7 +74,7 @@ templates) → [the template language](ingredients.md#the-template-language) →
 ### Operations
 
 Operations are what the binary asks of a program and how it starts one. They fill one of the three
-[contracts](#contracts) the binary declares ([ADR 0023](../adrs/0023-core-and-contracts.md)):
+[contracts](#contracts) the binary declares:
 
 - the [version-control contract](#the-version-control-contract), filled by one ingredient per repository, the one the
   profile's `vcs:` names;
@@ -101,7 +101,7 @@ file, when it needs one, and renders them only for the workers that name it; a v
 ignore rules for the [state paths](profile.md#state-paths).
 
 The binary renders its own content with no ingredient: `cook`, the shipped skill, the blocks of `AGENTS.md` and
-`README.md`, and the manifest ([what render writes](render.md#what-render-writes)). When an ingredient leaves
+`README.md`, and the manifest. When an ingredient leaves
 `ingredients:`, or a worker leaves `workers`, the next render removes what was rendered for it.
 
 ### The floor
@@ -128,8 +128,8 @@ past every rule.
 The process that applies the floor belongs to the binary, because it is about the lifecycle and not about a program:
 refusing bypass arguments before a launch, rendering the deny rules into every worker's output, replaying from the
 base, withholding completion, the tamper check, and its own `unattended.deny` entry `[the-cook, lifecycle]`, which
-names the binary's own command ([concepts](concepts.md#built-in-invariants),
-[ADR 0011](../adrs/0011-safety-invariants.md)). The `policy` block of `AGENTS.md` lists each floor rule with the
+names the binary's own command ([concepts](concepts.md#built-in-invariants)). The `policy` block of `AGENTS.md` lists
+each floor rule with the
 ingredient it comes from.
 
 A floor protects only while its ingredient is pinned: deleting an ingredient from `ingredients:` removes its floor
@@ -224,7 +224,7 @@ the checkout's git directory, the common directory and, in a linked workspace, i
 
 Version-control operations run outside any jail, with the person's environment, on files a worker may have written.
 An operation that would run code the checkout defines, such as hooks a version control program reads from a tracked
-directory, turns that code off where the program allows it ([ADR 0027](../adrs/0027-worker-jails.md)).
+directory, turns that code off where the program allows it.
 
 The binary finds the repository root itself, as the nearest directory upward that holds `.cook/config.yaml`, so
 reading the profile never needs this contract; workspace, base and history operations do. A command that needs the
@@ -238,8 +238,8 @@ command exits 3 and names the program.
 One ingredient per declared worker fills this contract: the ingredient `workers.<name>.ingredient` names, by default
 the ingredient named like the worker. A worker is any program that changes the repository for someone, such as a
 coding agent, a bot or a codemod. Adding a worker means pinning an ingredient that fills this contract and declaring
-the worker; the policy, the hooks file and the other ingredients do not change
-([ADR 0009](../adrs/0009-agent-support.md)). Every item is optional except `launch.command`, because a program with no
+the worker; the policy, the hooks file and the other ingredients do not change. Every item is optional except
+`launch.command`, because a program with no
 permission prompts, hooks or instruction file still runs as a worker:
 
 | Item | Declares | When the ingredient leaves it out |
@@ -276,8 +276,7 @@ own paths, so the worker program, the version-control program and `the-cook` ins
 A worker declaration that names a jail, `workers.<name>.jail` ([workers](workers.md#jails)), has the binary start the
 worker of each of its attempts through that jail: under `the-cook attempt`, an `attempt` action and a recipe's
 `attempt` step. The binary never starts an interactive session, so no jail wraps one: a person who wants a session
-confined starts it inside the jail, and the rendered files apply there as they do without one
-([ADR 0027](../adrs/0027-worker-jails.md)).
+confined starts it inside the jail, and the rendered files apply there as they do without one.
 
 A container image and another machine are not jails. An image brings its own copies of the programs, so the version
 checks, the floor and the renders would describe a program other than the one that runs, and the binary would need a
@@ -597,8 +596,7 @@ With `--json`, the output lists each entry added or moved, with its previous ver
 
 Files read: `.cook/config.yaml`, the tag's `checksums.txt` and the named archives, and everything
 [`render`](render.md#reference) reads. Files written: `$COOK_HOME/cookbook/<sha256>.tar.gz` for each verified archive;
-`ingredients:` in `.cook/config.yaml`; then every file `render` writes
-([what render writes](render.md#what-render-writes)).
+`ingredients:` in `.cook/config.yaml`; then every file `render` writes.
 
 ### `the-cook fetch`
 
@@ -679,7 +677,7 @@ workers. A string that matches a pattern of any declared worker is never a bare 
 any declared worker is a bare string, shorthand for a shell command rule. The binary holds no rule syntax of its own.
 
 The binary refuses an ingredient whose `schema` or `contract.version` is newer than it supports, with exit 1 naming
-the release needed, and reads older ones inside its support window ([ADR 0005](../adrs/0005-schema-compatibility.md)).
+the release needed, and reads older ones inside its support window.
 `the-cook version` prints the ingredient and station schemas and the contract versions the running release supports.
 
 Unknown keys are an error, and so are `entries` and `templates`, which only a station holds. A command, in `checks` or
@@ -730,7 +728,7 @@ The values a template reads:
 | `state_dir`, `workspaces_dir` | `state.dir` and `workspaces.dir` from the profile |
 | `default_branch` | the default branch the version-control ingredient reports |
 
-A hook's `command` is the [hook command](render.md#the-hook-command), which finds the wrapper through the
+A hook's `command` is the hook command, which finds the wrapper through the
 version-control ingredient's `root` operation.
 
 #### An example ingredient

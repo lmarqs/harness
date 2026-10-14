@@ -26,7 +26,7 @@ signal the caller expects is text the caller hands to `the-cook attempt`, which 
 
 `the-cook attempt` is the command a **loop runner** runs for each task. A loop runner is a third-party program that
 works through a list of tasks and starts a worker for each. `the-cook` has no code for any loop runner: it does not
-start one, read its configuration or know when a run starts or ends ([ADR 0022](../adrs/0022-tool-integration.md)). An
+start one, read its configuration or know when a run starts or ends. An
 unattended run of a loop runner whose command for each task is `the-cook attempt <worker>` or
 `the-cook make <recipe> --unattended` is a **loop run**. A station that uses a loop runner, applied from a cookbook,
 seeds its configuration with `./cook attempt`, or with `./cook make <recipe> --task <id> --unattended`, as that command

@@ -42,7 +42,7 @@ version the repository chose, with no installation step before the first command
   fetch it.` Every other implicit entry point prints only its stderr line. The wrapper prints both lines itself, as
   fixed text from its template, selected by the event the hook names. Why: the worker learns once per session why hooks,
   notifications and standing context are absent, without a message on every tool call, and only the wrapper is present
-  to say it ([ADR 0017](../adrs/0017-engine-version.md)).
+  to say it.
 - Documentation, help examples, the `AGENTS.md` and `README.md` `commands` blocks and the shipped skill write commands
   that run inside a repository as `./cook <command>`, and show `the-cook <command>` as the equivalent when `the-cook`
   is installed globally. Commands that span repositories (`the-cook fleet …`) are written with `the-cook`. Why: a
@@ -66,8 +66,7 @@ for one task, and inside an `attempt` action, the unattended run of a worker tha
 `COOK_ATTEMPT=1` in the worker's environment, and the binary checks it. It refuses both commands inside a step of a
 recipe run as well, where `COOK_RUN` is set, so a recipe never fires an event itself. The binary also enforces the
 [`deliver` guards](../features/lifecycle.md#built-in-guards) itself. Why: an absolute path or `sh cook` slips past any
-prefix rule, so policy entries are defence in depth and the binary is the enforcement
-([ADR 0011](../adrs/0011-safety-invariants.md)).
+prefix rule, so policy entries are defence in depth and the binary is the enforcement.
 
 ## Reference surface
 
@@ -120,7 +119,7 @@ the-cook hook
 | `remove` | undo: deletes owned content (without `--module`, `cook`, `wrapper.yaml` and the manifest included), the seeded repository files in `.cook/` and the recipes in `.cook/recipes/` (each listed first in its plan, so a person can keep a copy); deletes a seeded file outside `.cook/`, such as a memory skeleton file, only while it matches its recorded hash; lists and leaves any file the manifest does not record, and deletes `.cook/` once nothing else is in it; removes every managed block and owned native key and entry; writes imported project-scope settings back as plain native settings; leaves the state directories in place and lists them ([generated-content-standards.md](generated-content-standards.md#removal)) |
 | `remove --eject` | eject: stops managing and keeps the result. Convention blocks lose their markers and stay; tool blocks are removed; `.gitignore` entries stay; rendered native files and keys stay as hand-owned content without their headers; `raw` hooks stay; hooks that call `the-cook` and permission entries that name a `the-cook` command are removed and listed; the shipped skill and its links, `cook`, the owned and seeded files in `.cook/` and the recipes in `.cook/recipes/`, each listed first, are removed; a file the manifest does not record is listed and left, and `.cook/` is deleted once nothing else is in it. Not combined with `--module`; accepts `--force` |
 | `wrapper` | without flags, prints the pin, whether it is cached and the newest release, and writes nothing |
-| `wrapper --version <tag>`, `wrapper --latest` | the running binary fetches the target release's signed checksum file and verifies the signature with its embedded keys; only then does it download this platform's asset, verify its sha256, and have the new release write `version` and `checksums` into `.cook/wrapper.yaml` and render the repository: `cook`, the shipped skill and every other artefact the new release renders differently. Any failure exits 1 and writes nothing. The pin and its rendered effects reach review as one diff ([ADR 0017](../adrs/0017-engine-version.md)). `the-cook fleet wrapper --version <tag> --deliver` does the same across repositories |
+| `wrapper --version <tag>`, `wrapper --latest` | the running binary fetches the target release's signed checksum file and verifies the signature with its embedded keys; only then does it download this platform's asset, verify its sha256, and have the new release write `version` and `checksums` into `.cook/wrapper.yaml` and render the repository: `cook`, the shipped skill and every other artefact the new release renders differently. Any failure exits 1 and writes nothing. The pin and its rendered effects reach review as one diff. `the-cook fleet wrapper --version <tag> --deliver` does the same across repositories |
 | `explain <topic>` | prints the built-in documentation for one topic: `layout`, `profile`, `policy`, `hooks`, `lifecycle`, `context`, `adoption`, `verify`, `attempt`, `invariants`, `blocks`, `ingredients`, `stations`, `recipes`, `wrapper`, `safety`, `pitfalls` |
 | `context show` | prints, without writing anything, the standing context that would be injected for a role (`interactive` or `unattended`, default `interactive`), given the files read or edited (`--path`) and a prompt (`--prompt`), with the entry and trigger behind each item. It is a deterministic preview of what the hooks inject |
 | `ingredient list` | prints the ingredients `ingredients:` pins, with their pins, the contract each fills and whether each is cached; with `--cookbook <source>@<version>`, prints that tag's ingredients and which detect rules match the repository; writes nothing |
@@ -145,12 +144,12 @@ the-cook hook
 | `fleet <command> --deliver` | before the command, learns what is shared through the version-control contract's `update` (one note when the ingredient has none); after it, commits the tool-owned changes on a new local branch `<branch_prefix><command>` started at the revision of the shared default line of work, runs `the-cook verify` (no lanes are needed for a change outside `verify.app_paths`), then fires `deliver` (scope `change`) in that repository, running every declared `deliver` action for that scope |
 
 The binary contains no logic for the platform that hosts the team's work: no command and no flag pushes, opens a pull
-request or writes to a hosting platform by itself ([ADR 0012](../adrs/0012-write-boundary.md)). Those effects exist
+request or writes to a hosting platform by itself. Those effects exist
 only as declared actions ([principles.md](principles.md#7-nothing-leaves-the-clone-undeclared)). Why: delivery
 conventions differ per organization and platform, and a declared action is reviewed where the convention is decided.
 
-The binary contains code for no program, the version control system and the workers included
-([ADR 0022](../adrs/0022-tool-integration.md)). Each lifecycle stage that needs a program reaches it through the
+The binary contains code for no program, the version control system and the workers included. Each lifecycle stage
+that needs a program reaches it through the
 contract an [ingredient](../features/ingredients.md) fills
 ([configuration-standards.md](configuration-standards.md#ingredients-and-stations)), the commands the profile declares
 or the actions lifecycle events fire, and other programs call `the-cook` through its commands. Why: every team picks
@@ -180,19 +179,17 @@ each task through a recipe.
 - Before anything else, the attempt command resolves the version-control ingredient, the worker's ingredient and its
   jail's from the per-user cache, and uses that resolution for every read, comparison, reset and launch of the attempt.
   It never fetches. Why: an ingredient fetched during an attempt would hand the attempt to whoever controls its source,
-  and one read from the working tree would hand it to the worker ([ADR 0022](../adrs/0022-tool-integration.md)).
+  and one read from the working tree would hand it to the worker.
 - The attempt command's flags, exit codes, output and environment are a stable interface: changing one is a breaking
   change ([compatibility-standards.md](compatibility-standards.md#versioning)). Why: other tools' configuration names
-  them, and those files belong to repositories that upgrade `the-cook` at their own pace
-  ([ADR 0022](../adrs/0022-tool-integration.md)).
+  them, and those files belong to repositories that upgrade `the-cook` at their own pace.
 - The attempt command reads no configuration of the tool that starts it. Why: the attempt contract holds inside the
   command whoever starts it, so knowing the caller adds no guarantee, and a person can always start the caller some way
-  the binary cannot see ([ADR 0022](../adrs/0022-tool-integration.md)).
+  the binary cannot see.
 - A prompt on stdin carries the `always` entries of the `unattended` role, placed by the binary before the task text,
   and the session-start hook of that attempt adds none; a prompt among the worker arguments is passed unchanged. Why: a
   worker program may run no hook unattended, so the prompt is where the binary can be sure the entries arrive, and the
-  caller's arguments are the caller's, with no way for the binary to tell the prompt among them
-  ([ADR 0020](../adrs/0020-standing-context.md)).
+  caller's arguments are the caller's, with no way for the binary to tell the prompt among them.
 - Nothing in the binary knows when a run of a loop runner starts or ends. Events with scope `run`, and `blocked` for a
   task the loop runner gives up on, are fired by whoever drives the run with `the-cook lifecycle run`. Why: only the
   caller sees the run as a whole, and the attempt command fires events only for a task bound to its checkout.
@@ -324,7 +321,7 @@ Rules:
   `stations:`, pins the ingredients it lists and writes its entries and template files into the repository's own files,
   and has no inverse. Why: what it writes becomes the repository's own, like anything it wrote itself. It is changed or
   removed by editing the files, and removing `the-cook` deletes the entries with the seeded files in `.cook/` and leaves
-  the template files ([ADR 0013](../adrs/0013-organization-content.md)). Deleting the name from `stations:` changes
+  the template files. Deleting the name from `stations:` changes
   nothing rendered, because a station has no renders. `recipe add` and `recipe create` have no inverse either, for the
   same reason: a recipe is changed by editing its file and removed by deleting its directory, and removing `the-cook`
   deletes `.cook/recipes/` after listing each recipe.
@@ -612,7 +609,7 @@ Format and wording: [messages-and-docs.md](messages-and-docs.md#error-messages).
 - `the-cook lifecycle run` never asks for confirmation, and a lifecycle action fired automatically at its trigger point
   (`auto: true`) never asks either. The gate for workers is the policy. Scaffolded repositories seed
   `[the-cook, lifecycle, run, deliver]` under `ask`, rendered for every rendered spelling, as a seeded entry the
-  repository owns and may change ([ADR 0015](../adrs/0015-development-lifecycle.md)). Why: the declared action is the
+  repository owns and may change. Why: the declared action is the
   reviewed decision; the policy decides who may trigger it.
 - `the-cook recipe create` and `the-cook make` never ask. Why: `recipe create` writes only a skeleton, into a
   directory that did not exist, under the name a person typed, so there is nothing to accept but the request; a recipe
@@ -790,8 +787,8 @@ caller sees the correct form and where to read more.
   names the version found and the ingredient's supported range, so an unsupported version is found before it renders
   wrong output. A program no ingredient in use describes has no version check. `the-cook doctor` also reports a program
   that an ingredient, a declared command, lane, validator or action, or a recipe's `run` step, names and that is not on
-  `PATH`, and each contract no pinned ingredient fills, with the commands unavailable because of it
-  ([ADR 0022](../adrs/0022-tool-integration.md)). `the-cook ingredient list --cookbook <source>@<version>` shows which
+  `PATH`, and each contract no pinned ingredient fills, with the commands unavailable because of it.
+  `the-cook ingredient list --cookbook <source>@<version>` shows which
   ingredients of a tag detect their program in the repository.
 - Rules for what a version promises: [compatibility-standards.md](compatibility-standards.md).
 

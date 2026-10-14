@@ -6,18 +6,20 @@ alternatives that lose and why, and what the project maintains because of it.
 
 ## Authority
 
-ADRs are the source of truth for the architecture. The binary, the shipped skill, the [features](../features/) pages
-and the [user-experience standards](../ux/) follow them. When any of these disagrees with an ADR, that artifact is
-wrong and is corrected.
+[Cook architecture](../architecture.md) states the intended design. ADRs explain decisions and their reasons within
+that design; the [features](../features/) pages and [user-experience standards](../ux/) follow it too. When an ADR or
+standard conflicts with the architecture, correct the supporting document. An earlier decision does not override
+the agreed architecture.
 
 No two ADRs contradict each other. A point decided in one ADR is referenced from the others, never restated in
 different words.
 
 ## An ADR states what is true now
 
-An ADR has no status, no date and no history. It describes the decision in force, in the present tense. When a
-decision changes, its ADR is edited in the same pull request that changes the behaviour, and every ADR that references
-it is checked in that pull request. Git history holds the earlier versions.
+An ADR describes the intended decision in the present tense, without status labels or a chain of replacements.
+Correct contradictory definitions in place and review affected references. Documentation can record an agreed
+decision before implementation catches up; descriptions of current behaviour must remain accurate, and implementation
+progress belongs in issues. Git history holds the earlier versions.
 
 A decision that stops applying is deleted, together with every reference to it. Its number is not reused.
 
@@ -66,8 +68,8 @@ An ADR whose Reasons section does not cover every point is incomplete, whatever 
 ## When to write one
 
 Write an ADR for a decision that is hard to reverse or that constrains how other parts are built: the implementation
-language, the contract between the tool and the repositories that adopt it, what the tool may and may not write, how
-ownership of generated files is recorded, how releases are trusted.
+language, the contract between the tool and its destination, the boundaries on declared writes, how recovery
+information is recorded, how releases are trusted.
 
 Do not write an ADR for a feature, a command, a flag, a file field, a task or a plan. Those belong in the
 [features](../features/) pages and the [user-experience standards](../ux/). If a proposed ADR reads as a description of
@@ -89,8 +91,8 @@ One ADR holds one decision. If its points serve two decisions, it is two ADRs.
 
 - Present tense, no hedges.
 - No names of the tool's commands, flags, settings, environment variables, exit codes or files. Mechanisms are named
-  generically: the wrapper, the manifest, the drift check, the health check, the repository's data, an ingredient, a
-  station, a recipe. The [glossary](../features/glossary.md) and the [features](../features/) pages give the tool's own
+  generically: the wrapper, the batch, the recovery record, the destination, an ingredient, a recipe.
+  The [glossary](../features/glossary.md) and the [features](../features/) pages give the tool's own
   name for each. The directory layout ADR names directories because the layout is its decision.
 - A third-party product whose behaviour a decision depends on is named with the version that behaviour was checked
   against. Prior art and rejected tools are named without a version, because nothing depends on their behaviour.
@@ -146,31 +148,28 @@ Must be maintained:
 
 | ADR | Question | Decision |
 | --- | --- | --- |
-| [0001](0001-role-of-the-tool.md) | What is the tool's role? | The tool is a software development lifecycle, never a worker |
-| [0002](0002-division-of-work.md) | Which work does the binary do? | The binary does only deterministic work |
-| [0003](0003-implementation-language.md) | In what language, and as what artefact? | The tool is one executable written in Go |
-| [0004](0004-runtime-dependencies.md) | What does the binary need at runtime? | The binary needs only the operating system at runtime |
-| [0005](0005-schema-compatibility.md) | How do repository files, ingredients, stations and binaries stay compatible? | Repository files, ingredients and stations carry a schema version the binary enforces |
-| [0006](0006-repository-contract.md) | What does a repository hold? | A repository holds declarative data, never engine code |
-| [0007](0007-ownership.md) | How is ownership of generated content known? | A committed manifest records everything the tool owns |
-| [0008](0008-native-configuration.md) | How does the tool write files that workers and people share? | The tool owns only named keys inside shared native files |
-| [0009](0009-agent-support.md) | How are several workers supported? | Worker ingredients render worker-neutral sources into each worker's native files |
-| [0010](0010-dependence-on-the-binary.md) | What depends on the binary being installed? | Nothing in an adopted repository depends on the binary |
-| [0011](0011-safety-invariants.md) | Where do safety rules live? | Safety invariants are built into the binary, never configured |
-| [0012](0012-write-boundary.md) | What may the binary write? | The binary writes only content it owns |
-| [0013](0013-organization-content.md) | Where does organization-specific content live? | Organization-specific content lives in each repository's own files |
-| [0014](0014-directory-layout.md) | Where does each kind of file live? | Tool configuration, agent content and state have separate homes |
-| [0015](0015-development-lifecycle.md) | What abstraction is the binary built around? | The binary's core is a fixed software development lifecycle |
-| [0016](0016-permission-adoption.md) | What happens to existing permission rules at adoption? | Adoption keeps every native permission rule in effect |
+| [0001](0001-role-of-the-tool.md) | What is the tool's role? | Cook reviews and performs recipe-declared file operations |
+| [0002](0002-division-of-work.md) | How are recipe choices separated from batch execution? | Cook separates recipe choices from batch execution |
+| [0003](0003-implementation-language.md) | In what language, and as what artefact? | Cook retains its JVM stack |
+| [0004](0004-runtime-dependencies.md) | How is the runtime supplied? | Cook packages its Java runtime |
+| [0006](0006-repository-contract.md) | What does a repository hold? | Repositories hold trusted recipes separately from the shared engine |
+| [0007](0007-ownership.md) | What defines the scope of a file change? | Declared targets define changes reviewed against current content |
+| [0008](0008-native-configuration.md) | How does Cook edit shared native files? | Declared native-file targets preserve unrelated content |
+| [0009](0009-agent-support.md) | How are several agents configured? | Ingredients model each agent's native configuration |
+| [0010](0010-dependence-on-the-binary.md) | What depends on the binary being installed? | Native configuration remains usable without Cook |
+| [0011](0011-safety-invariants.md) | What do Cook's guarantees cover? | Cook's guarantees cover declared batch operations |
+| [0012](0012-write-boundary.md) | What may Cook write? | Cook confines declared batch operations to reviewed destination targets |
+| [0013](0013-organization-content.md) | Where do shared organization choices belong? | Cookbooks carry organization choices separately from the engine |
+| [0014](0014-directory-layout.md) | Where does each kind of file live? | Native output and local recovery history have separate homes |
+| [0016](0016-permission-adoption.md) | How are existing permission changes reviewed? | Existing permission changes receive explicit native-file review |
 | [0017](0017-engine-version.md) | Which release runs in a repository? | Each repository pins its engine release through a committed wrapper |
-| [0018](0018-conventions.md) | What remains when the tool is gone? | Conventions the tool establishes are written to outlive it |
-| [0019](0019-action-kinds.md) | What can a declared action do? | Declared actions are commands, HTTP requests or worker attempts |
-| [0020](0020-standing-context.md) | How does known guidance reach a worker? | Guidance enters worker context through declared deterministic triggers |
-| [0021](0021-release-trust.md) | How is a release trusted? | Only an already trusted binary admits a release |
-| [0022](0022-tool-integration.md) | How does the binary reach external programs? | Every program the binary uses is described by an ingredient |
-| [0023](0023-core-and-contracts.md) | How is the binary's code divided? | The binary is a core behind contracts it declares |
-| [0024](0024-ingredients-and-stations.md) | What separates a program's description from a way of working? | An ingredient describes one program, a station one way of working |
-| [0025](0025-recipes.md) | How does a repository make a kind of change it repeats? | A recipe is one kind of change, run through the lifecycle |
-| [0026](0026-cookbook-trust.md) | How is a cookbook's content trusted? | A cookbook's content is admitted by a reviewed pin |
-| [0027](0027-worker-jails.md) | How are a worker's attempts confined? | A worker's attempts run inside the jail its declaration names |
-| [0028](0028-place-of-the-tool.md) | What place does the tool take among the people who use it? | The tool helps people work together without controlling how anyone works |
+| [0018](0018-conventions.md) | How do conventions remain readable without Cook? | Native instruction text states conventions independently of Cook |
+| [0019](0019-action-kinds.md) | What does a batch contain? | Batches contain declared file operations |
+| [0020](0020-standing-context.md) | How does Cook configure reusable guidance? | Guidance remains native program content |
+| [0021](0021-release-trust.md) | What does release verification prove? | Reviewed engine pins verify package integrity without proving publisher identity |
+| [0022](0022-tool-integration.md) | How is program configuration knowledge supplied? | Ingredients model programs' native configuration |
+| [0023](0023-core-and-contracts.md) | How are operation rules separated from external mechanisms? | The core separates operation rules from external mechanisms |
+| [0024](0024-ingredients-and-stations.md) | What separates program knowledge from reusable setup choices? | Program models remain distinct from reusable setup choices |
+| [0025](0025-recipes.md) | How are setup choices reused? | Trusted Groovy recipes describe reusable file changes |
+| [0026](0026-cookbook-trust.md) | What does batch approval establish about cookbook trust? | Cookbook execution requires trust beyond batch approval |
+| [0028](0028-place-of-the-tool.md) | What place does the tool take among the people who use it? | Cook supports shared setup without controlling how people work |

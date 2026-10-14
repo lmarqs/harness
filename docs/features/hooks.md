@@ -82,7 +82,7 @@ gets no `attention` entry, and `attention` never reaches its sessions. A worker 
 payload mapping, such as a codemod, gets no hook entry at all.
 
 The command of a `the-cook hook` entry starts the wrapper from the root of the checkout, which the version-control
-ingredient's `root` operation finds ([the hook command](render.md#the-hook-command)):
+ingredient's `root` operation finds:
 
 ```sh
 "$(<root operation>)/cook" --no-download hook <event>
@@ -154,7 +154,7 @@ Files outside the checkout are ignored.
 | `context.always` in the profile | The `always` entries for the session's role, each headed by one line naming it ([context](context.md)). Under `COOK_CONTEXT_IN_PROMPT=1`, which an attempt sets when its prompt arrived on stdin, none: the binary put them in the prompt ([delivery in the prompt](context.md#delivery-in-the-prompt)) |
 
 Worker sessions never receive an update notice: moving the pin is a reviewed supply-chain decision, so the notice goes
-to people, on the stderr of explicit commands and in `the-cook doctor` ([update notice](installation.md#update-notice)).
+to people, on the stderr of explicit commands and in `the-cook doctor`.
 
 ### Post edit
 
@@ -422,10 +422,7 @@ Hook entries `the-cook` did not render (for example one a coding agent's plugin 
 file) are preserved. Hooks in a program's local override files are never touched. See
 [compatibility](compatibility.md).
 
-After [`the-cook remove --eject`](remove.md#eject), raw entries stay in the native files as the repository's own hooks
+After `the-cook remove --eject`, raw entries stay in the native files as the repository's own hooks
 and keep working. The `the-cook hook` entries, including notifications and standing-context injection, are removed, and
 listed in the output, because they call a wrapper that eject deletes. Static context entries stay in `AGENTS.md`.
 
-The reasoning for hooks that give feedback but never decide permissions is in
-[ADR 0011](../adrs/0011-safety-invariants.md); for action kinds and notification events, in
-[ADR 0019](../adrs/0019-action-kinds.md).

@@ -19,8 +19,7 @@ to ([README.md](README.md#changing-a-standard)).
 ## 1. Optional and transparent
 
 Nobody suffers for not using `the-cook`. Why: teammates, pipelines and repositories that never chose `the-cook` share
-the committed files of those that did, so anything `the-cook` requires of them is imposed, not adopted
-([ADR 0010](../adrs/0010-dependence-on-the-binary.md)).
+the committed files of those that did, so anything `the-cook` requires of them is imposed, not adopted.
 
 - A clone of an adopted repository MUST build, test, deploy and start its workers without the binary, whether
   downloaded by the committed wrapper script `cook` or installed globally, because a clone is used by people who
@@ -55,8 +54,7 @@ the committed files of those that did, so anything `the-cook` requires of them i
 
 From the user's side, everything `the-cook` does is predictable. A person, or a worker such as a coding agent, does
 whatever needs judgement, and `the-cook` checks the result. Why: deterministic output can be reviewed once and trusted
-in every repository, while a guess made by code is wrong in the first repository nobody anticipated
-([ADR 0002](../adrs/0002-division-of-work.md)).
+in every repository, while a guess made by code is wrong in the first repository nobody anticipated.
 
 - Every binary command produces the same result for the same inputs on every supported machine, so a user can read
   the repository files in `.cook/` and know what `the-cook render` will write.
@@ -79,8 +77,7 @@ in every repository, while a guess made by code is wrong in the first repository
 them, the guards that hold between stages and the proof a change carries. It runs those rules for the work that goes
 through it, whoever does that work (people and the workers they choose, such as coding agents), and it never takes a
 worker's place. Why: the coding agents people already use are developed by their vendors and follow every model change.
-A tool that competed with them would carry credentials and cost, and a loop of its own to maintain
-([ADR 0001](../adrs/0001-role-of-the-tool.md), [ADR 0015](../adrs/0015-development-lifecycle.md)).
+A tool that competed with them would carry credentials and cost, and a loop of its own to maintain.
 
 - The binary never calls a model and is never a client of a tool server (MCP). Work that needs a model or an MCP tool
   is done by a worker: the [coordinating worker](../features/lifecycle.md#the-lifecycle-stage-by-stage), or an
@@ -97,14 +94,12 @@ A tool that competed with them would carry credentials and cost, and a loop of i
 - The binary contains no logic for any hosting platform and never writes the team's record of work: no issues,
   projects, boards, comments, reviews or labels. Why: the team's record already has writers under the team's own
   conventions, and platform logic in the binary binds every release to one platform. Everything that leaves the
-  clone, a pull request included, is a declared action ([principle 7](#7-nothing-leaves-the-clone-undeclared);
-  [ADR 0012](../adrs/0012-write-boundary.md)).
+  clone, a pull request included, is a declared action ([principle 7](#7-nothing-leaves-the-clone-undeclared)).
 - The binary contains no code for any external program, including the version control system, the workers and the
   jails, and reads no program's own configuration. A stage that needs a program reaches it through a contract that an
   [ingredient](../features/ingredients.md) fills, or through the commands the profile declares and the actions lifecycle
   events fire. Why: each team picks different programs, and code for one would follow every release of a program the
-  project does not own while serving no team that chose another ([ADR 0022](../adrs/0022-tool-integration.md),
-  [ADR 0023](../adrs/0023-core-and-contracts.md)).
+  project does not own while serving no team that chose another.
 - The binary never reconfigures state it did not create (a task tracker's existing database; the version control
   system's hook settings; a task runner's tasks and tool list; the content of a worker's instructions file; a `.cook/`
   directory that another product created), because its owners depend on it as it is.
@@ -141,8 +136,7 @@ A tool that competed with them would carry credentials and cost, and a loop of i
 
 ## 5. Never destroy; always show what will change
 
-Why: a repository is the team's work, and a tool that loses part of it is removed and not trusted again
-([ADR 0007](../adrs/0007-ownership.md)).
+Why: a repository is the team's work, and a tool that loses part of it is removed and not trusted again.
 
 - Every mutating command accepts `--dry-run` and prints exactly the change set it would apply, so the change can be
   judged before it happens.
@@ -186,8 +180,7 @@ The binary contains no logic for any hosting platform. Everything that leaves th
 trigger, a notification, a call to a service) happens only through a **declared action**: an action that the repository
 declares on a lifecycle event (`start`, `verified`, `completed`, `deliver`, `landed`, or the out-of-band `blocked`) or
 on a worker's notification event (`attention`, `turn_end`). Why: a side effect outside the clone is visible to others
-and hard to undo, so it must be written down, reviewed and guarded before it can happen
-([ADR 0015](../adrs/0015-development-lifecycle.md), [ADR 0019](../adrs/0019-action-kinds.md)). The
+and hard to undo, so it must be written down, reviewed and guarded before it can happen. The
 [lifecycle guide](../features/lifecycle.md) has the stages, trigger points and full reference.
 
 - **Declared.** Actions live in `.cook/hooks.yaml`, and no action runs that the repository does not declare there. A
@@ -213,7 +206,7 @@ and hard to undo, so it must be written down, reviewed and guarded before it can
   [`the-cook attempt`](cli-standards.md#the-attempt-command) starts for one task) or an `attempt` action: the binary
   refuses `lifecycle run` there itself, whatever spelling invoked it. `deliver` always refuses on the default branch and
   with uncommitted changes and, when the verify module is enabled, without a valid receipt (the record a passing
-  `the-cook verify` writes). These guards are built-in invariants ([ADR 0011](../adrs/0011-safety-invariants.md)).
+  `the-cook verify` writes). These guards are built-in invariants.
 - **Code, not settings.** Actions are committed and reviewed like code. They receive values only as environment
   variables, never substituted into a command string, so a task title or a branch name cannot inject shell syntax.
   Secrets reach an action only from the environment (`url_env`, `headers_env`, or the environment a `run` command
@@ -226,8 +219,8 @@ and hard to undo, so it must be written down, reviewed and guarded before it can
 Permission to run `the-cook lifecycle run <event>` is permission for everything that event's actions do: the actions run
 as child processes of `the-cook`, outside the worker's per-command permission checks. The scaffolded repository policy
 therefore seeds `[the-cook, lifecycle, run, deliver]` under `ask`, rendered for every rendered spelling (`the-cook`,
-`./cook` and `cook`). It is a seeded entry: the repository owns it and MAY change it
-([ADR 0015](../adrs/0015-development-lifecycle.md)). The rendered entries are defence in depth. Other spellings, such as
+`./cook` and `cook`). It is a seeded entry: the repository owns it and MAY change it. The rendered entries are defence
+in depth. Other spellings, such as
 an absolute path to the binary, match no prefix rule, and the binary enforces the guards itself. Permission to start
 `the-cook make` is, for the same reason, permission for every step of the recipe and for the automatic actions its
 events fire.
@@ -237,7 +230,7 @@ events fire.
 Every convention `the-cook` establishes is written down as plain-language text where people and other tools already
 look, and stays valid after `the-cook` is removed. Why: people, workers and the other tools in a repository rely on
 where workspaces and state live. If those conventions existed only in the configuration of `the-cook`, removing
-`the-cook` would leave state that follows rules nobody wrote down ([ADR 0018](../adrs/0018-conventions.md)).
+`the-cook` would leave state that follows rules nobody wrote down.
 
 - Two classes of managed block carry the text `the-cook` writes into `AGENTS.md`
   ([generated-content-standards.md](generated-content-standards.md#block-classes)):
@@ -262,8 +255,7 @@ where workspaces and state live. If those conventions existed only in the config
 What `the-cook` renders and runs in a repository comes from that repository's files, the release it pins and the
 ingredients it pins by hash, and from nothing else: no inheritance, no includes, no source the repository does not pin.
 Why: people and workers learn what a repository does by reading it. A rule that acts in a repository from somewhere else
-cannot be read by anyone working there, and a reviewer sees its effect without its reason
-([ADR 0013](../adrs/0013-organization-content.md)).
+cannot be read by anyone working there, and a reviewer sees its effect without its reason.
 
 - The same commit renders the same bytes on every machine and every day, with no network, because no input can change
   without a commit in the repository: the release and every ingredient are pinned by hash in its files, and the binary
@@ -294,8 +286,8 @@ cannot be read by anyone working there, and a reviewer sees its effect without i
 
 Apply them in this order, because each earlier principle protects something harder to recover than the next:
 
-1. The built-in invariants and the floor of the ingredients in use ([ADR 0011](../adrs/0011-safety-invariants.md),
-   [ADR 0022](../adrs/0022-tool-integration.md)). No principle, setting or flag weakens them.
+1. The built-in invariants and the floor of the ingredients in use. No
+   principle, setting or flag weakens them.
 2. Never destroy (principle 5).
 3. Nothing leaves the clone undeclared (principle 7).
 4. Optional and transparent (principle 1).

@@ -24,7 +24,7 @@ precise sense, such as profile, seeded, owned, receipt, worker, ingredient, stat
 
 Two directories have two owners, and state lives outside both. Why: tool configuration that sits among the content of
 `.agents/` makes removal pick files out of a tree others write, and state inside a committed tree needs ignore rules
-inside it ([ADR 0014](../adrs/0014-directory-layout.md)).
+inside it.
 
 | Location | Owner | Holds |
 | --- | --- | --- |
@@ -81,14 +81,12 @@ checksums:
 - `version` is exact, never a range, because a range would let two machines run different releases against one
   commit.
 - `source` is a location of plain files over HTTPS, never a platform API, so a mirror is a copy of the release files
-  and works for networks that cannot reach the project's release host
-  ([ADR 0017](../adrs/0017-engine-version.md), [ADR 0012](../adrs/0012-write-boundary.md)).
+  and works for networks that cannot reach the project's release host.
 - `wrapper.yaml` is owned: it starts with the header above, the manifest records it, and a hand edit is drift. Why:
   its checksums are worth something only if a trusted binary verified them, so a hand edit must not pass as the
-  repository's choice ([ADR 0017](../adrs/0017-engine-version.md)).
+  repository's choice.
 - `wrapper.yaml` is the only place `the-cook` reads the version it runs, so the wrapper and a global `the-cook` resolve
-  the same release from one file. `the-cook` reads no other tool's version file
-  ([ADR 0022](../adrs/0022-tool-integration.md)).
+  the same release from one file. `the-cook` reads no other tool's version file.
 - `the-cook wrapper --version <tag>` (or `--latest`) and `the-cook scaffold` write `checksums` only from the release's
   checksum file after the running binary has verified its signature, or, with `scaffold --offline`, write the literal
   `pending`, which admits no download
@@ -122,8 +120,7 @@ workspaces:
   ([generated-content-standards.md](generated-content-standards.md#conventions-in-blocks)).
 - Other programs keep their files where they look for them, such as a task tracker's database or a loop runner's
   configuration directory. No profile key names those paths: the ingredient that describes a program renders the ignore
-  entries they need, such as a block in the ignore file, because the binary contains code and data for no program
-  ([ADR 0022](../adrs/0022-tool-integration.md)).
+  entries they need, such as a block in the ignore file, because the binary contains code and data for no program.
 - `workspaces` holds one key that is not a path: `update_before_landed`, a boolean, default `false`. When `true`,
   `the-cook workspace remove` runs the version-control contract's `update` before it detects landed work; when
   `update` fails, as it does offline, or the ingredient has none, it prints one note and detects against what the
@@ -159,8 +156,7 @@ workspaces:
 ## Inputs
 
 What `the-cook` renders and runs in a repository is determined by the repository's own files, the release it pins and
-the ingredients it pins by hash, and by nothing else ([ADR 0013](../adrs/0013-organization-content.md),
-[ADR 0022](../adrs/0022-tool-integration.md)).
+the ingredients it pins by hash, and by nothing else.
 
 - No repository file has a key that names a source outside the repository for what `the-cook` renders or runs,
   whether by inheritance, an include or a remote source. Validation rejects such a key like any other unknown key.
@@ -196,14 +192,13 @@ the ingredients it pins by hash, and by nothing else ([ADR 0013](../adrs/0013-or
 
 Every repository file starts with `schema: <integer>`. The schema is per file and changes only for a breaking change
 to that file's format ([compatibility-standards.md](compatibility-standards.md#what-counts-as-breaking)). Why: a binary
-must recognise a file it does not understand before it rewrites that file with outdated rules
-([ADR 0005](../adrs/0005-schema-compatibility.md)).
+must recognise a file it does not understand before it rewrites that file with outdated rules.
 
 | The file's schema is… | `the-cook`… |
 | --- | --- |
 | the current one | reads it |
 | older and supported | reads it as written; rendering is unchanged; the migration is offered, never applied silently |
-| newer than the binary knows | refuses, exit 3 (a person must decide which version to run), naming the file, the schema found, the highest schema this binary supports, and the release to run: the pinned release from `.cook/wrapper.yaml`, which `./cook <command>` runs ([ADR 0005](../adrs/0005-schema-compatibility.md)) |
+| newer than the binary knows | refuses, exit 3 (a person must decide which version to run), naming the file, the schema found, the highest schema this binary supports, and the release to run: the pinned release from `.cook/wrapper.yaml`, which `./cook <command>` runs |
 | missing or not an integer | refuses, exit 1, with the expected first line |
 
 Every machine running through the wrapper runs the pinned version, so a newer-schema refusal occurs only when the pin is
@@ -247,8 +242,7 @@ Code in the binary for a program is not on this list: a key, a value or a comman
 control system, worker, loop runner, tracker, skills installer, task runner or hosting platform is never added. A need
 the ingredient format cannot express is a change to the ingredient schema or to a contract
 ([ingredients](../features/ingredients.md)). Why: each program has its own formats and releases, so code for one follows
-every release of a program the project does not own and serves no team that chose another
-([ADR 0022](../adrs/0022-tool-integration.md), [ADR 0023](../adrs/0023-core-and-contracts.md)).
+every release of a program the project does not own and serves no team that chose another.
 
 A file that uses a key newer than the running binary fails validation: that binary refuses the file rather than
 rendering it with the key ignored. Why: an ignored key would silently drop a permission, an action or a guard the
@@ -303,7 +297,7 @@ the-cook: .cook/config.yaml:14:5: unknown key "verify.lanes.e2e.requried_when"
 `.cook/policy.yaml` holds the repository's permission entries under `shared.allow`, `shared.ask`, `shared.deny` and
 `unattended.deny`; the floor of the ingredients in use is rendered beside them ([below](#the-floor)). Every native rule
 a worker understands is expressible, in one of three forms, because a rule the policy cannot express is lost when
-`the-cook` takes ownership of the native key ([ADR 0016](../adrs/0016-permission-adoption.md)):
+`the-cook` takes ownership of the native key:
 
 | Form | Example | Renders as |
 | --- | --- | --- |
@@ -314,8 +308,7 @@ a worker understands is expressible, in one of three forms, because a rule the p
 - An entry that names a `the-cook` command is written once with the program name, `[the-cook, lifecycle, run, deliver]`,
   and rendered for every rendered spelling: `the-cook …`, `./cook …` and `cook …`. Why: an entry written for one
   spelling leaves the others open, and writing all of them by hand drifts. Other spellings (an absolute path to the
-  binary, `sh cook …`) match no prefix rule; the binary's own guards catch them
-  ([ADR 0011](../adrs/0011-safety-invariants.md)).
+  binary, `sh cook …`) match no prefix rule; the binary's own guards catch them.
 - A tool other than the shell, such as an MCP tool, gets a native rule string under `allow`, `ask` or `deny`, in the
   syntax of a worker whose ingredient declares patterns for it.
 - Precedence is the same for every worker: deny, then ask, then allow, so one policy means the same thing in each.
@@ -334,8 +327,7 @@ a worker understands is expressible, in one of three forms, because a rule the p
   or a force push to the default branch a version-control ingredient denies) is never rendered: `the-cook render` drops
   it and reports it, the floor rule is rendered regardless, and `the-cook doctor` reports the entry as a finding. Why:
   floor rules hold in every repository that uses the ingredient, and a policy file that claims otherwise misleads its
-  readers until someone removes the entry ([ADR 0011](../adrs/0011-safety-invariants.md),
-  [ADR 0016](../adrs/0016-permission-adoption.md)).
+  readers until someone removes the entry.
 
 ## Declared actions
 
@@ -343,8 +335,7 @@ Actions are declared in `.cook/hooks.yaml`: lifecycle actions under the top-leve
 actions under `attention:` and `turn_end:`, beside the keys for hooks on worker events (`post_edit`, `validators`,
 `session_start`, `raw`). Behaviour, trigger points and guards: [lifecycle guide](../features/lifecycle.md) and
 [hooks](../features/hooks.md). Why: everything that leaves the clone is written down and reviewed before it can happen
-([principles.md](principles.md#7-nothing-leaves-the-clone-undeclared)), in the repository where it runs
-([ADR 0013](../adrs/0013-organization-content.md)).
+([principles.md](principles.md#7-nothing-leaves-the-clone-undeclared)), in the repository where it runs.
 
 ```yaml
 lifecycle:
@@ -429,8 +420,7 @@ single meaning.
   checkout. An `attempt` action runs in a fresh workspace at the revision of the shared default line of work, which
   `the-cook` creates under `workspaces.dir` as `landed-<name>-<n>` and records. `the-cook` leaves that workspace with
   the worker's uncommitted edits for a person to review, commit or remove with `the-cook workspace remove`. Why: once
-  work has landed its workspace is about to go, and the primary checkout holds whatever a person is doing there
-  ([ADR 0019](../adrs/0019-action-kinds.md)).
+  work has landed its workspace is about to go, and the primary checkout holds whatever a person is doing there.
 - Prompts that include untrusted values (task titles, worker messages) are a prompt-injection surface; the attempt
   contract bounds what an injected instruction can do.
 - `auto: true` on an `attempt` action is allowed and is reported by `the-cook doctor` as a note, because each automatic
@@ -443,14 +433,13 @@ single meaning.
   reviewed, committed decision.
 - `the-cook` is never an MCP client. Work that needs an MCP tool is an `attempt` action or the coordinating worker's
   job; a deterministic integration uses the service's API (`http`) or CLI (`run`). Why: the worker owns its MCP
-  connections, their credentials and their permissions ([ADR 0001](../adrs/0001-role-of-the-tool.md)).
+  connections, their credentials and their permissions.
 
 ## Standing context
 
 Standing context puts known guidance in front of a worker at the moment it applies, without anyone invoking it. It is
 declared under `context:` in `.cook/config.yaml`. Reference: [context](../features/context.md). Why: guidance a
-person must remember to invoke is skipped exactly when it matters, while a deterministic trigger applies it every time
-([ADR 0020](../adrs/0020-standing-context.md)).
+person must remember to invoke is skipped exactly when it matters, while a deterministic trigger applies it every time.
 
 ```yaml
 context:
@@ -484,8 +473,7 @@ context:
 - Sources are repository files and skills committed under `.agents/skills/` only, delivered as the committed file. A
   skill named in `context` that does not exist under `.agents/skills/` is a `the-cook doctor` finding. Nothing is
   fetched when a hook runs, and no installer's lock file is read. Why: injected text steers a worker, so it must come
-  from reviewed, versioned content, and the commit is that review whichever tool installed the skill
-  ([ADR 0022](../adrs/0022-tool-integration.md)).
+  from reviewed, versioned content, and the commit is that review whichever tool installed the skill.
 - For a worker in an attempt, injected content is read from the base commit the attempt recorded, so a worker cannot
   change its own instructions between attempts.
 - In every attempt whose prompt arrives on stdin, `the-cook attempt`, an `attempt` action or a recipe's `attempt` step,
@@ -495,7 +483,7 @@ context:
   hook-delivered. `context.budget` and `COOK_NO_CONTEXT=1` apply to prompt delivery as to hooks. Why: a worker program
   may run no hook unattended, since some run a project's hooks only after a person reviewed them, and nobody reviews
   in an attempt; the binary can place text only in a prompt that passes through it
-  ([context](../features/context.md#delivery-in-the-prompt), [ADR 0020](../adrs/0020-standing-context.md)).
+  ([context](../features/context.md#delivery-in-the-prompt)).
 - A `static` entry works without the binary and survives eject, because it is a convention block; it is not also
   injected by a hook, so it is never loaded twice. Static entries count against `context.budget`, not against the
   `AGENTS.md` block budget.
@@ -517,16 +505,14 @@ of change, made many times ([below](#recipes)). The binary contains code and dat
 ingredient, no station and no recipe; every one comes from a cookbook, or, for a recipe, from the repository itself.
 This section governs how a repository pins ingredients and applies stations, and what each part may write.
 Why: each team picks different programs and each program changes on its own schedule, so a program's description changes
-with the program and not with the binary, while each repository keeps the final say over its own files
-([ADR 0022](../adrs/0022-tool-integration.md), [ADR 0023](../adrs/0023-core-and-contracts.md),
-[ADR 0013](../adrs/0013-organization-content.md)).
+with the program and not with the binary, while each repository keeps the final say over its own files.
 
 One rule separates the three: facts about programs are pinned and rendered; practices are copied and become the
 repository's own. What a repository needs from a program is rendered every time, what it needs from a way of working is
 applied once, and a kind of change is copied once and then run many times. So an ingredient holds only what is rendered
 or run, a station only what is applied, and a recipe only the steps of one kind of change. Why: in one unit, the part
 the repository owns and the part `the-cook` renders would share one pin, so moving or deleting that pin would mean
-something different for each part ([ADR 0024](../adrs/0024-ingredients-and-stations.md)).
+something different for each part.
 
 ### The ingredients and stations in use
 
@@ -594,7 +580,7 @@ workers:
   the value is the profile's and the arguments the pinned ingredient's; a free-form command prefix would leave the
   binary unable to place the worker's launch, tell the jail's arguments from the worker's when it refuses bypass
   arguments, or pass the attempt marks, and every repository would retype the jail's facts
-  ([workers](../features/workers.md#jails), [ADR 0027](../adrs/0027-worker-jails.md)).
+  ([workers](../features/workers.md#jails)).
 - Names are unique within each list: two `ingredients` entries, or two `stations` entries, with the same `name` are a
   validation error (exit 1). Why: every reference to an ingredient, from `vcs`, a worker or the manifest, must resolve
   to exactly one, and applying a station again must resolve to one pin.
@@ -618,10 +604,10 @@ workers:
   hook prints one stderr line and exits 0. A command that needs the version-control contract, or the worker contract for
   a worker, when no pinned ingredient fills it exits 3 and names `./cook ingredient pin`. Why: a fetch during an
   unattended attempt would hand the attempt to whoever controls the source, and a render that fetched would depend on
-  the network ([ADR 0022](../adrs/0022-tool-integration.md)).
+  the network.
 - Each ingredient and each station declares the schema of its format, and an ingredient that fills a contract also
   declares the contract and its version. A release refuses one whose schema or contract version is newer than it
-  supports, exit 1, naming the release needed ([ADR 0005](../adrs/0005-schema-compatibility.md)).
+  supports, exit 1, naming the release needed.
 
 ### What each part writes
 
@@ -639,8 +625,7 @@ then, and all of them become the repository's own; operations, checks and detect
   such as `agentic-coding`, also holds the `unattended.deny` entries and lifecycle actions those programs need, such as
   a tracker's actions on `start`, `completed` and `blocked`, because running the lifecycle that way is exactly those
   entries. Why: no action runs that the repository does not declare in its own `hooks.yaml`, and a station's actions
-  reach that file only when a person applies the station and reads its diff
-  ([ADR 0012](../adrs/0012-write-boundary.md)).
+  reach that file only when a person applies the station and reads its diff.
 - A template is a whole file in a station or in `scaffold`, such as the configuration file of a loop runner a station
   uses. It is rendered once with values from the profile and written only when the file is absent; from then on it is
   the repository's own file, never rendered again and never removed by `the-cook`. When the file exists, applying
@@ -660,8 +645,7 @@ then, and all of them become the repository's own; operations, checks and detect
   from ingredients. The manifest records each one under the ingredient's name, the drift check covers it, and
   `the-cook remove` removes it
   ([generated-content-standards.md](generated-content-standards.md#kinds-of-generated-content)). Why: a program's native
-  files follow the repository's neutral sources, so they are computed every time rather than edited
-  ([ADR 0007](../adrs/0007-ownership.md), [ADR 0008](../adrs/0008-native-configuration.md)).
+  files follow the repository's neutral sources, so they are computed every time rather than edited.
 
 ### The floor
 
@@ -685,8 +669,7 @@ program floor comes from the ingredients the repository pins, and a station has 
 - The process that applies the floor is built into the binary: refusing before a launch, rendering a deny into every
   output, restoring and comparing the rendered files around an attempt. The program facts are the ingredient's. Why: a
   bypass argument or a chaining syntax changes when its program changes, while the guarantee that no repository data
-  can lower it must hold for every program ([ADR 0011](../adrs/0011-safety-invariants.md),
-  [ADR 0022](../adrs/0022-tool-integration.md)).
+  can lower it must hold for every program.
 - A repository that does not pin an ingredient does not get its floor.
   `the-cook ingredient list --cookbook <source>@<version>` shows which ingredients of a tag detect their program in the
   repository, so a person finds a program in use whose ingredient, and floor, the repository does not pin. Why: a
@@ -766,8 +749,7 @@ inputs, what it requires, its steps mapped onto the lifecycle's stages and the l
 repository's own: a recipe the repository wrote, or a copy added from a cookbook that records its `origin`.
 `the-cook make <name>` runs it, one change per recipe run ([recipes](../features/recipes.md)). Why: a generator that
 writes files stops before verification, and a skill alone guarantees nothing, while a recipe run carries both the
-deterministic part and the judgement of a repeated change through the same guards as any other work
-([ADR 0025](../adrs/0025-recipes.md)).
+deterministic part and the judgement of a repeated change through the same guards as any other work.
 
 ```yaml
 # .cook/recipes/migration/recipe.yaml
@@ -851,7 +833,7 @@ origin:
 - A recipe can only add: steps, required lanes and requirements. It declares no lifecycle action, skips no lane,
   weakens no guard and fires no event itself; delivery of a recipe run's work follows the repository's own lifecycle
   actions. Why: a recipe is repository data that a worker may have written, and the guards and the delivery convention
-  hold whatever describes the work ([ADR 0015](../adrs/0015-development-lifecycle.md)).
+  hold whatever describes the work.
 - A run reads its recipe once, when it starts, from the base commit of the workspace it creates, the revision of the
   shared default line of work that the version-control ingredient's `default_revision` reports, and keeps the recipe's
   content and digest in its run record, so a recipe runs in a new workspace once it is on that line (for git, pushed),
@@ -889,18 +871,13 @@ file is published.
 ## What never becomes a setting
 
 The following are not keys in any file or flag. They are architecture decisions: changing one is a change to the ADR
-that decides it, because a setting that weakens them would copy along with the file that sets it
-([ADR 0011](../adrs/0011-safety-invariants.md), [ADR 0012](../adrs/0012-write-boundary.md),
-[ADR 0013](../adrs/0013-organization-content.md), [ADR 0014](../adrs/0014-directory-layout.md),
-[ADR 0017](../adrs/0017-engine-version.md), [ADR 0021](../adrs/0021-release-trust.md),
-[ADR 0022](../adrs/0022-tool-integration.md), [ADR 0025](../adrs/0025-recipes.md),
-[ADR 0026](../adrs/0026-cookbook-trust.md)).
+that decides it, because a setting that weakens them would copy along with the file that sets it.
 
 - An attempt never bypasses permissions: every argument a worker's ingredient marks as a floor bypass argument is
   refused.
 - The floor of the ingredients in use, such as a version-control ingredient's deny of a force push to the default
   branch and a task runner ingredient's deny of task chaining, is rendered on every render and no policy entry removes
-  or weakens it ([ADR 0022](../adrs/0022-tool-integration.md)).
+  or weakens it.
 - Verification proofs are replayed outside the worker's writable tree, and completion is withheld until the replay
   passes.
 - Hooks never decide permissions.

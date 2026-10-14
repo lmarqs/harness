@@ -17,10 +17,10 @@ The development lifecycle is `the-cook`'s core abstraction: the stages a change 
 moment its patches are on the default branch; the events `the-cook` fires between them; the guards that hold between
 stages; and the proof a change carries, the [receipt](verify.md#the-receipt) and its replay. `the-cook` knows no
 program. A stage that needs one reaches it through a contract or through an action the repository declares, and
-cookbooks describe the programs ([ADR 0015](../adrs/0015-development-lifecycle.md),
-[ADR 0023](../adrs/0023-core-and-contracts.md)). Agentic coding, where coding agents implement the change, is the main
-example on these pages and one [station](stations.md) among others
-([ADR 0024](../adrs/0024-ingredients-and-stations.md)); a bot or a codemod is a [worker](workers.md) in the same place.
+cookbooks describe the programs. Agentic coding, where coding
+agents implement the change, is the main
+example on these pages and one [station](stations.md) among others; a bot or a codemod is a [worker](workers.md) in
+the same place.
 
 | Stage | Who acts | What the core does | Reached through |
 | --- | --- | --- | --- |
@@ -46,8 +46,8 @@ change through the stages. A [recipe](recipes.md) describes one kind of change t
 a database migration: its inputs, what it requires, its steps mapped onto the stages and the lanes it requires. It lives
 in `.cook/recipes/<name>/` as the repository's own file. `the-cook make <recipe>` creates the change's workspace
 (Start), runs the steps (Implement), runs the lanes the change selects and those the recipe requires (Verify) and
-completes (Complete); delivery is the repository's own actions, as for any work ([the run](recipes.md#the-run),
-[ADR 0025](../adrs/0025-recipes.md)). A person, a coordinating worker or a loop runner starts a recipe run, which is
+completes (Complete); delivery is the repository's own actions, as for any work ([the run](recipes.md#the-run)). A person,
+a coordinating worker or a loop runner starts a recipe run, which is
 attended unless its caller passes `--unattended` because nobody drives it. The same guards hold and the same events fire
 whichever way the work enters.
 
@@ -56,15 +56,13 @@ trigger, a notification) is an **action** that the repository declares on a **li
 `.cook/hooks.yaml`. An action is a shell command, an HTTP request `the-cook` makes itself, or an attempt: a declared
 worker started unattended on a prompt. The binary decides when an event fires and enforces its guards. No action runs
 that the repository's files do not declare; a station's actions reach them, as entries, only when a person applies it,
-and a recipe declares none ([ADR 0015](../adrs/0015-development-lifecycle.md),
-[ADR 0019](../adrs/0019-action-kinds.md)).
+and a recipe declares none.
 
 Every lifecycle action and every [notification hook](hooks.md#worker-notifications) a repository runs is written in
 that file, so the people who review a change and the workers that change the repository read there everything an event
 or a notification runs. An organization's delivery convention, such as
 [a CI-trigger commit](#an-organization-convention-a-ci-trigger-commit-before-the-pull-request) before every pull
-request, reaches a repository the same way: written into its `.cook/hooks.yaml` and reviewed there as a diff
-([ADR 0013](../adrs/0013-organization-content.md)).
+request, reaches a repository the same way: written into its `.cook/hooks.yaml` and reviewed there as a diff.
 
 Commands are named `the-cook <command>` on this page. The examples run them through the repository's wrapper,
 `./cook <command>`, from the root of a checkout; with a global install, `the-cook <command>` is equivalent
@@ -192,7 +190,7 @@ flowchart TB
 | | |
 | --- | --- |
 | Who acts | external: reviewers, the hosting platform, CI |
-| `the-cook` guarantees | nothing here depends on it: CI never needs the binary, and `the-cook render --check` is an optional step ([render](render.md#drift-check)) |
+| `the-cook` guarantees | nothing here depends on it: CI never needs the binary, and `the-cook render --check` is an optional step |
 | Left to judgement | everything: review, approval, merge method |
 | Event | none |
 
@@ -338,7 +336,7 @@ The scaffolded repository policy seeds `[the-cook, lifecycle, run, deliver]` und
 to run an event permits everything its actions do ([safety](safety.md#lifecycle-actions-are-code)). `render` writes it
 for each spelling `the-cook` renders: `the-cook …`, `./cook …` and `cook …`
 ([policy](policy.md#entries-for-the-cook-commands)). It is a seeded entry the repository owns and may change, not an
-invariant ([ADR 0015](../adrs/0015-development-lifecycle.md)). The guards above do not depend on it: the binary enforces
+invariant. The guards above do not depend on it: the binary enforces
 them whoever runs the command.
 
 ## The `lifecycle` block in `AGENTS.md`
@@ -361,7 +359,7 @@ without a passing `./cook verify`, then runs `push` (run) and `open-pr` (run).
 
 "Without a passing `./cook verify`" appears only when the verify module is on. The block is a
 [tool block](concepts.md#convention-blocks-and-tool-blocks): it names `the-cook` commands, and
-[`the-cook remove --eject`](remove.md#eject) removes it, because nothing fires the actions or enforces the guards after
+`the-cook remove --eject` removes it, because nothing fires the actions or enforces the guards after
 an eject. Like every block, it stays within the per-block line budget ([render](render.md#managed-blocks)).
 
 ## Reference
@@ -429,7 +427,7 @@ Every action has exactly one kind. The same kinds, except `attempt`, serve the n
 `the-cook` is never a client of an MCP server. Work that needs an MCP tool, such as posting through a chat
 integration a coding agent is connected to, is an `attempt` action or the coordinating worker's job: the worker owns
 its MCP connections and their credentials. A deterministic integration uses the service's API through `http`, or its
-CLI through `run` ([ADR 0001](../adrs/0001-role-of-the-tool.md)).
+CLI through `run`.
 
 #### `run`
 
@@ -500,8 +498,8 @@ The shell expands the [environment](#environment); `the-cook` substitutes nothin
   the shared default line of work that the version-control ingredient's `default_revision` reports, which holds the
   landed work, `<workspaces.dir>/landed-<name>-<n>` on branch `work/landed-<name>-<n>`, where `<name>` is the landed
   work's workspace name and `<n>` counts from 1, records it, and runs the worker in it. The workspace of landed work is
-  about to be removed, and the primary checkout holds whatever a person is doing, so neither receives the worker's edits
-  ([ADR 0019](../adrs/0019-action-kinds.md)). The fresh workspace stays, with the edits uncommitted, until a person
+  about to be removed, and the primary checkout holds whatever a person is doing, so neither receives the worker's edits.
+  The fresh workspace stays, with the edits uncommitted, until a person
   commits them or runs `the-cook workspace remove landed-<name>-<n>`.
 - `auto: true` is allowed on an `attempt` action, as on any other, and must be written explicitly. `the-cook doctor`
   lists every automatic `attempt` action as a note: each one costs a run of the worker, a model run for a coding
@@ -644,7 +642,7 @@ deliver    open-pr  run   false  task, run, change  stop
 At acme, CI runs a pull request only when its tip commit carries `#ci`. That is a choice of the organization, not a fact
 of any stack, so each repository that follows it declares the whole chain in its own hooks file. The change is usually
 written by a coordinating worker following the skill acme publishes for its repositories, and each repository reviews
-it as a diff like any other change ([ADR 0013](../adrs/0013-organization-content.md)):
+it as a diff like any other change:
 
 ```yaml
 # .cook/hooks.yaml
@@ -895,7 +893,7 @@ moved that entry out of `ask`.
 - Do prefer draft pull requests from automatic delivery: a person marks them ready.
 - Do write an organization's delivery convention into each repository's `.cook/hooks.yaml`, by hand or with a worker
   following the organization's skill, and review it there as a diff: the actions a repository runs are then the ones
-  its reviewers and workers can read ([ADR 0013](../adrs/0013-organization-content.md)).
+  its reviewers and workers can read.
 - Do review changes to `lifecycle` like code: an action runs with your credentials, outside the worker's permission
   checks ([safety](safety.md#lifecycle-actions-are-code)).
 - Don't write the team's record in actions: no issue comments, reviews, labels or board moves.

@@ -88,7 +88,7 @@ and by `the-cook ingredient pin`:
 | Field | Type | Meaning |
 | --- | --- | --- |
 | `name` | string | The ingredient's name; unique within `ingredients` |
-| `source` | string | The [cookbook](stations.md#cookbooks): `github:<owner>/<repo>`, or an HTTPS base URL laid out like the [release source](wrapper.md#release-source) |
+| `source` | string | The [cookbook](stations.md#cookbooks): `github:<owner>/<repo>`, or an HTTPS base URL for cookbook releases |
 | `version` | string | The cookbook tag, `<source>/download/<version>/ingredient-<name>.tar.gz` |
 | `sha256` | string | The archive's sha256, 64 hexadecimal characters, from the tag's `checksums.txt` or the station that lists the ingredient; checked on download and on every load |
 
@@ -251,7 +251,7 @@ tree.
 
 | Field | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `agents_md_budget` | integer | `40` | Most lines the managed blocks in `AGENTS.md` may take together, the `context` block excepted. Each of those blocks also stays within 8 lines. `render` still writes blocks that exceed it; `doctor` notes the overrun. See [the `AGENTS.md` budget](render.md#the-agentsmd-budget) |
+| `agents_md_budget` | integer | `40` | Most lines the managed blocks in `AGENTS.md` may take together, the `context` block excepted. Each of those blocks also stays within 8 lines. `render` still writes blocks that exceed it; `doctor` notes the overrun. |
 
 ### State paths
 

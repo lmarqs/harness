@@ -1,99 +1,66 @@
-# 0003. The tool is one executable written in Go
+# 0003. Cook retains its JVM stack
 
 ## Objective
 
-**Problem.** The tool runs on every developer machine and CI runner that adopts it, and inside the hooks a coding agent
-fires on every file edit. A language whose programs start slowly, or need a runtime a machine lacks, makes every action
-of that coding agent slower or makes hooks fail. The language is also the hardest part of the tool to change later.
+**Problem.** Changing the engine's language is a rewrite of its file handling and public entry point. Contributors need
+one stack decision that supports executable recipes without making users install the project's development toolchain.
 
-**Goal.** A hook invocation adds at most 50 ms at p95 on a developer workstation, and the tool runs on every supported
-machine with nothing else installed, for the life of the project.
+**Goal.** Contributors can maintain the engine and cookbook content separately, and users can run a complete package
+on its matching platform without preparing a development environment.
 
 ## Context
 
-- The tool runs on developer machines, on CI runners, and inside hook calls that coding agents fire on their events,
-  such as every file edit. Hook latency adds to every action of a coding agent, and a session can make hundreds of
-  edits.
-- Repositories carry the runtimes of their own stack, so a runtime one repository has, another lacks. Example: at acme,
-  `acme/api` is a Node service with no Python, two Python services pin Python 3.9 and 3.13, and `acme/infra` holds
-  Terraform code and has neither Python nor Node.
-- The developer machines and CI runners in scope run Linux or macOS, on amd64 or arm64.
-- Go's standard toolchain (1.5 and later) builds a native executable for another operating system and architecture with
-  no extra tooling when cgo is off, so one machine builds the binaries for all four targets.
-- This project's maintainers already build and release other command-line tools as single Go binaries, with a
-  cross-compilation and release pipeline that applies to this tool unchanged.
-- A tool that replaces a hand-written workflow can reuse that workflow's code only in the workflow's own language.
-  Example: acme's hand-copied agent workflow is a Python script with contract tests; a tool written in Python can reuse
-  that code and those tests, and a tool written in Go rewrites both.
-- The language is the hardest part of the tool to change: changing it is a rewrite.
+- The [root README](../../README.md#current-implementation) describes Kotlin core and CLI modules, Groovy adapters,
+  and Groovy cookbook suppliers and recipes. This is implementation evidence, not the authority for the target design.
+- The [architecture](../architecture.md#engine-distribution) retains JVM distribution using jpackage with bundled Java.
+  Recipes are trusted executable Groovy, and cookbook builds can be separate from the engine build.
+- The CLI is the public cooking interface. Gradle builds and packages the engine and cookbooks; it is not a second
+  public cooking interface.
+- Fixed lifecycle hooks and a per-hook latency budget are outside the engine responsibilities defined by the
+  [architecture](../architecture.md#outside-this-design).
 
 ## Decision
 
-1. The tool is one executable written in Go, cross-compiled for Linux and macOS on amd64 and arm64.
-2. The tool's own documentation, the shipped skill's text, the templates of the tool's own files and the release public
-   keys are embedded at build time, and nothing that names an external program is among them: no ingredient or station
-   is embedded ([0022](0022-tool-integration.md)). Nothing executable ships beside the binary: no helper scripts,
-   loadable modules or sidecar processes.
-3. A hook invocation adds at most 50 ms at p95 on a developer workstation, excluding the repository's own commands. A
-   change that exceeds this budget is not released.
+1. Cook retains its Kotlin/Groovy JVM stack. Recipe evaluation accepts trusted Groovy code rather than limiting
+   cookbook or repository content to data-only declarations.
+2. Engine distribution uses complete platform-specific jpackage packages containing Java, as explained in
+   [0004](0004-runtime-dependencies.md). The wrapper pins and verifies the package, not a standalone Go binary.
+3. Engine and cookbook builds have distinct responsibilities. Cookbooks hold and ship ingredients and recipes;
+   engine packaging does not prescribe their model APIs or manage their versions. The public cooking interface is
+   the CLI, while Gradle serves building and packaging.
 
 ## Reasons
 
-- **1.** Go compiles to a native executable that needs no runtime to install or start, which satisfies
-  [0004](0004-runtime-dependencies.md) and the hook budget of point 3 by construction. Its standard toolchain alone
-  builds the four targets from one machine, so a release is one build job with no per-platform build machine, and the
-  maintainers' existing release pipeline applies unchanged, so the release cost is known before the first release. The
-  trade: code that already exists in another language, such as a Python workflow and its tests, is rewritten instead of
-  reused.
-- **2.** One file is one thing to pin, download, verify and cache ([0017](0017-engine-version.md),
-  [0021](0021-release-trust.md)). Embedded documentation and templates describe the tool itself, so they ship with the
-  release that enforces them ([0002](0002-division-of-work.md)), and embedded keys need no fetch to verify a release
-  ([0021](0021-release-trust.md)). Ingredients describe other programs and change with them, so they come from cookbooks
-  instead ([0022](0022-tool-integration.md)), and so do the stations built from them
-  ([0024](0024-ingredients-and-stations.md)). Helper scripts or loadable modules beside the binary would be engine code
-  that can drift or be edited, which [0006](0006-repository-contract.md) excludes.
-- **3.** Hook overhead multiplies by the number of worker events in a session. A fixed budget measured in CI makes
-  latency a release criterion instead of a regression that people discover in their sessions.
+- **1.** The retained stack supports the chosen executable recipe language and existing modules without a language
+  rewrite. The trade: contributors maintain JVM tooling and the Kotlin/Groovy boundary; this is not a native,
+  single-file engine.
+- **2.** Bundling Java meets the user-facing runtime objective without requiring each repository to install a matching
+  runtime. The trade: packages include runtime files and must be built for their target platforms.
+- **3.** Cookbook authors maintain program models on the programs' schedules, while engine contributors maintain
+  evaluation and file operations. A common CLI gives users one cooking interface. The trade: separate builds require
+  compatibility coordination; this decision does not settle the deferred composition API.
 
 ## Rejected alternatives
 
-### Python, distributed as a zip application or an isolated install
+### Rewrite as a standalone Go or Rust executable
 
-At its best, there is no rewrite: tested Python code, such as acme's workflow script in Context, is reused as is. It
-loses because every machine and CI runner needs a compatible interpreter, repositories pin different Python versions or
-none (Context), and it contradicts [0004](0004-runtime-dependencies.md).
+At its best, native distribution can simplify downloading and runtime setup. It loses because the agreed design
+retains executable Groovy recipes and the JVM engine. A native rewrite adds language migration and an evaluation
+integration problem without being required to remove a separate Java installation for package users.
 
-### TypeScript compiled into one executable with an embedded JavaScript runtime
+### Require users to run cooking through Gradle
 
-At its best, it uses the language of many target repositories and some adjacent tools, and ships as one file. It loses
-because the executable embeds a full JavaScript runtime whose start-up is paid on every hook call against the 50 ms
-budget, the rewrite costs the same as in Go, and the single-file build depends on one JavaScript runtime's own packaging
-feature, where Go's standard toolchain builds every target by itself and a release pipeline already exists (Context).
-
-### Rust
-
-At its best, it is a native executable with the same start-up and static-linking properties as Go, with stronger
-compile-time guarantees. It loses because those guarantees buy no property this tool needs: the work is file rendering,
-hashing and process supervision, which Go covers, and it adds a second toolchain and release pipeline beside the
-maintainers' Go ones (Context).
+At its best, one build tool supplies compilation and execution in a contributor checkout. It loses because users need
+the public CLI and complete runtime package, rather than a build environment in every destination repository.
 
 ## Consequences
 
-Costs:
-
-- Logic and contract tests that already exist in another language, such as a Python workflow's, are rewritten in Go; a
-  subtle invariant can be lost in the translation.
-- Contributors need Go. Repository-specific validators stay in whatever language each repository uses.
-- Windows is not a target platform.
-
-Must be maintained:
-
-- The cross-platform build matrix and a reproducible release.
-- The hook latency benchmark.
+Contributors need the JVM development toolchain. Releases maintain complete platform packages and a bundled runtime,
+rather than a Go cross-compilation pipeline or static-linking constraints. Cookbook builds remain distinct from engine
+releases. No four-platform release matrix, Windows exclusion or fixed hook latency gate follows from this decision.
 
 ## Confirmation
 
-- Release CI produces the four platform binaries.
-- CI benchmarks a hook invocation through the wrapper on a developer workstation and fails above 50 ms at p95.
-- Every invariant in [0011](0011-safety-invariants.md) maps to a contract test written before or with the code that
-  enforces it.
+Review stack and packaging descriptions against the [architecture](../architecture.md#engine-distribution) and
+[installation reference](../features/installation.md). Current-execution claims must describe the actual local
+packaging entry path; the design does not establish published releases or a working pinned-download wrapper.

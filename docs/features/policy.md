@@ -55,12 +55,12 @@ The effective policy is the union of:
 3. the entries in `.cook/policy.yaml`, including those a station's entries added when it was applied, which are the
    repository's own from then on ([stations](stations.md#entries)).
 
-Nothing else contributes an entry: no file outside the repository is read
-([ADR 0013](../adrs/0013-organization-content.md)). Lists are unions: no source removes an entry from another, and
+Nothing else contributes an entry: no file outside the repository is read. Lists are unions: no source removes an
+entry from another, and
 nothing removes a floor rule. An entry in the policy file that would weaken a floor rule, such as an `allow` for a force
 push to the default branch, is not a validation error. `render` drops it from the output, renders the floor rule and
-reports the entry. [`doctor`](doctor.md) reports it as a finding until it is removed
-([ADR 0011](../adrs/0011-safety-invariants.md)). When a command matches entries with different decisions, the decision
+reports the entry. [`doctor`](doctor.md) reports it as a finding until it is removed. When a command matches entries
+with different decisions, the decision
 is taken in this order, in every worker:
 
 ```text
@@ -139,7 +139,7 @@ entries are defence in depth: they make a worker stop or ask before it runs the 
 ### The floor
 
 The floor holds the rules no repository may lose. An ingredient marks the facts about its program that the
-[safety invariants](../adrs/0011-safety-invariants.md) depend on as floor ([ingredients](ingredients.md#the-floor)); the
+safety invariants depend on as floor ([ingredients](ingredients.md#the-floor)); the
 binary adds entries for its own commands. The floor is never written in `.cook/policy.yaml`: `render` adds it to every
 worker's output on every render, as long as the ingredient is in the profile's `ingredients:`, and shows it in the
 `policy` block of `AGENTS.md` with the ingredient each rule comes from.
@@ -172,7 +172,7 @@ ask:
 `render` writes it for each spelling `the-cook` renders. Permitting a worker to run `the-cook lifecycle run deliver`
 permits everything the `deliver` actions do: they run as child processes of `the-cook`, where the worker's per-command
 permissions do not reach. The seeded `ask` keeps a person in the loop before delivery. It is a seeded entry, which the
-repository owns and may change; it is not an invariant ([ADR 0015](../adrs/0015-development-lifecycle.md)). A repository
+repository owns and may change; it is not an invariant. A repository
 whose `deliver` actions only open draft pull requests may move it to `allow`. Lifecycle actions are committed
 configuration; review them like code ([lifecycle](lifecycle.md), [safety](safety.md)).
 
@@ -192,7 +192,7 @@ each entry a worker does not enforce marked with that worker's name.
 
 `policy` is a convention block ([concepts](concepts.md#conventions-outlive-the-tool)): it describes the permissions the
 workers' native settings enforce, and stays true when `the-cook` is gone. Entries for `the-cook`'s own commands are
-therefore left out of it, since those commands do not exist after an [eject](remove.md#eject)
+therefore left out of it, since those commands do not exist after an eject
 (`the-cook remove --eject`). `./cook explain policy` prints the complete effective policy, those entries included.
 For the [Node API](#a-node-api) below, with every module on and workers `claude` and `codex`, where only the `claude`
 ingredient declares native rule patterns and renders bare strings:
@@ -225,7 +225,7 @@ Denied to unattended runs, in addition:
 <!-- /cook:policy -->
 ```
 
-The block states the permissions as facts. After [`the-cook remove --eject`](remove.md#eject) the markers go and the
+The block states the permissions as facts. After `the-cook remove --eject` the markers go and the
 text stays. The rendered permissions stay in each worker's settings as the repository's own, so workers keep working
 under the same rules and the block keeps describing them. From then on nothing renders them, so a change to one
 settings file has to be made by hand in the other worker's file and in this text.

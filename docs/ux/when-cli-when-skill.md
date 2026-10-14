@@ -14,7 +14,7 @@ agents who can exercise it.
 
 ## Overview
 
-These rules choose where each capability belongs ([ADR 0002](../adrs/0002-division-of-work.md)). They apply to proposals
+These rules choose where each capability belongs. They apply to proposals
 for `the-cook` itself and to the advice `the-cook` gives repositories through its skill. A capability is placed whole,
 or split when it has both a deterministic half and a judgement half ([below](#when-behaviour-splits)).
 
@@ -83,8 +83,7 @@ commands, such as [`the-cook attempt`](cli-standards.md#the-attempt-command) as 
 task, and `the-cook` reaches the program through the operations of its ingredient and the commands the repository
 declares. Why: each team picks different programs and each program follows its own release schedule, so code in the
 binary for one of them breaks with its releases and serves no team that chose another, while an ingredient or an action
-is data a repository can replace ([ADR 0022](../adrs/0022-tool-integration.md),
-[ADR 0023](../adrs/0023-core-and-contracts.md)).
+is data a repository can replace.
 
 A safety-relevant rule that is organization specific (a deploy deny, a protected branch other than the default) is an
 entry in each repository's `policy.yaml`, written there by a person or by a coding agent following the organization's
@@ -105,16 +104,16 @@ A behaviour is a declared action when all of these hold:
    [coordinating worker](../features/lifecycle.md#the-lifecycle-stage-by-stage) or automatically (`auto: true`).
 
 Why: these are the side effects whose form differs per team, so the team declares them and `the-cook` only fires them
-under its guards ([ADR 0015](../adrs/0015-development-lifecycle.md), [ADR 0019](../adrs/0019-action-kinds.md)).
+under its guards.
 
 A declared action is always declared in the repository's `hooks.yaml`. An action that holds for an organization's
 repositories (open a pull request on a given hosting platform, add the organization's CI-trigger commit, post to the
 organization's chat) is written into each repository's `hooks.yaml` by a person or by a coding agent following the
 organization's skill, and reviewed there as a diff. Why: an action runs in its repository with the credentials of
-whoever fires it, so it must be readable and reviewed where it runs ([ADR 0013](../adrs/0013-organization-content.md)).
+whoever fires it, so it must be readable and reviewed where it runs.
 
 A declared action never lives in the binary. The binary contains no logic for the platform that hosts the team's work,
-and no action runs that the repository's files do not declare ([ADR 0012](../adrs/0012-write-boundary.md)). A command or
+and no action runs that the repository's files do not declare. A command or
 flag that pushes, opens a pull request or calls a hosting platform is a design error, whatever the convenience
 ([principles.md](principles.md#7-nothing-leaves-the-clone-undeclared)).
 
@@ -136,7 +135,7 @@ declared, visible and recorded.
 ## Standing context
 
 Use a standing-context entry when guidance that already exists must reach a worker at a predictable moment, instead
-of relying on someone to invoke it ([ADR 0020](../adrs/0020-standing-context.md)).
+of relying on someone to invoke it.
 
 | The guidance | Destination | Because |
 | --- | --- | --- |
@@ -154,7 +153,7 @@ entry.
 ## Recipes
 
 Use a recipe when a repository makes the same kind of change many times and each one should arrive verified, like any
-other work ([recipes](../features/recipes.md), [ADR 0025](../adrs/0025-recipes.md)). A recipe run is one pass of one
+other work ([recipes](../features/recipes.md)). A recipe run is one pass of one
 change through the lifecycle's stages: Start creates its workspace, its steps run at Implement, Verify runs every lane
 the change selects and every lane the recipe requires, and the repository's own actions deliver it. Within the recipe,
 each part of the change has one place:
@@ -211,7 +210,7 @@ Adoption, taking over a repository's existing hand-written worker setup, is the 
 `the-cook scaffold --adopt` imports what it can map and lists the rest as a to-do, the shipped skill guides a coding
 agent through the to-do, and `the-cook doctor` confirms the result.
 
-Repository content follows the same split ([ADR 0013](../adrs/0013-organization-content.md)):
+Repository content follows the same split:
 
 - Stack facts need no judgement, so they are stack stations whose entries the binary writes on request
   (`the-cook scaffold --cookbook`, `the-cook station apply <name>`), adding only what the repository lacks.
@@ -295,14 +294,13 @@ Each of these breaks a principle, for the reason given after it.
   pushes without anyone there deciding to.
 - A key that names a source outside the repository for entries `the-cook` renders or runs (an inherited file, an
   include, a remote set of entries), other than a release, an ingredient or a station pinned by hash: a rule whose
-  source sits outside the repository cannot be read or reviewed where it acts
-  ([ADR 0013](../adrs/0013-organization-content.md)).
+  source sits outside the repository cannot be read or reviewed where it acts.
 - A default cookbook, or any ingredient or station, in the binary: the binary would choose for every repository which
   programs it describes and whose review it trusts, and every user would carry descriptions of programs they never use.
   Each repository pins its own.
 - A station that renders or carries floor, or an ingredient with entries or templates: what acts on every render and
   what is applied once would share one pin, which would then mean two things at once, and a reader could not tell from
-  the repository what still acts on it ([ADR 0024](../adrs/0024-ingredients-and-stations.md)).
+  the repository what still acts on it.
 - A station's entries applied by a command that was not asked to apply them (a render, an upgrade), or a record of which
   entries a station added: every write to a repository's files is one someone asked for, and a record would tie the
   repository's own entries to a definition outside its files.

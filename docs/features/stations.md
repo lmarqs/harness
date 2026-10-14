@@ -19,8 +19,8 @@ another reviewed change.
 the guards that hold between stages and the proof a change carries ([lifecycle](lifecycle.md)). It knows no program;
 [ingredients](ingredients.md) describe the programs the stages reach. A station is a named, versioned description of
 one way of running that lifecycle, built from ingredients: which ingredient serves version control, which workers
-implement a change and in which role, and the lanes, denies, actions and files that go with them
-([ADR 0024](../adrs/0024-ingredients-and-stations.md)). A station holds up to six parts:
+implement a change and in which role, and the lanes, denies, actions and files that go with them. A station holds up
+to six parts:
 
 | Part | What it is | What applying does |
 | --- | --- | --- |
@@ -35,7 +35,7 @@ A station has no renders and no floor. It is applied once: [`the-cook station ap
 ingredients it lists, writes its stages, entries and templates into the repository's own files and copies its recipes
 into `.cook/recipes/`, adding only what they lack, shows it all as one diff to review, then renders. From then on those
 entries, files and recipes are the repository's, like anything written by hand, while everything rendered comes from
-the pinned ingredients ([ADR 0013](../adrs/0013-organization-content.md)). A station runs nothing: a
+the pinned ingredients. A station runs nothing: a
 [recipe](recipes.md) it adds, one kind of change made many times, acts only when someone runs it.
 
 The profile records each applied station under `stations:` ([profile](profile.md#stations)), with its cookbook, version
@@ -77,8 +77,8 @@ applying it to sample repositories, then publish it in one of the [cookbooks](#c
 ### Organization choices
 
 An organization's way of working, such as its delivery actions, the denies its unattended runs need or a commit
-trailer its CI expects, is a station in a cookbook of its own, beside the ingredients for its own programs
-([ADR 0013](../adrs/0013-organization-content.md)). Applying it writes those choices into each repository's own files
+trailer its CI expects, is a station in a cookbook of its own, beside the ingredients for its own programs. Applying
+it writes those choices into each repository's own files
 in one reviewed diff, and from then on each repository edits them like its own.
 
 Choices that differ between the organization's repositories take judgement. A person, or a worker following a skill
@@ -130,8 +130,8 @@ Entries are additions to the repository's three YAML files: commands, `bootstrap
 and [standing context](context.md) in `.cook/config.yaml`; `unattended.deny` and other policy entries in
 `.cook/policy.yaml`; post-edit hooks and lifecycle actions in `.cook/hooks.yaml`. `apply` adds only what the files
 lack, following the [merge rules](#merge-rules). From then on each entry is the repository's own: people and workers
-change or delete it by editing the file, and nothing records which station wrote it
-([ADR 0013](../adrs/0013-organization-content.md)). A newer version's entries reach a repository only when someone
+change or delete it by editing the file, and nothing records which station wrote it. A newer version's entries reach a
+repository only when someone
 applies the station again ([Applying again](#applying-again)).
 
 Entries fit what a repository may reasonably change, such as a stack's lint command or a tracker's lifecycle actions.
@@ -148,8 +148,8 @@ never removes it, and [`the-cook remove`](remove.md) leaves it. When the file ex
 reports `kept <path>: exists`.
 
 `the-cook scaffold` seeds the repository files, such as `.cook/config.yaml`, from templates of its own
-([scaffold](scaffold.md#greenfield)). The manifest records those as seeded files, which `the-cook remove` deletes
-([remove](remove.md#undo-and-eject-compared)); nothing records a template a station wrote.
+([scaffold](scaffold.md#greenfield)). The manifest records those as seeded files, which `the-cook remove` deletes;
+nothing records a template a station wrote.
 
 ### Recipes
 
@@ -243,7 +243,7 @@ again: to take a newer version's, delete the file and apply, then carry over you
 `stations:` records which stations the repository applied and at which pin. Nothing rendered depends on it: deleting an
 entry from `stations:` changes nothing rendered and leaves the profile valid. Nothing records which entries or
 templates a station wrote either: each entry's one source of truth is the file it is in, and `the-cook` holds no record
-it could later use to change those entries by itself ([ADR 0013](../adrs/0013-organization-content.md)). Change or
+it could later use to change those entries by itself. Change or
 delete an applied entry or template by editing the file, then run `./cook render`.
 
 A recipe a station added records the cookbook it came from in its own `origin`, and nothing records which station
@@ -259,8 +259,8 @@ station wrote stays.
 
 ## Cookbooks
 
-A cookbook is a source that publishes ingredients, stations and [recipes](recipes.md) by tag: an HTTPS base URL laid out
-like the [release source](wrapper.md#release-source), or `github:<owner>/<repo>`, shorthand for
+A cookbook is a source that publishes ingredients, stations and [recipes](recipes.md) by tag: an HTTPS base URL for
+cookbook releases, or `github:<owner>/<repo>`, shorthand for
 `https://github.com/<owner>/<repo>/releases`. `the-cook` holds no default cookbook and knows none by name; any number of
 cookbooks exist, and a repository may pin from several. An organization keeps its own programs and its own way of
 working in a cookbook of its own ([Organization choices](#organization-choices)), and its kinds of change as recipes
@@ -399,8 +399,7 @@ Files read: `.cook/config.yaml`, `.cook/policy.yaml`, `.cook/hooks.yaml`, whethe
 of each ingredient or recorded station that is not cached, the archive of each recipe to copy, and everything
 [`render`](render.md#reference) reads. Files written: `$COOK_HOME/cookbook/<sha256>.tar.gz` for each verified archive it
 downloads; `.cook/config.yaml`, `.cook/policy.yaml` and `.cook/hooks.yaml`, additions and pins only; each template whose
-file was absent; `.cook/recipes/<name>/` for each recipe whose directory was absent; then every file `render` writes
-([what render writes](render.md#what-render-writes)).
+file was absent; `.cook/recipes/<name>/` for each recipe whose directory was absent; then every file `render` writes.
 
 ### The station file
 
@@ -427,7 +426,7 @@ A station is a directory:
 | `detect` | list of globs | no | The [detect rule](#detect-rule): paths relative to the repository root whose match shows the station fits; a trailing `/` matches a directory |
 
 The binary refuses a station whose `schema` is newer than it supports, with exit 1 naming the release needed, and reads
-older ones inside its support window ([ADR 0005](../adrs/0005-schema-compatibility.md)). `the-cook version` prints the
+older ones inside its support window. `the-cook version` prints the
 station and ingredient schemas and the contract versions the running release supports. Unknown keys are an error, and
 so are `renders`, `floor`, `operations` and `checks`, which only an ingredient holds. Templates read the
 [neutral model](ingredients.md#the-neutral-model).

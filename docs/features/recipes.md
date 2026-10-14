@@ -17,12 +17,11 @@ its steps run in order, the lanes it needs prove it, and it is delivered the way
 `the-cook` declares a software development lifecycle: the stages a change goes through, the events fired between them,
 the guards that hold between stages and the proof a change carries ([lifecycle](lifecycle.md)). A recipe is one kind
 of change, made many times: the inputs it takes, what it requires of the repository, the steps that make the change,
-mapped onto the stages, and the lanes that must prove it ([ADR 0025](../adrs/0025-recipes.md)). A run of a recipe is
+mapped onto the stages, and the lanes that must prove it. A run of a recipe is
 one pass of one change through the stages.
 
 A recipe is one of three units a repository takes from cookbooks or writes itself, and one rule separates them: facts
-about programs are pinned and rendered; practices are copied and become the repository's own
-([ADR 0024](../adrs/0024-ingredients-and-stations.md), [ADR 0025](../adrs/0025-recipes.md)).
+about programs are pinned and rendered; practices are copied and become the repository's own.
 
 | Unit | What it is | How a repository holds it | When it acts |
 | --- | --- | --- | --- |
@@ -138,7 +137,7 @@ verify: { require: [unit, migrations] }                                        #
 | `verify.require` | list of lane names | no | Lanes every run runs, and never skips, on top of those the change selects ([Verify](#verify)) |
 
 Unknown keys are an error. The binary refuses a recipe whose `schema` is newer than it supports, with exit 1 naming the
-release needed, and reads older ones inside its support window ([ADR 0005](../adrs/0005-schema-compatibility.md));
+release needed, and reads older ones inside its support window;
 `the-cook version` prints the recipe schema the running release supports. A recipe is also invalid when a lane of
 `verify.require` is missing from `requires.lanes`, when an input takes the name of a flag of `the-cook make`, when a
 placeholder names no input, when a step has no kind or more than one, and when any of its files holds a conflict
@@ -412,8 +411,8 @@ A recipe declares no lifecycle action. The repository's own `deliver` actions de
 as any work: automatically after `completed` for a task, with `auto: true`, or by hand with
 `./cook lifecycle run deliver` in the workspace ([lifecycle](lifecycle.md#deliver)). While the receipt records the run,
 every action fired in the workspace also receives `COOK_RECIPE` and `COOK_INPUT_<NAME>`, so a delivery action can, for
-example, title a pull request after the recipe and its inputs ([environment](cli.md#environment-variables)). After the
-merge, `./cook workspace remove <name>` fires `landed` and removes the workspace, as for any work.
+example, title a pull request after the recipe and its inputs. After the merge, `./cook workspace remove <name>` fires
+`landed` and removes the workspace, as for any work.
 
 ### The run record
 

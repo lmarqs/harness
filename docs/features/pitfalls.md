@@ -642,8 +642,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
   managed block disappears after `the-cook render`.
 - **Why.** Rendered files and blocks are outputs of the three repository files (`.cook/config.yaml`,
   `.cook/policy.yaml` and `.cook/hooks.yaml`), the pinned release and the pinned ingredients.
-- **What `the-cook` does.** Rewrites what it owns, preserves everything else byte for byte, and reports differences
-  ([render](render.md#drift-check)).
+- **What `the-cook` does.** Rewrites what it owns, preserves everything else byte for byte, and reports differences.
 - **What you do.** Edit the source (`policy.yaml`, `hooks.yaml`, `config.yaml`) and render.
 
 ### A newer station's entries reach a repository only when it is applied again
@@ -652,8 +651,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
   or a post-edit hook, and neither `the-cook render` nor moving an ingredient pin adds it.
 - **Why.** A station is applied once: its entries are written into the repository's files when someone applies it, and
   from then on they are the repository's own. `stations:` records which version was applied, not which entries it
-  wrote, and has no effect on renders; only the pinned ingredients render on every render
-  ([ADR 0013](../adrs/0013-organization-content.md)).
+  wrote, and has no effect on renders; only the pinned ingredients render on every render.
 - **What `the-cook` does.** `the-cook station apply <name> --cookbook <source>@<version>` adds only the entries the
   repository lacks: every entry it holds stays as it is, an item it names that differs from the station's is kept and
   reported, and a second apply of the same version adds nothing. It also moves the station's record in `stations:` and
@@ -728,8 +726,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
   `checksums: pending`, and that pin was pushed before it was completed. The wrapper has no checksum to verify a
   download against, so it downloads nothing; only a machine that already has the release in its cache can run it.
 - **What `the-cook` does.** Refuses every download against a pending pin, runs a release already in the cache, and
-  reports the pending pin as a `doctor` finding, so a CI job that runs `doctor` stops it before it merges
-  ([wrapper](wrapper.md#a-pending-pin)).
+  reports the pending pin as a `doctor` finding, so a CI job that runs `doctor` stops it before it merges.
 - **What you do.** With network access and any installed `the-cook`, run `the-cook wrapper --version <the pinned tag>`
   and commit the result: the diff is the checksums and the manifest. Complete a pending pin before you push it.
 
@@ -792,7 +789,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
   they describe `the-cook` commands that do not exist after the eject, and so are the hooks that called `the-cook`.
   Receipts, the attempt contract, the tamper check, the lifecycle guards and the drift check need the binary, so they
   stop.
-- **What `the-cook` does.** Lists every block and hook it removed ([remove](remove.md#eject)), and does nothing after
+- **What `the-cook` does.** Lists every block and hook it removed, and does nothing after
   that.
 - **What you do.** Decide which guarantees the repository still needs and move each one where something enforces it:
   CI for the checks, branch protection for what lands, the workers' own permissions for what they may run. Edit the

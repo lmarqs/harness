@@ -101,7 +101,7 @@ only through rendered rules is one or the other: a repository where people use i
 attempts chooses one. A worker whose ingredient neither passes deny arguments at launch nor renders permissions has no
 way to receive `unattended.deny`, so it cannot run attempts: `the-cook attempt`, `attempt` actions and `attempt` steps
 refuse it with exit 3, naming the gap, because the binary's own deny on lifecycle actions and the repository's
-unattended denies hold in every attempt ([ADR 0011](../adrs/0011-safety-invariants.md)). Such a worker may still be
+unattended denies hold in every attempt. Such a worker may still be
 declared `interactive`, and the `policy` block marks the entries it does not receive as not enforced in it.
 
 A worker whose unattended denies live in rendered rules reads them from files inside its own checkout, which it can
@@ -134,7 +134,7 @@ them, such as a codemod, gets no native files:
 A neutral event an ingredient maps to no native event gets nothing rendered for that worker, and `the-cook doctor`
 notes the gap.
 
-Every worker ingredient that maps hook payloads renders the same [hook command](render.md#the-hook-command), which
+Every worker ingredient that maps hook payloads renders the same hook command, which
 finds the checkout's root through the version-control ingredient's `root` operation. It runs the pinned binary of the
 checkout the worker works in, from the cache, and never downloads. When the binary is not cached, it prints one line
 naming `./cook` and exits 0 ([hooks](hooks.md#the-missing-binary-guard)).
@@ -197,8 +197,7 @@ The binary never starts an interactive session, so a jail applies only to attemp
 confined starts it inside the jail, and the rendered files apply there as without one. Nothing else of the person's
 home reaches the jail, and a lane that needs a variable or a service the jail withholds passes only outside an attempt
 until `jail.args` lets it through. The jail contract, the composed launch and an example are on the
-[ingredients](ingredients.md#the-jail-contract) page; the reasoning is in
-[ADR 0027](../adrs/0027-worker-jails.md).
+[ingredients](ingredients.md#the-jail-contract) page.
 
 ## Trust
 

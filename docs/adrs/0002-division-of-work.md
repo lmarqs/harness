@@ -1,97 +1,72 @@
-# 0002. The binary does only deterministic work
+# 0002. Cook separates recipe choices from batch execution
 
 ## Objective
 
-**Problem.** Setting up how a repository's changes are made, for people and for the coding agents that work in it, mixes
-work that has one right answer with work that needs judgement. Done by hand or by a coding agent, the mechanical part
-comes out different every time, so repositories diverge and nothing can check them. Done by a program, the judgement
-part breaks on the first input nobody foresaw.
+**Problem.** Sharing setup mixes mechanical file editing with choices about a project's prose, permissions and way of
+working. Hand copying loses consistency, while guessing a team's intent can silently rewrite configuration it wanted
+to keep.
 
-**Goal.** Mechanical setup work gives the same checkable result in every repository, and judgement stays with the people
-and coding agents who can exercise it.
+**Goal.** Developers can review the concrete effect of shared setup while retaining control over its content and choices.
 
 ## Context
 
-Giving a repository a consistent setup for its coding agents involves two kinds of work:
-
-- work with one correct output for given inputs: rendering configuration from data, detecting drift, recording
-  ownership, removing what was written, enforcing invariants;
-- work that needs judgement: interpreting hand-written configuration whose intent is not machine-readable, writing
-  project prose, choosing policy entries, reconciling conflicting names.
-
-Facts:
-
-- Propagation that nothing fixes produces different output for the same input. Example: acme copies one agent workflow
-  by hand from `acme/api` into `acme/web` and `acme/infra`; each copy becomes its own dialect, and two of them start
-  unattended agents with permission checks turned off. A coding agent following a scaffolding skill has the same
-  property, because nothing fixes its output: run twice on one repository, it can write two different setups.
-- Input shapes are unbounded. Example: at acme, `.claude/skills` is a directory of the team's own skills in `acme/api`,
-  a symbolic link to a shared directory in `acme/web` and absent in `acme/infra`; `AGENTS.md` runs from a few lines to
-  tens of kilobytes of hand-written prose; and some repositories hook events that no shared model covers.
-- A drift check compares a repository with a fresh render; it is meaningful only if the render is reproducible.
-- Coding agents working inside a repository change its setup correctly only when they know the rules, the reasons and
-  which files are generated.
+- The [architecture](../architecture.md#evaluation-review-and-writes) defines trusted recipe evaluation followed by
+  ordered file operations, one combined diff, approval and recovery.
+- Recipe inputs include supplied sources, arguments and current target content. Executable Groovy can also consult
+  changing external inputs; identical recipe source bytes alone do not establish identical results.
+- Worked example: acme uses one recipe to set an agent option and another to override it. The requested order matters,
+  and a developer may have edited the current value before the next invocation.
+- Prose, skills and policy can be declared file content. Their meaning comes from recipe authors and users; writing
+  those bytes does not require Cook to infer their intent.
 
 ## Decision
 
-1. The binary performs only work whose output is fully determined by its inputs. The same input bytes produce the same
-   output bytes on every machine, and a second run changes nothing.
-2. The binary never writes prose, memory, domain skills or policy choices. Work that needs judgement belongs to a person
-   or a coding agent, who edits the declarative sources ([0006](0006-repository-contract.md)); the binary renders and
-   checks the result.
-3. The binary embeds the documentation a coding agent needs (the rules, their reasons and the file contracts) and ships
-   it both as a skill written into the repository and as printable documentation.
-4. When the binary meets input it cannot map deterministically, it leaves the input untouched and adds it to a
-   machine-readable list of unresolved items instead of guessing.
+1. People and recipe authors choose the content and configuration they want. Cook evaluates their trusted recipes and
+   mechanically composes the declared operations against current content in the supplied order.
+2. Cook shows the final combined diff and obtains whole-batch approval before target writes. Existing or edited content
+   uses that same flow, without ownership reconciliation, adoption gates or a manual-edit veto.
+3. Every apply or discard invocation evaluates the supplied recipes again. History does not mark recipes as already
+   applied or skip evaluation. An unchanged result may produce an empty diff; arbitrary executable recipes need not
+   produce an unchanged result on repeated invocation.
+4. Cook can write declared prose, skills and policy like other file content. It does not choose that content through
+   model reasoning. Neither deterministic batch handling nor review implies a sandbox for recipe evaluation.
 
 ## Reasons
 
-- **1.** Determinism lets one fix reach every repository with identical effect, and it is what makes the drift check
-  meaningful: a check against a non-reproducible render fails on its own. Idempotence makes a re-run safe in CI and
-  across many repositories. The trade: anything whose correct output depends on intent is outside the binary.
-- **2.** Heuristics over unbounded inputs fail on the first repository they did not anticipate, and a wrong guess
-  silently rewrites a team's configuration. Prose, memory and policy choices are specific to a repository; generated
-  prose is generic where a repository needs specifics. Because judgement lands in the declarative sources, the binary
-  still renders and checks it, so judgement never bypasses the deterministic path.
-- **3.** A coding agent acts correctly only when the rules and their reasons are present in the repository it works in.
-  Embedding them in the binary keeps them in step with the release that enforces them, which is the release the
-  repository pins ([0017](0017-engine-version.md)). The trade: the documentation becomes part of the product, and an
-  error in it misleads coding agents.
-- **4.** Listing instead of guessing turns the boundary into a hand-off: the binary does the mechanical part and hands
-  the remainder over as data that a coding agent or a script consumes. Leaving the input untouched preserves it for
-  whoever resolves it.
+- **1.** Mechanical composition gives the acme example a defined result: later instructions replace earlier values at
+  an overlapping target. Authors retain choices that depend on project intent. The trade: the engine does not decide
+  which recipe or configuration is appropriate.
+- **2.** The actual diff exposes changes to current content, including manual edits, without guessing whether that
+  content belongs to Cook. The trade: reviewers must assess the proposed changes; approval is for the whole batch.
+- **3.** Current content and recipe inputs can change between runs. Re-evaluation respects the request instead of
+  treating history as an ownership or execution cache. The trade: recipe authors who want reproducible results must
+  control the inputs their code uses; Cook cannot promise universal byte-for-byte determinism or idempotence.
+- **4.** Writing supplied text is mechanical even when choosing that text required judgement. Banning entire file
+  categories would prevent useful program configuration without resolving trust. The trade: declared file changes are
+  reviewable, but arbitrary recipe side effects are outside the diff and recovery guarantees.
 
 ## Rejected alternatives
 
-### Everything in the binary
+### Universal determinism enforced by data-only inputs
 
-At its best, one command completes every adoption with no coding agent and no person. It loses because it needs
-heuristics over unbounded input shapes, a wrong guess silently rewrites a team's configuration, and generated prose is
-generic where a repository needs specific prose.
+At its best, a closed declarative model makes outputs reproducible for fixed inputs. It loses because the chosen
+architecture evaluates trusted Groovy recipes, and current content and external inputs may change. It cannot justify
+skipping an invocation as already applied.
 
-### Everything by coding agents, with no engine
+### Setup entirely by hand or by a coding agent
 
-A skill describes the target setup and a coding agent ports it to each repository. At its best, there is no code to
-maintain and every repository gets a tailored result. It loses because output differs per run, nothing enforces the
-invariants and no drift check exists. Hand propagation has the same properties: it turns the acme workflow in Context
-into three dialects, two of which lose their safety settings.
+At its best, every repository gets tailored choices with no configuration engine to maintain. It loses the common
+path for ordered composition, combined file review and recorded recovery. People or agents can author content while
+Cook handles the declared file operations.
 
 ## Consequences
 
-Costs:
-
-- Adopting a repository with hand-written configuration takes two steps: a deterministic pass, then a coding agent or a
-  person resolving the listed items.
-- When the embedded documentation disagrees with the binary, coding agents act on wrong rules.
-
-Must be maintained:
-
-- The boundary itself: each new capability is classified as deterministic or judgement before it is built.
-- The format of the unresolved-items list, which coding agents and scripts consume.
+Recipe authors maintain the choices and inputs their recipes use. Cook maintains operation order and the separation
+between evaluation, review and writes. There is no mandatory unresolved-items handoff, two-step adoption process,
+embedded skill or prohibition on writing knowledge files. Model APIs and hooks remain outside this decision.
 
 ## Confirmation
 
-- CI renders the same fixtures on Linux and macOS and compares the outputs byte for byte; a second render produces no
-  change.
-- Fixture tests assert that unrecognised input is left unchanged and appears in the unresolved-items list.
-- Review rejects any code path that writes knowledge files ([0011](0011-safety-invariants.md)).
+Review a composed batch against the [architecture](../architecture.md#ordered-composition-and-declared-targets):
+later declarations determine the final preview, unrelated content is preserved, and a repeated invocation evaluates
+current inputs. Review prose and policy operations under the same approval contract as other declared file content.

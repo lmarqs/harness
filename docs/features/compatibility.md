@@ -17,7 +17,7 @@ reader can check that for each tool before adopting.
 below. It never reconfigures state it did not create and never writes knowledge. The binary contains code for no
 external program and ships no ingredient, station or recipe: the [ingredients](ingredients.md) the repository pins from
 a cookbook describe version control, every worker and every other program, and the binary has no code for any loop
-runner, task tracker, skills installer, task runner or hosting platform ([ADR 0022](../adrs/0022-tool-integration.md)).
+runner, task tracker, skills installer, task runner or hosting platform.
 A program reaches a repository as data: an ingredient's renders, a station's entries and templates, a recipe's steps, a
 command the profile declares, or a lifecycle action. What `the-cook` sets up does not depend on it either: every
 convention is written down in plain text, and an eject keeps it.
@@ -73,7 +73,7 @@ Creating and configuring the tracker's data, and every other use of the tracker,
 | --- | --- |
 | No tracker data in the clone | nothing is created; initialising it is the tracker's own step |
 | Existing tracker data | never read, written or moved by the binary; its remotes, sync settings and hooks are the tracker's own |
-| Tracker actions | run the tracker's command with the credentials of whoever fires the event; what they write travels where the repository's synchronisation sends it, and `the-cook` never configures that synchronisation ([ADR 0012](../adrs/0012-write-boundary.md)) |
+| Tracker actions | run the tracker's command with the credentials of whoever fires the event; what they write travels where the repository's synchronisation sends it, and `the-cook` never configures that synchronisation |
 | A sandboxed worker that writes the tracker's data | the data directory is listed in `workers.<name>.writable_roots`, by hand or by the station that wires the tracker ([profile](profile.md#workers)) |
 | Tracker data tracked in version control, or ignored | the team's choice; the binary writes no `.gitignore` entry for it |
 | A tracker remote workers must never push to | a `deny` entry in the repository's policy |
@@ -110,13 +110,13 @@ task, and `the-cook` runs it like any other command. People and workers run `the
 | A recipe's `run` step that runs the task runner | runs as written, with the inputs substituted into its arguments and never through a shell |
 | A task runner whose ingredient is not in `ingredients:` | when a cookbook's ingredient for it has a detect rule, `ingredient list --cookbook` shows the match; the ingredient's floor is not in use until it is pinned |
 | A task-runner form that lets an allowed task carry an unlisted one | denied for workers by the ingredient's floor, when the ingredient is in use ([policy](policy.md#the-floor)) |
-| `the-cook` installed through a tool-version manager | an install option ([installation](installation.md#global-install-optional)); a `the-cook` it puts on PATH defers to `.cook/wrapper.yaml` |
+| `the-cook` installed through a tool-version manager | an install option; a `the-cook` it puts on PATH defers to `.cook/wrapper.yaml` |
 | A pin of `the-cook` in the task runner's own tool list | never read: `.cook/wrapper.yaml` is the pin `the-cook` runs, and a second pin drifts from it, so keep `the-cook` out of the task runner's files |
 
 ## Skills installers
 
 A skills installer puts shared skills into `.agents/skills/` and may record them in a lock file. The binary has no code
-for any installer and never runs one of its own accord ([ADR 0004](../adrs/0004-runtime-dependencies.md)). Installing
+for any installer and never runs one of its own accord. Installing
 shared skills is the team's own step, with the installer of its choice, committed with its lock file.
 
 The profile's `context` names skills by name, and `doctor` reports a skill named there that does not exist under
@@ -192,13 +192,13 @@ Adopting `the-cook` leaves a repository's CI/CD unchanged:
 - no build, test, deploy or release step requires the binary or the wrapper;
 - rendered files add no dependency and change no build output;
 - hooks and lifecycle actions do not run in CI;
-- `./cook render --check` and `./cook doctor` are optional steps you may add ([render](render.md#drift-check));
+- `./cook render --check` and `./cook doctor` are optional steps you may add;
   the wrapper downloads the pinned release over HTTPS and verifies its checksum, so CI runs exactly the release the
   pull request pins ([wrapper](wrapper.md#ci));
 - a job that runs either step runs `./cook fetch` first, which downloads every pinned ingredient and station and every
   recipe's origin version that the job's cache lacks, and verifies each against its sha256;
 - the drift check reads only the repository's files, the pinned release and the pinned ingredients, so its result
-  changes only with a commit to the repository ([ADR 0013](../adrs/0013-organization-content.md)).
+  changes only with a commit to the repository.
 
 ## Versions
 
@@ -206,7 +206,7 @@ Adopting `the-cook` leaves a repository's CI/CD unchanged:
   install run it.
 - The release pin changes only through `the-cook wrapper` or `scaffold`, which write its checksums after the running
   binary verifies the release's signed checksum file with the release keys it embeds. `scaffold --offline` leaves them
-  [pending](wrapper.md#a-pending-pin), and nothing downloads against a pending pin. The wrapper then checks each
+  pending, and nothing downloads against a pending pin. The wrapper then checks each
   download against the committed checksums. `doctor`, when online, re-verifies the pinned release's signed checksum file
   against `wrapper.yaml` ([wrapper](wrapper.md#security)).
 - Rendered output depends on the sources, on the pinned release and on the ingredients the profile pins by sha256, and
@@ -221,19 +221,19 @@ Adopting `the-cook` leaves a repository's CI/CD unchanged:
   ([ingredients](ingredients.md), [recipes](recipes.md)).
 - Each ingredient declares its schema and, when it fills a contract, the contract version it is written for; each
   station and each recipe declares its schema. The binary refuses an ingredient, a station or a recipe whose schema is
-  newer than it supports, naming the release needed ([ADR 0005](../adrs/0005-schema-compatibility.md)).
+  newer than it supports, naming the release needed.
 - `the-cook wrapper --version <tag>` renders the repository with the new release in the same change, migrating
   older-schema files, so the pin and every artefact the new release renders differently land in one diff
   ([wrapper](wrapper.md#upgrading)). A binary older than the repository's schema refuses, naming the pinned release to
   run. That happens only when the pin is bypassed, through `COOK_BINARY` or a global binary too old to defer to the
-  pin ([installation](installation.md#version-skew)).
+  pin.
 - `the-cook doctor` runs the version check of every ingredient in use against the range that ingredient declares,
   which `the-cook doctor --json` and `the-cook ingredient show <name>` list, and reports a version outside its range as
   a finding ([Supported program versions](#supported-program-versions)). A program no ingredient in use describes gets
   no version check; `doctor` still reports a program that an ingredient, a declared command, a lane, a validator or an
   action names and that is not on PATH.
-- The pinned release runs the drift check, which fails on any difference, the shipped skill included
-  ([ADR 0007](../adrs/0007-ownership.md)). A binary other than the pinned release, run through `COOK_BINARY`, gets a
+- The pinned release runs the drift check, which fails on any difference, the shipped skill included.
+  A binary other than the pinned release, run through `COOK_BINARY`, gets a
   `doctor` note, because its drift results may differ.
 
 ### Supported program versions

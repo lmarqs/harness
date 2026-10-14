@@ -1,176 +1,108 @@
-# 0014. The tool's configuration, agent content and state each have a separate home
+# 0014. Native output and local recovery history have separate homes
 
 ## Objective
 
-**Problem.** The tool adds configuration, agent content and clone-local state to repositories that already hold coding
-agents' files, third-party tools that read fixed paths, and directories other products use. Put in the wrong place, its
-files are not read by coding agents, collide with other tools, get committed when they should stay local, or cannot be
-removed cleanly.
+**Problem.** Setup changes touch repositories that already contain program configuration, shared agent content and
+local state. Misplacing those files prevents programs from finding their settings or causes local recovery data to
+be shared accidentally.
 
-**Goal.** Coding agents and the other programs around them find what they read where they look for it, committed
-configuration and local state never mix, and nothing the tool adds collides with another tool.
+**Goal.** Programs find the configuration intended for them, reviewers can inspect shared changes, and each
+repository keeps its recovery information local without relocating unrelated files.
 
 ## Context
 
-Where third-party tools look, checked against their documented behaviour or the installed binary:
-
-- Claude Code (2.1.x) reads project settings, hooks and skills from `.claude/` at the repository root, and reads
-  `CLAUDE.md` and the files it imports.
-- Codex CLI (0.16x) reads `.codex/config.toml`, `.codex/hooks.json` and `.codex/rules/` at the repository root, and
-  reads `AGENTS.md`.
-- A widely used skills installer, the `skills` CLI (1.7), writes to `.agents/skills/`.
-- The loop runner, ralph-tui (0.12), which runs agents unattended one task after another, reads its configuration only
-  from a fixed directory under its working directory and offers no flag to move it.
-- The task tracker, Beads (1.3.1), a clone-local task database, finds its directory by walking up from the working
-  directory; an environment variable can move it.
-
-What repositories already hold before they adopt the tool:
-
-- Some use `.agents/` as their canonical agent directory, linked from the native agent directories. Its skills, memory
-  and review guidance serve people and agents in repositories that never adopt this tool.
-- Where `.claude/skills` exists, it has one of three shapes: a link to a whole directory such as `.agents/skills`, a
-  real directory of skills people wrote, or a directory of per-entry links. For example, `acme/api` links
-  `.claude/skills` to `.agents/skills`, while `acme/web` keeps hand-written skills in a real `.claude/skills` directory.
-- Some keep an agent's own worktree directory under `.claude/`.
-- Some commit the task tracker's directory to git.
-
-Other forces:
-
-- Committed configuration is reviewed; clone-local state is ignored and can hold uncommitted work.
-- People, workers and third-party tools use parts of the tool's clone-local state directly: they work inside the working
-  copies the tool creates, and a loop runner runs inside them.
-- Removal deletes what the manifest lists ([0007](0007-ownership.md)).
-- A directory name at the repository root is not reserved: any program or person may create one, so a directory the
-  tool would use can already exist when it arrives.
-- Every ingredient and every station comes from a cookbook: it is fetched, verified by its content hash on every load,
-  and is the same bytes for every repository that pins that hash ([0022](0022-tool-integration.md),
-  [0026](0026-cookbook-trust.md)).
-- The XDG Base Directory Specification (0.8) defines a per-user cache directory, `$XDG_CACHE_HOME`, by default
-  `~/.cache`, for data a program can fetch again.
-- A worker can edit anything in the working tree it works in ([0011](0011-safety-invariants.md)).
+- Ingredients model native program files and configuration. Recipes declare destination targets; Cook reviews and
+  performs their file operations ([architecture](../architecture.md#ingredients-recipes-and-cookbooks)).
+- In a worked example, `acme/api` keeps shared skills under `.agents/skills/` with a directory symlink from a native
+  skills location. `acme/web` instead keeps a real skills directory containing hand-written files. Both layouts
+  predate a recipe invocation.
+- A repository may commit configuration while keeping operation history local. Its current working directory is
+  the destination, regardless of the recipe or executable location.
+- Sources have origins distinct from destination targets. A recipe outside the repository can refer to a template
+  beside itself while proposing output inside the destination.
+- Cook's wrapper obtains and locally caches a complete pinned jpackage package containing Java. That executable
+  cache and a destination's recovery history serve different purposes.
 
 ## Decision
 
-1. The native directories of worker programs stay where those programs look (Context). They hold rendered configuration
-   ([0008](0008-native-configuration.md)) and per-entry links into `.agents/`. Existing real directories and existing
-   whole-directory links stay as they are.
-2. `.agents/` holds agent content only: skills, including the skill the tool ships ([0002](0002-division-of-work.md)),
-   memory, commands and review guidance. It stays meaningful to people, coding agents and other tools without the tool.
-3. The tool's configuration directory holds the tool's committed configuration: the repository's data
-   ([0006](0006-repository-contract.md)), the manifest ([0007](0007-ownership.md)) and the pin of the engine release
-   ([0017](0017-engine-version.md)). Every path in it is tracked; none is ignored.
-4. The tool's clone-local state lives at paths the repository's data sets, with defaults under the clone's state
-   directory. No state path is inside the tool's configuration directory or `.agents/`, and state is never committed.
-5. Third-party state and configuration stay where their tool requires them and are never relocated through environment
-   variables or path overrides: the task tracker's directory at the root of the primary checkout, found by its upward
-   walk from nested working copies; the loop runner's configuration in the fixed directory it reads.
-6. Ignore rules are managed blocks, one set per capability ([0018](0018-conventions.md)), and omit any path the
-   repository tracks.
-7. A repository holds none of the ingredients and stations it pins ([0006](0006-repository-contract.md)). Each lives in
-   the user's cache directory, outside every repository, under its content hash, and one copy serves every repository on
-   the machine that pins that hash.
+1. Native output lives at the destination paths declared by the recipes for the configured programs to consume.
+   Shared content can use locations such as `.agents/`, but this decision imposes no universal agent-directory layout
+   or mandatory per-entry symlink scheme. Unrelated real directories, files and existing links remain in place.
+2. Declared writes and deletions stay inside the invocation directory, including paths resolved through symlinks.
+   An existing directory is not refused merely because Cook did not create it. Existing content follows the same
+   terminal diff and whole-batch approval flow, without adoption steps or an ownership manifest.
+3. Local operation history lives under the destination's ignored `.cook/` directory, with a separate run record for
+   each batch. Save one reversible patch per touched file before the first target write. Record evaluated and consumed
+   recipe/template sources, including local sources, their origins, arguments, execution order, operation and result
+   or failure log. On a write failure, roll back prior batch changes and retain patches and the failure record.
+4. History is recovery information, not committed configuration or an ownership database. Apply and discard evaluate
+   supplied recipes against current content without previous history; losing `.cook/` does not prevent them. Reverting
+   a particular run requires its recorded history. No metadata serialization format or complete storage schema is
+   selected here.
+5. The committed `./cook` wrapper pins an engine version and matching platform-package checksums. First use downloads
+   and verifies the uncached package, then caches the complete package including Java. Upgrades explicitly change
+   the version and checksums. The engine pin remains committed rather than existing only in ignored recovery history;
+   the engine cache path and pin representation remain unspecified.
+6. Cookbook repositories hold and ship ingredients and recipes, with builds that can be separate from the engine.
+   Sources may be local or supported remote URIs; there is no rule excluding cookbook content from a repository or
+   requiring ingredients and stations to live only in a per-user hash cache. Relative source references retain their
+   original recipe base when captured in history ([source origins](../architecture.md#destination-and-source-origins)).
+7. Configuring native program files does not make Cook the owner of those programs' state or workspaces. Recipes do
+   not implicitly relocate that state. Ingredient/recipe APIs, station semantics and lifecycle mechanics remain
+   deferred; this layout defines no session worktree tree, supplier API or command execution as a batch action.
 
 ## Reasons
 
-- **1.** Worker programs read only these locations, so rendered configuration must be there. Linking per entry adds the
-  tool's skill without replacing anything: where a native skills directory is a real directory (Context), replacing it
-  with a link would move files people own, and a whole-directory link already exposes everything in `.agents/`.
-- **2.** `.agents/` is a convention shared across tools and repositories, including repositories that use it without
-  this tool. Content there must stay meaningful when the tool is absent or removed. Keeping the tool's configuration out
-  of it means readers of agent content never meet files only the tool reads, and removal never has to pick files out of
-  a directory others write. The shipped skill lives there because that is where coding agents and skills installers find
-  skills.
-- **3.** One directory for the tool's configuration is one place to review and one directory removal deletes. Holding
-  only tracked paths keeps its meaning simple: what is in it is what the repository committed, with no ignore rules
-  inside a committed tree.
-- **4.** People and third-party tools work directly in the tool's state, chiefly its working copies, and repositories
-  have their own conventions for where those go (some keep a coding agent's working copies under its native directory,
-  as Context shows). A configurable path with a default lets each repository keep its convention, while the default
-  gives one root to ignore. State inside the configuration directory would put ignored paths into the committed
-  configuration directory, contradicting point 3. State inside `.agents/` would show clone-local files to every tool
-  that reads agent content. Committed state would publish one clone's uncommitted work.
-- **5.** The loop runner's configuration location cannot be moved, so its configuration, whether a person wrote it or a
-  station's template wrote it ([0013](0013-organization-content.md)), lives where the loop runner looks, and a committed
-  file reaches every working copy through version control. Relocating the task tracker through an override would make
-  every invocation depend on that override, and people who run the tracker directly would see different state.
-- **6.** One set of ignore blocks per capability lets one capability be removed without un-ignoring another's paths
-  ([0018](0018-conventions.md)). A tracked path in an ignore rule would stop new files in a committed directory, such as
-  the task tracker's directory in a repository that commits it, from being added.
-- **7.** An ingredient in the working tree would be a description that the worker in that tree can edit before the next
-  attempt reads it ([0022](0022-tool-integration.md)), and a copy of an ingredient or a station in every repository that
-  uses it would be one more copy to keep equal (Context). The user's cache directory is where data a program can fetch
-  again belongs (Context), outside every working tree, and a copy there that anyone changes, a worker included, fails
-  the hash check on its next load instead of being used. Keying by content hash lets every repository that pins the same
-  ingredient or station share one copy, and two versions never overwrite each other. The trade: an ingredient or a
-  station is on a machine only after someone fetched it there, and clearing the cache removes it until the next fetch.
+- **1, 2.** Native paths let programs consume their configuration directly. Declared scope preserves unrelated content
+  without forcing every repository into one skills layout. Symlink resolution matters because an apparently local
+  path can reach outside the destination. These boundaries govern batch operations, not arbitrary trusted recipe code.
+- **3, 4.** Separate local history keeps recovery information out of shared configuration. One combined patch per file
+  supports forward and reverse application without duplicate patch copies. Sources and origins make the evaluated
+  operation inspectable; history does not establish ownership, recipe identity or an already-applied gate.
+- **5.** A committed pin survives loss of local history and identifies the reviewed engine package across machines.
+  Bundled Java removes a separate runtime prerequisite for package users; complete packages need platform-specific
+  caching. Selecting a cache hierarchy now would add a storage decision the architecture does not require.
+- **6.** Source location and destination location answer different questions. Requiring supplier-only caches would
+  exclude local cookbook inputs and confuse recovery snapshots with source resolution. Capturing sources accepts
+  storage costs while leaving cookbook distribution and model APIs separate.
+- **7.** Existing state and workspace conventions belong to their programs and users. Removing the old session engine
+  does not authorize moving their files or finalizing station semantics in a directory-layout decision.
 
 ## Rejected alternatives
 
-### One directory for everything, state included
+### A committed ownership/configuration directory with no ignored paths
 
-At its best, every file the tool touches is in one place, one ignore rule covers the state, and removal deletes one
-directory. It loses because it mixes committed configuration with ignored state. It also fixes one location for working
-copies in every repository, and working copies that people and third-party tools use directly would sit inside a
-directory that removal must either delete with their contents or leave half removed.
+At its best, one directory contains everything reviewers need to describe managed output. It loses because the
+agreed operations do not require ownership state and recovery belongs in ignored destination-local history.
 
-### Configuration inside `.agents/`
+### Configurable session-state roots in every repository
 
-At its best, the tool's configuration and the content coding agents read sit in one committed directory that
-repositories already use, and the repository root gains no directory. It loses because the tool's configuration would
-sit among content the tool does not own and that must stay meaningful without the tool, and removal would pick files out
-of a directory others write.
+At its best, repositories choose where Cook's worker workspaces live. It loses because session orchestration is a
+future capability, and the agreed engine operation history has its local home under `.cook/`.
 
-### One fixed root for state
+### Ingredients and stations only in a per-user content-hash cache
 
-At its best, there is one ignore rule and one layout to test. It loses because repositories keep working copies where
-their own conventions put them, and people and other tools work inside those copies directly.
+At its best, many repositories share one verified supplier copy. It loses as a universal layout requirement because
+recipes can use local cookbook sources, and station and supplier mechanics are deferred. An engine package cache
+serves the pinned wrapper without imposing that cache model on cookbook content.
 
-### Relocate third-party state through overrides
+### Replace native skills directories with whole-directory links
 
-At its best, the repository root stays tidy. It loses because every invocation needs the override, and people who run
-those tools directly see different state.
-
-### Ingredients and stations kept in the repository
-
-The repository commits each ingredient and station it uses beside its data. At its best, a clone carries everything it
-needs, renders with no fetch, and a reviewer reads the ingredient's description in the diff that adds it. It loses for
-the reason [0022](0022-tool-integration.md) gives against descriptions read from the working tree, and because every
-repository that uses an ingredient or a station would carry its own copy, which local edits make diverge
-([0006](0006-repository-contract.md)).
-
-### Whole-directory links from native directories
-
-At its best, each directory needs one link. It loses because where a native skills directory is already a real directory
-(Context), replacing it moves files people own.
+At its best, a single link exposes all shared skills. It loses as a default because an existing real directory may
+hold unrelated files. An explicitly declared symlink operation still uses the ordinary batch review and destination boundary.
 
 ## Consequences
 
-Costs:
-
-- The repository root holds several dot-directories, including the tool's configuration directory.
-- The layout is set from outside; a change in a third-party tool's discovery rule forces a change here.
-- Per-entry links need a filesystem with symbolic links.
-- An ingredient or a station is absent on a machine until someone fetches it there.
-- Configurable state paths multiply the layouts the tool renders and tests.
-- A configuration directory the tool did not create is foreign and refused ([0012](0012-write-boundary.md)), so a
-  repository whose root already holds one cannot adopt this tool until it is moved.
-
-Must be maintained:
-
-- The table of third-party locations and the tool versions they were checked against.
-- The rule that the configuration directory holds no state and no ignored path, and the validation that rejects a state
-  path inside the configuration directory or `.agents/`.
+- Recipes and program models must account for the native paths they configure and the extent of declared replacements.
+- Shared native configuration, a committed engine pin, local engine packages and ignored `.cook/` recovery have
+  different lifetimes. Losing recovery history prevents reverting those runs, while a missing package requires
+  obtaining the pinned package before cooking.
+- Recovery snapshots consume local space. Patch representations for binary files, modes, symlinks and empty directories,
+  and reversal mechanics for overlapping edits remain implementation design work.
 
 ## Confirmation
 
-- The health check verifies that every link resolves.
-- Fixtures with each of the three skills-directory shapes keep their shape after adoption.
-- A test asserts that no command of the tool sets an environment variable or path override that moves a third-party
-  tool's directory or configuration.
-- A test asserts that every path under the tool's configuration directory of an adopted fixture is tracked and none is
-  ignored.
-- A fixture with non-default state paths writes state only at those paths.
-- Validation refuses a fixture whose state path points inside the tool's configuration directory or `.agents/`.
-- A fixture that commits a directory the tool would ignore gets no ignore entry for it.
-- A test asserts that fetching an ingredient or a station writes only under the user's cache directory, and that an
-  adopted fixture holds none of the ingredients and stations it pins.
+Review the two skills-layout examples to ensure declared changes preserve unrelated content and do not impose a
+symlink layout. Trace a recipe outside the destination to its native output and source snapshot, retaining its source
+base. Review containment through symlinks, ignored destination-local history, committed version/checksum pinning,
+and complete jpackage caching as separate responsibilities. No new health-check command or storage schema is required.

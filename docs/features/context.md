@@ -147,7 +147,7 @@ Apply the coding-guidelines skill to every change: read `.agents/skills/coding-g
 ```
 
 The `context` block is a convention block: its text never names a `the-cook` command, so after
-[`the-cook remove --eject`](remove.md#eject) the markers go and the directive stays. A static entry reaches every
+`the-cook remove --eject` the markers go and the directive stays. A static entry reaches every
 session that reads `AGENTS.md`, so it cannot be limited with `for`. A static entry with `for` narrower than both roles
 is a validation error.
 
@@ -179,8 +179,6 @@ session instead: `the-cook v0.9.0 is not cached on this machine; run ./cook vers
 `COOK_NO_CONTEXT=1` turns injection off for every process started from that environment, for debugging a session
 without standing context: hooks inject nothing, and an attempt puts no entry in its worker's prompt. Static entries
 stay, because they are part of `AGENTS.md`.
-
-The reasoning behind this design is in [ADR 0020](../adrs/0020-standing-context.md).
 
 ## Reference
 
@@ -217,8 +215,8 @@ Validation errors (exit 1 from `render`, `doctor` and `context show`): an entry 
 `file`; a `when` entry with both or neither of `paths` and `prompt`; `static` on a `when` entry, or with a narrower
 `for`; a `file` outside the repository or inside a state directory; an unknown role.
 
-Every entry a session receives is declared in this section of the repository's own profile
-([ADR 0013](../adrs/0013-organization-content.md)). Directives an organization wants in all its repositories are written
+Every entry a session receives is declared in this section of the repository's own profile. Directives an organization
+wants in all its repositories are written
 into each profile, typically by a coding agent following a skill the organization publishes or by applying a station
 from the organization's cookbook, and reviewed there like any other change. For example, a coding agent following
 acme's skill adds the same `always` entry and directive file to `acme/api` and to `acme/web`, and each repository

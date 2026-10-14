@@ -2,146 +2,117 @@
 
 ## Objective
 
-**Problem.** A contributor reading one decision, or a coding agent working for one, cannot tell what the project as a
-whole is trying to achieve. A proposal can then solve a problem nobody has, or work against a goal the project holds,
-without anyone noticing.
+**Problem.** Teams and developers reuse configuration across repositories, but copying setup by hand makes it hard to
+share improvements, review changes, and preserve unrelated configuration. A contributor needs to understand which
+part of that problem Cook solves before proposing another responsibility for it.
 
-**Goal.** In one read, anyone learns which problems `the-cook` exists to solve, what it is trying to achieve and the
-tenets every decision follows from, and can check a new proposal against them.
+**Goal.** Readers can judge proposals against Cook's purpose: turn reusable recipes into visible, approved changes to
+native program files, while keeping program-specific setup separate from the engine.
+
+[Cook architecture](architecture.md) states the intended design. This philosophy explains its goals and tenets;
+[ADRs](adrs/) record the supporting reasoning. Neither overrides the architecture. Documentation of the current
+implementation belongs in the [root README](../README.md) and [core guide](../core/README.md).
 
 ## The problems
 
-Teams share repositories, and each person works their own way, with their own coding agents, loop runners, trackers
-and editors. Each of those programs reads and writes files at fixed paths, often inside the repository. Across people
-and repositories, that produces four problems.
+Teams share repositories, while each person uses their own editors, coding agents, loop runners and trackers. These
+programs consume native files, often inside the repository. Reusing their setup raises several practical problems:
 
-1. **One person's setup becomes everyone's.** A loop runner's config, a tracker's git hooks or an agent's settings get
-   committed, and every teammate who clones inherits them. For example, a loop-runner config committed in `acme/api`
-   starts every teammate's coding agent with its permission checks off.
-2. **A way of working spreads only by hand.** A rule learned in one repository, such as which tool files never belong
-   in a commit, reaches another only when someone copies it. The copies drift, and withdrawing one is another visit to
-   each repository.
-3. **A person's own setup is retyped everywhere.** The same personal ignore lines, hooks and agent settings are typed
-   again in every clone and on every machine.
-4. **Sessions leave traces.** A session's worktrees, databases and configs outlive it in the clone, and can reach the
-   next commit or the next image built from it.
+- A useful configuration change reaches another repository only when someone copies it, and the copies drift.
+- Replacing a shared file can erase unrelated settings or changes someone made by hand.
+- Hidden changes make it hard to judge what applying or withdrawing setup will actually do.
+- Coupling program-specific configuration to the engine makes each program's evolution an engine concern.
+
+Personal setup portability and traces left by agent sessions are related problems. They motivate future kit and
+session work, rather than expanding the file-operation engine into a session controller.
 
 ## The goals
 
-- A teammate works in a shared repository without inheriting anything from another person's way of working.
-- A cook starts their own way of working with one request, and when they leave, nothing of it remains but the work.
-- A way of working learned once reaches every repository through one reviewed change, and is withdrawn the same way.
-- A cook's own setup follows them to every clone and every machine, and what they keep private stays private.
-- A teammate who does not use the tool works exactly as before.
-
-## Two axes, and contamination
-
-Every file a program writes has an owner and a lifetime. The owner is the project or one person; the lifetime is
-persistent or ephemeral. Each part of the tool holds one cell.
-
-| | Persistent | Ephemeral |
-| --- | --- | --- |
-| Project | the **kitchen**: the team's committed rules | the team's build outputs and caches |
-| Personal | the **kit**: a person's own setup, in their own repository | **cooking**: one session's traces |
-
-**Contamination** is something personal becoming persistent in the project, such as one person's settings committed,
-or a session's state outliving the session. The tool exists to keep the cells apart, and the tagline says so: the
-cook, the person, cooks the best product without any source of contamination.
+- Reuse configuration through recipes and ingredients maintained in cookbook repositories.
+- Review the combined effect of the requested changes against current content before approving writes.
+- Preserve unrelated content when applying, discarding or reverting declared contributions.
+- Let configured programs consume their native files directly, without needing Cook to run them.
+- Keep the engine's responsibilities bounded so cookbooks can evolve separately.
 
 ## What `the-cook` is
 
-- **The core** is one Go binary with three parts. The **kitchen** is `.cook/` in the repository: the team's rules for
-  tool files, rendered into the files programs read, such as `.gitignore`, `.dockerignore` and agent settings. The
-  **kit** is the person's own repository, which writes their setup into their home directory. **Cooking** runs one
-  recipe as a session in a directory outside the clone, and deletes the session's state when it ends.
-- **The wrapper**, `./cook`, is committed in each repository and pins one release, so every machine and pipeline gives
-  the same answer for the same commit.
-- **Cookbooks** publish groups of rules, ingredients and recipes. A group is a set of ignore rules; an ingredient
-  holds the facts about one program, such as the files it reads; a recipe is one way of working, with its parameters,
-  scripts and prompts. A repository or a kit copies what it uses, with its origin and sha256.
+Cook is a recipe driven configuration engine. Its CLI evaluates trusted executable Groovy recipes into an ordered
+batch of file operations, shows the resulting terminal diff, obtains approval, saves recovery information and
+performs the writes. Batches can include directory and symlink operations where applicable; executing external
+commands is not a batch action.
 
-It is not a coding agent, a loop runner, a tracker or a task runner, and it is not a safety tool. It works with
-whichever programs a person or a team uses, through the ingredients and recipes they copy.
+Ingredients are program data models: they describe native files and configuration, such as Git's ignore file or
+Codex's configuration and skills. Cookbook repositories hold and ship ingredients and recipes, with builds that can
+be separate from Cook's build. The engine handles evaluation, review and file operations; cookbooks carry the
+program-specific setup.
+
+Cook uses JVM-based distribution with `jpackage` and bundled Java. The delivery design includes a committed `./cook`
+wrapper that pins a version and checksum, downloads and caches that package on first use, and upgrades through explicit
+changes. See [installation](features/installation.md) and [the wrapper](features/wrapper.md) for this design and the
+current local build entry path. Gradle builds and packages Cook and cookbooks; the CLI is the public cooking interface.
+
+Personal setup backup (**kit**) remains future work in [issue #5](https://github.com/lmarqs/the-cook/issues/5).
+Agent-session orchestration (**cooking**) remains future work in
+[issue #6](https://github.com/lmarqs/the-cook/issues/6). A fixed development lifecycle, workers, verification receipts,
+jails and session orchestration are outside the engine responsibilities defined here.
 
 ## Tenets
 
-Each tenet answers one or more of the problems above.
-
 ### Start from the objective
 
-**Problem.** A feature, decision or rule whose purpose is not stated is judged against whatever purpose its reader
-assumes. It cannot be changed safely, and it outlives the reason it was made.
+**Problem.** A proposal without a stated purpose is judged against whatever purpose its reader assumes, and can
+outlive the reason it was made.
 
-**Tenet.** Everything starts from its objective: the problem it solves or the need it meets, and the goal that holds
-once it is solved. Every document states its objective first, in a few plain sentences that a reader understands
-without any data. The data and examples come after it, to make it concrete and checkable. A thing whose objective
-cannot be named is not built, and a thing whose problem goes away is removed.
+**Tenet.** State the problem and desired outcome before the mechanism. Keep the reasons visible so a contributor can
+judge whether a decision still serves its goal. See the [ADR structure](adrs/README.md#the-objective-comes-first).
 
-**Bound by.** [ADR structure](adrs/README.md#the-objective-comes-first).
+### Keep the engine focused on file operations
 
-### Helps, never controls
+**Problem.** A core that owns a team's development lifecycle must change whenever that way of working changes.
 
-**Problem.** A tool that makes everyone work one way charges every person for a choice they did not make. It also stops
-nobody, because anyone can start a program directly or keep settings of their own.
+**Tenet.** Cook evaluates recipes and reviews and performs their declared file operations. Configuring a coding agent,
+loop runner or CI system does not make Cook responsible for running it or controlling its workflow.
 
-**Tenet.** `the-cook` does its part and reports truthfully what it did. It refuses no caller and judges nobody, and a
-person or agent who ignores the settings they are given is acting on their own. Every guarantee it states is about
-what it does itself.
+### Trust recipes explicitly
 
-**Bound by.** [ADR 0028](adrs/0028-place-of-the-tool.md).
+**Problem.** Approval of a diff can be mistaken for a guarantee about everything executable recipe code might do.
 
-### Helps achieve safety, and is not a safety tool
+**Tenet.** Recipes are trusted Groovy code. Approval, destination boundaries and rollback govern declared batch
+operations; they do not sandbox recipe evaluation or guarantee that arbitrary recipe code has no side effects. Choose
+recipe sources accordingly, rather than treating a preview as a security boundary.
 
-**Problem.** A core that enforces one idea of safety either blocks legitimate work or gives a false sense of safety
-outside the cases it knows.
+### Keep program models in cookbooks
 
-**Tenet.** Safety and compliance come from what a team or a cook copies: recipes, ingredients and groups, and some
-recipes are safer than others. A recipe that wants a container or a sandbox starts one from its own script. The core
-has no safety floor; its fixed rules cover only what it writes itself, such as never copying a credential into a kit.
+**Problem.** Program-specific setup tied to the engine makes the engine follow each program's configuration changes.
 
-### A thin core; ways of working live in recipes
+**Tenet.** Ingredients model native program files and configuration, and cookbooks distribute ingredients and recipes
+separately from the engine. The ingredient concept does not settle the recipe/model API, composition and nesting,
+station roles, hooks, decorators, parameter injection or annotations; those require their own discussion.
 
-**Problem.** A core that holds a development lifecycle has to change whenever a team's way of working changes, and
-makes every team work that way.
+### Review the actual change
 
-**Tenet.** The core sets up a session and leaves the repository clean. Stages, gates, hooks, commits and delivery are
-a recipe's scripts. The core's only lifecycle is a session's start and end, and the binary knows no stage name and no
-event.
+**Problem.** Hidden reconciliation or refusals based on manual edits prevent readers from judging the change they
+requested against the files they have now.
 
-### Knows no program
+**Tenet.** Evaluate supplied recipes against current content on every apply or discard invocation. Compose operations
+in declared order, allowing later instructions to replace earlier values, and show one combined diff. Approval covers
+the whole batch. Existing or edited content uses the same flow, without ownership-state prerequisites, `--adopt`,
+adoption aliases or a separate adoption step. Applying one recipe leaves unrelated outputs from another intact.
 
-**Problem.** Support in the binary for one program makes every repository depend on a choice its team did not make,
-and makes the binary follow every release of that program.
+### Make recovery part of writing
 
-**Tenet.** Program knowledge is data. The binary holds one reader and writer per file format, and each program's facts
-live in its ingredient. A new program, or a new release of one, needs a new ingredient and no new release of the tool.
+**Problem.** A failed write can leave only part of the approved change, and later withdrawal can be confused with
+restoring the past.
 
-### Copied, never live
+**Tenet.** Save recovery patches before the first target write and roll back completed writes if the batch fails,
+retaining the patches and failure record. Discard deletes the supplied recipe version's declared contributions;
+revert uses a recorded run to restore its prior values against current content. Both preserve unrelated content and
+show the actual diff. Apply and discard need no prior history; reverting a particular run needs its history. See
+[apply](features/render.md) and [discard and revert](features/remove.md).
 
-**Problem.** A setup inherited live from a shared source changes under a repository that changed nothing.
+### Let native configuration stand on its own
 
-**Tenet.** Items are copied with their origin and sha256, and copying again is the update, reviewed as a diff. Nothing
-is fetched when the tool renders, and trust in a copied item is the team's review of its diff.
+**Problem.** A setup tool can become an unnecessary dependency of every program it configures.
 
-### Personal and project never mix
-
-**Problem.** A committed file rendered from one person's setup cannot be rendered again by a teammate or a pipeline,
-and the next person's render rewrites it.
-
-**Tenet.** Committed files are rendered only from sources in the repository. A kit is where a recipe can come from,
-never where a committed file is rendered from, and no command writes the repository and the home directory in one run.
-
-### Invisible to those who do not use it
-
-**Problem.** Teams stop using tools, and many teammates never start.
-
-**Tenet.** Nothing in an adopted repository needs the binary. The files it derives are committed, so teammates, agents
-and pipelines read them without the tool, and removing the tool leaves every line and key as the team's.
-
-### Depends on nothing
-
-**Problem.** Every program a tool needs at runtime is one more thing that must be installed, and at the right version,
-on every machine.
-
-**Tenet.** The binary needs only the operating system. It does not depend on git, and it starts no program: whoever
-wants git's verdict runs git, and a session hands its process to the recipe's script.
+**Tenet.** Programs read the native files Cook writes directly. Users can keep using those files without invoking Cook.
+The file-operation engine does not require teammates to adopt one editor, agent or way of working.

@@ -1,106 +1,89 @@
-# 0028. The tool helps people work together without controlling how anyone works
+# 0028. Cook supports shared setup without controlling how people work
 
 ## Objective
 
-**Problem.** People who change one repository each work their own way: their own editor, their own coding agents and
-the settings and extensions they keep for them, their own loop runner and task list, or none of these. A tool that tries
-to make them all work one way gets in the way of everyone whose way differs, and still stops nobody, because a person
-can always start a program directly, keep settings of their own or write a wrapper of their own. A tool that claims a
-control it does not have misleads the people who rely on its word.
+**Problem.** People who change one repository each work their own way: their own editor, coding agents, settings,
+plugins, loop runner, and task list, or none of these. A tool that requires everyone to work one way gets in the way
+of those whose choices differ. A tool that claims control over programs people can start directly misleads those
+who rely on its guarantees.
 
-**Goal.** Adopting the tool takes no way of working from anyone, and every guarantee the tool states holds for what the
-tool itself does.
+**Goal.** Using the tool takes no way of working from anyone, and each guarantee names the actions it covers.
 
 ## Context
 
-- A coding agent is a program a person can start directly, with arguments, settings and extensions of their own.
-  Claude Code 2.1.296 combines a person's own settings, kept in their home directory and in a local override file in
-  the project, with the project's settings. Its headless runs load the same context as an interactive session,
-  including the person's own plugins, hooks and instructions, unless it is started in its bare mode
-  ([headless runs](https://code.claude.com/docs/en/headless.md)). Codex 0.160.1 also reads the person's own rules and
-  configuration from their home directory.
-- A loop runner starts whatever command its configuration names for each task, and a person can write a wrapper of
-  their own around any program.
-- Changes made with different editors, extensions, plugins, skills, loop runners and task lists land in the same
-  repository and reach it through the same review, branch protection and CI.
-- Example: at acme, one developer works in VS Code with a methodology plugin in their coding agent. Another works in
-  IntelliJ and runs a loop runner over a task list kept in their own clone. A third uses no coding agent at all. All
-  three change `acme/api`, and every change of theirs reaches the default branch through the same review and CI.
+- People can start their programs directly or through their own wrappers, independently of Cook.
+- Worked example: one acme developer uses VS Code and an agent plugin, another uses IntelliJ and a loop runner,
+  and a third uses no coding agent. All contribute to `acme/api` through the team's review and CI conventions.
+- The agreed [architecture](../architecture.md#scope-and-responsibilities) defines a file-operation engine that
+  configures native program files, not a worker supervisor or fixed development lifecycle.
+- Recipes are trusted executable Groovy code. Their declared batch operations are only part of what that code
+  can do with the user's privileges.
 
 ## Decision
 
-1. The tool helps: it sets up what a repository shares, runs the steps a person or a worker asks of it, and reports
-   what it did. Nobody has to work through it, and it neither detects nor prevents work done any other way.
-2. Each person's own choices stay theirs: their editor, the settings and extensions they keep for a worker program, the
-   skills and plugins installed for them, and the loop runner and task list they use. The tool never requires one, never
-   writes or checks them, and reads them only when that person asks it to, as when they import their own permission
-   rules into the repository's policy ([0016](0016-permission-adoption.md)). They apply in every session that person
-   runs, the sessions the tool starts for them included, except inside a jail a repository declares for a worker,
-   which lets through only what its options name ([0027](0027-worker-jails.md)).
-3. Every guarantee the tool states is about what the tool itself does: what it renders, how it starts the programs it
-   runs, what it refuses to do and what it reports. No document claims a limit on a person, or a limit on a program
-   beyond what the tool itself sets up for it.
-4. Working around the tool is a supported use. The tool has no mechanism that detects or blocks it, and a feature
-   whose only purpose is to stop people working around the tool is not built.
+1. Cook helps people share configuration through requested file changes. Nobody has to work through it, and it
+   neither detects nor prevents work done another way.
+2. People choose their editors, agents, plugins, loop runners, and task lists. Cook can configure their native
+   files through declared recipe operations, without requiring teammates to use those programs or making their
+   execution an engine responsibility. Personal setup backup and session orchestration remain future capabilities.
+3. Guarantees about review, approval, output boundaries, and recovery apply to Cook's declared batch operations
+   ([0012](0012-write-boundary.md)). They do not constrain people, programs started independently, or arbitrary side
+   effects in trusted recipe code. Cook does not sandbox recipe evaluation.
+4. Rules a team needs for every contribution belong in its review, branch protection, and CI conventions.
+   Configuring those systems through file operations does not make Cook the authority that enforces them.
 
 ## Reasons
 
-- **1, 4.** Any control the tool added would stop only the people who go through the tool, while every way around it
-  stays open (Context). It would cost the people it slows down, protect nothing from those who step around it, and call
-  for another control after each new way around. Helping instead gives every person a reason to go through the tool and
-  costs nothing to those who do not ([0010](0010-dependence-on-the-binary.md)). The trade: the tool cannot report that
-  every change in a repository went through it. Rules that must hold for every change stay where every change passes:
-  review, branch protection and CI.
-- **2.** The people in Context differ exactly in these choices. A tool that required, rewrote or stripped them would
-  take a way of working from someone who never chose to give it up. Applying a person's own configuration in the
-  sessions the tool starts for them keeps those sessions behaving as the person's other sessions do. Reading them only
-  on that person's request keeps a personal choice from becoming a shared one by accident. A jail is the exception
-  because a repository declares it to keep a worker away from the person's home, with its keys and tokens, and the
-  person's own configuration lives there ([0027](0027-worker-jails.md)). The trade: the same task can run differently
-  on two machines. What stays the same is what the tool renders and the checks it replays
-  ([0011](0011-safety-invariants.md)).
-- **3.** A guarantee about what others cannot do turns false the moment one of them starts a program directly
-  (Context), and a reader who trusts it leaves a gap open without knowing. A guarantee about the tool's own actions
-  holds whoever else acts. The trade: every guarantee carries its scope, and the documentation says what lies outside
-  it.
+- **1.** Control over only those who use Cook would leave every independent way of working open while slowing down
+  willing users. Sharing reviewed configuration provides a useful service without trying to police its use.
+  The trade is that Cook cannot report that every change in a repository went through it.
+- **2.** The developers in Context differ in their program choices. Native configuration lets each use the setup
+  they need without placing all their sessions under Cook. The trade is that configuring a program does not guarantee
+  its behavior or make sessions identical across machines.
+- **3.** The engine can present and recover the file operations it handles. It cannot make the same promise about
+  independent programs or arbitrary recipe code. The trade is that users must trust executable recipes and every
+  guarantee must identify its scope.
+- **4.** Review and CI conventions apply regardless of which editor or agent produced a contribution. Cook applies
+  only when invoked, so treating it as universal enforcement would leave unobserved paths. The trade is that teams
+  maintain those controls independently of their recipe setup.
 
 ## Rejected alternatives
 
-### A tool that makes everyone work one way
+### Require everyone to work through Cook
 
-The tool detects or blocks work done outside it, and requires every person to install and use the programs the
-repository names. At its best, every change in every repository provably passes the same stages, and a reviewer never
-has to ask how a change was made. It loses because a person can always start a program directly (Context), so the
-proof is never complete; its restrictions fall only on the people who did use the tool; and every new way around it
-calls for another restriction.
+At its best, one path gives every contributor the same setup and stages. It loses because programs can be started
+independently, so enforcement remains incomplete and restrictions fall on people who chose to use the tool.
 
-### Runs that load only the repository's configuration
+### Make Cook supervise every configured program
 
-The tool starts each worker it runs for a task with the person's own settings, extensions and instructions left out, so
-a task behaves the same on every machine. At its best, two people running the same task get the same behaviour, and
-nothing outside the repository shapes the result. It loses because the person's own configuration is a way of working
-they chose (point 2), leaving it out overrides that choice in the one session the person is not watching, and the
-outcome is already judged by checks the tool replays from the repository's committed rules.
+At its best, one controller could standardize sessions and report their outcomes. It loses because native-file
+configuration does not grant that control, and worker supervision and session orchestration are outside this engine's
+responsibilities. Their future design is not decided here.
+
+### Treat batch approval as a recipe sandbox
+
+At its best, reviewing a diff would authorize every effect of a run. It loses because executable recipes can act
+before or outside declared batch writes; approval cannot restrict or recover those arbitrary effects.
 
 ## Consequences
 
 Costs:
 
-- The tool cannot report that every change in a repository went through it.
-- The same unattended task can behave differently on two machines, because each person's own configuration applies.
-- A team that wants a rule to hold for every change keeps it in review, branch protection or CI, where every change
-  passes.
+- Cook cannot prove that every repository change went through it or that independently started programs follow its
+  configuration.
+- Teams keep universal contribution controls in their own review and CI conventions.
 
 Must be maintained:
 
-- Every statement of a guarantee, in every document, names the tool's own action and its scope.
-- Features stay optional and additive: each helps those who use it and costs nothing to those who do not
-  ([0010](0010-dependence-on-the-binary.md)).
+- Documentation that names the declared operations each guarantee covers and the trusted-code boundary.
+- The separation between configuring programs and controlling their execution, without specifying deferred session
+  APIs, jails, or recipe hooks.
 
 ## Confirmation
 
-- Review rejects a document that states a limit on a person, or a limit on a program beyond what the tool sets up for
-  it, instead of what the tool does.
-- Review rejects a feature whose purpose is to detect or block work done outside the tool.
-- A fixture starts a worker with a stand-in home directory that holds the person's own settings, and asserts that the
-  tool neither reads nor changes them.
+- Review descriptions of a developer using Cook alongside one who does not: neither must change their editor or agent
+  choice to contribute.
+- Review every guarantee for a declared batch action and its scope. No worker-launch, jail, or recipe-sandbox promise
+  is inferred from native configuration or batch approval.
+- Review features against the engine's file-operation responsibility; detecting or blocking independent work is not
+  a purpose of this engine.

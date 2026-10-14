@@ -23,8 +23,8 @@ takes over an existing hand-written setup, imports every permission rule and hoo
 without losing one, and lists what needs judgement as a to-do for a person or a coding agent. Either way it writes the
 repository's [wrapper](wrapper.md), `cook`, pinned to the release that runs it.
 
-`scaffold` runs from a `the-cook` binary, because a repository has no `cook` until `scaffold` writes it
-([installation](installation.md#scaffolding-a-new-repository)). Every later command runs as `./cook <command>`;
+`scaffold` runs from a `the-cook` binary, because a repository has no `cook` until `scaffold` writes it.
+Every later command runs as `./cook <command>`;
 with a global install, `the-cook <command>` is equivalent.
 
 ## When to use it
@@ -66,8 +66,7 @@ import and behaves like a plain scaffold.
    - `.cook/policy.yaml` with one seeded entry, `[the-cook, lifecycle, run, deliver]` under `shared.ask`, rendered for
      each spelling `the-cook` renders, so a coding agent's own permission prompt asks a person before it runs the
      repository's delivery actions, plus the stations' policy entries, such as `unattended.deny`. The repository owns
-     this seeded entry and may change it ([policy](policy.md#the-seeded-entry),
-     [ADR 0015](../adrs/0015-development-lifecycle.md));
+     this seeded entry and may change it ([policy](policy.md#the-seeded-entry));
    - `.cook/hooks.yaml`: its skeleton, plus the stations' post-edit hooks and lifecycle actions;
    - `.agents/memory/` skeleton, when the `memory` module is on;
    - each template of the chosen stations whose file is absent;
@@ -77,8 +76,8 @@ import and behaves like a plain scaffold.
 5. **Pin** the release that runs `scaffold` in `.cook/wrapper.yaml`, an owned file: its exact version, and the
    checksums of its four platform binaries. They come from that release's checksum file, fetched over HTTPS and
    accepted only after its signature verifies against the release keys embedded in the running binary
-   ([wrapper](wrapper.md#cookwrapperyaml), [safety](safety.md#the-pinned-binary)). With `--offline`, `scaffold`
-   makes no network request and writes a [pending pin](wrapper.md#a-pending-pin) instead: the version and the source,
+   ([safety](safety.md#the-pinned-binary)). With `--offline`, `scaffold`
+   makes no network request and writes a pending pin instead: the version and the source,
    with `checksums: pending`.
 6. **Render** everything else, exactly as [`the-cook render`](render.md) does: `cook`, the renders and floor rules of
    every pinned ingredient (the workers' native files, skill links, ignore rules), the shipped skill, the other managed
@@ -87,7 +86,7 @@ import and behaves like a plain scaffold.
 
 After this, the seeded files belong to the repository, and so do the recipes in `.cook/recipes/`. `scaffold` never
 rewrites them; `render` reads them. People and workers edit the profile, the policy and the hooks file; the pin changes
-only through [`the-cook wrapper`](wrapper.md#the-cook-wrapper).
+only through `the-cook wrapper`.
 
 ### Station detection
 
@@ -133,8 +132,7 @@ ingredient named in the profile, fills them.
 | `.gitignore` | only the blocks the pinned ingredients render into it |
 
 When these files exist, `scaffold` appends its blocks at the end and touches nothing else. `README.md` is never
-created; when it exists, it receives the `commands` block. The [block ids](render.md#block-ids) table lists every
-block and the module that owns it.
+created; when it exists, it receives the `commands` block.
 
 ## Adopt
 
@@ -271,7 +269,7 @@ the-cook scaffold [--cookbook <source>@<version>] [--station <name>]... [--no-de
 | `--no-detect` | off | Apply only the stations named with `--station` |
 | `--adopt` | off | Import an existing setup and emit a to-do |
 | `--import <scope>[,<scope>]...` | `project` with `--adopt`, else `none` | Scopes to import, as a comma-separated set from the closed enumeration `project`, `local`, `user`, `none` |
-| `--offline` | off | Make no network request. The pin is written [pending](wrapper.md#a-pending-pin), without checksums, and is completed later with `the-cook wrapper --version <tag>`. Cannot be combined with `--cookbook` |
+| `--offline` | off | Make no network request. The pin is written pending, without checksums, and is completed later with `the-cook wrapper --version <tag>`. Cannot be combined with `--cookbook` |
 | `--yes` | off | Do not ask for confirmation |
 | `--dry-run` | off | Print the plan, the stations it would apply, the ingredients they pin and the recipes they add, the generated `policy.yaml` and `hooks.yaml`, and the equivalence report; write nothing |
 
@@ -292,7 +290,7 @@ names, the ingredient archives the chosen stations list and the recipe archives 
 version-control ingredient reports;
 the native files, hook files and instruction files the chosen worker ingredients name, `.gitignore`, the skills
 directories the worker ingredients link into; with `--import local` and `--import user`, the files the worker
-ingredients' `native_rules` name for those scopes. Files written: see [render](render.md#what-render-writes) (`cook`
+ingredients' `native_rules` name for those scopes. Files written: render outputs (`cook`
 included), the owned `.cook/wrapper.yaml`, plus the seeded `.cook/config.yaml` (with `ingredients:`, `stations:`,
 `vcs:` and `workers:`), `.cook/policy.yaml`, `.cook/hooks.yaml` and `.agents/memory/`, each template of the stations
 it applies whose file is absent, `.cook/recipes/<name>/` for each recipe they add, and the archives of the chosen
@@ -364,8 +362,8 @@ $ git commit -am "chore: complete the release pin" && git push
 ```
 
 Everything else works offline at once on this machine through the global `the-cook`. Worker hooks and `./cook` start
-working here once the pin is complete and the release is in the cache; on other machines they need the completed pin
-([wrapper](wrapper.md#a-pending-pin)). Stations are applied afterwards with `./cook station apply`, which needs the
+working here once the pin is complete and the release is in the cache; on other machines they need the completed pin.
+Stations are applied afterwards with `./cook station apply`, which needs the
 network.
 
 ### A repository with a hand-written setup
@@ -440,11 +438,11 @@ to-do:
 | Symptom | Cause | Fix |
 | --- | --- | --- |
 | `.cook/config.yaml already exists` | The repository is already scaffolded | Use `./cook render`; to start over, `./cook remove` first |
-| Exit 1: the checksum file of the pinned release cannot be fetched | No network access to the release source, which the pin's checksums come from | Rerun with network access, or with `--offline` and complete the [pending pin](wrapper.md#a-pending-pin) before you push |
+| Exit 1: the checksum file of the pinned release cannot be fetched | No network access to the release source, which the pin's checksums come from | Rerun with network access, or with `--offline` and complete the pending pin before you push |
 | Exit 1: the checksum file's signature does not verify | The file is not signed by a release key the running binary trusts | Do not work around it; obtain `the-cook` again from the project's releases and report it ([safety](safety.md#the-pinned-binary)) |
 | Exit 3 in a script | No terminal to confirm | Pass `--yes` |
 | Exit 3 naming `.cook/` | The directory holds neither a profile nor a manifest of `the-cook`, so another program created it | `the-cook` never writes into a directory it did not create; the repository cannot be adopted while the directory is there ([greenfield](#greenfield)) |
-| Exit 2 naming a rule | The equivalence check found a project rule the new files would not keep in effect; nothing was written | Keep the repository unadopted and report the rule to the publisher of the worker's ingredient, with the rule and the worker's version ([ADR 0016](../adrs/0016-permission-adoption.md)) |
+| Exit 2 naming a rule | The equivalence check found a project rule the new files would not keep in effect; nothing was written | Keep the repository unadopted and report the rule to the publisher of the worker's ingredient, with the rule and the worker's version |
 | Wrong stack detected | Marker files of another stack are present (for example a `package.json` for tooling in a repository of another stack) | Before scaffolding, pass `--no-detect` with a `--station` for each station you want, after checking with `the-cook station list --cookbook <source>@<version>`; afterwards, delete the entries that do not apply from `.cook/config.yaml` and `.cook/hooks.yaml`, and the station's record from `stations:` |
 | A rule allowing a force push is missing after adopt | It weakens a floor rule of the version-control ingredient and was dropped | Nothing to restore; the floor rule holds while that ingredient is pinned |
 | `kept vcs: differs from station <name>` | Two chosen stations name different version-control ingredients, and the first one's was written | Nothing, if the first is right; otherwise edit `vcs:` and delete the pin of the ingredient no longer named |

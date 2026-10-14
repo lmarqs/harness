@@ -1,107 +1,104 @@
-# 0008. The tool owns only named keys inside shared native files
+# 0008. Declared native-file targets preserve unrelated content
 
 ## Objective
 
-**Problem.** The files coding agents read their permissions and hooks from are shared with people, who keep their own
-settings there. Rewriting such a file as a whole destroys those settings. Editing it without clear ownership leaves
-nobody able to tell the tool's content from a person's.
+**Problem.** Programs read configuration from files people and other tools also edit. Replacing a shared file to
+change one setting can erase unrelated settings, and rewriting its formatting can hide the meaningful change.
 
-**Goal.** People keep every setting they put in a shared native file, and the tool's content in that file can always be
-told apart.
+**Goal.** A developer can review a native configuration change without losing unrelated settings or obscuring the
+change with unrelated formatting edits.
 
 ## Context
 
-- Coding agents read permissions and hooks from native files at fixed locations. Claude Code (2.1.x) reads
-  `.claude/settings.json`. Codex CLI (0.16x) reads `.codex/config.toml`, `.codex/hooks.json` and every file in
-  `.codex/rules/`.
-- Where a coding agent reads a whole directory of rule files, a file can be added to it without touching the others.
-  Claude Code's project settings file has no include mechanism: everything it holds lives in one file.
-- These files are shared with people. Claude Code's project settings file holds permissions, hooks and keys for the
-  environment, the model, Claude Code's own plugins, the status line and a schema reference, and people write any of
-  them by hand. Example: the `.claude/settings.json` of `acme/api` holds 40 hand-written allow and deny rules, a hook
-  that formats each edited file and an environment variable for the test database.
-- Personal override files (`.claude/settings.local.json`, `*.local.toml`) hold one person's choices and are usually
-  untracked. Example: a teammate's `.claude/settings.local.json` in `acme/api` allows a deploy command that the team
-  never agreed to give agents.
-- JSON has no comments, so ownership of a key inside a JSON file cannot be marked in the file itself
-  ([0007](0007-ownership.md)).
-- Rendering an owned key writes its whole content from the repository's data. A hand-written entry that is not in the
-  data is gone after that write.
+- Ingredients model programs' native files and configuration; cookbook repositories hold and ship ingredients and
+  recipes separately from the engine ([architecture](../architecture.md#ingredients-recipes-and-cookbooks)).
+- Native configuration can be structured content, shared text, or separate files in a directory. Where a program
+  supports separate files or inclusion, a recipe can use that facility. A single shared file still needs targeted edits.
+- Worked example: `acme/api` has a JSON settings file containing permission lists, a formatting hook and a database
+  environment setting. Changing one declared permission key need not replace the hook or environment setting.
+- Worked example: a teammate keeps a personal override file alongside shared settings. Copying its contents into
+  shared configuration would publish that person's choices to the team.
+- JSON has no comment syntax. TOML comments, key order and surrounding whitespace can carry information useful to
+  people reviewing configuration, even when they do not change what the program reads.
 
 ## Decision
 
-1. Where a worker program reads a directory of configuration files, the tool owns one separate whole file in that
-   directory.
-2. Where a worker program reads one shared file, the tool owns only named keys and entries: the permission lists, and
-   the hook and notification entries whose command is the tool's own entry point. Every other key and entry is preserved
-   byte for byte.
-3. The owned set of every native file is recorded in the manifest, under the name of the ingredient that renders it
-   ([0007](0007-ownership.md), [0022](0022-tool-integration.md)).
-4. Personal override files are never written and never recorded. They are read only during adoption, and only when a
-   person chooses to import them ([0016](0016-permission-adoption.md)).
-5. Before the tool takes ownership of a key that already holds hand-written entries, those entries are imported into
-   the repository's data ([0006](0006-repository-contract.md)) without loss, so they keep their effect
-   ([0016](0016-permission-adoption.md)).
+1. Recipes declare targets in native files: whole-file paths, structured key paths or marked text sections
+   ([0007](0007-ownership.md)). Where a program supports separate files, a recipe can target one file without touching
+   neighboring files. Cook does not require one exclusive file per program or a universal set of permission or hook keys.
+2. Structured operations preserve unrelated keys and entries, including fields the model does not interpret.
+   Preserve their formatting, order, comments and surrounding text so the diff remains focused on declared changes.
+   Whole-file declarations have whole-file scope and require review of that full diff.
+3. Existing values, including manually edited values, are inputs to the same ordered operation and whole-batch approval
+   flow. Later instructions may replace earlier values at the same target. No ownership manifest, adoption prerequisite
+   or drift veto applies. Deleting a declared key deletes its current value; restoring a run's prior value uses its
+   recorded history.
+4. Personal override files are affected only when recipes explicitly declare them as targets. Their mere presence does
+   not authorize writing them or importing their contents into shared configuration. Declared operations remain within
+   the invocation directory, including symlink resolution ([0012](0012-write-boundary.md)).
+
+Native settings can configure permissions, skills or a program's own hooks. That does not make Cook the program's
+runner or impose a safety-floor policy. Recipes are trusted executable code; declared-operation review, boundaries
+and recovery do not sandbox their arbitrary side effects. Ingredient/recipe APIs, station semantics and lifecycle
+hooks remain a separate discussion. This decision selects no model schema, migration protocol or serialization format.
 
 ## Reasons
 
-- **1.** A whole file is the clearest ownership there is: one path, one hash, and removal deletes one file. Where the
-  program reads a directory, this costs nothing, because people's files in the same directory are opened only during
-  adoption.
-- **2.** A worker program whose project settings cannot include another file keeps everything in that one file, and
-  people keep permissions, hooks, environment, model, plugin and status-line keys in it (Context). Owning the whole file
-  would destroy those keys in every repository that has one, and owning nothing would leave the policy without effect.
-  The permission lists and the entries that call the tool are the narrowest set that still makes the rendered policy and
-  the declared hooks and notifications ([0019](0019-action-kinds.md)) take effect. Byte-for-byte preservation keeps the
-  tool's diff to its own keys, so a reviewer sees only what the tool changed.
-- **3.** Ownership inside a JSON file cannot be marked in the file. The manifest is where the drift check and removal
-  learn which keys to compare and which to take out ([0007](0007-ownership.md)). Recording the ingredient lets a
-  repository stop using a worker ingredient and lose exactly the keys it rendered.
-- **4.** Writing an override file changes one person's setup through a change meant for the team, and recording it
-  puts a personal, usually untracked file into a committed manifest. Importing it is a choice because it publishes one
-  person's rules to the team ([0016](0016-permission-adoption.md)).
-- **5.** Rendering an owned key overwrites its content with what the data holds. A hand-written rule that is not
-  imported first vanishes at that moment: a lost deny widens what workers may do, and a lost allow stalls attempts on
-  prompts. Importing before owning keeps every rule in effect.
+- **1.** Native formats determine where configuration can live. A separate file can make a change easy to review, but
+  cannot serve as a universal rule when a program consumes one shared file. Explicit targets work in both cases
+  without a persistent ownership catalog.
+- **2.** In the shared-settings example, a change to permissions does not request a new hook or database setting.
+  Preserving unrecognized fields avoids silently dropping configuration that the model does not understand.
+  Preserving surrounding bytes keeps formatting noise from burying the meaningful diff, at the cost of careful
+  format-specific editing rather than a serializer that rewrites the whole document.
+- **3.** A developer needs to see the replacement of a manual value, rather than import it before any change is
+  allowed. Actual diff review exposes that replacement and ordered composition makes overlap intentional. Recovery
+  history answers a request to reverse a run, while recipe declarations answer a request to delete contributions.
+- **4.** A personal choice is not automatically a team choice, as the override example shows. Requiring an explicit
+  target makes that scope visible in review without permanently forbidding recipes from configuring local files.
+  Destination containment limits declared writes; it is not a restriction on everything trusted recipe code can do.
 
 ## Rejected alternatives
 
-### Own native files wholesale
+### Replace every native file wholesale
 
-At its best, rendering and checking are simplest: the tool writes the file and compares the file. It loses because it
-destroys every key people set, such as the rules, hook and environment variable of the `acme/api` example in Context.
+At its best, whole-file serialization is simple and produces uniform formatting. It loses as a general strategy
+because changing permissions could erase the example's hook and environment setting. Whole-file operations remain
+available when the recipe actually declares that scope and the developer reviews it.
 
-### Write only to the personal override file
+### Require a separate included configuration file everywhere
 
-At its best, nothing committed is touched and adoption cannot disturb a team. It loses because the file is personal
-and usually untracked: the team, CI and reviewers never see what the tool rendered, and each person renders their own.
+At its best, a separate file avoids editing shared keys. It loses as a universal rule because inclusion or directory
+loading depends on the program's native format. Use it when supported, rather than inventing a Cook-specific format
+that the program cannot read.
 
-### A separate owned file that the native file includes
+### Import existing settings before editing
 
-At its best, ownership is a whole file everywhere and no key is shared. It loses as a general rule because it depends on
-the worker program supporting inclusion, and a program's project settings may not support it (Context). Where the
-program reads a directory, this is the rule (point 1).
+At its best, importing settings into one source retains their effect in future generated output. It loses as a
+mandatory gate because it requires adoption and a second configuration representation for a request that can be
+reviewed directly against current native content.
 
 ## Consequences
 
 Costs:
 
-- Preservation is as exact as the serializer's round trip of JSON and TOML formatting; formatting the serializer
-  cannot reproduce is a residual risk.
-- A hand edit to an owned key is drift and is overwritten on the next render; the change belongs in the source.
-- People and the tool write the same file. A merge conflict in it is resolved by resolving the keys people own and
-  rendering again.
+- Native formats need editing support that preserves unrelated content. A full serializer round trip can change
+  formatting or drop unknown fields and therefore needs particular care.
+- A declared key can encompass an entire list or object. Review must expose entries that replacing that target removes.
+- People and Cook can change the same file; a later proposal uses its current content instead of treating one writer
+  as an owner whose version wins automatically.
 
 Must be maintained:
 
-- Round-trip tests for every native format, and the owned key set of every worker ingredient
-  ([0009](0009-agent-support.md)).
+- Native-format knowledge in program models and editing behavior that preserves content outside declared targets.
+- Diffs that reveal the actual scope of whole-file, key and section changes.
 
 ## Confirmation
 
-- Fixtures carry foreign keys, unusual key order and TOML comments; after rendering, every byte outside the owned keys
-  is unchanged.
-- In a directory the worker program reads, rendering creates or changes only the tool's own file.
-- Fixtures with personal override files assert that the files are never written, never recorded in the manifest, and
-  are opened only when an adoption imports them.
-- A fixture whose owned key holds hand-written entries renders those entries after adoption.
+Review the intended behavior with shared-file examples:
+
+- A permission-key update preserves the example's hook, environment setting, unknown fields and unrelated formatting.
+- A targeted change preserves unrelated key order and TOML comments; a whole-file declaration shows its full diff.
+- A separate-file target leaves neighboring configuration files intact.
+- Personal overrides are not implicitly written or imported; an explicit in-destination target follows normal review.
+- A manually edited key can be updated or deleted through batch review, without adoption or a drift veto.

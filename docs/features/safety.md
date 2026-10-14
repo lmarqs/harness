@@ -64,8 +64,8 @@ controls, and whatever a person runs outside `the-cook`. A loop runner configure
 team's own wrapper around a loop runner, or a worker started directly runs without the attempt contract; that is the
 person's choice, and `the-cook` neither detects nor prevents it. So is the configuration a person keeps for a worker
 program outside the repository, such as settings, plugins and instructions in their home directory: the program reads
-it in every session, attempts included, and `the-cook` never reads or restores it
-([ADR 0028](../adrs/0028-place-of-the-tool.md)). The guarantees on this page hold for what `the-cook` renders and for
+it in every session, attempts included, and `the-cook` never reads or restores it. The guarantees on this page hold for
+what `the-cook` renders and for
 every worker `the-cook` starts. Permissions constrain the commands a worker starts, not the code those commands run: a
 worker that can edit a test and run the test runner runs code it wrote
 ([pitfalls](pitfalls.md#a-task-runner-runs-whatever-its-tasks-say)).
@@ -134,7 +134,7 @@ The guards that matter therefore never rest on policy entries. The binary refuse
 `the-cook make` inside an attempt on its own: `the-cook attempt`, `attempt` actions and `attempt` steps set
 `COOK_ATTEMPT=1` for the worker they start, and the binary checks it. The binary also enforces the `deliver` guards
 whoever runs the command and however it is spelled. The entries are defence in depth: they make a worker stop or ask
-before it runs the command at all ([ADR 0011](../adrs/0011-safety-invariants.md)).
+before it runs the command at all.
 
 ## Unattended runs
 
@@ -233,7 +233,7 @@ that fired them, outside the worker's per-command permission checks.
   `the-cook make`, `the-cook verify`, `the-cook workspace create`, `the-cook workspace remove` and
   `the-cook fleet --deliver`. `the-cook doctor` never fires events ([lifecycle](lifecycle.md#trigger-points)).
 - **The hooks file is the complete list.** Every action is declared in the repository's own `.cook/hooks.yaml`, and
-  nothing outside the repository adds one ([ADR 0013](../adrs/0013-organization-content.md)). A station that declares
+  nothing outside the repository adds one. A station that declares
   actions writes them there as entries only when a person applies it, and the diff shows them. A recipe declares
   none. Reviewing that file reviews everything an event can run.
 - **Every action sees the whole environment.** A webhook URL exported for one `http` action is visible to every `run`
@@ -253,10 +253,10 @@ In practice:
 - Check `the-cook lifecycle list` for `auto: true` before granting a worker a command with a trigger point.
 - Keep actions to delivery and notification. `the-cook` itself never writes the team's record, but an action can, with
   the credentials it runs with. Declare such an action only when the team decided it, and never one that touches
-  production ([ADR 0012](../adrs/0012-write-boundary.md)).
+  production.
 - `the-cook` is never an MCP client. An integration that needs an MCP tool is an `attempt` action, which uses the
   worker's own MCP connections and their credentials under the attempt contract; a deterministic one uses the
-  service's API through `http` or its CLI through `run` ([ADR 0019](../adrs/0019-action-kinds.md)).
+  service's API through `http` or its CLI through `run`.
 
 ## Attempt actions and prompt injection
 
@@ -352,15 +352,13 @@ Every clone runs the release of `the-cook` that `.cook/wrapper.yaml` pins, throu
 - **Downloads are verified.** The wrapper fetches the release over HTTPS and checks its sha256 against the checksum
   for the platform in `wrapper.yaml`. A mismatch exits 1 and caches nothing.
 - **Implicit entry points never download.** Rendered hooks run the wrapper from the checkout's root, found through
-  the version-control ingredient's `root` operation, with `--no-download`
-  ([the hook command](render.md#the-hook-command)). A worker starting a session or editing a file runs a binary
-  already in the cache, or skips the hook, and never fetches code. Hooks never fetch an ingredient either. A download
+  the version-control ingredient's `root` operation, with `--no-download`. A worker starting a session or editing a file
+  runs a binary already in the cache, or skips the hook, and never fetches code. Hooks never fetch an ingredient either. A download
   happens only when a person or a worker runs an explicit command, such as `./cook verify`.
 - **Pins are signed.** `./cook wrapper --version <tag>` and `the-cook scaffold` write a pin's checksums only after
   the running binary verifies the release's signed checksum file with the release keys it embeds. A
-  [pending pin](wrapper.md#a-pending-pin), written by `scaffold --offline`, has no checksums and admits no download.
-  Trust passes from the first binary a person installs to every later pin
-  ([the trust chain](wrapper.md#the-trust-chain)).
+  pending pin, written by `scaffold --offline`, has no checksums and admits no download.
+  Trust passes from the first binary a person installs to every later pin.
 - **An upgrade is a diff.** Review the change to `wrapper.yaml` like a dependency bump: the version is the one you
   meant, and `source` did not move.
 - **One pin.** `the-cook` reads its version only from `wrapper.yaml`. Keep `the-cook` out of a task runner's tool list,
@@ -434,7 +432,7 @@ Rendered files are committed so every permission change is a diff. After `the-co
 | `.cook/wrapper.yaml` | a version change you intended, with checksums that match the release's published checksum file; a `source` whose value changed |
 | `cook` | changes only together with an upgrade whose release brings a new wrapper |
 
-Add `./cook render --check` to CI ([render](render.md#drift-check)) so a hand edit to a rendered file fails review
+Add `./cook render --check` to CI so a hand edit to a rendered file fails review
 instead of shipping.
 
 ## Checklist before running unattended

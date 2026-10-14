@@ -25,7 +25,7 @@ expects of the skills around it. Terms such as standing context, pin and profile
 | Kind | Lives in | Written by | Reaches a repository by | Holds |
 | --- | --- | --- | --- | --- |
 | **shipped skill** | the binary; installed at `.agents/skills/the-cook/` | `the-cook` maintainers | `the-cook render` (tool-owned, listed in the manifest) | how to run `the-cook` (`./cook <command>`), edit the repository files in `.cook/`, finish an adoption, read `doctor` findings, when to run `the-cook lifecycle run <event>`, how to drive a recipe run through its handoffs, and why the invariants exist |
-| **Organization skill** | an organization's skills repository | the organization | installed by the team with the skills installer of its choice and committed under `.agents/skills/`; the binary has no code for the installer, which an ingredient the repository pins can describe ([ADR 0022](../adrs/0022-tool-integration.md)) | conventions shared by one organization's repositories, and how to write them into one repository's files: delivery actions, policy entries (observability read patterns, deploy denies), review, domain vocabulary |
+| **Organization skill** | an organization's skills repository | the organization | installed by the team with the skills installer of its choice and committed under `.agents/skills/`; the binary has no code for the installer, which an ingredient the repository pins can describe | conventions shared by one organization's repositories, and how to write them into one repository's files: delivery actions, policy entries (observability read patterns, deploy denies), review, domain vocabulary |
 | **Repository skill** | `.agents/skills/<name>/` in the repository | people and workers in that repository | committed directly | knowledge of one repository: its modules, risks, procedures |
 
 The binary writes only the shipped skill. Organization and repository skills are knowledge; the binary never creates,
@@ -117,8 +117,7 @@ An organization's choices that `the-cook` enforces (which observability tools co
 deny on each repository's deploy command, a CI-trigger commit in delivery, the actions that update the task tracker its
 repositories use) reach a repository only as entries in its own files, written by a person or by a coding agent
 following the organization's skill. Why: no repository file can name a source outside the repository, and the
-organization's choices differ between its repositories, so applying them takes judgement
-([ADR 0013](../adrs/0013-organization-content.md)). Such a skill:
+organization's choices differ between its repositories, so applying them takes judgement. Such a skill:
 
 - states each entry with the reason the organization holds it, and how to fit it to the repository in front of the
   coding agent: which entries apply, and what to do with an entry the repository already has, because the coding agent

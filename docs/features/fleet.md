@@ -27,8 +27,8 @@ repository (a push, a pull request, a CI trigger) is the `deliver` actions that 
 `fleet` runs the same `the-cook` command in every repository it lists. A choice that takes judgement in each
 repository, such as which services an organization lets coding agents read through MCP, which deploy commands it denies
 or how its changes are delivered, is written into each repository by a person or a worker, typically one following a
-skill the organization publishes. It is reviewed there as a diff, and `fleet` does not run that worker
-([ADR 0013](../adrs/0013-organization-content.md)). For example, acme denies deploys to workers everywhere, but
+skill the organization publishes. It is reviewed there as a diff, and `fleet` does not run that worker. For example,
+acme denies deploys to workers everywhere, but
 `acme/api` deploys with `npm run deploy` and `acme/infra` with `terraform apply`, so a coding agent following acme's
 skill writes a different `deny` entry into each repository's `.cook/policy.yaml`.
 
@@ -165,8 +165,7 @@ Each repository gets a branch `the-cook/wrapper` whose commit changes `version` 
 pinned verified the new release's signed checksum file with its embedded keys before writing anything, so a
 branch exists only for a release the project signed. Reviewers check the version they expected
 ([safety](safety.md#the-pinned-binary)). The `verify` that `--deliver` runs after the commit already uses the new
-version. Once these branches land, `fleet render --deliver` picks up what the new release renders differently
-([wrapper](wrapper.md#many-repositories)).
+version. Once these branches land, `fleet render --deliver` picks up what the new release renders differently.
 
 A newer cookbook tag reaches a repository in two ways. What an ingredient renders, and its floor, change when its pin
 moves. A station's entries and templates reach a repository only when someone applies that station, and applying a newer

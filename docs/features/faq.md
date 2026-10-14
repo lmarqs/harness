@@ -50,7 +50,7 @@ its CLI through a `run` action.
 No. The repository's committed wrapper, `./cook`, downloads the pinned release the first time they run a command. It
 needs a POSIX `sh`, `curl` or `wget`, and `sha256sum` or `shasum`. Rendered files are committed, so their workers get
 the same permissions and instructions before that. Worker hooks never download: until the release is cached they print
-one line naming `./cook` and continue ([installation](installation.md#before-the-first-download)).
+one line naming `./cook` and continue.
 
 ### What is `cook`?
 
@@ -69,8 +69,7 @@ unattended. `./cook context show` shows what a session would get and why ([conte
 ### Do I need a global install?
 
 No. A global install is a convenience for scaffolding new repositories and for `the-cook fleet`. Inside a pinned
-repository it defers to the pin, so it never changes which release runs there
-([installation](installation.md#global-install-optional)).
+repository it defers to the pin, so it never changes which release runs there.
 
 ### Does CI need it?
 
@@ -85,7 +84,7 @@ download, and only the commands that pin, apply, add, update, fetch or read a co
 ([fetching](ingredients.md#fetching)). Running a recipe downloads nothing from a cookbook: it is a file in the
 repository. A machine that never has network access uses `COOK_BINARY` or a pre-filled cache
 ([wrapper](wrapper.md#air-gapped-machines)). Adoption works offline too: `the-cook scaffold --offline` writes everything
-and leaves the pin [pending](wrapper.md#a-pending-pin) until a later `the-cook wrapper --version <tag>` with network
+and leaves the pin pending until a later `the-cook wrapper --version <tag>` with network
 access verifies the release and records its checksums. Complete it before you push. Only `the-cook fleet --deliver`,
 and `the-cook workspace remove` when the profile sets `workspaces.update_before_landed`, have the version control system
 learn what is shared; offline, `workspace remove` prints one note and detects landed work against what the checkout
@@ -143,12 +142,12 @@ change what a repository's changes go through without any change to the reposito
 the repository. A copied recipe is the repository's own: its `origin` records where it came from, and
 `./cook recipe update <name> --cookbook <source>@<version>` merges a newer version into the copy as a diff to review.
 Copying loses no safety: a recipe can only add steps, lanes and requirements, and the guards and the floor stay in the
-binary and the ingredients ([ADR 0024](../adrs/0024-ingredients-and-stations.md), [ADR 0025](../adrs/0025-recipes.md)).
+binary and the ingredients.
 
 ### Can I use my own version control system or worker?
 
-Yes. Nothing in the binary sets any program apart: it contains code and data for no external program
-([ADR 0022](../adrs/0022-tool-integration.md)). A version control system needs an ingredient that fills the
+Yes. Nothing in the binary sets any program apart: it contains code and data for no external program. A version
+control system needs an ingredient that fills the
 [version-control contract](ingredients.md#the-version-control-contract), named with `vcs:` in the profile; a worker
 needs an ingredient that fills the [worker contract](ingredients.md#the-worker-contract), and a jail around a worker's
 attempts one that fills the [jail contract](ingredients.md#the-jail-contract). The version-control contract asks little
@@ -162,7 +161,7 @@ repository pins it with `./cook ingredient pin`. Reviewing the pin is the trust 
 
 Yes, with any that runs a command. The binary contains code for no external program; every program reaches a repository
 as data: an ingredient's renders, a station's entries and templates, a recipe's steps, a declared command or a lifecycle
-action ([ADR 0022](../adrs/0022-tool-integration.md)). A loop runner names
+action. A loop runner names
 `./cook make <recipe> --task <id> --unattended`, or `./cook attempt <worker>`, as the command it runs for each task. A
 tracker is updated by lifecycle actions on `start`, `completed` and `blocked` that read `COOK_TASK` and `COOK_ACTOR` in
 a workspace created with `--task`. A station can write those entries for you, and add the recipe the loop runner runs,
@@ -256,8 +255,7 @@ they never use ([ADR 0013](../adrs/0013-organization-content.md)). Write the den
 
 Write them into each repository. What `the-cook` renders and runs in a repository comes only from that repository's
 files, the release it pins and the ingredients it pins by hash, so a reviewer and a worker there can read every rule
-that applies, and the same commit renders the same bytes on every machine
-([ADR 0013](../adrs/0013-organization-content.md)).
+that applies, and the same commit renders the same bytes on every machine.
 
 - **Choices that take judgement**, such as which MCP tools coding agents may read without asking, a deny on each
   repository's deploy command, a CI trigger in delivery or the task tracker its repositories use: publish a skill that
@@ -365,14 +363,14 @@ checks, the floor and the renders would describe a program other than the one th
 build for the image's platform; another machine has its own files, so the tamper check, the replay and the commit could
 not see what the worker changed. Run the whole recipe run or loop run there instead, with `the-cook` installed there:
 a loop runner's command for each task can start `./cook make <recipe> --task {id} --unattended` inside a container or
-on another machine. The core needs nothing for that ([ADR 0027](../adrs/0027-worker-jails.md)).
+on another machine. The core needs nothing for that.
 
 ### Can an attempt run with permission checks bypassed?
 
 Not under `the-cook attempt`. It refuses every argument the worker's ingredient marks as a floor bypass argument with
 exit 1 naming the argument, so a loop runner configured to pass one fails at its first task. A worker a person starts
 some other way, for example from their own loop-runner configuration, is outside `the-cook`, which neither detects nor
-prevents it ([ADR 0022](../adrs/0022-tool-integration.md)).
+prevents it.
 
 ### Why does an attempt replay verification instead of trusting the receipt?
 
@@ -439,7 +437,7 @@ recipe of the repository's own has no origin and nothing to update ([recipes](re
 
 With the pin in place this happens only when the pin is bypassed: `COOK_BINARY` names a release older than the
 repository's `schema`, or their global binary is too old to defer to the pin. Unset `COOK_BINARY`, or run
-`./cook <command>` ([installation](installation.md#version-skew)).
+`./cook <command>`.
 
 ### Is it safe to run a binary that a committed script downloads?
 
@@ -447,11 +445,10 @@ The script downloads over HTTPS and runs a binary only after its sha256 matches 
 `.cook/wrapper.yaml`. A `the-cook` binary wrote those checksums only after it verified the release's signed checksum
 file with the release keys it embeds, so a pin can name only a release the project signed. Trust starts with the first
 binary you installed, and every later pin change is verified by a binary already trusted and reviewed as a diff of
-`wrapper.yaml`. `doctor`, when online, re-verifies the pin against the signed file. Worker hooks never download
-([installation](installation.md#release-trust)).
+`wrapper.yaml`. `doctor`, when online, re-verifies the pin against the signed file. Worker hooks never download.
 
 ### How do I turn off the update notice?
 
 `export COOK_NO_UPDATE_CHECK=1`. The notice is one stderr line on explicit commands, at most once a day, plus a
 `doctor` note. It never appears in worker sessions, because moving the pin is a reviewed decision, not one a worker
-takes because it read a notice ([installation](installation.md#update-notice)).
+takes because it read a notice.

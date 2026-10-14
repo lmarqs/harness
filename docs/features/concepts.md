@@ -50,8 +50,7 @@ the programs that do the work, and recipes take one kind of change through it.
 `blocked` fires out of band, at any stage where work stops unfinished or needs a person. The guards between stages, the
 receipt, the replay, the floor and the attempt contract are the core, and none of them is about one kind of program.
 The facts that make a particular worker safe, such as the arguments that start a coding agent unattended or bypass its
-permission checks, are data in that worker's ingredient ([ADR 0015](../adrs/0015-development-lifecycle.md),
-[ADR 0023](../adrs/0023-core-and-contracts.md)).
+permission checks, are data in that worker's ingredient.
 
 ### A recipe run: one pass of one change
 
@@ -74,7 +73,7 @@ stops the run as blocked instead, because it needs a person. A failed step, lane
 once a person has fixed what stopped it. A recipe can only add steps, required lanes and requirements: it cannot skip a
 lane, weaken a guard or fire an event itself. A run reads its recipe once, from the base commit of the workspace it
 creates, and follows that content to the end, so no step can change the recipe of the run it is in
-([guards](recipes.md#guards), [ADR 0025](../adrs/0025-recipes.md)).
+([guards](recipes.md#guards)).
 
 ### Events and actions
 
@@ -136,7 +135,7 @@ into, such as a coding agent's instruction file or the version control system's 
 | --- | --- | --- | --- |
 | Engine | nobody in the repository; the release the pin names, downloaded per machine by `cook` | no | the `the-cook` binary in `$COOK_HOME` (default `$XDG_CACHE_HOME/the-cook`, or `~/.cache/the-cook` when `XDG_CACHE_HOME` is unset); it holds no ingredient, station or recipe |
 | Cookbook archives | nobody in the repository; each cookbook's authors. The commands that pin, apply, add, update or fetch download, per machine, each ingredient and station the profile pins and the version each added recipe came from | no | `$COOK_HOME/cookbook/<sha256>.tar.gz` ([fetching](ingredients.md#fetching)) |
-| Pin | `scaffold` and [`the-cook wrapper`](wrapper.md#the-cook-wrapper), after the running binary verifies the release's signed checksum file (`scaffold --offline` writes a [pending pin](wrapper.md#a-pending-pin)); owned, never edited by hand | yes | `.cook/wrapper.yaml` |
+| Pin | `scaffold` and `the-cook wrapper`, after the running binary verifies the release's signed checksum file (`scaffold --offline` writes a pending pin); owned, never edited by hand | yes | `.cook/wrapper.yaml` |
 | Profile, policy, hooks | people and workers; seeded once by `scaffold`, which applies the [stations](stations.md) it is given: their entries become the repository's own and the ingredients they list are pinned under `ingredients:`. `the-cook station apply` does the same on request, and `the-cook ingredient pin` adds or moves one ingredient pin | yes | `.cook/config.yaml`, `.cook/policy.yaml`, `.cook/hooks.yaml` |
 | Templates | written once by `the-cook station apply` or `scaffold` when the file is absent, then people and workers; never re-rendered or removed by `the-cook` | yes | a station's whole templates, such as a loop runner's configuration file from the `agentic-coding` station |
 | Recipes | copied in by `the-cook recipe add`, `station apply` or `scaffold`, with their `origin`, or written by `the-cook recipe create`; then people and workers. `the-cook recipe update` merges a newer version into the copy; `render` never rewrites one | yes | `.cook/recipes/<name>/recipe.yaml` and the templates in its `files/` |
@@ -158,18 +157,16 @@ here ([recipes](recipes.md))?
 
 What `the-cook` renders and runs in a repository comes from the repository's own files, the release `.cook/wrapper.yaml`
 pins and the ingredients `ingredients:` pins, and from nothing else: no inheritance, no includes, no sources outside the
-repository ([ADR 0013](../adrs/0013-organization-content.md)). Rendering reads nothing else and needs no network once
+repository. Rendering reads nothing else and needs no network once
 the pinned ingredients are cached, so the same commit renders the same bytes on every machine, and people and workers
 learn what a repository does by reading its files. The binary contains code for no program and data for none either:
 every program it starts, calls or writes files for, the version control system and the workers included, is described by
-an [ingredient](ingredients.md) ([ADR 0022](../adrs/0022-tool-integration.md),
-[ADR 0023](../adrs/0023-core-and-contracts.md)).
+an [ingredient](ingredients.md).
 
 ### Ingredients, stations, recipes and cookbooks
 
 A cookbook publishes three kinds of unit, each named and versioned, and one rule separates them: facts about programs
-are pinned and rendered; practices are copied and become the repository's own
-([ADR 0024](../adrs/0024-ingredients-and-stations.md), [ADR 0025](../adrs/0025-recipes.md)).
+are pinned and rendered; practices are copied and become the repository's own.
 
 | Unit | What it is | How a repository holds it | When it acts |
 | --- | --- | --- | --- |
@@ -262,7 +259,7 @@ beside the repository's own.
 
 ## Ownership and the manifest
 
-`the-cook` never guesses what it owns ([ADR 0007](../adrs/0007-ownership.md)). `.cook/manifest.json` records two
+`the-cook` never guesses what it owns. `.cook/manifest.json` records two
 kinds of content:
 
 | Kind | What it is | Entries |
@@ -273,7 +270,7 @@ kinds of content:
 It also records the `schema` the files were rendered with.
 
 The manifest is committed and rewritten by `render`, `scaffold`, `wrapper` and `remove`. Do not edit it. The
-difference between owned and seeded content decides what each [removal mode](remove.md#undo-and-eject-compared)
+difference between owned and seeded content decides what each removal mode
 deletes.
 
 How the commands use it:
@@ -281,7 +278,7 @@ How the commands use it:
 | Command | Uses the manifest to |
 | --- | --- |
 | [`render`](render.md) | write exactly the owned set, and drop files and blocks not produced, such as the renders of an ingredient deleted from `ingredients:` |
-| [`render --check`](render.md#drift-check) | compare the owned set against what the sources produce |
+| `render --check` | compare the owned set against what the sources produce |
 | [`remove`](remove.md) | undo: delete the owned content, the seeded files in `.cook/`, and seeded files elsewhere only while they still match the hash they were created with; `--eject`: keep convention blocks and rendered native content as hand-owned, delete the rest of what it lists; both: refuse an owned path whose hash changed unless `--force`, and list and leave any file the manifest does not record |
 | [`doctor`](doctor.md) | report missing, modified or dangling owned paths |
 
@@ -300,8 +297,7 @@ Text outside markers, and keys `the-cook` does not own, are preserved byte for b
 
 ## Conventions outlive the tool
 
-Every convention a module establishes is written down where people and other tools already look, in plain language
-([ADR 0018](../adrs/0018-conventions.md)):
+Every convention a module establishes is written down where people and other tools already look, in plain language:
 
 - in a managed block of `AGENTS.md`: where managed workspaces live and how their branches are named, the permissions
   workers work under, the memory index, and the [standing context](context.md) entries declared `static`;
@@ -329,7 +325,7 @@ ignores what they say to ignore.
 
 Managed blocks come in two classes:
 
-| Class | States | Ids | After [`remove --eject`](remove.md#eject) |
+| Class | States | Ids | After `remove --eject` |
 | --- | --- | --- | --- |
 | Convention block | a fact that stays true without `the-cook`; it never names a `the-cook` command | `AGENTS.md`: `workspaces`, `policy`, `memory`, `context`; every block an ingredient renders, such as the block that makes a coding agent's instruction file import `AGENTS.md` and every ignore-file block | markers removed, text kept |
 | Tool block | how to use `the-cook` in this repository; it may name `./cook` commands | `AGENTS.md`: `commands`, `layout`, `verify`, `lifecycle`; `README.md`: `commands` | removed |
@@ -415,12 +411,11 @@ A repository adopts `the-cook` without forcing anyone else to.
 ## Built-in invariants
 
 These hold in every repository, for what the binary renders and for every worker the binary starts, and cannot be
-turned off by any repository file ([ADR 0011](../adrs/0011-safety-invariants.md)). They are rules of the process, built
+turned off by any repository file. They are rules of the process, built
 into the binary. The facts about a program they apply, such as which arguments bypass a worker's permission checks or
 which command rewrites the default branch, are [floor](ingredients.md#the-floor) rules of that program's ingredient:
 rendered on every render, never written into the policy and out of its reach. A worker a person starts some other way,
-such as from their own loop-runner configuration, is outside them: `the-cook` neither detects nor prevents it
-([ADR 0022](../adrs/0022-tool-integration.md)). The numbers match ADR 0011.
+such as from their own loop-runner configuration, is outside them: `the-cook` neither detects nor prevents it.
 
 1. Workers `the-cook attempt` starts never run with permission bypass: every argument the worker's ingredient marks as a
    floor bypass argument is refused with exit 1, naming the argument.

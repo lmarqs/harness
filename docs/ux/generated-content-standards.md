@@ -42,8 +42,7 @@ settings file and its instructions-file import, a whole rules file, the version-
 blocks). Renders come only from ingredients: a station has none, so no owned content belongs to a station. Deleting an
 ingredient from `ingredients:` and rendering removes exactly the content the manifest records under that ingredient.
 Why: the binary contains no program's format, so what a program's files hold is the ingredient's, and only an owner in
-the record tells a render which content leaves with the ingredient ([ADR 0007](../adrs/0007-ownership.md),
-[ADR 0022](../adrs/0022-tool-integration.md)).
+the record tells a render which content leaves with the ingredient.
 
 Owned content is rendered and replaced on every render, and a hand edit to it is drift. Seeded content is written once
 and then edited by people and workers. `the-cook` never re-renders it. It writes to the repository files again only when
@@ -71,14 +70,14 @@ the repository as it seeds them, the recipes they add included
 ([configuration-standards.md](configuration-standards.md#applying-a-station)). The `.agents/memory/` skeleton is seeded
 when the memory module is enabled, by `the-cook scaffold` or by the first `the-cook render` after the module is enabled,
 and is never re-rendered. The recorded creation hash is what lets undo (`the-cook remove`) tell an untouched skeleton
-from content someone wrote ([ADR 0007](../adrs/0007-ownership.md)).
+from content someone wrote.
 
 ## Header
 
 Owned files that allow comments carry exactly one header line, at the first position the format allows: the first
 line; after the `#!` line in a script; right after the opening `---` of YAML front matter in a Markdown file such as
 the shipped skill. Why: the file must keep working for the program that reads it, so the header goes where that program
-ignores it ([ADR 0007](../adrs/0007-ownership.md)).
+ignores it.
 
 Rendered files carry:
 
@@ -128,9 +127,9 @@ Workspaces in this project are created in `.work/workspaces/<name>`, on branch `
 - Block text comes only from the binary's templates and the repository's values: fixed sentences that state a
   convention with its configured values, tables, lists, one-line imports, and, in the `context` block, the text of the
   repository files and installed skills that `static` entries name. It is never free prose, opinion or knowledge,
-  because the binary does only deterministic work ([ADR 0002](../adrs/0002-division-of-work.md)). No source
+  because the binary does only deterministic work. No source
   outside the repository adds text to a block, because text there acts in every session while its source would sit
-  where nobody working in the repository reads it ([ADR 0013](../adrs/0013-organization-content.md)).
+  where nobody working in the repository reads it.
 - A `.gitignore` block omits any path the repository tracks, so ignoring never hides a committed file.
 - The version-control ingredient writes `.gitignore` entries for each module, even when one entry already covers another
   (for example `/.work/` and `/.work/workspaces/`). Why: removing one module must never un-ignore another module's
@@ -140,7 +139,7 @@ Workspaces in this project are created in `.work/workspaces/<name>`, on branch `
 
 Every block belongs to one of two classes. Why: some of the text `the-cook` writes states facts that stay true without
 it, and some only explains how to use it. Eject (`the-cook remove --eject`) must keep the first and must not leave the
-second behind ([ADR 0018](../adrs/0018-conventions.md)).
+second behind.
 
 | Class | States | Mentions `the-cook` commands | On `the-cook remove --eject` |
 | --- | --- | --- | --- |
@@ -207,8 +206,7 @@ Every convention a module establishes is written where people and other tools re
 ## Owned keys in native files
 
 Why: native files are shared with people and other tools, so `the-cook` owns only the keys and entries the renders of
-the worker's ingredient name, and nothing else ([ADR 0008](../adrs/0008-native-configuration.md),
-[ADR 0022](../adrs/0022-tool-integration.md)).
+the worker's ingredient name, and nothing else.
 
 - `the-cook` changes only the keys it owns. Every other key, its value, its order and its formatting are preserved byte
   for byte.
@@ -236,16 +234,14 @@ the worker's ingredient name, and nothing else ([ADR 0008](../adrs/0008-native-c
 Why: two teammates rendering the same commit must produce the same diff, or every render is noise in review.
 
 - The same repository files, pinned release and ingredients pinned by hash produce the same bytes on every supported
-  operating system, with no network access, because nothing else is an input
-  ([ADR 0013](../adrs/0013-organization-content.md), [ADR 0022](../adrs/0022-tool-integration.md)).
+  operating system, with no network access, because nothing else is an input.
 - The per-user cache supplies only ingredients whose archive matches their `sha256`. Neither a station nor a recipe is
   an input to rendering.
 - A new release may render differently, the shipped skill and `cook` included. A new version of an ingredient may
   render differently, its floor included. Moving either pin (`the-cook wrapper --version <tag>`,
   `the-cook ingredient pin`) renders the repository in the same change, so every such difference reaches review in that
-  diff ([compatibility-standards.md](compatibility-standards.md#rendered-output-across-releases),
-  [ADR 0017](../adrs/0017-engine-version.md)).
-- Rendered content never records the release that rendered it ([ADR 0005](../adrs/0005-schema-compatibility.md)).
+  diff ([compatibility-standards.md](compatibility-standards.md#rendered-output-across-releases)).
+- Rendered content never records the release that rendered it.
 - Generated content contains no timestamps, binary versions, usernames, hostnames, absolute paths or random values.
 - Order follows the source file's declaration order where one exists, and a documented sort otherwise.
 - Text files are UTF-8, use LF line endings and end with one newline.
@@ -261,8 +257,7 @@ Why: two teammates rendering the same commit must produce the same diff, or ever
 - The pinned release runs the drift check, and no owned file is exempt, the shipped skill included. The pinned
   release renders the skill the repository has, because upgrades render in their own change. A binary other than the
   pinned release (`COOK_BINARY`) gets a `the-cook doctor` note naming both versions, because its drift results may
-  differ. Why: an exemption would hide exactly the hand edits the check exists to catch
-  ([ADR 0007](../adrs/0007-ownership.md)).
+  differ. Why: an exemption would hide exactly the hand edits the check exists to catch.
 
 ## Review
 
@@ -303,7 +298,7 @@ Both modes:
 
 - act only on what the manifest lists and on `.cook/recipes/`, and never delete any other file: a file the manifest
   does not record, elsewhere in `.cook/`, is listed and left, and `.cook/` is deleted once nothing else is in it, so
-  what removal touches is known before it runs ([ADR 0007](../adrs/0007-ownership.md));
+  what removal touches is known before it runs;
 - list each recipe in `.cook/recipes/` in their plan before deleting it, so a person can keep a copy first. Why: a
   recipe is the repository's own description of its work and means nothing without `the-cook`, so it goes with the
   other repository files in `.cook/`, and the plan is the last moment to keep it;
@@ -325,8 +320,7 @@ without `the-cook`:
   with them, and so do the recipes it added. Why: the seeded files and the recipes have no meaning without `the-cook`.
 - A seeded file outside `.cook/` (the `.agents/memory/` skeleton) is deleted only while it still matches the hash
   the manifest recorded when it was seeded; an edited one is kept and listed. Why: an untouched skeleton is generated
-  output, while a file someone wrote into is the repository's knowledge, which `the-cook` never removes
-  ([ADR 0007](../adrs/0007-ownership.md)).
+  output, while a file someone wrote into is the repository's knowledge, which `the-cook` never removes.
 - Permission entries and hooks that adoption imported from project-scope native files are written back as plain
   native settings, so the workers keep behaving as before. Entries imported from the `local` or `user` scope are not
   written back, because their source files were never changed and still hold them.
