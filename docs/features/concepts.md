@@ -273,7 +273,7 @@ kinds of content:
 It also records the `schema` the files were rendered with.
 
 The manifest is committed and rewritten by `render`, `scaffold`, `wrapper` and `remove`. Do not edit it. The
-difference between owned and seeded content decides what each [removal mode](remove.md#undo-and-eject-compared)
+difference between owned and seeded content decides what each removal mode
 deletes.
 
 How the commands use it:
@@ -281,7 +281,7 @@ How the commands use it:
 | Command | Uses the manifest to |
 | --- | --- |
 | [`render`](render.md) | write exactly the owned set, and drop files and blocks not produced, such as the renders of an ingredient deleted from `ingredients:` |
-| [`render --check`](render.md#drift-check) | compare the owned set against what the sources produce |
+| `render --check` | compare the owned set against what the sources produce |
 | [`remove`](remove.md) | undo: delete the owned content, the seeded files in `.cook/`, and seeded files elsewhere only while they still match the hash they were created with; `--eject`: keep convention blocks and rendered native content as hand-owned, delete the rest of what it lists; both: refuse an owned path whose hash changed unless `--force`, and list and leave any file the manifest does not record |
 | [`doctor`](doctor.md) | report missing, modified or dangling owned paths |
 
@@ -329,7 +329,7 @@ ignores what they say to ignore.
 
 Managed blocks come in two classes:
 
-| Class | States | Ids | After [`remove --eject`](remove.md#eject) |
+| Class | States | Ids | After `remove --eject` |
 | --- | --- | --- | --- |
 | Convention block | a fact that stays true without `the-cook`; it never names a `the-cook` command | `AGENTS.md`: `workspaces`, `policy`, `memory`, `context`; every block an ingredient renders, such as the block that makes a coding agent's instruction file import `AGENTS.md` and every ignore-file block | markers removed, text kept |
 | Tool block | how to use `the-cook` in this repository; it may name `./cook` commands | `AGENTS.md`: `commands`, `layout`, `verify`, `lifecycle`; `README.md`: `commands` | removed |

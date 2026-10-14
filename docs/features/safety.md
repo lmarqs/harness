@@ -352,9 +352,8 @@ Every clone runs the release of `the-cook` that `.cook/wrapper.yaml` pins, throu
 - **Downloads are verified.** The wrapper fetches the release over HTTPS and checks its sha256 against the checksum
   for the platform in `wrapper.yaml`. A mismatch exits 1 and caches nothing.
 - **Implicit entry points never download.** Rendered hooks run the wrapper from the checkout's root, found through
-  the version-control ingredient's `root` operation, with `--no-download`
-  ([the hook command](render.md#the-hook-command)). A worker starting a session or editing a file runs a binary
-  already in the cache, or skips the hook, and never fetches code. Hooks never fetch an ingredient either. A download
+  the version-control ingredient's `root` operation, with `--no-download`. A worker starting a session or editing a file
+  runs a binary already in the cache, or skips the hook, and never fetches code. Hooks never fetch an ingredient either. A download
   happens only when a person or a worker runs an explicit command, such as `./cook verify`.
 - **Pins are signed.** `./cook wrapper --version <tag>` and `the-cook scaffold` write a pin's checksums only after
   the running binary verifies the release's signed checksum file with the release keys it embeds. A
@@ -434,7 +433,7 @@ Rendered files are committed so every permission change is a diff. After `the-co
 | `.cook/wrapper.yaml` | a version change you intended, with checksums that match the release's published checksum file; a `source` whose value changed |
 | `cook` | changes only together with an upgrade whose release brings a new wrapper |
 
-Add `./cook render --check` to CI ([render](render.md#drift-check)) so a hand edit to a rendered file fails review
+Add `./cook render --check` to CI so a hand edit to a rendered file fails review
 instead of shipping.
 
 ## Checklist before running unattended

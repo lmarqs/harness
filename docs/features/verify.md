@@ -209,7 +209,7 @@ A missing service or dependency is blocked work, never a reason to skip a lane. 
 
 `verify` is a [tool block](concepts.md#convention-blocks-and-tool-blocks): the lane rules, the receipt and its replay
 exist only while `the-cook` manages the repository, so the block describes how to use `the-cook` here and names
-`./cook verify`. An eject ([`the-cook remove --eject`](remove.md#eject)) removes it, as does
+`./cook verify`. An eject removes it, as does
 `the-cook remove --module verify`. A repository that wants its checks written down after an eject keeps them in
 `AGENTS.md` prose outside the markers.
 

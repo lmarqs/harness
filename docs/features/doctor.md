@@ -71,7 +71,7 @@ Notes never change the exit code:
 | Not the pinned release | `COOK_BINARY` makes `doctor` run as another release than the one `.cook/wrapper.yaml` pins: `running v0.8.2, the pin names v0.9.0; drift results may differ` |
 | Failed lifecycle run | the latest run of an event in `.work/lifecycle.jsonl` failed or was refused by a guard; the note names the event, the action and the exit status |
 | Settings that are not policy | adoption left in place a setting a worker ingredient's `native_rules` lists as not policy, such as a default permission mode or a sandbox setting |
-| `AGENTS.md` over budget | the managed blocks in `AGENTS.md`, the `context` block excepted, take more than `blocks.agents_md_budget` lines (default 40), or one of them more than 8; the note lists each block with its line count ([render](render.md#the-agentsmd-budget)) |
+| `AGENTS.md` over budget | the managed blocks in `AGENTS.md`, the `context` block excepted, take more than `blocks.agents_md_budget` lines (default 40), or one of them more than 8; the note lists each block with its line count |
 | Context over budget | the always-on context one role receives, `static` entries included, exceeds `context.budget`; the note lists every entry with its line count |
 | Event a worker lacks | a declared hook or context trigger has no event in one of the repository's workers, because its ingredient maps no native event to it, or the native setting the ingredient renders the event into already runs a program of the repository's own, so nothing was rendered for that worker |
 | Model or effort ignored | `workers.<name>.model` or `effort`, or an `attempt` action's, is set for a worker whose ingredient passes no model or effort ([profile](profile.md#workers)) |

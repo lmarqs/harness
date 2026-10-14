@@ -192,7 +192,7 @@ flowchart TB
 | | |
 | --- | --- |
 | Who acts | external: reviewers, the hosting platform, CI |
-| `the-cook` guarantees | nothing here depends on it: CI never needs the binary, and `the-cook render --check` is an optional step ([render](render.md#drift-check)) |
+| `the-cook` guarantees | nothing here depends on it: CI never needs the binary, and `the-cook render --check` is an optional step |
 | Left to judgement | everything: review, approval, merge method |
 | Event | none |
 
@@ -361,7 +361,7 @@ without a passing `./cook verify`, then runs `push` (run) and `open-pr` (run).
 
 "Without a passing `./cook verify`" appears only when the verify module is on. The block is a
 [tool block](concepts.md#convention-blocks-and-tool-blocks): it names `the-cook` commands, and
-[`the-cook remove --eject`](remove.md#eject) removes it, because nothing fires the actions or enforces the guards after
+`the-cook remove --eject` removes it, because nothing fires the actions or enforces the guards after
 an eject. Like every block, it stays within the per-block line budget ([render](render.md#managed-blocks)).
 
 ## Reference

@@ -93,7 +93,7 @@ only through a commit, so a cached release never needs a network check.
 | `./cook <command>`, typed by a person or a worker | downloads, verifies, runs |
 | another tool's command, such as a loop runner's `./cook make implement-task --task <id> --unattended` or a team's own task | the same: it is `./cook <command>` |
 | A global `the-cook` typed in a pinned repository | the same verified download, then runs the pinned release |
-| Worker hooks | never download: they run the [hook command](render.md#the-hook-command), `cook --no-download hook <event>` at the repository root, print one line on stderr and exit 0 |
+| Worker hooks | never download: they run the hook command, `cook --no-download hook <event>` at the repository root, print one line on stderr and exit 0 |
 
 The line a worker hook prints on stderr when the pinned release is not cached:
 

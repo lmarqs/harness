@@ -216,8 +216,8 @@ Getting started
 Setting up a repository
 
 - [scaffold](scaffold.md): greenfield scaffold, `--adopt` and `--import`
-- [remove](remove.md): undo the adoption, eject and keep the conventions, or remove one module
-- [render](render.md): rendered files, managed blocks and their ids, merge-rendering, drift checks
+- [Discard and revert](remove.md): delete supplied recipes' declared contributions or restore a recorded run's prior values
+- [Apply](render.md): ordered recipe contributions, declared file/key/marker targets, batch review, source paths and local history
 - [doctor](doctor.md): health checks and the adoption to-do
 - [explain](explain.md): built-in documentation for people and workers
 

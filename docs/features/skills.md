@@ -80,7 +80,7 @@ else there changes.
 
 `the-cook` lists the skill in no skills installer's lock file, so no installer manages it. `the-cook remove` and
 `the-cook remove --eject` both delete it and its links: it teaches `./cook` commands that do not exist once the
-wrapper is gone ([remove](remove.md#eject)).
+wrapper is gone.
 
 ## Shared skills
 

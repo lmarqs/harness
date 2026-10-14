@@ -147,7 +147,7 @@ Apply the coding-guidelines skill to every change: read `.agents/skills/coding-g
 ```
 
 The `context` block is a convention block: its text never names a `the-cook` command, so after
-[`the-cook remove --eject`](remove.md#eject) the markers go and the directive stays. A static entry reaches every
+`the-cook remove --eject` the markers go and the directive stays. A static entry reaches every
 session that reads `AGENTS.md`, so it cannot be limited with `for`. A static entry with `for` narrower than both roles
 is a validation error.
 

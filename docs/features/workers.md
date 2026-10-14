@@ -134,7 +134,7 @@ them, such as a codemod, gets no native files:
 A neutral event an ingredient maps to no native event gets nothing rendered for that worker, and `the-cook doctor`
 notes the gap.
 
-Every worker ingredient that maps hook payloads renders the same [hook command](render.md#the-hook-command), which
+Every worker ingredient that maps hook payloads renders the same hook command, which
 finds the checkout's root through the version-control ingredient's `root` operation. It runs the pinned binary of the
 checkout the worker works in, from the cache, and never downloads. When the binary is not cached, it prints one line
 naming `./cook` and exits 0 ([hooks](hooks.md#the-missing-binary-guard)).

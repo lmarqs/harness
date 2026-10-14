@@ -42,9 +42,9 @@ When the module is on, `the-cook scaffold` (or the first `the-cook render` after
 with, and `the-cook` never rewrites it. Everything people and workers write in `.agents/memory/` is knowledge, which
 `the-cook` never writes or deletes.
 
-An [undo](remove.md#undo), or `the-cook remove --module memory`, deletes the starter file only while it still matches
+An undo, or `the-cook remove --module memory`, deletes the starter file only while it still matches
 its recorded hash. Once someone edits it, it is knowledge: it stays, and the output lists it. An
-[eject](remove.md#eject) keeps it.
+eject keeps it.
 
 ### The convention in `AGENTS.md`
 
@@ -70,7 +70,7 @@ A memory file that workers must read in every session, or whenever they touch ce
 
 `memory` is a [convention block](concepts.md#convention-blocks-and-tool-blocks). It states the convention as a fact and
 names no `the-cook` command, and `.agents/memory/` follows the file conventions of the agent ecosystem, so a worker
-that follows them finds it without `the-cook`. After [`the-cook remove --eject`](remove.md#eject) the markers go and the
+that follows them finds it without `the-cook`. After `the-cook remove --eject` the markers go and the
 text stays. Workers keep finding the files, but nothing updates the list on additions and renames, so keep it current
 by hand.
 

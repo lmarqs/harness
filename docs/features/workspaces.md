@@ -165,7 +165,7 @@ Workspaces in this project are created in `.work/workspaces/<name>`, on branch `
 
 `<name>` is the workspace's name. `workspaces` is a [convention block](concepts.md#convention-blocks-and-tool-blocks):
 it states the convention as a fact and names no `the-cook` command, so it holds without `the-cook`. After
-[`the-cook remove --eject`](remove.md#eject) the markers go and the text and the ignore entry stay. People and workers
+`the-cook remove --eject` the markers go and the text and the ignore entry stay. People and workers
 creating workspaces by hand with the version control system keep following it. Workspaces are part of the core, so only
 an undo removes both blocks.
 

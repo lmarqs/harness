@@ -149,7 +149,7 @@ differently:
   `the-cook remove --eject` keeps their text, which must still be true and usable afterwards.
 - **Tool blocks** explain how to use `the-cook` and name its commands in the documented form, `./cook <command>`.
   Why: eject removes them, so they may depend on the tool.
-- Every block stays within the [`AGENTS.md` budget](../features/render.md#the-agentsmd-budget): one fact per line,
+- Every block stays within the `AGENTS.md` budget: one fact per line,
   detail left to `the-cook explain` and the skill, because workers read `AGENTS.md` in every session.
 
 ## Documentation structure

@@ -101,7 +101,7 @@ file, when it needs one, and renders them only for the workers that name it; a v
 ignore rules for the [state paths](profile.md#state-paths).
 
 The binary renders its own content with no ingredient: `cook`, the shipped skill, the blocks of `AGENTS.md` and
-`README.md`, and the manifest ([what render writes](render.md#what-render-writes)). When an ingredient leaves
+`README.md`, and the manifest. When an ingredient leaves
 `ingredients:`, or a worker leaves `workers`, the next render removes what was rendered for it.
 
 ### The floor
@@ -597,8 +597,7 @@ With `--json`, the output lists each entry added or moved, with its previous ver
 
 Files read: `.cook/config.yaml`, the tag's `checksums.txt` and the named archives, and everything
 [`render`](render.md#reference) reads. Files written: `$COOK_HOME/cookbook/<sha256>.tar.gz` for each verified archive;
-`ingredients:` in `.cook/config.yaml`; then every file `render` writes
-([what render writes](render.md#what-render-writes)).
+`ingredients:` in `.cook/config.yaml`; then every file `render` writes.
 
 ### `the-cook fetch`
 
@@ -730,7 +729,7 @@ The values a template reads:
 | `state_dir`, `workspaces_dir` | `state.dir` and `workspaces.dir` from the profile |
 | `default_branch` | the default branch the version-control ingredient reports |
 
-A hook's `command` is the [hook command](render.md#the-hook-command), which finds the wrapper through the
+A hook's `command` is the hook command, which finds the wrapper through the
 version-control ingredient's `root` operation.
 
 #### An example ingredient

@@ -82,7 +82,7 @@ gets no `attention` entry, and `attention` never reaches its sessions. A worker 
 payload mapping, such as a codemod, gets no hook entry at all.
 
 The command of a `the-cook hook` entry starts the wrapper from the root of the checkout, which the version-control
-ingredient's `root` operation finds ([the hook command](render.md#the-hook-command)):
+ingredient's `root` operation finds:
 
 ```sh
 "$(<root operation>)/cook" --no-download hook <event>
@@ -422,7 +422,7 @@ Hook entries `the-cook` did not render (for example one a coding agent's plugin 
 file) are preserved. Hooks in a program's local override files are never touched. See
 [compatibility](compatibility.md).
 
-After [`the-cook remove --eject`](remove.md#eject), raw entries stay in the native files as the repository's own hooks
+After `the-cook remove --eject`, raw entries stay in the native files as the repository's own hooks
 and keep working. The `the-cook hook` entries, including notifications and standing-context injection, are removed, and
 listed in the output, because they call a wrapper that eject deletes. Static context entries stay in `AGENTS.md`.
 

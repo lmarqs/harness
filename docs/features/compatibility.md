@@ -192,7 +192,7 @@ Adopting `the-cook` leaves a repository's CI/CD unchanged:
 - no build, test, deploy or release step requires the binary or the wrapper;
 - rendered files add no dependency and change no build output;
 - hooks and lifecycle actions do not run in CI;
-- `./cook render --check` and `./cook doctor` are optional steps you may add ([render](render.md#drift-check));
+- `./cook render --check` and `./cook doctor` are optional steps you may add;
   the wrapper downloads the pinned release over HTTPS and verifies its checksum, so CI runs exactly the release the
   pull request pins ([wrapper](wrapper.md#ci));
 - a job that runs either step runs `./cook fetch` first, which downloads every pinned ingredient and station and every

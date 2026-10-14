@@ -213,6 +213,73 @@ Neither request restores `new` as an intermediate step or refuses because of the
 and present the actual proposed change for approval. Discard deletes declared contributions; restoring earlier
 values is the role of reverting a recorded operation.
 
+## Paths, source snapshots, and local history
+
+The path and history contract follows FR-21 through FR-25 of the PRD's
+[paths, snapshots, and history requirements](../tasks/prd-documentation-alignment.md#paths-snapshots-and-history).
+
+### Destination and source origins
+
+The invocation's current working directory is the destination, regardless of where the recipe or Cook executable
+lives. Declared writes and deletions stay within that directory, including paths resolved through symlinks. A target
+that reaches outside the destination through a symlink is outside the permitted output boundary (FR-21). This
+boundary governs declared batch operations; trusted recipe code is not sandboxed.
+
+Source paths have a different base. Relative references to recipes and templates resolve from the referencing
+recipe's original location. For HTTPS sources, resolve them against the source URL. Capturing a source in `.cook/`
+must not rebase its references onto the snapshot directory (FR-22).
+
+For example, run either invocation from `/work/project`, using an executable at `/opt/cook/bin/the-cook`:
+
+```sh
+cd /work/project
+/opt/cook/bin/the-cook apply /home/dev/cookbook/recipes/project.groovy
+/opt/cook/bin/the-cook apply https://example.com/cookbook/recipes/project.groovy
+```
+
+Suppose each recipe references `./base.groovy` and `../templates/settings.toml`, and declares `settings.toml` as an
+output. These are alternative invocations with the same destination:
+
+| Recipe origin | Referenced recipe | Referenced template | Declared output |
+| --- | --- | --- | --- |
+| `/home/dev/cookbook/recipes/project.groovy` | `/home/dev/cookbook/recipes/base.groovy` | `/home/dev/cookbook/templates/settings.toml` | `/work/project/settings.toml` |
+| `https://example.com/cookbook/recipes/project.groovy` | `https://example.com/cookbook/recipes/base.groovy` | `https://example.com/cookbook/templates/settings.toml` | `/work/project/settings.toml` |
+
+Each consumed recipe resolves its own relative source references from its own origin. Local recipe operands,
+including `file://` URIs, follow the local-origin rule. These examples establish path resolution, without selecting
+an API for composing recipes or loading templates.
+
+### One record for the batch
+
+Keep local operation history under the destination's ignored `.cook/` directory. Record one operation for the whole
+batch, with a separate run record, rather than one independent operation per recipe. The record captures (FR-23):
+
+- One reversible patch per touched file, describing the combined operation on that file.
+- The recipe sources actually evaluated and all consumed recipe/template sources, including local sources as well
+  as downloaded ones.
+- Source origins, recipe arguments, execution order, and the requested operation.
+- The result or failure log.
+
+If several recipes touch the same file, save one patch for its combined change. Save all recovery patches before
+the first target write; if a write fails, roll back changes already made by the batch and retain the patches and
+failure record. One patch supports both forward and reverse application; separate forward/reverse copies are
+unnecessary (FR-13, FR-24). Preserve source origins alongside captured content so snapshotting does not change
+relative resolution.
+
+The metadata serialization format and complete storage schema are outside this decision. Removing persistent
+ownership state does not prohibit JSON run metadata; no metadata format is mandated here.
+
+### History availability
+
+Apply and discard require neither an ownership database nor previous run history. Every invocation evaluates the
+supplied recipe versions against current content, even after an identical earlier invocation. History cannot skip
+a recipe as already applied; an unchanged result may produce an empty diff (FR-25).
+
+Losing `.cook/` loses local recovery information, not the ability to apply or discard recipes. New operations still
+record their recovery information before target writes. Reverting a particular run requires that run's history:
+its prior values come from the recorded operation, not from evaluating a recipe again. See
+[discard and revert](features/remove.md) for the distinction.
+
 ## Command line and build boundary
 
 The CLI is the public cooking interface. Gradle builds and packages Cook and cookbooks; it is not a second public

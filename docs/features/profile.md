@@ -251,7 +251,7 @@ tree.
 
 | Field | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `agents_md_budget` | integer | `40` | Most lines the managed blocks in `AGENTS.md` may take together, the `context` block excepted. Each of those blocks also stays within 8 lines. `render` still writes blocks that exceed it; `doctor` notes the overrun. See [the `AGENTS.md` budget](render.md#the-agentsmd-budget) |
+| `agents_md_budget` | integer | `40` | Most lines the managed blocks in `AGENTS.md` may take together, the `context` block excepted. Each of those blocks also stays within 8 lines. `render` still writes blocks that exceed it; `doctor` notes the overrun. |
 
 ### State paths
 

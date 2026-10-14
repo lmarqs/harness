@@ -148,8 +148,8 @@ never removes it, and [`the-cook remove`](remove.md) leaves it. When the file ex
 reports `kept <path>: exists`.
 
 `the-cook scaffold` seeds the repository files, such as `.cook/config.yaml`, from templates of its own
-([scaffold](scaffold.md#greenfield)). The manifest records those as seeded files, which `the-cook remove` deletes
-([remove](remove.md#undo-and-eject-compared)); nothing records a template a station wrote.
+([scaffold](scaffold.md#greenfield)). The manifest records those as seeded files, which `the-cook remove` deletes;
+nothing records a template a station wrote.
 
 ### Recipes
 
@@ -399,8 +399,7 @@ Files read: `.cook/config.yaml`, `.cook/policy.yaml`, `.cook/hooks.yaml`, whethe
 of each ingredient or recorded station that is not cached, the archive of each recipe to copy, and everything
 [`render`](render.md#reference) reads. Files written: `$COOK_HOME/cookbook/<sha256>.tar.gz` for each verified archive it
 downloads; `.cook/config.yaml`, `.cook/policy.yaml` and `.cook/hooks.yaml`, additions and pins only; each template whose
-file was absent; `.cook/recipes/<name>/` for each recipe whose directory was absent; then every file `render` writes
-([what render writes](render.md#what-render-writes)).
+file was absent; `.cook/recipes/<name>/` for each recipe whose directory was absent; then every file `render` writes.
 
 ### The station file
 

@@ -133,8 +133,7 @@ ingredient named in the profile, fills them.
 | `.gitignore` | only the blocks the pinned ingredients render into it |
 
 When these files exist, `scaffold` appends its blocks at the end and touches nothing else. `README.md` is never
-created; when it exists, it receives the `commands` block. The [block ids](render.md#block-ids) table lists every
-block and the module that owns it.
+created; when it exists, it receives the `commands` block.
 
 ## Adopt
 
@@ -292,7 +291,7 @@ names, the ingredient archives the chosen stations list and the recipe archives 
 version-control ingredient reports;
 the native files, hook files and instruction files the chosen worker ingredients name, `.gitignore`, the skills
 directories the worker ingredients link into; with `--import local` and `--import user`, the files the worker
-ingredients' `native_rules` name for those scopes. Files written: see [render](render.md#what-render-writes) (`cook`
+ingredients' `native_rules` name for those scopes. Files written: render outputs (`cook`
 included), the owned `.cook/wrapper.yaml`, plus the seeded `.cook/config.yaml` (with `ingredients:`, `stations:`,
 `vcs:` and `workers:`), `.cook/policy.yaml`, `.cook/hooks.yaml` and `.agents/memory/`, each template of the stations
 it applies whose file is absent, `.cook/recipes/<name>/` for each recipe they add, and the archives of the chosen

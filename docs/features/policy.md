@@ -192,7 +192,7 @@ each entry a worker does not enforce marked with that worker's name.
 
 `policy` is a convention block ([concepts](concepts.md#conventions-outlive-the-tool)): it describes the permissions the
 workers' native settings enforce, and stays true when `the-cook` is gone. Entries for `the-cook`'s own commands are
-therefore left out of it, since those commands do not exist after an [eject](remove.md#eject)
+therefore left out of it, since those commands do not exist after an eject
 (`the-cook remove --eject`). `./cook explain policy` prints the complete effective policy, those entries included.
 For the [Node API](#a-node-api) below, with every module on and workers `claude` and `codex`, where only the `claude`
 ingredient declares native rule patterns and renders bare strings:
@@ -225,7 +225,7 @@ Denied to unattended runs, in addition:
 <!-- /cook:policy -->
 ```
 
-The block states the permissions as facts. After [`the-cook remove --eject`](remove.md#eject) the markers go and the
+The block states the permissions as facts. After `the-cook remove --eject` the markers go and the
 text stays. The rendered permissions stay in each worker's settings as the repository's own, so workers keep working
 under the same rules and the block keeps describing them. From then on nothing renders them, so a change to one
 settings file has to be made by hand in the other worker's file and in this text.

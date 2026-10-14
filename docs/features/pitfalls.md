@@ -642,8 +642,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
   managed block disappears after `the-cook render`.
 - **Why.** Rendered files and blocks are outputs of the three repository files (`.cook/config.yaml`,
   `.cook/policy.yaml` and `.cook/hooks.yaml`), the pinned release and the pinned ingredients.
-- **What `the-cook` does.** Rewrites what it owns, preserves everything else byte for byte, and reports differences
-  ([render](render.md#drift-check)).
+- **What `the-cook` does.** Rewrites what it owns, preserves everything else byte for byte, and reports differences.
 - **What you do.** Edit the source (`policy.yaml`, `hooks.yaml`, `config.yaml`) and render.
 
 ### A newer station's entries reach a repository only when it is applied again
@@ -792,7 +791,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
   they describe `the-cook` commands that do not exist after the eject, and so are the hooks that called `the-cook`.
   Receipts, the attempt contract, the tamper check, the lifecycle guards and the drift check need the binary, so they
   stop.
-- **What `the-cook` does.** Lists every block and hook it removed ([remove](remove.md#eject)), and does nothing after
+- **What `the-cook` does.** Lists every block and hook it removed, and does nothing after
   that.
 - **What you do.** Decide which guarantees the repository still needs and move each one where something enforces it:
   CI for the checks, branch protection for what lands, the workers' own permissions for what they may run. Edit the
