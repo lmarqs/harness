@@ -17,3 +17,4 @@
 # cook:end git/ignore
 
 /.worktrees/
+/tasks/prd.json
