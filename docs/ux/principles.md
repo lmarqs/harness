@@ -40,10 +40,9 @@ the committed files of those that did, so anything `the-cook` requires of them i
 - Files `the-cook` writes MUST NOT add a runtime dependency, a required CI step, or a change to build, test, deploy or
   release outputs, because those outputs belong to the repository's own toolchain. The wrapper's first-run
   requirements (a POSIX `sh`, `curl` or `wget`, `sha256sum` or `shasum`) apply only to running `the-cook`.
-- Adoption and removal are per repository and per module (for example, `modules.verify` on and `modules.memory` off),
-  because a repository may want one practice without the others. Removal has two modes, undo (`the-cook remove`) and
-  eject (`the-cook remove --eject`), and either leaves a repository that works with what remains (see
-  [generated-content-standards.md](generated-content-standards.md#removal)).
+- Apply and discard affect declared recipe targets; revert reverses a recorded run using local history. Each uses
+  the actual batch diff and whole-batch approval. Keeping native configuration is a choice to leave it in place
+  ([generated-content-standards.md](generated-content-standards.md#discard-and-revert)).
 - A person's own setup is theirs: their editor, the settings, plugins and skills they keep for a worker program outside
   the repository, and the loop runner and task list they use. `the-cook` MUST NOT require, write or check it, reads it
   only when that person asks, and it applies in every session, those `the-cook` starts included. Why: a tool that
@@ -124,9 +123,9 @@ A tool that competed with them would carry credentials and cost, and a loop of i
     `recipe update`, `fetch`, and the `--cookbook` reads of list and show commands (each archive verified against its
     `sha256`); the daily release check ([update notices](compatibility-standards.md#update-notices)).
   - Each is documented and the release check can be disabled.
-  - Rendering needs none of them once the pinned ingredients are cached, and neither does applying a cached station
-    again or running a recipe, because their only inputs are the repository's files, the pinned release and what the
-    repository pins by hash ([principle 9](#9-everything-a-repository-does-is-in-its-own-files)).
+  - Recipe evaluation may consume local or HTTPS sources and execute arbitrary code. Review source trust separately
+    from the batch diff; recorded origins and snapshots explain what was consumed
+    ([principle 9](#9-sources-and-effects-are-reviewable)).
   - Declared network access: an `http` action, a `run` action or recipe `run` step whose program reaches the network,
     an `attempt` action or step whose worker does (as `workers.<name>.network` and the program's defaults allow), and
     the version-control contract's `update` (run by `fleet --deliver` and, when the profile sets
@@ -165,8 +164,8 @@ Why: two ways to do one thing drift apart, and a reader cannot tell which one is
   are outputs, never a second place to edit.
 - The version of `the-cook` is pinned in exactly one place, `.cook/wrapper.yaml`, because two pins disagree as soon as
   one of them moves. `the-cook` reads no other file for it.
-- Each kind of content has one home: the configuration of `the-cook` in `.cook/`, the skills, memory, commands and
-  review guide that workers read in `.agents/`, state at the paths the profile sets
+- Native configuration lives where its program reads it. Recipe/template sources retain their original locations,
+  and local recovery history lives under the destination's ignored `.cook/`
   ([configuration-standards.md](configuration-standards.md#where-files-live)).
 - A repository has one documented entry point, the wrapper script `./cook`. The `AGENTS.md` `commands` block shows it,
   so workers and people type the same thing. A task the repository writes in its own task runner to call `the-cook` is
@@ -226,60 +225,30 @@ events fire.
 
 ## 8. Conventions outlive the tool
 
-Every convention `the-cook` establishes is written down as plain-language text where people and other tools already
-look, and stays valid after `the-cook` is removed. Why: people, workers and the other tools in a repository rely on
-where workspaces and state live. If those conventions existed only in the configuration of `the-cook`, removing
-`the-cook` would leave state that follows rules nobody wrote down.
+Write conventions where people and native programs can find them, with the values that apply. Keep instructions
+concise and link to detail when useful. Native configuration without a Cook runtime dependency remains usable
+without Cook ([generated-content-standards.md](generated-content-standards.md#instruction-files-and-conventions)).
 
-- Two classes of managed block carry the text `the-cook` writes into `AGENTS.md`
-  ([generated-content-standards.md](generated-content-standards.md#block-classes)):
-  - **Convention blocks** state facts that stay true without `the-cook`: where workspaces are created and on which
-    branch, the effective permissions, the memory index, standing directives declared `static`, and the block a worker
-    ingredient renders to make its worker's instructions file import `AGENTS.md`. They never name a `the-cook` command.
-  - **Tool blocks** describe how to use `the-cook`: its commands, what `.cook/` holds, how to verify through it, how
-    work is delivered through its lifecycle. They MAY name `./cook` commands.
-- Each path a module establishes is also listed in a managed block of the version control system's ignore file, which
-  the version-control ingredient renders and which is a convention block.
-- State lives at paths the profile sets (`state.dir`, `workspaces.dir`), never inside `.cook/` or `.agents/`. The
-  block text names the configured path, so people, workers and other tools find it by reading the repository, not by
-  asking `the-cook`.
-- A block states its convention as fact. It never says it is managed by `the-cook` beyond its marker, so it reads as the
-  repository's own text.
-- `the-cook remove --eject` keeps convention blocks and ignore-file entries as the repository's own content and removes
-  tool blocks, so the conventions remain in force after `the-cook` leaves and no instruction names a command that no
-  longer exists ([generated-content-standards.md](generated-content-standards.md#removal)).
+Markers define a declared section's boundaries rather than a convention/tool block class. Keeping configuration
+means leaving it in place. Discard deletes supplied recipes' declared contributions, while revert restores a
+recorded operation's prior values; both show the actual diff for whole-batch approval
+([generated-content-standards.md](generated-content-standards.md#discard-and-revert)).
 
-## 9. Everything a repository does is in its own files
+## 9. Sources and effects are reviewable
 
-What `the-cook` renders and runs in a repository comes from that repository's files, the release it pins and the
-ingredients it pins by hash, and from nothing else: no inheritance, no includes, no source the repository does not pin.
-Why: people and workers learn what a repository does by reading it. A rule that acts in a repository from somewhere else
-cannot be read by anyone working there, and a reviewer sees its effect without its reason.
+Cook accepts supplied recipe paths and supported source URIs, including local and HTTPS sources. Recipes are trusted
+executable code; a repository commit alone does not determine their effects. Review source trust as well as the
+combined batch diff ([configuration-standards.md](configuration-standards.md#inputs)).
 
-- The same commit renders the same bytes on every machine and every day, with no network, because no input can change
-  without a commit in the repository: the release and every ingredient are pinned by hash in its files, and the binary
-  ships no ingredient, no station and no recipe of its own.
-- No repository file has a key that names a source outside the repository for what `the-cook` renders or runs, except a
-  release, an ingredient or a station pinned by hash ([configuration-standards.md](configuration-standards.md#inputs)),
-  so reading the repository is enough to predict what it does. A recipe's `origin` records where its copy came from and
-  is never read to run it.
-- Every write to the repository files is one a person or a worker asked for: seeding them, migrating them, pinning an
-  ingredient with `the-cook ingredient pin`, applying a station with `the-cook station apply`, adding, updating or
-  creating a recipe with `the-cook recipe add`, `recipe update` or `recipe create`, or an edit. Why: a file that changes
-  by itself holds decisions nobody made.
-- A program reaches a repository only through an ingredient the repository pins in `ingredients:`, as renders the
-  manifest records under the ingredient's name. A way of working reaches it only when a person applies a station: as
-  entries written into its files, files its templates write, the ingredient pins it lists and the recipes it adds, all
-  in one reviewed diff. A kind of change reaches it as a recipe in `.cook/recipes/`, written there or copied from a
-  cookbook, which runs as the repository's own file. `stations:` records the pin a station was applied at, and a
-  recipe's `origin` the version its copy came from; nothing records where an entry or a template file came from, so each
-  has one source of truth: the file it is in
-  ([configuration-standards.md](configuration-standards.md#ingredients-and-stations)).
-- An organization's choices reach its repositories as changes to each repository's files, written by a person or by a
-  coding agent following the organization's skill, and reviewed there as a diff. The cost is that a choice shared by
-  many repositories is written, and changed, in each of them. For example, when acme lets its coding agents use the
-  read-only tools of its observability MCP server, `acme/api` and `acme/web` each get those entries in their own
-  `policy.yaml`, in a change reviewed in that repository.
+Cookbooks hold ingredients and recipes separately from the engine. Users supply the recipe versions they intend to
+apply or discard, and every invocation evaluates them against current content. Ordered overlap is composition;
+applying another recipe does not implicitly withdraw unrelated output. The batch records consumed sources,
+origins, arguments, and execution order in local history for recovery
+([configuration-standards.md](configuration-standards.md#local-history-and-explicit-reversal)).
+
+Organization choices can reach repositories through trusted cookbook recipes or deliberate edits to native
+configuration. Each repository reviews its actual proposed changes. This does not select station semantics,
+recipe identity management, or a model API.
 
 ## When principles conflict
 
@@ -291,13 +260,12 @@ Apply them in this order, because each earlier principle protects something hard
 3. Nothing leaves the clone undeclared (principle 7).
 4. Optional and transparent (principle 1).
 5. Conventions outlive the tool (principle 8).
-6. Everything a repository does is in its own files (principle 9).
+6. Sources and effects are reviewable (principle 9).
 7. The binary is deterministic; judgement belongs to people and workers (principle 2).
 8. Runs the game, never plays (principle 3).
 9. Least surprise (principle 4).
 10. One way to do each thing (principle 6).
 
 Example: a convenient default that would overwrite a hand-edited file loses to "never destroy", so the command refuses
-and names `--force` instead. A shared source that would let an organization change a rule once for all its
-repositories loses to "everything a repository does is in its own files", even though one place for the rule would
-serve "one way to do each thing". The rule is written into each repository instead.
+and names `--force` instead. A shared cookbook source requires source trust and review of the actual batch diff in each destination;
+recorded sources and origins make that operation inspectable, without banning remote recipes.

@@ -29,7 +29,7 @@ state each promise and how it changes.
 | A station, with its ingredient pins, stages, entries, templates and the pins of the recipes it adds | the tag of the cookbook that publishes it, recorded with the sha256 of its archive when it is applied; the binary ships none | `version` and `sha256` of its entry under `stations:` in `.cook/config.yaml`; `the-cook station list` |
 | A recipe | none of its own: the repository's copy is its own file; a copy added from a cookbook records the tag it came from and the sha256 of that archive; the binary ships none | `version` and `sha256` of `origin` in `.cook/recipes/<name>/recipe.yaml`; `the-cook recipe list` |
 | The ingredient format, the station format, the recipe format and each contract | an integer `schema` per format, an integer version per contract; an ingredient declares its schema and the contract it fills, a station and a recipe their schema | `schema` and `contract` in `ingredient.yaml`, `schema` in `station.yaml` and in `recipe.yaml`; `the-cook version` prints the ones the running release supports |
-| Rendered files and [managed blocks](generated-content-standards.md#managed-blocks) | the schema of their sources | the [generated-file header](generated-content-standards.md#header) and the manifest (`.cook/manifest.json`) |
+| Native files and [marked sections](generated-content-standards.md#managed-blocks) | the native program's format and supplied recipe version | source guidance; a [notice](generated-content-standards.md#header) may identify the source without establishing ownership |
 
 - Rendered content carries the schema, never the binary version. It
   depends only on the repository files, the pinned release and the ingredients the repository pins by hash, and
@@ -67,14 +67,14 @@ state each promise and how it changes.
 | JSON output | removing, renaming or retyping a field; changing array order | adding a field |
 | Repository files | removing, renaming or redefining a key; changing a default; tightening validation of values that used to be accepted | adding an optional key whose absence keeps existing behaviour |
 | Rendered output | for unchanged inputs and schema, a change in what the rendered files make a worker do, other than a new invariant or floor rule | for unchanged inputs and schema, different bytes that leave worker behaviour unchanged (the shipped skill's text, formatting), shipped in a minor release and reviewed in the upgrade diff; different bytes because the inputs changed |
-| Managed blocks and header | changing marker syntax, a block id, a block's class or the header line | adding a new block id |
+| Marked sections and notices | changing declared section boundaries or native interpretation; review the actual effect | adding an explanatory notice permitted by the native format |
 | Invariants | weakening one (never allowed) | adding one; it changes rendered output and therefore follows the rendered-output rule |
 | Ingredient, station and recipe schemas, contracts | removing, renaming or redefining a field, an operation or a step kind; changing an operation's output kind; changing how a step kind substitutes inputs; dropping an ingredient, station or recipe schema, or a contract version, from the support window before its deprecation ends | adding an optional field, operation or step kind whose absence keeps existing behaviour; reading a new schema or contract version |
 | Release trust | removing a key a released binary trusts without a rotation release ([below](#release-trust)) | introducing the next key in a release signed by the current one |
 
 
-Moving a block between the convention and tool [classes](generated-content-standards.md#block-classes) is breaking
-because it changes what `the-cook remove --eject` keeps in a repository.
+Markers define section boundaries. There is no convention/tool class or eject contract whose transition needs a
+separate compatibility rule ([generated-content-standards.md](generated-content-standards.md#managed-blocks)).
 
 ### Rendered output across releases
 
@@ -307,9 +307,9 @@ change of version is a reviewed diff ([ADR 0017](../adrs/0017-engine-version.md)
   pending pin, and `the-cook wrapper` is the command that completes it.
 - `COOK_BINARY=<path>` makes the wrapper exec that binary instead of the pinned one (air-gapped machines,
   development of `the-cook` itself). It bypasses the pin and its checksum.
-- The schema rules in [configuration-standards.md](configuration-standards.md#schema-versioning) apply: a binary
-  refuses a repository file newer than it reads, and never renders something different. With the wrapper, this
-  refusal occurs only when the pin is bypassed (`COOK_BINARY`, or a global binary too old to defer to the pin).
+- Native files follow their programs' compatibility rules. The configuration standard does not mandate a universal
+  schema field or engine migration protocol
+  ([configuration-standards.md](configuration-standards.md#defaults-and-format-changes)).
 - Upgrading is a reviewed change to the repository: `the-cook wrapper --version <tag>` (or `--latest`) rewrites the
   version and checksums in `wrapper.yaml` and renders the repository with the new release in the same change, under
   the trust rules below. Across repositories: `the-cook fleet wrapper --version <tag> --deliver`.

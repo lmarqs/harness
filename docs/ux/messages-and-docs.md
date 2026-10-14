@@ -134,23 +134,14 @@ because it enters a worker's session.
 
 ## Generated text in human files
 
-Managed blocks hold derived facts: the conventions a module establishes, stated in plain language with their configured
-values, command tables, an index of memory files, a summary of the effective permissions, static directives (`static`
-standing-context entries), an import line that makes a worker's instructions file read `AGENTS.md`. Blocks contain no
-prose that reads as a person's opinion, and nothing that duplicates prose outside the block, because the binary writes
-only what it can derive. Explanations of a repository's choices are written by people or workers outside the markers.
+A recipe may declare a marked section in a shared instruction file. Markers identify its boundaries, not
+ownership or a block class ([generated-content-standards.md](generated-content-standards.md#managed-blocks)). Keep
+instructions concise, avoid duplicating surrounding guidance, and link to supporting detail where useful. State
+conventions using the values that apply to the repository, so people and programs can understand them directly.
 
-The two block classes ([generated-content-standards.md](generated-content-standards.md#block-classes)) are written
-differently:
-
-- **Convention blocks** state facts that hold without `the-cook`, in the voice of the repository: "Workspaces in this
-  project are created in `.work/workspaces/<name>`, on branch `work/<name>`, from committed code." They never name a
-  `the-cook` command, the wrapper or `.cook/`, and never say they are managed beyond their marker. Why:
-  `the-cook remove --eject` keeps their text, which must still be true and usable afterwards.
-- **Tool blocks** explain how to use `the-cook` and name its commands in the documented form, `./cook <command>`.
-  Why: eject removes them, so they may depend on the tool.
-- Every block stays within the `AGENTS.md` budget: one fact per line,
-  detail left to `the-cook explain` and the skill, because workers read `AGENTS.md` in every session.
+A section may contain conventions, explanations, or Cook commands as the recipe requires. There is no mandatory
+convention/tool classification, eject behavior, or engine line budget. Manual edits inside the declared section
+appear in the next batch diff; unrelated text outside it remains intact.
 
 ## Documentation structure
 

@@ -71,7 +71,7 @@ carry their ordinary English meaning. These terms apply within the architecture'
 | [cli-standards.md](cli-standards.md) | Command grammar, output, errors, approval and noninteractive use |
 | [when-cli-when-skill.md](when-cli-when-skill.md) | Where behaviour and guidance belong |
 | [skills-standards.md](skills-standards.md) | Skill content and use |
-| [configuration-standards.md](configuration-standards.md) | Configuration files and inputs |
+| [configuration-standards.md](configuration-standards.md) | Native configuration, recipe inputs, destination paths and local history |
 | [generated-content-standards.md](generated-content-standards.md) | Native files, markers, review and reversal |
 | [messages-and-docs.md](messages-and-docs.md) | Message voice, terminology and documentation |
 | [compatibility-standards.md](compatibility-standards.md) | Compatibility and distribution |

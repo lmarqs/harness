@@ -32,9 +32,9 @@ The binary writes only the shipped skill. Organization and repository skills are
 edits or deletes them ([principles.md](principles.md#3-runs-the-game-never-plays)), because knowledge needs judgement
 the binary does not have.
 
-In a repository, every skill lives under `.agents/skills/`, the directory of content workers read that other tools
-share, so a skills installer, the workers and people find them in one place. The configuration of `the-cook` lives in
-`.cook/` and never among skills ([configuration-standards.md](configuration-standards.md#where-files-live)).
+Skills live where their native programs discover them; `.agents/skills/` is a useful shared location when supported.
+Local Cook history lives under the destination's ignored `.cook/`, rather than a committed configuration tree
+([configuration-standards.md](configuration-standards.md#where-files-live)).
 
 ## When to create each
 
@@ -44,7 +44,7 @@ share, so a skills installer, the workers and people find them in one place. The
 | A new `the-cook explain` topic is needed | shipped skill reference with the same text | both come from one embedded source |
 | A convention holds across one organization's repositories, as judgement or as entries `the-cook` enforces (a deny, a delivery action) | organization skill that guides a coding agent to write it into each repository's files ([below](#organization-skills-that-write-repository-entries)) | the organization owns and reviews the skill once; applying it to a repository takes judgement, and each repository reviews the result |
 | A procedure or body of knowledge is specific to one repository | repository skill | it is reviewed where it applies |
-| Known guidance must apply every session, or whenever certain files or words appear | an existing skill plus a standing-context entry ([configuration-standards.md](configuration-standards.md#standing-context)) | the trigger is deterministic; the skill stays the single text |
+| Guidance is needed in sessions | an existing skill and the native program's discovery configuration ([configuration-standards.md](configuration-standards.md#values-and-native-settings)) | the program decides what it loads; Cook does not define injection triggers |
 | The behaviour is deterministic and organization neutral | not a skill: a command, flag, profile field, ingredient or station | prose would drift from the behaviour |
 | A kind of change a repository makes many times, part deterministic and part judgement (a migration, a new module) | a recipe, whose `attempt` steps name the skill that guides the judgement ([below](#skills-a-recipe-step-names)) | the recipe makes the change the same way and verified every time, and the skill keeps the guidance in one text |
 | A one-off instruction for a single session | not a skill: the prompt | a skill outlives the session it was written for |
