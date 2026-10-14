@@ -33,7 +33,7 @@ the sessions that do not need it.
 - Text added to a worker's context acts as instructions. A source that someone can change without review is a channel
   for instructions. A worker in an attempt can write files in its working copy, skills and directive files included.
 - A hook invocation adds at most 50 ms at p95, and hooks do nothing on a
-  machine where the pinned release is not cached ([0017](0017-engine-version.md)).
+  machine where the pinned release is not cached.
 - A worker program may run no hook when it runs unattended. Codex CLI 0.160 runs a project's hook only after a person
   has reviewed and trusted it, and in an attempt nobody is there to review anything.
 - A worker in an attempt receives its task as a prompt, which the caller passes either on standard input or among the
@@ -79,7 +79,7 @@ the sessions that do not need it.
 - **2.** In a session a person drives, a hook is the only point where text enters a worker's context without the
   person typing it, and worker ingredients already render hooks per worker program.
   Reporting a missing event, instead of emulating it, keeps the difference between programs visible.
-- **3.** Hook delivery depends on the binary being cached on the machine ([0017](0017-engine-version.md)). A directive
+- **3.** Hook delivery depends on the binary being cached on the machine. A directive
   that must reach every worker in every clone belongs where workers read without the tool, and as a convention block it
   survives an eject. Delivering it by hook as well would pay its cost twice.
 - **4.** Delivered text acts as instructions, so it may come only from sources that are reviewed: files committed in the
@@ -139,8 +139,8 @@ Costs:
 - Prompt words match text, not intent: a listed word can match a message it does not concern, and a message about the
   topic in other words does not match.
 - A skill delivered by a trigger can also be loaded by a coding agent through its description, and then appears twice.
-- On a machine where the pinned release is not cached, hook-delivered guidance is absent
-  ([0017](0017-engine-version.md)); static entries cover the directives that must always be present.
+- On a machine where the pinned release is not cached, hook-delivered guidance is absent; static entries cover the
+  directives that must always be present.
 - Guidance differs between worker programs where their hook events differ.
 - An attempt's prompt is longer than the caller's text by the always entries of the unattended role, and an attempt
   whose caller passes the prompt among the worker's arguments, to a worker program that runs no hook unattended,

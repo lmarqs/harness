@@ -241,8 +241,7 @@ Why: two teammates rendering the same commit must produce the same diff, or ever
 - A new release may render differently, the shipped skill and `cook` included. A new version of an ingredient may
   render differently, its floor included. Moving either pin (`the-cook wrapper --version <tag>`,
   `the-cook ingredient pin`) renders the repository in the same change, so every such difference reaches review in that
-  diff ([compatibility-standards.md](compatibility-standards.md#rendered-output-across-releases),
-  [ADR 0017](../adrs/0017-engine-version.md)).
+  diff ([compatibility-standards.md](compatibility-standards.md#rendered-output-across-releases)).
 - Rendered content never records the release that rendered it.
 - Generated content contains no timestamps, binary versions, usernames, hostnames, absolute paths or random values.
 - Order follows the source file's declaration order where one exists, and a documented sort otherwise.

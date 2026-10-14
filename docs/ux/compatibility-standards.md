@@ -35,7 +35,7 @@ state each promise and how it changes.
   depends only on the repository files, the pinned release and the ingredients the repository pins by hash, and
   `the-cook wrapper --version <tag>` renders the repository with
   the new release in the same change as the pin, so moving the pin never leaves drift behind (drift is owned content
-  that differs from what the pinned release renders) ([ADR 0017](../adrs/0017-engine-version.md)). Why: a version stamp
+  that differs from what the pinned release renders). Why: a version stamp
   would change every file on every upgrade and bury the changes that matter.
 - The public contract covered by semantic versioning is: command names and grammar, flags, operands, enumerated values,
   `COOK_*` environment variables (those `the-cook` and its wrapper read and those it passes to actions and to the
@@ -325,7 +325,7 @@ change of version is a reviewed diff ([ADR 0017](../adrs/0017-engine-version.md)
 
 Why: a checksum copied by whoever upgrades proves only that the download matches what they saw. It does not prove the
 release came from its publisher. Signed checksum files, verified by a binary that is already trusted, carry that proof
-from one release to the next ([ADR 0021](../adrs/0021-release-trust.md)).
+from one release to the next.
 
 - Every release publishes `checksums.txt` (the sha256 of each platform asset) and `checksums.txt.sig`, an ed25519
   signature over it.
@@ -337,8 +337,7 @@ from one release to the next ([ADR 0021](../adrs/0021-release-trust.md)).
 - `the-cook scaffold` pins the running binary's own version the same way, from the verified checksum file of that
   release, so the first pin is as trustworthy as every later one. With `--offline` it writes the pin with
   `checksums: pending` instead. The wrapper downloads nothing against a pending pin, and `the-cook wrapper --version
-  <tag>` completes it through the same verification, so deferring the check never skips it
-  ([ADR 0017](../adrs/0017-engine-version.md)).
+  <tag>` completes it through the same verification, so deferring the check never skips it.
 - `cook` verifies only the sha256 of the downloaded asset against `wrapper.yaml`. Signatures are checked by
   binaries, never by the shell script, because a POSIX shell has no portable signature tool and the wrapper must run
   on a bare machine.
@@ -359,8 +358,7 @@ anything changing on its own.
   result, so the check costs one request a day.
 - The check reads the newest release's `checksums.txt` and its signature from the release source, verifies the
   signature with the running binary's embedded keys, and takes the tag from that file. A release whose signature does
-  not verify produces no notice, so a compromised host cannot advertise a release
-  ([ADR 0017](../adrs/0017-engine-version.md)).
+  not verify produces no notice, so a compromised host cannot advertise a release.
 - The check never blocks: a network failure or timeout is silent, and the check never changes a command's exit code
   or stdout, because a notice must never break the work it accompanies.
 - A notice is one stderr line on an explicit command, and a `the-cook doctor` note, naming the pinned version, the

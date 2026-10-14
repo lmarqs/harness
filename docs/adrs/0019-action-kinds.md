@@ -154,7 +154,7 @@ Costs:
 - Attempt actions whose worker calls a model cost model usage and give a different result on each run.
 - An attempt action on the landed event leaves a working copy with uncommitted edits that a person reviews, commits or
   removes.
-- Notification actions do nothing on a machine where the pinned release is not cached ([0017](0017-engine-version.md)),
+- Notification actions do nothing on a machine where the pinned release is not cached,
   and nothing for a worker program that lacks the event.
 
 Must be maintained:

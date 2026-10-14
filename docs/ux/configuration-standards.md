@@ -81,11 +81,10 @@ checksums:
 - `version` is exact, never a range, because a range would let two machines run different releases against one
   commit.
 - `source` is a location of plain files over HTTPS, never a platform API, so a mirror is a copy of the release files
-  and works for networks that cannot reach the project's release host
-  ([ADR 0017](../adrs/0017-engine-version.md)).
+  and works for networks that cannot reach the project's release host.
 - `wrapper.yaml` is owned: it starts with the header above, the manifest records it, and a hand edit is drift. Why:
   its checksums are worth something only if a trusted binary verified them, so a hand edit must not pass as the
-  repository's choice ([ADR 0017](../adrs/0017-engine-version.md)).
+  repository's choice.
 - `wrapper.yaml` is the only place `the-cook` reads the version it runs, so the wrapper and a global `the-cook` resolve
   the same release from one file. `the-cook` reads no other tool's version file
   ([ADR 0022](../adrs/0022-tool-integration.md)).
@@ -881,8 +880,7 @@ file is published.
 
 The following are not keys in any file or flag. They are architecture decisions: changing one is a change to the ADR
 that decides it, because a setting that weakens them would copy along with the file that sets it
-([ADR 0017](../adrs/0017-engine-version.md), [ADR 0021](../adrs/0021-release-trust.md),
-[ADR 0022](../adrs/0022-tool-integration.md), [ADR 0025](../adrs/0025-recipes.md),
+([ADR 0022](../adrs/0022-tool-integration.md), [ADR 0025](../adrs/0025-recipes.md),
 [ADR 0026](../adrs/0026-cookbook-trust.md)).
 
 - An attempt never bypasses permissions: every argument a worker's ingredient marks as a floor bypass argument is
