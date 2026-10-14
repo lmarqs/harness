@@ -8,6 +8,6 @@
 @ingredient(Mise) def mise
 
 node.directory = dir
-node.manager(manager)
+node.manager = manager          // the property only: manager(name) would also pin packageManager
 node.dependency(packageName, version, kind)
 mise.task('dependency:node', node.installCommand())
