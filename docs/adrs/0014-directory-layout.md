@@ -56,8 +56,8 @@ Other forces:
    whole-directory links stay as they are.
 2. `.agents/` holds agent content only: skills, including the skill the tool ships,
    memory, commands and review guidance. It stays meaningful to people, coding agents and other tools without the tool.
-3. The tool's configuration directory holds the tool's committed configuration: the repository's data
-   ([0006](0006-repository-contract.md)), the manifest ([0007](0007-ownership.md)) and the pin of the engine release
+3. The tool's configuration directory holds the tool's committed configuration: the repository's data, the manifest
+   ([0007](0007-ownership.md)) and the pin of the engine release
    ([0017](0017-engine-version.md)). Every path in it is tracked; none is ignored.
 4. The tool's clone-local state lives at paths the repository's data sets, with defaults under the clone's state
    directory. No state path is inside the tool's configuration directory or `.agents/`, and state is never committed.
@@ -66,7 +66,7 @@ Other forces:
    walk from nested working copies; the loop runner's configuration in the fixed directory it reads.
 6. Ignore rules are managed blocks, one set per capability ([0018](0018-conventions.md)), and omit any path the
    repository tracks.
-7. A repository holds none of the ingredients and stations it pins ([0006](0006-repository-contract.md)). Each lives in
+7. A repository holds none of the ingredients and stations it pins. Each lives in
    the user's cache directory, outside every repository, under its content hash, and one copy serves every repository on
    the machine that pins that hash.
 
@@ -135,8 +135,7 @@ those tools directly see different state.
 The repository commits each ingredient and station it uses beside its data. At its best, a clone carries everything it
 needs, renders with no fetch, and a reviewer reads the ingredient's description in the diff that adds it. It loses for
 the reason [0022](0022-tool-integration.md) gives against descriptions read from the working tree, and because every
-repository that uses an ingredient or a station would carry its own copy, which local edits make diverge
-([0006](0006-repository-contract.md)).
+repository that uses an ingredient or a station would carry its own copy, which local edits make diverge.
 
 ### Whole-directory links from native directories
 
@@ -152,7 +151,7 @@ Costs:
 - Per-entry links need a filesystem with symbolic links.
 - An ingredient or a station is absent on a machine until someone fetches it there.
 - Configurable state paths multiply the layouts the tool renders and tests.
-- A configuration directory the tool did not create is foreign and refused ([0012](0012-write-boundary.md)), so a
+- A configuration directory the tool did not create is foreign and refused, so a
   repository whose root already holds one cannot adopt this tool until it is moved.
 
 Must be maintained:

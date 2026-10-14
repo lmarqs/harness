@@ -108,8 +108,8 @@ description of that program, and neither the tool's code nor its release names a
   Operations may fill no contract because a program can need a floor or renders without the binary needing any answer
   from it, as a task runner does (Context). What a repository writes once about a program depends on the team's way
   of working, not on the program, so it lives in stations ([0024](0024-ingredients-and-stations.md)), and everything an
-  ingredient holds acts exactly while it is pinned. Naming the parts keeps each ingredient reviewable as data
-  ([0006](0006-repository-contract.md)) and keeps ownership exact: a render is recorded under its ingredient's name.
+  ingredient holds acts exactly while it is pinned. Naming the parts keeps each ingredient reviewable as data and keeps
+  ownership exact: a render is recorded under its ingredient's name.
 - **3.** An ingredient is knowledge of one program, and that knowledge changes with the program's releases (Context). In
   the binary, as data or as code, it would put the binary's release on every program's schedule: a worker that changes a
   bypass argument would need a release of the binary, and every repository would take that release, and everything else
@@ -201,8 +201,8 @@ partial anyway.
 
 Ingredients are programs or libraries the binary loads, as a release tool's plugins are packages in its language. At
 its best, an ingredient can do anything the program needs, and the description format never limits it. It loses
-because executable ingredients are engine code beside the binary, which the repository contract excludes
-([0006](0006-repository-contract.md)), they bring a runtime the binary does not have, and the parts the binary needs
+because executable ingredients put engine code beside the binary, bring a runtime the binary does not have, and the
+parts the binary needs
 from a program (Context) are small enough to describe.
 
 ### Descriptions read from the repository's working tree

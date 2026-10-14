@@ -89,7 +89,7 @@ shell text, and no value written by people or workers runs as a command or instr
   publishing work or starting further actions. Uncommitted, reported edits leave the result to a person. Once work has
   landed, its task working copy is about to be removed and the primary checkout holds whatever a person is doing. A
   fresh, recorded working copy gives the worker the merged code without touching either, and its record lets cleanup
-  remove it later ([0012](0012-write-boundary.md)).
+  remove it later.
 - **6.** An attempt action on a notification event would start a worker from inside a worker at every turn end, an
   unbounded cost and a loop nobody watches. Commands and HTTP requests are enough to notify a person.
 - **7.** An automatic action runs with nobody choosing each run; for an attempt action that also means unattended work
@@ -134,7 +134,7 @@ tool would do a worker's job. A worker already owns those connections.
 ### Executable extensions for integrations
 
 At its best, any integration runs in process with full control. It loses because extension code is engine code in
-repositories ([0006](0006-repository-contract.md)) that may need a runtime, and
+repositories that may need a runtime, and
 an open extension surface has no rule set that covers it. An ingredient is data that fills fixed contracts
 ([0022](0022-tool-integration.md)), not code that runs in process.
 
@@ -159,8 +159,7 @@ Costs:
 
 Must be maintained:
 
-- The schema of each action kind, the value and expansion rules, and the record format, as part of the public contract
-  ([0006](0006-repository-contract.md)).
+- The schema of each action kind, the value and expansion rules, and the record format, as part of the public contract.
 
 ## Confirmation
 

@@ -73,7 +73,7 @@ Creating and configuring the tracker's data, and every other use of the tracker,
 | --- | --- |
 | No tracker data in the clone | nothing is created; initialising it is the tracker's own step |
 | Existing tracker data | never read, written or moved by the binary; its remotes, sync settings and hooks are the tracker's own |
-| Tracker actions | run the tracker's command with the credentials of whoever fires the event; what they write travels where the repository's synchronisation sends it, and `the-cook` never configures that synchronisation ([ADR 0012](../adrs/0012-write-boundary.md)) |
+| Tracker actions | run the tracker's command with the credentials of whoever fires the event; what they write travels where the repository's synchronisation sends it, and `the-cook` never configures that synchronisation |
 | A sandboxed worker that writes the tracker's data | the data directory is listed in `workers.<name>.writable_roots`, by hand or by the station that wires the tracker ([profile](profile.md#workers)) |
 | Tracker data tracked in version control, or ignored | the team's choice; the binary writes no `.gitignore` entry for it |
 | A tracker remote workers must never push to | a `deny` entry in the repository's policy |

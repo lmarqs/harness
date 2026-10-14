@@ -40,7 +40,7 @@ told apart.
 4. Personal override files are never written and never recorded. They are read only during adoption, and only when a
    person chooses to import them ([0016](0016-permission-adoption.md)).
 5. Before the tool takes ownership of a key that already holds hand-written entries, those entries are imported into
-   the repository's data ([0006](0006-repository-contract.md)) without loss, so they keep their effect
+   the repository's data without loss, so they keep their effect
    ([0016](0016-permission-adoption.md)).
 
 ## Reasons

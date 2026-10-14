@@ -59,7 +59,7 @@ change to its repository and still takes a newer version of it in one reviewed c
   and declares the workers ([0024](0024-ingredients-and-stations.md)). Starting a working copy needs the version control
   contract, and an attempt needs a declared worker ([0023](0023-core-and-contracts.md)).
 - Delivery follows each team's conventions and hosting platform, declared once in the repository as actions on lifecycle
-  events ([0012](0012-write-boundary.md), [0015](0015-development-lifecycle.md)).
+  events ([0015](0015-development-lifecycle.md)).
 - Some recurring work changes nothing in the repository, such as watching a running system for errors. Acting on what it
   finds, such as fixing the error an alert names, does.
 
@@ -155,9 +155,9 @@ change to its repository and still takes a newer version of it in one reviewed c
   deterministically from the inputs. An attempt gives judgement to a worker, under the contract that already bounds
   every worker started unattended ([0011](0011-safety-invariants.md)). A handoff is for what needs a person, such as
   checking SQL against production data volumes (Context); the person, or the worker in their session, continues the run.
-  A closed set means each guard is proven once per kind and no engine code enters the repository
-  ([0006](0006-repository-contract.md)); anything else a step must do is a command. A template never writes over a path
-  that exists, so a run never replaces a file someone keeps ([0012](0012-write-boundary.md)). An attempt's edits stay
+  A closed set means each guard is proven once per kind and no engine code enters the repository; anything else a step
+  must do is a command. A template never writes over a path
+  that exists, so a run never replaces a file someone keeps. An attempt's edits stay
   for the next steps because a change is made in steps, and verification and completion belong to the whole change, not
   to one step of it. A failed command or attempt stops the run because the next step would build on a broken result. A
   handoff pauses instead of failing because a person is expected there. The caller declares who drives the run because
@@ -228,7 +228,7 @@ reviews every move of the pin, so only the merge is saved.
 
 Each kind of change is a script in the repository's task runner that calls the generator, starts a worker and runs the
 checks. At its best, there is no new format, teams already know their task runner, and the script runs without the tool.
-It loses because a script is engine code in the repository ([0006](0006-repository-contract.md)): it can skip a lane,
+It loses because a script is engine code in the repository: it can skip a lane,
 commit unverified work or fire events, and the binary cannot tell which line serves which stage, so it can require no
 lane, keep no record to resume from and fire no blocked event at the step that stopped. Copied between repositories,
 each script drifts into its own dialect, as copied workflows do ([0015](0015-development-lifecycle.md)).
@@ -246,7 +246,7 @@ around it.
 
 Recipes or cookbooks define new step kinds, as code the binary loads or calls. At its best, any step a team needs, such
 as taking a database snapshot or calling a service, is a first-class step with its own options. It loses because a step
-kind is code, so it is engine code in the repository or a cookbook ([0006](0006-repository-contract.md)) that may need a
+kind is code, so it is engine code in the repository or a cookbook that may need a
 runtime, and an open set has no rule set that covers every kind, which
 [0015](0015-development-lifecycle.md) and [0019](0019-action-kinds.md) reject for extensions. A generator is such code
 (Context); inside a recipe it runs as a command, with the guards around it.
@@ -311,7 +311,7 @@ Costs:
 Must be maintained:
 
 - The recipe schema, the closed set of step kinds with their rules, and the run record with the recipe content it
-  holds, as part of the public contract ([0006](0006-repository-contract.md)).
+  holds, as part of the public contract.
 - The check of a recipe's requirements when it is added and before each run.
 - The caller interface of a recipe run, beside the attempt command's ([0022](0022-tool-integration.md)).
 

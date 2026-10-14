@@ -64,8 +64,8 @@ controls, and whatever a person runs outside `the-cook`. A loop runner configure
 team's own wrapper around a loop runner, or a worker started directly runs without the attempt contract; that is the
 person's choice, and `the-cook` neither detects nor prevents it. So is the configuration a person keeps for a worker
 program outside the repository, such as settings, plugins and instructions in their home directory: the program reads
-it in every session, attempts included, and `the-cook` never reads or restores it
-([ADR 0028](../adrs/0028-place-of-the-tool.md)). The guarantees on this page hold for what `the-cook` renders and for
+it in every session, attempts included, and `the-cook` never reads or restores it. The guarantees on this page hold for
+what `the-cook` renders and for
 every worker `the-cook` starts. Permissions constrain the commands a worker starts, not the code those commands run: a
 worker that can edit a test and run the test runner runs code it wrote
 ([pitfalls](pitfalls.md#a-task-runner-runs-whatever-its-tasks-say)).
@@ -253,7 +253,7 @@ In practice:
 - Check `the-cook lifecycle list` for `auto: true` before granting a worker a command with a trigger point.
 - Keep actions to delivery and notification. `the-cook` itself never writes the team's record, but an action can, with
   the credentials it runs with. Declare such an action only when the team decided it, and never one that touches
-  production ([ADR 0012](../adrs/0012-write-boundary.md)).
+  production.
 - `the-cook` is never an MCP client. An integration that needs an MCP tool is an `attempt` action, which uses the
   worker's own MCP connections and their credentials under the attempt contract; a deterministic one uses the
   service's API through `http` or its CLI through `run` ([ADR 0019](../adrs/0019-action-kinds.md)).

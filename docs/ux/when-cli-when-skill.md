@@ -114,7 +114,7 @@ organization's skill, and reviewed there as a diff. Why: an action runs in its r
 whoever fires it, so it must be readable and reviewed where it runs ([ADR 0013](../adrs/0013-organization-content.md)).
 
 A declared action never lives in the binary. The binary contains no logic for the platform that hosts the team's work,
-and no action runs that the repository's files do not declare ([ADR 0012](../adrs/0012-write-boundary.md)). A command or
+and no action runs that the repository's files do not declare. A command or
 flag that pushes, opens a pull request or calls a hosting platform is a design error, whatever the convenience
 ([principles.md](principles.md#7-nothing-leaves-the-clone-undeclared)).
 

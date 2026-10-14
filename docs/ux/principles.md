@@ -96,8 +96,7 @@ A tool that competed with them would carry credentials and cost, and a loop of i
 - The binary contains no logic for any hosting platform and never writes the team's record of work: no issues,
   projects, boards, comments, reviews or labels. Why: the team's record already has writers under the team's own
   conventions, and platform logic in the binary binds every release to one platform. Everything that leaves the
-  clone, a pull request included, is a declared action ([principle 7](#7-nothing-leaves-the-clone-undeclared);
-  [ADR 0012](../adrs/0012-write-boundary.md)).
+  clone, a pull request included, is a declared action ([principle 7](#7-nothing-leaves-the-clone-undeclared)).
 - The binary contains no code for any external program, including the version control system, the workers and the
   jails, and reads no program's own configuration. A stage that needs a program reaches it through a contract that an
   [ingredient](../features/ingredients.md) fills, or through the commands the profile declares and the actions lifecycle

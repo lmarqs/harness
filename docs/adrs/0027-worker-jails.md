@@ -258,7 +258,7 @@ Costs:
 Must be maintained:
 
 - The jail contract, the order in which the binary composes the launch and the variables it passes, as part of the
-  public contract ([0006](0006-repository-contract.md)).
+  public contract.
 - A stand-in jail in the project's fixtures, and in each cookbook that publishes a jail ingredient, tests of the three
   properties no argument shows.
 

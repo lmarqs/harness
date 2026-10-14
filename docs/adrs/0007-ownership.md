@@ -15,8 +15,8 @@ output is detected.
 - The tool's output lands in three kinds of places: whole files it creates; blocks of text inside files people write,
   such as `AGENTS.md`, `README.md` and `.gitignore`; and keys inside native configuration files it shares with people
   ([0008](0008-native-configuration.md)).
-- Adoption also creates files that the repository then edits as its own: its data files
-  ([0006](0006-repository-contract.md)) and skeletons for the agent content under `.agents/`. They mean nothing without
+- Adoption also creates files that the repository then edits as its own: its data files and skeletons for the agent
+  content under `.agents/`. They mean nothing without
   the tool, but after creation they are not generated.
 - A clone without the binary must work ([0010](0010-dependence-on-the-binary.md)): worker programs read their
   configuration from the clone when a session starts. Reviewers must see permission changes as diffs.
@@ -26,7 +26,7 @@ output is detected.
 - A team that stops using the tool wants one of two outcomes: the repository as it was before adoption, or the setup the
   tool produced, kept and maintained by hand.
 - Clone-local state (the ignored files one clone keeps for its own work, such as workspaces and local task lists) can
-  hold uncommitted work, and cleanup acts only on what the tool recorded creating ([0012](0012-write-boundary.md)).
+  hold uncommitted work, and cleanup acts only on what the tool recorded creating.
 
 ## Decision
 
@@ -54,7 +54,7 @@ output is detected.
      ([0014](0014-directory-layout.md)), the wrapper ([0017](0017-engine-version.md)) and the manifest are deleted.
    - In both modes, the recipes the repository holds in the tool's configuration directory ([0025](0025-recipes.md)) are
      listed first and deleted with it. Any other file the manifest does not record is listed and left, even inside the
-     tool's configuration directory, which is deleted once nothing else is in it ([0012](0012-write-boundary.md)).
+     tool's configuration directory, which is deleted once nothing else is in it.
 
 ## Reasons
 
@@ -88,11 +88,10 @@ output is detected.
     against the rules.
   - A recipe is data in the tool's format that only the tool runs, so like the seeded data files beside it, it means
     nothing once the tool is gone, and it goes with the configuration directory. Listing each one first lets a person
-    keep a copy of a recipe the team wrote. Removal finds recipes by their place in the repository's data
-    ([0006](0006-repository-contract.md)), inside a directory the tool created ([0012](0012-write-boundary.md)), not by
+    keep a copy of a recipe the team wrote. Removal finds recipes by their place in the repository's data, inside a
+    directory the tool created, not by
     a name pattern.
-  - Any other file nobody recorded is someone's, wherever it sits, so removal leaves it and says so
-    ([0012](0012-write-boundary.md)).
+  - Any other file nobody recorded is someone's, wherever it sits, so removal leaves it and says so.
 
 ## Rejected alternatives
 
@@ -129,8 +128,7 @@ Costs:
 
 Must be maintained:
 
-- The marker syntax for each file format and the manifest format, both part of the public contract
-  ([0006](0006-repository-contract.md)).
+- The marker syntax for each file format and the manifest format, both part of the public contract.
 - The classification of every artefact as owned or seeded.
 
 ## Confirmation

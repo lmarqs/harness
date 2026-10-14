@@ -67,8 +67,8 @@ anything is written.
   workers. Deny-first is the order in which a conflict resolves toward the narrower permission.
 - **3.** The project scope is what the team already shares, so importing it changes nothing about who sees what.
   Personal and user scopes hold one person's choices; committing them is a decision that person must make, entry by
-  entry. Reading without writing keeps the person's own files working exactly as before
-  ([0012](0012-write-boundary.md)). The worker ingredient already describes its program's native files
+  entry. Reading without writing keeps the person's own files working exactly as before. The worker ingredient already
+  describes its program's native files
   ([0009](0009-agent-support.md)), so it is where adoption learns which keys to read, and the binary holds no program's
   file layout.
 - **4.** Provenance shows a reviewer which entries came from where, so entries nobody chose for the team can be found

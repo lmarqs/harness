@@ -255,7 +255,7 @@ Create workspaces without `--task` and declare no tracker actions; workspaces an
   declares.
 - A tracker's data in the clone, including data synchronised across machines or tracked in version control, is the
   tracker's own: `the-cook` neither reads nor configures it, and what the actions write into it travels where its
-  synchronisation sends it ([ADR 0012](../adrs/0012-write-boundary.md)).
+  synchronisation sends it.
 - `the-cook` installs and changes no version-control hooks.
 
 See [compatibility](compatibility.md#task-trackers).

@@ -12,8 +12,8 @@ release to run, and an upgrade by itself never shows as drift.
 
 ## Context
 
-- The repository's data files are a public contract that many repositories depend on
-  ([0006](0006-repository-contract.md)). A change to their shape is a migration in each of them.
+- The repository's data files are a public contract that many repositories depend on. A change to their shape is a
+  migration in each of them.
 - Each repository pins the release that serves it ([0017](0017-engine-version.md)). Releases still meet files that were
   not written for them: a global binary too old to defer to the pin, an environment override that runs a locally built
   binary, a branch whose pin differs from the checkout a person is in, and every upgrade that moves the pin forward.

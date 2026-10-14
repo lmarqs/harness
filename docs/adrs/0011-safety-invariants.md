@@ -69,9 +69,8 @@ bound it are the attempt contract.
    configuration read from the committed base, outside any tree the worker can write.
 4. Completion is withheld until the replay passes. A malformed proof counts as failed.
 5. Hooks never decide permissions; permissions come only from the rendered policy.
-6. The binary never writes knowledge (prose, memory, domain skills) and never writes the team's record of work
-   ([0012](0012-write-boundary.md)).
-7. The binary never reconfigures state it did not create ([0012](0012-write-boundary.md)).
+6. The binary never writes knowledge (prose, memory, domain skills) and never writes the team's record of work.
+7. The binary never reconfigures state it did not create.
 8. An attempt cannot change the rules it runs under. Its baseline is the checkout as it was when the attempt began: the
    base commit for an attempt run on its own, which refuses uncommitted changes, and the working copy as the earlier
    steps left it for a recipe's attempt step, which runs on their edits. Before every attempt starts its worker, the
@@ -143,8 +142,7 @@ bound it are the attempt contract.
   that a broken proof leads to a retry, never to a pass.
 - **5.** Permissions decided in hooks would live in code paths reviewers do not read, beside the policy they do. One
   reviewable source keeps every worker's permissions explainable ([0009](0009-agent-support.md)).
-- **6, 7.** These hold whatever a worker asks the binary to do, because workers nobody watches run the binary too
-  ([0012](0012-write-boundary.md)).
+- **6, 7.** These hold whatever a worker asks the binary to do, because workers nobody watches run the binary too.
 - **8.** Restoring before launch removes edits left by an earlier attempt, and comparing after exit catches edits made
   during this one. Reading the replay's data and the injected guidance from the base commit means a worker cannot
   rewrite its checks or its own instructions between retries. Resolving the ingredients before launch, from outside the
@@ -215,7 +213,7 @@ the same rules stay visible in every worker's output and out of the repository's
 
 At its best, real exceptions have an escape hatch. It loses because an override in a committed file is a bypass that
 copies along with the file. A person who needs different behaviour starts the worker program directly, outside the tool,
-and the tool does not interfere ([0012](0012-write-boundary.md)).
+and the tool does not interfere.
 
 ### Guards expressed only as permission rules
 
@@ -231,7 +229,7 @@ Costs:
 - A worker in an attempt cannot change the permissions, hooks or guidance its repository committed during a session;
   the change goes through a person and a commit.
 - The configuration a person keeps for a worker program outside the repository, which the tool neither reads nor
-  restores, can differ between machines and between attempts ([0028](0028-place-of-the-tool.md)).
+  restores, can differ between machines and between attempts.
 - An action that starts a worker gets the unattended permissions only; work that needs more is a command action or a
   person's job.
 - Changing an invariant takes a release and applies everywhere at once.

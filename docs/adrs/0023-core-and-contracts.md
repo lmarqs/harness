@@ -31,7 +31,7 @@ reached through an interface the rules declare.
   connections implement them, and the entry point wires the two. Its known payoffs are technology independence,
   testing with stand-ins and reuse of the core by several entry points.
 - Every ingredient and every station is data the binary interprets, never code it loads
-  ([0022](0022-tool-integration.md), [0024](0024-ingredients-and-stations.md), [0006](0006-repository-contract.md)).
+  ([0022](0022-tool-integration.md), [0024](0024-ingredients-and-stations.md)).
 - The binary ships no ingredient, and a repository has the ingredients its data pins and nothing else
   ([0022](0022-tool-integration.md)). A newly adopted repository can have pinned none.
 - Version control systems differ in how much they share and where. Some keep a full copy of the history in every clone
@@ -144,7 +144,7 @@ the mechanism differs from every other program's.
 ### Loadable connections
 
 Connections are loaded at run time from outside the binary. At its best, anyone adds a program without a release. It
-loses because loadable code is engine code outside the binary ([0006](0006-repository-contract.md)), needs a runtime
+loses because loadable code is engine code outside the binary, needs a runtime
 or a loading protocol, and a data ingredient already lets anyone add a program.
 
 ### A fallback when no ingredient fills a contract

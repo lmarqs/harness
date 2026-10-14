@@ -18,8 +18,8 @@ to every coding agent session.
   them ([0014](0014-directory-layout.md)). Where these live and which branch work starts from are conventions all of
   them rely on.
 - Not every teammate installs the tool ([0010](0010-dependence-on-the-binary.md)); everyone shares the committed files.
-- Working copies can hold uncommitted work, and cleanup acts only on what the binary recorded creating
-  ([0012](0012-write-boundary.md)), so removing the tool leaves clone-local state in place ([0007](0007-ownership.md)).
+- Working copies can hold uncommitted work, and cleanup acts only on what the binary recorded creating, so removing the
+  tool leaves clone-local state in place ([0007](0007-ownership.md)).
   State whose conventions and ignore entries are gone is unexplained, and git lists it as untracked.
 - Some instructions hold with or without the tool: where working copies are, which branch work starts from, which
   permissions are in effect. Others are true only while the tool is present: which of its commands checks work, how to
@@ -108,7 +108,7 @@ Costs:
 Must be maintained:
 
 - For each capability, the conventions it establishes, the blocks that state them, and each block's class. Block ids
-  and classes are part of the public contract ([0006](0006-repository-contract.md), [0007](0007-ownership.md)).
+  and classes are part of the public contract ([0007](0007-ownership.md)).
 
 ## Confirmation
 

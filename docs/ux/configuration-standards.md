@@ -82,7 +82,7 @@ checksums:
   commit.
 - `source` is a location of plain files over HTTPS, never a platform API, so a mirror is a copy of the release files
   and works for networks that cannot reach the project's release host
-  ([ADR 0017](../adrs/0017-engine-version.md), [ADR 0012](../adrs/0012-write-boundary.md)).
+  ([ADR 0017](../adrs/0017-engine-version.md)).
 - `wrapper.yaml` is owned: it starts with the header above, the manifest records it, and a hand edit is drift. Why:
   its checksums are worth something only if a trusted binary verified them, so a hand edit must not pass as the
   repository's choice ([ADR 0017](../adrs/0017-engine-version.md)).
@@ -639,8 +639,7 @@ then, and all of them become the repository's own; operations, checks and detect
   such as `agentic-coding`, also holds the `unattended.deny` entries and lifecycle actions those programs need, such as
   a tracker's actions on `start`, `completed` and `blocked`, because running the lifecycle that way is exactly those
   entries. Why: no action runs that the repository does not declare in its own `hooks.yaml`, and a station's actions
-  reach that file only when a person applies the station and reads its diff
-  ([ADR 0012](../adrs/0012-write-boundary.md)).
+  reach that file only when a person applies the station and reads its diff.
 - A template is a whole file in a station or in `scaffold`, such as the configuration file of a loop runner a station
   uses. It is rendered once with values from the profile and written only when the file is absent; from then on it is
   the repository's own file, never rendered again and never removed by `the-cook`. When the file exists, applying
@@ -890,7 +889,7 @@ file is published.
 
 The following are not keys in any file or flag. They are architecture decisions: changing one is a change to the ADR
 that decides it, because a setting that weakens them would copy along with the file that sets it
-([ADR 0011](../adrs/0011-safety-invariants.md), [ADR 0012](../adrs/0012-write-boundary.md),
+([ADR 0011](../adrs/0011-safety-invariants.md),
 [ADR 0013](../adrs/0013-organization-content.md), [ADR 0014](../adrs/0014-directory-layout.md),
 [ADR 0017](../adrs/0017-engine-version.md), [ADR 0021](../adrs/0021-release-trust.md),
 [ADR 0022](../adrs/0022-tool-integration.md), [ADR 0025](../adrs/0025-recipes.md),

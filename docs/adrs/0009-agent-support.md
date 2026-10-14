@@ -38,8 +38,7 @@ and supporting another worker changes no repository's declarations.
 
 ## Decision
 
-1. The sources are worker-neutral: one permission policy and one set of hook declarations per repository
-   ([0006](0006-repository-contract.md)).
+1. The sources are worker-neutral: one permission policy and one set of hook declarations per repository.
 2. Each worker is served by a worker ingredient ([0022](0022-tool-integration.md)) that fills the worker contract
    ([0023](0023-core-and-contracts.md)). The contract's one required part is how the worker is launched. Where the
    worker has them, the ingredient also gives the arguments that start it unattended, the arguments that bypass its
@@ -88,7 +87,7 @@ and supporting another worker changes no repository's declarations.
   missing event or a missing part, and saying so, tells a person which worker lacks a behaviour instead of letting them
   assume it works.
 - **4.** New workers keep appearing. A public contract lets one be supported without touching the data every adopting
-  repository has committed ([0006](0006-repository-contract.md)) or the schema it follows
+  repository has committed or the schema it follows
   ([0005](0005-schema-compatibility.md)).
 - **5.** The neutral model always lags the workers. Without a passthrough, a repository whose rules or hooks fall
   outside the model cannot adopt without losing them, which [0016](0016-permission-adoption.md) forbids. Skipping a

@@ -153,13 +153,13 @@ Must be maintained:
 | [0003](0003-implementation-language.md) | In what language, and as what artefact? | Cook retains its JVM stack |
 | [0004](0004-runtime-dependencies.md) | How is the runtime supplied? | Cook packages its Java runtime |
 | [0005](0005-schema-compatibility.md) | How do repository files, ingredients, stations and binaries stay compatible? | Repository files, ingredients and stations carry a schema version the binary enforces |
-| [0006](0006-repository-contract.md) | What does a repository hold? | A repository holds declarative data, never engine code |
+| [0006](0006-repository-contract.md) | What does a repository hold? | Repositories hold trusted recipes separately from the shared engine |
 | [0007](0007-ownership.md) | How is ownership of generated content known? | A committed manifest records everything the tool owns |
 | [0008](0008-native-configuration.md) | How does the tool write files that workers and people share? | The tool owns only named keys inside shared native files |
 | [0009](0009-agent-support.md) | How are several workers supported? | Worker ingredients render worker-neutral sources into each worker's native files |
 | [0010](0010-dependence-on-the-binary.md) | What depends on the binary being installed? | Nothing in an adopted repository depends on the binary |
 | [0011](0011-safety-invariants.md) | Where do safety rules live? | Safety invariants are built into the binary, never configured |
-| [0012](0012-write-boundary.md) | What may the binary write? | The binary writes only content it owns |
+| [0012](0012-write-boundary.md) | What may Cook write? | Cook confines declared batch operations to reviewed destination targets |
 | [0013](0013-organization-content.md) | Where does organization-specific content live? | Organization-specific content lives in each repository's own files |
 | [0014](0014-directory-layout.md) | Where does each kind of file live? | Tool configuration, agent content and state have separate homes |
 | [0015](0015-development-lifecycle.md) | What abstraction is the binary built around? | The binary's core is a fixed software development lifecycle |
@@ -175,4 +175,4 @@ Must be maintained:
 | [0025](0025-recipes.md) | How does a repository make a kind of change it repeats? | A recipe is one kind of change, run through the lifecycle |
 | [0026](0026-cookbook-trust.md) | How is a cookbook's content trusted? | A cookbook's content is admitted by a reviewed pin |
 | [0027](0027-worker-jails.md) | How are a worker's attempts confined? | A worker's attempts run inside the jail its declaration names |
-| [0028](0028-place-of-the-tool.md) | What place does the tool take among the people who use it? | The tool helps people work together without controlling how anyone works |
+| [0028](0028-place-of-the-tool.md) | What place does the tool take among the people who use it? | Cook supports shared setup without controlling how people work |

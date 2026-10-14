@@ -33,13 +33,13 @@ first command works with nothing installed beforehand.
 - A fresh clone whose hooks find no binary runs worker sessions without the tool's hooks, and the worker has no way to
   know why.
 - The tool is one executable with its own templates and documentation embedded; it needs only the operating system at
-  runtime; a repository holds no engine code ([0006](0006-repository-contract.md)).
+  runtime; Cook's engine mechanics live in the shared release ([0006](0006-repository-contract.md)).
 - Starting a container, even from an image already present, takes a container runtime hundreds of milliseconds; anyone
   with a runtime can time it on their own machine.
 - Releases appear while repositories stay on what they pinned; a person learns of a newer release only when something
   tells them.
 - Some networks reach only an internal mirror, not the project's release host. The binary contains no client for any
-  hosting platform's API ([0012](0012-write-boundary.md)).
+  hosting platform's API.
 - A binary cannot contain its own release's checksums, because they are computed over the binary. Adoption therefore
   fetches them from the release source ([0021](0021-release-trust.md)); a machine that is offline, or reaches neither
   the release host nor a mirror, cannot.
@@ -73,8 +73,8 @@ first command works with nothing installed beforehand.
    explicitly, never from a hook. Outside such repositories it runs itself.
 8. The wrapper contains no engine logic: it resolves, downloads, verifies and executes, and when an implicit call finds
    no cached binary it prints the fixed lines of point 5. Every command runs in the binary.
-9. The committed pin is the only pin the binary reads. A task runner's tool list is neither read nor edited
-   ([0012](0012-write-boundary.md)), and a binary a task runner installs is a global installation (point 7).
+9. The committed pin is the only pin the binary reads. A task runner's tool list is neither read nor edited, and a
+   binary a task runner installs is a global installation (point 7).
 10. The binary looks for a release newer than the pin at most once a day, through the release source (point 12),
     caches the answer, never blocks or fails because of the lookup, works offline, and skips the lookup when an
     environment variable disables it. It names a newer release only after verifying that release's signed checksum
@@ -83,8 +83,7 @@ first command works with nothing installed beforehand.
     them through the wrapper and gets the pinned release, verified.
 12. Releases come from the release source the pin names. The source serves each release's assets and signed checksum
     file, and the newest release's signed checksum file, at fixed paths over plain HTTPS. The project's own release
-    host and any mirror laid out the same way serve equally, and no platform API is involved
-    ([0012](0012-write-boundary.md)).
+    host and any mirror laid out the same way serve equally, and no platform API is involved.
 13. An adoption that cannot reach the release source writes a pending pin when the person asks for one: the release
     and its source, without checksums. An upgrade never writes one. Nothing is downloaded against a pending pin: the
     wrapper and a global installation run the pinned release only when it is already cached, an explicit call that
@@ -121,7 +120,8 @@ first command works with nothing installed beforehand.
   An environment override is explicit for one environment and leaves the committed pin unchanged.
 - **7.** People who install globally keep using the short command. Deferring to the pin keeps the one-release guarantee
   of point 2 for them as well; never downloading from a hook follows point 5.
-- **8.** A repository holds no engine code ([0006](0006-repository-contract.md)). Resolving, downloading, verifying
+- **8.** Cook's engine mechanics live in the shared release ([0006](0006-repository-contract.md)). Resolving,
+  downloading, verifying
   and executing is the minimum a clone needs to reach the binary; any further logic in the wrapper would be engine code
   copied into every repository, beyond the reach of a release. The lines of point 5 are fixed text in the wrapper's
   template, selected by the event the hook names; printing them reports a failed resolution and decides nothing.
@@ -136,8 +136,8 @@ first command works with nothing installed beforehand.
 - **11.** CI stays free of any requirement ([0010](0010-dependence-on-the-binary.md)); a pipeline that chooses to run
   the checks gets the same verified release as every developer.
 - **12.** Some networks reach only an internal mirror. Fixed paths over HTTPS make a mirror a plain copy of files, keep
-  the wrapper a downloader rather than an API client, and keep platform logic out of the binary
-  ([0012](0012-write-boundary.md)). Serving the newest release's signed checksum file at a fixed path lets the update
+  the wrapper a downloader rather than an API client, and keep platform logic out of the binary. Serving the newest
+  release's signed checksum file at a fixed path lets the update
   notice learn about a release and verify it in one request, so a compromised host cannot advertise an unsigned
   release.
 - **13.** A binary cannot carry its own checksums, so an adoption that cannot reach the release source cannot verify

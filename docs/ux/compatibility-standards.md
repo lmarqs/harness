@@ -259,7 +259,7 @@ An adopted repository behaves for non-users exactly as it did before adoption
 ## Coexistence
 
 `the-cook` shares repositories with other tools and conventions. It adapts to them, never the reverse, because their
-owners depend on them as they are ([ADR 0012](../adrs/0012-write-boundary.md)).
+owners depend on them as they are.
 
 | Already present | Behaviour of `the-cook` |
 | --- | --- |
@@ -324,7 +324,7 @@ change of version is a reviewed diff ([ADR 0017](../adrs/0017-engine-version.md)
 - The release source serves plain files over HTTPS at fixed paths: a release's assets, `checksums.txt` and
   `checksums.txt.sig` at `<source>/download/<tag>/`, and the newest release's at `<source>/latest/download/`. No
   platform API is called. Why: a mirror is then a copy of files, for networks that cannot reach the project's release
-  host, and the binary carries no platform logic ([ADR 0012](../adrs/0012-write-boundary.md)).
+  host, and the binary carries no platform logic.
 
 ### Release trust
 

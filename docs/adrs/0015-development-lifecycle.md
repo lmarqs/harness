@@ -37,8 +37,7 @@ work that is not ready, and a stopped run can reach a person through an event.
   the end of a verified attempt. A workflow copied by hand drifts into dialects: suppose acme copies one coding-agent
   workflow into `acme/api` and `acme/web`, and a year later delivery in `acme/api` runs the tests and opens a draft pull
   request, while delivery in `acme/web` pushes without running them. A step defined once per actor drifts in the same
-  way: the person, the coordinating worker and the end of the attempt each do it their own way
-  ([0006](0006-repository-contract.md)).
+  way: the person, the coordinating worker and the end of the attempt each do it their own way.
 - A worker in an attempt is the least trusted actor ([0011](0011-safety-invariants.md)).
 - Values such as task titles and branch names are written by people and workers. Substituted into command text, they
   are an injection path.
@@ -219,7 +218,7 @@ person without a coding agent has no repeatable path, and nothing runs at a trig
 ### Extension code at any point of the binary's operation
 
 Extensions hook any point of the binary's operation with their own code. At its best, every extension need is met. It
-loses because extension code is engine code in repositories ([0006](0006-repository-contract.md)) that may need a
+loses because extension code is engine code in repositories that may need a
 runtime. An open set of hook points has no guard that covers all of them, and the
 tool grows into a worker. An ingredient is data that fills fixed contracts
 ([0022](0022-tool-integration.md), [0023](0023-core-and-contracts.md)), a station is starting content applied once
@@ -252,7 +251,7 @@ Costs:
 Must be maintained:
 
 - The stages, the event set, its order, each event's trigger points, scopes and guards, the environment passed to
-  actions, and the record format, as part of the public contract ([0006](0006-repository-contract.md)).
+  actions, and the record format, as part of the public contract.
 - For each capability of the binary, the stage it serves or the setup it keeps.
 
 ## Confirmation

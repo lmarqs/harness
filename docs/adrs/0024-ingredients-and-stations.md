@@ -30,7 +30,7 @@ that combines several programs reaches a repository in one reviewed change.
   interactively only, with no loop runner and no tracker. Both need git and that coding agent described the same way;
   they differ in the lanes, the unattended deny rules and the lifecycle actions they start from.
 - A technology stack's starting content is commands, lanes and post-edit hooks, which a repository declares as its own
-  data ([0006](0006-repository-contract.md)). Example: `acme/api` and `acme/web` lint, test and build the same Node way.
+  data. Example: `acme/api` and `acme/web` lint, test and build the same Node way.
   A stack whose commands go through a task runner also relies on the deny rule against chaining several tasks in one
   invocation of that task runner ([0011](0011-safety-invariants.md)).
 - ESLint and semantic-release each have two units of extension. ESLint's plugins add rules, and its shareable

@@ -151,7 +151,7 @@ Costs:
 Must be maintained:
 
 - For each worker ingredient, in the cookbook that publishes it, the hook events that carry each trigger.
-- The declaration format and the preview, as part of the public contract ([0006](0006-repository-contract.md)).
+- The declaration format and the preview, as part of the public contract.
 
 ## Confirmation
 

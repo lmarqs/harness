@@ -145,7 +145,7 @@ the-cook hook
 | `fleet <command> --deliver` | before the command, learns what is shared through the version-control contract's `update` (one note when the ingredient has none); after it, commits the tool-owned changes on a new local branch `<branch_prefix><command>` started at the revision of the shared default line of work, runs `the-cook verify` (no lanes are needed for a change outside `verify.app_paths`), then fires `deliver` (scope `change`) in that repository, running every declared `deliver` action for that scope |
 
 The binary contains no logic for the platform that hosts the team's work: no command and no flag pushes, opens a pull
-request or writes to a hosting platform by itself ([ADR 0012](../adrs/0012-write-boundary.md)). Those effects exist
+request or writes to a hosting platform by itself. Those effects exist
 only as declared actions ([principles.md](principles.md#7-nothing-leaves-the-clone-undeclared)). Why: delivery
 conventions differ per organization and platform, and a declared action is reviewed where the convention is decided.
 
