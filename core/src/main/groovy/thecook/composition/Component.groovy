@@ -15,6 +15,11 @@ class Component {
   ComponentId getId() {
     definition.id
   }
+  void application(String identity) {
+    if (!(identity ==~ /[a-zA-Z0-9][a-zA-Z0-9_.:-]*\/[a-zA-Z0-9][a-zA-Z0-9_.:-]*/))
+      throw new IllegalArgumentException("Invalid application identity: ${identity}")
+    definition.application = identity
+  }
   Component call(Closure configure) {
     evaluate(configure); this
   }
@@ -58,7 +63,9 @@ class Component {
     List<RenderedFile> rendered = outputs.collect { it.render(definition.definitionIdentity) }
     for (Closure supplier : definition.contributors + view.definition.contributors) {
       Contributor contributor = (Contributor) supplier.call()
-      if (contributor.id != id) throw new IllegalArgumentException('Contributor identity differs from its mounted declaration')
+      if (contributor.id != id) {
+        throw new IllegalArgumentException('Contributor identity differs from its mounted declaration')
+      }
       rendered.addAll(RenderedFile.evaluate([contributor]))
     }
     rendered

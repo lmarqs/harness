@@ -8,3 +8,6 @@ includeBuild('../cookbook/ingredients/the-cook') { name = 'ingredient-the-cook' 
 includeBuild('../cookbook/recipes/agentic/codex') { name = 'agentic-codex' }
 includeBuild('../cookbook/recipes/agentic/claude') { name = 'agentic-claude' }
 includeBuild('../cookbook/recipes/agentic/runtime') { name = 'agentic-runtime' }
+includeBuild('../cookbook/recipes/agentic/permission') { name = 'agentic-permission' }
+includeBuild('../cookbook/recipes/agentic/context') { name = 'agentic-context' }
+includeBuild('../cookbook/recipes/agentic/init') { name = 'agentic-init' }

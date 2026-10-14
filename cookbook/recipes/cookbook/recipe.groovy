@@ -17,13 +17,17 @@ return { kitchen, book, Map preferences ->
   def repository = kitchen.repository.directory
   def selectedPolicy = new File(preferences.policy.toString())
   if (!selectedPolicy.isAbsolute()) selectedPolicy = new File(repository, selectedPolicy.path)
-  def policy = PolicyFile.read(selectedPolicy)
+  if (java.nio.file.Files.isSymbolicLink(selectedPolicy.toPath()))
+    throw new IllegalArgumentException('Policy source must be a regular file: ' + selectedPolicy)
+  def policySeed = 'version: 1\ninstructions: []\ncommands: {}\n'
+  def policy = selectedPolicy.isFile() ? PolicyFile.read(selectedPolicy) : PolicyFile.readText(policySeed)
   def source = new File(preferences['skills-home'] ?: new File(System.getProperty('user.home'), '.agents/skills').path)
   if (!source.isAbsolute()) source = new File(repository, source.path)
   def names = ['solid', 'hexagonal-layout', 'effective-java-core']
   names.each { name ->
-    if (!new File(source, name + '/SKILL.md').isFile())
+    if (!new File(source, name + '/SKILL.md').isFile()) {
       throw new IllegalArgumentException('Shared skill is missing SKILL.md: ' + new File(source, name))
+    }
   }
 
   def skills = new Skills()
@@ -58,15 +62,26 @@ return { kitchen, book, Map preferences ->
   git.ignore.add(claudeSkills.files.local)
 
   def host = kitchen.recipe('cookbook')
+  host.application('agentic.init/cookbook')
+  def relativePolicy = repository.toPath().relativize(selectedPolicy.toPath().toAbsolutePath().normalize()).toString().replace('\\', '/')
+  host.output(relativePolicy, [seed: true]) {
+    text {
+      policySeed
+    }
+  }
   def include = { component, contributor ->
     component.contribute { contributor }
     host.includes(component)
   }
   [cook, git, skills, claudeSkills, instructions].each { contributor ->
-    include(kitchen.ingredient(contributor.id.value), contributor)
+    def component = kitchen.ingredient(contributor.id.value)
+    component.application('agentic.init/' + contributor.id.value)
+    include(component, contributor)
   }
   [new CodexFiles(policy, adopt), new ClaudeFiles(policy, adopt)].each { renderer ->
-    include(kitchen.recipe(renderer.id.value), renderer)
+    def component = kitchen.recipe(renderer.id.value)
+    component.application('agentic.permissions/' + (renderer instanceof CodexFiles ? 'codex' : 'claude'))
+    include(component, renderer)
   }
   host
 }

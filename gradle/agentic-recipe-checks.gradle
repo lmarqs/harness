@@ -1,0 +1,42 @@
+apply plugin: 'codenarc'
+
+dependencies {
+  testImplementation 'junit:junit:4.13.2'
+  codenarc 'org.codenarc:CodeNarc:3.7.0-groovy-4.0'
+}
+
+sourceSets.test.groovy.srcDir file('../testing')
+
+codenarc {
+  configFile = file('../../../../gradle/lint/codenarc.groovy')
+}
+
+tasks.named('codenarcMain') {
+  source file(providers.gradleProperty('flatRecipeSource').get())
+}
+
+tasks.named('test') {
+  useJUnit()
+  dependsOn tasks.named('jar')
+  systemProperty 'cook.recipeName', providers.gradleProperty('cookbookPath').get()
+  systemProperty 'cook.artifact', tasks.named('jar').flatMap { it.archiveFile }.get().asFile.absolutePath
+  testLogging { events 'failed' }
+}
+
+spotless {
+  groovy {
+    target file(providers.gradleProperty('flatRecipeSource').get()).absolutePath, 'src/test/groovy/**/*.groovy'
+    greclipse().configFile('../../../../gradle/spotless/greclipse.properties')
+  }
+  groovyGradle {
+    target 'build.gradle', 'settings.gradle'
+    greclipse().configFile('../../../../gradle/spotless/greclipse.properties')
+  }
+  format 'misc', {
+    target 'README.md', 'gradle.properties', 'src/test/resources/**'
+    trimTrailingWhitespace()
+    endWithNewline()
+  }
+}
+
+tasks.named('check') { dependsOn tasks.named('spotlessCheck') }

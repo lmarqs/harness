@@ -15,3 +15,5 @@
 # cook:begin git/ignore
 /.cook/
 # cook:end git/ignore
+
+/.worktrees/

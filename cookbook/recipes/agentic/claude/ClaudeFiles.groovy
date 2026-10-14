@@ -14,6 +14,7 @@ final class ClaudeFiles implements Contributor {
   TargetPath settingsPath = TargetPath.of('.claude/settings.json')
   TargetPath instructionsPath = TargetPath.of('CLAUDE.md')
   Provider<List<String>> instructions
+  boolean adoptInstructions
 
   ClaudeFiles(String name = 'claude') {
     id = ComponentId.of(name)
@@ -28,7 +29,7 @@ final class ClaudeFiles implements Contributor {
   @Override List<OutputSpec> outputs() {
     List<OutputSpec> outputs = []
     if (settings) outputs.add(new StructuredOutput(id, settingsPath, DocumentFormat.JSON, List.copyOf(settings)))
-    if (instructions != null) outputs.add(new BlockOutput(id, instructionsPath, 'instructions', instructions))
+    if (instructions != null) outputs.add(new BlockOutput(id, instructionsPath, 'instructions', instructions, adoptInstructions))
     outputs
   }
 }

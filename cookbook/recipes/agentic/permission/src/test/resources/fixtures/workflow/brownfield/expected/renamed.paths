@@ -1,0 +1,14 @@
+.agents/interactive-renamed.yaml
+.agents/policy.yaml
+.agents/unattended.yaml
+.claude/settings.json
+.claude/settings.local.json
+.codex/config.toml
+.codex/hooks.json
+.codex/rules/cookbook.rules
+.cook/lock
+.cook/state.json
+.gitignore
+AGENTS.md
+CLAUDE.md
+local-settings.json

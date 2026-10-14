@@ -1,0 +1,8 @@
+pluginManagement { includeBuild('../../../../core') }
+rootProject.name = 'agentic-init'
+includeBuild('../../../../core')
+includeBuild('../permission')
+includeBuild('../context')
+includeBuild('../codex')
+includeBuild('../claude')
+includeBuild('../../../ingredients/agent-policy')

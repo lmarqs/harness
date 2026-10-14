@@ -6,6 +6,119 @@ import org.tomlj.Toml
 import java.nio.file.Files
 
 class CookCommandTest {
+  @Test void removalRequiresDeclaredHarnessAndRejectsUnusedArgumentsBeforeWrites() {
+    workspace { root, repo, ignored ->
+      Fixtures.copy('removable-permission', root)
+      def source = new File(root, 'permission.groovy')
+      def out = new ByteArrayOutputStream(); def err = new ByteArrayOutputStream()
+      def cli = command(out, err)
+      def base = [source.path, '--repo', repo.path, '--remove']
+      [
+        [],
+        ['--harness='],
+        ['--harness=other'],
+        ['--harness=claude', '--adopt=true'],
+        ['--harness=claude', '--policy=one', '--policy=two']
+      ].each { invalid ->
+        err.reset()
+        assert cli.execute((base + invalid) as String[]) != 0
+        assert err.toString('UTF-8')
+        assert repo.listFiles().length == 0
+      }
+      assert cli.execute((base + ['--harness=claude', '--policy=missing.yaml']) as String[]) == 0
+      assert repo.listFiles().length == 0
+    }
+  }
+
+  @Test void unrelatedLegacyFilenameCannotRemoveDeclaredApplication() {
+    workspace { root, repo, ignored ->
+      Fixtures.copy('removable-permission', root)
+      def source = new File(root, 'permission.groovy')
+      def policy = new File(repo, 'policy.yaml'); policy.text = 'managed\n'
+      def out = new ByteArrayOutputStream(); def err = new ByteArrayOutputStream()
+      def cli = command(out, err)
+      assert cli.execute([source.path, '--repo', repo.path, '--policy=policy.yaml', '--harness=claude'] as String[]) == 0
+      def before = new File(repo, '.cook/state.json').text
+      def unrelated = new File(root, 'unrelated/permission.groovy')
+      unrelated.parentFile.mkdirs()
+      unrelated.text = 'return { kitchen, book, options -> def c = kitchen.recipe("unrelated"); c.application("fixture/unrelated"); c }\n'
+      assert cli.execute([unrelated.path, '--repo', repo.path, '--harness=claude', '--remove'] as String[]) == 1
+      assert err.toString('UTF-8').contains('no argument declaration')
+      assert new File(repo, '.cook/state.json').text == before
+      assert new File(repo, 'settings.json').exists()
+    }
+  }
+
+  @Test void renamedDeclaredFactoryRemovesOnlyItsOwnApplication() {
+    workspace { root, repo, ignored ->
+      def source = new File(root, 'custom.groovy')
+      source.text = '''import thecook.cookbook.DeclaredRecipe
+import thecook.model.RecipeDeclaration
+import thecook.model.RecipeInput
+import thecook.model.RecipeRemoval
+def target = new RecipeInput.RequiredChoices('target', ['one', 'two'])
+return new DeclaredRecipe(new RecipeDeclaration('custom', [target],
+    new RecipeRemoval(target, [one: ['fixture/one'], two: ['fixture/two']])), { kitchen, book, options ->
+  def child = kitchen.recipe(options.target[0])
+  child.application('fixture/' + options.target[0])
+  child.output(options.target[0] + '.txt', [owns: true]) { text { 'owned' } }
+  child
+})
+'''
+      def out = new ByteArrayOutputStream(); def err = new ByteArrayOutputStream()
+      def cli = command(out, err)
+      def base = [source.path, '--repo', repo.path]
+      assert cli.execute((base + ['--target=one']) as String[]) == 0 : err.toString('UTF-8')
+      assert cli.execute((base + ['--target=two']) as String[]) == 0 : err.toString('UTF-8')
+      assert cli.execute((base + ['--target=one', '--remove']) as String[]) == 0 : err.toString('UTF-8')
+      assert !new File(repo, 'one.txt').exists()
+      assert new File(repo, 'two.txt').text == 'owned'
+      assert new JsonSlurper().parse(new File(repo, '.cook/state.json')).applications.keySet() == ['fixture/two'] as Set
+    }
+  }
+
+  @Test void removalPreviewsWithoutPolicyThenRestoresOnlySelectedApplication() {
+    workspace { root, repo, ignored ->
+      Fixtures.copy('removable-permission', root)
+      def source = new File(root, 'permission.groovy')
+      def policy = new File(repo, 'policy.yaml')
+      policy.text = 'managed\n'
+      def settings = new File(repo, 'settings.json')
+      settings.text = '{"claude":"original","manual":true}\n'
+      def out = new ByteArrayOutputStream(); def err = new ByteArrayOutputStream()
+      def cli = command(out, err)
+      def base = [source.path, '--repo', repo.path]
+      assert cli.execute((base + ['--harness=claude', '--remove']) as String[]) == 0 : err.toString('UTF-8')
+      assert !new File(repo, '.cook').exists()
+      out.reset()
+      assert cli.execute((base + ['--policy=policy.yaml', '--harness=claude']) as String[]) == 0 : err.toString('UTF-8')
+      assert cli.execute((base + ['--policy=policy.yaml', '--harness=codex']) as String[]) == 0 : err.toString('UTF-8')
+      policy.delete()
+      def sourceBytes = source.bytes
+      def before = settings.text
+      def ownership = new File(repo, '.cook/state.json').text
+      out.reset()
+      assert cli.execute((base + ['--policy=policy.yaml', '--harness=claude', '--remove', '--dry-run']) as String[]) == 0 : err.toString('UTF-8')
+      assert out.toString('UTF-8').contains('Would remove settings.json')
+      assert settings.text == before
+      assert new File(repo, '.cook/state.json').text == ownership
+      out.reset()
+      assert cli.execute((base + ['--harness=claude', '--remove']) as String[]) == 0 : err.toString('UTF-8')
+      assert new JsonSlurper().parse(settings) == [claude: 'original', manual: true, codex: 'managed']
+      assert !policy.exists()
+      assert source.bytes == sourceBytes
+      out.reset()
+      assert cli.execute((base + ['--harness=claude', '--remove']) as String[]) == 0 : err.toString('UTF-8')
+      assert out.toString('UTF-8').trim() == 'Already removed.'
+      def retained = new File(repo, '.cook/state.json').text
+      settings.text = settings.text.replace('"managed"', '"edited"')
+      err.reset()
+      assert cli.execute((base + ['--harness=codex', '--remove']) as String[]) == 1
+      assert err.toString('UTF-8').contains('Edited managed region')
+      assert new File(repo, '.cook/state.json').text == retained
+    }
+  }
+
   private Object command(ByteArrayOutputStream stdout, ByteArrayOutputStream stderr) {
     Class entrypoint
     try {
@@ -124,6 +237,57 @@ class CookCommandTest {
     }
   }
 
+  @Test void declaredRecipeValidatesRawValuesAndUsesDestinationPolicy() {
+    workspace { root, repo, script ->
+      Fixtures.copy('declared-recipe', repo)
+      def policy = new File(repo, '.agents/policy.yaml'); policy.parentFile.mkdirs()
+      policy.text = 'destination\n'
+      def supplier = new File(root, '.agents/policy.yaml'); supplier.parentFile.mkdirs()
+      supplier.text = 'supplier\n'
+      def stdout = new ByteArrayOutputStream(); def stderr = new ByteArrayOutputStream()
+      def cli = command(stdout, stderr)
+      def base = ['declared', '--repo', repo.path, '--policy=.agents/policy.yaml']
+      for (invalid in [
+            ['--harness=other'],
+            ['--harness=codex', '--policy=again'],
+            ['--harness=codex', '--unknown=x'],
+            []
+          ]) {
+        stderr.reset()
+        assert cli.execute((base + invalid) as String[]) == 1 : invalid
+        assert !new File(repo, 'selection.json').exists()
+        assert !new File(repo, '.cook').exists()
+      }
+      assert stderr.toString('UTF-8').contains('--harness')
+      stderr.reset()
+      assert cli.execute((base + ['--harness=claude', '--harness=codex', '--harness=claude']) as String[]) == 0 : stderr.toString('UTF-8')
+      def output = new JsonSlurper().parse(new File(repo, 'selection.json'))
+      assert output.policy == 'destination'
+      assert output.harness == 'claude,codex'
+      def external = new File(root, 'supplier/cookbook/recipes/declared/recipe.groovy')
+      external.parentFile.mkdirs()
+      external.text = new File(repo, 'cookbook/recipes/declared/recipe.groovy').text
+      def externalRepo = new File(root, 'external-repository'); externalRepo.mkdirs()
+      def externalPolicy = new File(externalRepo, '.agents/policy.yaml'); externalPolicy.parentFile.mkdirs()
+      externalPolicy.text = 'destination\n'
+      stderr.reset()
+      assert cli.execute([
+        external.path,
+        '--repo',
+        externalRepo.path,
+        '--set',
+        'policy=.agents/policy.yaml',
+        '--set',
+        'harness=codex',
+        '--set',
+        'harness=claude'
+      ] as String[]) == 0 : stderr.toString('UTF-8')
+      output = new JsonSlurper().parse(new File(externalRepo, 'selection.json'))
+      assert output.policy == 'destination'
+      assert output.harness == 'codex,claude'
+    }
+  }
+
   @Test void nestedPackagedRecipeIsRunnableWithoutACookbookCheckout() {
     workspace { root, repo, script ->
       def stdout = new ByteArrayOutputStream(); def stderr = new ByteArrayOutputStream()
@@ -133,6 +297,137 @@ class CookCommandTest {
       stdout.reset()
       assert cli.execute(['agentic/codex', '--repo', repo.path, '--instructions=Use tests.'] as String[]) == 0
       assert stdout.toString('UTF-8').trim() == 'Already cooked.'
+    }
+  }
+
+  @Test void flatRecipeWorksByLocalPathAndNestedNameWithRepeatedArguments() {
+    workspace { root, repo, ignored ->
+      Fixtures.copy('flat-recipe', repo)
+      def source = new File(repo, 'cookbook/recipes/agentic/permission.groovy')
+      def policy = new File(repo, '.agents/policy.yaml'); policy.parentFile.mkdirs(); policy.text = 'destination\n'
+      def out = new ByteArrayOutputStream(); def err = new ByteArrayOutputStream()
+      def cli = command(out, err)
+      def options = ['--repo', repo.path, '--policy=.agents/policy.yaml', '--harness=codex', '--harness', 'claude']
+      assert cli.execute(([source.path] + options + ['--dry-run']) as String[]) == 0 : err.toString('UTF-8')
+      assert !new File(repo, 'selection.json').exists()
+      assert !new File(repo, '.cook').exists()
+      assert cli.execute(([source.path] + options) as String[]) == 0 : err.toString('UTF-8')
+      assert new JsonSlurper().parse(new File(repo, 'selection.json')).harness == 'codex,claude'
+      out.reset()
+      assert cli.execute((['agentic/permission'] + options) as String[]) == 0 : err.toString('UTF-8')
+      assert out.toString('UTF-8').trim() == 'Already cooked.'
+      out.reset()
+      assert cli.execute([
+        'agentic/permission',
+        '--repo',
+        repo.path,
+        '--set',
+        'policy=.agents/policy.yaml',
+        '--set',
+        'harness=codex',
+        '--set',
+        'harness=claude'
+      ] as String[]) == 0 : err.toString('UTF-8')
+      assert out.toString('UTF-8').trim() == 'Already cooked.'
+    }
+  }
+
+  @Test void flatRecipeHelpAndInvalidInputsDoNotReadPolicyOrChangeOwnership() {
+    workspace { root, repo, ignored ->
+      Fixtures.copy('flat-recipe', repo)
+      def source = new File(repo, 'cookbook/recipes/agentic/permission.groovy')
+      def out = new ByteArrayOutputStream(); def err = new ByteArrayOutputStream()
+      def cli = command(out, err)
+      assert cli.execute([source.path, '--repo', repo.path, '--help'] as String[]) == 0 : err.toString('UTF-8')
+      assert out.toString('UTF-8').contains('--policy')
+      assert out.toString('UTF-8').contains('required')
+      assert out.toString('UTF-8').contains('codex, claude')
+      assert out.toString('UTF-8').contains('--dry-run')
+      out.reset()
+      assert cli.execute(['agentic/permission', '--repo', repo.path, '--help'] as String[]) == 0 : err.toString('UTF-8')
+      assert out.toString('UTF-8').contains('--harness')
+      assert !new File(repo, '.cook').exists()
+      def policy = new File(repo, '.agents/policy.yaml'); policy.parentFile.mkdirs(); policy.text = 'destination\n'
+      def valid = [source.path, '--repo', repo.path, '--policy=.agents/policy.yaml', '--harness=codex']
+      assert cli.execute(valid as String[]) == 0 : err.toString('UTF-8')
+      def before = new File(repo, 'selection.json').text
+      def ownership = new File(repo, '.cook/state.json').text
+      for (args in [
+            valid + ['--set', 'policy=other'],
+            valid + ['--harness=invalid'],
+            [new File(repo, 'missing.groovy').path, '--repo', repo.path, '--policy=x']
+          ]) {
+        err.reset()
+        assert cli.execute(args as String[]) != 0 : args
+        assert new File(repo, 'selection.json').text == before
+        assert new File(repo, '.cook/state.json').text == ownership
+      }
+      assert err.toString('UTF-8').contains('missing.groovy')
+    }
+  }
+
+  @Test void ambiguousFlatAndDirectoryRecipeSourcesAreReported() {
+    workspace { root, repo, ignored ->
+      Fixtures.copy('flat-recipe', repo)
+      def directory = new File(repo, 'cookbook/recipes/agentic/permission')
+      directory.mkdirs()
+      new File(directory, 'recipe.groovy').text = new File(repo, 'cookbook/recipes/agentic/permission.groovy').text
+      def err = new ByteArrayOutputStream()
+      def cli = command(new ByteArrayOutputStream(), err)
+      assert cli.execute(['agentic/permission', '--repo', repo.path, '--help'] as String[]) == 1
+      assert err.toString('UTF-8').toLowerCase().contains('ambiguous')
+      assert !new File(repo, '.cook').exists()
+    }
+  }
+
+  @Test void directFactoryCanLiveOutsideCookbookRecipes() {
+    workspace { root, repo, ignored ->
+      Fixtures.copy('flat-recipe', repo)
+      def source = new File(root, 'permission.groovy')
+      source.text = new File(repo, 'cookbook/recipes/agentic/permission.groovy').text
+      def policy = new File(repo, '.agents/policy.yaml'); policy.parentFile.mkdirs(); policy.text = 'destination\n'
+      def out = new ByteArrayOutputStream(); def err = new ByteArrayOutputStream()
+      def cli = command(out, err)
+      assert cli.execute([source.path, '--repo', repo.path, '--help'] as String[]) == 0 : err.toString('UTF-8')
+      assert out.toString('UTF-8').contains('--harness')
+      assert cli.execute([source.path, '--repo', repo.path, '--policy=.agents/policy.yaml', '--harness=codex', '--harness=claude'] as String[]) == 0 : err.toString('UTF-8')
+      assert new JsonSlurper().parse(new File(repo, 'selection.json')).harness == 'codex,claude'
+    }
+  }
+
+  @Test void relocatedPermissionFactoryKeepsDeclaredIdentityAndRemoval() {
+    workspace { root, repo, ignored ->
+      def original = new File(repo, 'cookbook/recipes/agentic/permission.groovy')
+      original.parentFile.mkdirs()
+      original.text = new File('../cookbook/recipes/agentic/permission.groovy').text
+      def source = new File(repo, 'cookbook/recipes/renamed.groovy')
+      source.parentFile.mkdirs()
+      source.text = original.text
+      def policy = new File(repo, '.agents/interactive.yaml')
+      policy.parentFile.mkdirs()
+      policy.text = 'version: 1\ncommands:\n  allow:\n    - [git, status]\n'
+      def out = new ByteArrayOutputStream(); def err = new ByteArrayOutputStream()
+      def cli = command(out, err)
+      def args = [source.path, '--repo', repo.path, '--policy=.agents/interactive.yaml', '--harness=claude']
+      assert cli.execute((['agentic/permission'] + args.tail()) as String[]) == 0 : err.toString('UTF-8')
+      def previous = new JsonSlurper().parse(new File(repo, '.cook/state.json')).applications['agentic.permissions/claude']
+      assert cli.execute([source.path, '--repo', repo.path, '--help'] as String[]) == 0 : err.toString('UTF-8')
+      assert out.toString('UTF-8').contains('agentic/permission')
+      assert cli.execute(args as String[]) == 0 : err.toString('UTF-8')
+      assert new File(repo, '.claude/settings.json').exists()
+      def state = new JsonSlurper().parse(new File(repo, '.cook/state.json'))
+      assert state.applications.containsKey('agentic.permissions/claude')
+      assert state.applications['agentic.permissions/claude'] == previous
+      assert state.provenance['agentic.permissions/claude'].recipe == 'recipes/renamed.groovy'
+      assert state.provenance['agentic.permissions/claude'].inputs.policy == '.agents/interactive.yaml'
+      out.reset()
+      assert cli.execute(args as String[]) == 0 : err.toString('UTF-8')
+      assert out.toString('UTF-8').trim() == 'Already cooked.'
+      err.reset()
+      assert cli.execute(['renamed', '--repo', repo.path, '--help'] as String[]) == 1
+      assert err.toString('UTF-8').contains('Recipe identity does not match')
+      assert cli.execute([source.path, '--repo', repo.path, '--harness=claude', '--remove'] as String[]) == 0
+      assert !new File(repo, '.claude/settings.json').exists()
     }
   }
 
@@ -165,8 +460,6 @@ class CookCommandTest {
       def cli = command(stdout, stderr)
       for (args in [
             ['example', '--agent'],
-            ['example', '--agent=a', '--agent=b'],
-            ['example', '--agent=a', '--set', 'agent=b'],
             ['example', '--script', script.path],
             ['../example'],
             ['agentic/../example'],
@@ -175,6 +468,8 @@ class CookCommandTest {
             ['example', '--dry-run=true'],
             ['example', '--policy='],
             ]) assert cli.execute(args as String[]) == 2 : args
+      assert cli.execute(['example', '--agent=a', '--agent=b', '--repo', repo.path] as String[]) == 1
+      assert cli.execute(['example', '--agent=a', '--set', 'agent=b', '--repo', repo.path] as String[]) == 1
       assert cli.execute(['missing', '--repo', repo.path] as String[]) == 1
       assert stderr.toString('UTF-8').contains('Recipe not found: missing')
       assert !new File(repo, '.cook').exists()

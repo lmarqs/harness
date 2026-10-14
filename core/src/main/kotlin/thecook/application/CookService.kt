@@ -1,6 +1,6 @@
 package thecook.application
 
-import thecook.rendering.RenderedFile
+import thecook.rendering.RenderedPlan
 import java.nio.file.Path
 
 interface CookbookLoader {
@@ -8,20 +8,22 @@ interface CookbookLoader {
     repository: Path,
     script: Path,
     libraries: List<Path>,
-    preferences: Map<String, String>,
-  ): List<RenderedFile>
+    preferences: Map<String, Any>,
+  ): RenderedPlan
 }
 
 interface Planning {
   fun plan(
     repository: Path,
-    outputs: List<RenderedFile>,
+    outputs: RenderedPlan,
   ): PlanHandle
 
   fun load(
     repository: Path,
     savedPlan: Path,
   ): PlanHandle
+
+  fun remove(repository: Path, applications: Set<String>): PlanHandle
 }
 
 interface PlanHandle {
@@ -50,14 +52,14 @@ class CookService
       repository: Path,
       script: Path,
       libraries: List<Path>,
-      preferences: Map<String, String>,
+      preferences: Map<String, Any>,
     ): PlanHandle = planning.plan(repository, loader.load(repository, script, libraries, preferences))
 
     fun cook(
       repository: Path,
       script: Path,
       libraries: List<Path>,
-      preferences: Map<String, String>,
+      preferences: Map<String, Any>,
       dryRun: Boolean,
     ): List<String> {
       val pending = plan(repository, script, libraries, preferences)
@@ -70,5 +72,11 @@ class CookService
       savedPlan: Path,
     ) {
       planning.load(repository, savedPlan).apply()
+    }
+
+    fun remove(repository: Path, applications: Set<String>, dryRun: Boolean): List<String> {
+      val pending = planning.remove(repository, applications)
+      if (!dryRun) pending.apply()
+      return pending.changes
     }
   }

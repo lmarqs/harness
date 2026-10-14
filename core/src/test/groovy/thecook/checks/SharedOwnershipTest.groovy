@@ -122,7 +122,7 @@ class SharedOwnershipTest {
       def plan = kitchen.plan()
       assert plan.changes.empty && state.text == original
       plan.apply()
-      assert new JsonSlurper().parse(state).version == 2
+      assert new JsonSlurper().parse(state).version == 3
       writer.unmount(); kitchen.plan().apply()
       assert new JsonSlurper().parse(file).mode == 'original'
     }

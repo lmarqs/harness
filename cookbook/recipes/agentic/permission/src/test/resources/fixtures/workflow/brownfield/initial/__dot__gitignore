@@ -1,0 +1,4 @@
+# team ignore
+# cook:begin git/ignore
+legacy/
+# cook:end git/ignore

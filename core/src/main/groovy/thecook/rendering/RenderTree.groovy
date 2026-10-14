@@ -8,9 +8,21 @@ import thecook.model.Batch
 @CompileStatic
 class RenderTree {
   final List<RenderedFile> outputs
+  final Map<String, List<RenderedFile>> applications
+  final Map<String, Map> provenance
 
   RenderTree(List<RenderedFile> outputs) {
+    this(outputs, [:])
+  }
+
+  RenderTree(List<RenderedFile> outputs, Map<String, List<RenderedFile>> applications) {
+    this(outputs, applications, [:])
+  }
+
+  RenderTree(List<RenderedFile> outputs, Map<String, List<RenderedFile>> applications, Map<String, Map> provenance) {
     this.outputs = List.copyOf(outputs)
+    this.applications = applications.collectEntries { String id, List<RenderedFile> files -> [(id): List.copyOf(files)] }.asImmutable()
+    this.provenance = provenance.asImmutable()
   }
 
   static RenderTree from(Batch batch) {
@@ -20,11 +32,24 @@ class RenderTree {
   static RenderTree from(List<Component> components) {
     validateDependencies(components)
     List<RenderedFile> outputs = []
+    Map<String, List<RenderedFile>> applications = [:]
+    Map<String, Map> provenance = [:]
     for (Component component : components) {
       for (Object check : (List) component.definition.checks) component.evaluate((Closure) check)
     }
-    for (Component component : components) outputs.addAll(component.renderOutputs())
-    combine(outputs)
+    for (Component component : components) {
+      List<RenderedFile> files = component.renderOutputs()
+      outputs.addAll(files)
+      String application = (String) component.definition.application
+      if (application != null) {
+        if (applications.containsKey(application))
+          throw new IllegalArgumentException("Duplicate application: ${application}")
+        applications[application] = combine(files).outputs
+        if (component.definition.provenance) provenance[application] = (Map) component.definition.provenance
+      }
+    }
+    RenderTree combined = combine(outputs)
+    new RenderTree(combined.outputs, applications, provenance)
   }
 
   private static RenderTree combine(List<RenderedFile> outputs) {
@@ -69,6 +94,8 @@ class RenderTree {
       if (file instanceof ExclusiveFile) {
         report.putAll([owner: file.owner.value, mode: file.mode, adopt: file.adopt,
           definitionIdentity: file.definitionIdentity, regions: [content: [value: file.content]]])
+      } else if (file instanceof SeedFile) {
+        report.regions = [content: [value: ((SeedFile) file).content]]
       } else {
         report.regions = ((PartialFile) file).regions.collectEntries { RenderedRegion region ->
           Map fields = [value: region.value, owner: region.identity.instance.value, definitionIdentity: region.definitionIdentity]
@@ -89,8 +116,12 @@ class RenderTree {
         if (!components.contains(dependency)) throw new IllegalArgumentException("${component.id} requires mounted ${((Component) dependency).id}")
       }
       Object slot = ((Map) component.definition.parameters).get('slot')
-      if (slot && slots.containsKey(slot)) throw new IllegalArgumentException("Multiple components in slot ${slot}")
-      if (slot) slots[slot] = component
+      if (slot && slots.containsKey(slot)) {
+        throw new IllegalArgumentException("Multiple components in slot ${slot}")
+      }
+      if (slot) {
+        slots[slot] = component
+      }
     }
   }
 }

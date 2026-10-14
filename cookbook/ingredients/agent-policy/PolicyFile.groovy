@@ -12,9 +12,13 @@ final class PolicyFile {
 
   static Policy read(File file) {
     if (!file.isFile()) throw new IllegalArgumentException('Policy file not found: ' + file)
+    readText(file.getText('UTF-8'))
+  }
+
+  static Policy readText(String content) {
     LoaderOptions options = new LoaderOptions()
     options.allowDuplicateKeys = false
-    Object loaded = file.withReader('UTF-8') { Reader reader -> new Yaml(new SafeConstructor(options)).load(reader) }
+    Object loaded = new Yaml(new SafeConstructor(options)).load(content)
     Map<?, ?> data = object(loaded, 'policy')
     fields(data, ['version', 'instructions', 'commands'], 'policy')
     if (data.get('version') != 1) throw new IllegalArgumentException('Policy version must be 1')

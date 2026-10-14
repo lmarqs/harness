@@ -36,7 +36,7 @@ final class CodexFiles implements Contributor {
   }
 
   void ruleBlock(String name, String region, Provider<List<String>> content) {
-    ruleOutputs.add(new BlockOutput(id, rulePath(name), region, content))
+    ruleOutputs.add(new BlockOutput(id, rulePath(name), region, content, adopt))
   }
 
   private static TargetPath rulePath(String name) {

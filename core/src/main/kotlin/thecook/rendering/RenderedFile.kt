@@ -8,11 +8,13 @@ import thecook.model.BlockOutput
 import thecook.model.Contributor
 import thecook.model.FileOutput
 import thecook.model.OutputSpec
+import thecook.model.SeedOutput
 import thecook.model.StructuredOutput
 import thecook.model.SymbolicLinkOutput
 
 enum class FileKind {
   WHOLE,
+  SEED,
   SYMLINK,
   BLOCKS,
   JSON,
@@ -21,7 +23,7 @@ enum class FileKind {
   ;
 
   val wireName: String get() = name.lowercase()
-  val exclusive: Boolean get() = this == WHOLE || this == SYMLINK
+  val exclusive: Boolean get() = this == WHOLE || this == SEED || this == SYMLINK
 
   companion object {
     @JvmStatic fun parse(value: String): FileKind =
@@ -98,6 +100,7 @@ sealed class RenderedFile(
                 ContributionIdentity(spec.owner, spec.region),
                 BlockLocation(),
                 spec.content.get(),
+                adopt = spec.adopt,
                 definitionIdentity = provenance,
               ),
             ),
@@ -132,6 +135,10 @@ sealed class RenderedFile(
             spec.adopt,
             provenance,
           )
+        }
+
+        is SeedOutput -> {
+          SeedFile(spec.path, spec.content.get())
         }
 
         is SymbolicLinkOutput -> {
@@ -171,3 +178,8 @@ class PartialFile(
     ) { "Region location differs from file format" }
   }
 }
+
+class SeedFile(
+  path: TargetPath,
+  val content: String,
+) : RenderedFile(path, FileKind.SEED)

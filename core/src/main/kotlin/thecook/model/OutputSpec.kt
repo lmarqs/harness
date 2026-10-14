@@ -8,12 +8,15 @@ sealed class OutputSpec(
   val path: TargetPath,
 )
 
-class BlockOutput(
-  owner: ComponentId,
-  path: TargetPath,
-  val region: String,
-  val content: Provider<List<String>>,
-) : OutputSpec(owner, path)
+class BlockOutput
+  @JvmOverloads
+  constructor(
+    owner: ComponentId,
+    path: TargetPath,
+    val region: String,
+    val content: Provider<List<String>>,
+    val adopt: Boolean = false,
+  ) : OutputSpec(owner, path)
 
 enum class DocumentFormat { JSON, TOML, YAML }
 
@@ -42,6 +45,12 @@ class FileOutput
     val executable: Boolean = false,
     val adopt: Boolean = false,
   ) : OutputSpec(owner, path)
+
+class SeedOutput(
+  owner: ComponentId,
+  path: TargetPath,
+  val content: Provider<String>,
+) : OutputSpec(owner, path)
 
 class SymbolicLinkOutput
   @JvmOverloads

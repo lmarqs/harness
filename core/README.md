@@ -4,9 +4,11 @@ The core declares typed Kotlin cookbook contracts and reconciles their outputs t
 
 ## Recipe execution
 
-Recipes live in `cookbook/recipes/<name>/recipe.groovy` and return `{ kitchen, book, options -> component }`. The CLI and Gradle invoke the same factory used by `book.recipe(name, kitchen, options)`. Project inputs resolve against `kitchen.repository.directory`; supplier definitions resolve through `book`. Nested recipe names and packaged factories are supported, with local definitions taking precedence.
+Recipes live in `cookbook/recipes/<name>/recipe.groovy` or `cookbook/recipes/<name>.groovy` and return `{ kitchen, book, options -> component }` or a `DeclaredRecipe`. A direct `.groovy` path can also return a factory outside the cookbook directory. The CLI and Gradle invoke the same factory used by `book.recipe(name, kitchen, options)`. Project inputs resolve against `kitchen.repository.directory`; supplier definitions resolve through `book`. Nested recipe names and packaged factories are supported, with local definitions taking precedence. Two local files for one name are rejected as ambiguous.
 
-Optional repository composition scripts such as `cook.groovy` receive `book`, `kitchen`, `repositoryDirectory`, `scriptDirectory`, and `preferences`. They can return a recipe component or a typed `Batch`; both pass through the same checked rendering pipeline before planning. `evaluateRecipe(relativePath, arguments)` delegates to another script while preserving the destination repository.
+Declared recipes accept `--name=value`, `--name value`, and legacy `--set name=value`; repeatable choices retain their order. `<recipe> --help` shows required inputs, cardinality, choices, and execution options without running the factory.
+
+Optional repository composition scripts such as `cook.groovy` receive `book`, `kitchen`, `repositoryDirectory`, `scriptDirectory`, and `preferences`. They can return a recipe component or a typed `Batch`; both pass through the same checked rendering pipeline before planning. `evaluateRecipe(relativePath, arguments)` delegates to another script while preserving the destination repository. `the-cook cook` still loads the repository's `cook.groovy` by default, while a direct `.groovy` path names any local script. A `cook.groovy` file is not required to run a named or direct recipe.
 
 ## Rendering
 
@@ -30,15 +32,17 @@ The dynamic DSL can include a compiled contributor with `contribute { contributo
 
 Several ingredients can contribute separate text blocks or structured keys to one file. Whole files and symlinks require exclusive ownership. Equal or overlapping structured key paths conflict even when their values match; format differences and case collisions also reject before writes.
 
+Use `output('path', [seed: true]) { text { 'starter content' } }` for an editable source file, or `SeedOutput` from a typed contributor. A seed creates an absent regular file in the checked transaction and then leaves it unowned. Recooking and application removal preserve it, including user edits and empty content. Seeds conflict with other declarations for the same path and with existing managed ownership. Directories and symlinks at the destination are rejected.
+
 Reconciliation preserves handwritten content and checks each managed contribution for drift. Withdrawing one contribution restores its adopted original or removes its generated content. Transferring a structured key to a new contribution requires an applied unmount first. Ejection retains native content and releases ownership.
 
-Each cooked batch declares the complete desired set. Running another recipe is not an additive installation operation.
+An application recipe replaces only its selected application contributions. A direct legacy `Batch` has no application identity: each run replaces its legacy contributions and preserves unrelated application ownership. Removing a legacy contribution by omitting it from the next Batch can withdraw that contribution, but cannot implicitly delete an independently owned application. Overlap with an application is rejected rather than transferred. Use `--remove` to explicitly withdraw selected applications.
 
 ## Ownership records
 
-Version-two `.cook/state.json` records each partial region by contribution address, with its instance owner, optional published definition name, rendered content and adopted original. Document metadata stays at the file level. Whole files and symlinks retain their exclusive owner.
+Version-three `.cook/state.json` records each partial region by contribution address, with its instance owner, optional published definition name, rendered content and adopted original. Document metadata stays at the file level. Whole files and symlinks retain their exclusive owner. Application IDs map to their owned addresses; `legacy` explicitly identifies addresses without a known application. Recipe path and input provenance is diagnostic metadata, not an instruction to load or run a repository file.
 
-Version-one records are converted in memory during planning. Existing markers and adopted originals are preserved; the transaction writes the converted record only on successful application. Existing saved plans remain readable, and rollback restores their exact previous state.
+Version-one and version-two records are converted in memory during planning. Unclaimed older contributions become legacy ownership. An application cannot claim an overlapping legacy contribution, even with equal content or a matching recipe name; withdraw that contribution in an applied transaction first. Existing markers and adopted originals are preserved; the transaction writes the converted record only on successful application. A preview leaves state bytes unchanged. Existing saved plans remain readable, and rollback restores their exact previous state.
 
 This implementation keeps ownership state in the ignored `.cook` directory. That differs from [ADR 0007](../docs/adrs/0007-ownership.md), which calls for a committed manifest. A fresh clone without the state cannot infer ownership or adopted originals from generated files alone. Markers cannot represent JSON ownership.
 

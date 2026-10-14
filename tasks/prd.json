@@ -1,0 +1,439 @@
+{
+  "name": "Independent agent setup recipes",
+  "description": "Implement directly invoked, independently built agent permission, context and init recipes for the-cook. Users select one or more harnesses with repeated --harness and can bind separate version-1 literal-prefix policies to Claude and Codex. Each invocation reconciles only stable selected applications; omissions preserve others and removal is explicit. Seed AGENTS.md and a starter policy only when appropriate, then let developers maintain them. No required cook.groovy, umbrella manifest or replay script. Recipe-local builds and fixture tests are the working quality-gate choice; core/CLI changes run their affected checks and final integration runs check cliBuild cookbookBuild jpackageTest. Existing ownership state must survive. Non-goals: Medprev workflow parity, hooks, Ralph/Beads orchestration, remote distribution, new policy wildcard/MCP syntax, multiple session profiles within one harness, TUI, or automatic agent execution. This JSON records planned work, not implemented functionality.",
+  "branchName": "ralph/agentic-recipes",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Declare recipe argument contracts",
+      "description": "As a recipe supplier, I want declared arguments so consumers receive predictable values and useful validation without recipe-specific parsing in the CLI.",
+      "acceptanceCriteria": [
+        "Add a core contract for recipe identity and argument declarations supporting required single path values and required repeatable choices; keep core contracts independent of terminal and filesystem adapters.",
+        "Keep raw CLI arguments lossless until recipe validation; normalized harness input is a list even for a single value, with duplicate identical choices removed deterministically.",
+        "Reject unknown recipe arguments, missing values, repeated scalar arguments and unsupported choices before writes; report argument names and allowed choices.",
+        "Resolve policy paths against the destination repository, including when recipe source is outside that repository; do not change the caller's working directory to interpret recipe inputs.",
+        "Argument metadata is accessible without rendering outputs or executing recipe actions; CLI execution flags such as --repo, --dry-run and --remove remain reserved.",
+        "Keep existing version-1 literal-prefix policy syntax unchanged; this story does not add wildcard, nested-alternative, MCP or session-role policy syntax.",
+        "Use fixtures for declaration validation and demonstrate that supplier declarations can be checked using the project's typed contracts.",
+        "Quality gate: ./gradlew -p core check passes.",
+        "Quality gate: git diff --check passes."
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-002",
+      "title": "Accept direct arguments on local recipe files",
+      "description": "As a developer, I want the same argument syntax for explicit Groovy paths and named recipes so I can invoke recipes directly.",
+      "acceptanceCriteria": [
+        "Accept ./cook cookbook/recipes/agentic/permission.groovy --policy=.agents/policy.yaml --harness=codex --harness=claude using a fixture recipe; repeated --harness reaches declared argument validation intact.",
+        "Support directly invoked factory files with arbitrary .groovy filenames, without requiring a file named recipe.groovy or an umbrella cook.groovy.",
+        "Resolve agentic/permission to the same definition as cookbook/recipes/agentic/permission.groovy; retain existing directory-based recipe.groovy definitions and report ambiguous named sources rather than choosing silently.",
+        "Recipe-specific --help displays argument cardinality, required inputs, allowed choices and execution options without reading policy files or writing outputs.",
+        "Support both --name=value and --name value; preserve supported legacy --set syntax and reject conflicting duplicate scalar values across syntaxes.",
+        "Missing recipe files and invalid arguments produce actionable errors and leave destination files and ownership state unchanged.",
+        "CLI fixture tests cover local paths, nested named recipes, a destination selected by --repo, help, repeated options and dry-run.",
+        "Quality gate: ./gradlew -p core check passes.",
+        "Quality gate: ./gradlew -p cli check passes.",
+        "Quality gate: git diff --check passes."
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-001"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-003",
+      "title": "Represent independent recipe applications",
+      "description": "As a developer, I want each selected destination to identify a stable application so running another recipe does not replace unrelated setup.",
+      "acceptanceCriteria": [
+        "Carry explicit application scope through rendering and application planning instead of inferring scope from a flat list of output files.",
+        "Define permission application identities agentic.permissions/claude and agentic.permissions/codex; identity excludes recipe file location, policy path and supplier version.",
+        "Distinguish selected applications with zero outputs from unselected applications: an empty selected application can withdraw its own previous contributions.",
+        "Composed init and standalone child recipes emit the same child application identities, without adding an init-specific ownership prefix.",
+        "Selecting two harnesses produces the same application identities and desired contributions as selecting each separately.",
+        "Reject duplicate application definitions with incompatible inputs within one invocation before writes; existing file/key/region conflict detection remains applicable across applications.",
+        "Fixture tests cover identity stability under source moves, policy-path changes and direct versus composed invocation.",
+        "Quality gate: ./gradlew -p core check passes.",
+        "Quality gate: git diff --check passes."
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-001"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-004",
+      "title": "Persist application ownership and preserve legacy state",
+      "description": "As a developer with existing cooked files, I want application metadata persisted safely so upgrading does not lose ownership or delete existing output.",
+      "acceptanceCriteria": [
+        "Version ownership state to associate managed contributions with stable application identities while preserving original content, adoption metadata and drift detection information.",
+        "Read existing version-2 fixtures without discarding records; preserve contributions whose application cannot be inferred as explicitly identified legacy ownership.",
+        "Unknown legacy ownership is not reassigned based on equal output content, a recipe filename or a policy path; overlapping new applications fail with guidance unless an explicit, tested adoption path is provided.",
+        "Record recipe/input provenance for diagnostics without treating state as an executable repository manifest or requiring cook.groovy.",
+        "State serialization is deterministic and rejects invalid or unknown future formats without changing output files.",
+        "Fixtures include current git/ignore ownership, existing agent settings, malformed state and state round-tripping; dry-run leaves state bytes unchanged.",
+        "Quality gate: ./gradlew -p core check passes.",
+        "Quality gate: git diff --check passes."
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-003"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-005",
+      "title": "Reconcile only selected applications",
+      "description": "As a developer, I want sequential recipe invocations to preserve each other's contributions so independent setup commands are safe.",
+      "acceptanceCriteria": [
+        "Plan changes by replacing only selected applications' desired contributions and retaining all unselected application and legacy records.",
+        "Sequential synthetic Claude and Codex applications coexist; rerunning one with different values updates only its own keys and regions.",
+        "Omitting a harness from a later invocation leaves that harness unchanged; stale contributions inside a selected application are withdrawn using existing restore/delete rules.",
+        "Validate overlaps against retained applications and reject two different applications claiming the same key, region or exclusive file even when current rendered values match.",
+        "Detect managed drift without overwriting handwritten changes; on validation or conflict failure write neither outputs nor ownership state.",
+        "A two-application invocation is applied as one transaction using existing locking and snapshot protections; stale plans fail without partial application.",
+        "Fixture tests cover separate keys in one JSON/TOML file, separate blocks, symlinks, empty selected applications, untouched legacy output, idempotence and conflicting ownership.",
+        "Quality gate: ./gradlew -p core check passes.",
+        "Quality gate: git diff --check passes."
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-004"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-006",
+      "title": "Remove selected applications explicitly",
+      "description": "As a developer, I want explicit removal of selected recipe applications so omission never becomes accidental deletion.",
+      "acceptanceCriteria": [
+        "Support ./cook <recipe-path-or-name> --harness=claude --remove and --dry-run together; --remove is a core execution option.",
+        "Resolve selected application identities without requiring a policy file to exist or be evaluated; --policy is required for cooking permissions but not their removal.",
+        "Remove only selected applications' unchanged managed contributions, restoring adopted originals using existing ownership semantics.",
+        "Preserve other harnesses, unrelated keys and blocks, unmanaged files and all seed-only source files.",
+        "Managed drift rejects the removal before any writes; removing an absent application is a successful no-op.",
+        "Removing init selects its known child applications for the chosen harnesses; direct child removal and composed removal identify the same ownership.",
+        "CLI and core fixture tests cover preview, repeated removal, missing policy source, partial structured files and preservation of a second application.",
+        "Quality gate: ./gradlew -p core check passes.",
+        "Quality gate: ./gradlew -p cli check passes.",
+        "Quality gate: git diff --check passes."
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-002",
+        "US-005"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-007",
+      "title": "Add seed-once source files",
+      "description": "As a recipe consumer, I want editable starter files so cooking and removing recipes never reset my project instructions or policy sources.",
+      "acceptanceCriteria": [
+        "Add an explicit seed-only output behavior: create a regular file only when absent and relinquish content management after creation.",
+        "An existing regular source file is preserved byte-for-byte; recipe input validation may reject its contents but never silently fills or overwrites it.",
+        "Seed content participates in dry-run and transaction validation, and changed destination snapshots are checked before applying.",
+        "Removing any application preserves seed-only files; rerunning after a user edit preserves the edit.",
+        "Reject conflicting seeds or incompatible seed/managed declarations for the same path within one invocation; define this through fixtures rather than first-writer order.",
+        "An init recipe can validate the effective content of an absent policy seed before the transaction writes any file.",
+        "Fixture tests cover missing, edited, empty, directory and symlink destinations, plus failure elsewhere in the transaction.",
+        "Quality gate: ./gradlew -p core check passes.",
+        "Quality gate: git diff --check passes."
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-003",
+        "US-005"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-008",
+      "title": "Give agent recipes independent builds and fixture tests",
+      "description": "As a recipe supplier, I want each recipe to build and test with its declared dependencies so development does not require rebuilding every cookbook module.",
+      "acceptanceCriteria": [
+        "Create independently versioned permission, context and init recipe modules under cookbook/recipes/agentic/{permission,context,init}/, each with build.gradle, settings.gradle, gradle.properties, README.md and src/test/resources/fixtures/.",
+        "Retain the user-facing flat entrypoints cookbook/recipes/agentic/{permission,context,init}.groovy as each module's single recipe source; package those sources explicitly instead of maintaining duplicate factory implementations.",
+        "Each module's check runs meaningful fixture tests through the public core application API, without depending on CLI implementation classes or the repository-wide cookbookBuild task.",
+        "Compile and run only that module plus declared dependencies; shared Gradle conventions must exclude fixture/test Groovy from main supplier compilation.",
+        "Recipe-local checks include supplier compilation, tests and applicable formatting/static checks using shared conventions rather than copied configurations.",
+        "Init declares dependencies on permission and context; native harness renderers remain reusable recipe dependencies rather than becoming new ingredients.",
+        "Initially test packaging and definition discovery with minimal fixtures; later stories add behavior. Document the independent commands and distinguish them from full distribution verification.",
+        "Quality gate: ./gradlew -p core check passes.",
+        "Quality gate: ./gradlew -p cookbook/recipes/agentic/permission check passes.",
+        "Quality gate: ./gradlew -p cookbook/recipes/agentic/context check passes.",
+        "Quality gate: ./gradlew -p cookbook/recipes/agentic/init check passes.",
+        "Quality gate: git diff --check passes."
+      ],
+      "priority": 8,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-001"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-009",
+      "title": "Implement per-harness permission applications",
+      "description": "As a developer, I want separate policy files for Claude and Codex so interactive and unattended configurations can coexist in one repository.",
+      "acceptanceCriteria": [
+        "Implement permission.groovy with required --policy and repeatable --harness choices codex and claude, using the existing version-1 PolicyFile and literal-prefix model.",
+        "Render Claude permission keys and Codex execution settings/rules through the existing native renderers, using the application identities defined in US-003.",
+        "Support sequential invocations with .agents/policy.interactive.yaml for Claude and .agents/policy.unattended.yaml for Codex; rerunning either preserves the other's files, values and ownership.",
+        "Do not generate skills, hooks, AGENTS.md or CLAUDE.md from the permission recipe; preserve unrelated settings in existing harness configuration.",
+        "Malformed, empty or unsupported policy input fails before any output/state changes; existing unmanaged conflicting keys require explicit --adopt=true and managed drift remains an error.",
+        "Changing the policy filename updates the same selected application; selecting both harnesses applies one policy atomically, while omitting a harness leaves it unchanged.",
+        "Policy filenames do not select session roles: README explicitly describes repository-wide harness configuration and the absence of separate interactive/unattended sessions within one harness.",
+        "Recipe fixtures cover policy edits, missing policy, initial adoption, repeat runs, cross-application conflict, separate policy inputs and selected removal.",
+        "Quality gate: ./gradlew -p cookbook/recipes/agentic/permission check passes.",
+        "Quality gate: git diff --check passes."
+      ],
+      "priority": 9,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-002",
+        "US-005",
+        "US-006",
+        "US-008"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-010",
+      "title": "Implement context bootstrapping",
+      "description": "As a developer, I want AGENTS.md to be the shared editable instruction source so both harnesses can use it without a duplicate source document.",
+      "acceptanceCriteria": [
+        "Implement context.groovy with required repeatable --harness choices codex and claude.",
+        "Seed a minimal AGENTS.md only when absent; existing content, including an intentionally empty regular file, remains byte-for-byte unchanged.",
+        "Selecting Claude contributes a managed @AGENTS.md import block to CLAUDE.md while preserving handwritten content; selecting Codex uses AGENTS.md directly.",
+        "Use stable context application identities per harness; shared AGENTS.md is seed-only, never exclusively managed by both harness applications.",
+        "Existing managed/unmanaged conflicts use explicit adoption semantics; repeated runs do not duplicate imports.",
+        "Do not require or generate agent-context.md, cook.groovy, skills, permissions or Ralph files.",
+        "Removing context applications preserves AGENTS.md and unrelated CLAUDE.md text; fixtures cover both invocation orders, reruns, adoption and removal.",
+        "Quality gate: ./gradlew -p cookbook/recipes/agentic/context check passes.",
+        "Quality gate: git diff --check passes."
+      ],
+      "priority": 10,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-002",
+        "US-006",
+        "US-007",
+        "US-008"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-011",
+      "title": "Compose additive agent initialization",
+      "description": "As a developer, I want one initialization recipe that bootstraps selected harnesses while preserving independently configured policies and instructions.",
+      "acceptanceCriteria": [
+        "Implement init.groovy with required repeatable --harness choices codex and claude, composing the public context and permission definitions.",
+        "Use .agents/policy.yaml as the starter policy source; seed a valid version-1 policy with no command grants and no invented project-specific instructions only when an unconfigured selected harness requires that source and it is absent.",
+        "Validate an existing starter policy before writes when it is needed; an empty file fails with its path and an example schema, leaving all other prospective seed/rendered outputs unwritten.",
+        "Init is additive: preserve an already configured selected permission application and its separately supplied policy binding; never overwrite interactive/unattended selections with the default policy.",
+        "For unconfigured selected harnesses, render starter permissions and context using the same application identities as standalone recipes.",
+        "Rerunning init is idempotent, adding Codex preserves Claude, and init followed by a direct permission update produces no ownership transfer conflict.",
+        "Do not create or require cook.groovy, a replay shell script, a new desired-state manifest or installation of external agent binaries.",
+        "Recipe fixtures cover fresh setup, existing separate policies, adding a harness, existing instructions, missing default policy when already configured, and selected removal.",
+        "Quality gate: ./gradlew -p cookbook/recipes/agentic/init check passes.",
+        "Quality gate: git diff --check passes."
+      ],
+      "priority": 11,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-009",
+        "US-010"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-012",
+      "title": "Prove independent recipe behavior with workflow fixtures",
+      "description": "As a maintainer, I want realistic workflow fixtures so composability is verified across recipe boundaries.",
+      "acceptanceCriteria": [
+        "Keep scenario directories under recipe-owned src/test/resources/fixtures/; include initial files and expected output trees, with portable placeholders for machine-specific paths and explicit representations for dotfiles and symlinks.",
+        "Cover init for both harnesses, direct Claude interactive-policy update, direct Codex unattended-policy update, source edits, reruns and removal without using cook.groovy.",
+        "Assert file contents, managed regions/keys and application ownership after each step; do not rely solely on CLI success strings.",
+        "Compare combined harness selection with two single-harness invocations for equivalent final outputs and identities.",
+        "Include unrelated handwritten hooks/settings and a legacy git/ignore contribution in brownfield fixtures; verify all survive.",
+        "Exercise two policy paths, renamed source paths, malformed policy, managed drift and a conflict on one harness; failures must leave both outputs and state unchanged.",
+        "Use real recipe factories and temporary destination repositories, without invoking external agents or copying Medprev-specific commands into fixtures.",
+        "Quality gate: ./gradlew -p cookbook/recipes/agentic/permission check passes.",
+        "Quality gate: ./gradlew -p cookbook/recipes/agentic/context check passes.",
+        "Quality gate: ./gradlew -p cookbook/recipes/agentic/init check passes.",
+        "Quality gate: git diff --check passes."
+      ],
+      "priority": 12,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-011"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-013",
+      "title": "Verify CLI and packaged distribution integration",
+      "description": "As a user of the packaged CLI, I want the same invocation behavior as source users so the workflow survives distribution.",
+      "acceptanceCriteria": [
+        "Add CLI integration fixtures for flat recipe paths, named discovery, repeated harness options, direct child updates, explicit removal and recipe help.",
+        "Wire packaged definitions and their declared dependencies into the distribution using existing mechanisms; arbitrary remote recipe downloading or a registry is out of scope.",
+        "Run a packaged app-image fixture with Java removed from PATH, cooking permissions and context in a temporary repository without a source checkout.",
+        "Verify packaged multi-application reruns preserve unrelated configuration and produce Already cooked when appropriate.",
+        "Existing supported legacy direct Batch scripts continue to load; scope their reconciliation so they cannot implicitly delete independently owned new applications.",
+        "Document and fixture-test the behavior of legacy entrypoints instead of silently deleting them as part of removing the requirement for cook.groovy.",
+        "Quality gate: ./gradlew -p core check passes.",
+        "Quality gate: ./gradlew -p cli check passes.",
+        "Quality gate: ./gradlew cliBuild jpackageTest passes.",
+        "Quality gate: git diff --check passes."
+      ],
+      "priority": 13,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-012"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-014",
+      "title": "Document independent invocation and recipe ownership",
+      "description": "As a recipe consumer, I want exact commands and lifecycle documentation so I can operate the setup without learning an umbrella configuration file.",
+      "acceptanceCriteria": [
+        "Add a README for each new recipe with argument help, direct-path and named commands, output ownership, seed behavior, adoption, updates and explicit removal.",
+        "Document the two separate policy commands and show that omitting a harness preserves it.",
+        "Explain that .cook ownership state supports reconciliation and is not a user-authored complete desired setup; no mandatory cook.groovy or replay script appears in the new workflow.",
+        "Document independent module check commands and declared module dependencies; core/CLI changes and final integration have their own gates.",
+        "Explain that native permission rendering is not a guarantee of identical enforcement across harnesses; document the supported literal-prefix scope.",
+        "Keep current cookbook setup documentation accurate by linking to the new independent flow and explaining compatibility of existing entrypoints.",
+        "Verify documented commands against fixture invocations and ensure referenced recipe files, module paths and options exist.",
+        "Quality gate: ./gradlew -p cookbook/recipes/agentic/permission check passes.",
+        "Quality gate: ./gradlew -p cookbook/recipes/agentic/context check passes.",
+        "Quality gate: ./gradlew -p cookbook/recipes/agentic/init check passes.",
+        "Quality gate: git diff --check passes."
+      ],
+      "priority": 14,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-013"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-015",
+      "title": "Dogfood the agent setup and complete integration checks",
+      "description": "As a maintainer of the-cook, I want this repository to use its own agent recipes so real usage validates the workflow.",
+      "acceptanceCriteria": [
+        "Use the implemented recipes to create this repository's agent context and permission configuration; do not hand-write files designated as rendered output.",
+        "Select explicit project-appropriate version-1 policies for Claude interactive use and Codex unattended use, keeping policy sources and editable instructions reviewable.",
+        "Preserve user-created files including .agents/policy.yam and the existing empty .agents/policy.yaml; do not silently replace or remove them. Use separate new policy sources for the approved separate-policy workflow.",
+        "Preserve existing skills, unrelated gitignore content, ownership records and unrelated working-tree changes; do not add Ralph, Beads workflow assets, hooks or external tool installation to this feature.",
+        "Run context and the two permission commands, rerun them to verify no changes, and record the actual commands and results.",
+        "Verify fresh-clone reproducibility through fixture commands using tracked recipe and policy sources without an umbrella manifest; inspect the final diff for generated-file ownership and unintended local state.",
+        "All prior stories and fixture acceptance criteria pass; final verification runs the full project, cookbook and bundled-runtime gates.",
+        "Keep implementation on the user's requested main branch. This task file itself does not authorize starting an unattended run or changing agent bypass settings.",
+        "Quality gate: ./gradlew check cliBuild cookbookBuild jpackageTest passes.",
+        "Quality gate: git diff --check passes."
+      ],
+      "priority": 15,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-014"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-016",
+      "title": "Resolve removal from supplier declarations",
+      "description": "Fix confirmed review findings so selected removal is scoped by the invoked recipe contract and validates required selectors without reading policy sources.",
+      "acceptanceCriteria": [
+        "Suppliers declare removal selection and its required inputs through typed core metadata. Core and CLI contain no agentic/tool-specific basename heuristics or hardcoded application IDs. Metadata can be obtained without rendering or evaluating the policy file.",
+        "agentic/permission and agentic/context removal require repeatable harness selectors. Missing, empty, unsupported, unknown and repeated scalar removal arguments fail before any writes. Only policy inputs are exempted when not needed for removal; validation follows the declared removal contract.",
+        "An unrelated permission.groovy declaring fixture/unrelated cannot remove installed agentic permissions. A renamed arbitrary factory with a declared removal scope removes exactly its own selected application.",
+        "agentic/init removal selects only its public permission/context children for selected harnesses and cannot remove an independently installed agentic.init/git application or other old cookbook children.",
+        "Preserve existing removal behavior for adopted originals, managed drift, missing policy source, dry-run, absent applications and unselected harnesses. Document any safe unsupported removal behavior for undeclared legacy factories instead of guessing scope.",
+        "Add meaningful core/CLI fixture regressions for all reproduced cases. Existing recipe module fixtures and packaged removal integration remain green.",
+        "Quality gates: ./gradlew -p core check; ./gradlew -p cli check; all three independent agentic recipe module checks; git diff --check.",
+        "Commit only verified story changes with US-016 in its conventional commit message."
+      ],
+      "priority": 16,
+      "passes": true,
+      "notes": "Review reproductions: /tmp/cook-review-removal-nu17mfvk and /tmp/cook-review-init-scope-sruvuqcf. Read NativePlanning.remove, CookCommand removal input parsing. Existing original plan acceptance requires safe explicit scopes; these are correctness fixes, not new features.",
+      "dependsOn": [
+        "US-015"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-017",
+      "title": "Preserve direct identities and child provenance while composing init",
+      "description": "Fix remaining confirmed review findings for source relocation, per-harness diagnostic policy bindings, and the approved public recipe composition requirement.",
+      "acceptanceCriteria": [
+        "A directly invoked declared factory can be copied or renamed anywhere, including under cookbook/recipes, without changing its declared identity. Apply and --help work for an explicit renamed path. Named discovery may validate its requested identity; explicit file paths use the declaration.",
+        "Source relocation and direct/named/composed invocation preserve selected application identities and removal correctness. Add regressions using an actual or fixture declared permission factory copied to cookbook/recipes/renamed.groovy.",
+        "Persist diagnostic recipe/input provenance on real selected application children. Sequential Claude interactive-policy and Codex unattended-policy calls retain the policy source for EACH application; changing one updates only that provenance. Preserve metadata for unselected and already-configured applications during init.",
+        "init.groovy composes BOTH public context and permission definitions. Remove duplicated native permission construction. Preserve in-memory validation for an absent seed policy, seed-only source semantics, separate existing bindings, stable child identities, atomic failure, and no unnecessary policy reads when already configured.",
+        "Use a small shared recipe dependency or typed composition interface only if required for validated absent policy seeds; avoid multiple conflicting implementations of the permission factory. Supplier modules remain independent and explicitly declare dependencies.",
+        "Extend fixture tests to prove these behaviors and regenerate dogfood through the recipes, keeping user instruction and policy files intact. All reruns report Already cooked with stable output and state bytes.",
+        "Run ./gradlew check cliBuild cookbookBuild jpackageTest; all focused story regression tests and git diff --check pass. No weakening of lint rules, ownership invariants or acceptance criteria.",
+        "Commit only verified story changes with US-017 in its conventional commit message."
+      ],
+      "priority": 17,
+      "passes": true,
+      "notes": "Read-only review reproduced direct renamed-source failure in /tmp/cook-review-identity-lxay_35d. Existing dogfood state has provenance only for permission/default and context/default, losing the Claude policy binding. US-011 explicitly requires composition of public permission and context definitions.",
+      "dependsOn": [
+        "US-016"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-018",
+      "title": "Adopt tracked Codex rules in fresh clones and correct lifecycle docs",
+      "description": "Complete the final concrete fresh-clone regression found in review and align the README with declared removal.",
+      "acceptanceCriteria": [
+        "CodexFiles.ruleBlock forwards its existing adopt flag to BlockOutput. An existing unmanaged Codex rules block can be adopted explicitly; adoption is never implicit and managed drift still rejects writes.",
+        "Add a regression representing a fresh clone with tracked AGENTS.md, CLAUDE.md, both policy sources, .claude/settings.json, .codex/config.toml and .codex/rules/cookbook.rules but no .cook state. The context and both separate permission commands with explicit --adopt=true succeed, preserve source and generated output bytes, and establish correct per-harness ownership/provenance.",
+        "Rerunning those three commands without adoption reports Already cooked with unchanged outputs/state. Add a negative assertion that no-adoption fails atomically, and ensure managed drift cannot be bypassed using adoption.",
+        "Fix README.md:35 unsupported legacy agentic/claude removal example to use declared agentic/permission with explicit --harness=claude. Verify the documented removal command.",
+        "Document first-run explicit adoption in a fresh clone in docs/features/agentic-dogfood.md. Distinguish initial adoption from subsequent ordinary updates and preserve tracked policy/instruction sources. Execute the exact documented workflow in a temporary clone or equivalent fixture without deleting rendered files.",
+        "Quality gates: ./gradlew -p cookbook/recipes/agentic/permission check; ./gradlew -p cookbook/recipes/agentic/codex check; ./gradlew check cliBuild cookbookBuild jpackageTest; git diff --check.",
+        "Commit verified story files with US-018 in the conventional message. Leave tasks/prd.json for the coordinator, never push or merge."
+      ],
+      "priority": 18,
+      "passes": true,
+      "notes": "Reviewer reproduced failure in /tmp/cook-review-fresh-adopt-7whksohb: --adopt=true still fails on cookbook.codex/commands because CodexFiles.groovy:39 omits adopt in BlockOutput. Launcher is cli/build/install/the-cook/bin/the-cook, not cook/bin/cook. All previous stories are committed at 68b7f65 and the full gate is green; this is the only remaining confirmed important bug plus known docs corrections.",
+      "dependsOn": [
+        "US-017"
+      ],
+      "completionNotes": "Completed by agent"
+    }
+  ],
+  "metadata": {
+    "updatedAt": "2026-10-14T00:12:24.332Z"
+  }
+}

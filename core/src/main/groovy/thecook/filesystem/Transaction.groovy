@@ -23,7 +23,7 @@ class Transaction {
       boolean link = snapshot.kind == 'symlink' || proposal.stateAfter.files[path]?.kind == 'symlink'
       verify(repository.target(path, link), snapshot, path, link)
     }
-    def nextState = JsonOutput.prettyPrint(JsonOutput.toJson(proposal.stateAfter)) + '\n'
+    def nextState = JsonOutput.prettyPrint(JsonOutput.toJson(thecook.reconciliation.StateSchema.sorted(proposal.stateAfter))) + '\n'
     if (proposal.changes.empty && proposal.stateBefore.content == nextState) return
       files.write(repository.metadata('transaction.json'), JsonOutput.toJson(proposal), null)
     def applied = []
@@ -72,7 +72,7 @@ class Transaction {
           throw new IllegalStateException("Changed after interrupted transaction: ${change.path}")
       }
       def state = repository.snapshot(repository.metadata('state.json'))
-      def afterState = JsonOutput.prettyPrint(JsonOutput.toJson(proposal.stateAfter)) + '\n'
+      def afterState = JsonOutput.prettyPrint(JsonOutput.toJson(thecook.reconciliation.StateSchema.sorted(proposal.stateAfter))) + '\n'
       boolean originalState = state.hash == proposal.stateBefore.hash && state.mode == proposal.stateBefore.mode
       boolean writtenState = state.hash == Repository.digest(afterState.getBytes('UTF-8')) && state.mode == (proposal.stateBefore.mode ?: 'rw-------')
       if (!originalState && !writtenState)

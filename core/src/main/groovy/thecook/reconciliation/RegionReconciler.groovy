@@ -24,6 +24,6 @@ class RegionReconciler {
     if (!before && desired.whenPresent && current == null) return null
     document.write(identity.toString(), desired.location, next)
     new RegionRecord(document.read(identity.toString(), desired.location), before ? before.original : current,
-        desired.location, desired.adopt, desired.whenPresent, desired.definitionIdentity ?: before?.definitionIdentity)
+        desired.location, before ? before.adopt : desired.adopt, desired.whenPresent, desired.definitionIdentity ?: before?.definitionIdentity)
   }
 }

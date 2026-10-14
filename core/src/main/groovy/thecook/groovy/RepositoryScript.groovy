@@ -5,6 +5,8 @@ import thecook.model.Batch
 import thecook.composition.Component
 import thecook.composition.Kitchen
 import thecook.cookbook.Cookbook
+import thecook.cookbook.DeclaredRecipe
+import thecook.cookbook.RawRecipeArguments
 import thecook.rendering.RenderTree
 
 /** Repository authors may use dynamic Groovy over the same compiled contracts. */
@@ -24,21 +26,35 @@ class RepositoryScript {
     Kitchen kitchen = new Kitchen(repository)
     Cookbook book = new Cookbook(cookbook ?: new File(repository, 'cookbook'), artifacts)
     if (cookbook != null) {
-      String relative = new File(cookbook, 'recipes').toPath().relativize(script.absoluteFile.parentFile.toPath()).toString().replace(File.separator, '/')
-      if (!script.isFile() && !book.classes.getResource('META-INF/the-cook/recipes/' + relative + '/recipe.groovy'))
-        throw new IllegalArgumentException('Recipe not found: ' + relative)
-      book.recipe(relative, kitchen, preferences).mount()
+      String relative = new File(cookbook, 'recipes').toPath().relativize(script.absoluteFile.toPath()).toString().replace(File.separator, '/')
+      String name = relative.endsWith('/recipe.groovy') ? relative.substring(0, relative.length() - '/recipe.groovy'.length()) :
+          relative.substring(0, relative.length() - '.groovy'.length())
+      String source = 'recipes/' + relative
+      if (!script.isFile() && !book.classes.getResource('META-INF/the-cook/' + source))
+        throw new IllegalArgumentException('Recipe not found: ' + name)
+      book.recipeFile(source, null, kitchen, preferences.values().every { it instanceof List } ?
+      new RawRecipeArguments(preferences) : preferences).mount()
       return kitchen.render()
     }
     File directory = script.absoluteFile.parentFile
     Closure<RenderTree> delegate = { String relative, Map arguments = preferences ->
       evaluate(new File(directory, relative), repository, arguments)
     }
+    Map scalarPreferences = preferences.collectEntries { key, value ->
+      [(key): value instanceof List ? (value.isEmpty() ? '' : value[0]) : value]
+    }
     Object result = new GroovyShell(classes, new Binding([
-      preferences: preferences, scriptDirectory: directory,
+      preferences: scalarPreferences, scriptDirectory: directory,
       repositoryDirectory: repository.absoluteFile, evaluateRecipe: delegate,
       book: book, kitchen: kitchen
     ])).evaluate(script)
+    if (result instanceof DeclaredRecipe || result instanceof Closure) {
+      book.recipeValue(result, kitchen, preferences.values().every { it instanceof List } ?
+      new RawRecipeArguments(preferences) : preferences, script.path).mount()
+      return kitchen.render()
+    }
+    if (preferences.values().any { it instanceof List && it.size() != 1 })
+      throw new IllegalArgumentException('Argument may only be supplied once to a repository script')
     if (result instanceof RenderTree) return result
     if (result instanceof Component) {
       if (!result.kitchen.is(kitchen)) throw new IllegalArgumentException('Recipe component belongs to another kitchen')
@@ -50,7 +66,6 @@ class RepositoryScript {
   }
 
   private static File findCookbook(File script) {
-    if (script.name != 'recipe.groovy') return null
     File parent = script.absoluteFile.parentFile
     while (parent != null) {
       if (parent.name == 'recipes') return parent.parentFile
