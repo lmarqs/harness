@@ -1,6 +1,0 @@
-pluginManagement { includeBuild('../../../../core') }
-rootProject.name = 'agentic-context'
-includeBuild('../../../../core')
-includeBuild('../codex')
-includeBuild('../claude')
-includeBuild('../../../ingredients/agent-policy')

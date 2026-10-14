@@ -1,36 +1,11 @@
-package thecook.cookbook.ingredients.git
+@Ingredient
+class Git {
+  List<String> patterns = []
 
-import thecook.annotations.Ingredient
-import thecook.composition.ComponentId
-import thecook.filesystem.TargetPath
-import thecook.model.*
+  void ignore(String... values) { patterns += values }
 
-@Ingredient('git')
-class Git implements Contributor {
-  final ComponentId id
-  final FileInput ignore = new FileInput()
-  final TargetPath path
+  void ignore(Collection<String> values) { patterns += values }
 
-  Git(String name = 'git', String path = '.gitignore') {
-    this.id = ComponentId.of(name)
-    this.path = TargetPath.of(path)
-  }
-
-  List<OutputSpec> outputs() {
-    Provider<List<String>> content = {
-      ignore.resolve().files.collect {
-        pattern(it)
-      }
-    }
-    [new BlockOutput(id, path, 'ignore', content)]
-  }
-
-  private static String pattern(FileReference file) {
-    String path = file.path
-    if (file.kind != FileKind.GLOB) {
-      for (String special : ['*', '?', '[', ']']) path = path.replace(special, '\\' + special)
-    }
-    path = path.replace('#', '\\#').replace('!', '\\!').replace(' ', '\\ ')
-    (file.scope == FileScope.ROOT ? '/' : '') + path + (file.kind == FileKind.DIRECTORY ? '/' : '')
-  }
+  @Section(path = '.gitignore', id = 'ignore')
+  List<String> ignoreSection() { patterns.unique() ?: null }
 }

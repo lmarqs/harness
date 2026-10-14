@@ -1,3 +1,0 @@
-pluginManagement { includeBuild('../../../core') }
-rootProject.name = 'skills'
-includeBuild('../../../core')

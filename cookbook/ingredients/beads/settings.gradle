@@ -1,3 +1,0 @@
-pluginManagement { includeBuild('../../../core') }
-rootProject.name = 'beads'
-includeBuild('../../../core')

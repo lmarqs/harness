@@ -1,1 +1,0 @@
-{"permissions":{"allow":["Bash(git status *)","Bash(git diff *)","Bash(git log *)","Bash(./gradlew check *)"], "ask":["Bash(git push *)"], "defaultMode":"acceptEdits", "deny":["Bash(git reset --hard *)"]}}

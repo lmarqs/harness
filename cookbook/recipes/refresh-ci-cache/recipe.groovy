@@ -1,6 +1,9 @@
-return { kitchen, book, Map options ->
-  def operations = book.script('recipes/operations.groovy')
-  def recipe = kitchen.recipe(options.id ?: 'refresh-ci-cache')
-  operations.replacements(kitchen, recipe, options)
-  recipe
-}
+@param(['workflow'], doc = 'Workflow file under .github/workflows') String workflow
+@param(['job'], doc = 'The job holding the cache step') String jobName
+@param(['step'], default = 'cache', doc = 'The cache step id') String step
+@param(['key'], doc = 'The new cache key expression') String key
+
+@ingredient(Workflow) def ci
+
+ci.file = workflow
+ci.job(jobName).stepWith(step, 'key', key)

@@ -1,8 +1,0 @@
-.agents/policy.yaml
-.claude/settings.json
-.codex/config.toml
-.codex/rules/cookbook.rules
-.cook/lock
-.cook/state.json
-AGENTS.md
-CLAUDE.md
