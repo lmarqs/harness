@@ -279,11 +279,12 @@
         "Preserve useful material case by case and repair affected navigation; neither deleting everything nor keeping everything is the default."
       ],
       "priority": 15,
-      "passes": false,
+      "passes": true,
       "notes": "",
       "dependsOn": [
         "US-014"
-      ]
+      ],
+      "completionNotes": "Completed by agent"
     },
     {
       "id": "US-016",
@@ -296,11 +297,12 @@
         "Preserve useful material case by case and repair affected navigation; neither deleting everything nor keeping everything is the default."
       ],
       "priority": 16,
-      "passes": false,
+      "passes": true,
       "notes": "",
       "dependsOn": [
         "US-015"
-      ]
+      ],
+      "completionNotes": "Completed by agent"
     },
     {
       "id": "US-017",
@@ -313,11 +315,12 @@
         "Preserve useful material case by case and repair affected navigation; neither deleting everything nor keeping everything is the default."
       ],
       "priority": 17,
-      "passes": false,
+      "passes": true,
       "notes": "",
       "dependsOn": [
         "US-016"
-      ]
+      ],
+      "completionNotes": "Completed by agent"
     },
     {
       "id": "US-018",
@@ -331,11 +334,12 @@
         "Preserve ingredients as program data models. Correct stale definitions without selecting a recipe API, station role, nesting rule, or lifecycle hook design."
       ],
       "priority": 18,
-      "passes": false,
+      "passes": true,
       "notes": "",
       "dependsOn": [
         "US-017"
-      ]
+      ],
+      "completionNotes": "Completed by agent"
     },
     {
       "id": "US-019",
@@ -349,11 +353,12 @@
         "Preserve relevant program-configuration guidance while removing fixed lifecycle-engine assumptions; do not design recipe hooks or injection APIs."
       ],
       "priority": 19,
-      "passes": false,
+      "passes": true,
       "notes": "",
       "dependsOn": [
         "US-018"
-      ]
+      ],
+      "completionNotes": "Completed by agent"
     },
     {
       "id": "US-020",
@@ -366,11 +371,12 @@
         "Preserve useful material case by case and repair affected navigation; neither deleting everything nor keeping everything is the default."
       ],
       "priority": 20,
-      "passes": false,
+      "passes": true,
       "notes": "",
       "dependsOn": [
         "US-019"
-      ]
+      ],
+      "completionNotes": "Completed by agent"
     },
     {
       "id": "US-021",
@@ -383,11 +389,12 @@
         "Avoid specifying new exit codes, hook phases, patch formats, or metadata schemas not decided in this session."
       ],
       "priority": 21,
-      "passes": false,
+      "passes": true,
       "notes": "",
       "dependsOn": [
         "US-020"
-      ]
+      ],
+      "completionNotes": "Completed by agent"
     },
     {
       "id": "US-022",
@@ -400,11 +407,12 @@
         "Avoid specifying new exit codes, hook phases, patch formats, or metadata schemas not decided in this session."
       ],
       "priority": 22,
-      "passes": false,
+      "passes": true,
       "notes": "",
       "dependsOn": [
         "US-021"
-      ]
+      ],
+      "completionNotes": "Completed by agent"
     },
     {
       "id": "US-023",
@@ -417,11 +425,12 @@
         "Avoid specifying new exit codes, hook phases, patch formats, or metadata schemas not decided in this session."
       ],
       "priority": 23,
-      "passes": false,
+      "passes": true,
       "notes": "",
       "dependsOn": [
         "US-022"
-      ]
+      ],
+      "completionNotes": "Completed by agent"
     },
     {
       "id": "US-024",
@@ -434,11 +443,12 @@
         "Avoid specifying new exit codes, hook phases, patch formats, or metadata schemas not decided in this session."
       ],
       "priority": 24,
-      "passes": false,
+      "passes": true,
       "notes": "",
       "dependsOn": [
         "US-023"
-      ]
+      ],
+      "completionNotes": "Completed by agent"
     },
     {
       "id": "US-025",
@@ -517,6 +527,6 @@
     }
   ],
   "metadata": {
-    "updatedAt": "2026-10-14T05:02:43.472Z"
+    "updatedAt": "2026-10-14T05:55:07.175Z"
   }
 }

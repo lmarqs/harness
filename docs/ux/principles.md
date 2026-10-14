@@ -2,303 +2,155 @@
 
 ## Objective
 
-**Problem.** No set of specific rules foresees every case, and the concerns behind them pull against each other, such as
-convenience against keeping someone's work intact. When contributors and reviewers settle such a case by their own sense
-of what matters, a teammate who never chose the tool, a developer whose repository it writes to or a CI pipeline is
-protected by one feature and let down by the next.
+**Problem.** Specific rules cannot foresee every case. Convenience, preserving someone's work and sharing setup can
+pull in different directions. Without a common basis, contributors make inconsistent choices about what Cook changes
+and what a user must approve.
 
-**Goal.** Two people deciding the same uncovered case, or the same conflict between two concerns, reach the same
-decision and can give the same reason for it.
+**Goal.** Contributors can resolve an uncovered case from the same responsibilities and explain the result to the
+person whose files are affected.
 
 ## Overview
 
-Every other page in these standards applies one or more of the principles below. When a case is not covered by a
-specific rule, decide it from these principles and write the decision, with its reason, into the standard it belongs
-to ([README.md](README.md#changing-a-standard)).
+These principles follow the [architecture](../architecture.md), which states the intended design. Apply them when a
+specific interaction rule leaves a question open, and record the reason in the relevant standard
+([changing a standard](README.md#changing-a-standard)). They do not establish implementation completion; current
+execution instructions belong in the [root README](../../README.md) and [core guide](../../core/README.md).
 
 ## 1. Optional and transparent
 
-Nobody suffers for not using `the-cook`. Why: teammates, pipelines and repositories that never chose `the-cook` share
-the committed files of those that did, so anything `the-cook` requires of them is imposed, not adopted.
+Programs consume their native configuration directly. Using Cook to prepare those files should not make teammates
+invoke Cook to read them or perform their ordinary work. Why: teammates share configuration without necessarily
+choosing the tool that produced it.
 
-- A clone of an adopted repository MUST build, test, deploy and start its workers without the binary, whether
-  downloaded by the committed wrapper script `cook` or installed globally, because a clone is used by people who
-  never ran `the-cook`.
-- Implicit entry points degrade quietly and never download; explicit ones fetch the pinned version or fail loudly
-  ([cli-standards.md](cli-standards.md#entry-points)).
-  - An implicit entry point is one a worker fires on its own: a hook rendered by `the-cook`. It runs
-    `./cook --no-download`, MUST NOT download, and when no binary is cached MUST exit 0 after one stderr line
-    naming `./cook`. Why: a download inside a hook stalls every action of the worker on a slow or offline machine,
-    and a failing hook interrupts sessions of people who never installed `the-cook`.
-  - An explicit entry point is one a person or a worker runs on purpose: `./cook <command>` or a global
-    `the-cook <command>`. It downloads and verifies the pinned version on first use, and
-    MUST exit non-zero naming the cause when it cannot obtain it: 1 for a failed download, 3 when a person must act
-    first. Why: a skipped verification that exits 0 reads as a pass.
-- CI MUST NOT need the binary or the wrapper, because an adopting repository's pipelines keep their own steps.
-  `./cook render --check` and `./cook doctor` are optional CI steps a repository MAY add; the wrapper downloads
-  and verifies the pinned version for them.
-- Files `the-cook` writes MUST NOT add a runtime dependency, a required CI step, or a change to build, test, deploy or
-  release outputs, because those outputs belong to the repository's own toolchain. The wrapper's first-run
-  requirements (a POSIX `sh`, `curl` or `wget`, `sha256sum` or `shasum`) apply only to running `the-cook`.
-- Adoption and removal are per repository and per module (for example, `modules.verify` on and `modules.memory` off),
-  because a repository may want one practice without the others. Removal has two modes, undo (`the-cook remove`) and
-  eject (`the-cook remove --eject`), and either leaves a repository that works with what remains (see
-  [generated-content-standards.md](generated-content-standards.md#removal)).
-- A person's own setup is theirs: their editor, the settings, plugins and skills they keep for a worker program outside
-  the repository, and the loop runner and task list they use. `the-cook` MUST NOT require, write or check it, reads it
-  only when that person asks, and it applies in every session, those `the-cook` starts included. Why: a tool that
-  overrides a person's way of working takes it from people who never chose to give it up, and anyone can work around
-  it anyway ([ADR 0028](../adrs/0028-place-of-the-tool.md)).
+- Ingredients model native program files; cookbooks hold and ship ingredients and recipes separately from the engine.
+  Recipes can configure build, test or CI files when requested. That does not make Cook the runner of those workflows.
+- Personal settings are not implicitly imported or changed. An explicitly declared target inside the destination
+  uses the same review flow as any other target ([configuration](configuration-standards.md#where-files-live)).
+- Keeping native configuration means leaving it in place. Discard and revert are explicit operations, not a required
+  uninstall or eject procedure ([discard and revert](../features/remove.md)).
+- The committed wrapper pins an engine version and matching platform-package checksums, downloads and verifies the
+  complete package on first use, and caches it locally. Upgrades are explicit. The package includes Java; cookbook
+  builds and recipe versions remain separate choices ([wrapper](../features/wrapper.md)).
 
-## 2. The binary is deterministic; judgement belongs to people and workers
+## 2. People judge; Cook presents the requested changes
 
-From the user's side, everything `the-cook` does is predictable. A person, or a worker such as a coding agent, does
-whatever needs judgement, and `the-cook` checks the result. Why: deterministic output can be reviewed once and trusted
-in every repository, while a guess made by code is wrong in the first repository nobody anticipated.
+People and coding agents choose trusted sources and review the proposed result. Cook evaluates the supplied recipes,
+composes their file operations and displays the actual diff. Why: showing what will change gives the reviewer concrete
+information rather than asking them to infer a result from configuration.
 
-- Every binary command produces the same result for the same inputs on every supported machine, so a user can read
-  the repository files in `.cook/` and know what `the-cook render` will write.
-- When the binary meets something it cannot decide without judgement (an unrecognised hook, a worker's instructions
-  file with content), it MUST NOT guess, because a wrong guess silently rewrites a team's configuration. It leaves the
-  item untouched and lists it as a to-do (`the-cook doctor --json`) that a person or a coding agent resolves.
-- Every judgement step a person or a worker performs ends in a deterministic check the binary owns
-  (`the-cook render --check`, `the-cook doctor`, `the-cook verify --check`), so the outcome of judgement is still
-  verified.
-- A recipe keeps the same split inside one kind of change a repository makes many times: the binary runs its `run` and
-  `template` steps, a worker in an `attempt` step or a person at a handoff does the judgement, and the recipe run is
-  verified with the lanes the recipe requires before it completes
-  ([when-cli-when-skill.md](when-cli-when-skill.md#recipes)).
+- Evaluate apply and discard recipes against current content on every invocation. History must not skip a recipe as
+  already applied. An unchanged result may have an empty diff.
+- Do not promise identical output across machines or a network-free evaluation: trusted Groovy recipes can read their
+  environment and execute arbitrary code. Review source trust separately from the resulting batch.
+- Explain errors precisely enough for the caller to correct the request
+  ([messages](messages-and-docs.md#error-messages)); do not invent a lifecycle verification or to-do system to resolve
+  configuration choices.
 
-[when-cli-when-skill.md](when-cli-when-skill.md) decides where a given behaviour belongs.
+## 3. Configure programs through files
 
-## 3. Runs the game, never plays
+Cook is a recipe driven file-operation engine. It evaluates trusted Groovy recipes, obtains approval for an ordered
+batch, records recovery information and performs declared writes. Why: program configuration can be reused without
+placing the program's execution under Cook's control.
 
-`the-cook` is a declared software development lifecycle: the stages a change goes through, the events it fires between
-them, the guards that hold between stages and the proof a change carries. It runs those rules for the work that goes
-through it, whoever does that work (people and the workers they choose, such as coding agents), and it never takes a
-worker's place. Why: the coding agents people already use are developed by their vendors and follow every model change.
-A tool that competed with them would carry credentials and cost, and a loop of its own to maintain.
+Ingredients are program data models, including native settings, ignore files and skills. Recipes may declare prose,
+skill content or existing native configuration as targets. Program knowledge belongs with cookbook models and recipes;
+the engine handles file operations. Executing external commands is not a batch action.
 
-- The binary never calls a model and is never a client of a tool server (MCP). Work that needs a model or an MCP tool
-  is done by a worker: the [coordinating worker](../features/lifecycle.md#the-lifecycle-stage-by-stage), or an
-  `attempt` action that `the-cook` starts as a child process under the
-  [attempt contract](../features/attempts.md#the-attempt-contract). Why: the worker owns those connections, their
-  credentials and their permissions.
-- The binary never writes knowledge: no free prose, no memory entries, no domain skills, no policy entries invented on
-  the user's behalf, because knowledge needs judgement. It writes rendered files, managed blocks whose text is derived
-  from the repository files (fixed sentences stating a convention with its configured values, tables, lists), the
-  repository files (`config.yaml`, `policy.yaml`, `hooks.yaml`) only when seeding them, migrating them, pinning an
-  ingredient or applying a station a person asked for, a recipe in `.cook/recipes/` only when a person adds, updates or
-  creates it or applies a station that adds it, the owned pin `wrapper.yaml` only when scaffolding or re-pinning, and,
-  in a recipe run's workspace, the files the recipe's `template` steps render.
-- The binary contains no logic for any hosting platform and never writes the team's record of work: no issues,
-  projects, boards, comments, reviews or labels. Why: the team's record already has writers under the team's own
-  conventions, and platform logic in the binary binds every release to one platform. Everything that leaves the
-  clone, a pull request included, is a declared action ([principle 7](#7-nothing-leaves-the-clone-undeclared)).
-- The binary contains no code for any external program, including the version control system, the workers and the
-  jails, and reads no program's own configuration. A stage that needs a program reaches it through a contract that an
-  [ingredient](../features/ingredients.md) fills, or through the commands the profile declares and the actions lifecycle
-  events fire. Why: each team picks different programs, and code for one would follow every release of a program the
-  project does not own while serving no team that chose another.
-- The binary never reconfigures state it did not create (a task tracker's existing database; the version control
-  system's hook settings; a task runner's tasks and tool list; the content of a worker's instructions file; a `.cook/`
-  directory that another product created), because its owners depend on it as it is.
+Cook does not own workers, jails, verification receipts or a fixed software development lifecycle. Personal setup
+backup and agent-session orchestration remain future work in
+[issue #5](https://github.com/lmarqs/the-cook/issues/5) and
+[issue #6](https://github.com/lmarqs/the-cook/issues/6). Ingredient/recipe APIs, station roles, nesting, injection,
+annotations and lifecycle hooks need a separate model discussion.
 
 ## 4. Least surprise
 
-- A command does what its name says and nothing else. Read commands (`doctor`, `explain`, `version`, `context show`,
-  `lifecycle list`, `ingredient list`, `ingredient show`, `station list`, `station show`, `recipe list`, `recipe show`,
-  `make --status`, `render --check`, `verify --check`) MUST NOT modify the repository, fire lifecycle events or run
-  actions. Why: workers and CI call read commands freely, so a side effect there happens without anyone deciding it.
-- The same invocation in the same state gives the same result. Running a mutation twice changes nothing the second
-  time and says so, because workers and scripts retry and a retry must be safe.
-- Environment and machine affect presentation (color, notices, verbosity), never the bytes written into a repository,
-  because two teammates rendering the same commit must produce the same diff. A binary upgrade changes those bytes only
-  under the rules in [compatibility-standards.md](compatibility-standards.md#rendered-output-across-releases), and an
-  ingredient's renders change only when its pin moves
-  ([ingredients and stations across versions](compatibility-standards.md#ingredients-and-stations-across-versions)).
-- No hidden network access, because a user must be able to say what a command contacted.
-  - `the-cook` network calls: the wrapper's download of the pinned version (on explicit invocations, verified against
-    the pinned checksum); the release's signed checksum file (fetched by `scaffold` and `wrapper` before writing a pin,
-    re-verified by `doctor` at most daily); cookbook downloads by `ingredient pin`, `station apply`, `recipe add`,
-    `recipe update`, `fetch`, and the `--cookbook` reads of list and show commands (each archive verified against its
-    `sha256`); the daily release check ([update notices](compatibility-standards.md#update-notices)).
-  - Each is documented and the release check can be disabled.
-  - Rendering needs none of them once the pinned ingredients are cached, and neither does applying a cached station
-    again or running a recipe, because their only inputs are the repository's files, the pinned release and what the
-    repository pins by hash ([principle 9](#9-everything-a-repository-does-is-in-its-own-files)).
-  - Declared network access: an `http` action, a `run` action or recipe `run` step whose program reaches the network,
-    an `attempt` action or step whose worker does (as `workers.<name>.network` and the program's defaults allow), and
-    the version-control contract's `update` (run by `fleet --deliver` and, when the profile sets
-    `workspaces.update_before_landed`, by `workspace remove`).
-- Names, flags and output look the same across commands ([cli-standards.md](cli-standards.md)), so what a user learns
-  on one command holds on the next.
+- Use the agreed [CLI grammar](cli-standards.md#command-grammar): apply is implicit or explicit; discard takes supplied
+  recipes; revert takes a recorded run ID. With no arguments, show help.
+- Recipe operands are exact paths or supported source URIs, not implicit cookbook names. Batch options precede
+  operands; recipe arguments follow their recipe as `--name=value`.
+- Compose recipes and operations left to right. Later instructions may replace earlier values. Show the combined
+  final result as one batch diff, because intermediate results are not separate approval decisions.
+- Applying B does not withdraw unrelated output from A. Every request affects its declared targets rather than
+  reconciling a remembered desired state.
+- The invocation directory is the destination, including when the recipe or executable lives elsewhere. Relative
+  recipe/template source references resolve from the referencing recipe's original location or URL, including after
+  snapshotting ([path resolution](../architecture.md#destination-and-source-origins)).
 
-## 5. Never destroy; always show what will change
+## 5. Show changes, obtain approval and prepare recovery
 
-Why: a repository is the team's work, and a tool that loses part of it is removed and not trusted again.
+A repository contains people's work. Proposed replacements and deletions need visible scope and a way to recover.
 
-- Every mutating command accepts `--dry-run` and prints exactly the change set it would apply, so the change can be
-  judged before it happens.
-- `the-cook` writes only inside content it owns: files and blocks recorded in the manifest, and the native keys it owns.
-  The other writes are a station's template, only where its file is absent; a recipe copied into
-  `.cook/recipes/<name>/`, only where that directory is absent, or merged into the repository's copy by
-  `the-cook recipe update`, after a diff a person confirmed; and, inside a recipe run's own workspace, the files its
-  steps write, a `template` step only where its file is absent. Everything else is preserved byte for byte, because
-  content outside the manifest is somebody else's.
-- When owned content has been edited by hand, `the-cook remove` refuses to delete it unless `--force` is given, and
-  names each path it refused, because the hand edit may be the only copy of someone's work.
-- Every change `the-cook` makes outside its state directories (the gitignored paths the profile sets, under `.work/` by
-  default) lands in versioned files, so it reaches review as a diff.
-- Removal is deterministic in both modes: undo and eject act only on what the manifest lists and on the recipes in
-  `.cook/recipes/`, which they list before deleting, so what removal deletes can be known before it runs.
+- Display the final diff in the terminal before target writes. Approval covers the whole batch, without selecting
+  individual files or hunks. Without preapproval, ask before writing. `--batch-approve` displays the diff and proceeds
+  without prompting; noninteractive execution alone does not authorize writes.
+- Whole-file targets affect the declared file; structured targets preserve unrelated keys; marked sections preserve
+  text outside their boundaries. Use format-appropriate comments, including HTML comments in Markdown.
+- Existing and edited content uses the same approval flow. There is no `--adopt`, adoption alias, ownership-state
+  prerequisite or refusal merely because a developer edited the target.
+- Save recovery patches before the first target write. On write failure, roll back the changes already made by the
+  batch and retain the patches and failure record. This covers declared operations, not arbitrary recipe effects.
+- Discard deletes the supplied recipe version's declared contributions, even when their current values differ.
+  Revert restores a recorded operation's prior values against current content. Both preserve unrelated content and
+  show the actual diff ([operation semantics](../architecture.md#apply-discard-and-revert)).
 
-## 6. One way to do each thing
+## 6. One clear interface and vocabulary
 
-Why: two ways to do one thing drift apart, and a reader cannot tell which one is in force.
+Use the CLI as the public cooking interface. Gradle builds and packages Cook and cookbooks; it is not a second public
+cooking interface. Why: users need one place to learn operation and approval semantics.
 
-- Each operation has one command and one spelling. There are no command aliases. The wrapper and a global install are
-  entry points to the same command, not spellings of different ones.
-- Each fact lives in one file: permissions in `policy.yaml`; hooks on worker events, notification actions and lifecycle
-  actions in `hooks.yaml`; the pinned version and its checksums in `wrapper.yaml`; each kind of change in its own recipe
-  under `.cook/recipes/`; everything else `the-cook` needs, standing context included, in `config.yaml`. Rendered files
-  are outputs, never a second place to edit.
-- The version of `the-cook` is pinned in exactly one place, `.cook/wrapper.yaml`, because two pins disagree as soon as
-  one of them moves. `the-cook` reads no other file for it.
-- Each kind of content has one home: the configuration of `the-cook` in `.cook/`, the skills, memory, commands and
-  review guide that workers read in `.agents/`, state at the paths the profile sets
-  ([configuration-standards.md](configuration-standards.md#where-files-live)).
-- A repository has one documented entry point, the wrapper script `./cook`. The `AGENTS.md` `commands` block shows it,
-  so workers and people type the same thing. A task the repository writes in its own task runner to call `the-cook` is
-  the repository's file, not a second entry point `the-cook` renders.
-- A skill never re-describes what a command does deterministically; it calls the command
-  ([skills-standards.md](skills-standards.md)), because a description drifts from the command it describes.
+Use `discard` as a command and `--batch-approve` as the preapproval spelling. The wrapper and a global installation
+expose the same grammar. Default apply and explicit apply have the same meaning
+([entry points](cli-standards.md#entry-points)).
 
-## 7. Nothing leaves the clone undeclared
+Native configuration lives where its program reads it. Source recipes and templates retain their origins; recovery
+history lives under the destination's ignored `.cook/`. Do not impose a neutral configuration tree, pin-file schema or
+model API to explain these responsibilities. Use the [glossary](../features/glossary.md) consistently and link to
+command references instead of maintaining competing command descriptions.
 
-The binary contains no logic for any hosting platform. Everything that leaves the clone (a push, a pull request, a CI
-trigger, a notification, a call to a service) happens only through a **declared action**: an action that the repository
-declares on a lifecycle event (`start`, `verified`, `completed`, `deliver`, `landed`, or the out-of-band `blocked`) or
-on a worker's notification event (`attention`, `turn_end`). Why: a side effect outside the clone is visible to others
-and hard to undo, so it must be written down, reviewed and guarded before it can happen. The
-[lifecycle guide](../features/lifecycle.md) has the stages, trigger points and full reference.
+## 7. Approval has a defined boundary
 
-- **Declared.** Actions live in `.cook/hooks.yaml`, and no action runs that the repository does not declare there. A
-  station's actions, such as the tracker actions of an `agentic-coding` station, reach the file only when a person
-  applies the station and reads its diff; stack stations hold none. A recipe declares none: the work of a recipe run
-  is delivered by the repository's own actions. What "deliver" means is therefore decided in the repository, where an
-  organization's delivery convention is written like any other entry.
-- **Three kinds.** An action is a shell command (`run`), an HTTP request `the-cook` performs itself (`http`), or a
-  worker started unattended on a prompt (`attempt`). Notification events accept `run` and `http` only, so a worker's
-  hook never starts another worker.
-- **Visible.** `the-cook lifecycle list` shows every event, action, kind, scope and `auto` flag.
-- **Dry-runnable.** `the-cook lifecycle run <event> --dry-run` prints each action and the `COOK_*` environment it
-  would receive, and runs nothing.
-- **Recorded.** Every run appends its event, scope, and each action's name, kind, exit status and duration to the
-  lifecycle log, `lifecycle.jsonl` in the state directory of the primary checkout (`.work/lifecycle.jsonl` by
-  default). The log never records URLs, headers, bodies or prompts, because they can carry secrets and untrusted
-  text. Dry runs are not recorded. A failing automatic event never changes the exit code of the command that fired it;
-  `the-cook` reports the failure on stderr and records it.
-- **One action, three triggers.** A person runs `the-cook lifecycle run <event>`; a coordinating worker runs the same
-  command; or `the-cook` fires the action at the event's trigger point when the action sets `auto: true`. `auto`
-  defaults to false, so nothing leaves the clone automatically unless a committed file says so.
-- **Guarded.** Actions never run inside an attempt (the unattended run of a worker that
-  [`the-cook attempt`](cli-standards.md#the-attempt-command) starts for one task) or an `attempt` action: the binary
-  refuses `lifecycle run` there itself, whatever spelling invoked it. `deliver` always refuses on the default branch and
-  with uncommitted changes and, when the verify module is enabled, without a valid receipt (the record a passing
-  `the-cook verify` writes). These guards are built-in invariants.
-- **Code, not settings.** Actions are committed and reviewed like code. They receive values only as environment
-  variables, never substituted into a command string, so a task title or a branch name cannot inject shell syntax.
-  Secrets reach an action only from the environment (`url_env`, `headers_env`, or the environment a `run` command
-  inherits), never from a committed file.
-- **Workers for judgement.** Work that needs judgement or an MCP tool after an event is an `attempt` action or the
-  coordinating worker's job; `the-cook` never connects to an MCP server itself.
-- **Transparent.** Without the binary no action fires, and a person pushes and opens pull requests by hand, exactly as
-  before adoption.
+Declared writes and deletions stay inside the invocation directory, including paths resolved through symlinks.
+Review, approval and rollback govern those operations. Why: a user needs to know exactly what the batch review covers.
 
-Permission to run `the-cook lifecycle run <event>` is permission for everything that event's actions do: the actions run
-as child processes of `the-cook`, outside the worker's per-command permission checks. The scaffolded repository policy
-therefore seeds `[the-cook, lifecycle, run, deliver]` under `ask`, rendered for every rendered spelling (`the-cook`,
-`./cook` and `cook`). It is a seeded entry: the repository owns it and MAY change it. The rendered entries are defence
-in depth. Other spellings, such as
-an absolute path to the binary, match no prefix rule, and the binary enforces the guards itself. Permission to start
-`the-cook make` is, for the same reason, permission for every step of the recipe and for the automatic actions its
-events fire.
+Recipes are trusted executable code. They can cause side effects, including network calls or external commands,
+outside the batch; approval is not a sandbox or a guarantee that nothing leaves the destination. Review those sources
+before evaluation. A diff of native hook settings reviews the configuration, not the later effects of the configured
+program. Cook does not define a delivery-action or session-hook protocol here.
 
 ## 8. Conventions outlive the tool
 
-Every convention `the-cook` establishes is written down as plain-language text where people and other tools already
-look, and stays valid after `the-cook` is removed. Why: people, workers and the other tools in a repository rely on
-where workspaces and state live. If those conventions existed only in the configuration of `the-cook`, removing
-`the-cook` would leave state that follows rules nobody wrote down.
+Write conventions where people and native programs can find them, with the values that apply. Keep instructions
+concise and link to detail when useful. Native configuration without a Cook runtime dependency remains usable
+without Cook ([generated-content-standards.md](generated-content-standards.md#instruction-files-and-conventions)).
 
-- Two classes of managed block carry the text `the-cook` writes into `AGENTS.md`
-  ([generated-content-standards.md](generated-content-standards.md#block-classes)):
-  - **Convention blocks** state facts that stay true without `the-cook`: where workspaces are created and on which
-    branch, the effective permissions, the memory index, standing directives declared `static`, and the block a worker
-    ingredient renders to make its worker's instructions file import `AGENTS.md`. They never name a `the-cook` command.
-  - **Tool blocks** describe how to use `the-cook`: its commands, what `.cook/` holds, how to verify through it, how
-    work is delivered through its lifecycle. They MAY name `./cook` commands.
-- Each path a module establishes is also listed in a managed block of the version control system's ignore file, which
-  the version-control ingredient renders and which is a convention block.
-- State lives at paths the profile sets (`state.dir`, `workspaces.dir`), never inside `.cook/` or `.agents/`. The
-  block text names the configured path, so people, workers and other tools find it by reading the repository, not by
-  asking `the-cook`.
-- A block states its convention as fact. It never says it is managed by `the-cook` beyond its marker, so it reads as the
-  repository's own text.
-- `the-cook remove --eject` keeps convention blocks and ignore-file entries as the repository's own content and removes
-  tool blocks, so the conventions remain in force after `the-cook` leaves and no instruction names a command that no
-  longer exists ([generated-content-standards.md](generated-content-standards.md#removal)).
+Markers define a declared section's boundaries rather than ownership or a convention/tool block class. Keeping
+configuration means leaving it in place. Discard deletes supplied recipes' declared contributions, while revert
+restores a recorded operation's prior values; both show the actual diff for whole-batch approval
+([generated-content-standards.md](generated-content-standards.md#discard-and-revert)).
 
-## 9. Everything a repository does is in its own files
+## 9. Sources and effects are reviewable
 
-What `the-cook` renders and runs in a repository comes from that repository's files, the release it pins and the
-ingredients it pins by hash, and from nothing else: no inheritance, no includes, no source the repository does not pin.
-Why: people and workers learn what a repository does by reading it. A rule that acts in a repository from somewhere else
-cannot be read by anyone working there, and a reviewer sees its effect without its reason.
+Cook accepts supplied recipe paths and supported source URIs, including local and HTTPS sources. Users supply the
+recipe versions they intend to apply or discard; Cook does not infer a persistent recipe identity. A repository
+commit alone does not determine the effects of trusted recipe code.
 
-- The same commit renders the same bytes on every machine and every day, with no network, because no input can change
-  without a commit in the repository: the release and every ingredient are pinned by hash in its files, and the binary
-  ships no ingredient, no station and no recipe of its own.
-- No repository file has a key that names a source outside the repository for what `the-cook` renders or runs, except a
-  release, an ingredient or a station pinned by hash ([configuration-standards.md](configuration-standards.md#inputs)),
-  so reading the repository is enough to predict what it does. A recipe's `origin` records where its copy came from and
-  is never read to run it.
-- Every write to the repository files is one a person or a worker asked for: seeding them, migrating them, pinning an
-  ingredient with `the-cook ingredient pin`, applying a station with `the-cook station apply`, adding, updating or
-  creating a recipe with `the-cook recipe add`, `recipe update` or `recipe create`, or an edit. Why: a file that changes
-  by itself holds decisions nobody made.
-- A program reaches a repository only through an ingredient the repository pins in `ingredients:`, as renders the
-  manifest records under the ingredient's name. A way of working reaches it only when a person applies a station: as
-  entries written into its files, files its templates write, the ingredient pins it lists and the recipes it adds, all
-  in one reviewed diff. A kind of change reaches it as a recipe in `.cook/recipes/`, written there or copied from a
-  cookbook, which runs as the repository's own file. `stations:` records the pin a station was applied at, and a
-  recipe's `origin` the version its copy came from; nothing records where an entry or a template file came from, so each
-  has one source of truth: the file it is in
-  ([configuration-standards.md](configuration-standards.md#ingredients-and-stations)).
-- An organization's choices reach its repositories as changes to each repository's files, written by a person or by a
-  coding agent following the organization's skill, and reviewed there as a diff. The cost is that a choice shared by
-  many repositories is written, and changed, in each of them. For example, when acme lets its coding agents use the
-  read-only tools of its observability MCP server, `acme/api` and `acme/web` each get those entries in their own
-  `policy.yaml`, in a change reviewed in that repository.
+Record one operation for the batch under the destination's ignored `.cook/`, with a separate run record. Capture the
+recipe sources actually evaluated, all consumed local and downloaded recipe/template sources, origins, arguments,
+execution order, operation and result or failure. Save one reversible patch per touched file for its combined change,
+not separate forward/reverse copies ([local history](configuration-standards.md#local-history-and-explicit-reversal)).
+
+Apply and discard need no prior history or ownership database. Losing `.cook/` loses local recovery information,
+not the ability to cook. Reverting a particular run requires its history. Patch representations, metadata schemas,
+history management and overlapping-reversal mechanics require separate implementation design.
 
 ## When principles conflict
 
-Apply them in this order, because each earlier principle protects something harder to recover than the next:
+Follow the architecture's operation and trust boundaries. Within them, protect review and recovery before convenience,
+and make the affected scope explicit. No principle creates an ownership veto, an ingredient safety floor or a sandbox
+for recipe evaluation.
 
-1. The built-in invariants and the floor of the ingredients in use. No
-   principle, setting or flag weakens them.
-2. Never destroy (principle 5).
-3. Nothing leaves the clone undeclared (principle 7).
-4. Optional and transparent (principle 1).
-5. Conventions outlive the tool (principle 8).
-6. Everything a repository does is in its own files (principle 9).
-7. The binary is deterministic; judgement belongs to people and workers (principle 2).
-8. Runs the game, never plays (principle 3).
-9. Least surprise (principle 4).
-10. One way to do each thing (principle 6).
-
-Example: a convenient default that would overwrite a hand-edited file loses to "never destroy", so the command refuses
-and names `--force` instead. A shared source that would let an organization change a rule once for all its
-repositories loses to "everything a repository does is in its own files", even though one place for the rule would
-serve "one way to do each thing". The rule is written into each repository instead.
+For example, a recipe declares a key whose value changed from `old` to `new` and was then edited to `custom`.
+Discard proposes deleting `custom`; reverting the original run proposes restoring `old`. Explain that difference
+and show the actual diff for approval, preserving unrelated keys. Do not refuse the request merely because the value
+was edited. A shared remote recipe also requires source trust; batch approval cannot authorize or reverse every effect
+its code might cause.

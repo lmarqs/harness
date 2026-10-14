@@ -2,193 +2,184 @@
 
 ## Objective
 
-**Problem.** Coding agents do the judgement work around the tool by following written guidance they load for a task:
-guidance the tool ships to everyone, guidance an organization shares across its repositories, and guidance one
-repository keeps. When that guidance has no shared rules, it fails to load when the task needs it or loads where it does
-not belong, it restates what a command does and drifts from it, and it gives orders without reasons that a coding agent
-drops when they seem inconvenient. A developer then gets a coding agent that edits the wrong files, skips the checks a
-command would have run, or follows rules the release in use no longer has, and nobody finds out until it acts.
+**Problem.** Reused agent guidance can load for the wrong task, repeat procedures that drift from commands, or teach
+behaviour unavailable in the release a repository uses. Shared copies can also overwrite repository-specific edits.
 
-**Goal.** Whichever guidance a coding agent follows loads when the task needs it, agrees with the release the repository
-runs, and ends in a result a check confirms rather than one taken on trust.
+**Goal.** Skills are discoverable, scoped, maintainable and consistent with the commands and native programs they
+describe. Their results can be reviewed without treating an agent's completion message as proof.
 
 ## Overview
 
-A skill is a directory with a `SKILL.md` that a worker loads when its description matches the task, or that `the-cook`
-injects through standing context. Skills carry the judgement half of the work; the binary carries the deterministic half
-([when-cli-when-skill.md](when-cli-when-skill.md)). This page covers the skill `the-cook` ships and the rules `the-cook`
-expects of the skills around it. Terms such as standing context, pin and profile are defined in the
-[glossary](../features/glossary.md).
+A skill is a folder of instructions and supporting resources in the form its consuming program understands. A common
+form uses `SKILL.md`, with metadata that helps an agent decide when to load it. Native location, metadata and loading
+rules depend on the program; they are not an engine schema.
 
-## Three kinds of skill
+Cook recipes can declare skill files and discovery configuration as ordinary file operations. The agent decides when
+to load guidance and what to do with it. A successful Cook write does not prove that guidance was loaded or followed.
+This standard follows the [architecture](../architecture.md) and [skills reference](../features/skills.md). See
+[where behaviour belongs](when-cli-when-skill.md) for the engine, cookbook and guidance boundaries.
 
-| Kind | Lives in | Written by | Reaches a repository by | Holds |
-| --- | --- | --- | --- | --- |
-| **shipped skill** | the binary; installed at `.agents/skills/the-cook/` | `the-cook` maintainers | `the-cook render` (tool-owned, listed in the manifest) | how to run `the-cook` (`./cook <command>`), edit the repository files in `.cook/`, finish an adoption, read `doctor` findings, when to run `the-cook lifecycle run <event>`, how to drive a recipe run through its handoffs, and why the invariants exist |
-| **Organization skill** | an organization's skills repository | the organization | installed by the team with the skills installer of its choice and committed under `.agents/skills/`; the binary has no code for the installer, which an ingredient the repository pins can describe | conventions shared by one organization's repositories, and how to write them into one repository's files: delivery actions, policy entries (observability read patterns, deploy denies), review, domain vocabulary |
-| **Repository skill** | `.agents/skills/<name>/` in the repository | people and workers in that repository | committed directly | knowledge of one repository: its modules, risks, procedures |
+## Sources and maintenance
 
-The binary writes only the shipped skill. Organization and repository skills are knowledge; the binary never creates,
-edits or deletes them ([principles.md](principles.md#3-runs-the-game-never-plays)), because knowledge needs judgement
-the binary does not have.
+| Source | Maintainer | Typical content | Maintenance choice |
+| --- | --- | --- | --- |
+| Cook usage guidance supplied by a cookbook | Cookbook authors | Supported commands, source trust, diff review, approval and recovery prerequisites | Update through that cookbook's chosen recipe or content process |
+| Organization or personal skill | Its authors | Shared conventions and how to fit them to a repository | Use the team's installer, a recipe or reviewed repository copies |
+| Repository skill | Repository contributors | Modules, risks, procedures and local vocabulary | Edit the repository's own content |
 
-In a repository, every skill lives under `.agents/skills/`, the directory of content workers read that other tools
-share, so a skills installer, the workers and people find them in one place. The configuration of `the-cook` lives in
-`.cook/` and never among skills ([configuration-standards.md](configuration-standards.md#where-files-live)).
+There is no mandatory release-embedded Cook skill, fixed `.agents/skills/the-cook/` identity or drift-checked ownership
+contract. `.agents/skills/<name>/` is a useful shared location where native programs support it. Sources may be local
+or external; document which copy to edit and how updates reach users, because competing maintenance processes can
+overwrite each other. Engine upgrades do not automatically refresh cookbook or repository guidance.
 
-## When to create each
+Committing skill content makes it reviewable and available in each clone. Where an installer uses a lock file, review
+it with the content it describes. If installation is required on each machine, document the prerequisites. Neither
+choice guarantees that every agent discovers the skill.
 
-| Situation | Kind | Why |
+## When to create a skill
+
+| Situation | Suitable home | Reason |
 | --- | --- | --- |
-| Workers misuse a `the-cook` file or command in many unrelated repositories | shipped skill (change ships in a release) | the fix reaches each repository in the diff that moves its pin to that release |
-| A new `the-cook explain` topic is needed | shipped skill reference with the same text | both come from one embedded source |
-| A convention holds across one organization's repositories, as judgement or as entries `the-cook` enforces (a deny, a delivery action) | organization skill that guides a coding agent to write it into each repository's files ([below](#organization-skills-that-write-repository-entries)) | the organization owns and reviews the skill once; applying it to a repository takes judgement, and each repository reviews the result |
-| A procedure or body of knowledge is specific to one repository | repository skill | it is reviewed where it applies |
-| Known guidance must apply every session, or whenever certain files or words appear | an existing skill plus a standing-context entry ([configuration-standards.md](configuration-standards.md#standing-context)) | the trigger is deterministic; the skill stays the single text |
-| The behaviour is deterministic and organization neutral | not a skill: a command, flag, profile field, [ingredient](../features/ingredients.md) or [station](../features/stations.md) | prose would drift from the behaviour |
-| A kind of change a repository makes many times, part deterministic and part judgement (a migration, a new module) | a [recipe](../features/recipes.md), whose `attempt` steps name the skill that guides the judgement ([below](#skills-a-recipe-step-names)) | the recipe makes the change the same way and verified every time, and the skill keeps the guidance in one text |
-| A one-off instruction for a single session | not a skill: the prompt | a skill outlives the session it was written for |
+| Cook commands are misused across repositories | Shared Cook usage skill or focused reference | One explanation can describe the supported interface and its prerequisites |
+| A convention applies across an organization | Organization skill | Authors maintain its reasoning once; applying it still needs repository-specific judgement |
+| Knowledge is specific to one repository | Repository skill or contributor prose | Guidance is reviewed where it applies |
+| Guidance is needed in sessions | Existing skill and the native program's discovery configuration | The consuming program controls loading; Cook defines no injection trigger |
+| A reusable setup writes native files | Cookbook recipe using ingredients | The recipe declares file changes, and Cook presents their actual combined diff |
+| A process requires judgement, external commands or publication | Skill and the repository's existing tools | These are outside Cook's batch-operation responsibilities |
+| An instruction applies to one request only | The session prompt | A persistent skill would outlive the need |
 
-The shipped skill names no organization, vendor or company convention, because it ships to every user of an open-source
-tool. Anything that would need one belongs in an organization skill, and from there in each repository's files.
+A skill should state its audience and scope rather than assume that every repository uses one organization, stack or
+agent. Program-specific guidance can name the program it serves; ingredient models and cookbook content carry that
+knowledge separately from the engine.
 
 ## Structure
 
+For programs that use a `SKILL.md` convention, this is a useful layout rather than a required Cook format:
+
 ```text
 <name>/
-  SKILL.md          # frontmatter + the core procedure
-  references/       # detail loaded on demand
-  scripts/          # optional helpers the procedure runs
+  SKILL.md          # discovery metadata and core procedure
+  references/       # detail loaded when relevant
+  scripts/          # optional executable helpers
 ```
 
-- `name` in the frontmatter matches the directory name: lower case, hyphen-separated, so the name a person types and
-  the directory a worker reads agree.
-- `description` is the trigger. It states what the skill does and when to use it, in the words users and workers
-  actually use for the task, and names the closest situations where it does not apply. Why: the worker matches the
-  description against the task, so the wrong words mean the skill never loads or loads where it does not belong.
-- The body of `SKILL.md` SHOULD stay under 500 lines. It holds the procedure a worker follows every time; anything
-  needed only in some cases moves to `references/` with a one-line pointer saying when to read it. Why: the body is
-  loaded in full whenever the skill is used.
-- Procedures are numbered steps. Each step that changes state names the command that performs it. The last step is the
-  check that confirms the result (`the-cook render --check`, `the-cook doctor`, `the-cook verify --check`), so the
-  outcome of the coding agent's judgement is checked by the binary.
+- Use a clear name consistent with the native program's naming rules. Lower-case, hyphen-separated names are useful
+  when supported, because people can relate the invocation name to its folder.
+- State what the skill does, when it applies and nearby situations where it does not apply. Discovery words should
+  match the user's task, because vague descriptions can load too often or never load.
+- Keep the core procedure short; around 500 lines is a useful upper bound, not an engine limit. Put occasional detail
+  in focused references and explain when to read each, because agents may load the whole body.
+- Use numbered steps for a sequence. Name the actual command or edit for each state change and its prerequisites.
+  Include review evidence appropriate to the task, because a completion claim alone does not establish the result.
+- Review supporting scripts as executable code, because a short instruction can delegate consequential actions to them.
 
-## Skills used as standing context
+## Discovery and session guidance
 
-A skill named in a standing-context entry is injected without the worker choosing it: as content (the `SKILL.md` body,
-front matter stripped) or as a one-line pointer to its path. It may also still load by its description. A skill meant
-for standing context:
+Inspect the consuming program's locations, metadata, links and project trust rules. Existing real directories and
+whole-directory links expose different content; choose targets deliberately rather than replacing a directory that
+contains unrelated skills. Declared batch writes and deletions stay within the invocation directory, including
+paths resolved through symlinks.
 
-- keeps its body short and self-contained, because an always-on entry is paid in every session and counts against
-  `context.budget`;
-- reads correctly without the description that normally introduces it, because injected content arrives without its
-  front matter;
-- states in its first lines what it applies to, so a pointer line ("Apply the <name> skill now: read <path>") and the
-  first screen of the body are enough to act on;
-- reads correctly when loaded twice, once injected and once by description, because the worker's own matching is left
-  as it is ([compatibility-standards.md](compatibility-standards.md#coexistence));
-- is committed under `.agents/skills/`, whichever tool installed it, because `the-cook` injects the committed file (for
-  an attempt, as it is at the base commit) and reports a `context` entry that names a skill not found there.
+Guidance intended for frequent loading SHOULD be short and state its scope early, because unrelated always-on text
+uses attention on every task. Link focused detail where useful. Text should remain clear when encountered twice,
+since an agent may discover it through several paths; that is writing guidance, not a Cook injection contract.
 
-A directive that must apply even without the binary is declared `static`, so it is written into `AGENTS.md` and does
-not depend on a hook.
+Instructions that must remain readable without Cook belong in native files the program can read directly. Markdown
+section boundaries use HTML comments, and a pointer does not guarantee that an agent follows it. Cook does not define
+`context` triggers, roles, budgets, static injection, hook delivery or once-per-session caching. See
+[repository guidance](../features/context.md) and [coexistence](compatibility-standards.md#coexistence).
 
-## Skills a recipe step names
+## Skills and recipes
 
-A recipe's `attempt` step names, in its prompt, the skill that guides the judgement it asks for, such as a migration
-skill for the step that writes a migration's up and down steps, or a monitoring skill for a recipe that acts on an
-alert. The recipe holds the steps and the skill holds the guidance, so neither repeats the other
-([when-cli-when-skill.md](when-cli-when-skill.md#recipes)). Such a skill:
+A skill can guide a person or agent in choosing trusted recipes, fitting arguments to a repository and reviewing the
+result. A recipe evaluates to ordered file operations; it is not a development lifecycle with attempt steps,
+handoffs or verification lanes. There is no rule requiring recipes to invoke skills or skills to belong to recipe
+stages. Model APIs, nesting, annotations, parameter injection and hooks remain separate discussion work.
 
-- is written for an unattended worker: it asks no question and waits for no answer, because nobody replies inside an
-  attempt; a check a person must make is a handoff in the recipe, not a question in the skill;
-- ends with the check: `./cook verify` with the lanes and patterns the change needs.
-  - The check tells the worker whether its edits pass.
-  - That receipt is feedback for the worker. The proof comes from the recipe run's Verify stage, which itself runs
-    every lane the change selects and every lane the recipe requires.
-  - Completion and delivery belong to the run, so the skill never tells the worker to commit, deliver or fire an event,
-    which the attempt contract refuses anyway.
-- reads correctly in an interactive session too, because the same skill guides a person's coding agent making the same
-  kind of change by hand.
+Use the intended CLI grammar when documenting the design:
 
-## Organization skills that write repository entries
+```sh
+./cook ./recipes/project.groovy --instructions='Keep existing comments.'
+./cook apply ./recipes/base.groovy --agent=codex ./recipes/project.groovy --agent=claude
+./cook discard ./recipes/project.groovy
+./cook revert RUN_ID
+```
 
-An organization's choices that `the-cook` enforces (which observability tools coding agents may read without asking, a
-deny on each repository's deploy command, a CI-trigger commit in delivery, the actions that update the task tracker its
-repositories use) reach a repository only as entries in its own files, written by a person or by a coding agent
-following the organization's skill. Why: no repository file can name a source outside the repository, and the
-organization's choices differ between its repositories, so applying them takes judgement. Such a skill:
+`RUN_ID` stands for a recorded run identifier. These examples establish argument scope, not a model or injection API,
+and do not claim current CLI implementation. For current execution, consult the [root README](../../README.md) and
+the relevant cookbook usage guide.
 
-- states each entry with the reason the organization holds it, and how to fit it to the repository in front of the
-  coding agent: which entries apply, and what to do with an entry the repository already has, because the coding agent
-  decides per repository;
-- has the coding agent edit `.cook/policy.yaml`, `.cook/hooks.yaml` or `.cook/config.yaml`, never a rendered file or
-  a managed block, because those are replaced by the next render;
-- ends by running `the-cook render` and then `the-cook doctor`, so the entries and their rendered effect reach review as
-  one diff and the binary checks the result.
+Batch options precede operands. Only use `--batch-approve` when preapproval is intended: it displays the diff and
+proceeds without prompting. Otherwise Cook asks before target writes. Noninteractive execution alone does not
+authorize writes, and approval covers the whole batch rather than individual files or hunks. A skill must not infer
+preapproval merely because an agent is driving the command. See [CLI approval](../features/cli.md#batch-options-and-approval).
 
-For example, acme's CI runs a pull request only when its tip commit carries `#ci`, and acme's coding agents may search
-its observability service without asking. acme's skill has the coding agent add `"mcp__acme_observability__search_*"`
-under `shared.allow` in `.cook/policy.yaml`, read the repository's CI configuration, and, only where that CI waits for
-`#ci`, declare a `ci-trigger` action before the pull-request action under `lifecycle.deliver` in `.cook/hooks.yaml`
-([lifecycle](../features/lifecycle.md#an-organization-convention-a-ci-trigger-commit-before-the-pull-request)).
+Trust the recipe source before evaluation. Recipes are executable Groovy; approval and recovery govern declared
+batch changes, not arbitrary effects of recipe code. A skill or native permission setting is not a sandbox supplied
+by Cook.
+
+## Organization guidance that changes configuration
+
+An organization skill can explain which native permission rules, instructions, task definitions or CI conventions
+fit a repository. State the reason for each choice and how to handle existing settings, because applying shared
+conventions needs judgement. Ingredients describe native formats; cookbook recipes can declare the requested changes.
+There is no required neutral `.cook/policy.yaml`, `.cook/hooks.yaml` or `.cook/config.yaml` source tree.
+
+For example, a team may allow an observability search tool in an agent's project settings. Its skill should explain
+the scope and reason, inspect relevant project and personal settings, and review the actual permission effect. If the
+team's CI requires a particular commit message, that convention belongs in repository guidance and the team's
+publication process, not a Cook delivery action. Cook may configure those programs without running them.
+
+For recipe-maintained content, prefer updating the source and applying the supplied recipe through the normal diff
+and approval flow. Repository-authored content can be edited directly. Manual edits are not forbidden or a drift
+veto, but a later explicit apply may propose replacing them. See
+[configuration review](configuration-standards.md#ordered-changes-and-approval).
 
 ## Explain the reasoning
 
-Each rule in a skill carries its reason in one sentence. A coding agent that knows why a rule exists applies it to
-cases the text did not foresee and does not drop it when it seems inconvenient.
+Each rule should carry a concrete reason, because readers need to apply it to cases the author did not foresee.
 
-- Good: "Edit `.cook/policy.yaml`, never a worker's rendered settings: they are rendered from the policy and
-  `render --check` fails on hand edits."
-- Not enough: "Never edit the workers' settings files."
+- Good: "Update this recipe's skill source before applying it, because applying the old source can replace the local
+  correction; review the resulting batch diff."
+- Incomplete: "Never edit skills directly."
 
-Rules phrased only as capitalised commands (ALWAYS, NEVER) without a reason SHOULD be rewritten, because emphasis
-without a reason gives the coding agent nothing to apply to a new case.
+Capitalized commands without reasons do not explain scope or tradeoffs. State when a rule applies and what evidence
+supports it, rather than relying on emphasis.
 
-## Never duplicate a CLI behaviour in prose
+## Call commands without duplicating their implementation
 
-Why: a description of a command drifts from the command, and a coding agent that follows the description instead of
-running the command skips the command's checks.
+A skill should call the supported command for an operation and link its reference, because a parallel procedure can
+drift from the command's actual behaviour. Explain the intent, prerequisites and review decisions; do not teach an
+agent to imitate Cook's file writes or recovery records by hand when asking it to cook.
 
-- A skill calls a command; it never lists the steps the command performs so that a coding agent could perform them by
-  hand.
-- A skill whose task is a kind of change a recipe in the repository makes runs that recipe
-  (`./cook make <recipe> --<input> <value>`) instead of listing its steps, so the change takes the recipe's steps and
-  required lanes, and the skill does not drift from the recipe.
-- A skill never tells a coding agent to edit a rendered file, edit inside a managed block, or bypass permissions,
-  because each of those is undone by the next render or refused by the invariants.
-- A skill that ends in delivery does its judgement steps (grouping commits, wording messages), then runs
-  `the-cook lifecycle run deliver`. It never repeats the declared actions (a push, a pull-request command, a webhook)
-  by hand, so every side effect outside the clone stays declared, guarded and recorded.
-- Flag tables, schemas and exit codes are not copied into skills. A skill points to `the-cook <command> --help` or
-  `the-cook explain <topic>` for them.
+Avoid copying full flag catalogs into skills. Link the [CLI reference](../features/cli.md) for the intended design and
+version-appropriate usage guidance for actual execution. Do not cite retired explain, doctor, verify, make or lifecycle
+commands as available interfaces. Existing content follows ordinary review without `--adopt`, aliases or adoption gates.
 
-## Keeping the shipped skill and the CLI in sync
+Cook does not commit, push, open pull requests or fire delivery events as batch actions. A skill for those tasks uses
+the repository's external tools and applicable authorization; file-diff approval does not authorize publication.
 
-Why: a coding agent acts on the skill; when the skill and the binary disagree, it acts on wrong rules.
+## Keeping guidance and commands in sync
 
-- `the-cook explain <topic>` prints the same text as the shipped skill's reference for that topic. Both come from one
-  embedded source, so they cannot disagree.
-- Every topic listed by `the-cook explain` has a reference in the skill, and every reference is reachable from
-  `SKILL.md`.
-- Every command line quoted in the shipped skill MUST exist in the CLI surface of the same release. The release
-  process checks this.
-- The shipped skill writes commands as `./cook <command>` and shows `the-cook <command>` as the equivalent when
-  `the-cook` is installed globally ([cli-standards.md](cli-standards.md#entry-points)).
-- A change to a command's behaviour, a file schema or an invariant updates the matching skill text in the same pull
-  request.
+When an interface changes, update the guidance that describes it and state its version and prerequisites, because an
+agent can act on stale instructions. Check quoted commands against the interface the skill actually targets.
 
-## Evaluation before release
+A skill describing intended architecture must distinguish its examples from current usage. There is no requirement
+that an embedded explain topic and shipped skill share one source, or that engine releases automatically install skill
+updates. Useful documentation cross-references may run in either direction.
 
-A skill is released only after it is evaluated. For the shipped skill this is required; organization and repository
-skills SHOULD follow the same practice. Why: a skill's effect is seen only in what coding agents do with it, and reading
-the text does not show that.
+## Reviewing skill outcomes
 
-| Evaluation | What it checks | Pass condition |
-| --- | --- | --- |
-| Trigger | prompts that should load the skill, and near-miss prompts that should not | the skill loads for the first set and not for the second |
-| Task | realistic requests run by a coding agent in fixture repositories of each supported stack ("allow the deploy tasks", "finish the adoption", "add a lane for integration tests") | the binary's own checks pass afterwards (`render --check`, `doctor`, `verify --check`) and no file outside the expected ones changed |
-| Regression | the task set from the previous release | no task that passed before fails |
+Use realistic tasks and near-miss prompts when evaluating a skill. Trigger review asks whether the right requests
+load it; task review inspects the files and actions it produces; regression review considers previously useful cases.
+These are review techniques, not mandatory release commands or a new quality gate.
 
-Evaluations judge outcomes by deterministic checks wherever possible, not by reading the coding agent's prose, because
-the same prose can come with a wrong result.
+Choose evidence appropriate to the task: inspect changed native files, command results, scope, permission effects and
+unrelated content. Use an existing relevant check where the task calls for one, without inventing Cook verification
+receipts or treating an agent's prose as proof.
+
+Apply/discard evaluate the supplied recipes against current content every time and need no previous history. Applying
+another recipe does not remove unrelated skill files. Discard deletes the supplied recipe version's declarations,
+including edited values; revert restores the recorded operation's prior values using its history. Both preserve
+unrelated content and show the actual diff for whole-batch approval. Neither reverses actions an agent took after
+reading the skill. See [discard and revert](../features/remove.md).

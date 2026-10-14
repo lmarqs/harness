@@ -59,31 +59,30 @@ Engine and delivery
 
 Vocabulary and configuration
 
-- [Concepts](concepts.md)
-- [Glossary](glossary.md)
-- [Ingredients](ingredients.md)
-- [Recipes](recipes.md)
-- [Stations](stations.md)
-- [Profile](profile.md)
-- [Policy](policy.md)
-- [Hooks](hooks.md)
-- [Skills](skills.md)
+- [Concepts](concepts.md): program models, ordered operations, native files, history and execution boundaries
+- [Glossary](glossary.md): vocabulary for the agreed engine responsibilities
+- [Ingredients](ingredients.md): program data models and native configuration
+- [Recipes](recipes.md): trusted Groovy file declarations, ordered composition, sources and reversal
+- [Composition boundaries and cookbooks](stations.md): deferred station role and separate cookbook distribution
+- [Repository configuration choices](profile.md): project facts, native settings and recipe inputs
+- [Program permissions and policy](policy.md): native rules, support limits and review
+- [Native program hooks and recipe boundaries](hooks.md): configuration and external runtime responsibilities
+- [Skills and program configuration](skills.md): shared content, discovery and maintenance
 
 Related reference pages
 
-- [Lifecycle](lifecycle.md)
-- [Attempts](attempts.md)
-- [Verification](verify.md)
-- [Tasks](tasks.md)
-- [Workspaces](workspaces.md)
-- [Workers](workers.md)
-- [Fleet](fleet.md)
-- [Context](context.md)
-- [Memory](memory.md)
-- [Scaffold](scaffold.md)
-- [Doctor](doctor.md)
-- [Explain](explain.md)
+- [Workflow configuration and engine boundaries](lifecycle.md)
+- [Repository checks and configuration](verify.md)
+- [Task-tracker configuration](tasks.md)
+- [Workspace conventions and configuration](workspaces.md)
+- [Agent and worker configuration](workers.md)
+- [Configuration across repositories](fleet.md)
+- [Repository guidance and context](context.md)
+- [Repository memory](memory.md)
+- [Repository setup with recipes](scaffold.md): reusable setup and review of existing configuration
+- [Configuration diagnostics](doctor.md)
+- [Finding the contract and its reasoning](explain.md)
 - [Safety guidelines](safety.md)
-- [Compatibility](compatibility.md)
-- [Pitfalls, gaps and traps](pitfalls.md)
-- [FAQ](faq.md)
+- [Compatibility and coexistence](compatibility.md): declared targets, native files, external tools and version choices
+- [Pitfalls, gaps and traps](pitfalls.md): permissions, recipe trust, paths, ordered changes and recovery
+- [FAQ](faq.md): engine scope, setup, approval, reversal and distribution questions
