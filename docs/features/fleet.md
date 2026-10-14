@@ -165,8 +165,7 @@ Each repository gets a branch `the-cook/wrapper` whose commit changes `version` 
 pinned verified the new release's signed checksum file with its embedded keys before writing anything, so a
 branch exists only for a release the project signed. Reviewers check the version they expected
 ([safety](safety.md#the-pinned-binary)). The `verify` that `--deliver` runs after the commit already uses the new
-version. Once these branches land, `fleet render --deliver` picks up what the new release renders differently
-([wrapper](wrapper.md#many-repositories)).
+version. Once these branches land, `fleet render --deliver` picks up what the new release renders differently.
 
 A newer cookbook tag reaches a repository in two ways. What an ingredient renders, and its floor, change when its pin
 moves. A station's entries and templates reach a repository only when someone applies that station, and applying a newer

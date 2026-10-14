@@ -105,8 +105,8 @@ cd ~/src/acme-api
 
 Every command below runs as `./cook <command>`; with a global install, `the-cook <command>` is equivalent.
 
-A repository that has no `cook` yet needs a `the-cook` binary once, to scaffold it
-([installation](installation.md#scaffolding-a-new-repository)). The scaffold pins the release that runs it, and
+A repository that has no `cook` yet needs a `the-cook` binary once, to scaffold it.
+The scaffold pins the release that runs it, and
 `--cookbook` names the cookbook tag whose stations it applies: each one named with `--station`, and every one whose
 detect rule matches the repository, such as a stack station for its language. Applying the `agentic-coding` station
 pins its ingredients, writes its entries and templates, and copies its `implement-task` recipe into
@@ -204,8 +204,8 @@ Start here
 
 Getting started
 
-- [Installation](installation.md): the wrapper, scaffolding a new repository, global install, upgrades, uninstall
-- [Wrapper](wrapper.md): `cook`, the pinned release, its checksums, upgrades, CI and air-gapped machines
+- [Installation](installation.md): jpackage with bundled Java, intended pinned delivery, explicit upgrades, and the current local build path
+- [Wrapper](wrapper.md): intended version/checksum pinning, verified first-use download and cache, explicit upgrades, and the current development launcher
 - [Concepts](concepts.md): the lifecycle and the programs around it, ingredients, stations and recipes, layers, the
   `.cook/` and `.agents/` directories, ownership, conventions, adoption classes, optional and transparent behaviour
 - [Safety guidelines](safety.md): the threat model, layers of defence, placing policy entries

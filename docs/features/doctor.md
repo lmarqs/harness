@@ -43,8 +43,8 @@ global install, `the-cook <command>` is equivalent.
 | Check | Finds |
 | --- | --- |
 | Repository files | `.cook/config.yaml`, `.cook/policy.yaml` or `.cook/hooks.yaml` missing, invalid, or with an unsupported `schema` |
-| Wrapper file | `.cook/wrapper.yaml` missing or invalid: no `schema`; a `version` that is not an exact tag; a `source` that is neither `github:<owner>/<repo>` nor an HTTPS base URL ([release source](wrapper.md#release-source)); or a checksum missing or not 64 hexadecimal characters for one of `linux-amd64`, `linux-arm64`, `darwin-amd64`, `darwin-arm64`. `checksums: pending` is valid and reported as the next row |
-| Pending pin | `.cook/wrapper.yaml` has `checksums: pending`, written by `scaffold --offline`: no machine without the release in its cache can run `./cook` until `the-cook wrapper --version <the pinned tag>` completes it ([wrapper](wrapper.md#a-pending-pin)) |
+| Wrapper file | `.cook/wrapper.yaml` missing or invalid: no `schema`; a `version` that is not an exact tag; a `source` that is neither `github:<owner>/<repo>` nor an HTTPS base URL; or a checksum missing or not 64 hexadecimal characters for one of `linux-amd64`, `linux-arm64`, `darwin-amd64`, `darwin-arm64`. `checksums: pending` is valid and reported as the next row |
+| Pending pin | `.cook/wrapper.yaml` has `checksums: pending`, written by `scaffold --offline`: no machine without the release in its cache can run `./cook` until `the-cook wrapper --version <the pinned tag>` completes it |
 | Wrapper script | `cook` missing, not executable, or different from the pinned release's template |
 | Release signature | online only, at most once a day and cached: the pinned release's signed checksum file does not verify with the keys embedded in the running release, or its checksums differ from those in `.cook/wrapper.yaml` ([wrapper](wrapper.md#security)); a pending pin has none to compare and is reported as pending |
 | Cached release | the pinned release is not in `$COOK_HOME` on this machine and `COOK_BINARY` is unset, so worker hooks skip until `./cook version` runs |
@@ -67,7 +67,7 @@ Notes never change the exit code:
 
 | Note | Shown when |
 | --- | --- |
-| Newer release available | the [update check](installation.md#update-notice) found a release newer than the one `.cook/wrapper.yaml` pins, with a signed checksum file that verifies (at most one network check per day, cached; skipped offline or with `COOK_NO_UPDATE_CHECK=1`); the note names `./cook wrapper --version <tag>`, which moves the pin ([wrapper](wrapper.md#upgrading)) |
+| Newer release available | the update check found a release newer than the one `.cook/wrapper.yaml` pins, with a signed checksum file that verifies (at most one network check per day, cached; skipped offline or with `COOK_NO_UPDATE_CHECK=1`); the note names `./cook wrapper --version <tag>`, which moves the pin ([wrapper](wrapper.md#upgrading)) |
 | Not the pinned release | `COOK_BINARY` makes `doctor` run as another release than the one `.cook/wrapper.yaml` pins: `running v0.8.2, the pin names v0.9.0; drift results may differ` |
 | Failed lifecycle run | the latest run of an event in `.work/lifecycle.jsonl` failed or was refused by a guard; the note names the event, the action and the exit status |
 | Settings that are not policy | adoption left in place a setting a worker ingredient's `native_rules` lists as not policy, such as a default permission mode or a sandbox setting |
@@ -76,7 +76,7 @@ Notes never change the exit code:
 | Event a worker lacks | a declared hook or context trigger has no event in one of the repository's workers, because its ingredient maps no native event to it, or the native setting the ingredient renders the event into already runs a program of the repository's own, so nothing was rendered for that worker |
 | Model or effort ignored | `workers.<name>.model` or `effort`, or an `attempt` action's, is set for a worker whose ingredient passes no model or effort ([profile](profile.md#workers)) |
 | Automatic attempt actions | an `attempt` action is declared with `auto: true`; each automatic run starts a worker, which for a coding agent costs tokens and does not give the same result twice |
-| Another `the-cook` on `PATH` | the `the-cook` command on `PATH` is a different program with the same name; `./cook` is unaffected, only the global command is shadowed ([wrapper](wrapper.md#a-global-install-defers-to-the-pin)) |
+| Another `the-cook` on `PATH` | the `the-cook` command on `PATH` is a different program with the same name; `./cook` is unaffected, only the global command is shadowed |
 
 ### Landed branches
 

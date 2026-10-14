@@ -259,8 +259,8 @@ station wrote stays.
 
 ## Cookbooks
 
-A cookbook is a source that publishes ingredients, stations and [recipes](recipes.md) by tag: an HTTPS base URL laid out
-like the [release source](wrapper.md#release-source), or `github:<owner>/<repo>`, shorthand for
+A cookbook is a source that publishes ingredients, stations and [recipes](recipes.md) by tag: an HTTPS base URL for
+cookbook releases, or `github:<owner>/<repo>`, shorthand for
 `https://github.com/<owner>/<repo>/releases`. `the-cook` holds no default cookbook and knows none by name; any number of
 cookbooks exist, and a repository may pin from several. An organization keeps its own programs and its own way of
 working in a cookbook of its own ([Organization choices](#organization-choices)), and its kinds of change as recipes

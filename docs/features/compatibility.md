@@ -110,7 +110,7 @@ task, and `the-cook` runs it like any other command. People and workers run `the
 | A recipe's `run` step that runs the task runner | runs as written, with the inputs substituted into its arguments and never through a shell |
 | A task runner whose ingredient is not in `ingredients:` | when a cookbook's ingredient for it has a detect rule, `ingredient list --cookbook` shows the match; the ingredient's floor is not in use until it is pinned |
 | A task-runner form that lets an allowed task carry an unlisted one | denied for workers by the ingredient's floor, when the ingredient is in use ([policy](policy.md#the-floor)) |
-| `the-cook` installed through a tool-version manager | an install option ([installation](installation.md#global-install-optional)); a `the-cook` it puts on PATH defers to `.cook/wrapper.yaml` |
+| `the-cook` installed through a tool-version manager | an install option; a `the-cook` it puts on PATH defers to `.cook/wrapper.yaml` |
 | A pin of `the-cook` in the task runner's own tool list | never read: `.cook/wrapper.yaml` is the pin `the-cook` runs, and a second pin drifts from it, so keep `the-cook` out of the task runner's files |
 
 ## Skills installers
@@ -206,7 +206,7 @@ Adopting `the-cook` leaves a repository's CI/CD unchanged:
   install run it.
 - The release pin changes only through `the-cook wrapper` or `scaffold`, which write its checksums after the running
   binary verifies the release's signed checksum file with the release keys it embeds. `scaffold --offline` leaves them
-  [pending](wrapper.md#a-pending-pin), and nothing downloads against a pending pin. The wrapper then checks each
+  pending, and nothing downloads against a pending pin. The wrapper then checks each
   download against the committed checksums. `doctor`, when online, re-verifies the pinned release's signed checksum file
   against `wrapper.yaml` ([wrapper](wrapper.md#security)).
 - Rendered output depends on the sources, on the pinned release and on the ingredients the profile pins by sha256, and
@@ -226,7 +226,7 @@ Adopting `the-cook` leaves a repository's CI/CD unchanged:
   older-schema files, so the pin and every artefact the new release renders differently land in one diff
   ([wrapper](wrapper.md#upgrading)). A binary older than the repository's schema refuses, naming the pinned release to
   run. That happens only when the pin is bypassed, through `COOK_BINARY` or a global binary too old to defer to the
-  pin ([installation](installation.md#version-skew)).
+  pin.
 - `the-cook doctor` runs the version check of every ingredient in use against the range that ingredient declares,
   which `the-cook doctor --json` and `the-cook ingredient show <name>` list, and reports a version outside its range as
   a finding ([Supported program versions](#supported-program-versions)). A program no ingredient in use describes gets

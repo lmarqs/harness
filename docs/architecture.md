@@ -349,6 +349,30 @@ The target command set is apply (implicit or explicit), discard, and revert. Obs
 commands are not compatibility aliases. Discard is a command, not a flag, and `--batch-approve` is the sole
 preapproval spelling; earlier tentative spellings are not aliases.
 
+## Engine distribution
+
+The distribution contract follows FR-26 of the PRD's
+[distribution requirements](../tasks/prd-documentation-alignment.md#distribution-and-documentation-authority).
+Cook retains JVM-based distribution using `jpackage`. Each platform-specific package contains the engine and a
+bundled Java runtime; users of that package do not install Java separately. Distribute the complete package,
+including its runtime, rather than a standalone launcher.
+
+A repository commits an executable `./cook` wrapper that pins an engine version and the checksum of the package
+for each platform it uses. On first use, the wrapper downloads the pinned platform package, verifies it against
+the committed checksum before running it, and caches the complete package locally. Later invocations reuse that
+cached version. Upgrades are explicit changes to the committed version and matching checksums, reviewed together;
+an ordinary invocation does not select a newer release.
+
+Engine releases supply the packaged runtime. Cookbook repositories hold and ship ingredients and recipes, with
+builds that can be independent of the engine build. Changing an engine pin does not manage recipe versions or
+upgrade cookbook content. Users supply the recipe version they intend to apply or discard. This design introduces
+no cookbook registry, recipe-version manager, or automatic updater.
+
+See [installation](features/installation.md) for the delivery design and current local packaging entry path, and
+[the wrapper](features/wrapper.md) for pinning, checksum verification, caching, and explicit upgrades. These target
+requirements do not establish that a release has been published or that the repository's development launcher
+implements pinned downloads.
+
 ## Outside this design
 
 Personal setup backup, called **kit**, is future work tracked in [issue #5](https://github.com/lmarqs/the-cook/issues/5).

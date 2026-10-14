@@ -357,9 +357,8 @@ Every clone runs the release of `the-cook` that `.cook/wrapper.yaml` pins, throu
   happens only when a person or a worker runs an explicit command, such as `./cook verify`.
 - **Pins are signed.** `./cook wrapper --version <tag>` and `the-cook scaffold` write a pin's checksums only after
   the running binary verifies the release's signed checksum file with the release keys it embeds. A
-  [pending pin](wrapper.md#a-pending-pin), written by `scaffold --offline`, has no checksums and admits no download.
-  Trust passes from the first binary a person installs to every later pin
-  ([the trust chain](wrapper.md#the-trust-chain)).
+  pending pin, written by `scaffold --offline`, has no checksums and admits no download.
+  Trust passes from the first binary a person installs to every later pin.
 - **An upgrade is a diff.** Review the change to `wrapper.yaml` like a dependency bump: the version is the one you
   meant, and `source` did not move.
 - **One pin.** `the-cook` reads its version only from `wrapper.yaml`. Keep `the-cook` out of a task runner's tool list,

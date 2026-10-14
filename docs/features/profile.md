@@ -88,7 +88,7 @@ and by `the-cook ingredient pin`:
 | Field | Type | Meaning |
 | --- | --- | --- |
 | `name` | string | The ingredient's name; unique within `ingredients` |
-| `source` | string | The [cookbook](stations.md#cookbooks): `github:<owner>/<repo>`, or an HTTPS base URL laid out like the [release source](wrapper.md#release-source) |
+| `source` | string | The [cookbook](stations.md#cookbooks): `github:<owner>/<repo>`, or an HTTPS base URL for cookbook releases |
 | `version` | string | The cookbook tag, `<source>/download/<version>/ingredient-<name>.tar.gz` |
 | `sha256` | string | The archive's sha256, 64 hexadecimal characters, from the tag's `checksums.txt` or the station that lists the ingredient; checked on download and on every load |
 

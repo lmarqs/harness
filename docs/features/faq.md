@@ -50,7 +50,7 @@ its CLI through a `run` action.
 No. The repository's committed wrapper, `./cook`, downloads the pinned release the first time they run a command. It
 needs a POSIX `sh`, `curl` or `wget`, and `sha256sum` or `shasum`. Rendered files are committed, so their workers get
 the same permissions and instructions before that. Worker hooks never download: until the release is cached they print
-one line naming `./cook` and continue ([installation](installation.md#before-the-first-download)).
+one line naming `./cook` and continue.
 
 ### What is `cook`?
 
@@ -69,8 +69,7 @@ unattended. `./cook context show` shows what a session would get and why ([conte
 ### Do I need a global install?
 
 No. A global install is a convenience for scaffolding new repositories and for `the-cook fleet`. Inside a pinned
-repository it defers to the pin, so it never changes which release runs there
-([installation](installation.md#global-install-optional)).
+repository it defers to the pin, so it never changes which release runs there.
 
 ### Does CI need it?
 
@@ -85,7 +84,7 @@ download, and only the commands that pin, apply, add, update, fetch or read a co
 ([fetching](ingredients.md#fetching)). Running a recipe downloads nothing from a cookbook: it is a file in the
 repository. A machine that never has network access uses `COOK_BINARY` or a pre-filled cache
 ([wrapper](wrapper.md#air-gapped-machines)). Adoption works offline too: `the-cook scaffold --offline` writes everything
-and leaves the pin [pending](wrapper.md#a-pending-pin) until a later `the-cook wrapper --version <tag>` with network
+and leaves the pin pending until a later `the-cook wrapper --version <tag>` with network
 access verifies the release and records its checksums. Complete it before you push. Only `the-cook fleet --deliver`,
 and `the-cook workspace remove` when the profile sets `workspaces.update_before_landed`, have the version control system
 learn what is shared; offline, `workspace remove` prints one note and detects landed work against what the checkout
@@ -439,7 +438,7 @@ recipe of the repository's own has no origin and nothing to update ([recipes](re
 
 With the pin in place this happens only when the pin is bypassed: `COOK_BINARY` names a release older than the
 repository's `schema`, or their global binary is too old to defer to the pin. Unset `COOK_BINARY`, or run
-`./cook <command>` ([installation](installation.md#version-skew)).
+`./cook <command>`.
 
 ### Is it safe to run a binary that a committed script downloads?
 
@@ -447,11 +446,10 @@ The script downloads over HTTPS and runs a binary only after its sha256 matches 
 `.cook/wrapper.yaml`. A `the-cook` binary wrote those checksums only after it verified the release's signed checksum
 file with the release keys it embeds, so a pin can name only a release the project signed. Trust starts with the first
 binary you installed, and every later pin change is verified by a binary already trusted and reviewed as a diff of
-`wrapper.yaml`. `doctor`, when online, re-verifies the pin against the signed file. Worker hooks never download
-([installation](installation.md#release-trust)).
+`wrapper.yaml`. `doctor`, when online, re-verifies the pin against the signed file. Worker hooks never download.
 
 ### How do I turn off the update notice?
 
 `export COOK_NO_UPDATE_CHECK=1`. The notice is one stderr line on explicit commands, at most once a day, plus a
 `doctor` note. It never appears in worker sessions, because moving the pin is a reviewed decision, not one a worker
-takes because it read a notice ([installation](installation.md#update-notice)).
+takes because it read a notice.

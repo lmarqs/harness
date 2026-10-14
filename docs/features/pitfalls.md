@@ -727,8 +727,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
   `checksums: pending`, and that pin was pushed before it was completed. The wrapper has no checksum to verify a
   download against, so it downloads nothing; only a machine that already has the release in its cache can run it.
 - **What `the-cook` does.** Refuses every download against a pending pin, runs a release already in the cache, and
-  reports the pending pin as a `doctor` finding, so a CI job that runs `doctor` stops it before it merges
-  ([wrapper](wrapper.md#a-pending-pin)).
+  reports the pending pin as a `doctor` finding, so a CI job that runs `doctor` stops it before it merges.
 - **What you do.** With network access and any installed `the-cook`, run `the-cook wrapper --version <the pinned tag>`
   and commit the result: the diff is the checksums and the manifest. Complete a pending pin before you push it.
 
