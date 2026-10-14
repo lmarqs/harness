@@ -125,18 +125,23 @@ not establish that a command or distribution mechanism is available. See the [UX
 
 ### Every document opens with its objective
 
-Every ADR, standard, feature page and top-level page opens after its title with an `## Objective` section:
+Every page opens by making its purpose and scope clear. ADRs use an `## Objective` section immediately after the
+title, following the [ADR writing guide](../adrs/README.md#the-objective-comes-first). For standards, feature pages
+and top-level pages, use an Objective section when it helps explain the problem and outcome:
 
 - **Problem.** Who has the problem and what goes wrong or is missing.
 - **Goal.** The outcome that addresses it, stated so a reader can tell whether it holds.
 
-Keep these few sentences independent of design details, so readers understand the purpose before judging a solution.
-Put the introduction under `## Overview` for feature pages and standards, or `## Context` for ADRs. Reference material
+Keep an Objective section independent of design details, so readers understand the purpose before judging a solution.
+A concise introduction after the title or under `## Overview` may instead establish purpose, scope and intended-design
+versus current-implementation context, as in the architecture and CLI reference. Do not add a redundant Objective
+section to an introduction that already serves that purpose. ADR facts follow under `## Context`; reference material
 and examples follow under their own headings, because readers use the outline to find each kind of information.
 
 ### Feature pages
 
-Use these sections in this order so readers find the same kind of information in the same place. Omit empty sections.
+Use these sections where relevant, in this order, so readers find the same kind of information in the same place.
+Omit empty sections; an opening introduction may replace Objective and Overview as described above.
 
 | Section | Content |
 | --- | --- |

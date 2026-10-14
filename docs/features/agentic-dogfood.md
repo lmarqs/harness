@@ -1,5 +1,17 @@
 # This repository's agent setup
 
+This page describes the current implementation and this checkout's setup. The
+[architecture](../architecture.md) defines the intended design; the ownership,
+adoption and drift behaviour below does not override it. The target requires
+removing `--adopt` wherever exposed and the underlying adoption and managed-edit
+gates, replacing them with review and whole-batch approval of the actual diff for
+existing or edited content, without an adoption alias or ownership-state
+prerequisite. That remains product implementation work.
+
+The commands below use the current CLI and require the local JVM distribution;
+see the [root build/help instructions](../../README.md#start-from-a-fresh-clone).
+They do not demonstrate the target apply/discard/revert or batch-approval flow.
+
 The repository uses the independent `agentic/context` and `agentic/permission`
 recipes. `AGENTS.md` is the editable, seeded project guidance. `CLAUDE.md`,
 `.claude/settings.json`, `.codex/config.toml`, and
@@ -64,7 +76,7 @@ The resulting state lists both context and permission harness applications
 and their defaults. Review the native files and `.cook/state.json` after any
 policy edit.
 
-The complete project gate is
+The existing implementation project gate is
 `./gradlew check cliBuild cookbookBuild jpackageTest`, followed by
 `git diff --check`. In the approved implementation environment, run the Gradle
 command with `GRADLE_USER_HOME=/tmp/the-cook-gradle-home` and the installed

@@ -1,6 +1,10 @@
 # Codex setup
 
-Compose native Codex configuration, hooks, rules and instructions:
+This guide describes the current implementation. The [architecture](../../../../docs/architecture.md) defines the
+intended design; the [agentic guide](../README.md) explains current CLI limits, launcher prerequisites and differences
+from the target. Existing composition APIs and adoption behavior do not settle the deferred model or hooks.
+
+In a Groovy composition with `book` and `kitchen` initialized and the required cookbook artifacts or sources available (see [factory usage](../../README.md)), compose native Codex configuration, hooks, rules and instructions:
 
 ```groovy
 def codex = book.recipe('agentic/codex', kitchen, [
@@ -25,10 +29,10 @@ codex.mount()
 
 The returned recipe exposes `config` and `hooks` inputs for deferred connections, and a `nativePaths` export.
 
-`adopt` defaults to `false`. Set it to `true` to take responsibility for existing selected keys or whole rule files. Recooking preserves unrelated content; withdrawing the recipe restores adopted values when managed content has not drifted.
+`adopt` defaults to `false` and applies to selected configuration/hooks keys and whole rule files, not the instruction block. Recooking preserves unrelated content; withdrawal restores saved adopted values when managed content has not drifted. The example adds a managed block to `AGENTS.md`; use [context](../context/README.md) instead when you want to seed an editable file.
 
-The recipe declares files; it does not launch the agent. Mount it alongside the other recipes required by the repository before planning. Each plan represents the complete desired composition.
+The recipe declares files; it does not launch the agent. Mount it alongside the other recipes required by the repository before planning. The factory belongs to the `agentic.permissions/codex` application, shared with [permission](../permission/README.md). Updating that application replaces its declared contribution set, so do not treat these two entry points as independent owners. Omitted contributions in that application can be withdrawn; this is current reconciliation behavior, not the target ordered-operation contract. This factory has no removal declaration for CLI `--remove`; withdrawal here means changing the composition before planning.
 
 `CodexFiles` is the compiled renderer used by this recipe. A typed repository recipe can include `new CodexFiles(policy, adopt)` in its batch. This constructor translates an agent policy into sandbox settings and `.codex/rules/cookbook.rules`, retaining the historical `cookbook.codex` ownership ID. Its third argument overrides the ID.
 
-The module builds independently with `./gradlew -p cookbook/recipes/agentic/codex build` and publishes as `dev.thecook.recipes:agentic-codex`, with its version in `gradle.properties`.
+The module builds independently with `./gradlew -p cookbook/recipes/agentic/codex build` and defines publication coordinates `dev.thecook.recipes:agentic-codex`, with its version in `gradle.properties`.

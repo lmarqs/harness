@@ -462,11 +462,12 @@
         "Do not change source, tests, build files, recipes, or fixtures to make the documentation examples true."
       ],
       "priority": 25,
-      "passes": false,
+      "passes": true,
       "notes": "",
       "dependsOn": [
         "US-024"
-      ]
+      ],
+      "completionNotes": "Completed by agent"
     },
     {
       "id": "US-026",
@@ -480,11 +481,12 @@
         "Do not change source, tests, build files, recipes, or fixtures to make the documentation examples true."
       ],
       "priority": 26,
-      "passes": false,
+      "passes": true,
       "notes": "",
       "dependsOn": [
         "US-025"
-      ]
+      ],
+      "completionNotes": "Completed by agent"
     },
     {
       "id": "US-027",
@@ -498,11 +500,12 @@
         "Do not change source, tests, build files, recipes, or fixtures to make the documentation examples true."
       ],
       "priority": 27,
-      "passes": false,
+      "passes": true,
       "notes": "",
       "dependsOn": [
         "US-026"
-      ]
+      ],
+      "completionNotes": "Completed by agent"
     },
     {
       "id": "US-028",
@@ -519,14 +522,15 @@
         "Explicitly hand off removal of `--adopt` wherever exposed and removal of underlying adoption gates as required product implementation work. The replacement behavior is review and approval of the actual batch diff for existing or edited content, with no adoption alias or ownership-state prerequisite. Documentation completion alone does not complete this code change."
       ],
       "priority": 28,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Final editorial correction only: remove the transient paragraph at the end of docs/features/agentic-dogfood.md about this documentation run and the user's check exemption. Keep the existing implementation gate instructions and all truthful commands. The agreed run scope belongs in tasks/prd-documentation-alignment.md and tasks/issue-1-closeout.md, not a permanent usage guide. Update the closeout's description of the dogfood correction accordingly, preserving its record that the three editorial conflicts are resolved and that this run has no mandatory checks. Re-review these two affected documents and their links, then finish US-028. Do not add requirements or change product code, tests, builds, recipes, AGENTS.md, unrelated docs, tasks/prd.json, or GitHub issues.",
       "dependsOn": [
         "US-027"
-      ]
+      ],
+      "completionNotes": "Completed by agent"
     }
   ],
   "metadata": {
-    "updatedAt": "2026-10-14T05:55:07.175Z"
+    "updatedAt": "2026-10-14T12:11:45.501Z"
   }
 }
