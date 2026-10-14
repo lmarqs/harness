@@ -28,9 +28,10 @@ The [glossary](../features/glossary.md) defines the agreed engine vocabulary.
 | **Organization skill** | an organization's skills repository | the organization | installed by the team with the skills installer of its choice and committed under `.agents/skills/`; the binary has no code for the installer, which an ingredient the repository pins can describe | conventions shared by one organization's repositories, and how to write them into one repository's files: delivery actions, policy entries (observability read patterns, deploy denies), review, domain vocabulary |
 | **Repository skill** | `.agents/skills/<name>/` in the repository | people and workers in that repository | committed directly | knowledge of one repository: its modules, risks, procedures |
 
-The binary writes only the shipped skill. Organization and repository skills are knowledge; the binary never creates,
-edits or deletes them ([principles.md](principles.md#3-runs-the-game-never-plays)), because knowledge needs judgement
-the binary does not have.
+People and cookbook authors choose skill content. A recipe may declare skill files or discovery configuration; Cook
+reviews the resulting file operations through the same whole-batch approval flow as other native configuration
+([principles.md](principles.md#3-configure-programs-through-files)). Configuring a skill does not make Cook responsible
+for how an agent loads or follows it.
 
 Skills live where their native programs discover them; `.agents/skills/` is a useful shared location when supported.
 Local Cook history lives under the destination's ignored `.cook/`, rather than a committed configuration tree

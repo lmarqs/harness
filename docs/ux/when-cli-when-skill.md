@@ -112,10 +112,9 @@ organization's chat) is written into each repository's `hooks.yaml` by a person 
 organization's skill, and reviewed there as a diff. Why: an action runs in its repository with the credentials of
 whoever fires it, so it must be readable and reviewed where it runs.
 
-A declared action never lives in the binary. The binary contains no logic for the platform that hosts the team's work,
-and no action runs that the repository's files do not declare. A command or
-flag that pushes, opens a pull request or calls a hosting platform is a design error, whatever the convenience
-([principles.md](principles.md#7-nothing-leaves-the-clone-undeclared)).
+Cook batches contain file operations, not command execution or delivery actions. Trusted recipe code can cause
+side effects outside the batch; source trust is separate from approval of the file diff
+([principles.md](principles.md#7-approval-has-a-defined-boundary)). This does not define a lifecycle-action protocol.
 
 ### Choosing the kind
 
@@ -266,7 +265,7 @@ result with the lanes the recipe requires.
 | Use a different version control system | the answers every attempt relies on: base revision, files at a revision, reset, workspaces | an ingredient that fills the version-control contract, named by `vcs:` in the profile |
 | Finish an adoption: move a hook the importer could not model, review the rules imported from the `local` scope | judgement | shipped skill, checked by `the-cook doctor` |
 | Explain native permissions in `AGENTS.md` | guidance kept consistent with the actual program settings | recipe-declared [instruction section](generated-content-standards.md#instruction-files-and-conventions), reviewed in the batch diff |
-| Tell people and workers where workspaces are created and on which branch | deterministic, derived from the profile, must hold without `the-cook` | binary: the `workspaces` convention block in `AGENTS.md`, and the version-control ingredient's `workspaces` block in its ignore file ([principles.md](principles.md#8-conventions-outlive-the-tool)) |
+| Tell contributors where working copies are created and which branches to use | repository conventions readable without Cook | recipe-declared instruction sections and native ignore entries, reviewed as file operations ([principles.md](principles.md#8-conventions-outlive-the-tool)) |
 | Keep workspaces and state somewhere other than `.work/` | deterministic, different values per repository | profile fields `state.dir`, `workspaces.dir`; `the-cook render` rewrites the blocks that state them |
 | Keep `the-cook` configuration beside the skills in `.agents/` | `.agents/` is the cross-tool directory of the content workers read | not allowed: `the-cook` configuration lives in `.cook/`, state at the profile's paths |
 | Explain in `AGENTS.md` why the team keeps e2e tests mandatory for routes | judgement, one repository | repository prose, outside [managed blocks](generated-content-standards.md#managed-blocks) |

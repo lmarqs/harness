@@ -244,9 +244,9 @@ An adopted repository behaves for non-users exactly as it did before adoption:
   checksum file. Because every ingredient a repository uses is pinned, such a job runs `./cook fetch` before them, which
   downloads each uncached ingredient and station, and the version each recipe's `origin` names, and verifies it against
   its `sha256`. The check for a newer release ([update notices](#update-notices)) never affects their result.
-- Managed blocks are plain Markdown or comments and read correctly without `the-cook`. Convention blocks state the
-  repository's conventions as fact, and `the-cook remove --eject` keeps them as the repository's own text
-  ([principles.md](principles.md#8-conventions-outlive-the-tool)).
+- Marked instruction sections use native comment syntax and remain readable without Cook. Keeping them means leaving
+  them in place; discard deletes supplied declarations and revert restores recorded prior values, each through the
+  actual batch diff and whole-batch approval ([principles.md](principles.md#8-conventions-outlive-the-tool)).
 
 ## Coexistence
 
