@@ -523,7 +523,7 @@
       ],
       "priority": 28,
       "passes": true,
-      "notes": "Coordinator acceptance review: finish the documentation alignment by resolving the three readily fixable editorial blockers recorded in tasks/issue-1-closeout.md. Clarify docs/features/agentic-dogfood.md as current implementation guidance and link the intended architecture while preserving truthful commands and the agreed no-mandatory-gates scope of this run. Reconcile docs/adrs/README.md writing rules with retained records by permitting necessary concrete references and focused explanatory restatements. Adjust docs/ux/messages-and-docs.md opening-structure rule to allow useful introductions, or align the affected introductions; keep the approach simple and avoid new status machinery. Update the closeout draft to report resolved documentation conflicts honestly. Preserve all existing review evidence and product implementation gaps, including --adopt removal. Do not modify product code, tests, builds, recipes, AGENTS.md, tasks/prd.json, or GitHub issues. This is a retry of the final review, not new product scope.",
+      "notes": "Final editorial correction only: remove the transient paragraph at the end of docs/features/agentic-dogfood.md about this documentation run and the user's check exemption. Keep the existing implementation gate instructions and all truthful commands. The agreed run scope belongs in tasks/prd-documentation-alignment.md and tasks/issue-1-closeout.md, not a permanent usage guide. Update the closeout's description of the dogfood correction accordingly, preserving its record that the three editorial conflicts are resolved and that this run has no mandatory checks. Re-review these two affected documents and their links, then finish US-028. Do not add requirements or change product code, tests, builds, recipes, AGENTS.md, unrelated docs, tasks/prd.json, or GitHub issues.",
       "dependsOn": [
         "US-027"
       ],
@@ -531,6 +531,6 @@
     }
   ],
   "metadata": {
-    "updatedAt": "2026-10-14T12:08:16.282Z"
+    "updatedAt": "2026-10-14T12:11:45.501Z"
   }
 }

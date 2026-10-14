@@ -82,8 +82,3 @@ The existing implementation project gate is
 command with `GRADLE_USER_HOME=/tmp/the-cook-gradle-home` and the installed
 Temurin 17 `JAVA_HOME`. The fixture tests in the context, permission, and init
 modules also run through `cookbookBuild`.
-
-These describe the existing implementation workflow. For this documentation
-alignment run, the user explicitly requested no mandatory build, lint, test or
-check commands, overriding the command requirements in `AGENTS.md`. Neither
-the fixture example nor the project gate is required for this run.

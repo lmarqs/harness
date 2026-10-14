@@ -39,8 +39,9 @@ The initial review recorded three editorial conflicts. The acceptance-review ret
    covers feature references generally. [agentic-dogfood.md](../docs/features/agentic-dogfood.md) previously gave
    unqualified ownership/adoption, drift and project-gate instructions. It now identifies current repository setup,
    links to the intended architecture and build prerequisites, and states the required product removal of adoption
-   and managed-edit gates. Existing commands remain truthful current usage. Its existing project gate and fixture
-   example are explicitly outside this run's no-mandatory-gates scope.
+   and managed-edit gates. Existing commands, implementation project-gate instructions and the fixture example
+   remain truthful current usage. The transient paragraph about this documentation run's check exemption was removed
+   from the usage guide; the run's no-mandatory-checks scope is recorded in the PRD and this closeout only.
 2. **ADR writing rules versus the reconciled records.** The [ADR index](../docs/adrs/README.md#writing-rules)
    previously prohibited command/flag/file names and restating other decisions, while retained ADRs repeat relevant
    operation guarantees and explicitly name `--adopt` and `.cook/`. The rules now permit necessary concrete references
