@@ -55,8 +55,8 @@ The effective policy is the union of:
 3. the entries in `.cook/policy.yaml`, including those a station's entries added when it was applied, which are the
    repository's own from then on ([stations](stations.md#entries)).
 
-Nothing else contributes an entry: no file outside the repository is read
-([ADR 0013](../adrs/0013-organization-content.md)). Lists are unions: no source removes an entry from another, and
+Nothing else contributes an entry: no file outside the repository is read. Lists are unions: no source removes an
+entry from another, and
 nothing removes a floor rule. An entry in the policy file that would weaken a floor rule, such as an `allow` for a force
 push to the default branch, is not a validation error. `render` drops it from the output, renders the floor rule and
 reports the entry. [`doctor`](doctor.md) reports it as a finding until it is removed. When a command matches entries

@@ -217,8 +217,8 @@ Validation errors (exit 1 from `render`, `doctor` and `context show`): an entry 
 `file`; a `when` entry with both or neither of `paths` and `prompt`; `static` on a `when` entry, or with a narrower
 `for`; a `file` outside the repository or inside a state directory; an unknown role.
 
-Every entry a session receives is declared in this section of the repository's own profile
-([ADR 0013](../adrs/0013-organization-content.md)). Directives an organization wants in all its repositories are written
+Every entry a session receives is declared in this section of the repository's own profile. Directives an organization
+wants in all its repositories are written
 into each profile, typically by a coding agent following a skill the organization publishes or by applying a station
 from the organization's cookbook, and reviewed there like any other change. For example, a coding agent following
 acme's skill adds the same `always` entry and directive file to `acme/api` and to `acme/web`, and each repository

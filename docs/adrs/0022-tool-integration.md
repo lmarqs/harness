@@ -221,7 +221,7 @@ Costs:
 - Adoption takes a step that names a cookbook and pins its ingredients, and until a repository pins an ingredient for a
   contract, nothing that needs that contract runs in it ([0023](0023-core-and-contracts.md)).
 - Every machine, CI included, fetches a repository's ingredients in an explicit step before a hook or an attempt can
-  use them ([0010](0010-dependence-on-the-binary.md)).
+  use them.
 - The floor of every program is as strong as the cookbook that describes it and the review of its pin
   ([0026](0026-cookbook-trust.md)).
 - The project's tests show that the core interprets ingredients correctly, not that any ingredient works with its

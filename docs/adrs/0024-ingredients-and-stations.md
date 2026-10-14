@@ -23,7 +23,7 @@ that combines several programs reaches a repository in one reviewed change.
 - What a repository needs from a way of working is starting content that the team then owns and edits: the commands
   and lanes of its stack, its validators, which workers it uses in which role, the deny rules for unattended work, the
   lifecycle actions that update a tracker or open a pull request, standing-context entries, and whole files such as a
-  loop runner's configuration ([0013](0013-organization-content.md)).
+  loop runner's configuration.
 - One program serves several ways of working, and one way of working combines several programs. Example: at acme,
   `acme/api` works with git, a coding agent used interactively, a second coding agent that runs unattended through a
   loop runner, and a task tracker that its lifecycle actions update. `acme/infra` uses git and the first coding agent,
@@ -43,8 +43,7 @@ that combines several programs reaches a repository in one reviewed change.
 - A cookbook publishes what it holds by version, with a content hash for each unit, and a repository pins what it uses
   through a reviewed change ([0022](0022-tool-integration.md), [0026](0026-cookbook-trust.md)).
 - Organization choices and stack facts reach a repository by being applied once: only what is missing is added, every
-  difference is reported, and every entry and file is the repository's own afterwards
-  ([0013](0013-organization-content.md)).
+  difference is reported, and every entry and file is the repository's own afterwards.
 - A way of working can rely on a kind of change it makes the same way in every repository that uses it. Example: in
   `acme/api`, the loop runner makes the same kind of change, implementing one tracker task, for every task, and its
   configuration names that kind of change ([0025](0025-recipes.md)).
@@ -64,11 +63,11 @@ that combines several programs reaches a repository in one reviewed change.
    ingredient, such as one for a technology stack whose content is commands, lanes and hooks. It may also pin recipes
    from its own cookbook version that it adds to the repository, each by its content hash, as it pins its ingredients.
 4. A station is applied once, on a person's request. Its entries and templates become the repository's own under the
-   rules of [0013](0013-organization-content.md): applying only adds, the repository's entries win, and every difference
+   application rules stated here: applying only adds, the repository's entries win, and every difference
    is reported. The ingredients it lists are pinned into the repository's data in the same reviewed change. An
    ingredient the repository already pins at another content hash keeps the repository's pin, and the difference is
    reported. Each recipe it pins is verified against the content hash the station gives and copied into the repository
-   as adding that recipe copies it ([0013](0013-organization-content.md)), in the same reviewed change; a recipe the
+   as adding that recipe copies it, in the same reviewed change; a recipe the
    repository already holds is kept and reported, never overwritten.
 5. The repository's data lists the ingredients it pins and, apart from them, the stations it applied, each with its pin.
    What the binary renders and runs depends only on the ingredients. The list of applied stations records which stations
@@ -100,7 +99,7 @@ that combines several programs reaches a repository in one reviewed change.
   a station it would protect only the repositories that applied that station, not every repository that uses the
   program. A stack's content is commands the repository declares (Context), so a station for it may list no ingredient,
   or only the ingredient of the task runner whose chaining deny its commands rely on.
-- **4.** Applying once follows [0013](0013-organization-content.md): the entries are readable in the repository's own
+- **4.** Applying once means the entries are readable in the repository's own
   files and stay authoritative, and a second application is harmless. Pinning the listed ingredients in the same change
   puts a way of working and the program descriptions it relies on into one diff, so a reviewer reads the whole effect at
   once, and a repository never holds a station's entries without the ingredients they need. Keeping an existing pin
@@ -111,20 +110,20 @@ that combines several programs reaches a repository in one reviewed change.
   (Context). Pinning each recipe by content hash, as the station pins its ingredients, ties the station to the exact
   recipes its entries were written against, and applying it again copies those bytes, verified against the station's own
   hash rather than a checksum file downloaded again ([0026](0026-cookbook-trust.md)). A recipe the repository already
-  holds is kept for the reason an entry already present is: the repository's version is the one its team chose
-  ([0013](0013-organization-content.md)). The trade: that combination is one the station's cookbook did not test, and a
+  holds is kept for the reason an entry already present is: the repository's version is the one its team chose. The
+  trade: that combination is one the station's cookbook did not test, and a
   kept recipe may differ from the one the station's entries were written against.
 - **5.** What is rendered and run depends only on the ingredients, so once a station is applied it acts only through
-  what it wrote into the repository's files, which keeps the rule of [0013](0013-organization-content.md) that only the
+  what it wrote into the repository's files, so only the
   repository's files and what they pin by hash act on it. Recording which stations were applied, and at which version,
   tells a reader where the repository's starting content came from and gives a person the version to compare with when a
   newer one appears, as a project template tool's record of its template does (Context). The record lists stations, not
-  entries, so it ties no entry to its station and gives the tool nothing it could use to change an entry by itself
-  ([0013](0013-organization-content.md)). A name declared twice among the ingredients would make the description that
+  entries, so it ties no entry to its station and gives the tool nothing it could use to change an entry by itself. A
+  name declared twice among the ingredients would make the description that
   fills a contract depend on order ([0022](0022-tool-integration.md)), and twice among the applied stations would record
   two versions of one starting point. The trade: the record states what was applied, not what the repository still
   holds.
-- **6.** One repository can use several stacks ([0013](0013-organization-content.md)), and its way of working with
+- **6.** One repository can use several stacks, and its way of working with
   workers is independent of its stacks (Context). Applying each station by the same rules means a later station never
   replaces what an earlier one wrote. The trade: where two stations propose different values for one entry, the first
   applied stays, and the second's value is only reported.
@@ -145,8 +144,8 @@ removes the renders and leaves the entries it applied, so a reader cannot tell f
 
 The repository's data names the stations it uses, and the binary merges their entries into every render, as the linter
 and the release tool in Context load a shareable configuration on every run. At its best, a way of working improved once
-reaches every repository at its next pin move, with no second application. It loses for the reasons
-[0013](0013-organization-content.md) gives against shared sources resolved at every render: an entry acts from a source
+reaches every repository at its next pin move, with no second application. It loses under this record's
+repository-only input rule: an entry acts from a source
 no reader of the repository sees, merging needs override rules a person must learn before predicting what a repository
 does, and each repository still reviews every move, so only the writing is saved.
 
@@ -158,7 +157,7 @@ cannot edit away. It loses because the station would then act on every render, w
 alternative above for those rules, and the list of applied stations would become a dependency instead of a record. A
 deny that protects a program belongs in that program's ingredient, where it reaches every repository that uses the
 program ([0022](0022-tool-integration.md)), and an organization that wants a rule of its own as floor publishes it in
-the ingredient of the program the rule protects ([0013](0013-organization-content.md)). A rule that is a team's choice
+the ingredient of the program the rule protects. A rule that is a team's choice
 is policy, which the repository owns.
 
 ## Consequences
@@ -167,8 +166,8 @@ Costs:
 
 - A cookbook publishes two kinds of unit, a person learns both, and each piece of content has to be placed in one of
   them.
-- A station's later improvements reach a repository only when someone applies it again and reads the diff
-  ([0013](0013-organization-content.md)), while an ingredient's reach it with a move of its pin.
+- A station's later improvements reach a repository only when someone applies it again and reads the diff, while an
+  ingredient's reach it with a move of its pin.
 - A repository that keeps its own pin of an ingredient runs a station's entries against an ingredient version the
   station did not list; the difference is reported, not prevented.
 - When two stations propose different values for one entry, the one applied first stays.
@@ -178,7 +177,7 @@ Must be maintained:
 
 - The ingredient and station schemas, and the validation that refuses entries or
   templates in an ingredient and renders or floor rules in a station.
-- The application rules, shared with [0013](0013-organization-content.md), and the report of every difference they
+- The application rules and the report of every difference they
   leave, a kept recipe included.
 
 ## Confirmation

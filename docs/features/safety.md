@@ -233,7 +233,7 @@ that fired them, outside the worker's per-command permission checks.
   `the-cook make`, `the-cook verify`, `the-cook workspace create`, `the-cook workspace remove` and
   `the-cook fleet --deliver`. `the-cook doctor` never fires events ([lifecycle](lifecycle.md#trigger-points)).
 - **The hooks file is the complete list.** Every action is declared in the repository's own `.cook/hooks.yaml`, and
-  nothing outside the repository adds one ([ADR 0013](../adrs/0013-organization-content.md)). A station that declares
+  nothing outside the repository adds one. A station that declares
   actions writes them there as entries only when a person applies it, and the diff shows them. A recipe declares
   none. Reviewing that file reviews everything an event can run.
 - **Every action sees the whole environment.** A webhook URL exported for one `http` action is visible to every `run`

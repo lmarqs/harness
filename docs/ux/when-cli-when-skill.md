@@ -111,7 +111,7 @@ A declared action is always declared in the repository's `hooks.yaml`. An action
 repositories (open a pull request on a given hosting platform, add the organization's CI-trigger commit, post to the
 organization's chat) is written into each repository's `hooks.yaml` by a person or by a coding agent following the
 organization's skill, and reviewed there as a diff. Why: an action runs in its repository with the credentials of
-whoever fires it, so it must be readable and reviewed where it runs ([ADR 0013](../adrs/0013-organization-content.md)).
+whoever fires it, so it must be readable and reviewed where it runs.
 
 A declared action never lives in the binary. The binary contains no logic for the platform that hosts the team's work,
 and no action runs that the repository's files do not declare. A command or
@@ -211,7 +211,7 @@ Adoption, taking over a repository's existing hand-written worker setup, is the 
 `the-cook scaffold --adopt` imports what it can map and lists the rest as a to-do, the shipped skill guides a coding
 agent through the to-do, and `the-cook doctor` confirms the result.
 
-Repository content follows the same split ([ADR 0013](../adrs/0013-organization-content.md)):
+Repository content follows the same split:
 
 - Stack facts need no judgement, so they are stack stations whose entries the binary writes on request
   (`the-cook scaffold --cookbook`, `the-cook station apply <name>`), adding only what the repository lacks.
@@ -295,8 +295,7 @@ Each of these breaks a principle, for the reason given after it.
   pushes without anyone there deciding to.
 - A key that names a source outside the repository for entries `the-cook` renders or runs (an inherited file, an
   include, a remote set of entries), other than a release, an ingredient or a station pinned by hash: a rule whose
-  source sits outside the repository cannot be read or reviewed where it acts
-  ([ADR 0013](../adrs/0013-organization-content.md)).
+  source sits outside the repository cannot be read or reviewed where it acts.
 - A default cookbook, or any ingredient or station, in the binary: the binary would choose for every repository which
   programs it describes and whose review it trusts, and every user would carry descriptions of programs they never use.
   Each repository pins its own.

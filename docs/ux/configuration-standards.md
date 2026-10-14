@@ -24,7 +24,7 @@ precise sense, such as profile, seeded, owned, receipt, worker, ingredient, stat
 
 Two directories have two owners, and state lives outside both. Why: tool configuration that sits among the content of
 `.agents/` makes removal pick files out of a tree others write, and state inside a committed tree needs ignore rules
-inside it ([ADR 0014](../adrs/0014-directory-layout.md)).
+inside it.
 
 | Location | Owner | Holds |
 | --- | --- | --- |
@@ -159,8 +159,7 @@ workspaces:
 ## Inputs
 
 What `the-cook` renders and runs in a repository is determined by the repository's own files, the release it pins and
-the ingredients it pins by hash, and by nothing else ([ADR 0013](../adrs/0013-organization-content.md),
-[ADR 0022](../adrs/0022-tool-integration.md)).
+the ingredients it pins by hash, and by nothing else ([ADR 0022](../adrs/0022-tool-integration.md)).
 
 - No repository file has a key that names a source outside the repository for what `the-cook` renders or runs,
   whether by inheritance, an include or a remote source. Validation rejects such a key like any other unknown key.
@@ -340,8 +339,7 @@ Actions are declared in `.cook/hooks.yaml`: lifecycle actions under the top-leve
 actions under `attention:` and `turn_end:`, beside the keys for hooks on worker events (`post_edit`, `validators`,
 `session_start`, `raw`). Behaviour, trigger points and guards: [lifecycle guide](../features/lifecycle.md) and
 [hooks](../features/hooks.md). Why: everything that leaves the clone is written down and reviewed before it can happen
-([principles.md](principles.md#7-nothing-leaves-the-clone-undeclared)), in the repository where it runs
-([ADR 0013](../adrs/0013-organization-content.md)).
+([principles.md](principles.md#7-nothing-leaves-the-clone-undeclared)), in the repository where it runs.
 
 ```yaml
 lifecycle:
@@ -515,8 +513,7 @@ ingredient, no station and no recipe; every one comes from a cookbook, or, for a
 This section governs how a repository pins ingredients and applies stations, and what each part may write.
 Why: each team picks different programs and each program changes on its own schedule, so a program's description changes
 with the program and not with the binary, while each repository keeps the final say over its own files
-([ADR 0022](../adrs/0022-tool-integration.md), [ADR 0023](../adrs/0023-core-and-contracts.md),
-[ADR 0013](../adrs/0013-organization-content.md)).
+([ADR 0022](../adrs/0022-tool-integration.md), [ADR 0023](../adrs/0023-core-and-contracts.md)).
 
 One rule separates the three: facts about programs are pinned and rendered; practices are copied and become the
 repository's own. What a repository needs from a program is rendered every time, what it needs from a way of working is
@@ -884,8 +881,7 @@ file is published.
 
 The following are not keys in any file or flag. They are architecture decisions: changing one is a change to the ADR
 that decides it, because a setting that weakens them would copy along with the file that sets it
-([ADR 0013](../adrs/0013-organization-content.md), [ADR 0014](../adrs/0014-directory-layout.md),
-[ADR 0017](../adrs/0017-engine-version.md), [ADR 0021](../adrs/0021-release-trust.md),
+([ADR 0017](../adrs/0017-engine-version.md), [ADR 0021](../adrs/0021-release-trust.md),
 [ADR 0022](../adrs/0022-tool-integration.md), [ADR 0025](../adrs/0025-recipes.md),
 [ADR 0026](../adrs/0026-cookbook-trust.md)).
 

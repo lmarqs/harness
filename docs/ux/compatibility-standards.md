@@ -32,8 +32,8 @@ state each promise and how it changes.
 | Rendered files and [managed blocks](generated-content-standards.md#managed-blocks) | the schema of their sources | the [generated-file header](generated-content-standards.md#header) and the manifest (`.cook/manifest.json`) |
 
 - Rendered content carries the schema, never the binary version. It
-  depends only on the repository files, the pinned release and the ingredients the repository pins by hash
-  ([ADR 0013](../adrs/0013-organization-content.md)), and `the-cook wrapper --version <tag>` renders the repository with
+  depends only on the repository files, the pinned release and the ingredients the repository pins by hash, and
+  `the-cook wrapper --version <tag>` renders the repository with
   the new release in the same change as the pin, so moving the pin never leaves drift behind (drift is owned content
   that differs from what the pinned release renders) ([ADR 0017](../adrs/0017-engine-version.md)). Why: a version stamp
   would change every file on every upgrade and bury the changes that matter.
@@ -100,8 +100,7 @@ ingredient's pin, that is, changes its `version` and `sha256`; moving the releas
 not an input to rendering: its pins, entries and templates take effect only once they are written into the repository's
 files, and from then on they are the repository's own. Why: a check whose result changes when someone else publishes a
 change fails pipelines that changed nothing, and an entry that changes without a change in the repository cannot be
-explained from the repository ([ADR 0013](../adrs/0013-organization-content.md),
-[ADR 0022](../adrs/0022-tool-integration.md)).
+explained from the repository ([ADR 0022](../adrs/0022-tool-integration.md)).
 
 - Moving an ingredient's pin with `the-cook ingredient pin` renders in the same change, so the newer version's renders
   and floor reach review as one diff with the pin.
@@ -122,8 +121,7 @@ explained from the repository ([ADR 0013](../adrs/0013-organization-content.md),
 
 A recipe is not an input to rendering, and the repository's copy is its own file, so a newer version of a recipe
 reaches a repository only when someone merges it into that copy. Why: a step that changes without a change in the
-repository cannot be explained from the repository, and the repository's edits to its copy are its own decisions
-([ADR 0013](../adrs/0013-organization-content.md)).
+repository cannot be explained from the repository, and the repository's edits to its copy are its own decisions.
 
 - `the-cook recipe update <name> --cookbook <source>@<version>` merges three versions: the repository's copy, the
   version its `origin` names, read from the per-user cache by its sha256, and the tag's version. Clean hunks apply,
@@ -223,8 +221,7 @@ is worse than none.
 
 ## Transparency for people and CI that do not use `the-cook`
 
-An adopted repository behaves for non-users exactly as it did before adoption
-([ADR 0010](../adrs/0010-dependence-on-the-binary.md)):
+An adopted repository behaves for non-users exactly as it did before adoption:
 
 - A clone builds, tests, deploys and starts its workers without the binary.
 - Implicit entry points ([cli-standards.md](cli-standards.md#entry-points)) degrade: rendered worker hooks run

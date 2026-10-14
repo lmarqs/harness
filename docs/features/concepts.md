@@ -158,7 +158,7 @@ here ([recipes](recipes.md))?
 
 What `the-cook` renders and runs in a repository comes from the repository's own files, the release `.cook/wrapper.yaml`
 pins and the ingredients `ingredients:` pins, and from nothing else: no inheritance, no includes, no sources outside the
-repository ([ADR 0013](../adrs/0013-organization-content.md)). Rendering reads nothing else and needs no network once
+repository. Rendering reads nothing else and needs no network once
 the pinned ingredients are cached, so the same commit renders the same bytes on every machine, and people and workers
 learn what a repository does by reading its files. The binary contains code for no program and data for none either:
 every program it starts, calls or writes files for, the version control system and the workers included, is described by

@@ -114,7 +114,7 @@ change to its repository and still takes a newer version of it in one reviewed c
 8. A recipe reaches a repository as a copy, made on a person's request, and the copy is the repository's own from then
    on: its team edits it like any of its files, and a run follows the copy as the repository holds it. The copy records
    its origin, the cookbook, version and content hash it came from, and a newer version reaches it through a merge that
-   keeps the team's changes ([0013](0013-organization-content.md)). Adding and updating a recipe verify it as
+   keeps the team's changes. Adding and updating a recipe verify it as
    [0026](0026-cookbook-trust.md) decides. A station may pin recipes it adds, each by its content hash, as it pins its
    ingredients, and applying it copies them in the same change ([0024](0024-ingredients-and-stations.md)).
 9. A loop runner can run a recipe for each task, through the same caller interface as the attempt command
@@ -192,8 +192,8 @@ change to its repository and still takes a newer version of it in one reviewed c
   its inputs because delivery decides from the proof (point 2), and the hash ties the delivered change to the exact
   recipe that made it. The trade: a stopped run holds its working copy until a person continues it or removes it.
 - **8.** A recipe is a practice a team adapts to its repository: its paths, its lanes, its prompts (Context). As a copy,
-  it acts as the bytes every reader of the repository sees, like the repository's other files
-  ([0013](0013-organization-content.md)), and the team adapts it without publishing a cookbook of its own, the model
+  it acts as the bytes every reader of the repository sees, like the repository's other files, and the team adapts it
+  without publishing a cookbook of its own, the model
   shadcn/ui follows for components (Context). Recording the origin in the copy, as Copier records its template
   (Context), gives an update the version it needs to tell the team's changes from the cookbook's. A station that relies
   on a recipe, such as one whose loop runner runs a recipe for each task, adds it in the same change, so its entries
@@ -218,9 +218,9 @@ The repository pins each recipe by cookbook, version and content hash, as it pin
 verified cache. At its best, a fix to a recipe reaches a repository with one move of its pin, and no merge is ever
 needed. It loses because a recipe is a practice a team adapts (Context): bytes fixed by a hash cannot be edited, so
 adapting one means publishing a cookbook of one's own, or override rules a person must learn: the inheritance that
-[0013](0013-organization-content.md) and [0024](0024-ingredients-and-stations.md) reject for shared entries, and that a
+[0024](0024-ingredients-and-stations.md) rejects for shared entries, and that a
 shareable configuration loaded on every run brings (Context). The steps a run follows would also sit in a per-user
-cache, not among the files a reviewer and a worker read ([0013](0013-organization-content.md)). Each repository still
+cache, not among the files a reviewer and a worker read. Each repository still
 reviews every move of the pin, so only the merge is saved.
 
 ### Recipes as task-runner scripts
@@ -257,7 +257,7 @@ fewer and setup goes through the lifecycle like any change. At its best, one for
 publishes, and setup gets a working copy, lanes and delivery. It loses because a run needs what setup provides: its
 working copy needs the version control contract and its attempts need a declared worker (Context), so a recipe that pins
 and declares them cannot run until it has run. Setup also merges entries into files the repository already has, under
-rules that only add and report differences ([0013](0013-organization-content.md)), which no step kind does, and it is
+rules that only add and report differences, which no step kind does, and it is
 applied once, while a recipe is made many times. A station stays the unit that sets up, and point 8 lets it add recipes.
 
 ### Who drives a run told by the terminal
@@ -282,7 +282,7 @@ A recipe carries actions for its events, such as a delivery that opens a pull re
 administrator's review. At its best, a kind of change brings its whole path out of the clone with it. It loses because
 what an event does would then depend on which recipe made the change, so a reader of the repository's declared actions
 could not tell what delivery does, and a recipe from a cookbook would bring another organization's delivery conventions
-into the repository ([0013](0013-organization-content.md)). Delivery actions receive the recipe and its inputs from the
+into the repository. Delivery actions receive the recipe and its inputs from the
 proof (point 7), so a repository can still deliver a migration differently, in its own declarations.
 
 ## Consequences
@@ -292,7 +292,7 @@ Costs:
 - A recipe is one more format with a schema to version, and a step that fits none
   of the four kinds becomes a command.
 - A cookbook's improvement to a recipe reaches a repository only when someone updates the copy, and an update can leave
-  conflicts for a person or a worker to resolve ([0013](0013-organization-content.md)).
+  conflicts for a person or a worker to resolve.
 - No input, free text included, can start with a hyphen, and an input in a prompt can mislead the worker, which the
   attempt contract bounds.
 - A failed attempt step's edits stay in the working copy until a person inspects or discards them.

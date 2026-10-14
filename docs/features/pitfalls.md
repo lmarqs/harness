@@ -651,8 +651,7 @@ Commands are named `the-cook <command>` on this page. Run them through the repos
   or a post-edit hook, and neither `the-cook render` nor moving an ingredient pin adds it.
 - **Why.** A station is applied once: its entries are written into the repository's files when someone applies it, and
   from then on they are the repository's own. `stations:` records which version was applied, not which entries it
-  wrote, and has no effect on renders; only the pinned ingredients render on every render
-  ([ADR 0013](../adrs/0013-organization-content.md)).
+  wrote, and has no effect on renders; only the pinned ingredients render on every render.
 - **What `the-cook` does.** `the-cook station apply <name> --cookbook <source>@<version>` adds only the entries the
   repository lacks: every entry it holds stays as it is, an item it names that differs from the station's is kept and
   reported, and a second apply of the same version adds nothing. It also moves the station's record in `stations:` and

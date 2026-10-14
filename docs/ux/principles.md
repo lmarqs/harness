@@ -19,8 +19,7 @@ to ([README.md](README.md#changing-a-standard)).
 ## 1. Optional and transparent
 
 Nobody suffers for not using `the-cook`. Why: teammates, pipelines and repositories that never chose `the-cook` share
-the committed files of those that did, so anything `the-cook` requires of them is imposed, not adopted
-([ADR 0010](../adrs/0010-dependence-on-the-binary.md)).
+the committed files of those that did, so anything `the-cook` requires of them is imposed, not adopted.
 
 - A clone of an adopted repository MUST build, test, deploy and start its workers without the binary, whether
   downloaded by the committed wrapper script `cook` or installed globally, because a clone is used by people who
@@ -259,8 +258,7 @@ where workspaces and state live. If those conventions existed only in the config
 What `the-cook` renders and runs in a repository comes from that repository's files, the release it pins and the
 ingredients it pins by hash, and from nothing else: no inheritance, no includes, no source the repository does not pin.
 Why: people and workers learn what a repository does by reading it. A rule that acts in a repository from somewhere else
-cannot be read by anyone working there, and a reviewer sees its effect without its reason
-([ADR 0013](../adrs/0013-organization-content.md)).
+cannot be read by anyone working there, and a reviewer sees its effect without its reason.
 
 - The same commit renders the same bytes on every machine and every day, with no network, because no input can change
   without a commit in the repository: the release and every ingredient are pinned by hash in its files, and the binary

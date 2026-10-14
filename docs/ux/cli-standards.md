@@ -323,7 +323,7 @@ Rules:
   `stations:`, pins the ingredients it lists and writes its entries and template files into the repository's own files,
   and has no inverse. Why: what it writes becomes the repository's own, like anything it wrote itself. It is changed or
   removed by editing the files, and removing `the-cook` deletes the entries with the seeded files in `.cook/` and leaves
-  the template files ([ADR 0013](../adrs/0013-organization-content.md)). Deleting the name from `stations:` changes
+  the template files. Deleting the name from `stations:` changes
   nothing rendered, because a station has no renders. `recipe add` and `recipe create` have no inverse either, for the
   same reason: a recipe is changed by editing its file and removed by deleting its directory, and removing `the-cook`
   deletes `.cook/recipes/` after listing each recipe.

@@ -117,8 +117,7 @@ An organization's choices that `the-cook` enforces (which observability tools co
 deny on each repository's deploy command, a CI-trigger commit in delivery, the actions that update the task tracker its
 repositories use) reach a repository only as entries in its own files, written by a person or by a coding agent
 following the organization's skill. Why: no repository file can name a source outside the repository, and the
-organization's choices differ between its repositories, so applying them takes judgement
-([ADR 0013](../adrs/0013-organization-content.md)). Such a skill:
+organization's choices differ between its repositories, so applying them takes judgement. Such a skill:
 
 - states each entry with the reason the organization holds it, and how to fit it to the repository in front of the
   coding agent: which entries apply, and what to do with an entry the repository already has, because the coding agent

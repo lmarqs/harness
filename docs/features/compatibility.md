@@ -198,7 +198,7 @@ Adopting `the-cook` leaves a repository's CI/CD unchanged:
 - a job that runs either step runs `./cook fetch` first, which downloads every pinned ingredient and station and every
   recipe's origin version that the job's cache lacks, and verifies each against its sha256;
 - the drift check reads only the repository's files, the pinned release and the pinned ingredients, so its result
-  changes only with a commit to the repository ([ADR 0013](../adrs/0013-organization-content.md)).
+  changes only with a commit to the repository.
 
 ## Versions
 

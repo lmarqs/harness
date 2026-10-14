@@ -255,8 +255,7 @@ they never use ([ADR 0013](../adrs/0013-organization-content.md)). Write the den
 
 Write them into each repository. What `the-cook` renders and runs in a repository comes only from that repository's
 files, the release it pins and the ingredients it pins by hash, so a reviewer and a worker there can read every rule
-that applies, and the same commit renders the same bytes on every machine
-([ADR 0013](../adrs/0013-organization-content.md)).
+that applies, and the same commit renders the same bytes on every machine.
 
 - **Choices that take judgement**, such as which MCP tools coding agents may read without asking, a deny on each
   repository's deploy command, a CI trigger in delivery or the task tracker its repositories use: publish a skill that

@@ -27,8 +27,8 @@ the sessions that do not need it.
   prompt. The set of events differs between worker programs.
 - Interactive sessions and attempts need different directives: a rule for how a worker in an attempt reports a blocked
   task means nothing to a person at the terminal.
-- A repository's skills are files under `.agents/skills/`, committed like its other files
-  ([0014](0014-directory-layout.md)), whether a person wrote them or the team installed them with a tool of its choice
+- A repository's skills are files under `.agents/skills/`, committed like its other files, whether a person wrote them
+  or the team installed them with a tool of its choice
   ([0022](0022-tool-integration.md)).
 - Text added to a worker's context acts as instructions. A source that someone can change without review is a channel
   for instructions. A worker in an attempt can write files in its working copy, skills and directive files included.

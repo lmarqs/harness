@@ -35,7 +35,7 @@ A station has no renders and no floor. It is applied once: [`the-cook station ap
 ingredients it lists, writes its stages, entries and templates into the repository's own files and copies its recipes
 into `.cook/recipes/`, adding only what they lack, shows it all as one diff to review, then renders. From then on those
 entries, files and recipes are the repository's, like anything written by hand, while everything rendered comes from
-the pinned ingredients ([ADR 0013](../adrs/0013-organization-content.md)). A station runs nothing: a
+the pinned ingredients. A station runs nothing: a
 [recipe](recipes.md) it adds, one kind of change made many times, acts only when someone runs it.
 
 The profile records each applied station under `stations:` ([profile](profile.md#stations)), with its cookbook, version
@@ -77,8 +77,8 @@ applying it to sample repositories, then publish it in one of the [cookbooks](#c
 ### Organization choices
 
 An organization's way of working, such as its delivery actions, the denies its unattended runs need or a commit
-trailer its CI expects, is a station in a cookbook of its own, beside the ingredients for its own programs
-([ADR 0013](../adrs/0013-organization-content.md)). Applying it writes those choices into each repository's own files
+trailer its CI expects, is a station in a cookbook of its own, beside the ingredients for its own programs. Applying
+it writes those choices into each repository's own files
 in one reviewed diff, and from then on each repository edits them like its own.
 
 Choices that differ between the organization's repositories take judgement. A person, or a worker following a skill
@@ -130,8 +130,8 @@ Entries are additions to the repository's three YAML files: commands, `bootstrap
 and [standing context](context.md) in `.cook/config.yaml`; `unattended.deny` and other policy entries in
 `.cook/policy.yaml`; post-edit hooks and lifecycle actions in `.cook/hooks.yaml`. `apply` adds only what the files
 lack, following the [merge rules](#merge-rules). From then on each entry is the repository's own: people and workers
-change or delete it by editing the file, and nothing records which station wrote it
-([ADR 0013](../adrs/0013-organization-content.md)). A newer version's entries reach a repository only when someone
+change or delete it by editing the file, and nothing records which station wrote it. A newer version's entries reach a
+repository only when someone
 applies the station again ([Applying again](#applying-again)).
 
 Entries fit what a repository may reasonably change, such as a stack's lint command or a tracker's lifecycle actions.
@@ -243,7 +243,7 @@ again: to take a newer version's, delete the file and apply, then carry over you
 `stations:` records which stations the repository applied and at which pin. Nothing rendered depends on it: deleting an
 entry from `stations:` changes nothing rendered and leaves the profile valid. Nothing records which entries or
 templates a station wrote either: each entry's one source of truth is the file it is in, and `the-cook` holds no record
-it could later use to change those entries by itself ([ADR 0013](../adrs/0013-organization-content.md)). Change or
+it could later use to change those entries by itself. Change or
 delete an applied entry or template by editing the file, then run `./cook render`.
 
 A recipe a station added records the cookbook it came from in its own `origin`, and nothing records which station

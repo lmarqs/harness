@@ -50,7 +50,7 @@ while the binary's own work and its guards stay outside the confinement and out 
 - Each working copy keeps its own state directory inside itself: the proof of verification, the session, the hook
   cache, the run record and an attempt's output. The primary working copy's state directory also holds the lifecycle
   log and the lock for creating working copies, which the binary writes outside any worker, and by default it holds
-  every managed working copy as well ([0014](0014-directory-layout.md)).
+  every managed working copy as well.
 - The tamper check, the replay and the commit of an attempt read and write the attempt's working copy and its version
   control metadata from outside the worker.
 - The replay of a proof runs the repository's lane commands and validators on the content the worker left, so it runs

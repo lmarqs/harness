@@ -20,7 +20,7 @@ recipe enters a repository only as the bytes its cookbook published, through a r
   ([0024](0024-ingredients-and-stations.md)).
 - A recipe's command steps run with the person's credentials. Once copied, a recipe is a file of the repository that its
   team edits, and every change to it is a change to the repository, reviewed like any other
-  ([0013](0013-organization-content.md), [0025](0025-recipes.md)).
+  ([0025](0025-recipes.md)).
 - The binary ships no ingredient, no station and no recipe ([0022](0022-tool-integration.md)). All are published in
   cookbooks by organizations and people other than the tool's publisher, and a binary can embed only the keys known when
   it is built.
@@ -50,8 +50,8 @@ recipe enters a repository only as the bytes its cookbook published, through a r
    updates it, the binary downloads, over HTTPS, the cookbook's checksum file for the version named and the recipe, and
    verifies the recipe against that file. A recipe a station adds is verified against the content hash the station gives
    for it, as an ingredient the station lists is, so applying the station again never trusts a checksum file downloaded
-   again. The binary presents the copy, or the merge, as a diff that enters the repository only through review
-   ([0013](0013-organization-content.md)). No content hash pins the copy the repository holds: it is the repository's
+   again. The binary presents the copy, or the merge, as a diff that enters the repository only through review. No
+   content hash pins the copy the repository holds: it is the repository's
    own file, and it acts as the repository holds it. The origin the copy records names the cookbook, the version and the
    content hash of the recipe it came from; an update takes that version, cached or downloaded, as the common ancestor
    of its merge and verifies it against that hash. The binary fetches a recipe only on a person's explicit command,
@@ -95,7 +95,7 @@ recipe enters a repository only as the bytes its cookbook published, through a r
 The author of each ingredient and station signs it, and the binary verifies the signature as it verifies a release's
 ([0021](0021-release-trust.md)). At its best, an ingredient or a station compromised at its source before someone
 pinned it is caught. It loses because the binary would need every author's key: embedding them couples each release to
-those authors, the coupling [0013](0013-organization-content.md) rejects for organization content, and fetching them
+those authors, and fetching them
 trusts the host the signature exists to distrust, which is why a release's keys are embedded
 ([0021](0021-release-trust.md)).
 

@@ -63,8 +63,7 @@ Every lifecycle action and every [notification hook](hooks.md#worker-notificatio
 that file, so the people who review a change and the workers that change the repository read there everything an event
 or a notification runs. An organization's delivery convention, such as
 [a CI-trigger commit](#an-organization-convention-a-ci-trigger-commit-before-the-pull-request) before every pull
-request, reaches a repository the same way: written into its `.cook/hooks.yaml` and reviewed there as a diff
-([ADR 0013](../adrs/0013-organization-content.md)).
+request, reaches a repository the same way: written into its `.cook/hooks.yaml` and reviewed there as a diff.
 
 Commands are named `the-cook <command>` on this page. The examples run them through the repository's wrapper,
 `./cook <command>`, from the root of a checkout; with a global install, `the-cook <command>` is equivalent
@@ -644,7 +643,7 @@ deliver    open-pr  run   false  task, run, change  stop
 At acme, CI runs a pull request only when its tip commit carries `#ci`. That is a choice of the organization, not a fact
 of any stack, so each repository that follows it declares the whole chain in its own hooks file. The change is usually
 written by a coordinating worker following the skill acme publishes for its repositories, and each repository reviews
-it as a diff like any other change ([ADR 0013](../adrs/0013-organization-content.md)):
+it as a diff like any other change:
 
 ```yaml
 # .cook/hooks.yaml
@@ -895,7 +894,7 @@ moved that entry out of `ask`.
 - Do prefer draft pull requests from automatic delivery: a person marks them ready.
 - Do write an organization's delivery convention into each repository's `.cook/hooks.yaml`, by hand or with a worker
   following the organization's skill, and review it there as a diff: the actions a repository runs are then the ones
-  its reviewers and workers can read ([ADR 0013](../adrs/0013-organization-content.md)).
+  its reviewers and workers can read.
 - Do review changes to `lifecycle` like code: an action runs with your credentials, outside the worker's permission
   checks ([safety](safety.md#lifecycle-actions-are-code)).
 - Don't write the team's record in actions: no issue comments, reviews, labels or board moves.

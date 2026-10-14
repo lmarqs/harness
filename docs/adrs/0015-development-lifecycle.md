@@ -94,7 +94,7 @@ work that is not ready, and a stopped run can reach a person through an event.
 7. The repository declares the actions for each event ([0019](0019-action-kinds.md)): run in order, optionally limited
    to some of the event's scopes, each with a rule for whether its failure stops the remaining actions. No action runs
    that the repository's files do not declare; a station's actions reach them only as entries a person applies
-   ([0013](0013-organization-content.md), [0024](0024-ingredients-and-stations.md)).
+   ([0024](0024-ingredients-and-stations.md)).
 8. Every event can be triggered by a person, by a coordinating worker or by a script, or automatically at a trigger
    point of the binary's own work, and every trigger runs the same declared actions under the same guards. Automatic
    triggering applies only to actions that opt in to it. The automatic trigger points are:

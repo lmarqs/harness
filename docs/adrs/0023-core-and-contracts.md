@@ -39,8 +39,8 @@ reached through an interface the rules declare.
   it last learned, which may differ from that of its own default branch; others keep the history on a server, and some
   share nothing beyond the one copy. Example: git answers the shared default line as `origin/main`, learns it with a
   fetch, and a commit on the local `main` is shared only once it is pushed.
-- The repository's declared data sits in the tool's configuration directory at the repository root
-  ([0014](0014-directory-layout.md)), so finding it takes only the files of a checkout. The base revision, a file's
+- The repository's declared data sits in the tool's configuration directory at the repository root, so finding it
+  takes only the files of a checkout. The base revision, a file's
   history and a workspace are answers only version control has.
 
 ## Decision
@@ -75,12 +75,12 @@ reached through an interface the rules declare.
 6. The entry point is the only way in. People, hooks fired by a worker and loop runners all call the command line
    ([0022](0022-tool-integration.md)); the committed wrapper is such a caller ([0017](0017-engine-version.md)).
 7. The core finds the repository root itself, through the files interface: the nearest directory upward that holds the
-   tool's configuration directory with its data ([0014](0014-directory-layout.md)). Reading and validating the
+   tool's configuration directory with its data. Reading and validating the
    repository's data needs no ingredient; workspace, base and history operations go through the version control
    contract.
 8. A contract that no ingredient in use fills makes every use case that needs it unavailable. An explicit call of such a
    use case stops before it acts and reports a missing prerequisite that names the contract and the step that fills it;
-   an implicit call follows [0010](0010-dependence-on-the-binary.md). The binary never substitutes a fallback for an
+   an implicit call uses the implicit-entry-point behaviour. The binary never substitutes a fallback for an
    unfilled contract. The health check reports each unfilled contract with the use cases it makes unavailable.
 
 ## Reasons
@@ -120,7 +120,7 @@ reached through an interface the rules declare.
 - **8.** A fallback for an unfilled contract would be a description of a program inside the binary, which
   [0022](0022-tool-integration.md) excludes, acting on the repository without any pin a reviewer accepted, and wrong in
   every repository that uses another program. Running the use case without the contract, or reporting success, would
-  report as done work that did not happen ([0010](0010-dependence-on-the-binary.md)). Stopping with the contract's name
+  report as done work that did not happen. Stopping with the contract's name
   turns the gap into one step a person can take, and the health check shows the whole gap at once. The trade: a
   repository that has pinned no ingredient can do little beyond reading, validating and reporting until it pins one.
 

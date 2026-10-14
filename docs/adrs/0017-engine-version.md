@@ -27,8 +27,8 @@ first command works with nothing installed beforehand.
   for each tool. Repositories differ in their task runners, and some use none. A
   pin kept in one task runner's tool list does not reach a repository, machine or pipeline without that task runner.
 - A version pinned in two places drifts: after the first upgrade that touches only one of them, the two disagree.
-- A worker's hooks must not fail or stall a session because the binary is missing
-  ([0010](0010-dependence-on-the-binary.md)), and a hook invocation adds at most 50 ms at p95. A download inside a
+- A worker's hooks must not fail or stall a session because the binary is missing, and a hook invocation adds at most
+  50 ms at p95. A download inside a
   hook breaks both.
 - A fresh clone whose hooks find no binary runs worker sessions without the tool's hooks, and the worker has no way to
   know why.
@@ -48,8 +48,8 @@ first command works with nothing installed beforehand.
 
 1. The default entry point to the tool in a repository is a wrapper script committed at the repository root. The binary
    renders it from a template embedded in itself and records it as owned.
-2. The repository pins one exact release in a committed file in the tool configuration directory
-   ([0014](0014-directory-layout.md)), together with the SHA-256 checksum of that release's binary for each supported
+2. The repository pins one exact release in a committed file in the tool configuration directory, together with the
+   SHA-256 checksum of that release's binary for each supported
    platform, or a mark that they are pending (point 13). The pin is owned content recorded in the manifest,
    and it exists in exactly one place.
 3. A pin is written only by adoption and by an explicit upgrade operation. Its checksums come only from a release
@@ -64,7 +64,7 @@ first command works with nothing installed beforehand.
    session-start hook also tells the worker once per session that the pinned release is not cached on this machine and
    how to fetch it. The wrapper writes both lines itself, because no binary is present to write them. An explicit entry
    point that cannot obtain or verify the pinned binary exits non-zero, so an absent check is never reported as a
-   passing one ([0010](0010-dependence-on-the-binary.md)).
+   passing one.
 6. An environment override makes the wrapper execute a binary at a given path instead, for machines without network
    access and for development of the tool itself.
 7. A global installation is optional. Inside a repository whose pin names a different release, a globally installed
@@ -78,7 +78,7 @@ first command works with nothing installed beforehand.
     caches the answer, never blocks or fails because of the lookup, works offline, and skips the lookup when an
     environment variable disables it. It names a newer release only after verifying that release's signed checksum
     file ([0021](0021-release-trust.md)).
-11. CI needs no wrapper ([0010](0010-dependence-on-the-binary.md)). A pipeline that opts in to the tool's checks runs
+11. CI needs no wrapper. A pipeline that opts in to the tool's checks runs
     them through the wrapper and gets the pinned release, verified.
 12. Releases come from the release source the pin names. The source serves each release's assets and signed checksum
     file, and the newest release's signed checksum file, at fixed paths over plain HTTPS. The project's own release
@@ -111,7 +111,7 @@ first command works with nothing installed beforehand.
   verified, not whatever the person upgrading happened to download. Rendering with the new release inside the upgrade
   keeps the drift check exact: the pinned release's output and the committed artefacts always agree, so a difference
   is always a real one.
-- **5.** A download inside a hook breaks both the no-failure rule of [0010](0010-dependence-on-the-binary.md) and the
+- **5.** A download inside a hook breaks both the no-failure rule and the
   50 ms budget. Without a hint, a fresh clone's worker works without the
   tool's hooks and cannot tell why; one line in its context per session tells it the fix, and limiting it to one line
   keeps the cost in tokens and noise fixed. Only the wrapper is present at that moment, so only the wrapper can say it.
@@ -132,7 +132,7 @@ first command works with nothing installed beforehand.
 - **10.** Without a notice, a repository stays on its pinned release indefinitely. The lookup must never cost a session
   or a pipeline anything, so it is cached, non-blocking and offline-safe, and it can be disabled for CI and machines
   without network access.
-- **11.** CI stays free of any requirement ([0010](0010-dependence-on-the-binary.md)); a pipeline that chooses to run
+- **11.** CI stays free of any requirement; a pipeline that chooses to run
   the checks gets the same verified release as every developer.
 - **12.** Some networks reach only an internal mirror. Fixed paths over HTTPS make a mirror a plain copy of files, keep
   the wrapper a downloader rather than an API client, and keep platform logic out of the binary. Serving the newest
@@ -215,7 +215,7 @@ Costs:
 - Each release reaches a repository only through a change to its pin. The change is generated and can be produced for
   many repositories in one operation, but each repository reviews its own.
 - A teammate who never runs an explicit entry point gets nothing from the tool's hooks beyond the stderr line and the
-  session hint ([0010](0010-dependence-on-the-binary.md)).
+  session hint.
 - The environment override skips the checksum; what runs is whatever the person placed at that path. The override,
   and a global binary too old to defer to pins, are the two ways to run another release inside a pinned repository.
 - The repository carries one tool-owned script; a hand edit to it is drift.
