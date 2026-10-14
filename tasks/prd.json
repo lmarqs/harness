@@ -1,7 +1,7 @@
 {
   "name": "Independent agent setup recipes",
-  "branchName": "ralph/agentic-recipes",
   "description": "Implement directly invoked, independently built agent permission, context and init recipes for the-cook. Users select one or more harnesses with repeated --harness and can bind separate version-1 literal-prefix policies to Claude and Codex. Each invocation reconciles only stable selected applications; omissions preserve others and removal is explicit. Seed AGENTS.md and a starter policy only when appropriate, then let developers maintain them. No required cook.groovy, umbrella manifest or replay script. Recipe-local builds and fixture tests are the working quality-gate choice; core/CLI changes run their affected checks and final integration runs check cliBuild cookbookBuild jpackageTest. Existing ownership state must survive. Non-goals: Medprev workflow parity, hooks, Ralph/Beads orchestration, remote distribution, new policy wildcard/MCP syntax, multiple session profiles within one harness, TUI, or automatic agent execution. This JSON records planned work, not implemented functionality.",
+  "branchName": "ralph/agentic-recipes",
   "userStories": [
     {
       "id": "US-001",
@@ -19,9 +19,10 @@
         "Quality gate: git diff --check passes."
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "notes": "",
-      "dependsOn": []
+      "dependsOn": [],
+      "completionNotes": "Completed by agent"
     },
     {
       "id": "US-002",
@@ -40,11 +41,12 @@
         "Quality gate: git diff --check passes."
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "notes": "",
       "dependsOn": [
         "US-001"
-      ]
+      ],
+      "completionNotes": "Completed by agent"
     },
     {
       "id": "US-003",
@@ -62,11 +64,12 @@
         "Quality gate: git diff --check passes."
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "",
       "dependsOn": [
         "US-001"
-      ]
+      ],
+      "completionNotes": "Completed by agent"
     },
     {
       "id": "US-004",
@@ -83,11 +86,12 @@
         "Quality gate: git diff --check passes."
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "notes": "",
       "dependsOn": [
         "US-003"
-      ]
+      ],
+      "completionNotes": "Completed by agent"
     },
     {
       "id": "US-005",
@@ -105,11 +109,12 @@
         "Quality gate: git diff --check passes."
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "notes": "",
       "dependsOn": [
         "US-004"
-      ]
+      ],
+      "completionNotes": "Completed by agent"
     },
     {
       "id": "US-006",
@@ -128,12 +133,13 @@
         "Quality gate: git diff --check passes."
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "notes": "",
       "dependsOn": [
         "US-002",
         "US-005"
-      ]
+      ],
+      "completionNotes": "Completed by agent"
     },
     {
       "id": "US-007",
@@ -151,12 +157,13 @@
         "Quality gate: git diff --check passes."
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "notes": "",
       "dependsOn": [
         "US-003",
         "US-005"
-      ]
+      ],
+      "completionNotes": "Completed by agent"
     },
     {
       "id": "US-008",
@@ -177,11 +184,12 @@
         "Quality gate: git diff --check passes."
       ],
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "notes": "",
       "dependsOn": [
         "US-001"
-      ]
+      ],
+      "completionNotes": "Completed by agent"
     },
     {
       "id": "US-009",
@@ -200,14 +208,15 @@
         "Quality gate: git diff --check passes."
       ],
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "notes": "",
       "dependsOn": [
         "US-002",
         "US-005",
         "US-006",
         "US-008"
-      ]
+      ],
+      "completionNotes": "Completed by agent"
     },
     {
       "id": "US-010",
@@ -225,14 +234,15 @@
         "Quality gate: git diff --check passes."
       ],
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "notes": "",
       "dependsOn": [
         "US-002",
         "US-006",
         "US-007",
         "US-008"
-      ]
+      ],
+      "completionNotes": "Completed by agent"
     },
     {
       "id": "US-011",
@@ -251,12 +261,13 @@
         "Quality gate: git diff --check passes."
       ],
       "priority": 11,
-      "passes": false,
+      "passes": true,
       "notes": "",
       "dependsOn": [
         "US-009",
         "US-010"
-      ]
+      ],
+      "completionNotes": "Completed by agent"
     },
     {
       "id": "US-012",
@@ -276,11 +287,12 @@
         "Quality gate: git diff --check passes."
       ],
       "priority": 12,
-      "passes": false,
+      "passes": true,
       "notes": "",
       "dependsOn": [
         "US-011"
-      ]
+      ],
+      "completionNotes": "Completed by agent"
     },
     {
       "id": "US-013",
@@ -299,11 +311,12 @@
         "Quality gate: git diff --check passes."
       ],
       "priority": 13,
-      "passes": false,
+      "passes": true,
       "notes": "",
       "dependsOn": [
         "US-012"
-      ]
+      ],
+      "completionNotes": "Completed by agent"
     },
     {
       "id": "US-014",
@@ -323,11 +336,12 @@
         "Quality gate: git diff --check passes."
       ],
       "priority": 14,
-      "passes": false,
+      "passes": true,
       "notes": "",
       "dependsOn": [
         "US-013"
-      ]
+      ],
+      "completionNotes": "Completed by agent"
     },
     {
       "id": "US-015",
@@ -346,11 +360,80 @@
         "Quality gate: git diff --check passes."
       ],
       "priority": 15,
-      "passes": false,
+      "passes": true,
       "notes": "",
       "dependsOn": [
         "US-014"
-      ]
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-016",
+      "title": "Resolve removal from supplier declarations",
+      "description": "Fix confirmed review findings so selected removal is scoped by the invoked recipe contract and validates required selectors without reading policy sources.",
+      "acceptanceCriteria": [
+        "Suppliers declare removal selection and its required inputs through typed core metadata. Core and CLI contain no agentic/tool-specific basename heuristics or hardcoded application IDs. Metadata can be obtained without rendering or evaluating the policy file.",
+        "agentic/permission and agentic/context removal require repeatable harness selectors. Missing, empty, unsupported, unknown and repeated scalar removal arguments fail before any writes. Only policy inputs are exempted when not needed for removal; validation follows the declared removal contract.",
+        "An unrelated permission.groovy declaring fixture/unrelated cannot remove installed agentic permissions. A renamed arbitrary factory with a declared removal scope removes exactly its own selected application.",
+        "agentic/init removal selects only its public permission/context children for selected harnesses and cannot remove an independently installed agentic.init/git application or other old cookbook children.",
+        "Preserve existing removal behavior for adopted originals, managed drift, missing policy source, dry-run, absent applications and unselected harnesses. Document any safe unsupported removal behavior for undeclared legacy factories instead of guessing scope.",
+        "Add meaningful core/CLI fixture regressions for all reproduced cases. Existing recipe module fixtures and packaged removal integration remain green.",
+        "Quality gates: ./gradlew -p core check; ./gradlew -p cli check; all three independent agentic recipe module checks; git diff --check.",
+        "Commit only verified story changes with US-016 in its conventional commit message."
+      ],
+      "priority": 16,
+      "passes": true,
+      "notes": "Review reproductions: /tmp/cook-review-removal-nu17mfvk and /tmp/cook-review-init-scope-sruvuqcf. Read NativePlanning.remove, CookCommand removal input parsing. Existing original plan acceptance requires safe explicit scopes; these are correctness fixes, not new features.",
+      "dependsOn": [
+        "US-015"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-017",
+      "title": "Preserve direct identities and child provenance while composing init",
+      "description": "Fix remaining confirmed review findings for source relocation, per-harness diagnostic policy bindings, and the approved public recipe composition requirement.",
+      "acceptanceCriteria": [
+        "A directly invoked declared factory can be copied or renamed anywhere, including under cookbook/recipes, without changing its declared identity. Apply and --help work for an explicit renamed path. Named discovery may validate its requested identity; explicit file paths use the declaration.",
+        "Source relocation and direct/named/composed invocation preserve selected application identities and removal correctness. Add regressions using an actual or fixture declared permission factory copied to cookbook/recipes/renamed.groovy.",
+        "Persist diagnostic recipe/input provenance on real selected application children. Sequential Claude interactive-policy and Codex unattended-policy calls retain the policy source for EACH application; changing one updates only that provenance. Preserve metadata for unselected and already-configured applications during init.",
+        "init.groovy composes BOTH public context and permission definitions. Remove duplicated native permission construction. Preserve in-memory validation for an absent seed policy, seed-only source semantics, separate existing bindings, stable child identities, atomic failure, and no unnecessary policy reads when already configured.",
+        "Use a small shared recipe dependency or typed composition interface only if required for validated absent policy seeds; avoid multiple conflicting implementations of the permission factory. Supplier modules remain independent and explicitly declare dependencies.",
+        "Extend fixture tests to prove these behaviors and regenerate dogfood through the recipes, keeping user instruction and policy files intact. All reruns report Already cooked with stable output and state bytes.",
+        "Run ./gradlew check cliBuild cookbookBuild jpackageTest; all focused story regression tests and git diff --check pass. No weakening of lint rules, ownership invariants or acceptance criteria.",
+        "Commit only verified story changes with US-017 in its conventional commit message."
+      ],
+      "priority": 17,
+      "passes": true,
+      "notes": "Read-only review reproduced direct renamed-source failure in /tmp/cook-review-identity-lxay_35d. Existing dogfood state has provenance only for permission/default and context/default, losing the Claude policy binding. US-011 explicitly requires composition of public permission and context definitions.",
+      "dependsOn": [
+        "US-016"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-018",
+      "title": "Adopt tracked Codex rules in fresh clones and correct lifecycle docs",
+      "description": "Complete the final concrete fresh-clone regression found in review and align the README with declared removal.",
+      "acceptanceCriteria": [
+        "CodexFiles.ruleBlock forwards its existing adopt flag to BlockOutput. An existing unmanaged Codex rules block can be adopted explicitly; adoption is never implicit and managed drift still rejects writes.",
+        "Add a regression representing a fresh clone with tracked AGENTS.md, CLAUDE.md, both policy sources, .claude/settings.json, .codex/config.toml and .codex/rules/cookbook.rules but no .cook state. The context and both separate permission commands with explicit --adopt=true succeed, preserve source and generated output bytes, and establish correct per-harness ownership/provenance.",
+        "Rerunning those three commands without adoption reports Already cooked with unchanged outputs/state. Add a negative assertion that no-adoption fails atomically, and ensure managed drift cannot be bypassed using adoption.",
+        "Fix README.md:35 unsupported legacy agentic/claude removal example to use declared agentic/permission with explicit --harness=claude. Verify the documented removal command.",
+        "Document first-run explicit adoption in a fresh clone in docs/features/agentic-dogfood.md. Distinguish initial adoption from subsequent ordinary updates and preserve tracked policy/instruction sources. Execute the exact documented workflow in a temporary clone or equivalent fixture without deleting rendered files.",
+        "Quality gates: ./gradlew -p cookbook/recipes/agentic/permission check; ./gradlew -p cookbook/recipes/agentic/codex check; ./gradlew check cliBuild cookbookBuild jpackageTest; git diff --check.",
+        "Commit verified story files with US-018 in the conventional message. Leave tasks/prd.json for the coordinator, never push or merge."
+      ],
+      "priority": 18,
+      "passes": true,
+      "notes": "Reviewer reproduced failure in /tmp/cook-review-fresh-adopt-7whksohb: --adopt=true still fails on cookbook.codex/commands because CodexFiles.groovy:39 omits adopt in BlockOutput. Launcher is cli/build/install/the-cook/bin/the-cook, not cook/bin/cook. All previous stories are committed at 68b7f65 and the full gate is green; this is the only remaining confirmed important bug plus known docs corrections.",
+      "dependsOn": [
+        "US-017"
+      ],
+      "completionNotes": "Completed by agent"
     }
-  ]
+  ],
+  "metadata": {
+    "updatedAt": "2026-10-14T00:12:24.332Z"
+  }
 }
