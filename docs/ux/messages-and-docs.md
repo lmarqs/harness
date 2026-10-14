@@ -112,8 +112,8 @@ because it enters a worker's session.
 
 ## Output for workers and scripts
 
-- `--json` is the interface for workers and scripts. Human text may change wording between releases, but JSON fields may
-  not ([cli-standards.md](cli-standards.md#json)). Why: a program that parses prose breaks on the next rewording.
+- Human prose is for readers; scripts must not assume its wording is a stable data format. The agreed CLI does not
+  specify `--json` or a machine-output schema ([CLI output](cli-standards.md#json)).
 - Each to-do item and `doctor` finding names the file, the problem and the next action, and is stable across runs for
   the same state, so a worker can track it.
 - Hook output that reaches a worker's context is short: what ran, what failed, the command to reproduce it, because

@@ -136,8 +136,7 @@ workspaces:
   `wrapper.yaml` and `manifest.json` are owned. `the-cook` writes `wrapper.yaml` on scaffold and re-pin
   (`the-cook wrapper`), and `manifest.json` on scaffold, render and re-pin. `wrapper.yaml` carries a header naming the
   operation that changes it; `manifest.json`, being JSON, carries none. Each such write is shown before it happens,
-  through `--dry-run` and the confirmation rules in
-  [cli-standards.md](cli-standards.md#confirmations---yes-and---force). Why: the seeded files hold the repository's
+  through `--dry-run` and confirmation. Why: the seeded files hold the repository's
   choices, so `the-cook` must not overwrite them; the owned files hold facts `the-cook` computes.
 - A recipe in `.cook/recipes/<name>/` belongs to the repository from the moment it is written. `the-cook` writes one
   only when a person adds, updates or creates it (`the-cook recipe add`, `recipe update`, `recipe create`) or applies a
@@ -278,8 +277,7 @@ the-cook: .cook/config.yaml:14:5: unknown key "verify.lanes.e2e.requried_when"
 - A recipe's `{<input>}` and `{task}` placeholders are substituted only into argument lists that no shell parses, into
   paths and into plain text ([below](#recipes)), never into a command string, so the rule above holds for every string
   a shell reads.
-- Actions receive values per kind
-  ([cli-standards.md](cli-standards.md#values-passed-to-user-declared-commands-and-actions)):
+- Actions receive values per kind:
   - `run`: only through environment variables, which the shell expands; `the-cook` substitutes nothing.
   - `http`: in `json`, every `$NAME` inside a string becomes the JSON-encoded value of environment variable `NAME`,
     so a value can never break the document's structure; an unset variable becomes an empty string and a note.
@@ -704,8 +702,7 @@ program floor comes from the ingredients the repository pins, and a station has 
   must show only its additions.
 - The additions, pins, entries, templates and recipes alike, are shown as one diff and confirmed before anything is
   written. `--yes` answers the question. `--dry-run` prints the diff and writes nothing. Without a terminal and without
-  `--yes`, nothing is written and the command exits 3
-  ([cli-standards.md](cli-standards.md#confirmations---yes-and---force)). Why: once written, the entries are the
+  `--yes`, nothing is written and the command exits 3. Why: once written, the entries are the
   repository's own and nothing marks where they came from, so the diff before writing is the one moment a person sees
   them as a station's additions.
 - After writing, the command renders the repository as `the-cook render` does, with every ingredient the station lists
@@ -723,7 +720,7 @@ program floor comes from the ingredients the repository pins, and a station has 
   templates stay as the repository's own: they are changed or removed by editing the file, like any other entry, and
   removing `the-cook` (`the-cook remove`, `the-cook remove --eject`) deletes the seeded files in `.cook/` whatever they
   hold, deletes `.cook/recipes/` after listing each recipe, and leaves every file a template wrote, so applying a
-  station's entries has no inverse ([cli-standards.md](cli-standards.md#command-grammar)).
+  station's entries has no inverse.
 - A newer version of a station may hold more entries, list newer ingredients or add more recipes. They reach a
   repository only when someone applies that version:
   `./cook station apply node --cookbook github:acme/cookbook@v1.3.0 --dry-run` shows what it would add, and applying it
@@ -778,7 +775,7 @@ origin:
 | Key | Type | Meaning |
 | --- | --- | --- |
 | `schema` | integer | the recipe format's schema; a release refuses a newer one, exit 1, naming the release needed |
-| `name` | recipe name | the recipe's name, `[a-z][a-z0-9-]*`, equal to its directory's name ([cli-standards.md](cli-standards.md#command-grammar)) |
+| `name` | recipe name | the recipe's name, `[a-z][a-z0-9-]*`, equal to its directory's name |
 | `description` | string | one line, printed by `the-cook recipe list`, by `the-cook make <name> --help` and when a run starts |
 | `origin` | map: `source`, `version`, `sha256` | the cookbook, tag and archive sha256 a copied recipe came from: written by `the-cook recipe add` and by applying a station that adds the recipe, moved by `the-cook recipe update`, conflicts or not; absent for a recipe the repository wrote |
 | `inputs.<input>` | map: `type`, `description`, and `values` for an `enum` | one input, named `[a-z][a-z0-9-]*` and given to `the-cook make` as `--<input> <value>`; `type` is `string`, `slug` (`[a-z0-9][a-z0-9-]*`), `enum` (one of `values`) or `bool` |
@@ -809,21 +806,19 @@ origin:
 - Inputs are validated by their type before anything runs, the workspace included. An input name is lower case ASCII
   words joined by hyphens, `[a-z][a-z0-9-]*`, and never the name of a flag of `the-cook make` (every flag it accepts,
   global flags included: `continue`, `status`, `task`, `here`, `unattended`, `commit`, `withhold`, `dry-run`, `yes`,
-  `help`, `json`, `verbose`), because the input is itself a flag of `the-cook make`
-  ([cli-standards.md](cli-standards.md#naming)). A `run` step's environment carries it as `COOK_INPUT_` and the name in
-  upper case with hyphens as underscores: `module-path` gives `COOK_INPUT_MODULE_PATH`. A `bool` input is a boolean
-  flag, true when present and false when absent; every other input must be given, and none has a default
-  ([cli-standards.md](cli-standards.md#booleans)). `the-cook make <recipe> --help` lists the recipe's inputs with their
-  types and descriptions.
+  `help`, `json`, `verbose`), because the input is itself a flag of `the-cook make`. A `run` step's environment carries
+  it as `COOK_INPUT_` and the name in upper case with hyphens as underscores: `module-path` gives `COOK_INPUT_MODULE_PATH`. A `bool` input is a boolean
+  flag, true when present and false when absent; every other input must be given, and none has a default.
+  `the-cook make <recipe> --help` lists the recipe's inputs with their types and descriptions.
 - No input value of any type may begin with a hyphen; validation refuses one before anything runs. An input
   substituted into a `run` element is then one argument whatever it holds, and never an option of the program it
   reaches.
 - `template.to` is a path relative to the workspace, with forward slashes. One that, after substitution, is absolute or
   leaves the workspace is refused before anything runs, exit 1, because a recipe run writes only its own workspace.
 - In `attempt.prompt` and `handoff`, inputs are plain-text substitution and a prompt-injection surface, as in an
-  `attempt` action's prompt ([cli-standards.md](cli-standards.md#values-passed-to-user-declared-commands-and-actions)).
+  `attempt` action's prompt.
 - `requires` is checked when the recipe is added and again when it runs; a missing contract, role or lane exits 3 and
-  names it ([cli-standards.md](cli-standards.md#the-make-command)).
+  names it.
 - A recipe can only add: steps, required lanes and requirements. It declares no lifecycle action, skips no lane,
   weakens no guard and fires no event itself; delivery of a recipe run's work follows the repository's own lifecycle
   actions. Why: a recipe is repository data that a worker may have written, and the guards and the delivery convention
@@ -833,9 +828,8 @@ origin:
   content and digest in its run record, so a recipe runs in a new workspace once it is on that line (for git, pushed),
   not merely committed in one clone; `the-cook make --continue` runs that content and never reads the file again, so no
   step changes the recipe of the run it is in. `the-cook make --here` reads the file in the working tree instead, for
-  drafting a recipe, and is refused with `--unattended`, so a run nobody drives never follows a draft nobody reviewed
-  ([cli-standards.md](cli-standards.md#the-make-command)). The tamper check of an `attempt` step covers `.cook/recipes/`
-  with the rest of `.cook/`, so its worker cannot change a recipe a later run reads either.
+  drafting a recipe, and is refused with `--unattended`, so a run nobody drives never follows a draft nobody reviewed.
+  The tamper check of an `attempt` step covers `.cook/recipes/` with the rest of `.cook/`, so its worker cannot change a recipe a later run reads either.
 - The run's Verify stage runs the lanes itself: every lane the change selects, as the receipt a step left in the
   workspace selects them, and every lane in `verify.require`, a required lane the change selects nothing for in full.
   The receipt the run writes records per lane the patterns it ran or that it ran in full,

@@ -40,7 +40,7 @@ state each promise and how it changes.
 - The public contract covered by semantic versioning is: command names and grammar, flags, operands, enumerated values,
   `COOK_*` environment variables (those `the-cook` and its wrapper read and those it passes to actions and to the
   workers it starts), exit-code meanings, JSON output shapes, the
-  [attempt command](cli-standards.md#the-attempt-command)'s and the [make command](cli-standards.md#the-make-command)'s
+  attempt command's and the make command's
   flags, exit codes, output and environment, `the-cook explain` topic names, the ingredient, station and recipe schemas,
   the recipe step kinds and the three contracts, the cookbook layout
   (`<source>/download/<version>/<kind>-<name>.tar.gz`, `<kind>` being `ingredient`, `station` or `recipe`, and
@@ -175,8 +175,8 @@ is worse than none.
 - A command, flag, value, environment variable or file key is deprecated before it is removed. It keeps working for at
   least one minor release before 1.0, and until the next major release from 1.0. Why: repositories upgrade at their
   own pace through their pins.
-- While deprecated, it prints one stderr line per invocation naming the replacement
-  ([cli-standards.md](cli-standards.md#deprecation)), and `the-cook doctor` reports deprecated keys in repository files.
+- While deprecated, it prints one stderr line per invocation naming the replacement, and `the-cook doctor` reports
+  deprecated keys in repository files.
 - A schema is readable for at least the same window after its successor appears. Its migration is available for as
   long as it is readable.
 - Deprecation never changes stdout, JSON output or exit codes, because a warning must not break what it warns.
@@ -221,7 +221,7 @@ is worse than none.
 An adopted repository behaves for non-users exactly as it did before adoption:
 
 - A clone builds, tests, deploys and starts its workers without the binary.
-- Implicit entry points ([cli-standards.md](cli-standards.md#entry-points)) degrade: rendered worker hooks run
+- Implicit entry points degrade: rendered worker hooks run
   `./cook --no-download`, never download, and exit 0 after one stderr line naming `./cook` when no binary is
   cached. The session-start hook also adds one line to the worker's context saying the pinned version is not cached and
   how to fetch it; the wrapper prints both lines itself.

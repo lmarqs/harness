@@ -202,7 +202,7 @@ and hard to undo, so it must be written down, reviewed and guarded before it can
   command; or `the-cook` fires the action at the event's trigger point when the action sets `auto: true`. `auto`
   defaults to false, so nothing leaves the clone automatically unless a committed file says so.
 - **Guarded.** Actions never run inside an attempt (the unattended run of a worker that
-  [`the-cook attempt`](cli-standards.md#the-attempt-command) starts for one task) or an `attempt` action: the binary
+  `the-cook attempt` starts for one task) or an `attempt` action: the binary
   refuses `lifecycle run` there itself, whatever spelling invoked it. `deliver` always refuses on the default branch and
   with uncommitted changes and, when the verify module is enabled, without a valid receipt (the record a passing
   `the-cook verify` writes). These guards are built-in invariants.

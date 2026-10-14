@@ -79,7 +79,7 @@ runs, the judgement as steps a worker or a person takes, and the proof as lanes 
 Support for any program, the version control system and the workers included, is an ingredient or a declared action,
 whatever the other columns say, and never a command, a flag, a profile field or code in the binary; a way of running
 the lifecycle with several programs is a station built from their ingredients. The program calls `the-cook` through its
-commands, such as [`the-cook attempt`](cli-standards.md#the-attempt-command) as the command a loop runner runs for each
+commands, such as `the-cook attempt` as the command a loop runner runs for each
 task, and `the-cook` reaches the program through the operations of its ingredient and the commands the repository
 declares. Why: each team picks different programs and each program follows its own release schedule, so code in the
 binary for one of them breaks with its releases and serves no team that chose another, while an ingredient or an action
