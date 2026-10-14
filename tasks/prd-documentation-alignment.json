@@ -33,11 +33,12 @@
         "State that apply/discard always evaluate the supplied recipes against current content, even after an earlier identical invocation; history does not mark recipes as already applied."
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "notes": "",
       "dependsOn": [
         "US-001"
-      ]
+      ],
+      "completionNotes": "Completed by agent"
     },
     {
       "id": "US-003",
@@ -504,6 +505,6 @@
     }
   ],
   "metadata": {
-    "updatedAt": "2026-10-14T03:25:31.690Z"
+    "updatedAt": "2026-10-14T03:32:00.661Z"
   }
 }
