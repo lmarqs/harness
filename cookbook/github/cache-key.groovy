@@ -1,0 +1,43 @@
+/**
+ * Changes the key input of one cache step in a workflow job so the next run uses the supplied cache key expression.
+ *
+ * ## Before applying
+ *
+ * The workflow, job and step identified by its `id` must exist in the composed content. The selected step
+ * must accept a `key` input, and the supplied expression must describe the cache key the workflow needs.
+ *
+ * ## Apply
+ *
+ * ```sh
+ * ./cook dev.thecook:github:0.1.0:cache-key --workflow=.github/workflows/ci.yml --job=build \
+ *        --key='gradle-v2-${{ hashFiles("build.gradle", "settings.gradle") }}'
+ * ```
+ *
+ * ## Writes
+ *
+ * | Target | Part | When |
+ * | --- | --- | --- |
+ * | The selected workflow file | `jobs.<job>.steps[id=<step>].with.key` | Always |
+ *
+ * ## After applying
+ *
+ * The next workflow run uses the supplied key expression for the selected cache step. Other step inputs
+ * remain outside this declaration. Applying the same arguments again leaves the key unchanged.
+ *
+ * ## With other recipes
+ *
+ * Apply a recipe that supplies the cache step first, so this recipe can select its existing id. Distinct step
+ * inputs compose independently; the last recipe declaring this key supplies it. `dev.thecook:github:0.1.0:aws-oidc`
+ * declares the separate AWS credentials step and permission grants.
+ */
+import dev.thecook.github.Workflow
+
+@param(['workflow'], doc = 'Workflow file under .github/workflows') String workflow
+@param(['job'], doc = 'The job holding the cache step') String jobName
+@param(['step'], default = 'cache', doc = 'The cache step id') String step
+@param(['key'], doc = 'The new cache key expression') String key
+
+@ingredient(Workflow) def ci
+
+ci.file = workflow
+ci.job(jobName).stepWith(step, 'key', key)
