@@ -11,7 +11,7 @@
  * ## Apply
  *
  * ```sh
- * ./cook dev.thecook:codex:0.1.0:settings --config=setup/codex.toml --rules=setup/codex-rules
+ * ./cook dev.thecook:agents:0.1.0:codex-settings --config=setup/codex.toml --rules=setup/codex-rules
  * ```
  *
  * ## Writes
@@ -36,7 +36,7 @@
  * `sandbox_mode`, `approval_policy` and `sandbox_workspace_write`; other configuration keys remain separate
  * targets. Use other rule-file names when that recipe owns the `commands` section in `cook.rules`.
  */
-import dev.thecook.codex.Codex
+import dev.thecook.agents.Codex
 
 @param(value = ['config'], default = null, doc = 'TOML file whose top-level keys are written into .codex/config.toml')
 File config

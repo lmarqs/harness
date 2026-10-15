@@ -1,6 +1,4 @@
-package dev.thecook.skills
-
-import dev.thecook.agents.Skill
+package dev.thecook.agents
 
 /**
  * Supplies the SOLID principles, TDD and clean code skill for implementation and review.
@@ -10,8 +8,8 @@ import dev.thecook.agents.Skill
  *
  * ```groovy
  * import dev.thecook.agents.Agents
- * import dev.thecook.claude.Claude
- * import dev.thecook.skills.Solid
+ * import dev.thecook.agents.Claude
+ * import dev.thecook.agents.Solid
  *
  * @ingredient(Agents) def agents
  * @ingredient(Claude) def claude
@@ -23,6 +21,6 @@ import dev.thecook.agents.Skill
  */
 @Ingredient
 class Solid implements Skill {
-  /** The resource directory name and the shared skill directory under `.agents/skills/`. */
+  /** The skill directory name, under `skills/` in this artifact and under `.agents/skills/` in the destination. */
   final String name = 'solid'
 }

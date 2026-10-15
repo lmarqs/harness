@@ -40,12 +40,12 @@
  * Both recipes own the `ignore` section of `.gitignore`; the last recipe's section wins.
  */
 import dev.thecook.agents.Agents
-import dev.thecook.claude.Claude
-import dev.thecook.codex.Codex
+import dev.thecook.agents.Claude
+import dev.thecook.agents.Codex
 import dev.thecook.git.Git
-import dev.thecook.skills.Solid
-import dev.thecook.skills.HexagonalLayout
-import dev.thecook.skills.EffectiveJavaCore
+import dev.thecook.agents.Solid
+import dev.thecook.agents.HexagonalLayout
+import dev.thecook.agents.EffectiveJavaCore
 
 @ingredient(Agents) def agents
 @ingredient(Claude) def claude

@@ -25,8 +25,8 @@
  * The recipes write separate targets and work in either order.
  */
 import dev.thecook.agents.Agents
-import dev.thecook.claude.Claude
-import dev.thecook.codex.Codex
+import dev.thecook.agents.Claude
+import dev.thecook.agents.Codex
 
 @param(value = ['harness'], choices = ['claude', 'codex'], many = true, doc = 'Harnesses that read the shared instructions')
 String[] harness

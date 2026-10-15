@@ -1,8 +1,4 @@
-package dev.thecook.claude
-
-import dev.thecook.agents.Harness
-import dev.thecook.agents.Policy
-import dev.thecook.agents.Command
+package dev.thecook.agents
 
 /**
  * Models the project settings, instructions and skill links Claude Code reads in a repository.
@@ -22,7 +18,7 @@ import dev.thecook.agents.Command
  *
  * ```groovy
  * import dev.thecook.agents.Agents
- * import dev.thecook.claude.Claude
+ * import dev.thecook.agents.Claude
  *
  * @ingredient(Agents) def agents
  * @ingredient(Claude) def claude

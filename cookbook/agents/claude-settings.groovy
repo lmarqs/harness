@@ -9,7 +9,7 @@
  * ## Apply
  *
  * ```sh
- * ./cook dev.thecook:claude:0.1.0:settings --settings=setup/claude.json --instructions='Run tests before committing.'
+ * ./cook dev.thecook:agents:0.1.0:claude-settings --settings=setup/claude.json --instructions='Run tests before committing.'
  * ```
  *
  * ## Writes
@@ -30,7 +30,7 @@
  * supplied instructions. Apply `dev.thecook:agents:0.1.0:permissions` after it to use the shared policy for
  * `permissions`; other settings keys remain separate targets. Select `--harness=claude` for either recipe.
  */
-import dev.thecook.claude.Claude
+import dev.thecook.agents.Claude
 
 @param(value = ['settings'], default = null, doc = 'JSON file whose top-level keys are written into .claude/settings.json')
 File settings

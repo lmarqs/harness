@@ -1,8 +1,4 @@
-package dev.thecook.codex
-
-import dev.thecook.agents.Harness
-import dev.thecook.agents.Policy
-import dev.thecook.agents.Command
+package dev.thecook.agents
 
 /**
  * Models the project configuration, hooks, rules and instructions Codex reads in a repository.
@@ -22,7 +18,7 @@ import dev.thecook.agents.Command
  *
  * ```groovy
  * import dev.thecook.agents.Agents
- * import dev.thecook.codex.Codex
+ * import dev.thecook.agents.Codex
  *
  * @ingredient(Agents) def agents
  * @ingredient(Codex) def codex

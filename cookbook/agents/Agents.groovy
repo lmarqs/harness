@@ -17,8 +17,8 @@ package dev.thecook.agents
  *
  * ```groovy
  * import dev.thecook.agents.Agents
- * import dev.thecook.claude.Claude
- * import dev.thecook.skills.Solid
+ * import dev.thecook.agents.Claude
+ * import dev.thecook.agents.Solid
  *
  * @ingredient(Agents) def agents
  * @ingredient(Claude) def claude
@@ -32,8 +32,9 @@ package dev.thecook.agents
  *
  * ## With other models
  *
- * `Skill` supplies content from its artifact. `Harness` models, such as `dev.thecook.claude.Claude` and
- * `dev.thecook.codex.Codex`, translate the shared policy and paths into their own native files.
+ * `Skill` models, such as `Solid`, supply content from their artifact. `Harness` models, such as `Claude` and
+ * `Codex` in this artifact or a harness from another cookbook, translate the shared policy and paths into their own
+ * native files.
  * Agents owns the shared layout and computes the relative paths it passes to each harness.
  */
 @Ingredient
@@ -119,13 +120,13 @@ interface Harness {
   void readSkills(String path, List<String> names)
 }
 
-/** Skill content packaged under its name in its artifact, with `SKILL.md` and supporting files together. */
+/** Skill content packaged under `skills/<name>/` in its artifact, with `SKILL.md` and supporting files together. */
 trait Skill {
   /** The skill's directory name, used both for packaged resources and the shared destination directory. */
   abstract String getName()
 
-  /** Every file packaged under `name`, keyed by its relative path, for Agents to install as a shared skill. */
-  Map<String, String> getFiles() { resources(name) }
+  /** Every file packaged under `skills/<name>/`, keyed by its relative path, for Agents to install as a shared skill. */
+  Map<String, String> getFiles() { resources("skills/${name}") }
 }
 
 /** Version 1 of the shared policy: instructions and literal command prefixes with a decision each. */

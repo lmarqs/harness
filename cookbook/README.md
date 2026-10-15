@@ -45,7 +45,8 @@ A model's package is its cookbook's group plus its directory name: `cookbook/doc
 imports are its visible dependency list and `@ingredient(Compose)` resolves through them.
 
 Recipe names are noun phrases naming the state the destination gets, without repeating the directory's topic:
-`node/project.groovy`, `docker/base-image.groovy` and `agents/permissions.groovy`.
+`node/project.groovy`, `docker/base-image.groovy` and `agents/permissions.groovy`. A recipe that configures one of
+several programs in its directory names the program first: `agents/claude-settings.groovy`.
 
 The engine imports its own annotations, `groovy.json`, `groovy.yaml`, `groovy.toml` and `java.nio.file` into every
 unit, as the Groovy shell imports `java.util`. A unit imports nothing from the engine and nothing for JSON, YAML,
@@ -207,8 +208,8 @@ Ingredients
 cookbook.toml           the cookbook manifest at the cookbook root
 ```
 
-Each topic directory is one artifact. Skill content lives under `skills/<name>/`, with `SKILL.md` and its supporting
-files together.
+Each topic directory is one artifact. Skill content lives under `<dir>/skills/<name>/`, with `SKILL.md` and its
+supporting files together.
 
 `cookbook.toml` declares the cookbook's `group`, its release `version`, the engine API version as `api`, and any
 other cookbooks it uses at exact releases. This cookbook's manifest is:
