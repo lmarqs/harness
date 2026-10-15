@@ -139,7 +139,7 @@ in Markdown.
 | `docs/adrs/` | Architectural decisions and their reasons within the architecture |
 | `docs/ux/` | Interaction and documentation standards within the architecture |
 | Root and core usage guides | Truthful instructions and limitations for current implementation |
-| Recipe READMEs under `cookbook/recipes/` | What one recipe writes, reads, accepts and rejects |
+| Cookbook units under `cookbook/` | Document themselves in doc comments; a directory README is the artifact's front page |
 
 When a standard or ADR conflicts with the architecture, correct the supporting document. Track a missing implementation
 in issues. See the [UX authority](README.md#authority) and [ADR index](../adrs/README.md).
@@ -157,8 +157,8 @@ Keep the Objective independent of design details, so readers understand the purp
 
 Three pages state their objective in an opening paragraph instead, because readers open them for lookup rather than
 motivation: `docs/architecture.md` (the authority that other pages cite), `docs/features/cli.md` (command syntax) and
-`docs/features/agentic-dogfood.md` (current-implementation guide). Recipe READMEs open with the one or two sentences
-the recipe README template requires.
+`docs/features/agentic-dogfood.md` (current-implementation guide). Cookbook units open with the lead of their doc
+comment.
 
 ADR facts follow under `## Context`; reference material and examples follow under their own headings, because readers
 use the outline to find each kind of information.
@@ -181,12 +181,10 @@ Omit empty sections other than Objective, apart from the pages named above.
 Do not fill reference tables with undecided exit codes, hook phases, patch formats, metadata schemas or model APIs.
 An explanation of the guarantee is sufficient when its concrete representation needs separate design.
 
-### Recipe READMEs
+### Cookbook units
 
-A recipe README explains its recipe and nothing else. Its reader already knows the core and the architecture, so it
-does not explain or link them; a recipe stays understandable when its directory is read on its own. Write each one
-in the cookbook's shape: one sentence on what the recipe declares, one invocation, then a table of each target and
-the part of it the recipe owns.
+A recipe documents itself in the doc comment that opens its file; a model in its class and member doc comments.
+A directory README is the artifact's front page. The shape is defined in [cookbook/README.md](../../cookbook/README.md).
 
 ### Writing rules for all documentation
 
