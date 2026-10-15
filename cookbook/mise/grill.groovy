@@ -30,7 +30,7 @@
  */
 import dev.thecook.mise.Mise
 
-@param(['script'], doc = 'The command the task runs') String script
+@param(value = ['script'], doc = 'The command the task runs') String script
 
 @ingredient(Mise) def mise
 

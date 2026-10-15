@@ -34,8 +34,8 @@ import dev.thecook.mise.Mise
 import dev.thecook.node.Node
 import dev.thecook.python.Python
 
-@param(['runtime'], choices = ['node', 'python'], doc = 'The runtime whose version moves to mise') String runtime
-@param(['version'], doc = 'The version mise pins') String version
+@param(value = ['runtime'], choices = ['node', 'python'], doc = 'The runtime whose version moves to mise') String runtime
+@param(value = ['version'], doc = 'The version mise pins') String version
 
 @ingredient(Mise) def mise
 @ingredient(Node) def node

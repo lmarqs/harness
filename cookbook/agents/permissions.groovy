@@ -36,7 +36,7 @@ import dev.thecook.agents.Agents
 import dev.thecook.claude.Claude
 import dev.thecook.codex.Codex
 
-@param(['harness'], choices = ['claude', 'codex'], many = true, doc = 'Harnesses that receive the shared policy')
+@param(value = ['harness'], choices = ['claude', 'codex'], many = true, doc = 'Harnesses that receive the shared policy')
 String[] harness
 
 @ingredient(Agents) def agents

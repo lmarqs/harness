@@ -35,9 +35,9 @@
 import dev.thecook.docker.Compose
 import dev.thecook.mise.Mise
 
-@param(['service'], doc = 'Service name') String service
-@param(['from'], doc = 'YAML file holding the service definition') File from
-@param(['file'], default = 'compose.yaml', doc = 'The Compose file') String file
+@param(value = ['service'], doc = 'Service name') String service
+@param(value = ['from'], doc = 'YAML file holding the service definition') File from
+@param(value = ['file'], default = 'compose.yaml', doc = 'The Compose file') String file
 
 @ingredient(Compose) def compose
 @ingredient(Mise) def mise

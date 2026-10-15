@@ -36,10 +36,10 @@
 import dev.thecook.docker.Docker
 import dev.thecook.mise.Mise
 
-@param(['dockerfile'], default = 'Dockerfile', doc = 'The Dockerfile containing the named stage') String dockerfile
-@param(['stage'], doc = 'The named build stage') String stage
-@param(['expected'], doc = 'The image the stage uses now') String expected
-@param(['image'], doc = 'The image to use instead') String image
+@param(value = ['dockerfile'], default = 'Dockerfile', doc = 'The Dockerfile containing the named stage') String dockerfile
+@param(value = ['stage'], doc = 'The named build stage') String stage
+@param(value = ['expected'], doc = 'The image the stage uses now') String expected
+@param(value = ['image'], doc = 'The image to use instead') String image
 
 @ingredient(Docker) def docker
 @ingredient(Mise) def mise

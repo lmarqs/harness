@@ -30,24 +30,24 @@
  *
  * ## With other recipes
  *
- * Apply `dev.thecook:agents:0.1.0:context` with `--harness=codex` to seed shared instructions in `AGENTS.md`;
- * its shared section and this recipe's `codex` section are separate targets. Apply
+ * Apply `dev.thecook:agents:0.1.0:context` with `--harness=codex` to seed `AGENTS.md` with a title when absent;
+ * the seed is never owned, while this recipe owns the `codex` section. Apply
  * `dev.thecook:agents:0.1.0:permissions` after this recipe with `--harness=codex` to use the shared policy for
  * `sandbox_mode`, `approval_policy` and `sandbox_workspace_write`; other configuration keys remain separate
  * targets. Use other rule-file names when that recipe owns the `commands` section in `cook.rules`.
  */
 import dev.thecook.codex.Codex
 
-@param(['config'], default = null, doc = 'TOML file whose top-level keys are written into .codex/config.toml')
+@param(value = ['config'], default = null, doc = 'TOML file whose top-level keys are written into .codex/config.toml')
 File config
 
-@param(['hooks'], default = null, doc = 'JSON file whose top-level keys are written into .codex/hooks.json')
+@param(value = ['hooks'], default = null, doc = 'JSON file whose top-level keys are written into .codex/hooks.json')
 File hooks
 
-@param(['rules'], default = null, doc = 'Directory whose files become .codex/rules/<name>')
+@param(value = ['rules'], default = null, doc = 'Directory whose files become .codex/rules/<name>')
 File rules
 
-@param(['instructions'], default = null, doc = 'Codex-specific instruction text for AGENTS.md')
+@param(value = ['instructions'], default = null, doc = 'Codex-specific instruction text for AGENTS.md')
 String instructions
 
 @ingredient(Codex) def codex

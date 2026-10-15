@@ -38,9 +38,9 @@ import dev.thecook.aws.Aws
 import dev.thecook.mise.Mise
 import dev.thecook.terraform.Terraform
 
-@param(['path'], doc = 'Where the Terraform file goes') String path
-@param(['from'], doc = 'File holding the Terraform text') File from
-@param(['endpoint'], default = 'http://localhost:4566', doc = 'LocalStack endpoint') String endpoint
+@param(value = ['path'], doc = 'Where the Terraform file goes') String path
+@param(value = ['from'], doc = 'File holding the Terraform text') File from
+@param(value = ['endpoint'], default = 'http://localhost:4566', doc = 'LocalStack endpoint') String endpoint
 
 @ingredient(Terraform) def terraform
 @ingredient(Aws) def aws

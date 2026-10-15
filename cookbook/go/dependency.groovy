@@ -34,9 +34,9 @@
 import dev.thecook.go.Go
 import dev.thecook.mise.Mise
 
-@param(['module'], doc = 'Module path') String module
-@param(['version'], doc = 'Module version, such as v1.2.3') String version
-@param(['dir'], default = '.', doc = 'The module directory') String dir
+@param(value = ['module'], doc = 'Module path') String module
+@param(value = ['version'], doc = 'Module version, such as v1.2.3') String version
+@param(value = ['dir'], default = '.', doc = 'The module directory') String dir
 
 @ingredient(Go) def go
 @ingredient(Mise) def mise

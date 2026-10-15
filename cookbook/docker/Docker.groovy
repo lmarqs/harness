@@ -1,5 +1,7 @@
 package dev.thecook.docker
 
+import java.util.regex.Pattern
+
 /**
  * Models named build stages in a Dockerfile and the build context's ignore file.
  *

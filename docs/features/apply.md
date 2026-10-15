@@ -139,8 +139,8 @@ example, when invoked from `/work/project`:
 
 | Recipe operand | Template reference in that recipe | Resolved source | Output declared as `settings.toml` |
 | --- | --- | --- | --- |
-| `cookbook/recipes/project.groovy` | `../templates/settings.toml` | `cookbook/templates/settings.toml` | `/work/project/settings.toml` |
-| `https://example.com/cookbook/recipes/project.groovy` | `../templates/settings.toml` | `https://example.com/cookbook/templates/settings.toml` | `/work/project/settings.toml` |
+| `recipes/project.groovy` | `../templates/settings.toml` | `templates/settings.toml` | `/work/project/settings.toml` |
+| `https://example.com/recipes/project.groovy` | `../templates/settings.toml` | `https://example.com/templates/settings.toml` | `/work/project/settings.toml` |
 
 ## Batch record
 

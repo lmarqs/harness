@@ -28,7 +28,7 @@ import dev.thecook.agents.Agents
 import dev.thecook.claude.Claude
 import dev.thecook.codex.Codex
 
-@param(['harness'], choices = ['claude', 'codex'], many = true, doc = 'Harnesses that read the shared instructions')
+@param(value = ['harness'], choices = ['claude', 'codex'], many = true, doc = 'Harnesses that read the shared instructions')
 String[] harness
 
 @ingredient(Agents) def agents

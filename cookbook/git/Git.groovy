@@ -17,7 +17,7 @@ package dev.thecook.git
  * ```groovy
  * import dev.thecook.git.Git
  *
- * @ingredient(Git) Git git
+ * @ingredient(Git) def git
  *
  * git.ignore('build/', '*.log')
  * git.ignore(['.cache/', 'tmp/'])

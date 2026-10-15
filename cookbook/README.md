@@ -47,8 +47,8 @@ imports are its visible dependency list and `@ingredient(Compose)` resolves thro
 Recipe names are noun phrases naming the state the destination gets, without repeating the directory's topic:
 `node/project.groovy`, `docker/base-image.groovy` and `agents/permissions.groovy`.
 
-The engine imports its own annotations, `groovy.json`, `groovy.yaml` and `java.nio.file` into every unit, as the
-Groovy shell imports `java.util`. A unit imports nothing from the engine and nothing for JSON, YAML or paths.
+The engine imports its own annotations, `groovy.json`, `groovy.yaml`, `groovy.toml` and `java.nio.file` into every unit,
+as the Groovy shell imports `java.util`. A unit imports nothing from the engine and nothing for JSON, YAML, TOML or paths.
 
 ## The author's API
 
@@ -102,7 +102,7 @@ Rules:
 | --- | --- | --- |
 | `@cookbook('group:version')` | loose recipe | The cookbook release used by its imports, once per cookbook it uses; for example, `@cookbook('dev.thecook:0.1.0')`. |
 | `@ingredient(Type, at)` | field | An injected instance, at the destination root or at the directory `at`. |
-| `@param(names, doc, default, choices, many)` | field | An input bound from `--name=value`. Required without a default. `many` accepts repeats. A `File` field is an input file in the destination, read as it was before the invocation. `doc` is required: it is the param's line in `--help`. |
+| `@param(value = names, doc = '...', default = ..., choices = ..., many = ...)` | field | An input bound from `--name=value`. Required without a default. `many` accepts repeats. A `File` field is an input file in the destination, read as it was before the invocation. `doc` is required: it is the param's line in `--help`. |
 
 A file that another recipe in the same invocation may write, such as a program's own configuration or Ralph's PRD,
 is read by the ingredient that models it, through `current(path)`; the recipe passes its path as a `String`.
@@ -120,7 +120,7 @@ invocation, `--help` after a recipe's arguments selects help for that address.
 
 | Unit | `--help` prints, in order | The author writes |
 | --- | --- | --- |
-| Recipe | The opening doc comment; the params from `@param`, each with its name, type, default or `required`, choices and `doc`; the ingredients it injects | The opening doc comment, and a `doc` on every param |
+| Recipe | The opening doc comment; the params from their annotations, each with its name, type, default or `required`, choices and `doc`; the ingredients it injects | The opening doc comment, and a `doc` on every param |
 | Model | The class doc comment; the API from the doc comments of its public members; the writes from its annotations and the doc comments of the annotated members | The class doc comment, and a doc comment on every public member and every annotated member |
 
 A fact that lives in code is rendered from the code and written nowhere else. State a model keeps for itself is
@@ -187,7 +187,7 @@ Parameters
   --mode=<String>           Run Ralph through its own runner at .ralph-tui/run, or    default: standalone
                             through the mise task ralph:run; choices: standalone, mise
   ...
-  --issue-prefix=<String>   The Beads issue prefix, for the beads tracker             default: null
+  --issue-prefix=<String>   The Beads issue prefix, for the beads tracker             default: none
 
 Ingredients
   dev.thecook.beads.Beads

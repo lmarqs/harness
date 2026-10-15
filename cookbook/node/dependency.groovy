@@ -34,11 +34,11 @@
 import dev.thecook.node.Node
 import dev.thecook.mise.Mise
 
-@param(['package'], doc = 'Package name') String packageName
-@param(['version'], doc = 'Version range to record') String version
-@param(['kind'], choices = ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies'], default = 'dependencies', doc = 'The package.json dependency group that owns the entry') String kind
-@param(['manager'], choices = ['npm', 'pnpm', 'yarn'], default = 'npm', doc = 'The package manager the install task runs') String manager
-@param(['dir'], default = '.', doc = 'The package directory') String dir
+@param(value = ['package'], doc = 'Package name') String packageName
+@param(value = ['version'], doc = 'Version range to record') String version
+@param(value = ['kind'], choices = ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies'], default = 'dependencies', doc = 'The package.json dependency group that owns the entry') String kind
+@param(value = ['manager'], choices = ['npm', 'pnpm', 'yarn'], default = 'npm', doc = 'The package manager the install task runs') String manager
+@param(value = ['dir'], default = '.', doc = 'The package directory') String dir
 
 @ingredient(Node) def node
 @ingredient(Mise) def mise

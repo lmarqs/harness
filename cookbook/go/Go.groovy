@@ -1,5 +1,7 @@
 package dev.thecook.go
 
+import java.util.regex.Pattern
+
 /**
  * Models a Go module's requirements and toolchain version.
  *

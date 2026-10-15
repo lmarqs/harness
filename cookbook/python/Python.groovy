@@ -1,5 +1,7 @@
 package dev.thecook.python
 
+import java.util.regex.Pattern
+
 /**
  * Models a Python project: its requirements, virtual environment and installer.
  *

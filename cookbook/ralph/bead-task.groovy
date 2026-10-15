@@ -33,7 +33,7 @@
  */
 import dev.thecook.mise.Mise
 
-@param(['issue'], doc = 'The Beads issue to work on') String issue
+@param(value = ['issue'], doc = 'The Beads issue to work on') String issue
 
 @ingredient(Mise) def mise
 
