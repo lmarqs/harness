@@ -14,9 +14,13 @@ see the root README's [current implementation](../../README.md#current-implement
 ./cook revert [-C <dir>] [batch-options] <batchId>
 ./cook batch list [-C <dir>]
 ./cook batch inspect [-C <dir>] <batchId>
+./cook [-C <dir>] <recipe> --help
+./cook [-C <dir>] --help <recipe>
 ```
 
-`apply` is the default. Running `./cook` with no arguments shows help.
+`apply` is the default. Running `./cook` with no arguments shows help. `--help` with a recipe prints that recipe's help
+and stops; both orders are accepted. The help comes from the recipe's `@help`, `@confirm` and `@yield` texts and its
+`@param` and `@ingredient` annotations, read from its source without running it or resolving its imports.
 
 `<batchId>` identifies a recorded batch: the UTC time the batch started, such as `2026-10-14T15-04-05Z`, with a
 suffix when two batches start in the same second.

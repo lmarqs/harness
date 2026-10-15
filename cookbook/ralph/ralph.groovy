@@ -1,48 +1,48 @@
-/**
- * Sets up Ralph TUI as the repository's loop runner: its configuration, a runner and the tracker it takes stories
- * from.
- *
- * ## Before applying
- *
- * - For the `json` tracker, a PRD in Ralph's JSON format at `--prd`. The recipe does not create one.
- * - For `--mode=mise`, mise installed. Bun and Ralph TUI are pinned for it; `mise install` fetches them.
- * - For `--mode=standalone`, `ralph-tui` on the `PATH`.
- * - For the `beads` tracker, `bd` on the `PATH`.
- *
- * ## Apply
- *
- * ```sh
- * ./cook dev.thecook:ralph:0.1.0
- * ./cook dev.thecook:ralph:0.1.0 --tracker=beads --mode=mise --issue-prefix=cook
- * ```
- *
- * ## Writes
- *
- * | Target | Part | When |
- * | --- | --- | --- |
- * | `.ralph-tui/config.toml` | Each top-level key | Always |
- * | `.ralph-tui/run` | The whole executable runner | `--mode=standalone` |
- * | `mise.toml` | `tools.bun`, `tools."npm:ralph-tui"` | `--mode=mise` |
- * | `.mise/tasks/ralph/run` | The whole executable runner | `--mode=mise` |
- * | `.beads/config.yaml` | `json` | `--tracker=beads` |
- * | `.beads/config.yaml` | `issue-prefix` | `--tracker=beads` and a non-null `--issue-prefix` |
- * | `.mise/tasks/beads/ready` | The whole executable script | `--tracker=beads` |
- * | `.gitignore` | The section `ignore`: Ralph's local and ephemeral files, and Beads' with `--tracker=beads` | Always |
- *
- * ## After applying
- *
- * - `--mode=standalone`: run `.ralph-tui/run`, with a PRD path or a Beads epic id as its argument.
- * - `--mode=mise`: run `mise install`, then `mise run ralph:run` with the same argument. `mise run beads:ready` lists
- *   the ready Beads tasks.
- * - Ralph's worktrees, iterations, reports and session files stay out of version control.
- *
- * ## With other recipes
- *
- * - `dev.thecook:ralph:0.1.0:prd-story` writes a PRD reduced to one story. Apply it before
- *   `dev.thecook:ralph:0.1.0`, with `--prd` pointing at the same path.
- * - `dev.thecook:ralph:0.1.0:bead-task` adds the task `ralph:bead`, which runs Ralph on one Beads issue.
- *   It needs `--tracker=beads` and `--mode=mise`.
- */
+@help('''
+Sets up Ralph TUI as the repository's loop runner: its configuration, a runner and the tracker it takes stories
+from.
+
+## Before applying
+
+- For the `json` tracker, a PRD in Ralph's JSON format at `--prd`. The recipe does not create one.
+- For `--mode=mise`, mise installed. Bun and Ralph TUI are pinned for it; `mise install` fetches them.
+- For `--mode=standalone`, `ralph-tui` on the `PATH`.
+- For the `beads` tracker, `bd` on the `PATH`.
+
+## Apply
+
+```sh
+./cook dev.thecook:ralph:0.1.0
+./cook dev.thecook:ralph:0.1.0 --tracker=beads --mode=mise --issue-prefix=cook
+```
+
+## Writes
+
+| Target | Part | When |
+| --- | --- | --- |
+| `.ralph-tui/config.toml` | Each top-level key | Always |
+| `.ralph-tui/run` | The whole executable runner | `--mode=standalone` |
+| `mise.toml` | `tools.bun`, `tools."npm:ralph-tui"` | `--mode=mise` |
+| `.mise/tasks/ralph/run` | The whole executable runner | `--mode=mise` |
+| `.beads/config.yaml` | `json` | `--tracker=beads` |
+| `.beads/config.yaml` | `issue-prefix` | `--tracker=beads` and a non-null `--issue-prefix` |
+| `.mise/tasks/beads/ready` | The whole executable script | `--tracker=beads` |
+| `.gitignore` | The section `ignore`: Ralph's local and ephemeral files, and Beads' with `--tracker=beads` | Always |
+
+Ralph's worktrees, iterations, reports and session files stay out of version control.
+
+## With other recipes
+
+- `dev.thecook:ralph:0.1.0:prd-story` writes a PRD reduced to one story. Apply it before
+  `dev.thecook:ralph:0.1.0`, with `--prd` pointing at the same path.
+- `dev.thecook:ralph:0.1.0:bead-task` adds the task `ralph:bead`, which runs Ralph on one Beads issue.
+  It needs `--tracker=beads` and `--mode=mise`.
+''')
+@yield('''
+- `--mode=standalone`: run `.ralph-tui/run`, with a PRD path or a Beads epic id as its argument.
+- `--mode=mise`: run `mise install`, then `mise run ralph:run` with the same argument. `mise run beads:ready` lists
+  the ready Beads tasks.
+''')
 import dev.thecook.beads.Beads
 import dev.thecook.git.Git
 import dev.thecook.mise.Mise

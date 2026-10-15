@@ -29,7 +29,7 @@ teammate's link. Given the coordinates:
 
 ```sh
 ./cook dev.thecook:cook:0.1.0 --help         # the artifact's front page
-./cook dev.thecook:cook:0.1.0:cook --help    # the recipe's doc comment, params and ingredients
+./cook dev.thecook:cook:0.1.0:cook --help    # the recipe's help, params and ingredients
 ./cook dev.thecook:cook:0.1.0
 ./cook dev.thecook:agents:0.1.0:permissions --harness=claude dev.thecook:agents:0.1.0:instructions --harness=claude
 ```
@@ -103,6 +103,9 @@ Rules:
 | Annotation | On | Declares |
 | --- | --- | --- |
 | `@cookbook('group:version')` | loose recipe | The cookbook release used by its imports, once per cookbook it uses; for example, `@cookbook('dev.thecook:0.1.0')`. |
+| `@help('''...''')` | first import | The recipe's description, in Markdown. Required. |
+| `@confirm('''...''')` | first import | A consequence the diff cannot show, displayed above the diff when asking for approval. Optional. |
+| `@yield('''...''')` | first import | What to do next, printed after the writes succeed. Optional. |
 | `@ingredient(Type, at)` | field | An injected instance, at the destination root or at the directory `at`. |
 | `@param(value = names, doc = '...', default = ..., choices = ..., many = ...)` | field | An input bound from `--name=value`. Required without a default. `many` accepts repeats. A `File` field is an input file in the destination, read as it was before the invocation. `doc` is required: it is the param's line in `--help`. |
 
@@ -115,35 +118,49 @@ follow others says so in its doc comment, as `Agents.connect` does: call it afte
 
 ## Documentation
 
-A unit is read by someone who has its artifact and not its source. Everything they need ships in the artifact: its
-README, the doc comments on its code and its annotations. `./cook <coordinates> --help` prints help and stops. An
-artifact address prints its front page; an explicit recipe address prints that recipe's help. In a composed
+A unit is read by someone who has its artifact and not its source, so `./cook` is how it is read: a recipe inside a
+jar cannot be opened with a pager. Everything the reader needs ships in the artifact: its README, the doc comments on
+its models and the annotations on its recipes. `./cook <recipe> --help` and `./cook --help <recipe>` print help and
+stop. An artifact address prints its front page; a recipe address or path prints that recipe's help. In a composed
 invocation, `--help` after a recipe's arguments selects help for that address.
+
+The engine reads a recipe's help from its parsed source, without running the recipe or resolving its imports, so help
+works for a recipe whose models are not available.
 
 | Unit | `--help` prints, in order | The author writes |
 | --- | --- | --- |
-| Recipe | The opening doc comment; the params from their annotations, each with its name, type, default or `required`, choices and `doc`; the ingredients it injects | The opening doc comment, and a `doc` on every param |
+| Recipe | `@help`; the params from their annotations, each with its name, type, default or `required`, choices and `doc`; the ingredients it injects; `@confirm` as "Confirm"; `@yield` as "After applying" | `@help`, and a `doc` on every param |
 | Model | The class doc comment; the API from the doc comments of its public members; the writes from its annotations and the doc comments of the annotated members | The class doc comment, and a doc comment on every public member and every annotated member |
 
 A fact that lives in code is rendered from the code and written nowhere else. State a model keeps for itself is
 `private`, so the rendered API is the one the author means. Every public method or property and every annotated
-member has a doc comment. The engine refuses to load a unit with an undocumented param, public member or annotated
-member, naming it.
+member has a doc comment. The engine refuses to load a recipe without `@help` and a unit with an undocumented param,
+public member or annotated member, naming it.
 
 A directory README is the artifact's front page: one paragraph on the topic, holding nothing that code holds.
 
-### Recipe doc comment
+### Recipe texts
 
-A recipe file opens with a `/** */` doc comment holding these sections in order; empty sections are omitted.
+A recipe file opens with its texts, annotations on its first import, in this order: `@help`, `@confirm`, `@yield`.
+Each holds Markdown in a `'''` string. An annotation value is a constant, so the texts do not change with the
+arguments; what the recipe actually wrote is in the diff and in the engine's report.
+
+`@help` holds these sections in order; empty sections are omitted.
 
 | Section | Content |
 | --- | --- |
 | Lead | One or two sentences: what the destination gets |
 | Before applying | What must exist or be installed, and what the recipe reads |
 | Apply | One to three invocations showing the choices that matter; the params are not repeated |
-| Writes | `Target`, `Part` and `When`: the argument value that triggers the row, or `Always` |
-| After applying | What the setup changes day to day, and what to run |
+| Writes | `Target`, `Part` and `When`: the argument value that triggers the row, or `Always`; then how the written setup behaves |
 | With other recipes | What it composes with, in which order, and which arguments must agree |
+
+`@confirm` states a consequence of approving that the diff cannot show, such as access granted outside the
+repository. It is displayed above the diff, under the recipe's address, and the one approval question covers both.
+`--batch-approve` displays it and proceeds. A recipe whose effects are all in the diff has no `@confirm`.
+
+`@yield` states what to do next, such as a command to run. It is printed under the recipe's address after the writes
+succeed, and not when the batch is declined or fails.
 
 ### Model class doc comment
 
@@ -196,13 +213,17 @@ Ingredients
   dev.thecook.git.Git
   dev.thecook.mise.Mise
   dev.thecook.ralph.Ralph
+
+After applying
+  - `--mode=standalone`: run `.ralph-tui/run`, with a PRD path or a Beads epic id as its argument.
+  ...
 ```
 
 ## Layout
 
 ```text
 <dir>/<Model>.groovy     the model or content, in the package <group>.<dir>
-<dir>/<recipe>.groovy    the recipe, opening with its doc comment
+<dir>/<recipe>.groovy    the recipe, opening with its texts
 <dir>/README.md          the artifact's front page
 <dir>/...               resources beside the models and recipes
 cookbook.toml           the cookbook manifest at the cookbook root

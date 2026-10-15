@@ -139,7 +139,7 @@ in Markdown.
 | `docs/adrs/` | Architectural decisions and their reasons within the architecture |
 | `docs/ux/` | Interaction and documentation standards within the architecture |
 | Root and core usage guides | Truthful instructions and limitations for current implementation |
-| Cookbook units under `cookbook/` | Document themselves in doc comments; a directory README is the artifact's front page |
+| Cookbook units under `cookbook/` | Recipes document themselves in `@help`, models in doc comments; a directory README is the artifact's front page |
 
 When a standard or ADR conflicts with the architecture, correct the supporting document. Track a missing implementation
 in issues. See the [UX authority](README.md#authority) and [ADR index](../adrs/README.md).
@@ -183,7 +183,8 @@ An explanation of the guarantee is sufficient when its concrete representation n
 
 ### Cookbook units
 
-A recipe documents itself in the doc comment that opens its file; a model in its class and member doc comments.
+A recipe documents itself in the `@help`, `@confirm` and `@yield` annotations that open its file; a model in its class
+and member doc comments.
 A directory README is the artifact's front page. The shape is defined in [cookbook/README.md](../../cookbook/README.md).
 
 ### Writing rules for all documentation

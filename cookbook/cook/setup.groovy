@@ -1,44 +1,45 @@
-/**
- * Sets up this repository's shared policy for Claude and Codex, three skills, working instructions and an
- * ignore pattern for Claude's local settings file.
- *
- * ## Before applying
- *
- * Reads `.agents/policy.yaml` when present, or uses the version 1 starter policy when absent.
- * The policy supplies instruction lines and command permissions for both harnesses.
- *
- * ## Apply
- *
- * ```sh
- * ./cook dev.thecook:cook:0.1.0 dev.thecook:cook:0.1.0:setup
- * ```
- *
- * ## Writes
- *
- * | Target | Part | When |
- * | --- | --- | --- |
- * | `.agents/policy.yaml` | Starter policy, seeded when absent; never owned | Always |
- * | `AGENTS.md` | Title, seeded when absent; never owned | Always |
- * | `AGENTS.md` | The section `instructions`: working guidance and policy instructions | Always |
- * | `.agents/skills/<name>/` | Whole files for `solid`, `hexagonal-layout`, `effective-java-core` | Always |
- * | `.claude/settings.json` | `permissions` | Always |
- * | `CLAUDE.md` | The section `instructions`: `@AGENTS.md` | Always |
- * | `.claude/skills/<name>` | One relative link per skill | Always |
- * | `.codex/config.toml` | `sandbox_mode`, `approval_policy`, `sandbox_workspace_write` | Always |
- * | `.codex/rules/cook.rules` | The section `commands` | The policy has command rules |
- * | `.gitignore` | The section `ignore`: `/.claude/settings.local.json` | Always |
- *
- * ## After applying
- *
- * Claude reads the shared instructions through `CLAUDE.md` and skills through the relative links.
- * Codex reads `AGENTS.md` and `.agents/skills/` natively. Review the rendered permissions against each
- * harness's permission model; edit the shared policy and apply again to update them.
- *
- * ## With other recipes
- *
- * Apply `dev.thecook:cook:0.1.0` with this recipe to ignore the engine's local records.
- * Both recipes own the `ignore` section of `.gitignore`; the last recipe's section wins.
- */
+@help('''
+Sets up this repository's shared policy for Claude and Codex, three skills, working instructions and an
+ignore pattern for Claude's local settings file.
+
+## Before applying
+
+Reads `.agents/policy.yaml` when present, or uses the version 1 starter policy when absent.
+The policy supplies instruction lines and command permissions for both harnesses.
+
+## Apply
+
+```sh
+./cook dev.thecook:cook:0.1.0 dev.thecook:cook:0.1.0:setup
+```
+
+## Writes
+
+| Target | Part | When |
+| --- | --- | --- |
+| `.agents/policy.yaml` | Starter policy, seeded when absent; never owned | Always |
+| `AGENTS.md` | Title, seeded when absent; never owned | Always |
+| `AGENTS.md` | The section `instructions`: working guidance and policy instructions | Always |
+| `.agents/skills/<name>/` | Whole files for `solid`, `hexagonal-layout`, `effective-java-core` | Always |
+| `.claude/settings.json` | `permissions` | Always |
+| `CLAUDE.md` | The section `instructions`: `@AGENTS.md` | Always |
+| `.claude/skills/<name>` | One relative link per skill | Always |
+| `.codex/config.toml` | `sandbox_mode`, `approval_policy`, `sandbox_workspace_write` | Always |
+| `.codex/rules/cook.rules` | The section `commands` | The policy has command rules |
+| `.gitignore` | The section `ignore`: `/.claude/settings.local.json` | Always |
+
+Claude reads the shared instructions through `CLAUDE.md` and skills through the relative links.
+Codex reads `AGENTS.md` and `.agents/skills/` natively.
+
+## With other recipes
+
+Apply `dev.thecook:cook:0.1.0` with this recipe to ignore the engine's local records.
+Both recipes own the `ignore` section of `.gitignore`; the last recipe's section wins.
+''')
+@yield('''
+Review the rendered permissions against each harness's permission model; edit the shared policy and
+apply again to update them.
+''')
 import dev.thecook.agents.Agents
 import dev.thecook.agents.Claude
 import dev.thecook.agents.Codex

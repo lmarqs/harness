@@ -156,9 +156,11 @@ The core proposes the batch and writes only the changes it receives as accepted.
 `cook.lock` and in the batch record, so the lock and `revert` always describe what was written. The core is
 independent of any interface (FR-5).
 
-The CLI displays the final diff in the terminal and accepts the whole batch. Without preapproval, it asks before
-changing target files. With `--batch-approve`, it displays the diff and proceeds without prompting. Noninteractive
-execution without that flag does not silently authorize writes (FR-12).
+The CLI displays the final diff in the terminal and accepts the whole batch. Above the diff it displays each applied
+recipe's `@confirm` text, under the recipe's address; one question covers the texts and the diff. Without
+preapproval, it asks before changing target files. With `--batch-approve`, it displays the texts and the diff and
+proceeds without prompting. Noninteractive execution without that flag does not silently authorize writes (FR-12).
+After the writes succeed, it prints each applied recipe's `@yield` text under the recipe's address (FR-28).
 
 Save the batch record before the first target write. If a write fails, roll back changes already made by the batch
 and retain the batch record and failure (FR-13).
@@ -334,11 +336,14 @@ Other documents cite these requirements by number.
   including HTML comments for Markdown.
 - **FR-11:** The core proposes the batch, writes only the accepted changes, and records only those in `cook.lock` and
   the batch record.
-- **FR-12:** The CLI displays the final diff in the terminal and accepts the whole batch. Without preapproval, it asks
-  before changing target files. With `--batch-approve`, it displays the diff and proceeds without prompting.
-  Noninteractive execution without this flag does not silently authorize writes.
+- **FR-12:** The CLI displays the final diff in the terminal, preceded by each applied recipe's `@confirm` text, and
+  accepts the whole batch. Without preapproval, it asks before changing target files. With `--batch-approve`, it
+  displays the texts and the diff and proceeds without prompting. Noninteractive execution without this flag does not
+  silently authorize writes.
 - **FR-13:** Save the batch record before the first target write. On a write failure, roll back changes already made
   by the batch and retain the record and failure.
+- **FR-28:** After the writes succeed, the CLI prints each applied recipe's `@yield` text. A declined or failed batch
+  prints none.
 
 ### Ownership, discard, and revert
 
@@ -355,7 +360,8 @@ Other documents cite these requirements by number.
 
 - **FR-17:** The commands are `./cook [apply] [batch-options] <recipe> [recipe-arguments]...`,
   `./cook revert [batch-options] <batchId>`, `./cook batch list`, and `./cook batch inspect <batchId>`. `apply` is the
-  default. With no arguments, show help. A first operand of exactly `apply`, `revert`, or `batch` selects a
+  default. With no arguments, show help. `<recipe> --help` and `--help <recipe>` print the recipe's help from its
+  source without running it. A first operand of exactly `apply`, `revert`, or `batch` selects a
   command; a recipe file with one of those names is supplied as a path, such as `./revert`.
 - **FR-18:** Recipe operands are paths inside the destination repository or `https://` URLs. Ordinary relative paths
   such as `recipe.groovy` are accepted.
