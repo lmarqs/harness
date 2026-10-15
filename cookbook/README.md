@@ -209,7 +209,9 @@ cookbook.toml           the cookbook manifest at the cookbook root
 ```
 
 Each topic directory is one artifact. Skill content lives under `<dir>/skills/<name>/`, with `SKILL.md` and its
-supporting files together.
+supporting files together. A template for a seeded file is named `<name>.template.<ext>`, as in
+`agents/AGENTS.template.md`: under the file's own name, agents working in the cookbook would read it as
+instructions, since Codex reads every `AGENTS.md` between the repository root and its working directory.
 
 `cookbook.toml` declares the cookbook's `group`, its release `version`, the engine API version as `api`, and any
 other cookbooks it uses at exact releases. This cookbook's manifest is:

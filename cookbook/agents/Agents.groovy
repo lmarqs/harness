@@ -5,8 +5,9 @@ package dev.thecook.agents
  *
  * ## Writes for
  *
- * Markdown instructions in `AGENTS.md`, version 1 of the YAML policy at `.agents/policy.yaml`,
- * and skill file trees under `.agents/skills/`, each with `SKILL.md` and its supporting resources.
+ * Markdown instructions in `AGENTS.md`, seeded from a section template whose line under each heading says what
+ * the section holds; version 1 of the YAML policy at `.agents/policy.yaml`; and skill file trees under
+ * `.agents/skills/`, each with `SKILL.md` and its supporting resources.
  *
  * ## Instances
  *
@@ -81,9 +82,13 @@ class Agents {
     }
   }
 
-  /** Seeds `AGENTS.md` with a title when absent, once instructions are added or a harness is connected; never owned. */
+  /**
+   * Seeds `AGENTS.md` when absent with the packaged `AGENTS.template.md`: one heading per section, each followed by
+   * a line saying what the section holds, for an agent or a person to fill in. Written once instructions are added
+   * or a harness is connected; never owned.
+   */
   @Seed(path = 'AGENTS.md')
-  String starter() { instructionsUsed ? '# Agent instructions\n' : null }
+  String starter() { instructionsUsed ? resource('AGENTS.template.md') : null }
 
   /** Seeds `.agents/policy.yaml` with the starter policy when absent, once the policy is read; never owned. */
   @Seed(path = '.agents/policy.yaml')
