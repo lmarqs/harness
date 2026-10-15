@@ -2,9 +2,11 @@ package thecook.cli.terminal
 
 import thecook.application.CookService
 import thecook.cookbook.Cookbook
+import thecook.cookbook.RecipeSource
 import thecook.model.RecipeInput
 import thecook.model.RecipeArguments
 import thecook.model.RecipeDeclaration
+import thecook.model.RecipeTexts
 import java.io.PrintWriter
 import java.nio.file.Files
 import java.nio.file.InvalidPathException
@@ -80,8 +82,10 @@ class CookCommand(
   }
 
   private fun parse(invocation: Array<String>): Command {
-    val (kitchen, args) = kitchen(invocation)
-    if (args.contentEquals(arrayOf("--help"))) return Help
+    val (kitchen, given) = kitchen(invocation)
+    if (given.contentEquals(arrayOf("--help"))) return Help
+    // `--help <recipe>` reads as `<recipe> --help`, the order git also accepts.
+    val args = if (given.firstOrNull() == "--help") given.drop(1).plus("--help").toTypedArray() else given
     val entrypoint = args.firstOrNull() ?: throw UsageError("A command is required")
     val localScript = entrypoint.endsWith(".groovy") && !entrypoint.contains("://")
     if (localScript && !Files.isRegularFile(path(kitchen, entrypoint, "recipe"))) {
@@ -227,6 +231,12 @@ class CookCommand(
   }
 
   private fun recipeHelp(command: RecipeHelp): String {
+    if (Files.isRegularFile(command.script)) {
+      val name = command.script.fileName.toString().removeSuffix(".groovy")
+      RecipeSource.texts(Files.readString(command.script), command.script.fileName.toString())?.let {
+        return render(command.expectedName ?: name, it)
+      }
+    }
     val declaration = declaration(command.script)
     if (command.expectedName != null && declaration.name != command.expectedName) {
       throw IllegalArgumentException("Recipe identity does not match: ${command.expectedName}")
@@ -242,6 +252,30 @@ class CookCommand(
     }
     return "Usage: cook [-C DIR] ${declaration.name} [options]\n$arguments\n  --dry-run  preview without writing\n  --remove  remove selected applications\n  --set name=value  legacy argument form\n  --help  show this help"
   }
+
+  private fun render(
+    name: String,
+    texts: RecipeTexts,
+  ): String {
+    val params = texts.params.joinToString("\n") { param ->
+      val facts = listOfNotNull(
+        param.default?.let { "default: $it" } ?: "required",
+        param.choices.takeIf { it.isNotEmpty() }?.let { "choices: ${it.joinToString(", ")}" },
+        "repeatable".takeIf { param.many },
+      )
+      "  ${param.names.joinToString(", ") { "--$it=<${param.type}>" }}\n      ${param.doc ?: ""}; ${facts.joinToString("; ")}"
+    }
+    return listOfNotNull(
+      name,
+      texts.help,
+      params.takeIf { it.isNotEmpty() }?.let { "Parameters\n$it" },
+      texts.ingredients.takeIf { it.isNotEmpty() }?.let { "Ingredients\n${it.joinToString("\n") { type -> "  $type" }}" },
+      texts.confirm?.let { "Confirm\n${indent(it)}" },
+      texts.yieldText?.let { "After applying\n${indent(it)}" },
+    ).joinToString("\n\n")
+  }
+
+  private fun indent(text: String): String = text.lines().joinToString("\n") { if (it.isEmpty()) it else "  $it" }
 
   private fun declaration(script: Path): RecipeDeclaration {
     val source = script.toAbsolutePath()
@@ -347,7 +381,7 @@ class CookCommand(
       Both local forms for one name are ambiguous and rejected.
       Nested names such as agentic/codex are supported.
       Declared recipes validate required paths and repeatable choices before rendering.
-      Use <recipe> --help to inspect required inputs and execution options.
+      Use <recipe> --help or --help <recipe> to inspect a recipe; @help texts are read without running it.
       Undeclared factories continue to receive scalar string options.
       --script defaults to cook.groovy in the repository.
       --plan defaults to .cook/plan.json in the repository.

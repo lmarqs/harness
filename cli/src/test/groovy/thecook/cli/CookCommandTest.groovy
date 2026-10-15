@@ -681,4 +681,49 @@ return new DeclaredRecipe(new RecipeDeclaration('custom', [target],
       assert stdout.toString('UTF-8').trim() == 'Already cooked.'
     }
   }
+
+  @Test void recipeHelpIsReadFromItsTextsWithoutRunningTheRecipeInEitherOrder() {
+    workspace { root, repo, ignored ->
+      new File(repo, 'notes.groovy').text = """@help('''
+Seeds `NOTES.md`.
+''')
+@confirm('''
+Nothing outside the repository changes.
+''')
+@yield('''
+Edit `NOTES.md`.
+''')
+import example.notes.Notes
+
+@param(value = ['owner'], doc = 'Who keeps the notes', choices = ['me', 'team']) String owner
+
+@ingredient(Notes) def notes
+
+throw new IllegalStateException('the recipe ran')
+"""
+      def expected = '''notes
+
+Seeds `NOTES.md`.
+
+Parameters
+  --owner=<String>
+      Who keeps the notes; required; choices: me, team
+
+Ingredients
+  example.notes.Notes
+
+Confirm
+  Nothing outside the repository changes.
+
+After applying
+  Edit `NOTES.md`.
+'''
+      [['notes.groovy', '--help'], ['--help', 'notes.groovy']].each { order ->
+        def stdout = new ByteArrayOutputStream(); def stderr = new ByteArrayOutputStream()
+        assert command(stdout, stderr).execute((['-C', repo.path] + order) as String[]) == 0 : stderr.toString('UTF-8')
+        assert stdout.toString('UTF-8') == expected
+      }
+      assert repo.list() as Set == ['notes.groovy'] as Set
+    }
+  }
 }
