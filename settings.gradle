@@ -7,17 +7,3 @@ rootProject.name = 'the-cook'
 includeBuild('cli') { name = 'cli' }
 includeBuild('docs') { name = 'docs' }
 includeBuild('gradle/lint/ktlint-rules')
-includeBuild('cookbook/recipes/agentic/codex') { name = 'agentic-codex' }
-includeBuild('cookbook/recipes/agentic/claude') { name = 'agentic-claude' }
-includeBuild('cookbook/recipes/agentic/permission') { name = 'agentic-permission' }
-includeBuild('cookbook/recipes/agentic/context') { name = 'agentic-context' }
-includeBuild('cookbook/recipes/agentic/init') { name = 'agentic-init' }
-
-includeBuild('cookbook/recipes/agentic/runtime') {
-  name = 'agentic-runtime'
-}
-
-file('cookbook/ingredients').listFiles().findAll { new File(it, 'build.gradle').isFile() }.sort { it.name }.each { ingredient ->
-  def buildName = ingredient.name == rootProject.name ? 'ingredient-' + ingredient.name : ingredient.name
-  includeBuild(ingredient) { name = buildName }
-}

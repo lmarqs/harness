@@ -8,21 +8,12 @@ repositories {
 }
 
 configurations {
-  cookbookIngredients
   codenarc {
     attributes.attribute(Bundling.BUNDLING_ATTRIBUTE, objects.named(Bundling, Bundling.EXTERNAL))
   }
 }
 
-def ingredientBuilds = file('cookbook/ingredients').listFiles().findAll { new File(it, 'build.gradle').isFile() }.sort { it.name }
 dependencies {
-  ingredientBuilds.each { ingredient ->
-    def release = new Properties()
-    new File(ingredient, 'gradle.properties').withInputStream { release.load(it) }
-    cookbookIngredients "${release.group}:${ingredient.name}:${release.version}"
-  }
-  cookbookIngredients 'dev.thecook.recipes:agentic-runtime:0.1.0'
-  cookbookIngredients 'dev.thecook.recipes:agentic-init:0.1.0'
   codenarc 'org.codenarc:CodeNarc:3.7.0-groovy-4.0'
 }
 
@@ -36,10 +27,10 @@ if (providers.gradleProperty('script').isPresent()) {
 
 cook.parameters = gradle.startParameter.projectProperties.findAll { !(it.key in ['repo', 'recipe', 'script']) }
 
-cook.ingredientArtifacts = configurations.cookbookIngredients
-
 spotless {
   def generated = ['**/build/**', '**/.gradle/**', '.cook/**']
+  // The cookbook is a pseudo-language design sketch, not compiled Groovy.
+  def sketch = ['cookbook/**']
   kotlin {
     target '**/*.kt'
     targetExclude generated
@@ -55,7 +46,7 @@ spotless {
   }
   groovy {
     target '**/*.groovy'
-    targetExclude generated
+    targetExclude generated + sketch
     greclipse().configFile('gradle/spotless/greclipse.properties')
   }
   groovyGradle {
@@ -79,7 +70,7 @@ def codenarcArgs = { String report ->
   [
     '-basedir=.',
     '-includes=**/*.groovy,**/*.gradle',
-    '-excludes=**/build/**,**/.gradle/**,.cook/**',
+    '-excludes=**/build/**,**/.gradle/**,.cook/**,cookbook/**',
     '-rulesetfiles=file:' + file('gradle/lint/codenarc.groovy'),
     '-failOnError=true',
     report,
@@ -121,17 +112,4 @@ tasks.register('jpackageTest') {
   group = 'verification'
   description = 'Build and smoke-test the packaged CLI.'
   dependsOn gradle.includedBuild('cli').task(':jpackageTest')
-}
-
-tasks.register('ingredientsBuild') {
-  dependsOn(ingredientBuilds.collect {
-    gradle.includedBuild(it.name == rootProject.name ? 'ingredient-' + it.name : it.name).task(':build')
-  })
-}
-
-tasks.register('cookbookBuild') {
-  dependsOn 'ingredientsBuild', gradle.includedBuild('agentic-runtime').task(':build')
-  dependsOn gradle.includedBuild('agentic-codex').task(':build'), gradle.includedBuild('agentic-claude').task(':build')
-  dependsOn gradle.includedBuild('agentic-permission').task(':build'), gradle.includedBuild('agentic-context').task(':build')
-  dependsOn gradle.includedBuild('agentic-init').task(':build')
 }
