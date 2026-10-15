@@ -92,7 +92,7 @@ Proposed replacements and deletions need visible scope and a way to recover. Why
 Use the CLI as the public cooking interface. Gradle builds and packages Cook and cookbooks. Why: users need one place to
 learn operation and approval semantics.
 
-Use `revert` and `batch` as commands and `--batch-approve` as the preapproval spelling. The wrapper and a global
+Use `revert`, `batch` and `help` as commands and `--batch-approve` as the preapproval spelling. The wrapper and a global
 installation expose the same grammar. Default apply and explicit apply have the same meaning
 ([entry points](cli-standards.md#entry-points)).
 

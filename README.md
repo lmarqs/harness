@@ -27,9 +27,9 @@ The core and CLI use Kotlin, with Groovy document and filesystem adapters. Local
 The current CLI resolves local `.groovy` recipe paths. `--dry-run` reports proposed changed paths; a normal cooking
 invocation writes without an approval prompt or a terminal content diff. `--remove` withdraws selected applications
 using ownership records. The existing `apply` command applies a saved plan. No-argument invocation reports a missing
-command; use `--help` explicitly. `<recipe> --help` and `--help <recipe>` print a recipe's help; for a recipe whose
-first import carries `@help`, such as `./cook --help cookbook/agents/instructions.groovy`, the help is read from its
-source without running it. The core enforces adoption and managed-edit gates.
+command; use `--help` or `help` explicitly. `help <recipe>...` prints each recipe's help; for a recipe whose first
+import carries `@help`, such as `./cook help cookbook/agents/instructions.groovy`, the help is read from its source
+without running it. The core enforces adoption and managed-edit gates.
 
 ### Start from a fresh clone
 

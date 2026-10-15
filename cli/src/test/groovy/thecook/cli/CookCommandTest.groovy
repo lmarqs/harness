@@ -338,13 +338,13 @@ return new DeclaredRecipe(new RecipeDeclaration('custom', [target],
       def source = new File(repo, 'cookbook/recipes/agentic/permission.groovy')
       def out = new ByteArrayOutputStream(); def err = new ByteArrayOutputStream()
       def cli = command(out, err)
-      assert cli.execute(['-C', repo.path, source.path, '--help'] as String[]) == 0 : err.toString('UTF-8')
+      assert cli.execute(['-C', repo.path, 'help', source.path] as String[]) == 0 : err.toString('UTF-8')
       assert out.toString('UTF-8').contains('--policy')
       assert out.toString('UTF-8').contains('required')
       assert out.toString('UTF-8').contains('codex, claude')
       assert out.toString('UTF-8').contains('--dry-run')
       out.reset()
-      assert cli.execute(['-C', repo.path, 'agentic/permission', '--help'] as String[]) == 0 : err.toString('UTF-8')
+      assert cli.execute(['-C', repo.path, 'help', 'agentic/permission'] as String[]) == 0 : err.toString('UTF-8')
       assert out.toString('UTF-8').contains('--harness')
       assert !new File(repo, '.cook').exists()
       def policy = new File(repo, '.agents/policy.yaml'); policy.parentFile.mkdirs(); policy.text = 'destination\n'
@@ -374,7 +374,7 @@ return new DeclaredRecipe(new RecipeDeclaration('custom', [target],
       new File(directory, 'recipe.groovy').text = new File(repo, 'cookbook/recipes/agentic/permission.groovy').text
       def err = new ByteArrayOutputStream()
       def cli = command(new ByteArrayOutputStream(), err)
-      assert cli.execute(['-C', repo.path, 'agentic/permission', '--help'] as String[]) == 1
+      assert cli.execute(['-C', repo.path, 'help', 'agentic/permission'] as String[]) == 1
       assert err.toString('UTF-8').toLowerCase().contains('ambiguous')
       assert !new File(repo, '.cook').exists()
     }
@@ -388,7 +388,7 @@ return new DeclaredRecipe(new RecipeDeclaration('custom', [target],
       def policy = new File(repo, '.agents/policy.yaml'); policy.parentFile.mkdirs(); policy.text = 'destination\n'
       def out = new ByteArrayOutputStream(); def err = new ByteArrayOutputStream()
       def cli = command(out, err)
-      assert cli.execute(['-C', repo.path, source.path, '--help'] as String[]) == 0 : err.toString('UTF-8')
+      assert cli.execute(['-C', repo.path, 'help', source.path] as String[]) == 0 : err.toString('UTF-8')
       assert out.toString('UTF-8').contains('--harness')
       assert cli.execute(['-C', repo.path, source.path, '--policy=.agents/policy.yaml', '--harness=codex', '--harness=claude'] as String[]) == 0 : err.toString('UTF-8')
       assert new JsonSlurper().parse(new File(repo, 'selection.json')).harness == 'codex,claude'
@@ -411,7 +411,7 @@ return new DeclaredRecipe(new RecipeDeclaration('custom', [target],
       def args = ['-C', repo.path, source.path, '--policy=.agents/interactive.yaml', '--harness=claude']
       assert cli.execute((['-C', repo.path, 'agentic/permission'] + args.drop(3)) as String[]) == 0 : err.toString('UTF-8')
       def previous = new JsonSlurper().parse(new File(repo, '.cook/state.json')).applications['agentic.permissions/claude']
-      assert cli.execute(['-C', repo.path, source.path, '--help'] as String[]) == 0 : err.toString('UTF-8')
+      assert cli.execute(['-C', repo.path, 'help', source.path] as String[]) == 0 : err.toString('UTF-8')
       assert out.toString('UTF-8').contains('agentic/permission')
       assert cli.execute(args as String[]) == 0 : err.toString('UTF-8')
       assert new File(repo, '.claude/settings.json').exists()
@@ -424,7 +424,7 @@ return new DeclaredRecipe(new RecipeDeclaration('custom', [target],
       assert cli.execute(args as String[]) == 0 : err.toString('UTF-8')
       assert out.toString('UTF-8').trim() == 'Already cooked.'
       err.reset()
-      assert cli.execute(['-C', repo.path, 'renamed', '--help'] as String[]) == 1
+      assert cli.execute(['-C', repo.path, 'help', 'renamed'] as String[]) == 1
       assert err.toString('UTF-8').contains('Recipe identity does not match')
       assert cli.execute(['-C', repo.path, source.path, '--harness=claude', '--remove'] as String[]) == 0
       assert !new File(repo, '.claude/settings.json').exists()
@@ -682,7 +682,7 @@ return new DeclaredRecipe(new RecipeDeclaration('custom', [target],
     }
   }
 
-  @Test void recipeHelpIsReadFromItsTextsWithoutRunningTheRecipeInEitherOrder() {
+  @Test void helpCommandReadsEachRecipeFromItsTextsWithoutRunningIt() {
     workspace { root, repo, ignored ->
       new File(repo, 'notes.groovy').text = """@help('''
 Seeds `NOTES.md`.
@@ -718,11 +718,20 @@ Confirm
 After applying
   Edit `NOTES.md`.
 '''
-      [['notes.groovy', '--help'], ['--help', 'notes.groovy']].each { order ->
-        def stdout = new ByteArrayOutputStream(); def stderr = new ByteArrayOutputStream()
-        assert command(stdout, stderr).execute((['-C', repo.path] + order) as String[]) == 0 : stderr.toString('UTF-8')
-        assert stdout.toString('UTF-8') == expected
+      def stdout = new ByteArrayOutputStream(); def stderr = new ByteArrayOutputStream()
+      def cli = command(stdout, stderr)
+      assert cli.execute(['-C', repo.path, 'help', 'notes.groovy'] as String[]) == 0 : stderr.toString('UTF-8')
+      assert stdout.toString('UTF-8') == expected
+      stdout.reset()
+      assert cli.execute(['help', '-C', repo.path, 'notes.groovy', 'notes.groovy'] as String[]) == 0 : stderr.toString('UTF-8')
+      assert stdout.toString('UTF-8') == expected.trim() + '\n\n' + expected
+      [['notes.groovy', '--help'], ['--help', 'notes.groovy'], ['help', 'notes.groovy', '--owner=me']].each { misplaced ->
+        stderr.reset()
+        assert cli.execute((['-C', repo.path] + misplaced) as String[]) == 2
+        assert stderr.toString('UTF-8').readLines().first() in ['--help takes no other arguments; use help <recipe> to read a recipe', 'help takes recipes only: --owner=me']
       }
+      stdout.reset()
+      assert cli.execute(['help'] as String[]) == 0 && stdout.toString('UTF-8').startsWith('Usage:')
       assert repo.list() as Set == ['notes.groovy'] as Set
     }
   }

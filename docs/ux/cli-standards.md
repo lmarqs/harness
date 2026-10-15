@@ -35,9 +35,14 @@ recipe and template references resolve.
 ## Command grammar
 
 The [CLI reference](../features/cli.md) defines the commands: apply, implicit or explicit, as the default; `revert`
-with a batch ID; `batch list`; and `batch inspect` with a batch ID. It also defines recipe operands, per-recipe
-argument scope and the placement of batch options before the first operand. Help, messages and examples follow that
-grammar, because callers predict what a command does from its operands and argument scope.
+with a batch ID; `batch list`; `batch inspect` with a batch ID; and `help` with recipes. It also defines recipe
+operands, per-recipe argument scope and the placement of batch options before the first operand. Help, messages and
+examples follow that grammar, because callers predict what a command does from its operands and argument scope.
+
+Each argument has one spelling and one position, and an action other than applying is a command, not an option. A
+second accepted form for the same meaning is refused with a message naming the one form, because every alternative is
+another reading a caller, a document and a test must account for; `--help` therefore stands alone, and reading a
+recipe is `help <recipe>`.
 
 ## Apply and revert
 
@@ -151,7 +156,8 @@ execution. Do not open a pager or editor that an unattended caller would have to
 
 ## Help text
 
-With no arguments, show help. Present the operation summary, grammar, operand and argument scope, batch approval
+With no arguments, with `help` alone or with `--help` alone, show help. `help <recipe>...` shows each recipe's help in
+order without running it, because a recipe inside an artifact cannot be read with a pager. Present the operation summary, grammar, operand and argument scope, batch approval
 behavior, and examples in a consistent order, because readers need to predict how a command works. Examples use
 `./cook` and exact recipe paths or `https://` URLs. Explain that apply evaluates supplied recipes while revert uses a
 recorded batch's patches, and link to the [CLI reference](../features/cli.md) for details.
@@ -160,5 +166,6 @@ Help advertises only the commands in the [command grammar](#command-grammar), be
 
 ## Command set
 
-The command set is apply (implicit or explicit), revert, `batch list` and `batch inspect`; discard is deferred.
+The command set is apply (implicit or explicit), revert, `batch list`, `batch inspect` and `help`; discard is
+deferred. Reserving `help` means a recipe file named `help` is given as a path, such as `./help`.
 [What counts as breaking](compatibility-standards.md#what-counts-as-breaking) covers removing or renaming a command.

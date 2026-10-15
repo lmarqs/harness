@@ -14,13 +14,12 @@ see the root README's [current implementation](../../README.md#current-implement
 ./cook revert [-C <dir>] [batch-options] <batchId>
 ./cook batch list [-C <dir>]
 ./cook batch inspect [-C <dir>] <batchId>
-./cook [-C <dir>] <recipe> --help
-./cook [-C <dir>] --help <recipe>
+./cook help [-C <dir>] [<recipe>]...
+./cook --help
 ```
 
-`apply` is the default. Running `./cook` with no arguments shows help. `--help` with a recipe prints that recipe's help
-and stops; both orders are accepted. The help comes from the recipe's `@help`, `@confirm` and `@yield` texts and its
-`@param` and `@ingredient` annotations, read from its source without running it or resolving its imports.
+`apply` is the default. Running `./cook` with no arguments, `./cook help` or `./cook --help` shows the usage.
+`--help` takes no other arguments.
 
 `<batchId>` identifies a recorded batch: the UTC time the batch started, such as `2026-10-14T15-04-05Z`, with a
 suffix when two batches start in the same second.
@@ -32,6 +31,7 @@ suffix when two batches start in the same second.
 | Apply, implicit or explicit | One or more recipes, with arguments for each | Declared additions and updates against current content, and removal of what each recipe's previous version owned and no longer declares |
 | Revert | One batch ID | Use the batch's reverse patches against current content; recipes are not evaluated again |
 | Batch list | None | Show the recorded batches; read only |
+| Help | One or more recipes, without arguments | Show each recipe's help in order; read only, and no recipe runs |
 | Batch inspect | One batch ID | Show one batch's recipes, arguments, files, patches and, for a failed batch, its failure log; read only |
 
 The [architecture](../architecture.md#apply-discard-and-revert) defines these operations, including the deferred
@@ -59,7 +59,15 @@ A recipe operand is a path inside the destination repository or an `https://` UR
 ./cook https://example.com/recipes/project.groovy
 ```
 
-A first operand equal to `apply`, `revert` or `batch` selects that command. To apply a recipe file named `revert`,
+`help` prints a recipe's `@help`, `@confirm` and `@yield` texts with its `@param` and `@ingredient` annotations, read
+from its source without running it or resolving its imports. It is the one way to read a recipe through Cook:
+
+```sh
+./cook help ./recipes/project.groovy
+./cook help ./recipes/project.groovy ./recipes/dependency.groovy
+```
+
+A first operand equal to `apply`, `revert`, `batch` or `help` selects that command. To apply a recipe file named `revert`,
 make its path explicit:
 
 ```sh

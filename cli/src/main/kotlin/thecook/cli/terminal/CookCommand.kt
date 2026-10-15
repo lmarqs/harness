@@ -39,7 +39,7 @@ class CookCommand(
         }
 
         is RecipeHelp -> {
-          stdout.println(recipeHelp(command))
+          stdout.println(command.recipes.joinToString("\n\n") { recipeHelp(it) })
         }
 
         is Init -> {
@@ -82,10 +82,12 @@ class CookCommand(
   }
 
   private fun parse(invocation: Array<String>): Command {
-    val (kitchen, given) = kitchen(invocation)
-    if (given.contentEquals(arrayOf("--help"))) return Help
-    // `--help <recipe>` reads as `<recipe> --help`, the order git also accepts.
-    val args = if (given.firstOrNull() == "--help") given.drop(1).plus("--help").toTypedArray() else given
+    val (kitchen, args) = kitchen(invocation)
+    if (args.contentEquals(arrayOf("--help"))) return Help
+    if (args.firstOrNull() == "help") return help(kitchen, args.drop(1))
+    if (args.any { it.substringBefore('=') == "--help" }) {
+      throw UsageError("--help takes no other arguments; use help <recipe> to read a recipe")
+    }
     val entrypoint = args.firstOrNull() ?: throw UsageError("A command is required")
     val localScript = entrypoint.endsWith(".groovy") && !entrypoint.contains("://")
     if (localScript && !Files.isRegularFile(path(kitchen, entrypoint, "recipe"))) {
@@ -93,13 +95,11 @@ class CookCommand(
     }
     val removingInit = entrypoint == "init" && args.drop(1).contains("--remove")
     val namedRecipe = !localScript && entrypoint !in BUILTINS
-    if (namedRecipe && !entrypoint.matches(Regex("[a-z][a-z0-9-]*(/[a-z][a-z0-9-]*)*"))) {
+    if (namedRecipe && !entrypoint.matches(RECIPE_NAME)) {
       throw UsageError("Invalid recipe name: $entrypoint")
     }
     val action = if (localScript || namedRecipe || removingInit) "cook" else entrypoint
     val recipeInput = namedRecipe || localScript || removingInit
-    val wantsHelp = args.drop(1).contains("--help")
-    if (wantsHelp && !localScript && !namedRecipe) return Help
 
     val repository = kitchen.toAbsolutePath()
     var script: Path? = if (localScript) path(kitchen, entrypoint, "recipe") else null
@@ -131,16 +131,12 @@ class CookCommand(
       // --repo is refused rather than passed on, so a destination typed after the recipe never becomes a recipe input.
       val recipeOption =
         recipeInput && option.matches(Regex("--[a-z][a-z0-9-]*")) &&
-          option !in setOf("--repo", "--script", "--plan", "--library", "--set", "--help", "--remove")
+          option !in setOf("--repo", "--script", "--plan", "--library", "--set", "--remove")
       val allowed =
-        recipeOption || option == "--help" ||
+        recipeOption ||
           (action in setOf("plan", "apply") && option == "--plan") ||
           (action in setOf("cook", "plan") && option in setOf("--script", "--library", "--set"))
       if (!allowed) throw UsageError("Unknown option for $action: $option")
-      if (option == "--help") {
-        if (inlineValue != null) throw UsageError("--help does not take a value")
-        continue
-      }
       if (option != "--set" && option != "--library" && !recipeOption && !seen.add(option)) {
         throw UsageError("Option may only be supplied once: $option")
       }
@@ -183,7 +179,6 @@ class CookCommand(
           script
             ?: repository.resolve("cook.groovy")
         }
-      if (wantsHelp) return if (recipeInput) RecipeHelp(recipe, if (namedRecipe) entrypoint else null) else Help
       if (namedRecipe) {
         val declared = try {
           declaration(recipe)
@@ -230,7 +225,27 @@ class CookCommand(
     return if (Files.isRegularFile(flat)) flat else directory
   }
 
-  private fun recipeHelp(command: RecipeHelp): String {
+  private fun help(
+    kitchen: Path,
+    operands: List<String>,
+  ): Command {
+    if (operands.isEmpty()) return Help
+    return RecipeHelp(
+      operands.map { operand ->
+        if (operand.startsWith("-")) throw UsageError("help takes recipes only: $operand")
+        if (operand.endsWith(".groovy") && !operand.contains("://")) {
+          val script = path(kitchen, operand, "recipe")
+          if (!Files.isRegularFile(script)) throw IllegalArgumentException("Recipe file not found: $operand")
+          HelpTarget(script, null)
+        } else {
+          if (!operand.matches(RECIPE_NAME)) throw UsageError("Invalid recipe name: $operand")
+          HelpTarget(findRecipe(kitchen.toAbsolutePath(), operand), operand)
+        }
+      },
+    )
+  }
+
+  private fun recipeHelp(command: HelpTarget): String {
     if (Files.isRegularFile(command.script)) {
       val name = command.script.fileName.toString().removeSuffix(".groovy")
       RecipeSource.texts(Files.readString(command.script), command.script.fileName.toString())?.let {
@@ -250,7 +265,7 @@ class CookCommand(
           "  --${input.name} CHOICE  optional, once; choices: ${input.choices.joinToString(", ")}"
       }
     }
-    return "Usage: cook [-C DIR] ${declaration.name} [options]\n$arguments\n  --dry-run  preview without writing\n  --remove  remove selected applications\n  --set name=value  legacy argument form\n  --help  show this help"
+    return "Usage: cook [-C DIR] ${declaration.name} [options]\n$arguments\n  --dry-run  preview without writing\n  --remove  remove selected applications\n  --set name=value  legacy argument form"
   }
 
   private fun render(
@@ -328,7 +343,9 @@ class CookCommand(
 
   private data object Help : Command
 
-  private data class RecipeHelp(val script: Path, val expectedName: String?) : Command
+  private data class RecipeHelp(val recipes: List<HelpTarget>) : Command
+
+  private data class HelpTarget(val script: Path, val expectedName: String?)
 
   private data class Init(
     val repository: Path,
@@ -362,7 +379,8 @@ class CookCommand(
   ) : IllegalArgumentException(message)
 
   private companion object {
-    val BUILTINS = setOf("init", "cook", "plan", "apply")
+    val BUILTINS = setOf("init", "cook", "plan", "apply", "help")
+    val RECIPE_NAME = Regex("[a-z][a-z0-9-]*(/[a-z][a-z0-9-]*)*")
 
     val USAGE =
       """
@@ -373,6 +391,7 @@ class CookCommand(
         the-cook [-C dir] path/to/recipe.groovy [--name value | --name=value] [--dry-run] [--set name=value] [--library path]
         the-cook plan [-C dir] [--script path] [--plan path] [--set name=value] [--library path]
         the-cook apply [-C dir] [--plan path]
+        the-cook help [-C dir] <recipe> [<recipe>]...
         the-cook --help
 
       -C dir, --kitchen dir: cook in dir, as if started there; relative paths resolve against it.
@@ -381,7 +400,7 @@ class CookCommand(
       Both local forms for one name are ambiguous and rejected.
       Nested names such as agentic/codex are supported.
       Declared recipes validate required paths and repeatable choices before rendering.
-      Use <recipe> --help or --help <recipe> to inspect a recipe; @help texts are read without running it.
+      help prints each recipe's help in order; @help texts are read without running the recipe.
       Undeclared factories continue to receive scalar string options.
       --script defaults to cook.groovy in the repository.
       --plan defaults to .cook/plan.json in the repository.

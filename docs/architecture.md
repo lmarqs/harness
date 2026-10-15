@@ -359,10 +359,11 @@ Other documents cite these requirements by number.
 ### CLI grammar
 
 - **FR-17:** The commands are `./cook [apply] [batch-options] <recipe> [recipe-arguments]...`,
-  `./cook revert [batch-options] <batchId>`, `./cook batch list`, and `./cook batch inspect <batchId>`. `apply` is the
-  default. With no arguments, show help. `<recipe> --help` and `--help <recipe>` print the recipe's help from its
-  source without running it. A first operand of exactly `apply`, `revert`, or `batch` selects a
-  command; a recipe file with one of those names is supplied as a path, such as `./revert`.
+  `./cook revert [batch-options] <batchId>`, `./cook batch list`, `./cook batch inspect <batchId>`, and
+  `./cook help [<recipe>]...`. `apply` is the default. With no arguments, `help` alone, or `--help` alone, show the
+  usage. `help` prints each recipe's help from its source without running it. A first operand of exactly `apply`,
+  `revert`, `batch`, or `help` selects a command; a recipe file with one of those names is supplied as a path, such as
+  `./revert`.
 - **FR-18:** Recipe operands are paths inside the destination repository or `https://` URLs. Ordinary relative paths
   such as `recipe.groovy` are accepted.
 - **FR-19:** Batch options precede recipe operands, or the batch ID for `revert`. Recipe arguments follow their recipe

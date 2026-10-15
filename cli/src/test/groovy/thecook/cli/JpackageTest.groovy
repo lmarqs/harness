@@ -38,7 +38,7 @@ class JpackageTest {
       def policy = new File(root, '.agents/policy.yaml')
       def codex = new File(root, '.codex/config.toml')
       def claude = new File(root, '.claude/settings.json')
-      assert run(root, 'agentic/permission', '--help').contains('--harness CHOICE  required, repeatable')
+      assert run(root, 'help', 'agentic/permission').contains('--harness CHOICE  required, repeatable')
       assert run(root, 'agentic/permission', '--policy=.agents/policy.yaml',
       '--harness=codex', '--harness', 'claude').contains('Cooked .codex/config.toml')
       assert Toml.parse(codex.text).getString('model') == 'existing-model'

@@ -28,13 +28,13 @@ The engine does not find recipes. People find them in a cookbook's repository, o
 teammate's link. Given the coordinates:
 
 ```sh
-./cook dev.thecook:cook:0.1.0 --help         # the artifact's front page
-./cook dev.thecook:cook:0.1.0:cook --help    # the recipe's help, params and ingredients
+./cook help dev.thecook:cook:0.1.0           # the artifact's front page
+./cook help dev.thecook:cook:0.1.0:cook      # the recipe's help, params and ingredients
 ./cook dev.thecook:cook:0.1.0
 ./cook dev.thecook:agents:0.1.0:permissions --harness=claude dev.thecook:agents:0.1.0:instructions --harness=claude
 ```
 
-`--help` on `group:artifact:version` prints the artifact's front page; on `group:artifact:version:recipe` it prints
+`help` on `group:artifact:version` prints the artifact's front page; on `group:artifact:version:recipe` it prints
 that recipe's help. Recipes named in one invocation compose left to right by file content. Each recipe is evaluated
 in its own classloader. A recipe never composes another recipe.
 
@@ -107,7 +107,7 @@ Rules:
 | `@confirm('''...''')` | first import | A consequence the diff cannot show, displayed above the diff when asking for approval. Optional. |
 | `@yield('''...''')` | first import | What to do next, printed after the writes succeed. Optional. |
 | `@ingredient(Type, at)` | field | An injected instance, at the destination root or at the directory `at`. |
-| `@param(value = names, doc = '...', default = ..., choices = ..., many = ...)` | field | An input bound from `--name=value`. Required without a default. `many` accepts repeats. A `File` field is an input file in the destination, read as it was before the invocation. `doc` is required: it is the param's line in `--help`. |
+| `@param(value = names, doc = '...', default = ..., choices = ..., many = ...)` | field | An input bound from `--name=value`. Required without a default. `many` accepts repeats. A `File` field is an input file in the destination, read as it was before the invocation. `doc` is required: it is the param's line in `help`. |
 
 A file that another recipe in the same invocation may write, such as a program's own configuration or Ralph's PRD,
 is read by the ingredient that models it, through `current(path)`; the recipe passes its path as a `String`.
@@ -120,14 +120,13 @@ follow others says so in its doc comment, as `Agents.connect` does: call it afte
 
 A unit is read by someone who has its artifact and not its source, so `./cook` is how it is read: a recipe inside a
 jar cannot be opened with a pager. Everything the reader needs ships in the artifact: its README, the doc comments on
-its models and the annotations on its recipes. `./cook <recipe> --help` and `./cook --help <recipe>` print help and
-stop. An artifact address prints its front page; a recipe address or path prints that recipe's help. In a composed
-invocation, `--help` after a recipe's arguments selects help for that address.
+its models and the annotations on its recipes. `./cook help <address>...` prints help for each address in order and
+applies nothing. An artifact address prints its front page; a recipe address or path prints that recipe's help.
 
 The engine reads a recipe's help from its parsed source, without running the recipe or resolving its imports, so help
 works for a recipe whose models are not available.
 
-| Unit | `--help` prints, in order | The author writes |
+| Unit | `help` prints, in order | The author writes |
 | --- | --- | --- |
 | Recipe | `@help`; the params from their annotations, each with its name, type, default or `required`, choices and `doc`; the ingredients it injects; `@confirm` as "Confirm"; `@yield` as "After applying" | `@help`, and a `doc` on every param |
 | Model | The class doc comment; the API from the doc comments of its public members; the writes from its annotations and the doc comments of the annotated members | The class doc comment, and a doc comment on every public member and every annotated member |
@@ -185,14 +184,14 @@ A model's class doc comment holds these sections in order.
 Rendered help for an artifact and a recipe, as the design intends it:
 
 ```text
-$ ./cook dev.thecook:ralph:0.1.0 --help
+$ ./cook help dev.thecook:ralph:0.1.0
 Ralph TUI configuration and runners for recipe-driven development loops.
 ```
 
 The artifact's front page introduces the topic. The explicit recipe address renders the recipe:
 
 ```text
-$ ./cook dev.thecook:ralph:0.1.0:ralph --help
+$ ./cook help dev.thecook:ralph:0.1.0:ralph
 ralph
 
 Sets up Ralph TUI as the repository's loop runner: its configuration, a runner and the tracker it takes stories
