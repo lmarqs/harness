@@ -27,6 +27,16 @@ coordinates in hand:
 
 Recipes named in one invocation compose left to right. A recipe never composes another recipe.
 
+## Names
+
+An ingredient is declared in a package that starts with its cookbook's group: `dev.thecook.Compose` is the Compose of
+the `dev.thecook` cookbook. A recipe imports each type it injects, so its imports are its visible dependency list and
+`@ingredient(Compose)` resolves through them. Two ingredients of one cookbook cannot share a simple name, which is what
+turns `Compose` into `DockerCompose` the day a second one appears.
+
+The engine imports its own annotations, `groovy.json`, `groovy.yaml` and `java.nio.file` into every unit, as the
+Groovy shell imports `java.util`. A unit imports nothing from the engine and nothing for JSON, YAML or paths.
+
 ## The author's API
 
 Annotations are the only door between an author's code and the engine. Nothing from the engine is imported.
@@ -76,7 +86,7 @@ Rules:
 | Annotation | On | Declares |
 | --- | --- | --- |
 | `@ingredient(Type, at)` | field | An injected instance, at the destination root or at the directory `at`. |
-| `@param(names, doc, default, choices, many)` | field | An input bound from `--name=value`. Required without a default. `many` accepts repeats. A `File` field is an input file in the destination, read as it was before the invocation. |
+| `@param(names, doc, default, choices, many)` | field | An input bound from `--name=value`. Required without a default. `many` accepts repeats. A `File` field is an input file in the destination, read as it was before the invocation. `doc` is required: it is the param's line in `--help`. |
 
 A file that another recipe in the same invocation may write, such as a program's own configuration or Ralph's PRD,
 is read by the ingredient that models it, through `current(path)`; the recipe passes its path as a `String`.
@@ -84,10 +94,76 @@ is read by the ingredient that models it, through `current(path)`; the recipe pa
 The body is plain Groovy: it calls ingredient methods and ends. `return` ends it with nothing declared. Everything
 the injected instances declare is owned by the recipe.
 
+## Documentation
+
+A unit is read by someone who has its artifact and not its source. Everything they need ships in the artifact: its
+README, the doc comments on its code and its annotations. `./cook <coordinates> --help` prints them and stops. In a
+composed invocation, `--help` after a recipe's arguments prints that recipe's.
+
+| Unit | `--help` prints, in order | The author writes |
+| --- | --- | --- |
+| Recipe | The README; the params from `@param`, each with its type, default or `required`, choices and `doc`; the ingredients it injects | The README, and a `doc` on every param |
+| Ingredient | The README; the API from the doc comments of its public members; the writes from its annotations and the doc comments of the annotated members | The README, and a doc comment on every public member and every annotated member |
+
+A fact that lives in code is rendered from the code and written nowhere else. State a model keeps for itself is
+`private`, so the rendered API is the one the author means.
+
+### Recipe README
+
+Sections in this order; an empty one is omitted.
+
+| Section | Content |
+| --- | --- |
+| Title and lead | One or two sentences: what the destination gets |
+| Before applying | What must exist or be installed, and what the recipe reads |
+| Apply | One to three invocations showing the choices that matter; the params are not repeated |
+| Writes | `Target`, `Part` and `When`: the argument value that triggers the row, or `Always` |
+| After applying | What the setup changes day to day, and what to run |
+| With other recipes | What it composes with, in which order, and which arguments must agree |
+
+### Ingredient README
+
+| Section | Content |
+| --- | --- |
+| Title and lead | One or two sentences: the program or content it models |
+| Writes for | The programs, versions and formats the model writes for |
+| Instances | What one instance covers, and when a recipe places one `at` a directory |
+| Use | A recipe excerpt: the import, the injection and the typical calls |
+| With other models | The facts it exposes and which models consume them |
+
+### Doc comments
+
+| On | Says |
+| --- | --- |
+| The class | What it models, in one sentence; the heading of the rendered API |
+| A public method or property | What it means for the destination, what its arguments accept and what is rejected |
+| An annotated member | The part written and when, as one row of the rendered writes: `` `engines.node`, a caret range on the major, once a version was set. `` |
+
+Rendered help for a recipe, as the design intends it:
+
+```text
+$ ./cook dev.thecook:ralph --help
+ralph
+
+Sets up Ralph TUI as the repository's loop runner: its configuration, a runner and the tracker it takes stories
+from.
+...
+
+Parameters
+  --agent=<value>           The agent Ralph drives, by its Ralph plugin name          default: codex
+  --tracker=json|beads      Where Ralph takes its stories from                       default: json
+  --mode=standalone|mise    Run Ralph through its own runner at .ralph-tui/run, or    default: standalone
+                            through the mise task ralph:run
+  --issue-prefix=<value>    The Beads issue prefix, for the beads tracker            default: none
+
+Ingredients
+  dev.thecook: Beads, Git, Mise, Ralph
+```
+
 ## Layout
 
 ```text
-ingredients/<name>/<Name>.groovy     the model or content, with README.md and resources beside it
+ingredients/<name>/<Name>.groovy     the model or content in the cookbook's package, with README.md and resources beside it
 recipes/<name>/recipe.groovy         the recipe, with README.md beside it
 ```
 

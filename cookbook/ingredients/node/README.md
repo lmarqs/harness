@@ -1,23 +1,36 @@
 # node
 
-Models a Node project: `package.json`, the package manager and the files the toolchain leaves behind. One instance
-per project directory; a workspace package is an instance `at` its directory.
+A Node project: `package.json`, its package manager and the files the toolchain leaves behind.
 
-## Model
+## Writes for
 
-- `version` is the Node major or exact version; without it, `engines.node` is left alone.
-- `manager(name)` selects npm, pnpm or Yarn.
-- `pinManager(version)` pins the selected manager, at a default version per manager when none is given.
-- `dependency(package, version, kind)` adds one dependency.
-- `dropVersionFile()` removes `.nvmrc` once mise owns the version.
-- `tools()`, `ephemeralFiles()`, `setupScript()`, `lockScript()` and `installCommand()` expose facts for mise and Git;
-  the install command runs in the project directory.
-
-## Writes
-
-| Target | Part |
+| Program | Format or version |
 | --- | --- |
-| `package.json` | `engines.node` when a version was set, `packageManager` when a manager was pinned, and `<kind>.<package>` per added dependency, each owned on its own |
-| `.nvmrc` | Deleted when `dropVersionFile()` was called |
+| Node | `engines.node` as a caret range on the major you set |
+| npm, pnpm, Yarn | `packageManager` as Corepack reads it; defaults npm 10.9.8, pnpm 10.4.1, Yarn 4.17.0 |
+| mise | tool names `node`, `npm:npm`, `pnpm` and `yarn` |
 
-The scripts `npm/setup.sh`, `npm/lock.sh`, `yarn/setup.sh` and `yarn/lock.sh` ship inside this artifact.
+## Instances
+
+One instance per project directory. A workspace package is a second instance `at` its directory, and each owns its
+own `package.json`.
+
+## Use
+
+```groovy
+import dev.thecook.Node
+
+@ingredient(Node) def node
+
+node.version = '22'
+node.manager('yarn')
+node.pinManager()
+mise.tools(node.tools())
+mise.script('node:setup', node.setupScript())
+git.ignore(node.ephemeralFiles())
+```
+
+## With other models
+
+`tools()` is for mise, `ephemeralFiles()` for Git, and `setupScript()`, `lockScript()` and `installCommand()` for a
+task runner. This model writes none of those; the recipe hands them over.
