@@ -18,29 +18,26 @@ package dev.thecook.agents
  * ```groovy
  * import dev.thecook.agents.Agents
  * import dev.thecook.agents.Claude
- * import dev.thecook.agents.Solid
  *
  * @ingredient(Agents) def agents
  * @ingredient(Claude) def claude
- * @ingredient(Solid) def solid
  *
  * agents.instruct('Run the project checks before delivery.')
- * agents.skills(solid)
+ * agents.skills('solid')
  * agents.permit([claude])
  * agents.connect([claude])
  * ```
  *
  * ## With other models
  *
- * `Skill` models, such as `Solid`, supply content from their artifact. `Harness` models, such as `Claude` and
- * `Codex` in this artifact or a harness from another cookbook, translate the shared policy and paths into their own
- * native files.
+ * `Harness` models, such as `Claude` and `Codex` in this artifact or a harness from another cookbook, translate
+ * the shared policy and paths into their own native files.
  * Agents owns the shared layout and computes the relative paths it passes to each harness.
  */
 @Ingredient
 class Agents {
   private List<String> instructions = []
-  private List<Skill> skills = []
+  private List<String> skills = []
   private boolean instructionsUsed = false
   private boolean policyUsed = false
 
@@ -53,8 +50,15 @@ class Agents {
     instructionsUsed = true
   }
 
-  /** Adds skill content for the shared skill directory; add skills before calling `connect`. */
-  void skills(Skill... added) { skills += added }
+  /**
+   * Adds skills packaged with this artifact to the shared skill directory, by name: `solid` (SOLID principles,
+   * TDD and clean code), `hexagonal-layout` (business logic boundaries and dependency direction) and
+   * `effective-java-core` (Java and Groovy API design). Rejects any other name. Add skills before calling `connect`.
+   */
+  void skills(String... names) {
+    names.each { if (!resources("skills/${it}")) throw new IllegalArgumentException("No packaged skill named ${it}") }
+    skills += names
+  }
 
   /** The shared agent policy at `.agents/policy.yaml`, or the starter when the file is absent. */
   Policy policy() {
@@ -73,7 +77,7 @@ class Agents {
     instructionsUsed = true
     harnesses.each { harness ->
       harness.readInstructions(reach(harness, 'AGENTS.md'))
-      if (skills) harness.readSkills(reach(harness, '.agents/skills'), skills*.name)
+      if (skills) harness.readSkills(reach(harness, '.agents/skills'), skills)
     }
   }
 
@@ -92,8 +96,8 @@ class Agents {
   /** Whole files under `.agents/skills/<name>/`, when skills are added. */
   @Files(path = '.agents/skills')
   Map<String, String> skillFiles() {
-    skills.collectEntries { skill ->
-      skill.files.collectEntries { path, body -> ["${skill.name}/${path}", body] }
+    skills.collectEntries { name ->
+      resources("skills/${name}").collectEntries { path, body -> ["${name}/${path}", body] }
     } ?: null
   }
 
@@ -118,15 +122,6 @@ interface Harness {
 
   /** Makes the harness find the named shared skills under `path`, relative to its directory. */
   void readSkills(String path, List<String> names)
-}
-
-/** Skill content packaged under `skills/<name>/` in its artifact, with `SKILL.md` and supporting files together. */
-trait Skill {
-  /** The skill's directory name, used both for packaged resources and the shared destination directory. */
-  abstract String getName()
-
-  /** Every file packaged under `skills/<name>/`, keyed by its relative path, for Agents to install as a shared skill. */
-  Map<String, String> getFiles() { resources("skills/${name}") }
 }
 
 /** Version 1 of the shared policy: instructions and literal command prefixes with a decision each. */

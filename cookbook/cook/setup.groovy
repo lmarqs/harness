@@ -43,21 +43,15 @@ import dev.thecook.agents.Agents
 import dev.thecook.agents.Claude
 import dev.thecook.agents.Codex
 import dev.thecook.git.Git
-import dev.thecook.agents.Solid
-import dev.thecook.agents.HexagonalLayout
-import dev.thecook.agents.EffectiveJavaCore
 
 @ingredient(Agents) def agents
 @ingredient(Claude) def claude
 @ingredient(Codex) def codex
 @ingredient(Git) def git
-@ingredient(Solid) def solid
-@ingredient(HexagonalLayout) def hexagonal
-@ingredient(EffectiveJavaCore) def effectiveJava
 
 def harnesses = [claude, codex]
 
-agents.skills(solid, hexagonal, effectiveJava)
+agents.skills('solid', 'hexagonal-layout', 'effective-java-core')
 agents.instruct(
   '# Working on the-cook',
   '',
