@@ -22,7 +22,7 @@ unattended policy allows read-only Git inspection and denies push and hard reset
 in `AGENTS.md`. Neither policy changes agent bypass settings.
 
 The current CLI ships no recipe that maintains these files, so a policy edit is carried into the native files by hand
-and reviewed with them. The [the-cook-setup](../../cookbook/recipes/the-cook-setup/README.md) sketch shows the recipe
+and reviewed with them. The [dev.thecook:cook:0.1.0:setup](../../cookbook/cook/setup.groovy) sketch shows the recipe
 that declares this setup in the cookbook design.
 
 ## Project gate
