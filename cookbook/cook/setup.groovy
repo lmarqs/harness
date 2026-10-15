@@ -1,6 +1,6 @@
 /**
- * Sets up this repository's shared policy for Claude and Codex, three skills, working instructions and
- * Claude's local settings ignore.
+ * Sets up this repository's shared policy for Claude and Codex, three skills, working instructions and an
+ * ignore pattern for Claude's local settings file.
  *
  * ## Before applying
  *
@@ -36,7 +36,7 @@
  *
  * ## With other recipes
  *
- * Apply `dev.thecook:cook:0.1.0` with this recipe for the engine's local-record ignore declaration.
+ * Apply `dev.thecook:cook:0.1.0` with this recipe to ignore the engine's local records.
  * Both recipes own the `ignore` section of `.gitignore`; the last recipe's section wins.
  */
 import dev.thecook.agents.Agents

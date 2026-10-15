@@ -6,7 +6,7 @@ package dev.thecook.terraform
  * ## Writes for
  *
  * Terraform HCL configuration files, owned as whole files. The plan command runs the Terraform CLI against
- * the directory containing a requested file; the toolchain version is supplied to Mise.
+ * the directory containing a requested file; Mise receives the toolchain version.
  *
  * ## Instances
  *

@@ -1,1 +1,2 @@
-Node projects bring a JavaScript runtime, a package manager and dependencies together so contributors share the same toolchain and ways to install packages.
+Node projects use a JavaScript runtime, a package manager and dependencies. Contributors should share one
+toolchain and one way to install packages.

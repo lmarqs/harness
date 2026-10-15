@@ -1,1 +1,2 @@
-mise brings a project's runtime versions, environment and development commands together so contributors share the same tools and ways to run them.
+mise holds a project's runtime versions, environment and development commands in one place, so every contributor
+uses the same tools and runs them the same way.

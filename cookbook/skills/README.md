@@ -1,2 +1,2 @@
-Coding skills give agents shared guidance for implementation, review and API design, with an emphasis on clear
-responsibilities and keeping business logic independent of the technology it uses.
+Coding skills that give agents shared guidance for implementation, review and API design. They favor clear
+responsibilities and business logic that does not depend on the technology around it.

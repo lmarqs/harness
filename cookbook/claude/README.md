@@ -1,2 +1,2 @@
-Claude Code project configuration gives the coding agent a repository's working conventions and permissions,
-with shared skills for the tasks the team carries out.
+Claude Code project configuration: a repository's working conventions and permissions for the agent, and the
+shared skills it uses for the team's tasks.

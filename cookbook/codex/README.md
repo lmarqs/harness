@@ -1,2 +1,2 @@
-Codex project configuration gives the coding agent a repository's working conventions and permissions,
-with hooks and command rules for its work in that repository.
+Codex project configuration: a repository's working conventions and permissions for the agent, and the hooks
+and command rules that apply to its work there.

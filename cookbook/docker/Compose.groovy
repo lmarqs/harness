@@ -6,7 +6,7 @@ package dev.thecook.docker
  * ## Writes for
  *
  * The Compose YAML format's `services` mapping. Each requested service key is owned whole; other services
- * and top-level keys remain outside that declaration.
+ * and top-level keys are left as they are.
  *
  * ## Instances
  *

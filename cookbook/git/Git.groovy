@@ -25,8 +25,8 @@ package dev.thecook.git
  *
  * ## With other models
  *
- * Consumes ignore patterns other models expose, such as `git.ignore(node.ephemeralFiles())`.
- * The recipe passes those patterns to the Git instance for the same directory.
+ * Git consumes the ignore patterns other models expose, such as `git.ignore(node.ephemeralFiles())`. The recipe
+ * passes them to the Git instance for the same directory.
  */
 @Ingredient
 class Git {

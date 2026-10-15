@@ -31,8 +31,8 @@ import java.util.regex.Pattern
  *
  * ## With other models
  *
- * `buildCommand(stage)` supplies a command for Mise to build the named stage. Ignore patterns exposed by
- * other models can be passed to `ignore`; the recipe wires these facts into the build context.
+ * `buildCommand(stage)` supplies a command for Mise to build the named stage. A recipe can pass ignore
+ * patterns that other models expose to `ignore`, which writes them to `.dockerignore`.
  */
 @Ingredient
 class Docker {

@@ -7,8 +7,8 @@ import java.util.regex.Pattern
  *
  * ## Writes for
  *
- * Go's `go.mod` syntax: individual requirement lines in an existing module file. Toolchain pins and commands
- * are supplied as facts for a task runner rather than written by this model.
+ * Go's `go.mod` syntax: individual requirement lines in an existing module file. The model supplies toolchain
+ * pins and commands to a task runner as facts and writes neither itself.
  *
  * ## Instances
  *

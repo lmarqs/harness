@@ -40,7 +40,7 @@ import dev.thecook.node.Node
 import dev.thecook.mise.Mise
 import dev.thecook.git.Git
 
-@param(value = ['node'], default = '22', doc = 'Node version') String nodeVersion
+@param(value = ['node'], default = '22', doc = 'The Node version') String nodeVersion
 @param(value = ['manager'], choices = ['npm', 'yarn'], default = 'npm', doc = 'The package manager for the project tools and tasks') String manager
 @param(value = ['manager-version'], default = null, doc = 'The package manager version to pin, or its default when unset') String managerVersion
 

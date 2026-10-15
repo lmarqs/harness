@@ -5,8 +5,8 @@
  *
  * The optional configuration input is a TOML file and the optional hooks input is a JSON file in the destination.
  * Both are read as they exist before the invocation; each top-level key becomes one owned key. The optional
- * rules input is a directory of rule files, each with a simple name using letters, digits, underscores, dots
- * and hyphens, other than `.` or `..`.
+ * rules input is a directory of rule files. Each file name may hold only letters, digits, underscores, dots
+ * and hyphens, and may not be `.` or `..`.
  *
  * ## Apply
  *

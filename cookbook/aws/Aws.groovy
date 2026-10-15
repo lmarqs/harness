@@ -2,7 +2,7 @@ package dev.thecook.aws
 
 /**
  * Supplies AWS credentials, permissions, local environment values and a session-check script for other models.
- * Writes nothing itself.
+ * It writes nothing itself.
  *
  * ## Writes for
  *
@@ -12,7 +12,7 @@ package dev.thecook.aws
  *
  * ## Instances
  *
- * One instance supplies AWS facts for a recipe. It has no directory-specific outputs; `at` is unnecessary.
+ * One instance supplies AWS facts for a recipe. Its outputs do not depend on a directory, so `at` is unnecessary.
  * The credentials action reference is configurable per instance.
  *
  * ## Use

@@ -1,5 +1,5 @@
 /**
- * Provides a mise task named `grill` that runs the command you supply.
+ * Declares a mise task named `grill` that runs the supplied command.
  *
  * ## Before applying
  *
@@ -20,7 +20,7 @@
  *
  * ## After applying
  *
- * Run `mise run grill` from the project to execute the command.
+ * Run `mise run grill` from the project to run the command.
  *
  * ## With other recipes
  *

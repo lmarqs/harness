@@ -6,7 +6,7 @@ package dev.thecook.agents
  * ## Writes for
  *
  * Markdown instructions in `AGENTS.md`, version 1 of the YAML policy at `.agents/policy.yaml`,
- * and skill file trees under `.agents/skills/`, each containing `SKILL.md` and supporting resources.
+ * and skill file trees under `.agents/skills/`, each with `SKILL.md` and its supporting resources.
  *
  * ## Instances
  *

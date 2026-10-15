@@ -1,7 +1,7 @@
 # Cookbook
 
-Design sketch. Every file under this directory is written in a Groovy-like pseudo language to show the shape of
-recipes and ingredients. Nothing here runs.
+This directory is a design sketch. Its files use a Groovy-like pseudo language to show the shape of recipes and
+ingredients, and nothing here runs.
 
 ## Units
 
@@ -24,8 +24,8 @@ inside one recipe's dependency tree are an error.
 
 A committed `cook.toml` at the destination lists the repositories to resolve from. Maven Central is the default.
 
-Finding a recipe happens outside the engine: a cookbook's repository, an artifact host, a teammate's link. With the
-coordinates in hand:
+The engine does not find recipes. People find them in a cookbook's repository, on an artifact host or through a
+teammate's link. Given the coordinates:
 
 ```sh
 ./cook dev.thecook:cook:0.1.0 --help         # the artifact's front page
@@ -47,12 +47,13 @@ imports are its visible dependency list and `@ingredient(Compose)` resolves thro
 Recipe names are noun phrases naming the state the destination gets, without repeating the directory's topic:
 `node/project.groovy`, `docker/base-image.groovy` and `agents/permissions.groovy`.
 
-The engine imports its own annotations, `groovy.json`, `groovy.yaml`, `groovy.toml` and `java.nio.file` into every unit,
-as the Groovy shell imports `java.util`. A unit imports nothing from the engine and nothing for JSON, YAML, TOML or paths.
+The engine imports its own annotations, `groovy.json`, `groovy.yaml`, `groovy.toml` and `java.nio.file` into every
+unit, as the Groovy shell imports `java.util`. A unit imports nothing from the engine and nothing for JSON, YAML,
+TOML or paths.
 
 ## The author's API
 
-Annotations are the only door between an author's code and the engine. Nothing from the engine is imported.
+An author's code reaches the engine only through annotations. It imports nothing from the engine.
 
 ### In an ingredient
 

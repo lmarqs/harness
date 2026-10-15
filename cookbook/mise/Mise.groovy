@@ -29,8 +29,8 @@ package dev.thecook.mise
  *
  * ## With other models
  *
- * Consumes tool versions, environment entries, commands and script content exposed by other models. The recipe
- * wires these facts into mise; models supply argument lists without quoting, and Mise quotes them for shell use.
+ * Mise consumes the tool versions, environment entries, commands and scripts that other models expose, and the
+ * recipe wires them in. Models supply argument lists unquoted; Mise quotes them for the shell.
  */
 @Ingredient
 class Mise {

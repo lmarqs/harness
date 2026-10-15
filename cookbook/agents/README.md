@@ -1,2 +1,2 @@
-Shared conventions for coding agents working in one repository keep project guidance, permissions and reusable
-skills consistent across the programs a team uses.
+Shared setup for the coding agents in one repository, so project guidance, permissions and skills stay the same
+across every agent program the team uses.

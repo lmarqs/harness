@@ -3,8 +3,8 @@
  *
  * ## Before applying
  *
- * The workflow, job and step identified by its `id` must exist in the composed content. The selected step
- * must accept a `key` input, and the supplied expression must describe the cache key the workflow needs.
+ * The workflow, the job and the step with the given `id` must exist in the composed content. The step must
+ * accept a `key` input, and the supplied expression must describe the cache key the workflow needs.
  *
  * ## Apply
  *
@@ -21,8 +21,8 @@
  *
  * ## After applying
  *
- * The next workflow run uses the supplied key expression for the selected cache step. Other step inputs
- * remain outside this declaration. Applying the same arguments again leaves the key unchanged.
+ * The next workflow run uses the supplied key expression for the selected cache step. The recipe does not
+ * own the step's other inputs. Applying the same arguments again leaves the key unchanged.
  *
  * ## With other recipes
  *
