@@ -18,9 +18,9 @@ interface.
 
 [Cook architecture](../architecture.md) states the intended design. These pages expand it;
 [ADRs](../adrs/README.md) explain its reasoning and [UX standards](../ux/README.md) describe its interaction. If a
-supporting page conflicts with the architecture, correct that page. The [root README](../../README.md),
-[core implementation guide](../../core/README.md) and [recipe READMEs](../../cookbook/recipes/README.md) describe
-current execution.
+supporting page conflicts with the architecture, correct that page. The [root README](../../README.md) and
+[core implementation guide](../../core/README.md) describe current execution. The [cookbook](../../cookbook/README.md)
+sketches how recipes and ingredients are written and distributed.
 
 ## Reading path
 

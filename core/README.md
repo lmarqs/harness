@@ -105,6 +105,6 @@ see the [root build instructions](../README.md#start-from-a-fresh-clone).
 
 ## Verification
 
-The existing development tasks include `./gradlew check cliBuild cookbookBuild`. Tests exercise shared files,
+The existing development tasks include `./gradlew check cliBuild`. Tests exercise shared files,
 adoption, individual removal, collisions, drift, ejection, state migration, transaction recovery, and both dynamic
 and compiled declarations.

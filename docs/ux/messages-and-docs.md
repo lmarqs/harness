@@ -185,7 +185,8 @@ An explanation of the guarantee is sufficient when its concrete representation n
 
 A recipe README explains its recipe and nothing else. Its reader already knows the core and the architecture, so it
 does not explain or link them; a recipe stays understandable when its directory is read on its own. Write each one
-from the [recipe README template](../../cookbook/recipes/TEMPLATE.md), which fixes the section order.
+in the cookbook's shape: one sentence on what the recipe declares, one invocation, then a table of each target and
+the part of it the recipe owns.
 
 ### Writing rules for all documentation
 
