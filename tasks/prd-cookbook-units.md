@@ -392,8 +392,9 @@ recipes documented in their files.
 
 - The cookbook is excluded from Spotless and CodeNarc in `build.gradle`; the quality gates lint the rest of the
   repository and check docs links.
-- The main checkout holds an ignored worktree under `.worktrees/` that pollutes CodeNarc and Spotless runs there;
-  a fresh worktree or clone does not have it.
+- The main checkout holds a stale ignored worktree at `.worktrees/documentation-alignment`. In that checkout the
+  gate fails on two ktlint errors inside it, unrelated to any story (verified at f3c45b1). Run stories in a fresh
+  worktree or clone, or remove that worktree first with `git worktree remove .worktrees/documentation-alignment`.
 - `docs/features/agentic-dogfood.md` links to `cookbook/recipes/the-cook-setup/README.md`; US-018 moves that file
   and updates the link in the same commit, so the docs link check never breaks.
 - Use `git mv` so history follows each file.
