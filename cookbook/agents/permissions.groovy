@@ -29,7 +29,7 @@
  *
  * ## With other recipes
  *
- * Apply `dev.thecook:agents:0.1.0:context` with the same harness selection to connect shared instructions.
+ * Apply `dev.thecook:agents:0.1.0:instructions` with the same harness selection to connect shared instructions.
  * The recipes write separate targets and work in either order.
  */
 import dev.thecook.agents.Agents

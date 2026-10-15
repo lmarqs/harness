@@ -31,7 +31,7 @@ teammate's link. Given the coordinates:
 ./cook dev.thecook:cook:0.1.0 --help         # the artifact's front page
 ./cook dev.thecook:cook:0.1.0:cook --help    # the recipe's doc comment, params and ingredients
 ./cook dev.thecook:cook:0.1.0
-./cook dev.thecook:agents:0.1.0:permissions --harness=claude dev.thecook:agents:0.1.0:context --harness=claude
+./cook dev.thecook:agents:0.1.0:permissions --harness=claude dev.thecook:agents:0.1.0:instructions --harness=claude
 ```
 
 `--help` on `group:artifact:version` prints the artifact's front page; on `group:artifact:version:recipe` it prints

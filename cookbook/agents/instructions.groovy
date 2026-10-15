@@ -4,8 +4,8 @@
  * ## Apply
  *
  * ```sh
- * ./cook dev.thecook:agents:0.1.0:context
- * ./cook dev.thecook:agents:0.1.0:context --harness=claude
+ * ./cook dev.thecook:agents:0.1.0:instructions
+ * ./cook dev.thecook:agents:0.1.0:instructions --harness=claude
  * ```
  *
  * ## Writes

@@ -26,7 +26,7 @@
  *
  * ## With other recipes
  *
- * Apply `dev.thecook:agents:0.1.0:context` after this recipe to use shared instructions in place of the
+ * Apply `dev.thecook:agents:0.1.0:instructions` after this recipe to use shared instructions in place of the
  * supplied instructions. Apply `dev.thecook:agents:0.1.0:permissions` after it to use the shared policy for
  * `permissions`; other settings keys remain separate targets. Select `--harness=claude` for either recipe.
  */

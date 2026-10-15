@@ -30,7 +30,7 @@
  *
  * ## With other recipes
  *
- * Apply `dev.thecook:agents:0.1.0:context` before this recipe to seed `AGENTS.md` with the section template, which
+ * Apply `dev.thecook:agents:0.1.0:instructions` before this recipe to seed `AGENTS.md` with the section template, which
  * is written only when the file is absent and never owned; this recipe owns the `codex` section. Apply
  * `dev.thecook:agents:0.1.0:permissions` after this recipe with `--harness=codex` to use the shared policy for
  * `sandbox_mode`, `approval_policy` and `sandbox_workspace_write`; other configuration keys remain separate
