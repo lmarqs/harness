@@ -76,7 +76,10 @@ Rules:
 | Annotation | On | Declares |
 | --- | --- | --- |
 | `@ingredient(Type, at)` | field | An injected instance, at the destination root or at the directory `at`. |
-| `@param(names, doc, default, choices, many)` | field | An input bound from `--name=value`. Required without a default. `many` accepts repeats. `File` fields resolve against the destination. |
+| `@param(names, doc, default, choices, many)` | field | An input bound from `--name=value`. Required without a default. `many` accepts repeats. A `File` field is an input file in the destination, read as it was before the invocation. |
+
+A file that another recipe in the same invocation may write, such as a program's own configuration or Ralph's PRD,
+is read by the ingredient that models it, through `current(path)`; the recipe passes its path as a `String`.
 
 The body is plain Groovy: it calls ingredient methods and ends. `return` ends it with nothing declared. Everything
 the injected instances declare is owned by the recipe.

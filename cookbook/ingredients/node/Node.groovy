@@ -8,11 +8,13 @@ class Node {
 
   static final Map DEFAULT_MANAGER_VERSION = [npm: '10.9.8', pnpm: '10.4.1', yarn: '4.17.0']
 
-  void manager(String name, String version = null) {
+  void manager(String name) {
     if (!(name in ['npm', 'pnpm', 'yarn'])) throw new IllegalArgumentException("Unknown package manager: ${name}")
     manager = name
-    managerVersion = version ?: DEFAULT_MANAGER_VERSION[name]
   }
+
+  /** Pins the selected manager in `packageManager` and mise, at `version` or the manager's default. */
+  void pinManager(String version = null) { managerVersion = version ?: DEFAULT_MANAGER_VERSION[manager] }
 
   void dependency(String packageName, String version, String kind = 'dependencies') {
     if (!(packageName ==~ /(@[a-zA-Z0-9_.-]+\/)?[a-zA-Z0-9_.-]+/)) throw new IllegalArgumentException("Invalid package name: ${packageName}")

@@ -7,7 +7,8 @@
 @ingredient(Git) def git
 
 node.version = nodeVersion
-node.manager(manager, managerVersion)
+node.manager(manager)
+node.pinManager(managerVersion)
 
 mise.tools(node.tools())
 mise.script('node:setup', node.setupScript())

@@ -2,7 +2,6 @@
 @ingredient(Claude) def claude
 @ingredient(Codex) def codex
 @ingredient(Git) def git
-@ingredient(TheCook) def cook
 @ingredient(Solid) def solid
 @ingredient(HexagonalLayout) def hexagonal
 @ingredient(EffectiveJavaCore) def effectiveJava
@@ -23,5 +22,4 @@ agents.instruct(agents.policy().instructions)
 agents.permit(harnesses)
 agents.connect(harnesses)
 
-git.ignore(cook.localFiles)
 git.ignore(claude.localFiles)

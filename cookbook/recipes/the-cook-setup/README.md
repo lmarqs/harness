@@ -1,10 +1,11 @@
 # the-cook-setup
 
 This repository's own agent setup: the shared policy rendered for Claude and Codex, three skills, the working
-instructions and the ignore entries.
+instructions and Claude's local settings ignore. Apply it with [the-cook](../the-cook/README.md), which ignores the
+engine's own records:
 
 ```sh
-./cook dev.thecook:the-cook-setup
+./cook dev.thecook:the-cook dev.thecook:the-cook-setup
 ```
 
 | Target | Part |
@@ -17,4 +18,4 @@ instructions and the ignore entries.
 | `.claude/skills/<name>` | One relative link per skill |
 | `.codex/config.toml` | `sandbox_mode`, `approval_policy`, `sandbox_workspace_write` |
 | `.codex/rules/cook.rules` | The section `commands` |
-| `.gitignore` | The section `ignore`: `/.cook/` and `/.claude/settings.local.json` |
+| `.gitignore` | The section `ignore`: `/.claude/settings.local.json` |

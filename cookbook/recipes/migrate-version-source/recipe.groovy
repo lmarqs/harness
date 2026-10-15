@@ -6,5 +6,4 @@
 @ingredient(Python) def python
 
 mise.tool(runtime, version)
-if (runtime == 'node') node.dropVersionFile()
-if (runtime == 'python') python.dropVersionFile()
+[node: node, python: python][runtime].dropVersionFile()

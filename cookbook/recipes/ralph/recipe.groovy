@@ -13,17 +13,19 @@
 @ingredient(Mise) def mise
 @ingredient(Git) def git
 
-ralph.configure(agent: agent, tracker: tracker, mode: mode, prd: prd, workers: workers,
+ralph.configure(agent: agent, tracker: tracker, prd: prd, workers: workers,
                 maxIterations: maxIterations, autoCommit: autoCommit, headless: headless)
 git.ignore(ralph.localFiles + ralph.ephemeralFiles)
+
+if (mode == 'mise') {
+  mise.tools(ralph.tools)
+  mise.script('ralph:run', ralph.runScript())
+} else {
+  ralph.installRunner()
+}
 
 if (tracker == 'beads') {
   beads.track(issuePrefix)
   git.ignore(beads.localFiles + beads.ephemeralFiles)
   mise.script('beads:ready', beads.readyScript())
-}
-
-if (mode == 'mise') {
-  mise.tools(ralph.tools)
-  mise.script('ralph:run', ralph.runScript())
 }
