@@ -39,9 +39,9 @@ the checkout root:
 ./cook --help
 ```
 
-The help output begins with `Usage:`. The repository's [`cook` script](cook) launches the local distribution after
-changing into this checkout. To configure another directory, invoke `cli/build/install/the-cook/bin/the-cook` by its
-absolute path from that directory, or use its `--repo` option.
+The help output begins with `Usage:`. The repository's [`cook` script](cook) launches the local distribution, and the
+directory it runs from is the kitchen Cook cooks in. `-C <dir>` or `--kitchen=<dir>` before the first recipe cooks in
+`<dir>` as if Cook had started there, and relative paths resolve against it.
 
 ### Development tooling
 

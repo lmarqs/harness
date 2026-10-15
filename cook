@@ -6,5 +6,4 @@ if [ ! -x "$cli_path" ]; then
     echo "Build the CLI first: ./gradlew cliBuild" >&2
     exit 1
 fi
-cd "$repo_dir"
 exec "$cli_path" "$@"

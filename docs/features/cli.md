@@ -9,11 +9,11 @@ see the root README's [current implementation](../../README.md#current-implement
 ## Synopsis
 
 ```text
-./cook [batch-options] <recipe> [recipe-arguments] [<recipe> [recipe-arguments]]...
-./cook apply [batch-options] <recipe> [recipe-arguments] [<recipe> [recipe-arguments]]...
-./cook revert [batch-options] <batchId>
-./cook batch list
-./cook batch inspect <batchId>
+./cook [-C <dir>] [batch-options] <recipe> [recipe-arguments] [<recipe> [recipe-arguments]]...
+./cook apply [-C <dir>] [batch-options] <recipe> [recipe-arguments] [<recipe> [recipe-arguments]]...
+./cook revert [-C <dir>] [batch-options] <batchId>
+./cook batch list [-C <dir>]
+./cook batch inspect [-C <dir>] <batchId>
 ```
 
 `apply` is the default. Running `./cook` with no arguments shows help.
@@ -113,6 +113,23 @@ Put the option before the first recipe instead:
 ```sh
 ./cook apply --batch-approve ./a.groovy
 ```
+
+## Kitchen
+
+The kitchen is the directory Cook cooks in, and it is the destination. Without an option it is the invocation's
+current working directory.
+
+| Option | Applies to | Position | Effect |
+| --- | --- | --- | --- |
+| `-C <dir>`, `--kitchen=<dir>` | Every command | Before the first recipe operand, or before the batch ID; once | Cooks in `<dir>` as if Cook had started there: recipe operands and other relative paths resolve against it |
+
+```sh
+./cook -C services/api ./recipe.groovy
+./cook apply --kitchen=services/api --batch-approve ./recipe.groovy
+```
+
+Like a batch option, the kitchen option after a recipe receives an error, because arguments after a recipe belong to
+that recipe.
 
 Approval covers all files and hunks in the batch. Existing or edited content follows this same diff and batch-approval
 flow; ownership recorded in `cook.lock` never blocks a change. See

@@ -24,7 +24,7 @@ class RepositoryRecipeTest {
           loader.loadClass('thecook.groovy.NativePlanning').newInstance(),
           loader.loadClass('thecook.cli.filesystem.FileRepositoryInitializer').newInstance())
       def cli = loader.loadClass('thecook.cli.terminal.CookCommand').newInstance(service, new PrintWriter(out, true), new PrintWriter(err, true))
-      def args = ['cookbook', '--repo', root.path, '--policy=.agents/policy.yaml', '--skills-home=' + skills.path]
+      def args = ['-C', root.path, 'cookbook', '--policy=.agents/policy.yaml', '--skills-home=' + skills.path]
       body(root, policy, cli, args, out, err)
     } finally {
       root.deleteDir()
@@ -64,7 +64,7 @@ class RepositoryRecipeTest {
       assert out.toString('UTF-8').trim() == 'Already cooked.'
       Fixtures.copy('agent-policy-composition', root)
       out.reset()
-      assert cli.execute(['cook', '--repo', root.path] as String[]) == 0 : err.toString('UTF-8')
+      assert cli.execute(['-C', root.path, 'cook'] as String[]) == 0 : err.toString('UTF-8')
       assert out.toString('UTF-8').trim() == 'Already cooked.'
     }
   }
@@ -89,7 +89,7 @@ class RepositoryRecipeTest {
 
   @Test void missingUnknownAndMalformedInputsFailBeforeWriting() {
     setup { root, policy, cli, args, out, err ->
-      assert cli.execute(['cookbook', '--repo', root.path] as String[]) == 1
+      assert cli.execute(['-C', root.path, 'cookbook'] as String[]) == 1
       assert err.toString('UTF-8').contains('Required argument: --policy')
       assert cli.execute((args + ['--polciy=x']) as String[]) == 1
       assert err.toString('UTF-8').contains('Unknown recipe argument: polciy')
@@ -130,9 +130,9 @@ class RepositoryRecipeTest {
       supplierPolicy.parentFile.mkdirs()
       supplierPolicy.text = policy.text.replace('Preserve unrelated work.', 'Wrong supplier instructions.')
       def selected = [
-        external.path,
-        '--repo',
+        '-C',
         root.path,
+        external.path,
         '--set',
         'policy=.agents/policy.yaml',
         '--set',

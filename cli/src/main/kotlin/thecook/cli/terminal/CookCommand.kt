@@ -79,16 +79,16 @@ class CookCommand(
     }
   }
 
-  private fun parse(args: Array<String>): Command {
+  private fun parse(invocation: Array<String>): Command {
+    val (kitchen, args) = kitchen(invocation)
     if (args.contentEquals(arrayOf("--help"))) return Help
     val entrypoint = args.firstOrNull() ?: throw UsageError("A command is required")
     val localScript = entrypoint.endsWith(".groovy") && !entrypoint.contains("://")
-    if (localScript && !Files.isRegularFile(path(entrypoint, "recipe"))) {
+    if (localScript && !Files.isRegularFile(path(kitchen, entrypoint, "recipe"))) {
       throw IllegalArgumentException("Recipe file not found: $entrypoint")
     }
-    val builtins = setOf("init", "cook", "plan", "apply")
     val removingInit = entrypoint == "init" && args.drop(1).contains("--remove")
-    val namedRecipe = !localScript && entrypoint !in builtins
+    val namedRecipe = !localScript && entrypoint !in BUILTINS
     if (namedRecipe && !entrypoint.matches(Regex("[a-z][a-z0-9-]*(/[a-z][a-z0-9-]*)*"))) {
       throw UsageError("Invalid recipe name: $entrypoint")
     }
@@ -97,8 +97,8 @@ class CookCommand(
     val wantsHelp = args.drop(1).contains("--help")
     if (wantsHelp && !localScript && !namedRecipe) return Help
 
-    var repository = Path.of("").toAbsolutePath()
-    var script: Path? = if (localScript) path(entrypoint, "recipe") else null
+    val repository = kitchen.toAbsolutePath()
+    var script: Path? = if (localScript) path(kitchen, entrypoint, "recipe") else null
     var savedPlan: Path? = null
     var dryRun = false
     var remove = false
@@ -123,11 +123,13 @@ class CookCommand(
         remove = true
         continue
       }
+      if (option == "-C" || option == "--kitchen") throw UsageError("$option goes before the recipe")
+      // --repo is refused rather than passed on, so a destination typed after the recipe never becomes a recipe input.
       val recipeOption =
         recipeInput && option.matches(Regex("--[a-z][a-z0-9-]*")) &&
           option !in setOf("--repo", "--script", "--plan", "--library", "--set", "--help", "--remove")
       val allowed =
-        recipeOption || option == "--repo" || option == "--help" ||
+        recipeOption || option == "--help" ||
           (action in setOf("plan", "apply") && option == "--plan") ||
           (action in setOf("cook", "plan") && option in setOf("--script", "--library", "--set"))
       if (!allowed) throw UsageError("Unknown option for $action: $option")
@@ -142,20 +144,16 @@ class CookCommand(
       if (value.isNullOrEmpty() || value.startsWith("--")) throw UsageError("Missing value for $option")
       if (inlineValue == null) index++
       when (option) {
-        "--repo" -> {
-          repository = path(value, option)
-        }
-
         "--script" -> {
-          script = path(value, option)
+          script = path(kitchen, value, option)
         }
 
         "--plan" -> {
-          savedPlan = path(value, option)
+          savedPlan = path(kitchen, value, option)
         }
 
         "--library" -> {
-          libraries.add(path(value, option))
+          libraries.add(path(kitchen, value, option))
         }
 
         "--set" -> {
@@ -242,7 +240,7 @@ class CookCommand(
           "  --${input.name} CHOICE  optional, once; choices: ${input.choices.joinToString(", ")}"
       }
     }
-    return "Usage: cook ${declaration.name} [options]\n$arguments\n  --repo PATH  destination repository\n  --dry-run  preview without writing\n  --remove  remove selected applications\n  --set name=value  legacy argument form\n  --help  show this help"
+    return "Usage: cook [-C DIR] ${declaration.name} [options]\n$arguments\n  --dry-run  preview without writing\n  --remove  remove selected applications\n  --set name=value  legacy argument form\n  --help  show this help"
   }
 
   private fun declaration(script: Path): RecipeDeclaration {
@@ -256,14 +254,41 @@ class CookCommand(
   }
 
   private fun path(
+    kitchen: Path,
     value: String,
     option: String,
   ): Path =
     try {
-      Path.of(value)
+      kitchen.resolve(value)
     } catch (error: InvalidPathException) {
       throw UsageError("Invalid path for $option: ${error.reason}")
     }
+
+  // The kitchen is read before anything else because the recipe path and every relative path resolve against it.
+  private fun kitchen(args: Array<String>): Pair<Path, Array<String>> {
+    var kitchen: String? = null
+    var entrypoint: String? = null
+    val rest = mutableListOf<String>()
+    var index = 0
+    while (index < args.size) {
+      val argument = args[index++]
+      val option = argument.substringBefore('=')
+      val beforeRecipe = entrypoint == null || entrypoint in BUILTINS
+      if (beforeRecipe && (argument == "-C" || option == "--kitchen")) {
+        if (kitchen != null) throw UsageError("Option may only be supplied once: $option")
+        val value = if (argument.startsWith("--kitchen=")) argument.substringAfter('=') else args.getOrNull(index++)
+        if (value.isNullOrEmpty() || value.startsWith("-")) throw UsageError("Missing value for $option")
+        kitchen = value
+        continue
+      }
+      if (entrypoint == null) entrypoint = argument
+      rest.add(argument)
+    }
+    if (kitchen == null) return Path.of("") to rest.toTypedArray()
+    val directory = path(Path.of(""), kitchen, "--kitchen")
+    if (!Files.isDirectory(directory)) throw IllegalArgumentException("Kitchen directory not found: $kitchen")
+    return directory to rest.toTypedArray()
+  }
 
   private sealed interface Command
 
@@ -303,18 +328,21 @@ class CookCommand(
   ) : IllegalArgumentException(message)
 
   private companion object {
+    val BUILTINS = setOf("init", "cook", "plan", "apply")
+
     val USAGE =
       """
       Usage:
-        cook <recipe> [--name value | --name=value] [--dry-run] [--remove] [--repo path]
-        the-cook init [--repo path]
-        the-cook cook [--dry-run] [--repo path] [--script path] [--set name=value] [--library path]
-        the-cook path/to/recipe.groovy [--name value | --name=value] [--dry-run] [--repo path] [--set name=value] [--library path]
-        the-cook plan [--repo path] [--script path] [--plan path] [--set name=value] [--library path]
-        the-cook apply [--repo path] [--plan path]
+        cook [-C dir] <recipe> [--name value | --name=value] [--dry-run] [--remove]
+        the-cook init [-C dir]
+        the-cook cook [-C dir] [--dry-run] [--script path] [--set name=value] [--library path]
+        the-cook [-C dir] path/to/recipe.groovy [--name value | --name=value] [--dry-run] [--set name=value] [--library path]
+        the-cook plan [-C dir] [--script path] [--plan path] [--set name=value] [--library path]
+        the-cook apply [-C dir] [--plan path]
         the-cook --help
 
-      --repo defaults to the current directory.
+      -C dir, --kitchen dir: cook in dir, as if started there; relative paths resolve against it.
+      It goes before the first recipe. Without it, the current directory is the kitchen.
       Named recipes resolve to cookbook/recipes/<name>.groovy or cookbook/recipes/<name>/recipe.groovy, then packaged cookbook resources.
       Both local forms for one name are ambiguous and rejected.
       Nested names such as agentic/codex are supported.

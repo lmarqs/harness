@@ -12,7 +12,7 @@ class CookCommandTest {
       def source = new File(root, 'permission.groovy')
       def out = new ByteArrayOutputStream(); def err = new ByteArrayOutputStream()
       def cli = command(out, err)
-      def base = [source.path, '--repo', repo.path, '--remove']
+      def base = ['-C', repo.path, source.path, '--remove']
       [
         [],
         ['--harness='],
@@ -37,12 +37,12 @@ class CookCommandTest {
       def policy = new File(repo, 'policy.yaml'); policy.text = 'managed\n'
       def out = new ByteArrayOutputStream(); def err = new ByteArrayOutputStream()
       def cli = command(out, err)
-      assert cli.execute([source.path, '--repo', repo.path, '--policy=policy.yaml', '--harness=claude'] as String[]) == 0
+      assert cli.execute(['-C', repo.path, source.path, '--policy=policy.yaml', '--harness=claude'] as String[]) == 0
       def before = new File(repo, '.cook/state.json').text
       def unrelated = new File(root, 'unrelated/permission.groovy')
       unrelated.parentFile.mkdirs()
       unrelated.text = 'return { kitchen, book, options -> def c = kitchen.recipe("unrelated"); c.application("fixture/unrelated"); c }\n'
-      assert cli.execute([unrelated.path, '--repo', repo.path, '--harness=claude', '--remove'] as String[]) == 1
+      assert cli.execute(['-C', repo.path, unrelated.path, '--harness=claude', '--remove'] as String[]) == 1
       assert err.toString('UTF-8').contains('no argument declaration')
       assert new File(repo, '.cook/state.json').text == before
       assert new File(repo, 'settings.json').exists()
@@ -67,7 +67,7 @@ return new DeclaredRecipe(new RecipeDeclaration('custom', [target],
 '''
       def out = new ByteArrayOutputStream(); def err = new ByteArrayOutputStream()
       def cli = command(out, err)
-      def base = [source.path, '--repo', repo.path]
+      def base = ['-C', repo.path, source.path]
       assert cli.execute((base + ['--target=one']) as String[]) == 0 : err.toString('UTF-8')
       assert cli.execute((base + ['--target=two']) as String[]) == 0 : err.toString('UTF-8')
       assert cli.execute((base + ['--target=one', '--remove']) as String[]) == 0 : err.toString('UTF-8')
@@ -87,7 +87,7 @@ return new DeclaredRecipe(new RecipeDeclaration('custom', [target],
       settings.text = '{"claude":"original","manual":true}\n'
       def out = new ByteArrayOutputStream(); def err = new ByteArrayOutputStream()
       def cli = command(out, err)
-      def base = [source.path, '--repo', repo.path]
+      def base = ['-C', repo.path, source.path]
       assert cli.execute((base + ['--harness=claude', '--remove']) as String[]) == 0 : err.toString('UTF-8')
       assert !new File(repo, '.cook').exists()
       out.reset()
@@ -152,14 +152,14 @@ return new DeclaredRecipe(new RecipeDeclaration('custom', [target],
       def cli = command(stdout, stderr)
       new File(repo, 'cook.groovy').text = script.text
       new File(repo, '.gitignore').text = '# manual\n'
-      assert cli.execute(['cook', '--repo', repo.path, '--set', 'agent=claude'] as String[]) == 0
+      assert cli.execute(['-C', repo.path, 'cook', '--set', 'agent=claude'] as String[]) == 0
       assert Toml.parse(new File(repo, '.ralph-tui/config.toml').text).getString('defaultAgent') == 'claude'
       assert new File(repo, '.gitignore').text.startsWith('# manual\n')
       assert !new File(repo, '.cook/plan.json').exists()
       assert stdout.toString('UTF-8').contains('Cooked .gitignore')
       def configuration = new File(repo, '.ralph-tui/config.toml').text
       stdout.reset()
-      assert cli.execute(['cook', '--repo', repo.path, '--set', 'agent=claude'] as String[]) == 0
+      assert cli.execute(['-C', repo.path, 'cook', '--set', 'agent=claude'] as String[]) == 0
       assert stdout.toString('UTF-8').trim() == 'Already cooked.'
       assert new File(repo, '.ralph-tui/config.toml').text == configuration
       assert stderr.toString('UTF-8').empty
@@ -171,7 +171,7 @@ return new DeclaredRecipe(new RecipeDeclaration('custom', [target],
       def stdout = new ByteArrayOutputStream(); def stderr = new ByteArrayOutputStream()
       def cli = command(stdout, stderr)
       new File(repo, '.gitignore').text = '# manual\n'
-      assert cli.execute(['cook', '--dry-run', '--repo', repo.path, '--script', script.path] as String[]) == 0
+      assert cli.execute(['-C', repo.path, 'cook', '--dry-run', '--script', script.path] as String[]) == 0
       assert stdout.toString('UTF-8').contains('Would cook .gitignore')
       assert new File(repo, '.gitignore').text == '# manual\n'
       assert !new File(repo, '.ralph-tui').exists()
@@ -184,7 +184,7 @@ return new DeclaredRecipe(new RecipeDeclaration('custom', [target],
     workspace { root, repo, script ->
       def stdout = new ByteArrayOutputStream(); def stderr = new ByteArrayOutputStream()
       def cli = command(stdout, stderr)
-      def args = ['cook', '--repo', repo.path, '--script', script.path] as String[]
+      def args = ['-C', repo.path, 'cook', '--script', script.path] as String[]
       assert cli.execute(args) == 0
       def ignore = new File(repo, '.gitignore')
       assert ignore.text.contains('/.ralph-tui/worktrees/')
@@ -213,9 +213,9 @@ return new DeclaredRecipe(new RecipeDeclaration('custom', [target],
     workspace { root, repo, script ->
       def stdout = new ByteArrayOutputStream(); def stderr = new ByteArrayOutputStream()
       def cli = command(stdout, stderr)
-      assert cli.execute([script.path, '--repo', repo.path, '--dry-run'] as String[]) == 0
+      assert cli.execute(['-C', repo.path, script.path, '--dry-run'] as String[]) == 0
       assert !new File(repo, '.ralph-tui').exists()
-      assert cli.execute([script.path, '--repo', repo.path, '--set', 'agent=claude'] as String[]) == 0
+      assert cli.execute(['-C', repo.path, script.path, '--set', 'agent=claude'] as String[]) == 0
       assert Toml.parse(new File(repo, '.ralph-tui/config.toml').text).getString('defaultAgent') == 'claude'
       assert cli.execute([script.path, '--script', script.path] as String[]) == 2
       assert stderr.toString('UTF-8').contains('once')
@@ -227,12 +227,12 @@ return new DeclaredRecipe(new RecipeDeclaration('custom', [target],
       Fixtures.copy('composed-recipe', repo)
       def stdout = new ByteArrayOutputStream(); def stderr = new ByteArrayOutputStream()
       def cli = command(stdout, stderr)
-      assert cli.execute(['example', '--repo', repo.path, '--agent=claude', '--dry-run'] as String[]) == 0 : stderr.toString('UTF-8')
+      assert cli.execute(['-C', repo.path, 'example', '--agent=claude', '--dry-run'] as String[]) == 0 : stderr.toString('UTF-8')
       assert !new File(repo, '.codex').exists()
-      assert cli.execute(['example', '--repo', repo.path, '--agent', 'claude'] as String[]) == 0
+      assert cli.execute(['-C', repo.path, 'example', '--agent', 'claude'] as String[]) == 0
       assert Toml.parse(new File(repo, '.codex/config.toml').text).getString('model') == 'claude'
       stdout.reset()
-      assert cli.execute(['example', '--repo', repo.path, '--set', 'agent=claude'] as String[]) == 0
+      assert cli.execute(['-C', repo.path, 'example', '--set', 'agent=claude'] as String[]) == 0
       assert stdout.toString('UTF-8').trim() == 'Already cooked.'
     }
   }
@@ -246,7 +246,7 @@ return new DeclaredRecipe(new RecipeDeclaration('custom', [target],
       supplier.text = 'supplier\n'
       def stdout = new ByteArrayOutputStream(); def stderr = new ByteArrayOutputStream()
       def cli = command(stdout, stderr)
-      def base = ['declared', '--repo', repo.path, '--policy=.agents/policy.yaml']
+      def base = ['-C', repo.path, 'declared', '--policy=.agents/policy.yaml']
       for (invalid in [
             ['--harness=other'],
             ['--harness=codex', '--policy=again'],
@@ -272,9 +272,9 @@ return new DeclaredRecipe(new RecipeDeclaration('custom', [target],
       externalPolicy.text = 'destination\n'
       stderr.reset()
       assert cli.execute([
-        external.path,
-        '--repo',
+        '-C',
         externalRepo.path,
+        external.path,
         '--set',
         'policy=.agents/policy.yaml',
         '--set',
@@ -292,10 +292,10 @@ return new DeclaredRecipe(new RecipeDeclaration('custom', [target],
     workspace { root, repo, script ->
       def stdout = new ByteArrayOutputStream(); def stderr = new ByteArrayOutputStream()
       def cli = command(stdout, stderr)
-      assert cli.execute(['agentic/codex', '--repo', repo.path, '--instructions=Use tests.'] as String[]) == 0 : stderr.toString('UTF-8')
+      assert cli.execute(['-C', repo.path, 'agentic/codex', '--instructions=Use tests.'] as String[]) == 0 : stderr.toString('UTF-8')
       assert new File(repo, 'AGENTS.md').text.contains('Use tests.')
       stdout.reset()
-      assert cli.execute(['agentic/codex', '--repo', repo.path, '--instructions=Use tests.'] as String[]) == 0
+      assert cli.execute(['-C', repo.path, 'agentic/codex', '--instructions=Use tests.'] as String[]) == 0
       assert stdout.toString('UTF-8').trim() == 'Already cooked.'
     }
   }
@@ -307,20 +307,20 @@ return new DeclaredRecipe(new RecipeDeclaration('custom', [target],
       def policy = new File(repo, '.agents/policy.yaml'); policy.parentFile.mkdirs(); policy.text = 'destination\n'
       def out = new ByteArrayOutputStream(); def err = new ByteArrayOutputStream()
       def cli = command(out, err)
-      def options = ['--repo', repo.path, '--policy=.agents/policy.yaml', '--harness=codex', '--harness', 'claude']
-      assert cli.execute(([source.path] + options + ['--dry-run']) as String[]) == 0 : err.toString('UTF-8')
+      def options = ['--policy=.agents/policy.yaml', '--harness=codex', '--harness', 'claude']
+      assert cli.execute((['-C', repo.path, source.path] + options + ['--dry-run']) as String[]) == 0 : err.toString('UTF-8')
       assert !new File(repo, 'selection.json').exists()
       assert !new File(repo, '.cook').exists()
-      assert cli.execute(([source.path] + options) as String[]) == 0 : err.toString('UTF-8')
+      assert cli.execute((['-C', repo.path, source.path] + options) as String[]) == 0 : err.toString('UTF-8')
       assert new JsonSlurper().parse(new File(repo, 'selection.json')).harness == 'codex,claude'
       out.reset()
-      assert cli.execute((['agentic/permission'] + options) as String[]) == 0 : err.toString('UTF-8')
+      assert cli.execute((['-C', repo.path, 'agentic/permission'] + options) as String[]) == 0 : err.toString('UTF-8')
       assert out.toString('UTF-8').trim() == 'Already cooked.'
       out.reset()
       assert cli.execute([
-        'agentic/permission',
-        '--repo',
+        '-C',
         repo.path,
+        'agentic/permission',
         '--set',
         'policy=.agents/policy.yaml',
         '--set',
@@ -338,24 +338,24 @@ return new DeclaredRecipe(new RecipeDeclaration('custom', [target],
       def source = new File(repo, 'cookbook/recipes/agentic/permission.groovy')
       def out = new ByteArrayOutputStream(); def err = new ByteArrayOutputStream()
       def cli = command(out, err)
-      assert cli.execute([source.path, '--repo', repo.path, '--help'] as String[]) == 0 : err.toString('UTF-8')
+      assert cli.execute(['-C', repo.path, source.path, '--help'] as String[]) == 0 : err.toString('UTF-8')
       assert out.toString('UTF-8').contains('--policy')
       assert out.toString('UTF-8').contains('required')
       assert out.toString('UTF-8').contains('codex, claude')
       assert out.toString('UTF-8').contains('--dry-run')
       out.reset()
-      assert cli.execute(['agentic/permission', '--repo', repo.path, '--help'] as String[]) == 0 : err.toString('UTF-8')
+      assert cli.execute(['-C', repo.path, 'agentic/permission', '--help'] as String[]) == 0 : err.toString('UTF-8')
       assert out.toString('UTF-8').contains('--harness')
       assert !new File(repo, '.cook').exists()
       def policy = new File(repo, '.agents/policy.yaml'); policy.parentFile.mkdirs(); policy.text = 'destination\n'
-      def valid = [source.path, '--repo', repo.path, '--policy=.agents/policy.yaml', '--harness=codex']
+      def valid = ['-C', repo.path, source.path, '--policy=.agents/policy.yaml', '--harness=codex']
       assert cli.execute(valid as String[]) == 0 : err.toString('UTF-8')
       def before = new File(repo, 'selection.json').text
       def ownership = new File(repo, '.cook/state.json').text
       for (args in [
             valid + ['--set', 'policy=other'],
             valid + ['--harness=invalid'],
-            [new File(repo, 'missing.groovy').path, '--repo', repo.path, '--policy=x']
+            ['-C', repo.path, new File(repo, 'missing.groovy').path, '--policy=x']
           ]) {
         err.reset()
         assert cli.execute(args as String[]) != 0 : args
@@ -374,7 +374,7 @@ return new DeclaredRecipe(new RecipeDeclaration('custom', [target],
       new File(directory, 'recipe.groovy').text = new File(repo, 'cookbook/recipes/agentic/permission.groovy').text
       def err = new ByteArrayOutputStream()
       def cli = command(new ByteArrayOutputStream(), err)
-      assert cli.execute(['agentic/permission', '--repo', repo.path, '--help'] as String[]) == 1
+      assert cli.execute(['-C', repo.path, 'agentic/permission', '--help'] as String[]) == 1
       assert err.toString('UTF-8').toLowerCase().contains('ambiguous')
       assert !new File(repo, '.cook').exists()
     }
@@ -388,9 +388,9 @@ return new DeclaredRecipe(new RecipeDeclaration('custom', [target],
       def policy = new File(repo, '.agents/policy.yaml'); policy.parentFile.mkdirs(); policy.text = 'destination\n'
       def out = new ByteArrayOutputStream(); def err = new ByteArrayOutputStream()
       def cli = command(out, err)
-      assert cli.execute([source.path, '--repo', repo.path, '--help'] as String[]) == 0 : err.toString('UTF-8')
+      assert cli.execute(['-C', repo.path, source.path, '--help'] as String[]) == 0 : err.toString('UTF-8')
       assert out.toString('UTF-8').contains('--harness')
-      assert cli.execute([source.path, '--repo', repo.path, '--policy=.agents/policy.yaml', '--harness=codex', '--harness=claude'] as String[]) == 0 : err.toString('UTF-8')
+      assert cli.execute(['-C', repo.path, source.path, '--policy=.agents/policy.yaml', '--harness=codex', '--harness=claude'] as String[]) == 0 : err.toString('UTF-8')
       assert new JsonSlurper().parse(new File(repo, 'selection.json')).harness == 'codex,claude'
     }
   }
@@ -408,10 +408,10 @@ return new DeclaredRecipe(new RecipeDeclaration('custom', [target],
       policy.text = 'version: 1\ncommands:\n  allow:\n    - [git, status]\n'
       def out = new ByteArrayOutputStream(); def err = new ByteArrayOutputStream()
       def cli = command(out, err)
-      def args = [source.path, '--repo', repo.path, '--policy=.agents/interactive.yaml', '--harness=claude']
-      assert cli.execute((['agentic/permission'] + args.tail()) as String[]) == 0 : err.toString('UTF-8')
+      def args = ['-C', repo.path, source.path, '--policy=.agents/interactive.yaml', '--harness=claude']
+      assert cli.execute((['-C', repo.path, 'agentic/permission'] + args.drop(3)) as String[]) == 0 : err.toString('UTF-8')
       def previous = new JsonSlurper().parse(new File(repo, '.cook/state.json')).applications['agentic.permissions/claude']
-      assert cli.execute([source.path, '--repo', repo.path, '--help'] as String[]) == 0 : err.toString('UTF-8')
+      assert cli.execute(['-C', repo.path, source.path, '--help'] as String[]) == 0 : err.toString('UTF-8')
       assert out.toString('UTF-8').contains('agentic/permission')
       assert cli.execute(args as String[]) == 0 : err.toString('UTF-8')
       assert new File(repo, '.claude/settings.json').exists()
@@ -424,9 +424,9 @@ return new DeclaredRecipe(new RecipeDeclaration('custom', [target],
       assert cli.execute(args as String[]) == 0 : err.toString('UTF-8')
       assert out.toString('UTF-8').trim() == 'Already cooked.'
       err.reset()
-      assert cli.execute(['renamed', '--repo', repo.path, '--help'] as String[]) == 1
+      assert cli.execute(['-C', repo.path, 'renamed', '--help'] as String[]) == 1
       assert err.toString('UTF-8').contains('Recipe identity does not match')
-      assert cli.execute([source.path, '--repo', repo.path, '--harness=claude', '--remove'] as String[]) == 0
+      assert cli.execute(['-C', repo.path, source.path, '--harness=claude', '--remove'] as String[]) == 0
       assert !new File(repo, '.claude/settings.json').exists()
     }
   }
@@ -436,7 +436,7 @@ return new DeclaredRecipe(new RecipeDeclaration('custom', [target],
       Fixtures.copy('recipe-override', repo)
       def stdout = new ByteArrayOutputStream(); def stderr = new ByteArrayOutputStream()
       def cli = command(stdout, stderr)
-      assert cli.execute(['agentic/codex', '--repo', repo.path] as String[]) == 0 : stderr.toString('UTF-8')
+      assert cli.execute(['-C', repo.path, 'agentic/codex'] as String[]) == 0 : stderr.toString('UTF-8')
       assert new File(repo, 'CLAUDE.md').text.contains('Local recipe override.')
       assert !new File(repo, 'AGENTS.md').exists()
     }
@@ -446,10 +446,10 @@ return new DeclaredRecipe(new RecipeDeclaration('custom', [target],
     workspace { root, repo, script ->
       def stdout = new ByteArrayOutputStream(); def stderr = new ByteArrayOutputStream()
       def cli = command(stdout, stderr)
-      assert cli.execute(['agentic/runtime', '--repo', repo.path, '--agent=claude'] as String[]) == 0 : stderr.toString('UTF-8')
+      assert cli.execute(['-C', repo.path, 'agentic/runtime', '--agent=claude'] as String[]) == 0 : stderr.toString('UTF-8')
       assert Toml.parse(new File(repo, '.ralph-tui/config.toml').text).getString('defaultAgent') == 'claude'
       stdout.reset()
-      assert cli.execute(['agentic/runtime', '--repo', repo.path, '--agent=claude'] as String[]) == 0
+      assert cli.execute(['-C', repo.path, 'agentic/runtime', '--agent=claude'] as String[]) == 0
       assert stdout.toString('UTF-8').trim() == 'Already cooked.'
     }
   }
@@ -468,9 +468,9 @@ return new DeclaredRecipe(new RecipeDeclaration('custom', [target],
             ['example', '--dry-run=true'],
             ['example', '--policy='],
             ]) assert cli.execute(args as String[]) == 2 : args
-      assert cli.execute(['example', '--agent=a', '--agent=b', '--repo', repo.path] as String[]) == 1
-      assert cli.execute(['example', '--agent=a', '--set', 'agent=b', '--repo', repo.path] as String[]) == 1
-      assert cli.execute(['missing', '--repo', repo.path] as String[]) == 1
+      assert cli.execute(['-C', repo.path, 'example', '--agent=a', '--agent=b'] as String[]) == 1
+      assert cli.execute(['-C', repo.path, 'example', '--agent=a', '--set', 'agent=b'] as String[]) == 1
+      assert cli.execute(['-C', repo.path, 'missing'] as String[]) == 1
       assert stderr.toString('UTF-8').contains('Recipe not found: missing')
       assert !new File(repo, '.cook').exists()
     }
@@ -493,7 +493,7 @@ return new DeclaredRecipe(new RecipeDeclaration('custom', [target],
             """
       def stdout = new ByteArrayOutputStream(); def stderr = new ByteArrayOutputStream()
       def cli = command(stdout, stderr)
-      def args = [script.path, '--repo', repo.path, '--set', 'skill=' + source.path] as String[]
+      def args = ['-C', repo.path, script.path, '--set', 'skill=' + source.path] as String[]
       assert cli.execute(args) == 0 : stderr.toString('UTF-8')
       assert Files.isSymbolicLink(new File(repo, '.agents/skills/solid').toPath())
       assert new File(repo, '.agents/skills/solid/SKILL.md').text == 'Source skill'
@@ -515,7 +515,7 @@ return new DeclaredRecipe(new RecipeDeclaration('custom', [target],
                 import thecook.model.Batch
                 new Batch('the-cook').include(new TheCook())
             '''
-      def args = [script.path, '--repo', repo.path] as String[]
+      def args = ['-C', repo.path, script.path] as String[]
       assert cli.execute(args) == 0 : stderr.toString('UTF-8')
       assert repo.listFiles().length == 0
       new File(repo, '.gitignore').text = '# team entries\n'
@@ -546,17 +546,17 @@ return new DeclaredRecipe(new RecipeDeclaration('custom', [target],
       def cli = command(stdout, stderr)
       def script = new File(repo, 'cook.groovy')
       new File(repo, '.gitignore').text = '# manual\n'
-      assert cli.execute(['init', '--repo', repo.path] as String[]) == 0
+      assert cli.execute(['-C', repo.path, 'init'] as String[]) == 0
       assert script.text.contains('new Batch(')
       assert new File(repo, '.gitignore').text == '# manual\n'
       script.text += '// keep this customization\n'
       def customized = script.text
-      assert cli.execute(['init', '--repo', repo.path] as String[]) == 0
+      assert cli.execute(['-C', repo.path, 'init'] as String[]) == 0
       assert script.text == customized
-      assert cli.execute(['plan', '--repo', repo.path] as String[]) == 0
+      assert cli.execute(['-C', repo.path, 'plan'] as String[]) == 0
       def plan = new File(repo, '.cook/plan.json')
       assert new JsonSlurper().parse(plan).changes.empty
-      assert cli.execute(['apply', '--repo', repo.path] as String[]) == 0
+      assert cli.execute(['-C', repo.path, 'apply'] as String[]) == 0
       assert stderr.toString('UTF-8').empty
     }
   }
@@ -572,8 +572,8 @@ return new DeclaredRecipe(new RecipeDeclaration('custom', [target],
                 new Batch('repository').include(git)
             """
       def plan = new File(root, 'plan.json')
-      assert cli.execute(['plan', '--repo', repo.path, '--script', script.path, '--plan', plan.path] as String[]) == 0
-      assert cli.execute(['apply', '--repo', repo.path, '--plan', plan.path] as String[]) == 0
+      assert cli.execute(['-C', repo.path, 'plan', '--script', script.path, '--plan', plan.path] as String[]) == 0
+      assert cli.execute(['-C', repo.path, 'apply', '--plan', plan.path] as String[]) == 0
       assert new File(repo, '.gitignore').text.contains('/.cook/')
       try {
         getClass().classLoader.loadClass('thecook.filesystem.TargetPath').of('.cook/owned')
@@ -585,7 +585,7 @@ return new DeclaredRecipe(new RecipeDeclaration('custom', [target],
   @Test void initRejectsMissingRepositoryAndUnsupportedOptions() {
     workspace { root, repo, ignored ->
       def cli = command(new ByteArrayOutputStream(), new ByteArrayOutputStream())
-      assert cli.execute(['init', '--repo', new File(root, 'missing').path] as String[]) == 1
+      assert cli.execute(['-C', new File(root, 'missing').path, 'init'] as String[]) == 1
       assert !new File(root, 'missing').exists()
       assert cli.execute(['init', '--plan', 'x'] as String[]) == 2
     }
@@ -597,13 +597,13 @@ return new DeclaredRecipe(new RecipeDeclaration('custom', [target],
       def cli = command(stdout, stderr)
       def saved = new File(root, 'review/plan.json')
       new File(repo, '.gitignore').text = '# maintained by the team\n'
-      assert cli.execute(['plan', '--repo', repo.path, '--script', script.path, '--plan', saved.path, '--set', 'agent=claude'] as String[]) == 0
+      assert cli.execute(['-C', repo.path, 'plan', '--script', script.path, '--plan', saved.path, '--set', 'agent=claude'] as String[]) == 0
       assert saved.isFile()
       assert !new File(repo, '.ralph-tui/config.toml').exists()
       assert new File(repo, '.gitignore').text == '# maintained by the team\n'
       assert new JsonSlurper().parse(saved).changes*.path.toSet() ==
       ['.gitignore', '.ralph-tui/config.toml', '.ralph-tui/run'].toSet()
-      assert cli.execute(['apply', '--repo', repo.path, '--plan', saved.path] as String[]) == 0
+      assert cli.execute(['-C', repo.path, 'apply', '--plan', saved.path] as String[]) == 0
       assert Toml.parse(new File(repo, '.ralph-tui/config.toml').text).getString('defaultAgent') == 'claude'
       assert new File(repo, '.gitignore').text.startsWith('# maintained by the team\n')
       assert stderr.toString('UTF-8').empty
@@ -615,9 +615,9 @@ return new DeclaredRecipe(new RecipeDeclaration('custom', [target],
       def stdout = new ByteArrayOutputStream(); def stderr = new ByteArrayOutputStream()
       def cli = command(stdout, stderr)
       def saved = new File(root, 'plan.json')
-      assert cli.execute(['plan', '--repo', repo.path, '--script', script.path, '--plan', saved.path] as String[]) == 0
+      assert cli.execute(['-C', repo.path, 'plan', '--script', script.path, '--plan', saved.path] as String[]) == 0
       new File(repo, '.gitignore').text = '# changed after review\n'
-      assert cli.execute(['apply', '--repo', repo.path, '--plan', saved.path] as String[]) == 1
+      assert cli.execute(['-C', repo.path, 'apply', '--plan', saved.path] as String[]) == 1
       assert new File(repo, '.gitignore').text == '# changed after review\n'
       assert !new File(repo, '.ralph-tui/config.toml').exists()
       assert stderr.toString('UTF-8').contains('Changed since preview')
@@ -630,7 +630,7 @@ return new DeclaredRecipe(new RecipeDeclaration('custom', [target],
       def cli = command(stdout, stderr)
       def saved = new File(root, 'plan.json')
       script.text = '42\n'
-      assert cli.execute(['plan', '--repo', repo.path, '--script', script.path, '--plan', saved.path] as String[]) == 1
+      assert cli.execute(['-C', repo.path, 'plan', '--script', script.path, '--plan', saved.path] as String[]) == 1
       assert repo.listFiles().length == 0
       assert !saved.exists()
       assert stderr.toString('UTF-8').contains('must return a Batch')
@@ -645,5 +645,40 @@ return new DeclaredRecipe(new RecipeDeclaration('custom', [target],
     assert cli.execute(['plan', '--script'] as String[]) == 2
     assert cli.execute(['apply', '--mystery', 'x'] as String[]) == 2
     assert cli.execute(['apply', '--script', 'cook.groovy', '--plan', 'plan.json'] as String[]) == 2
+    assert cli.execute(['-C'] as String[]) == 2
+    assert cli.execute(['plan', '--kitchen='] as String[]) == 2
+  }
+
+  @Test void kitchenOptionCooksAsIfStartedThereAndGoesBeforeTheRecipe() {
+    workspace { root, repo, ignored ->
+      new File(repo, 'notes.groovy').text = '''return { kitchen, book, options ->
+  def recipe = kitchen.recipe('notes')
+  recipe.application('fixture/notes')
+  recipe.output('NOTES.md', [seed: true]) {
+    text {
+      'notes\\n'
+    }
+  }
+  recipe
+}
+'''
+      def notes = new File(repo, 'NOTES.md')
+      def stdout = new ByteArrayOutputStream(); def stderr = new ByteArrayOutputStream()
+      def cli = command(stdout, stderr)
+      assert cli.execute(['-C', repo.path, 'notes.groovy', '-C', repo.path] as String[]) == 2
+      assert cli.execute(['-C', repo.path, 'notes.groovy', '--kitchen', repo.path] as String[]) == 2
+      assert cli.execute(['-C', repo.path, 'notes.groovy', '--repo', repo.path] as String[]) == 2
+      assert cli.execute(['-C', repo.path, '--kitchen', repo.path, 'notes.groovy'] as String[]) == 2
+      assert cli.execute(['--kitchen', new File(root, 'missing').path, 'notes.groovy'] as String[]) == 1
+      assert cli.execute(['--kitchen=' + repo.path, 'notes.groovy', '--dry-run'] as String[]) == 0 : stderr.toString('UTF-8')
+      assert !notes.exists()
+      assert cli.execute(['plan', '-C', repo.path, '--script', 'notes.groovy'] as String[]) == 0 : stderr.toString('UTF-8')
+      assert new File(repo, '.cook/plan.json').isFile() && !notes.exists()
+      assert cli.execute(['--kitchen', repo.path, 'apply'] as String[]) == 0 : stderr.toString('UTF-8')
+      assert notes.text == 'notes\n'
+      stdout.reset()
+      assert cli.execute(['-C', repo.path, 'notes.groovy'] as String[]) == 0 : stderr.toString('UTF-8')
+      assert stdout.toString('UTF-8').trim() == 'Already cooked.'
+    }
   }
 }
