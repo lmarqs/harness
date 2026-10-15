@@ -8,7 +8,7 @@ class Compose {
     services[name] = definition
   }
 
-  String validateCommand() { "docker compose -f ${Mise.quote(file)} config" }
+  Map validateCommand() { [run: [['docker', 'compose', '-f', file, 'config']], dir: directory] }
 
   @Keys(path = '${file}', under = ['services'])
   Map serviceKeys() { services ?: null }

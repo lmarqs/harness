@@ -4,4 +4,4 @@
 @ingredient(Mise) def mise
 
 if (!run.contains(issue)) throw new IllegalArgumentException('run must select the supplied issue')
-mise.task('ralph:bead', "bd show ${Mise.quote(issue)} && ${run}")
+mise.task('ralph:bead', [run: [['bd', 'show', issue], run]])

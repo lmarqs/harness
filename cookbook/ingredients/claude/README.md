@@ -1,14 +1,16 @@
 # claude
 
-Models the files Claude Code reads in a repository: `.claude/settings.json`, `CLAUDE.md` and `.claude/skills/`.
+Models the files Claude Code reads in a repository: `.claude/settings.json`, `CLAUDE.md` and `.claude/skills/`. It is
+a harness: [agents](../agents/README.md) drives it through `permit`, `readInstructions` and `readSkills`.
 
 ## Model
 
 - `permit(policy)` writes the shared policy as `permissions`: `acceptEdits`, and one `Bash(<prefix> *)` entry per
   command in the list named after its decision.
 - `settings(map)` adds top-level settings keys, hooks included.
-- `instruct(lines)` adds instruction lines; `importAgents()` adds `@AGENTS.md`.
-- `skills(agents)` links every shared skill into `.claude/skills/`.
+- `instruct(lines)` adds instruction lines.
+- `readInstructions(path)` adds the import line `@<path>` to `CLAUDE.md`.
+- `readSkills(path, names)` links each named skill into `.claude/skills/`.
 - `localFiles` names the files Claude writes locally, for an ignore consumer.
 
 ## Writes

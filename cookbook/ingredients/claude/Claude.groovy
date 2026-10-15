@@ -1,8 +1,9 @@
 @Ingredient
-class Claude {
+class Claude implements Harness {
+  final String name = 'claude'
   Map settings = [:]
   List<String> instructions = []
-  List<String> skillNames = []
+  Map<String, String> skillLinks = [:]
   final List<String> localFiles = ['/.claude/settings.local.json']
 
   /** Translates the shared policy into Claude's permission model. */
@@ -19,11 +20,13 @@ class Claude {
 
   void instruct(String... lines) { instructions += lines }
 
-  /** Claude reads `CLAUDE.md`; this points it at the shared `AGENTS.md`. */
-  void importAgents() { instruct('@AGENTS.md') }
+  /** Claude reads `CLAUDE.md`; an import line points it at the shared instructions. */
+  void readInstructions(String path) { instruct("@${path}") }
 
-  /** Claude discovers skills under `.claude/skills`; link each shared skill there. */
-  void skills(Agents agents) { skillNames += agents.skills*.name }
+  /** Claude discovers skills under `.claude/skills`; each shared skill is linked there. */
+  void readSkills(String path, List<String> names) {
+    names.each { skillLinks[it] = "../../${path}/${it}" }
+  }
 
   @Keys(path = '.claude/settings.json')
   Map settingsKeys() { settings ?: null }
@@ -32,7 +35,7 @@ class Claude {
   List<String> instructionsSection() { instructions ?: null }
 
   @Links(path = '.claude/skills')
-  Map<String, String> skillLinks() { skillNames.collectEntries { [it, "../../.agents/skills/${it}"] } ?: null }
+  Map<String, String> links() { skillLinks ?: null }
 
   private static String rule(Command command) { "Bash(${command.prefix.join(' ')} *)" }
 }

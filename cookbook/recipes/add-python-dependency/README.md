@@ -8,6 +8,6 @@ Records one requirement in `pyproject.toml` or `requirements.txt` and declares a
 
 | Target | Part |
 | --- | --- |
-| `<dir>/pyproject.toml` | `project.dependencies`, or `project.optional-dependencies.<group>` |
+| `<dir>/pyproject.toml` | The package's entry in `project.dependencies`, or in `project.optional-dependencies.<group>` |
 | `<dir>/requirements.txt` | The section `dependencies` |
 | `mise.toml` | `tasks."dependency:python"` |

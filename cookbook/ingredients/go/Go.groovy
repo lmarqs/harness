@@ -11,21 +11,20 @@ class Go {
 
   Map<String, String> tools() { version ? [go: version] : [:] }
 
-  String tidyCommand() { "cd ${Mise.quote(directory)} && go mod tidy && go test ./..." }
+  Map tidyCommand() { [run: [['go', 'mod', 'tidy'], ['go', 'test', './...']], dir: directory] }
 
-  @File(path = 'go.mod')
-  String goMod() {
+  /** One line per requirement: kept as written when already required at this version, appended when absent. */
+  @Lines(path = 'go.mod')
+  Map<String, String> requireLines() {
     if (!requires) return null
-    def file = new File(directory, 'go.mod')
-    if (!file.isFile()) throw new IllegalArgumentException("${file} must exist")
-    def text = file.text
-    requires.each { module, version ->
-      def prefixes = ["${module} ", "require ${module} "]
-      def declared = text.readLines().find { line -> prefixes.any { line.trim().startsWith(it) } }
-      if (declared && !(declared.trim() in ["${module} ${version}", "require ${module} ${version}"]))
+    def text = current('go.mod')
+    if (text == null) throw new IllegalArgumentException("${directory}/go.mod must exist")
+    requires.collectEntries { module, version ->
+      def line = ~/^\s*(?:require\s+)?${Pattern.quote(module)}\s+(\S+)/
+      def existing = text.readLines().find { it =~ line }
+      if (existing && (existing =~ line)[0][1] != version)
         throw new IllegalArgumentException("${module} is required at another version; change the existing declaration")
-      if (!declared) text += (text.endsWith('\n') ? '' : '\n') + "require ${module} ${version}\n"
+      [line.pattern(), existing ?: "require ${module} ${version}"]
     }
-    text
   }
 }

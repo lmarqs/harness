@@ -9,5 +9,5 @@
 
 ci.file = workflow
 def job = ci.job(jobName)
-job.insertStep(aws.credentialsStep(region, role), placement)
+job.step(aws.credentialsStep(region, role), placement)
 job.permissions(aws.oidcPermissions())

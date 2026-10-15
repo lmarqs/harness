@@ -35,10 +35,11 @@ Annotations are the only door between an author's code and the engine. Nothing f
 
 | Annotation | On | Declares |
 | --- | --- | --- |
-| `@Ingredient` | class | A model or content. The engine adds `directory`, the instance's base inside the destination, and `resource(name)`, which reads a file packaged in the jar. |
+| `@Ingredient` | class | A model or content. The engine adds `directory`, the instance's base inside the destination with `.` at its root; `resource(name)` and `resources(dir)`, which read one file or every file packaged in the jar; and `current(path)`, which reads a destination file. |
 | `@Section(path, id, comment)` | member returning `List<String>` | The marked section `id` of a shared text file. `comment` names the comment syntax when the extension does not. |
-| `@Key(path, segments)` | member | One key path in a JSON, TOML or YAML document, owned whole. |
+| `@Key(path, segments)` | member | One key path in a JSON, TOML or YAML document, owned whole. A segment can select a list entry. |
 | `@Keys(path, under)` | member returning `Map` | One owned key per entry, under the key path `under`. A `List` map key is a deeper path. |
+| `@Lines(path)` | member returning `Map<String, String>` | One line per entry, owned on its own. The key is a regular expression: the value replaces the one line it matches, or is appended when none does. More than one match is an error. |
 | `@File(path, mode)` | member returning `String` | The whole file. |
 | `@Files(path, mode)` | member returning `Map<String, String>` | One whole file per entry, under `path`. |
 | `@Links(path)` | member returning `Map<String, String>` | One symbolic link per entry, under `path`, pointing at the value. |
@@ -48,14 +49,27 @@ Annotations are the only door between an author's code and the engine. Nothing f
 Rules:
 
 - A member that returns `null` declares nothing. A pristine instance declares nothing: only what the recipe asked for
-  is written.
+  is written. The engine evaluates a pristine instance of every ingredient it loads and rejects the ingredient, naming
+  the member, when anything is declared.
 - `path` joins to the instance's `directory`. `${property}` in a path reads the instance, for files the recipe names.
+- Declare the entry the recipe means, never the list or file around it: a step, a requirement, a line. Ownership then
+  covers only that entry, and applying again finds it in place.
+- A `Map` segment in a key path selects one entry of a list: `[id: 'cache']` the map entry whose `id` is `cache`,
+  `[matches: regex]` the string entry the expression matches. An absent entry is inserted at `place`: `start`, `end`
+  by default, `before:<value>` or `after:<value>`, compared the same way. An absent list is created. A path that
+  continues past a selector requires the entry to exist. Lock and docs write the entry as `steps[id=cache]`.
 - The engine owns every format: markers in the right comment syntax, key merge that preserves unrelated keys, order
   and comments, link and mode handling, the destination boundary.
-- An ingredient reads destination files as plain files. It never reads the lock or the engine's state.
+- An ingredient reads destination content only through `current(path)`, which returns the file as the recipes before
+  this one in the invocation left it, or `null` when absent. It never reads the disk, the lock or the engine's state.
 - Two declarations of one target in one recipe are an error. Across recipes, the last one wins and owns the target.
 - A model exposes facts for other models through plain methods, such as the files it leaves behind. The recipe wires
   them. Ingredients never call each other's outputs.
+- A model that knows how to run something returns a command, `[run: [step...], dir: String, env: Map]`, where a step
+  is an argument list or shell text and `dir` is relative to the destination. The consumer, such as `mise`, renders
+  and quotes it; models never quote.
+- A model that several programs read through their own files, such as `agents`, owns that shared layout and drives
+  each program through one interface, such as `Harness`. Each program's model only translates.
 
 ### In a recipe
 
@@ -74,4 +88,5 @@ ingredients/<name>/<Name>.groovy     the model or content, with README.md and re
 recipes/<name>/recipe.groovy         the recipe, with README.md beside it
 ```
 
-Each directory is one artifact. Skill content lives under `ingredients/skills/<name>/`.
+Each directory is one artifact. Skill content lives under `ingredients/skills/<name>/`, with the skill's own files under
+`skill/`.

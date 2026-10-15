@@ -11,21 +11,23 @@ class Docker {
     stages[stage] = [image: image, expected: expected]
   }
 
-  String buildCommand(String stage) { "docker build -f ${Mise.quote(dockerfile)} --target ${Mise.quote(stage)} ." }
+  Map buildCommand(String stage) { [run: [['docker', 'build', '-f', dockerfile, '--target', stage, '.']], dir: directory] }
 
-  @File(path = '${dockerfile}')
-  String dockerfileText() {
+  /** The `FROM` line of each changed stage. The stage must exist exactly once and use the expected or the new image. */
+  @Lines(path = '${dockerfile}')
+  Map<String, String> stageLines() {
     if (!stages) return null
-    def lines = new File(directory, dockerfile).readLines()
-    stages.each { stage, change ->
-      def matches = lines.findIndexValues { it ==~ /(?i)^\s*FROM\s+(--platform=\S+\s+)?(\S+)\s+AS\s+${stage}\s*$/ }
+    def text = current(dockerfile)
+    if (text == null) throw new IllegalArgumentException("${dockerfile} must exist")
+    stages.collectEntries { stage, change ->
+      def from = ~/(?i)^\s*FROM\s+(--platform=\S+\s+)?\S+\s+AS\s+${Pattern.quote(stage)}\s*$/
+      def matches = text.readLines().findAll { it =~ from }
       if (matches.size() != 1) throw new IllegalArgumentException("Expected exactly one stage ${stage} in ${dockerfile}")
-      def line = lines[matches[0] as int]
+      def line = matches[0]
       if (!(line.contains(" ${change.expected} ") || line.contains(" ${change.image} ")))
         throw new IllegalArgumentException("Stage ${stage} does not use ${change.expected}")
-      lines[matches[0] as int] = line.replace(" ${change.expected} ", " ${change.image} ")
+      [from.pattern(), line.replace(" ${change.expected} ", " ${change.image} ")]
     }
-    lines.join('\n') + '\n'
   }
 
   @File(path = '.dockerignore')

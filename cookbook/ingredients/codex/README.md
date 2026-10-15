@@ -1,7 +1,8 @@
 # codex
 
 Models the files Codex reads in a repository: `.codex/config.toml`, `.codex/hooks.json`, `.codex/rules/` and its
-share of `AGENTS.md`.
+share of `AGENTS.md`. It is a harness: [agents](../agents/README.md) drives it through `permit`, `readInstructions`
+and `readSkills`.
 
 ## Model
 
@@ -11,6 +12,8 @@ share of `AGENTS.md`.
 - `config(map)` and `hooks(map)` add top-level keys.
 - `rule(name, body)` adds a whole rule file.
 - `instruct(lines)` adds Codex-specific instruction lines.
+- `readInstructions(path)` and `readSkills(path, names)` write nothing: Codex reads `AGENTS.md` and `.agents/skills`
+  in its own directory. Any other path is rejected.
 
 ## Writes
 

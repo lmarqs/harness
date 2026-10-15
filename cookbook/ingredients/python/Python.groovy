@@ -10,8 +10,7 @@ class Python {
   void dependency(String requirement, String group = '') {
     if (requirement.contains('\n')) throw new IllegalArgumentException('One requirement per call')
     def name = packageName(requirement)
-    def existing = current(group)
-    if (existing.any { it != requirement && packageName(it) == name })
+    if (declared(group).any { it != requirement && packageName(it) == name })
       throw new IllegalArgumentException("${name} already present with another specification")
     added.get(group, []) << requirement
   }
@@ -28,16 +27,21 @@ class Python {
 
   List<String> localFiles() { ["/${venv}/"] }
 
-  String installCommand(String target) {
-    installer == 'uv' ? "uv pip install --python ${Mise.quote(venv)} ${target}" : "${Mise.quote(venv)}/bin/python -m pip install ${target}"
+  /** Installs what this instance declared: the requirements file, or the project with every group it touched. */
+  Map installCommand() {
+    def groups = added.keySet().findAll { it }
+    def target = requirements ? ['-r', 'requirements.txt'] : ['-e', groups ? ".[${groups.join(',')}]" : '.']
+    def install = installer == 'uv' ? ['uv', 'pip', 'install', '--python', venv] : ["${venv}/bin/python", '-m', 'pip', 'install']
+    [run: [install + target], dir: directory]
   }
 
-  @Key(path = 'pyproject.toml', segments = ['project', 'dependencies'])
-  List<String> mainDependencies() { added[''] ? (current('') + added['']).unique() : null }
-
-  @Keys(path = 'pyproject.toml', under = ['project', 'optional-dependencies'])
-  Map optionalDependencies() {
-    added.findAll { group, list -> group }.collectEntries { group, list -> [group, (current(group) + list).unique()] } ?: null
+  /** One list entry per added requirement, matched by package name, in `project.dependencies` or its group. */
+  @Keys(path = 'pyproject.toml', under = ['project'])
+  Map dependencyEntries() {
+    added.collectEntries { group, list ->
+      def under = group ? ['optional-dependencies', group] : ['dependencies']
+      list.collectEntries { [(under + [[matches: namePattern(it)]]): it] }
+    } ?: null
   }
 
   @Section(path = 'requirements.txt', id = 'dependencies')
@@ -46,10 +50,10 @@ class Python {
   @Delete(path = '.python-version')
   boolean pythonVersionFile() { !keepVersionFile }
 
-  private List<String> current(String group) {
-    def file = new File(directory, 'pyproject.toml')
-    if (!file.isFile()) return []
-    def project = new TomlSlurper().parse(file).project
+  private List<String> declared(String group) {
+    def text = current('pyproject.toml')
+    if (text == null) return []
+    def project = new TomlSlurper().parseText(text).project
     (group ? project?.'optional-dependencies'?.get(group) : project?.dependencies) ?: []
   }
 
@@ -57,5 +61,10 @@ class Python {
     def match = requirement =~ /^([A-Za-z0-9_.-]+)/
     if (!match.find()) throw new IllegalArgumentException("Requirement must start with a package name: ${requirement}")
     match.group(1).toLowerCase().replaceAll(/[-_.]+/, '-')
+  }
+
+  /** Matches a requirement string for the same package, whatever its separators and case. */
+  private static String namePattern(String requirement) {
+    "(?i)^${packageName(requirement).split('-').collect { Pattern.quote(it) }.join('[-_.]+')}(?![A-Za-z0-9_.-])"
   }
 }

@@ -7,7 +7,7 @@
 @ingredient(HexagonalLayout) def hexagonal
 @ingredient(EffectiveJavaCore) def effectiveJava
 
-def policy = agents.policy()
+def harnesses = [claude, codex]
 
 agents.skills(solid, hexagonal, effectiveJava)
 agents.instruct(
@@ -19,13 +19,9 @@ agents.instruct(
   '',
   'Core contracts and the CLI are Kotlin; cookbook ingredients and recipes are Groovy.',
   'Build and verify changes with ./gradlew check cliBuild.')
-agents.instruct(policy.instructions)
-
-claude.permit(policy)
-claude.importAgents()
-claude.skills(agents)
-
-codex.permit(policy)
+agents.instruct(agents.policy().instructions)
+agents.permit(harnesses)
+agents.connect(harnesses)
 
 git.ignore(cook.localFiles)
 git.ignore(claude.localFiles)

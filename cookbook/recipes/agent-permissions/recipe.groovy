@@ -5,6 +5,4 @@ String[] harness
 @ingredient(Claude) def claude
 @ingredient(Codex) def codex
 
-def policy = agents.policy()
-if ('claude' in harness) claude.permit(policy)
-if ('codex' in harness) codex.permit(policy)
+agents.permit([claude, codex].findAll { it.name in harness })

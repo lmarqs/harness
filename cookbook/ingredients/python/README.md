@@ -11,12 +11,14 @@ instance per project directory.
   package already present with another specification is rejected; existing entries are kept.
 - `requirement(line)` adds a line for a `requirements.txt` project.
 - `dropVersionFile()` removes `.python-version` once mise owns the version.
-- `tools()`, `env()`, `ephemeralFiles()`, `localFiles()` and `installCommand(target)` expose facts for mise and Git.
+- `installCommand()` installs what the instance declared: `-r requirements.txt`, or the project with every touched
+  group. It runs in the project directory.
+- `tools()`, `env()`, `ephemeralFiles()` and `localFiles()` expose facts for mise and Git.
 
 ## Writes
 
 | Target | Part |
 | --- | --- |
-| `pyproject.toml` | `project.dependencies`, and each touched `project.optional-dependencies.<group>` |
+| `pyproject.toml` | One entry per added requirement in `project.dependencies` or `project.optional-dependencies.<group>`, matched by package name |
 | `requirements.txt` | The section `dependencies` |
 | `.python-version` | Deleted when `dropVersionFile()` was called |

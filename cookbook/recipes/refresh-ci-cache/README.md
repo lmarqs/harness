@@ -9,4 +9,4 @@ Changes the key of one cache step in a workflow job, so the next run starts from
 
 | Target | Part |
 | --- | --- |
-| the workflow file | `jobs.<job>.steps` |
+| the workflow file | `jobs.<job>.steps[id=<step>].with.key` |

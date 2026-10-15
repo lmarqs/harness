@@ -8,5 +8,5 @@ Adds one `require` line to an existing `go.mod` and declares a mise task that ti
 
 | Target | Part |
 | --- | --- |
-| `<dir>/go.mod` | The whole file |
+| `<dir>/go.mod` | The module's `require` line |
 | `mise.toml` | `tasks."dependency:go"` |

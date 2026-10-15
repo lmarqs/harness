@@ -3,6 +3,6 @@ String[] harness
 
 @ingredient(Agents) def agents
 @ingredient(Claude) def claude
+@ingredient(Codex) def codex
 
-// Agents seeds AGENTS.md. Codex reads it natively; Claude needs the import.
-if ('claude' in harness) claude.importAgents()
+agents.connect([claude, codex].findAll { it.name in harness })

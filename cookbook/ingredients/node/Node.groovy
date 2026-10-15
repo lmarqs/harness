@@ -1,6 +1,6 @@
 @Ingredient
 class Node {
-  String version = '22'
+  String version
   String manager = 'npm'       // npm | pnpm | yarn
   String managerVersion
   Map<String, Map<String, String>> dependencies = [:]   // kind -> package -> version
@@ -22,7 +22,9 @@ class Node {
 
   void dropVersionFile() { keepVersionFile = false }
 
-  Map<String, String> tools() { [node: version] + (managerVersion ? [(manager == 'npm' ? 'npm:npm' : manager): managerVersion] : [:]) }
+  Map<String, String> tools() {
+    (version ? [node: version] : [:]) + (managerVersion ? [(manager == 'npm' ? 'npm:npm' : manager): managerVersion] : [:])
+  }
 
   List<String> ephemeralFiles() {
     ['node_modules/'] + (manager == 'yarn' ? ['yarn-error.log*', '/.yarn/install-state.gz', '/.yarn/unplugged/'] : ['npm-debug.log*'])
@@ -32,19 +34,19 @@ class Node {
 
   String lockScript() { resource("${manager}/lock.sh") }
 
-  String installCommand() { "cd ${Mise.quote(directory)} && ${manager} install" }
+  Map installCommand() { [run: [[manager, 'install']], dir: directory] }
 
   @Key(path = 'package.json', segments = ['engines', 'node'])
-  String engine() { "^${version.tokenize('.')[0]}.0.0" }
+  String engine() { version ? "^${version.tokenize('.')[0]}.0.0" : null }
 
   @Key(path = 'package.json', segments = ['packageManager'])
   String packageManager() { managerVersion ? "${manager}@${managerVersion}" : null }
 
-  @Keys(path = 'package.json', under = ['dependencies'])
-  Map runtimeDependencies() { dependencies.dependencies ?: null }
-
-  @Keys(path = 'package.json', under = ['devDependencies'])
-  Map developmentDependencies() { dependencies.devDependencies ?: null }
+  /** One key per added dependency, `<kind>.<package>`, whatever the kind. */
+  @Keys(path = 'package.json')
+  Map dependencyKeys() {
+    dependencies.collectEntries { kind, packages -> packages.collectEntries { name, range -> [[kind, name], range] } } ?: null
+  }
 
   @Delete(path = '.nvmrc')
   boolean nvmrc() { !keepVersionFile }

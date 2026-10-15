@@ -10,3 +10,5 @@ Seeds `AGENTS.md` as the shared instruction file and connects each selected harn
 | --- | --- |
 | `AGENTS.md` | Seeded with a title when absent; never owned |
 | `CLAUDE.md` | The section `instructions`, containing `@AGENTS.md`, for `claude` |
+
+Codex reads `AGENTS.md` natively, so `codex` adds no target.

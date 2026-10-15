@@ -6,9 +6,10 @@ tools and commands other models know about.
 ## Model
 
 - `tool(name, version)` and `tools(map)` pin tool versions.
-- `task(name, run)` declares an inline task; `script(name, body)` declares a file task.
+- `task(name, command)` declares an inline task from a command another model returns: `run`, then `dir` and `env`
+  as the task's own fields. Argument lists are quoted here, so no other model quotes.
+- `task(name, run)` declares an inline task from shell text; `script(name, body)` declares a file task.
 - `env(name, value)` sets an environment entry.
-- `quote(value)` shell-quotes a value for a command line.
 
 ## Writes
 

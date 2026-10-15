@@ -10,10 +10,7 @@
 python.directory = dir
 python.installer = installer
 
-if (manifest == 'pyproject.toml') {
-  python.dependency(dependency, group ?: '')
-  mise.task('dependency:python', python.installCommand("-e ${Mise.quote(dir)}${group ? Mise.quote("[${group}]") : ''}"))
-} else {
-  python.requirement(dependency)
-  mise.task('dependency:python', python.installCommand("-r ${Mise.quote("${dir}/requirements.txt")}"))
-}
+if (manifest == 'pyproject.toml') python.dependency(dependency, group ?: '')
+else python.requirement(dependency)
+
+mise.task('dependency:python', python.installCommand())

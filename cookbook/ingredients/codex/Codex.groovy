@@ -1,5 +1,6 @@
 @Ingredient
-class Codex {
+class Codex implements Harness {
+  final String name = 'codex'
   Map config = [:]
   Map hooks = [:]
   Map<String, String> rules = [:]
@@ -26,6 +27,12 @@ class Codex {
 
   void instruct(String... lines) { instructions += lines }
 
+  /** Codex reads `AGENTS.md` in its own directory natively. */
+  void readInstructions(String path) { readsNatively(path, 'AGENTS.md') }
+
+  /** Codex discovers skills under `.agents/skills` in its own directory natively. */
+  void readSkills(String path, List<String> names) { readsNatively(path, '.agents/skills') }
+
   @Keys(path = '.codex/config.toml')
   Map configKeys() { config ?: null }
 
@@ -40,6 +47,10 @@ class Codex {
 
   @Section(path = 'AGENTS.md', id = 'codex')
   List<String> instructionsSection() { instructions ?: null }
+
+  private static void readsNatively(String path, String expected) {
+    if (path != expected) throw new IllegalArgumentException("Codex reads ${expected} in its own directory, not ${path}")
+  }
 
   private static String rule(Command command, String decision) {
     def pattern = command.prefix.collect { "\"${it}\"" }.join(', ')

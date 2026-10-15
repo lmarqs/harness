@@ -9,5 +9,5 @@ stage must exist exactly once and currently use the expected image.
 
 | Target | Part |
 | --- | --- |
-| the Dockerfile | The whole file, with the stage's image replaced |
+| the Dockerfile | The stage's `FROM` line |
 | `mise.toml` | `tasks."docker:verify"` |
