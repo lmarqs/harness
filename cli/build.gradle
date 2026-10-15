@@ -9,6 +9,7 @@ repositories { mavenCentral() }
 kotlin { jvmToolchain(17) }
 dependencies {
   implementation 'dev.thecook:the-cook-core:0.1.0'
+  implementation 'info.picocli:picocli:4.7.7'
   testImplementation localGroovy()
   testImplementation 'junit:junit:4.13.2'
   testImplementation 'org.tomlj:tomlj:1.0.0'

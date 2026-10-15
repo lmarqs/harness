@@ -24,9 +24,10 @@ The core and CLI use Kotlin, with Groovy document and filesystem adapters. Local
 
 `./cook <recipe>` renders the desired batch into native project files. Ingredients can share separate blocks or keys in a file, while whole files and symlinks have exclusive owners. Cooking checks for managed edits and uses a transaction journal with rollback on write failure. Declared applications update their own contributions; a legacy direct Batch updates its unassigned contributions while retaining independently owned applications.
 
-The current CLI resolves local `.groovy` recipe paths. `--dry-run` reports proposed changed paths; a normal cooking
-invocation writes without an approval prompt or a terminal content diff. `--remove` withdraws selected applications
-using ownership records. The existing `apply` command applies a saved plan. No-argument invocation reports a missing
+The current CLI resolves local `.groovy` recipe paths. Cook's options go before the recipe and the recipe's own
+arguments follow it, as in `./cook --dry-run recipe.groovy --harness=claude`; [picocli](https://picocli.info) parses
+Cook's grammar. `--dry-run` reports proposed changed paths; a normal cooking invocation writes without an approval
+prompt or a terminal content diff. `--remove` withdraws selected applications using ownership records. The existing `apply` command applies a saved plan. No-argument invocation reports a missing
 command; use `--help` or `help` explicitly. `help <recipe>...` prints each recipe's help; for a recipe whose first
 import carries `@help`, such as `./cook help cookbook/agents/instructions.groovy`, the help is read from its source
 without running it. The core enforces adoption and managed-edit gates.

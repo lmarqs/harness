@@ -1,5 +1,6 @@
 package thecook.cli.terminal
 
+import picocli.CommandLine
 import thecook.application.CookService
 import thecook.cookbook.Cookbook
 import thecook.cookbook.RecipeSource
@@ -23,7 +24,7 @@ class CookCommand(
         parse(args)
       } catch (error: UsageError) {
         stderr.println(error.message)
-        stderr.println(USAGE)
+        stderr.print(error.usage)
         stderr.flush()
         return 2
       } catch (error: IllegalArgumentException) {
@@ -35,7 +36,7 @@ class CookCommand(
     return try {
       when (command) {
         Help -> {
-          stdout.println(USAGE)
+          stdout.print(grammar().usageMessage)
         }
 
         is RecipeHelp -> {
@@ -82,136 +83,136 @@ class CookCommand(
   }
 
   private fun parse(invocation: Array<String>): Command {
-    val (kitchen, args) = kitchen(invocation)
-    if (args.contentEquals(arrayOf("--help"))) return Help
-    if (args.firstOrNull() == "help") return help(kitchen, args.drop(1))
-    if (args.any { it.substringBefore('=') == "--help" }) {
+    if (invocation.contentEquals(arrayOf("--help"))) return Help
+    if (invocation.any { it.substringBefore('=') == "--help" }) {
       throw UsageError("--help takes no other arguments; use help <recipe> to read a recipe")
     }
-    val entrypoint = args.firstOrNull() ?: throw UsageError("A command is required")
-    val localScript = entrypoint.endsWith(".groovy") && !entrypoint.contains("://")
-    if (localScript && !Files.isRegularFile(path(kitchen, entrypoint, "recipe"))) {
-      throw IllegalArgumentException("Recipe file not found: $entrypoint")
+    val line = grammar()
+    val parsed =
+      try {
+        line.parseArgs(*invocation)
+      } catch (error: CommandLine.ParameterException) {
+        throw UsageError(error.message ?: "Invalid arguments", error.commandLine.usageMessage)
+      }
+    val root = line.getCommand<RootArgs>()
+    val command = parsed.subcommand()?.commandSpec()?.userObject()
+    if (command != null && (root.dryRun || root.remove || root.libraries.isNotEmpty())) {
+      throw UsageError("--dry-run, --remove and --library go before a recipe, not before a command")
     }
-    val removingInit = entrypoint == "init" && args.drop(1).contains("--remove")
-    val namedRecipe = !localScript && entrypoint !in BUILTINS
-    if (namedRecipe && !entrypoint.matches(RECIPE_NAME)) {
-      throw UsageError("Invalid recipe name: $entrypoint")
-    }
-    val action = if (localScript || namedRecipe || removingInit) "cook" else entrypoint
-    val recipeInput = namedRecipe || localScript || removingInit
-
+    val kitchens = listOfNotNull(root.kitchen.kitchen, command?.let(::kitchenOf))
+    if (kitchens.size > 1) throw UsageError("Option may only be supplied once: --kitchen")
+    val kitchen = kitchen(kitchens.singleOrNull())
     val repository = kitchen.toAbsolutePath()
-    var script: Path? = if (localScript) path(kitchen, entrypoint, "recipe") else null
-    var savedPlan: Path? = null
-    var dryRun = false
-    var remove = false
-    val libraries = mutableListOf<Path>()
-    val preferences = linkedMapOf<String, MutableList<String>>()
-    val seen = mutableSetOf<String>()
-    if (localScript || namedRecipe) seen.add("--script")
-    var index = 1
-    while (index < args.size) {
-      val argument = args[index++]
-      val option = argument.substringBefore('=')
-      val inlineValue = if ('=' in argument) argument.substringAfter('=') else null
-      if (action == "cook" && option == "--dry-run") {
-        if (inlineValue != null) throw UsageError("--dry-run does not take a value")
-        if (!seen.add(option)) throw UsageError("Option may only be supplied once: $option")
-        dryRun = true
-        continue
-      }
-      if (action == "cook" && option == "--remove") {
-        if (inlineValue != null) throw UsageError("--remove does not take a value")
-        if (!seen.add(option)) throw UsageError("Option may only be supplied once: $option")
-        remove = true
-        continue
-      }
-      if (option == "-C" || option == "--kitchen") throw UsageError("$option goes before the recipe")
-      // --repo is refused rather than passed on, so a destination typed after the recipe never becomes a recipe input.
-      val recipeOption =
-        recipeInput && option.matches(Regex("--[a-z][a-z0-9-]*")) &&
-          option !in setOf("--repo", "--script", "--plan", "--library", "--set", "--remove")
-      val allowed =
-        recipeOption ||
-          (action in setOf("plan", "apply") && option == "--plan") ||
-          (action in setOf("cook", "plan") && option in setOf("--script", "--library", "--set"))
-      if (!allowed) throw UsageError("Unknown option for $action: $option")
-      if (option != "--set" && option != "--library" && !recipeOption && !seen.add(option)) {
-        throw UsageError("Option may only be supplied once: $option")
-      }
-      val value = inlineValue ?: args.getOrNull(index)
-      if (value.isNullOrEmpty() || value.startsWith("--")) throw UsageError("Missing value for $option")
-      if (inlineValue == null) index++
-      when (option) {
-        "--script" -> {
-          script = path(kitchen, value, option)
-        }
-
-        "--plan" -> {
-          savedPlan = path(kitchen, value, option)
-        }
-
-        "--library" -> {
-          libraries.add(path(kitchen, value, option))
-        }
-
-        "--set" -> {
-          val separator = value.indexOf('=')
-          if (separator <= 0) throw UsageError("--set requires name=value")
-          addPreference(preferences, value.substring(0, separator), value.substring(separator + 1), recipeInput)
-        }
-
-        else -> {
-          addPreference(preferences, option.removePrefix("--"), value, recipeInput)
-        }
-      }
-    }
-    val inputs: Map<String, Any> = preferences.mapValues { (_, values) -> if (recipeInput) values.toList() else values.single() }
-    if (action == "init") return Init(repository)
-    if (action == "cook") {
-      val recipe =
-        if (removingInit) {
-          repository.resolve("cookbook/recipes/init/recipe.groovy")
-        } else if (namedRecipe) {
-          findRecipe(repository, entrypoint)
+    return when (command) {
+      null -> recipe(kitchen, root)
+      is HelpArgs -> help(kitchen, command.recipes)
+      is InitArgs ->
+        if (command.remove) {
+          val recipe = repository.resolve("cookbook/recipes/init/recipe.groovy")
+          Cook(repository, recipe, emptyList(), emptyMap(), false, true, RecipeArguments.removal(declaration(recipe), emptyMap()))
         } else {
-          script
-            ?: repository.resolve("cook.groovy")
+          Init(repository)
         }
-      if (namedRecipe) {
-        val declared = try {
-          declaration(recipe)
-        } catch (error: IllegalArgumentException) {
-          if (error.message?.startsWith("Recipe has no argument declaration:") != true &&
-            error.message?.startsWith("Cookbook source not found:") != true
-          ) throw error
-          null
-        }
-        if (declared != null && declared.name != entrypoint) {
-          throw IllegalArgumentException("Recipe identity does not match: $entrypoint")
-        }
+      is CookArgs -> {
+        val script = command.script?.let { path(kitchen, it, "--script") } ?: repository.resolve("cook.groovy")
+        val preferences = sets(command.sets)
+        val removal = if (command.remove) RecipeArguments.removal(declaration(script), preferences) else emptySet()
+        Cook(repository, script, libraries(kitchen, command.libraries), single(preferences), command.dryRun, command.remove, removal)
       }
-      val removalApplications = if (remove) RecipeArguments.removal(declaration(recipe), preferences) else emptySet()
-      return Cook(repository, recipe, libraries, inputs, dryRun, remove, removalApplications)
-    }
-    val file = savedPlan ?: repository.resolve(".cook/plan.json")
-    return if (action == "plan") {
-      Plan(repository, script ?: repository.resolve("cook.groovy"), file, libraries, inputs)
-    } else {
-      Apply(repository, file)
+      is PlanArgs ->
+        Plan(
+          repository,
+          command.script?.let { path(kitchen, it, "--script") } ?: repository.resolve("cook.groovy"),
+          command.plan?.let { path(kitchen, it, "--plan") } ?: repository.resolve(".cook/plan.json"),
+          libraries(kitchen, command.libraries),
+          single(sets(command.sets)),
+        )
+      is ApplyArgs -> Apply(repository, command.plan?.let { path(kitchen, it, "--plan") } ?: repository.resolve(".cook/plan.json"))
+      else -> throw IllegalStateException("Unhandled command: $command")
     }
   }
 
-  private fun addPreference(
-    preferences: MutableMap<String, MutableList<String>>,
-    name: String,
-    value: String,
-    repeatable: Boolean,
-  ) {
-    if (!repeatable && preferences.containsKey(name)) throw UsageError("Argument may only be supplied once: $name")
-    preferences.getOrPut(name) { mutableListOf() }.add(value)
+  private fun recipe(
+    kitchen: Path,
+    root: RootArgs,
+  ): Command {
+    val entrypoint = root.operands.firstOrNull() ?: throw UsageError("A command or recipe is required")
+    val localScript = entrypoint.endsWith(".groovy") && !entrypoint.contains("://")
+    val repository = kitchen.toAbsolutePath()
+    val recipe =
+      if (localScript) {
+        path(kitchen, entrypoint, "recipe").also {
+          if (!Files.isRegularFile(it)) throw IllegalArgumentException("Recipe file not found: $entrypoint")
+        }
+      } else {
+        if (!entrypoint.matches(RECIPE_NAME)) throw UsageError("Invalid recipe name: $entrypoint")
+        findRecipe(repository, entrypoint)
+      }
+    val arguments = recipeArguments(root.operands.drop(1))
+    if (!localScript) {
+      val declared = try {
+        declaration(recipe)
+      } catch (error: IllegalArgumentException) {
+        if (error.message?.startsWith("Recipe has no argument declaration:") != true &&
+          error.message?.startsWith("Cookbook source not found:") != true
+        ) throw error
+        null
+      }
+      if (declared != null && declared.name != entrypoint) {
+        throw IllegalArgumentException("Recipe identity does not match: $entrypoint")
+      }
+    }
+    val removal = if (root.remove) RecipeArguments.removal(declaration(recipe), arguments) else emptySet()
+    return Cook(repository, recipe, libraries(kitchen, root.libraries), arguments, root.dryRun, root.remove, removal)
   }
+
+  // A recipe's arguments are its own; Cook only splits them into names and values and refuses its own options here.
+  private fun recipeArguments(tokens: List<String>): Map<String, List<String>> {
+    val arguments = linkedMapOf<String, MutableList<String>>()
+    var index = 0
+    while (index < tokens.size) {
+      val token = tokens[index++]
+      val name = token.substringBefore('=')
+      if (name in BEFORE_RECIPE) throw UsageError("$name goes before the recipe")
+      // --repo, --script, --plan and --set are refused rather than passed on, so a Cook option typed after the recipe
+      // never becomes a recipe input.
+      if (!name.matches(Regex("--[a-z][a-z0-9-]*")) || name in RESERVED) throw UsageError("Unknown option for the recipe: $token")
+      val inline = if ('=' in token) token.substringAfter('=') else null
+      val value = inline ?: tokens.getOrNull(index)?.also { index++ }
+      if (value.isNullOrEmpty() || (inline == null && value.startsWith("--"))) throw UsageError("Missing value for $name")
+      arguments.getOrPut(name.removePrefix("--")) { mutableListOf() }.add(value)
+    }
+    return arguments
+  }
+
+  private fun sets(values: List<String>): Map<String, List<String>> {
+    val preferences = linkedMapOf<String, MutableList<String>>()
+    values.forEach { value ->
+      val separator = value.indexOf('=')
+      if (separator <= 0) throw UsageError("--set requires name=value")
+      val name = value.substring(0, separator)
+      if (preferences.containsKey(name)) throw UsageError("Argument may only be supplied once: $name")
+      preferences[name] = mutableListOf(value.substring(separator + 1))
+    }
+    return preferences
+  }
+
+  private fun single(preferences: Map<String, List<String>>): Map<String, Any> = preferences.mapValues { it.value.single() }
+
+  private fun libraries(
+    kitchen: Path,
+    values: List<String>,
+  ): List<Path> = values.map { path(kitchen, it, "--library") }
+
+  private fun kitchenOf(command: Any): String? =
+    when (command) {
+      is InitArgs -> command.kitchen.kitchen
+      is CookArgs -> command.kitchen.kitchen
+      is PlanArgs -> command.kitchen.kitchen
+      is ApplyArgs -> command.kitchen.kitchen
+      is HelpArgs -> command.kitchen.kitchen
+      else -> null
+    }
 
   private fun findRecipe(
     repository: Path,
@@ -265,7 +266,7 @@ class CookCommand(
           "  --${input.name} CHOICE  optional, once; choices: ${input.choices.joinToString(", ")}"
       }
     }
-    return "Usage: cook [-C DIR] ${declaration.name} [options]\n$arguments\n  --dry-run  preview without writing\n  --remove  remove selected applications\n  --set name=value  legacy argument form"
+    return "Usage: cook [-C DIR] [--dry-run] [--remove] ${declaration.name} [arguments]\n$arguments"
   }
 
   private fun render(
@@ -313,30 +314,12 @@ class CookCommand(
       throw UsageError("Invalid path for $option: ${error.reason}")
     }
 
-  // The kitchen is read before anything else because the recipe path and every relative path resolve against it.
-  private fun kitchen(args: Array<String>): Pair<Path, Array<String>> {
-    var kitchen: String? = null
-    var entrypoint: String? = null
-    val rest = mutableListOf<String>()
-    var index = 0
-    while (index < args.size) {
-      val argument = args[index++]
-      val option = argument.substringBefore('=')
-      val beforeRecipe = entrypoint == null || entrypoint in BUILTINS
-      if (beforeRecipe && (argument == "-C" || option == "--kitchen")) {
-        if (kitchen != null) throw UsageError("Option may only be supplied once: $option")
-        val value = if (argument.startsWith("--kitchen=")) argument.substringAfter('=') else args.getOrNull(index++)
-        if (value.isNullOrEmpty() || value.startsWith("-")) throw UsageError("Missing value for $option")
-        kitchen = value
-        continue
-      }
-      if (entrypoint == null) entrypoint = argument
-      rest.add(argument)
-    }
-    if (kitchen == null) return Path.of("") to rest.toTypedArray()
-    val directory = path(Path.of(""), kitchen, "--kitchen")
-    if (!Files.isDirectory(directory)) throw IllegalArgumentException("Kitchen directory not found: $kitchen")
-    return directory to rest.toTypedArray()
+  private fun kitchen(value: String?): Path {
+    if (value == null) return Path.of("")
+    if (value.isEmpty()) throw UsageError("Missing value for --kitchen")
+    val directory = path(Path.of(""), value, "--kitchen")
+    if (!Files.isDirectory(directory)) throw IllegalArgumentException("Kitchen directory not found: $value")
+    return directory
   }
 
   private sealed interface Command
@@ -376,38 +359,12 @@ class CookCommand(
 
   private class UsageError(
     message: String,
+    val usage: String = grammar().usageMessage,
   ) : IllegalArgumentException(message)
 
   private companion object {
-    val BUILTINS = setOf("init", "cook", "plan", "apply", "help")
     val RECIPE_NAME = Regex("[a-z][a-z0-9-]*(/[a-z][a-z0-9-]*)*")
-
-    val USAGE =
-      """
-      Usage:
-        cook [-C dir] <recipe> [--name value | --name=value] [--dry-run] [--remove]
-        the-cook init [-C dir]
-        the-cook cook [-C dir] [--dry-run] [--script path] [--set name=value] [--library path]
-        the-cook [-C dir] path/to/recipe.groovy [--name value | --name=value] [--dry-run] [--set name=value] [--library path]
-        the-cook plan [-C dir] [--script path] [--plan path] [--set name=value] [--library path]
-        the-cook apply [-C dir] [--plan path]
-        the-cook help [-C dir] <recipe> [<recipe>]...
-        the-cook --help
-
-      -C dir, --kitchen dir: cook in dir, as if started there; relative paths resolve against it.
-      It goes before the first recipe. Without it, the current directory is the kitchen.
-      Named recipes resolve to cookbook/recipes/<name>.groovy or cookbook/recipes/<name>/recipe.groovy, then packaged cookbook resources.
-      Both local forms for one name are ambiguous and rejected.
-      Nested names such as agentic/codex are supported.
-      Declared recipes validate required paths and repeatable choices before rendering.
-      help prints each recipe's help in order; @help texts are read without running the recipe.
-      Undeclared factories continue to receive scalar string options.
-      --script defaults to cook.groovy in the repository.
-      --plan defaults to .cook/plan.json in the repository.
-      init preserves an existing cook.groovy.
-      cook reconciles the batch directly; --dry-run previews without writing.
-      --set and --library may be repeated with cook and plan.
-      apply uses the saved plan without evaluating the cookbook again.
-      """.trimIndent()
+    val BEFORE_RECIPE = setOf("-C", "--kitchen", "--dry-run", "--remove", "--library")
+    val RESERVED = setOf("--repo", "--script", "--plan", "--set")
   }
 }
