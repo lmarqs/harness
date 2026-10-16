@@ -168,12 +168,12 @@ and retain the batch record and failure (FR-13).
 
 ## Ownership and the lock
 
-The repository commits `cook.lock`, a YAML file at its root that Cook writes and reviewers read in pull requests.
+`cook.lock` is a YAML file at the kitchen's root that Cook writes after each apply.
 For each applied recipe it records the short name, the source, the source's sha256, and the sections, keys, whole files
 and links the recipe owns. It records no recipe arguments (FR-14).
 
 ```yaml
-# Written by the-cook. Review changes in pull requests; do not edit by hand.
+# Written by the-cook; do not edit by hand.
 version: 1
 recipes:
   - name: "dev.thecook:agents:permissions"

@@ -7,11 +7,11 @@ import org.yaml.snakeyaml.constructor.SafeConstructor
 
 /**
  * `cook.lock`: for each applied recipe, its short name, its source, the source's sha256 and the sections, keys, whole
- * files and links it owns. The destination commits it, so reviewers read ownership changes in pull requests.
+ * files and links it owns. It is the record Cook reads to withdraw what a recipe no longer declares.
  */
 final class CookLock {
   static final String PATH = 'cook.lock'
-  private static final String HEADER = '# Written by the-cook. Review changes in pull requests; do not edit by hand.'
+  private static final String HEADER = '# Written by the-cook; do not edit by hand.'
   // In the order the lock lists them, each read from its `<kind>s` group.
   private static final Map<String, Closure<Target>> KINDS = [
     section: { Map item -> new SectionTarget((String) item.file, (String) item.id) },

@@ -32,7 +32,7 @@ class CookbookApplyTest {
 @AGENTS.md
 <!-- cook:end dev.thecook:agents:instructions#instructions -->
 '''
-    assert new File(kitchen, 'cook.lock').text == """# Written by the-cook. Review changes in pull requests; do not edit by hand.
+    assert new File(kitchen, 'cook.lock').text == """# Written by the-cook; do not edit by hand.
 version: 1
 recipes:
   - name: "dev.thecook:agents:instructions"
