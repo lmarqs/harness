@@ -83,12 +83,12 @@ class Agents {
   }
 
   /**
-   * Seeds `AGENTS.md` when absent with the packaged `AGENTS.template.md`: a note telling agents to fill the file in
-   * when the developer asks, then sections, related ones grouped under one heading, each with a line saying what it
-   * holds and a body in the shape of its answer: a table with labelled rows, or a list of bracketed placeholders.
-   * Written once instructions are added or a harness is connected; never owned.
+   * Seeds `AGENTS.md` with the packaged `AGENTS.template.md`: a note telling agents to fill the file in when the
+   * developer asks, then sections, related ones grouped under one heading, each with a line saying what it holds and a
+   * body in the shape of its answer: a table with labelled rows, or a list of bracketed placeholders. Written once
+   * instructions are added or a harness is connected; the first apply fails when `AGENTS.md` already exists; never owned.
    */
-  @Seed(path = 'AGENTS.md')
+  @Seed(path = 'AGENTS.md', existing = 'fail')
   String starter() { instructionsUsed ? resource('AGENTS.template.md') : null }
 
   /** Seeds `.agents/policy.yaml` with the starter policy when absent, once the policy is read; never owned. */

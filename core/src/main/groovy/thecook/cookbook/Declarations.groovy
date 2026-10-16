@@ -74,7 +74,7 @@ final class Declarations {
     String base = join(model.directory, expand(model, member, annotation.path()))
     switch (annotation) {
       case Seed:
-        declared.seeds << new Seeding(member, base, value.toString())
+        declared.seeds << new Seeding(member, base, value.toString(), failsOnExisting(member, (Seed) annotation))
         break
       case Delete:
         if (value == true) {
@@ -109,6 +109,13 @@ final class Declarations {
           declared.owned << new Declaration(member, new LinkTarget("${base}/${name}"), target.toString())
         }
     }
+  }
+
+  private static boolean failsOnExisting(String member, Seed seed) {
+    if (!(seed.existing() in ['keep', 'fail'])) {
+      throw new IllegalArgumentException("${member}: existing = '${seed.existing()}' is not keep or fail")
+    }
+    seed.existing() == 'fail'
   }
 
   private static KeyTarget key(String member, String file, List<String> path) {
@@ -177,16 +184,21 @@ final class Declaration {
   }
 }
 
-/** A file a model member writes only when it does not exist yet, and never owns. */
+/**
+ * A file a model member writes only when it does not exist yet, and never owns. `failsOnExisting` refuses the recipe's
+ * first apply when the file exists.
+ */
 final class Seeding {
   final String member
   final String file
   final String text
+  final boolean failsOnExisting
 
-  Seeding(String member, String file, String text) {
+  Seeding(String member, String file, String text, boolean failsOnExisting) {
     this.member = member
     this.file = file
     this.text = text
+    this.failsOnExisting = failsOnExisting
   }
 
   @Override

@@ -53,6 +53,22 @@ recipes:
     assert new File(kitchen, 'cook.lock').text.endsWith('    owns: {}\n')
   }
 
+  @Test void refusesToStartInstructionsOverAnExistingAgentsFile() {
+    def kitchen = kitchen()
+    publishDirectory(kitchen, 'agents')
+    new File(kitchen, 'AGENTS.md').text = '# Ours\n'
+    def error = shouldFail(IllegalArgumentException) { apply(kitchen, 'dev.thecook:agents:0.1.0:instructions', [:]) }
+    assert error.message == 'dev.thecook:agents:0.1.0:instructions: AGENTS.md already exists, and this recipe writes it ' +
+    'from a template on its first apply. Move the file away and apply again.'
+    assert !new File(kitchen, 'cook.lock').exists()
+
+    new File(kitchen, 'AGENTS.md').delete()
+    apply(kitchen, 'dev.thecook:agents:0.1.0:instructions', [:]).commit()
+    new File(kitchen, 'AGENTS.md').text = '# Filled in\n'
+    def again = apply(kitchen, 'dev.thecook:agents:0.1.0:instructions', [harness: ['claude']])
+    assert again.changes == ['CLAUDE.md', 'cook.lock']
+  }
+
   @Test void composesPermissionsAndInstructionsInOneInvocation() {
     def kitchen = kitchen()
     publishDirectory(kitchen, 'agents')

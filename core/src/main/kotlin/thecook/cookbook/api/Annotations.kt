@@ -61,11 +61,15 @@ annotation class Links(
   val path: String,
 )
 
-/** Content written only when the file is absent, and never owned. */
+/**
+ * Content written only when the file is absent, and never owned. With `existing = "fail"`, the recipe's first apply
+ * fails when the file already exists, so the file always starts from this content; `"keep"` leaves an existing file.
+ */
 @Target(AnnotationTarget.FUNCTION, AnnotationTarget.FIELD)
 @Retention(AnnotationRetention.RUNTIME)
 annotation class Seed(
   val path: String,
+  val existing: String = "keep",
 )
 
 /** Deletes a file no recipe owns, when the member returns true. */

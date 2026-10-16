@@ -12,10 +12,11 @@ Seeds `AGENTS.md` with a section template for an agent to fill in, and connects 
 
 | Target | Part | When |
 | --- | --- | --- |
-| `AGENTS.md` | Section template, seeded when absent; never owned | Always |
+| `AGENTS.md` | Section template, written on the first apply; never owned | Always |
 | `CLAUDE.md` | The section `instructions`, containing `@AGENTS.md` | `--harness=claude` |
 
-Claude reads the file through `CLAUDE.md`; Codex reads `AGENTS.md` natively, so selecting `codex` adds no target.
+The first apply fails when `AGENTS.md` already exists: move the file away, apply, then have an agent carry what it
+still needs into the new file. Claude reads the file through `CLAUDE.md`; Codex reads `AGENTS.md` natively, so selecting `codex` adds no target.
 
 ## With other recipes
 

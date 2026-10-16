@@ -45,6 +45,11 @@ final class CookLock {
     lock
   }
 
+  /** Whether the recipe `name` was applied before. */
+  boolean applied(String name) {
+    entries.containsKey(name)
+  }
+
   /** What the recipe `name` owned when it was last applied; empty when it never was. */
   List<Target> owned(String name) {
     entries[name]?.targets ?: []

@@ -90,6 +90,9 @@ final class CookbookApply {
     declared.seeds.each { seed ->
       if (draft.read(seed.file) == null) {
         draft.write(seed.file, seed.text)
+      } else if (seed.failsOnExisting && !lock.applied(name)) {
+        throw new IllegalArgumentException("${seed.file} already exists, and this recipe writes it from a template on its first " +
+        'apply. Move the file away and apply again.')
       }
     }
     def targets = owned*.target
