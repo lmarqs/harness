@@ -25,6 +25,12 @@ final class Draft {
     state(path).content
   }
 
+  /** The target of the symbolic link at `path` as the invocation left it so far; `null` when `path` is not a link. */
+  String linkTarget(String path) {
+    def current = state(path)
+    current.kind == 'symlink' ? current.content : null
+  }
+
   /** Writes `content` to `path`; `mode` replaces the file's permissions, which otherwise stay as they are. */
   void write(String path, String content, String mode = null) {
     def current = state(path)

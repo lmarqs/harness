@@ -48,6 +48,15 @@ abstract class Target {
     false
   }
 
+  /** The text of a file this target edits in place; a symbolic link is refused, since its text would be its target. */
+  protected String editable(Draft draft) {
+    def target = draft.linkTarget(file)
+    if (target != null) {
+      throw new IllegalArgumentException("${file} is a symbolic link to ${target}; Cook writes sections and keys only into regular files")
+    }
+    draft.read(file)
+  }
+
   @Override
   boolean equals(Object other) {
     other instanceof Target && other.getClass() == getClass() && ((Target) other).entry == entry
@@ -81,13 +90,13 @@ final class SectionTarget extends Target {
   }
 
   void write(Draft draft, Object lines) {
-    def document = blocks(draft.read(file), comment)
+    def document = blocks(editable(draft), comment)
     document.write(id, new BlockLocation(), document.render(((List) lines).join('\n')))
     draft.replace(file, document)
   }
 
   void withdraw(Draft draft) {
-    String text = draft.read(file)
+    String text = editable(draft)
     def begin = ~/.*cook:begin ${java.util.regex.Pattern.quote(id)}(?:\s.*)?/
     def marker = text?.readLines()?.find { it ==~ begin }
     if (marker != null) {
@@ -140,7 +149,7 @@ final class KeyTarget extends Target {
 
   /** Leaves a key that already holds `value` as it is, so the file keeps its formatting; a new JSON file is indented. */
   void write(Draft draft, Object value) {
-    String text = draft.read(file)
+    String text = editable(draft)
     def document = open(text)
     def location = new KeyLocation(path)
     def rendered = document.render(value)
@@ -156,7 +165,7 @@ final class KeyTarget extends Target {
   }
 
   void withdraw(Draft draft) {
-    def document = open(draft.read(file))
+    def document = open(editable(draft))
     document.remove(identity, new KeyLocation(path))
     draft.replace(file, document)
   }

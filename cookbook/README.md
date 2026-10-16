@@ -86,6 +86,8 @@ Rules:
   the member, when anything is declared.
 - A declaration member may throw to reject the request, after the guard that keeps a pristine instance declaring
   nothing.
+- Sections, keys and lines are written only into regular files. When the path is a symbolic link, the apply fails,
+  naming the link and its target, and writes nothing.
 - `path` joins to the instance's `directory`. `${property}` in a path reads the instance, for files the recipe names.
 - Declare the entry the recipe means, never the list or file around it: a step, a requirement, a line. Ownership then
   covers only that entry, and applying again finds it in place.

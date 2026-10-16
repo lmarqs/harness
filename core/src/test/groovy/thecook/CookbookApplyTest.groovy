@@ -140,6 +140,29 @@ Run with --force to replace them, or --skip to keep them.'''
     assert !new File(kitchen, 'cook.lock').exists()
   }
 
+  @Test void refusesToWriteASectionOrKeyThroughASymbolicLink() {
+    def kitchen = kitchen()
+    publishDirectory(kitchen, 'agents')
+    def link = { String path, String target ->
+      def file = new File(kitchen, path); file.parentFile.mkdirs()
+      java.nio.file.Files.createSymbolicLink(file.toPath(), java.nio.file.Paths.get(target))
+    }
+    link('CLAUDE.md', 'AGENTS.md')
+    def section = shouldFail(IllegalArgumentException) { apply(kitchen, 'dev.thecook:agents:0.1.0:instructions', [harness: ['claude']]) }
+    assert section.message == 'dev.thecook:agents:0.1.0:instructions: CLAUDE.md is a symbolic link to AGENTS.md; ' +
+    'Cook writes sections and keys only into regular files'
+
+    new File(kitchen, '.claude').mkdirs()
+    new File(kitchen, '.claude/shared.json').text = '{}\n'
+    link('.claude/settings.json', 'shared.json')
+    def key = shouldFail(IllegalArgumentException) { apply(kitchen, 'dev.thecook:agents:0.1.0:permissions', [harness: ['claude']]) }
+    assert key.message == 'dev.thecook:agents:0.1.0:permissions: .claude/settings.json is a symbolic link to shared.json; ' +
+    'Cook writes sections and keys only into regular files'
+    assert new File(kitchen, '.claude/shared.json').text == '{}\n'
+    assert !new File(kitchen, 'cook.lock').exists()
+    assert java.nio.file.Files.isSymbolicLink(new File(kitchen, 'CLAUDE.md').toPath())
+  }
+
   @Test void composesPermissionsAndInstructionsInOneInvocation() {
     def kitchen = kitchen()
     publishDirectory(kitchen, 'agents')
