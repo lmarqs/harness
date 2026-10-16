@@ -1,0 +1,30 @@
+plugins {
+  id 'groovy'
+  id 'java-gradle-plugin'
+}
+
+group = 'dev.thecook'
+version = '0.1.0'
+
+repositories {
+  mavenCentral()
+}
+
+java {
+  toolchain.languageVersion = JavaLanguageVersion.of(17)
+}
+
+dependencies {
+  implementation 'org.tomlj:tomlj:1.0.0'
+  testImplementation 'junit:junit:4.13.2'
+}
+
+gradlePlugin {
+  plugins {
+    cookbook { id = 'dev.thecook.cookbook'; implementationClass = 'thecook.gradle.CookbookPlugin' }
+  }
+}
+
+tasks.named('test') {
+  useJUnit()
+}

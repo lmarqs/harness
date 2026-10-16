@@ -31,7 +31,6 @@ dependencies {
 gradlePlugin {
   plugins {
     cook { id = 'dev.thecook'; implementationClass = 'thecook.gradle.CookPlugin' }
-    cookbook { id = 'dev.thecook.cookbook'; implementationClass = 'thecook.gradle.CookbookPlugin' }
   }
 }
 
