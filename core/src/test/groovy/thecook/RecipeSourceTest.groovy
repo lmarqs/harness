@@ -11,7 +11,7 @@ class RecipeSourceTest {
     def texts = RecipeSource.texts(new File(COOKBOOK, 'agents/instructions.groovy').text, 'instructions.groovy')
     assert texts.help.startsWith('Seeds `AGENTS.md` with a section template')
     assert texts.confirm == null
-    assert texts.yieldText.startsWith('Have an agent fill in each section of `AGENTS.md`.')
+    assert texts.yieldText.startsWith('Have an agent fill in `AGENTS.md`; the note at its top')
     assert texts.params == [
       new RecipeParam(['harness'], 'String[]', 'Harnesses that read the shared instructions', '[]',
       ['claude', 'codex'], true)

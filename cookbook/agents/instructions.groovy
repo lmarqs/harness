@@ -23,8 +23,9 @@ Apply `dev.thecook:agents:0.1.0:permissions` with the same harness selection to 
 The recipes write separate targets and work in either order.
 ''')
 @yield('''
-Have an agent fill in each section of `AGENTS.md`. The line under each heading says what belongs there and
-stays as a guide for readers.
+Have an agent fill in `AGENTS.md`; the note at its top tells the agent how, and the line under each heading stays
+as a guide for readers. Then, in a fresh session, ask an agent to set up the checkout, make a small change and pass
+the Done check using only `AGENTS.md`, and correct the file where the agent went wrong.
 ''')
 import dev.thecook.agents.Agents
 import dev.thecook.agents.Claude
