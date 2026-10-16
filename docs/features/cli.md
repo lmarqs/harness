@@ -145,6 +145,9 @@ names the file and the recipe:
 AGENTS.md already exists; dev.thecook:agents:instructions writes it from a template on its first apply. Run with --force to replace it, or --skip to keep it.
 ```
 
+When several recipes of one command meet such files, one refusal lists every file with its recipe, so `--force` never
+replaces a file the refusal did not name.
+
 | Option | Position | Effect |
 | --- | --- | --- |
 | `--force` | Before the first recipe | Writes the template over the file, or over a symbolic link at its path, and applies the rest |

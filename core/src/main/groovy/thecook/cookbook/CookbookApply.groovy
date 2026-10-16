@@ -166,14 +166,17 @@ final class SeedOutcomes {
     }
   }
 
-  /** Fails when a seed refused an existing file, naming the file, its recipe and the options that resolve it. */
+  /** Fails when seeds refused existing files, naming each file, its recipe and the options that resolve them. */
   void refuse() {
-    if (!refused) {
-      return
+    if (refused.size() == 1) {
+      def only = refused.entrySet().first()
+      throw new IllegalArgumentException("${only.key} already exists; ${only.value} writes it from a template on its first apply. " +
+      'Run with --force to replace it, or --skip to keep it.')
     }
-    def first = refused.entrySet().first()
-    throw new IllegalArgumentException("${first.key} already exists; ${first.value} writes it from a template on its first apply. " +
-    'Run with --force to replace it, or --skip to keep it.')
+    if (refused) {
+      throw new IllegalArgumentException((['These files already exist, and their recipes write them from a template on their first apply:'] +
+      refused.collect { file, recipe -> "  ${file} (${recipe})" } + ['Run with --force to replace them, or --skip to keep them.']).join('\n'))
+    }
   }
 }
 

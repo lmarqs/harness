@@ -102,6 +102,44 @@ recipes:
     assert ours.text == '# Ours\n'
   }
 
+  @Test void refusesEveryExistingSeededFileOfTheCommandAtOnce() {
+    def kitchen = kitchen()
+    publish(kitchen, 'acme:starters:1.0.0', [
+      'Starters.groovy': '''package acme.starters
+
+@Ingredient
+class Starters {
+  String first
+  String second
+  @Seed(path = 'FIRST.md', existing = 'fail')
+  String firstStarter() { first }
+  @Seed(path = 'SECOND.md', existing = 'fail')
+  String secondStarter() { second }
+}
+''',
+      'one.groovy': '''@help('Seeds FIRST.md.')
+import acme.starters.Starters
+@ingredient(Starters) def starters
+starters.first = 'first'
+''',
+      'two.groovy': '''@help('Seeds SECOND.md.')
+import acme.starters.Starters
+@ingredient(Starters) def starters
+starters.second = 'second'
+''',
+    ])
+    new File(kitchen, 'FIRST.md').text = 'ours\n'
+    new File(kitchen, 'SECOND.md').text = 'ours\n'
+    def error = shouldFail(IllegalArgumentException) {
+      new CookbookApply(kitchen).propose([request('acme:starters:1.0.0:one', [:]), request('acme:starters:1.0.0:two', [:])])
+    }
+    assert error.message == '''These files already exist, and their recipes write them from a template on their first apply:
+  FIRST.md (acme:starters:one)
+  SECOND.md (acme:starters:two)
+Run with --force to replace them, or --skip to keep them.'''
+    assert !new File(kitchen, 'cook.lock').exists()
+  }
+
   @Test void composesPermissionsAndInstructionsInOneInvocation() {
     def kitchen = kitchen()
     publishDirectory(kitchen, 'agents')
