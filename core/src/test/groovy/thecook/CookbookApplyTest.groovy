@@ -163,6 +163,28 @@ Run with --force to replace them, or --skip to keep them.'''
     assert java.nio.file.Files.isSymbolicLink(new File(kitchen, 'CLAUDE.md').toPath())
   }
 
+  @Test void refusesASecondAgentsImportInClaudeInstructions() {
+    def kitchen = kitchen()
+    publishDirectory(kitchen, 'agents')
+    def claude = new File(kitchen, 'CLAUDE.md')
+    [
+      '# Notes\n@AGENTS.md\n': 2,
+      '# cook:begin claude-context/instructions\n@AGENTS.md\n# cook:end claude-context/instructions\n': 2,
+    ].each { text, line ->
+      claude.text = text
+      def error = shouldFail(IllegalArgumentException) { apply(kitchen, 'dev.thecook:agents:0.1.0:instructions', [harness: ['claude']]) }
+      assert error.message == "dev.thecook:agents:0.1.0:instructions: CLAUDE.md already imports @AGENTS.md on line ${line}; " +
+      'remove that line so Cook owns the import'
+      assert claude.text == text
+      assert !new File(kitchen, 'cook.lock').exists()
+    }
+
+    claude.text = '# Notes\n'
+    apply(kitchen, 'dev.thecook:agents:0.1.0:instructions', [harness: ['claude']]).commit()
+    assert claude.text.contains('@AGENTS.md')
+    assert apply(kitchen, 'dev.thecook:agents:0.1.0:instructions', [harness: ['claude']]).changes == []
+  }
+
   @Test void composesPermissionsAndInstructionsInOneInvocation() {
     def kitchen = kitchen()
     publishDirectory(kitchen, 'agents')

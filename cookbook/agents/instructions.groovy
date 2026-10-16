@@ -16,7 +16,11 @@ Seeds `AGENTS.md` with a section template for an agent to fill in, and connects 
 | `CLAUDE.md` | The section `instructions`, containing `@AGENTS.md` | `--harness=claude` |
 
 The first apply fails when `AGENTS.md` already exists. Run with `--force` to replace it with the template, then
-have an agent carry what the old file still needs into it, or with `--skip` to keep it as it is. Claude reads the file through `CLAUDE.md`; Codex reads `AGENTS.md` natively, so selecting `codex` adds no target.
+have an agent carry what the old file still needs into it, or with `--skip` to keep it as it is.
+
+Claude reads the file through `CLAUDE.md`. When `CLAUDE.md` already imports `@AGENTS.md` outside the recipe's
+section, the apply fails and names the line; remove that line and apply again. Codex reads `AGENTS.md` natively, so
+selecting `codex` adds no target.
 
 ## With other recipes
 

@@ -77,13 +77,38 @@ class Claude implements Harness {
   @Keys(path = '.claude/settings.json')
   Map settingsKeys() { settings ?: null }
 
-  /** The `instructions` section of `CLAUDE.md`, when instruction lines or a shared instruction path are added. */
+  /**
+   * The `instructions` section of `CLAUDE.md`, when instruction lines or a shared instruction path are added. Fails
+   * when `CLAUDE.md` already has one of the section's `@` imports outside an `instructions` section of this model,
+   * since Claude would then read the shared file twice.
+   */
   @Section(path = 'CLAUDE.md', id = 'instructions')
-  List<String> instructionsSection() { instructions ?: null }
+  List<String> instructionsSection() {
+    if (!instructions) {
+      return null
+    }
+    refuseImportsElsewhere()
+    instructions
+  }
 
   /** One relative link under `.claude/skills/` per named shared skill, when skills are connected. */
   @Links(path = '.claude/skills')
   Map<String, String> links() { skillLinks ?: null }
+
+  private void refuseImportsElsewhere() {
+    def imports = instructions.findAll { it.startsWith('@') } as Set
+    boolean own = false
+    current('CLAUDE.md')?.readLines()?.eachWithIndex { String line, int index ->
+      if (line ==~ /.*cook:begin \S+#instructions(?:\s.*)?/) {
+        own = true
+      } else if (line ==~ /.*cook:end \S+#instructions(?:\s.*)?/) {
+        own = false
+      } else if (!own && line.trim() in imports) {
+        throw new IllegalArgumentException(
+          "CLAUDE.md already imports ${line.trim()} on line ${index + 1}; remove that line so Cook owns the import")
+      }
+    }
+  }
 
   private static String rule(Command command) { "Bash(${command.prefix.join(' ')} *)" }
 }
