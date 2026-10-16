@@ -76,11 +76,11 @@ class CookCommand(
 
         is CookCoordinates -> {
           val proposal = CookbookApply(command.repository.toFile()).propose(command.requests)
-          val changes = proposal.changes
+          val actions = proposal.actions
           if (!command.dryRun) proposal.commit()
-          if (changes.isEmpty()) stdout.println("Already cooked.")
-          changes.forEach { stdout.println("${if (command.dryRun) "Would cook" else "Cooked"} $it") }
-          if (!command.dryRun && changes.isNotEmpty()) {
+          if (actions.isEmpty()) stdout.println("Already cooked.")
+          actions.forEach { (path, action) -> stdout.println("${status(action, command.dryRun)} $path") }
+          if (!command.dryRun && actions.isNotEmpty()) {
             proposal.recipes.filter { it.yieldText != null }.forEach {
               stdout.println()
               stdout.println("After applying ${it.address}")
@@ -393,6 +393,11 @@ class CookCommand(
     ).joinToString("\n\n")
   }
 
+  private fun status(
+    action: String,
+    dryRun: Boolean,
+  ): String = if (dryRun) "Would $action" else STATUS.getValue(action)
+
   private fun indent(text: String): String = text.lines().joinToString("\n") { if (it.isEmpty()) it else "  $it" }
 
   private fun declaration(script: Path): RecipeDeclaration {
@@ -477,5 +482,6 @@ class CookCommand(
     val RECIPE_NAME = Regex("[a-z][a-z0-9-]*(/[a-z][a-z0-9-]*)*")
     val BEFORE_RECIPE = setOf("-C", "--kitchen", "--dry-run", "--remove", "--library")
     val RESERVED = setOf("--repo", "--script", "--plan", "--set")
+    val STATUS = mapOf("create" to "Created", "update" to "Updated", "delete" to "Deleted")
   }
 }

@@ -821,13 +821,13 @@ notes.add('more')
 
       assert cli.execute(['-C', repo.path, '--dry-run', 'acme:notes:1.2.3', '--line=first'] as String[]) == 0 :
       stderr.toString('UTF-8')
-      assert stdout.toString('UTF-8') == 'Would cook NOTES.md\nWould cook cook.lock\n'
+      assert stdout.toString('UTF-8') == 'Would create NOTES.md\nWould create cook.lock\n'
       assert !notes.exists()
 
       stdout.reset()
       assert cli.execute(['-C', repo.path, 'acme:notes:1.2.3', '--line=first', 'acme:notes:1.2.3:more'] as String[]) == 0 :
       stderr.toString('UTF-8')
-      assert stdout.toString('UTF-8') == 'Cooked NOTES.md\nCooked cook.lock\n\nAfter applying acme:notes:1.2.3:notes\n  Read `NOTES.md`.\n'
+      assert stdout.toString('UTF-8') == 'Created NOTES.md\nCreated cook.lock\n\nAfter applying acme:notes:1.2.3:notes\n  Read `NOTES.md`.\n'
       assert notes.text == """<!-- cook:begin acme:notes:notes#notes -->
 first
 <!-- cook:end acme:notes:notes#notes -->
@@ -838,6 +838,9 @@ more
       stdout.reset()
       assert cli.execute(['-C', repo.path, 'acme:notes:1.2.3', '--line=first', 'acme:notes:1.2.3:more'] as String[]) == 0
       assert stdout.toString('UTF-8').startsWith('Already cooked.\n')
+      stdout.reset()
+      assert cli.execute(['-C', repo.path, 'acme:notes:1.2.3', '--line=second'] as String[]) == 0
+      assert stdout.toString('UTF-8').startsWith('Updated NOTES.md\n\nAfter applying')
 
       [
         [['acme:notes:1.2.3', '--line', 'first'], 2, '--line needs a value: write --line=<value>'],

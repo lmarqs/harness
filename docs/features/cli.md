@@ -113,8 +113,18 @@ Because every word without `--` starts a recipe, an argument always carries its 
 | The same recipe twice, with any arguments or versions | Refused: `cook.lock` keeps one entry per recipe |
 
 When a recipe fails to evaluate, nothing is written, and the error names the recipe by its position and operand, such
-as `recipe 2 (dev.thecook:agents:0.1.0:instructions)`. After the writes, Cook prints each recipe's `@yield` text in
-order, headed by its address.
+as `recipe 2 (dev.thecook:agents:0.1.0:instructions)`.
+
+Cook prints one line per changed path, in path order, or `Already cooked.` when nothing changes:
+
+| Line | Path |
+| --- | --- |
+| `Created <path>` | Absent before the apply |
+| `Updated <path>` | Present before and after the apply |
+| `Deleted <path>` | Removed by the apply |
+
+With `--dry-run`, the lines read `Would create`, `Would update` and `Would delete`, and nothing is written. After the
+writes, Cook prints each recipe's `@yield` text in order, headed by its address.
 
 ## Batch options and approval
 

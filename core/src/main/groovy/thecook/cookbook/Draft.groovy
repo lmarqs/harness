@@ -58,6 +58,14 @@ final class Draft {
     after.keySet().findAll { changed(it) }.sort()
   }
 
+  /** What happens to a changed `path`: `create` when it is absent from the disk, `delete` when the draft removes it, else `update`. */
+  String action(String path) {
+    if (!before[path].exists) {
+      return 'create'
+    }
+    after[path].exists ? 'update' : 'delete'
+  }
+
   /**
    * Writes the changes to the disk, after checking that no file changed since the draft read it. On a failed write, the
    * changes already made are undone.

@@ -147,6 +147,11 @@ final class Proposal {
     draft.changes
   }
 
+  /** Each changed path, in path order, with what happens to it: `create`, `update` or `delete`. */
+  Map<String, String> getActions() {
+    draft.changes.collectEntries { [(it): draft.action(it)] }
+  }
+
   /** Writes the changes. */
   void commit() {
     draft.commit()

@@ -42,9 +42,9 @@ the first starts at a word without `--`, and its arguments are written `--name=v
 `./cook dev.thecook:agents:0.1.0:permissions --harness=claude dev.thecook:agents:0.1.0:instructions --harness=claude`.
 Recipes run left to right against one in-memory draft, so each sees what the ones before it wrote. A recipe removes
 what it owned and no longer declares, and the last recipe to write a section, key, file or link owns it. `cook.lock`
-records each recipe's short name, coordinates, the jar's sha256 and what it owns. Cook prints the changed paths, or
-`Already cooked.`, then each recipe's `@yield` text after the writes; `--dry-run` reports the paths and writes
-nothing. A `.groovy` path and coordinates are applied in separate invocations, and `--remove` and `--library` take a
+records each recipe's short name, coordinates, the jar's sha256 and what it owns. Cook prints one line per changed
+path, `Created`, `Updated` or `Deleted`, or `Already cooked.`, then each recipe's `@yield` text after the writes;
+`--dry-run` prints `Would create`, `Would update` or `Would delete` and writes nothing. A `.groovy` path and coordinates are applied in separate invocations, and `--remove` and `--library` take a
 `.groovy` path. The work that remains on this path is tracked in
 [issue #15](https://github.com/lmarqs/the-cook/issues/15).
 
