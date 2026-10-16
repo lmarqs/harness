@@ -803,9 +803,10 @@ class Notes {
 import acme.notes.Notes
 
 @param(value = ['line'], doc = 'The line to add') String line
+@param(value = ['loud'], doc = 'Whether the line is upper case', default = ['false']) boolean loud
 @ingredient(Notes) def notes
 
-notes.add(line)
+notes.add(loud ? line.toUpperCase() : line)
 """, 'acme/notes/more.groovy': """@help('Adds another line.')
 import acme.notes.Notes
 
@@ -873,9 +874,17 @@ more
       assert cli.execute(['-C', repo.path, '--batch-approve', 'acme:notes:1.2.3', '--line=second'] as String[]) == 0
       assert stdout.toString('UTF-8').contains('\n-first\n+second\n')
       assert stdout.toString('UTF-8').contains('\nUpdated NOTES.md\n\nAfter applying')
+      stdout.reset()
+      assert cli.execute(['-C', repo.path, '--dry-run', 'acme:notes:1.2.3', '--line=second', '--loud'] as String[]) == 0
+      assert stdout.toString('UTF-8').contains('\n-second\n+SECOND\n')
+      stdout.reset()
+      assert cli.execute(['-C', repo.path, '--dry-run', 'acme:notes:1.2.3', '--line=second', '--loud=false'] as String[]) == 0
+      assert stdout.toString('UTF-8') == 'Already cooked.\n'
 
       [
-        [['acme:notes:1.2.3', '--line', 'first'], 2, '--line needs a value: write --line=<value>'],
+        [['acme:notes:1.2.3', '--line', 'first'], 2, 'Not a recipe: first. To give it to --line, write --line=first'],
+        [['acme:notes:1.2.3', '--line'], 1, 'acme:notes:1.2.3: --line needs a value: write --line=<value>'],
+        [['acme:notes:1.2.3', '--line='], 2, 'Missing value for --line'],
         [['acme:notes:1.2.3', '--set=first'], 2, 'Unknown option for the recipe: --set=first'],
         [['acme:notes:1.2.3', 'line=first'], 2, 'Not a recipe: line=first. Recipe arguments start with --'],
         [

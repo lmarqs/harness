@@ -35,8 +35,8 @@ internal class KitchenOption {
       "cookbook/recipes/<name>/recipe.groovy, then packaged cookbook resources. Recipe arguments are " +
       "--name=value or --name value, checked against the recipe's declaration.",
     "A recipe can also be coordinates, group:artifact:version[:recipe], resolved from the repositories listed in " +
-      "the kitchen's cook.toml. After coordinates, arguments are written --name=value, and each word without -- " +
-      "starts the next recipe: ./cook a:b:1.0.0:x --name=value a:b:1.0.0:y",
+      "the kitchen's cook.toml. After coordinates, arguments are written --name=value, or --name for a yes-or-no " +
+      "argument, and each word without -- starts the next recipe: ./cook a:b:1.0.0:x --name=value a:b:1.0.0:y",
     "--help takes no other arguments; read a recipe with help <recipe>.",
   ],
 )

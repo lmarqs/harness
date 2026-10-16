@@ -38,7 +38,8 @@ or a path relative to the kitchen, and from Maven Central when the kitchen has n
 `./cook help dev.thecook:agents:0.1.0:instructions` reads the packaged recipe.
 
 `./cook` applies coordinates through its own path in the engine, with `cook.lock` as its record. Each recipe after
-the first starts at a word without `--`, and its arguments are written `--name=value`, as in
+the first starts at a word without `--`, and its arguments are written `--name=value`, or `--name` for a yes-or-no
+argument, as in
 `./cook dev.thecook:agents:0.1.0:permissions --harness=claude dev.thecook:agents:0.1.0:instructions --harness=claude`.
 Recipes run left to right against one in-memory draft, so each sees what the ones before it wrote. A recipe removes
 what it owned and no longer declares, and the last recipe to write a section, key, file or link owns it. `cook.lock`

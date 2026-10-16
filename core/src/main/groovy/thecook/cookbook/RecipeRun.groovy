@@ -11,7 +11,8 @@ final class RecipeRun {
   private RecipeRun() { }
 
   /**
-   * Runs `recipe` with `arguments`, keyed by param name, and returns its ingredients in declaration order.
+   * Runs `recipe` with `arguments`, keyed by param name, and returns its ingredients in declaration order. A `null`
+   * value is a bare `--name`: `true` for a yes-or-no param, and an error for any other.
    * `newIngredient` creates an instance of a model type at a directory.
    */
   static List<Object> run(CompiledRecipe recipe, Map<String, List<String>> arguments, Closure newIngredient) {
@@ -39,6 +40,12 @@ final class RecipeRun {
     def declared = field.getAnnotation(Param)
     def name = "--${declared.value().first()}"
     List<String> values = declared.value().collectMany { arguments[it] ?: [] }
+    if (values.contains(null)) {
+      if (!(field.type in [boolean, Boolean])) {
+        throw new IllegalArgumentException("${name} needs a value: write ${name}=<value>")
+      }
+      values = values.collect { it == null ? 'true' : it }
+    }
     if (!values) {
       if (!defaulted) {
         throw new IllegalArgumentException("Missing ${name}: ${declared.doc()}")

@@ -215,7 +215,8 @@ constructor(
     return Cook(repository, recipe, libraries(kitchen, root.libraries), arguments, root.dryRun, root.remove, removal)
   }
 
-  // Values are written only as --name=value, so a word without -- always starts the next recipe.
+  // Values are written only as --name=value, so a word without -- always starts the next recipe; a bare --name carries
+  // no value, and the recipe reads it as true for a yes-or-no param.
   private fun coordinates(
     kitchen: Path,
     root: RootArgs,
@@ -224,13 +225,16 @@ constructor(
       throw UsageError("--remove and --library do not apply to recipe coordinates")
     }
     // Checked in reading order, so `--name value` reports the missing `=` before `value` reads as a recipe.
-    val recipes = mutableListOf<Pair<String, MutableMap<String, MutableList<String>>>>()
+    val recipes = mutableListOf<Pair<String, MutableMap<String, MutableList<String?>>>>()
+    var bare: String? = null
     for (token in root.operands) {
       if (token.startsWith("-")) {
         val (name, value) = coordinatesArgument(token)
         recipes.last().second.getOrPut(name) { mutableListOf() }.add(value)
+        bare = if (value == null) "--$name" else null
       } else {
-        recipes.add(coordinatesOperand(token) to linkedMapOf())
+        recipes.add(coordinatesOperand(token, bare) to linkedMapOf())
+        bare = null
       }
     }
     val requests = recipes.map { (operand, arguments) -> RecipeRequest(operand, arguments) }
@@ -243,23 +247,29 @@ constructor(
     return CookCoordinates(kitchen.toAbsolutePath(), requests, root.dryRun, root.batchApprove, existing)
   }
 
-  private fun coordinatesOperand(token: String): String {
+  private fun coordinatesOperand(
+    token: String,
+    bare: String?,
+  ): String {
     if (token.endsWith(".groovy")) {
       throw UsageError(
         "Not supported yet: the path $token together with recipe coordinates; apply it in its own invocation",
       )
     }
-    if (!Coordinates.written(token)) throw UsageError("Not a recipe: $token. Recipe arguments start with --")
+    if (!Coordinates.written(token)) {
+      if (bare != null) throw UsageError("Not a recipe: $token. To give it to $bare, write $bare=$token")
+      throw UsageError("Not a recipe: $token. Recipe arguments start with --")
+    }
     return token
   }
 
-  private fun coordinatesArgument(token: String): Pair<String, String> {
+  private fun coordinatesArgument(token: String): Pair<String, String?> {
     val name = token.substringBefore('=')
     if (name in BEFORE_RECIPE) throw UsageError("$name goes before the first recipe")
     if (!name.matches(Regex("--[a-z][a-z0-9-]*")) || name in RESERVED) {
       throw UsageError("Unknown option for the recipe: $token")
     }
-    if ('=' !in token) throw UsageError("$name needs a value: write $name=<value>")
+    if ('=' !in token) return name.removePrefix("--") to null
     val value = token.substringAfter('=')
     if (value.isEmpty()) throw UsageError("Missing value for $name")
     return name.removePrefix("--") to value

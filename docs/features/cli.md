@@ -102,14 +102,16 @@ An argument value that looks like a recipe path remains an argument value:
 The first invocation evaluates only `a.groovy` and gives it `source` with the value `./b.groovy`. The second evaluates
 `a.groovy`, then `b.groovy`, as two recipes.
 
-Because every word without `--` starts a recipe, an argument always carries its value after `=`:
+Because every word without `--` starts a recipe, an argument carries its value after `=`, and a yes-or-no argument
+may be written bare:
 
 | Written | Result |
 | --- | --- |
 | `--agent=codex` | The value `codex` for `agent` |
-| `--agent codex` | Refused: `--agent needs a value: write --agent=<value>` |
+| `--agent codex` | Refused: `Not a recipe: codex. To give it to --agent, write --agent=codex` |
 | `agent=codex` | Refused: `Not a recipe: agent=codex. Recipe arguments start with --` |
-| `--force`, for a yes-or-no param | Refused; write `--force=true` |
+| `--verbose`, for a yes-or-no param | The value `true` for `verbose`; `--verbose=false` turns it off |
+| `--agent`, for any other param | Refused, naming the recipe: `--agent needs a value: write --agent=<value>` |
 | The same recipe twice, with any arguments or versions | Refused: `cook.lock` keeps one entry per recipe |
 
 When a recipe fails to evaluate, nothing is written, and the error names the recipe by its position and operand, such

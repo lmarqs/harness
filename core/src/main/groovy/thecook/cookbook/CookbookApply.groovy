@@ -113,7 +113,7 @@ final class CookbookApply {
   }
 }
 
-/** One recipe to apply: its coordinates as written and its arguments by param name. */
+/** One recipe to apply: its coordinates as written and its arguments by param name, `null` for a bare `--name`. */
 final class RecipeRequest {
   final String operand
   final Coordinates coordinates
