@@ -37,15 +37,16 @@ or a path relative to the kitchen, and from Maven Central when the kitchen has n
 `cook.toml` lists `cookbook/build/repository`, so `./gradlew :cookbook:publish` followed by
 `./cook help dev.thecook:agents:0.1.0:instructions` reads the packaged recipe.
 
-`./cook` applies coordinates through a separate path in the engine, which never reads or writes `.cook/state.json`.
-Each recipe after the first starts at a word without `--`, and its arguments are written `--name=value`, as in
+`./cook` applies coordinates through its own path in the engine, with `cook.lock` as its record. Each recipe after
+the first starts at a word without `--`, and its arguments are written `--name=value`, as in
 `./cook dev.thecook:agents:0.1.0:permissions --harness=claude dev.thecook:agents:0.1.0:instructions --harness=claude`.
 Recipes run left to right against one in-memory draft, so each sees what the ones before it wrote. A recipe removes
 what it owned and no longer declares, and the last recipe to write a section, key, file or link owns it. `cook.lock`
 records each recipe's short name, coordinates, the jar's sha256 and what it owns. Cook prints the changed paths, or
-`Already cooked.`, then each recipe's `@yield` text after the writes; `--dry-run` writes nothing. Not implemented on
-this path: the diff and approval prompt, `@confirm`, batch records and `revert`, `--remove` and `--library`, a path
-and coordinates in one invocation, models that use another artifact's types, `@Lines` and `@cookbook`.
+`Already cooked.`, then each recipe's `@yield` text after the writes; `--dry-run` reports the paths and writes
+nothing. A `.groovy` path and coordinates are applied in separate invocations, and `--remove` and `--library` take a
+`.groovy` path. The work that remains on this path is tracked in
+[issue #15](https://github.com/lmarqs/the-cook/issues/15).
 
 The core enforces adoption and managed-edit gates for `.groovy` recipe paths.
 

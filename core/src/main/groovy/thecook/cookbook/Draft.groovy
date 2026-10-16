@@ -4,10 +4,6 @@ import thecook.filesystem.AtomicFiles
 import thecook.filesystem.Repository
 import thecook.formats.Document
 
-import java.nio.channels.FileChannel
-import java.nio.channels.OverlappingFileLockException
-import java.nio.file.StandardOpenOption
-
 /**
  * The destination as the recipes of one invocation leave it, held in memory. Recipes read and write it in order, so
  * each one sees what the ones before it wrote; nothing reaches the disk until `commit`.
@@ -71,44 +67,20 @@ final class Draft {
     if (!paths) {
       return
     }
-    exclusive {
-      paths.each { path ->
-        if (repository.snapshot(repository.target(path, true), true).hash != before[path].hash) {
-          throw new IllegalStateException("Changed since preview: ${path}")
-        }
-      }
-      List<String> written = []
-      try {
-        paths.each { path ->
-          written.add(path)
-          put(path, after[path])
-        }
-      } catch (Exception failure) {
-        written.reverseEach { put(it, before[it]) }
-        throw failure
+    paths.each { path ->
+      if (repository.snapshot(repository.target(path, true), true).hash != before[path].hash) {
+        throw new IllegalStateException("Changed since preview: ${path}")
       }
     }
-  }
-
-  /** Runs `operation` while no other Cook process writes this destination; the lock file stays out of it. */
-  private void exclusive(Closure operation) {
-    def name = "the-cook-${Repository.digest(repository.directory.path.getBytes('UTF-8'))}.lock"
-    def file = new File(System.getProperty('java.io.tmpdir'), name)
-    FileChannel.open(file.toPath(), StandardOpenOption.CREATE, StandardOpenOption.WRITE).withCloseable { channel ->
-      def held
-      try {
-        held = channel.tryLock()
-      } catch (OverlappingFileLockException ignored) {
-        held = null
+    List<String> written = []
+    try {
+      paths.each { path ->
+        written.add(path)
+        put(path, after[path])
       }
-      if (held == null) {
-        throw new IllegalStateException("Another Cook process is writing ${repository.directory}")
-      }
-      try {
-        operation()
-      } finally {
-        held.release()
-      }
+    } catch (Exception failure) {
+      written.reverseEach { put(it, before[it]) }
+      throw failure
     }
   }
 
