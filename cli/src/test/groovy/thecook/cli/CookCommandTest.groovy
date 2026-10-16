@@ -777,6 +777,22 @@ Models
       assert stderr.toString('UTF-8').contains('acme:notes:1.2.4 not found in the repositories in')
       assert cli.execute(['-C', repo.path, 'help', 'acme:notes:latest'] as String[]) == 1
       assert stderr.toString('UTF-8').contains('Invalid recipe coordinates: acme:notes:latest')
+      stderr.reset()
+      assert cli.execute(['-C', repo.path, 'acme:notes:1.2.3:notes'] as String[]) == 1
+      assert stderr.toString('UTF-8') ==
+      'Applying recipe coordinates is not supported yet: acme:notes:1.2.3:notes. ' +
+      'Read the recipe with ./cook help acme:notes:1.2.3:notes\n'
+      stderr.reset()
+      assert cli.execute(['-C', repo.path, 'a:notes.groovy'] as String[]) == 1
+      assert stderr.toString('UTF-8').contains('Recipe file not found: a:notes.groovy')
     }
+  }
+
+  @Test void usageErrorsPointToHelpInsteadOfPrintingTheUsage() {
+    def stdout = new ByteArrayOutputStream(); def stderr = new ByteArrayOutputStream()
+    def cli = command(stdout, stderr)
+    assert cli.execute(['apply', '--mystery', 'x'] as String[]) == 2
+    assert stderr.toString('UTF-8').endsWith('\nRun ./cook help for usage.\n')
+    assert !stderr.toString('UTF-8').contains('Usage:')
   }
 }

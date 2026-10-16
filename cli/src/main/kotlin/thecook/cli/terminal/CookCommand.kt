@@ -27,7 +27,7 @@ class CookCommand(
         parse(args)
       } catch (error: UsageError) {
         stderr.println(error.message)
-        stderr.print(error.usage)
+        stderr.println("Run ./cook help for usage.")
         stderr.flush()
         return 2
       } catch (error: IllegalArgumentException) {
@@ -103,7 +103,7 @@ class CookCommand(
       try {
         line.parseArgs(*invocation)
       } catch (error: CommandLine.ParameterException) {
-        throw UsageError(error.message ?: "Invalid arguments", error.commandLine.usageMessage)
+        throw UsageError(error.message ?: "Invalid arguments")
       }
     val root = line.getCommand<RootArgs>()
     val command = parsed.subcommand()?.commandSpec()?.userObject()
@@ -149,6 +149,11 @@ class CookCommand(
   ): Command {
     val entrypoint = root.operands.firstOrNull() ?: throw UsageError("A command or recipe is required")
     val localScript = entrypoint.endsWith(".groovy") && !entrypoint.contains("://")
+    if (!localScript && Coordinates.written(entrypoint)) {
+      throw IllegalArgumentException(
+        "Applying recipe coordinates is not supported yet: $entrypoint. Read the recipe with ./cook help $entrypoint",
+      )
+    }
     val repository = kitchen.toAbsolutePath()
     val recipe =
       if (localScript) {
@@ -403,7 +408,6 @@ class CookCommand(
 
   private class UsageError(
     message: String,
-    val usage: String = grammar().usageMessage,
   ) : IllegalArgumentException(message)
 
   private companion object {

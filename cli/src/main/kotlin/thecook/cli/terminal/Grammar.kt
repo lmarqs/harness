@@ -31,9 +31,11 @@ internal class KitchenOption {
   description = ["Applies a recipe: Cook's options come first, then the recipe, then the recipe's own arguments."],
   footer = [
     "",
-    "A recipe is a .groovy path or a name resolved to cookbook/recipes/<name>.groovy or",
-    "cookbook/recipes/<name>/recipe.groovy, then packaged cookbook resources. Recipe arguments are",
-    "--name=value or --name value, checked against the recipe's declaration.",
+    "A recipe is a .groovy path or a name resolved to cookbook/recipes/<name>.groovy or " +
+      "cookbook/recipes/<name>/recipe.groovy, then packaged cookbook resources. Recipe arguments are " +
+      "--name=value or --name value, checked against the recipe's declaration.",
+    "help also reads recipe coordinates, group:artifact:version[:recipe], from the repositories listed in the " +
+      "kitchen's cook.toml; applying coordinates is not supported yet.",
     "--help takes no other arguments; read a recipe with help <recipe>.",
   ],
 )
@@ -114,6 +116,6 @@ internal class ApplyArgs {
 internal class HelpArgs {
   @Mixin var kitchen = KitchenOption()
 
-  @Parameters(paramLabel = "RECIPE", description = ["A recipe path or name."])
+  @Parameters(paramLabel = "RECIPE", description = ["A recipe path, name or coordinates."])
   var recipes = mutableListOf<String>()
 }
