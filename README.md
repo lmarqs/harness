@@ -20,7 +20,7 @@ the tool never notice it.
 This section describes the repository's executable behavior. The [architecture](docs/architecture.md) defines the
 intended design, and [issue #15](https://github.com/lmarqs/the-cook/issues/15) tracks implementing it.
 
-The core and CLI use Kotlin, with Groovy document and filesystem adapters. Local recipes for the current core are Groovy scripts. The [cookbook](cookbook/README.md) is a design sketch of how recipes and ingredients are written and distributed, in a Groovy-like pseudo language that does not run; the CLI ships without packaged recipes.
+The core and CLI use Kotlin, with Groovy document and filesystem adapters. Local recipes for the current core are Groovy scripts. The [cookbook](cookbook/README.md) is a design sketch of how recipes and ingredients are written and distributed, in a Groovy-like pseudo language that does not run; the CLI ships without packaged recipes. `./gradlew :cookbook:publish` packages it with the `dev.thecook.cookbook` Gradle plugin into the Maven-layout repository at `cookbook/build/repository`: a jar and a POM per directory and the `dev.thecook:cookbook` BOM. Packaging compiles nothing, so the sketch packages as it is.
 
 `./cook <recipe>` renders the desired batch into native project files. Ingredients can share separate blocks or keys in a file, while whole files and symlinks have exclusive owners. Cooking checks for managed edits and uses a transaction journal with rollback on write failure. Declared applications update their own contributions; a legacy direct Batch updates its unassigned contributions while retaining independently owned applications.
 

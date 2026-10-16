@@ -6,6 +6,8 @@
 /cli/build/
 /docs/.gradle/
 /docs/build/
+/cookbook/.gradle/
+/cookbook/build/
 /cookbook/ingredients/*/.gradle/
 /cookbook/ingredients/*/build/
 /cookbook/recipes/**/.gradle/

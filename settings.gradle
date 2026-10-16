@@ -6,4 +6,5 @@ rootProject.name = 'the-cook'
 
 includeBuild('cli') { name = 'cli' }
 includeBuild('docs') { name = 'docs' }
+includeBuild('cookbook') { name = 'cookbook' }
 includeBuild('gradle/lint/ktlint-rules')

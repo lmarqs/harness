@@ -10,8 +10,10 @@ how a program reads its files, or supplies content another model consumes; a rec
 Models may depend on other models for their types and on ordinary libraries. Recipes depend on models.
 
 A cookbook has one release version. It publishes one jar per directory to a Maven-layout repository, with a POM
-for each jar and a bill of materials (BOM) listing the artifacts at that release. Each jar holds the directory's
-sources, resources and README: everything a reader needs without the source checkout.
+for each jar and a bill of materials (BOM), `<group>:cookbook:<version>`, listing the artifacts at that release, so
+no directory is named `cookbook`. Each jar holds the directory's sources, resources and README under its package
+path, such as `dev/thecook/ralph/`: everything a reader needs without the source checkout. The `dev.thecook.cookbook`
+Gradle plugin packages them from the cookbook root.
 
 A recipe is addressed as `group:artifact:version[:recipe]`. The recipe named like its directory is the apply
 default: `dev.thecook:ralph:0.1.0` applies `ralph`, while `dev.thecook:ralph:0.1.0:prd-story` applies `prd-story`.
@@ -226,6 +228,7 @@ After applying
 <dir>/README.md          the artifact's front page
 <dir>/...               resources beside the models and recipes
 cookbook.toml           the cookbook manifest at the cookbook root
+build.gradle            applies the dev.thecook.cookbook plugin at the cookbook root
 ```
 
 Each topic directory is one artifact. Skill content lives under `<dir>/skills/<name>/`, with `SKILL.md` and its
