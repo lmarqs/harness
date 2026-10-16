@@ -119,7 +119,7 @@ return new DeclaredRecipe(new RecipeDeclaration('custom', [target],
     }
   }
 
-  private Object command(ByteArrayOutputStream stdout, ByteArrayOutputStream stderr) {
+  private Object command(ByteArrayOutputStream stdout, ByteArrayOutputStream stderr, String input = null) {
     Class entrypoint
     try {
       entrypoint = getClass().classLoader.loadClass('thecook.cli.terminal.CookCommand')
@@ -131,7 +131,8 @@ return new DeclaredRecipe(new RecipeDeclaration('custom', [target],
         getClass().classLoader.loadClass('thecook.groovy.GroovyBatchLoader').newInstance(),
         getClass().classLoader.loadClass('thecook.groovy.NativePlanning').newInstance(),
         getClass().classLoader.loadClass('thecook.cli.filesystem.FileRepositoryInitializer').newInstance())
-    entrypoint.newInstance(service, new PrintWriter(stdout, true), new PrintWriter(stderr, true))
+    def stdin = input == null ? null : new BufferedReader(new StringReader(input))
+    entrypoint.newInstance(service, new PrintWriter(stdout, true), new PrintWriter(stderr, true), stdin)
   }
 
   private void workspace(Closure body) {
@@ -797,6 +798,7 @@ class Notes {
   List<String> section() { lines ?: null }
 }
 """, 'acme/notes/notes.groovy': """@help('Adds a line to `NOTES.md`.')
+@confirm('Everyone reads `NOTES.md`.')
 @yield('Read `NOTES.md`.')
 import acme.notes.Notes
 
@@ -819,15 +821,44 @@ notes.add('more')
       def cli = command(stdout, stderr)
       def notes = new File(repo, 'NOTES.md')
 
+      def review = """Confirm acme:notes:1.2.3:notes
+  Everyone reads `NOTES.md`.
+
+--- /dev/null
++++ b/NOTES.md
+@@ -0,0 +1,3 @@
++<!-- cook:begin acme:notes:notes#notes -->
++first
++<!-- cook:end acme:notes:notes#notes -->
+"""
       assert cli.execute(['-C', repo.path, '--dry-run', 'acme:notes:1.2.3', '--line=first'] as String[]) == 0 :
       stderr.toString('UTF-8')
-      assert stdout.toString('UTF-8') == 'Would create NOTES.md\nWould create cook.lock\n'
+      assert stdout.toString('UTF-8').startsWith(review + '--- /dev/null\n+++ b/cook.lock\n')
+      assert stdout.toString('UTF-8').endsWith('\n\nWould create NOTES.md\nWould create cook.lock\n')
       assert !notes.exists()
 
       stdout.reset()
-      assert cli.execute(['-C', repo.path, 'acme:notes:1.2.3', '--line=first', 'acme:notes:1.2.3:more'] as String[]) == 0 :
+      assert cli.execute(['-C', repo.path, 'acme:notes:1.2.3', '--line=first'] as String[]) == 1
+      assert stderr.toString('UTF-8') ==
+      'Cook asks before writing, and there is no terminal to ask in; run with --batch-approve to write without asking\n'
+      assert !notes.exists()
+
+      def declined = new ByteArrayOutputStream(); stderr.reset()
+      assert command(declined, stderr, 'n\n').execute(['-C', repo.path, 'acme:notes:1.2.3', '--line=first'] as String[]) == 1
+      assert declined.toString('UTF-8').endsWith('\n\nApply these changes? [y/N] ')
+      assert stderr.toString('UTF-8') == 'Nothing written.\n'
+      assert !notes.exists()
+
+      def accepted = new ByteArrayOutputStream()
+      assert command(accepted, stderr, 'y\n').execute(['-C', repo.path, 'acme:notes:1.2.3', '--line=first'] as String[]) == 0
+      assert accepted.toString('UTF-8').startsWith(review)
+      assert accepted.toString('UTF-8').endsWith('Apply these changes? [y/N] Created NOTES.md\nCreated cook.lock\n\n' +
+      'After applying acme:notes:1.2.3:notes\n  Read `NOTES.md`.\n')
+
+      stdout.reset()
+      assert cli.execute(['-C', repo.path, '--batch-approve', 'acme:notes:1.2.3', '--line=first', 'acme:notes:1.2.3:more'] as String[]) == 0 :
       stderr.toString('UTF-8')
-      assert stdout.toString('UTF-8') == 'Created NOTES.md\nCreated cook.lock\n\nAfter applying acme:notes:1.2.3:notes\n  Read `NOTES.md`.\n'
+      assert stdout.toString('UTF-8').endsWith('Updated NOTES.md\nUpdated cook.lock\n\nAfter applying acme:notes:1.2.3:notes\n  Read `NOTES.md`.\n')
       assert notes.text == """<!-- cook:begin acme:notes:notes#notes -->
 first
 <!-- cook:end acme:notes:notes#notes -->
@@ -837,10 +868,11 @@ more
 """
       stdout.reset()
       assert cli.execute(['-C', repo.path, 'acme:notes:1.2.3', '--line=first', 'acme:notes:1.2.3:more'] as String[]) == 0
-      assert stdout.toString('UTF-8').startsWith('Already cooked.\n')
+      assert stdout.toString('UTF-8') == 'Already cooked.\n'
       stdout.reset()
-      assert cli.execute(['-C', repo.path, 'acme:notes:1.2.3', '--line=second'] as String[]) == 0
-      assert stdout.toString('UTF-8').startsWith('Updated NOTES.md\n\nAfter applying')
+      assert cli.execute(['-C', repo.path, '--batch-approve', 'acme:notes:1.2.3', '--line=second'] as String[]) == 0
+      assert stdout.toString('UTF-8').contains('\n-first\n+second\n')
+      assert stdout.toString('UTF-8').contains('\nUpdated NOTES.md\n\nAfter applying')
 
       [
         [['acme:notes:1.2.3', '--line', 'first'], 2, '--line needs a value: write --line=<value>'],
@@ -852,6 +884,7 @@ more
           'Not supported yet: the path notes.groovy together with recipe coordinates; apply it in its own invocation'
         ],
         [['acme:notes:1.2.3', '--line=a', '--dry-run'], 2, '--dry-run goes before the first recipe'],
+        [['acme:notes:1.2.3', '--line=a', '--batch-approve'], 2, '--batch-approve goes before the first recipe'],
         [
           ['acme:notes:1.2.3:more', 'acme:notes:1.2.3:more'],
           1,

@@ -58,6 +58,16 @@ final class Draft {
     after.keySet().findAll { changed(it) }.sort()
   }
 
+  /** The text of `path` on the disk, or `symbolic link to <target>` for a link; `null` when absent. */
+  String before(String path) {
+    shown(before[path])
+  }
+
+  /** The text of `path` as the draft leaves it, or `symbolic link to <target>` for a link; `null` when absent. */
+  String after(String path) {
+    shown(state(path))
+  }
+
   /** What happens to a changed `path`: `create` when it is absent from the disk, `delete` when the draft removes it, else `update`. */
   String action(String path) {
     if (!before[path].exists) {
@@ -98,6 +108,10 @@ final class Draft {
       before[path] = snapshot + [kind: snapshot.exists ? (snapshot.kind ?: 'file') : null]
     }
     after[path] ?: before[path]
+  }
+
+  private static String shown(Map state) {
+    state.kind == 'symlink' ? "symbolic link to ${state.content}" : state.content
   }
 
   private boolean changed(String path) {

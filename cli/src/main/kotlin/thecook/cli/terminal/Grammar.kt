@@ -46,6 +46,12 @@ internal class RootArgs {
   @Option(names = ["--dry-run"], description = ["Report the proposed changes without writing."])
   var dryRun = false
 
+  @Option(
+    names = ["--batch-approve"],
+    description = ["Show the recipes' confirm texts and the diff, then write without asking."],
+  )
+  var batchApprove = false
+
   @Option(names = ["--remove"], description = ["Remove the applications the recipe arguments select."])
   var remove = false
 

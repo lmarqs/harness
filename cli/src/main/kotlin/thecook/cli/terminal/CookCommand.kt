@@ -1,5 +1,7 @@
 package thecook.cli.terminal
 
+import com.github.difflib.DiffUtils
+import com.github.difflib.UnifiedDiffUtils
 import picocli.CommandLine
 import thecook.application.CookService
 import thecook.cookbook.Cookbook
@@ -7,21 +9,27 @@ import thecook.cookbook.CookbookApply
 import thecook.cookbook.CookbookArtifact
 import thecook.cookbook.CookbookRepositories
 import thecook.cookbook.Coordinates
+import thecook.cookbook.Proposal
 import thecook.cookbook.RecipeRequest
 import thecook.cookbook.RecipeSource
 import thecook.model.RecipeInput
 import thecook.model.RecipeArguments
 import thecook.model.RecipeDeclaration
 import thecook.model.RecipeTexts
+import java.io.BufferedReader
 import java.io.PrintWriter
 import java.nio.file.Files
 import java.nio.file.InvalidPathException
 import java.nio.file.Path
 
-class CookCommand(
+/** Cook's command line. `stdin` answers the approval question; without it, writing needs `--batch-approve`. */
+class CookCommand
+@JvmOverloads
+constructor(
   private val service: CookService,
   private val stdout: PrintWriter,
   private val stderr: PrintWriter,
+  private val stdin: BufferedReader? = null,
 ) {
   fun execute(args: Array<String>): Int {
     val command =
@@ -77,14 +85,23 @@ class CookCommand(
         is CookCoordinates -> {
           val proposal = CookbookApply(command.repository.toFile()).propose(command.requests)
           val actions = proposal.actions
-          if (!command.dryRun) proposal.commit()
-          if (actions.isEmpty()) stdout.println("Already cooked.")
-          actions.forEach { (path, action) -> stdout.println("${status(action, command.dryRun)} $path") }
-          if (!command.dryRun && actions.isNotEmpty()) {
-            proposal.recipes.filter { it.yieldText != null }.forEach {
-              stdout.println()
-              stdout.println("After applying ${it.address}")
-              stdout.println(indent(it.yieldText))
+          if (actions.isEmpty()) {
+            stdout.println("Already cooked.")
+          } else {
+            review(proposal, actions.keys)
+            if (!command.dryRun && !command.batchApprove && !approved()) {
+              stderr.println("Nothing written.")
+              stderr.flush()
+              return 1
+            }
+            if (!command.dryRun) proposal.commit()
+            actions.forEach { (path, action) -> stdout.println("${status(action, command.dryRun)} $path") }
+            if (!command.dryRun) {
+              proposal.recipes.filter { it.yieldText != null }.forEach {
+                stdout.println()
+                stdout.println("After applying ${it.address}")
+                stdout.println(indent(it.yieldText))
+              }
             }
           }
         }
@@ -124,8 +141,8 @@ class CookCommand(
       }
     val root = line.getCommand<RootArgs>()
     val command = parsed.subcommand()?.commandSpec()?.userObject()
-    if (command != null && (root.dryRun || root.remove || root.libraries.isNotEmpty())) {
-      throw UsageError("--dry-run, --remove and --library go before a recipe, not before a command")
+    if (command != null && (root.dryRun || root.batchApprove || root.remove || root.libraries.isNotEmpty())) {
+      throw UsageError("--dry-run, --batch-approve, --remove and --library go before a recipe, not before a command")
     }
     val kitchens = listOfNotNull(root.kitchen.kitchen, command?.let(::kitchenOf))
     if (kitchens.size > 1) throw UsageError("Option may only be supplied once: --kitchen")
@@ -214,7 +231,7 @@ class CookCommand(
       }
     }
     val requests = recipes.map { (operand, arguments) -> RecipeRequest(operand, arguments) }
-    return CookCoordinates(kitchen.toAbsolutePath(), requests, root.dryRun)
+    return CookCoordinates(kitchen.toAbsolutePath(), requests, root.dryRun, root.batchApprove)
   }
 
   private fun coordinatesOperand(token: String): String {
@@ -393,6 +410,48 @@ class CookCommand(
     ).joinToString("\n\n")
   }
 
+  // Each recipe's consequence the diff cannot show, then the diff itself: what one approval covers.
+  private fun review(
+    proposal: Proposal,
+    paths: Collection<String>,
+  ) {
+    proposal.recipes.filter { it.confirm != null }.forEach {
+      stdout.println("Confirm ${it.address}")
+      stdout.println(indent(it.confirm))
+      stdout.println()
+    }
+    paths.forEach { path ->
+      val before = lines(proposal.before(path))
+      val after = lines(proposal.after(path))
+      val diff =
+        UnifiedDiffUtils.generateUnifiedDiff(
+          if (proposal.before(path) == null) "/dev/null" else "a/$path",
+          if (proposal.after(path) == null) "/dev/null" else "b/$path",
+          before,
+          DiffUtils.diff(before, after),
+          3,
+        )
+      // java-diff-utils numbers an empty side from 1; git and GNU diff write it as 0,0.
+      diff.forEach { line ->
+        stdout.println(if (line.startsWith("@@")) line.replace(" -1,0 ", " -0,0 ").replace(" +1,0 ", " +0,0 ") else line)
+      }
+    }
+    stdout.println()
+    stdout.flush()
+  }
+
+  private fun lines(text: String?): List<String> = text?.removeSuffix("\n")?.split("\n") ?: emptyList()
+
+  private fun approved(): Boolean {
+    val input =
+      stdin ?: throw IllegalArgumentException(
+        "Cook asks before writing, and there is no terminal to ask in; run with --batch-approve to write without asking",
+      )
+    stdout.print("Apply these changes? [y/N] ")
+    stdout.flush()
+    return input.readLine()?.trim()?.lowercase() in setOf("y", "yes")
+  }
+
   private fun status(
     action: String,
     dryRun: Boolean,
@@ -459,6 +518,7 @@ class CookCommand(
     val repository: Path,
     val requests: List<RecipeRequest>,
     val dryRun: Boolean,
+    val batchApprove: Boolean,
   ) : Command
 
   private data class Plan(
@@ -480,7 +540,7 @@ class CookCommand(
 
   private companion object {
     val RECIPE_NAME = Regex("[a-z][a-z0-9-]*(/[a-z][a-z0-9-]*)*")
-    val BEFORE_RECIPE = setOf("-C", "--kitchen", "--dry-run", "--remove", "--library")
+    val BEFORE_RECIPE = setOf("-C", "--kitchen", "--dry-run", "--batch-approve", "--remove", "--library")
     val RESERVED = setOf("--repo", "--script", "--plan", "--set")
     val STATUS = mapOf("create" to "Created", "update" to "Updated", "delete" to "Deleted")
   }

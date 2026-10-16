@@ -115,7 +115,13 @@ Because every word without `--` starts a recipe, an argument always carries its 
 When a recipe fails to evaluate, nothing is written, and the error names the recipe by its position and operand, such
 as `recipe 2 (dev.thecook:agents:0.1.0:instructions)`.
 
-Cook prints one line per changed path, in path order, or `Already cooked.` when nothing changes:
+Before writing, Cook shows each recipe's `@confirm` text under the heading `Confirm <address>`, then a unified diff of
+every changed path, `cook.lock` included, and asks `Apply these changes? [y/N]`. Any answer other than `y` or `yes`
+writes nothing, prints `Nothing written.` and exits with status 1. `--batch-approve` shows the same texts and diff and
+writes without asking. Without a terminal to ask in, Cook writes only with `--batch-approve`; otherwise it exits with
+status 1 and writes nothing.
+
+After the writes, Cook prints one line per changed path, in path order, or `Already cooked.` when nothing changes:
 
 | Line | Path |
 | --- | --- |
@@ -123,7 +129,8 @@ Cook prints one line per changed path, in path order, or `Already cooked.` when 
 | `Updated <path>` | Present before and after the apply |
 | `Deleted <path>` | Removed by the apply |
 
-With `--dry-run`, the lines read `Would create`, `Would update` and `Would delete`, and nothing is written. After the
+With `--dry-run`, Cook shows the texts and the diff without asking, the lines read `Would create`, `Would update` and
+`Would delete`, and nothing is written. After the
 writes, Cook prints each recipe's `@yield` text in order, headed by its address.
 
 ## Batch options and approval

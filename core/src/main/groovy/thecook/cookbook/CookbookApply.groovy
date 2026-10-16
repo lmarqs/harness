@@ -50,7 +50,8 @@ final class CookbookApply {
         def declared = Declarations.of(ingredients, name)
         apply(name, declared, draft, lock)
         lock.record(name, coordinates.recipeAddress(recipe), artifact.sha256, declared.owned*.target)
-        recipes.add(new Applied(coordinates.recipeAddress(recipe), RecipeSource.texts(source, "${recipe}.groovy")?.yieldText))
+        def texts = RecipeSource.texts(source, "${recipe}.groovy")
+        recipes.add(new Applied(coordinates.recipeAddress(recipe), texts?.confirm, texts?.yieldText))
       } catch (Exception error) {
         def cause = error instanceof InvocationTargetException && error.cause instanceof Exception ? error.cause : error
         throw new IllegalArgumentException("${label}: ${cause.message ?: cause.class.simpleName}", cause)
@@ -121,13 +122,15 @@ final class RecipeRequest {
   }
 }
 
-/** A recipe that ran: its address and what to do after the writes. */
+/** A recipe that ran: its address, the consequence to confirm before the writes and what to do after them. */
 final class Applied {
   final String address
+  final String confirm
   final String yieldText
 
-  Applied(String address, String yieldText) {
+  Applied(String address, String confirm, String yieldText) {
     this.address = address
+    this.confirm = confirm
     this.yieldText = yieldText
   }
 }
@@ -150,6 +153,16 @@ final class Proposal {
   /** Each changed path, in path order, with what happens to it: `create`, `update` or `delete`. */
   Map<String, String> getActions() {
     draft.changes.collectEntries { [(it): draft.action(it)] }
+  }
+
+  /** The text of a changed `path` before the apply; `null` when it is created. */
+  String before(String path) {
+    draft.before(path)
+  }
+
+  /** The text of a changed `path` after the apply; `null` when it is deleted. */
+  String after(String path) {
+    draft.after(path)
   }
 
   /** Writes the changes. */
