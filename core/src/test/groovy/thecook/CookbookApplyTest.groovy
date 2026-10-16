@@ -5,6 +5,7 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import thecook.cookbook.Coordinates
 import thecook.cookbook.CookbookApply
+import thecook.cookbook.ExistingSeed
 import thecook.cookbook.RecipeRequest
 
 import java.security.MessageDigest
@@ -58,8 +59,8 @@ recipes:
     publishDirectory(kitchen, 'agents')
     new File(kitchen, 'AGENTS.md').text = '# Ours\n'
     def error = shouldFail(IllegalArgumentException) { apply(kitchen, 'dev.thecook:agents:0.1.0:instructions', [:]) }
-    assert error.message == 'dev.thecook:agents:0.1.0:instructions: AGENTS.md already exists, and this recipe writes it ' +
-    'from a template on its first apply. Move the file away and apply again.'
+    assert error.message == 'AGENTS.md already exists; dev.thecook:agents:instructions writes it from a template on its ' +
+    'first apply. Run with --force to replace it, or --skip to keep it.'
     assert !new File(kitchen, 'cook.lock').exists()
 
     new File(kitchen, 'AGENTS.md').delete()
@@ -67,6 +68,38 @@ recipes:
     new File(kitchen, 'AGENTS.md').text = '# Filled in\n'
     def again = apply(kitchen, 'dev.thecook:agents:0.1.0:instructions', [harness: ['claude']])
     assert again.changes == ['CLAUDE.md', 'cook.lock']
+  }
+
+  @Test void forceReplacesAndSkipKeepsAnExistingAgentsFileOnTheFirstApply() {
+    def kitchen = kitchen()
+    publishDirectory(kitchen, 'agents')
+    def template = new File(COOKBOOK, 'agents/AGENTS.template.md').text
+    def agents = new File(kitchen, 'AGENTS.md')
+    agents.text = '# Ours\n'
+
+    def kept = new CookbookApply(kitchen, ExistingSeed.KEEP).propose([request('dev.thecook:agents:0.1.0:instructions', [harness: ['claude']])])
+    assert kept.actions == ['AGENTS.md': 'keep', 'CLAUDE.md': 'create', 'cook.lock': 'create']
+    kept.commit()
+    assert agents.text == '# Ours\n'
+    assert new File(kitchen, 'cook.lock').text.contains('"dev.thecook:agents:instructions"')
+    assert new CookbookApply(kitchen, ExistingSeed.REPLACE).propose([request('dev.thecook:agents:0.1.0:instructions', [harness: ['claude']])])
+    .actions == [:]
+
+    new File(kitchen, 'cook.lock').delete()
+    new File(kitchen, 'CLAUDE.md').delete()
+    def replaced = new CookbookApply(kitchen, ExistingSeed.REPLACE).propose([request('dev.thecook:agents:0.1.0:instructions', [:])])
+    assert replaced.actions == ['AGENTS.md': 'replace', 'cook.lock': 'create']
+    replaced.commit()
+    assert agents.text == template
+
+    new File(kitchen, 'cook.lock').delete()
+    agents.delete()
+    def ours = new File(kitchen, 'OURS.md'); ours.text = '# Ours\n'
+    java.nio.file.Files.createSymbolicLink(agents.toPath(), java.nio.file.Paths.get('OURS.md'))
+    new CookbookApply(kitchen, ExistingSeed.REPLACE).propose([request('dev.thecook:agents:0.1.0:instructions', [:])]).commit()
+    assert !java.nio.file.Files.isSymbolicLink(agents.toPath())
+    assert agents.text == template
+    assert ours.text == '# Ours\n'
   }
 
   @Test void composesPermissionsAndInstructionsInOneInvocation() {

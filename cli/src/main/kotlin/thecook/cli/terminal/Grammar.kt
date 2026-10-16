@@ -52,6 +52,18 @@ internal class RootArgs {
   )
   var batchApprove = false
 
+  @Option(
+    names = ["--force"],
+    description = ["Replace a file that a recipe's first apply writes from a template, instead of refusing."],
+  )
+  var force = false
+
+  @Option(
+    names = ["--skip"],
+    description = ["Keep a file that a recipe's first apply writes from a template, and apply the rest."],
+  )
+  var skip = false
+
   @Option(names = ["--remove"], description = ["Remove the applications the recipe arguments select."])
   var remove = false
 

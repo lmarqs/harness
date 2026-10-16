@@ -128,10 +128,35 @@ After the writes, Cook prints one line per changed path, in path order, or `Alre
 | `Created <path>` | Absent before the apply |
 | `Updated <path>` | Present before and after the apply |
 | `Deleted <path>` | Removed by the apply |
+| `Replaced <path>` | Present before the apply, and written over from a recipe's template with `--force` |
+| `Kept <path>` | Present before the apply, and left as it is with `--skip` |
 
-With `--dry-run`, Cook shows the texts and the diff without asking, the lines read `Would create`, `Would update` and
-`Would delete`, and nothing is written. After the
-writes, Cook prints each recipe's `@yield` text in order, headed by its address.
+With `--dry-run`, Cook shows the texts and the diff without asking, the lines read `Would create`, `Would update`,
+`Would delete`, `Would replace` and `Would keep`, and nothing is written. After the writes, Cook prints each recipe's
+`@yield` text in order, headed by its address.
+
+## Existing files
+
+Some recipes write a file from a template on their first apply, such as `AGENTS.md` in
+`dev.thecook:agents:0.1.0:instructions`. When that file already exists, the first apply fails, writes nothing and
+names the file and the recipe:
+
+```text
+AGENTS.md already exists; dev.thecook:agents:instructions writes it from a template on its first apply. Run with --force to replace it, or --skip to keep it.
+```
+
+| Option | Position | Effect |
+| --- | --- | --- |
+| `--force` | Before the first recipe | Writes the template over the file, or over a symbolic link at its path, and applies the rest |
+| `--skip` | Before the first recipe | Leaves the file as it is, applies the rest and records the recipe in `cook.lock` |
+
+The options act only on a recipe's first apply, take recipe coordinates and exclude each other. Later applies leave
+the file to whoever edits it.
+
+```sh
+./cook --force dev.thecook:agents:0.1.0:instructions --harness=claude
+./cook --skip dev.thecook:agents:0.1.0:instructions --harness=claude
+```
 
 ## Batch options and approval
 

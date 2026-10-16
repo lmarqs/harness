@@ -9,6 +9,7 @@ import thecook.cookbook.CookbookApply
 import thecook.cookbook.CookbookArtifact
 import thecook.cookbook.CookbookRepositories
 import thecook.cookbook.Coordinates
+import thecook.cookbook.ExistingSeed
 import thecook.cookbook.Proposal
 import thecook.cookbook.RecipeRequest
 import thecook.cookbook.RecipeSource
@@ -83,12 +84,12 @@ constructor(
         }
 
         is CookCoordinates -> {
-          val proposal = CookbookApply(command.repository.toFile()).propose(command.requests)
+          val proposal = CookbookApply(command.repository.toFile(), command.existing).propose(command.requests)
           val actions = proposal.actions
           if (actions.isEmpty()) {
             stdout.println("Already cooked.")
           } else {
-            review(proposal, actions.keys)
+            review(proposal, proposal.changes)
             if (!command.dryRun && !command.batchApprove && !approved()) {
               stderr.println("Nothing written.")
               stderr.flush()
@@ -141,9 +142,10 @@ constructor(
       }
     val root = line.getCommand<RootArgs>()
     val command = parsed.subcommand()?.commandSpec()?.userObject()
-    if (command != null && (root.dryRun || root.batchApprove || root.remove || root.libraries.isNotEmpty())) {
-      throw UsageError("--dry-run, --batch-approve, --remove and --library go before a recipe, not before a command")
+    if (command != null && (root.dryRun || root.batchApprove || root.force || root.skip || root.remove || root.libraries.isNotEmpty())) {
+      throw UsageError("--dry-run, --batch-approve, --force, --skip, --remove and --library go before a recipe, not before a command")
     }
+    if (root.force && root.skip) throw UsageError("--force and --skip exclude each other")
     val kitchens = listOfNotNull(root.kitchen.kitchen, command?.let(::kitchenOf))
     if (kitchens.size > 1) throw UsageError("Option may only be supplied once: --kitchen")
     val kitchen = kitchen(kitchens.singleOrNull())
@@ -184,6 +186,7 @@ constructor(
     val entrypoint = root.operands.firstOrNull() ?: throw UsageError("A command or recipe is required")
     val localScript = entrypoint.endsWith(".groovy") && !entrypoint.contains("://")
     if (!localScript && Coordinates.written(entrypoint)) return coordinates(kitchen, root)
+    if (root.force || root.skip) throw UsageError("--force and --skip apply to recipe coordinates")
     val repository = kitchen.toAbsolutePath()
     val recipe =
       if (localScript) {
@@ -231,7 +234,13 @@ constructor(
       }
     }
     val requests = recipes.map { (operand, arguments) -> RecipeRequest(operand, arguments) }
-    return CookCoordinates(kitchen.toAbsolutePath(), requests, root.dryRun, root.batchApprove)
+    val existing =
+      when {
+        root.force -> ExistingSeed.REPLACE
+        root.skip -> ExistingSeed.KEEP
+        else -> ExistingSeed.REFUSE
+      }
+    return CookCoordinates(kitchen.toAbsolutePath(), requests, root.dryRun, root.batchApprove, existing)
   }
 
   private fun coordinatesOperand(token: String): String {
@@ -519,6 +528,7 @@ constructor(
     val requests: List<RecipeRequest>,
     val dryRun: Boolean,
     val batchApprove: Boolean,
+    val existing: ExistingSeed,
   ) : Command
 
   private data class Plan(
@@ -540,8 +550,9 @@ constructor(
 
   private companion object {
     val RECIPE_NAME = Regex("[a-z][a-z0-9-]*(/[a-z][a-z0-9-]*)*")
-    val BEFORE_RECIPE = setOf("-C", "--kitchen", "--dry-run", "--batch-approve", "--remove", "--library")
+    val BEFORE_RECIPE = setOf("-C", "--kitchen", "--dry-run", "--batch-approve", "--force", "--skip", "--remove", "--library")
     val RESERVED = setOf("--repo", "--script", "--plan", "--set")
-    val STATUS = mapOf("create" to "Created", "update" to "Updated", "delete" to "Deleted")
+    val STATUS =
+      mapOf("create" to "Created", "update" to "Updated", "delete" to "Deleted", "replace" to "Replaced", "keep" to "Kept")
   }
 }

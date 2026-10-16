@@ -76,7 +76,7 @@ An author's code reaches the engine only through annotations. It imports nothing
 | `@File(path, mode)` | member returning `String` | The whole file. |
 | `@Files(path, mode)` | member returning `Map<String, String>` | One whole file per entry, under `path`. |
 | `@Links(path)` | member returning `Map<String, String>` | One symbolic link per entry, under `path`, pointing at the value. |
-| `@Seed(path, existing)` | member returning `String` | Written only when the file is absent, and never owned. With `existing = 'fail'`, the recipe's first apply fails when the file exists. |
+| `@Seed(path, existing)` | member returning `String` | Written only when the file is absent, and never owned. With `existing = 'fail'`, the recipe's first apply fails when the file exists, unless Cook runs with `--force`, which replaces the file, or `--skip`, which keeps it. |
 | `@Delete(path)` | member returning `boolean` | Deletes a file the recipe does not own, when true. |
 
 Rules:

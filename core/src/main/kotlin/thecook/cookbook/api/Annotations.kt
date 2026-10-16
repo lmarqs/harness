@@ -63,7 +63,8 @@ annotation class Links(
 
 /**
  * Content written only when the file is absent, and never owned. With `existing = "fail"`, the recipe's first apply
- * fails when the file already exists, so the file always starts from this content; `"keep"` leaves an existing file.
+ * fails when the file already exists, so the file always starts from this content, unless Cook runs with `--force`,
+ * which replaces the file, or `--skip`, which keeps it; `"keep"` leaves an existing file.
  */
 @Target(AnnotationTarget.FUNCTION, AnnotationTarget.FIELD)
 @Retention(AnnotationRetention.RUNTIME)

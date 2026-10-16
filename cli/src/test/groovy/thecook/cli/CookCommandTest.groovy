@@ -885,6 +885,11 @@ more
         ],
         [['acme:notes:1.2.3', '--line=a', '--dry-run'], 2, '--dry-run goes before the first recipe'],
         [['acme:notes:1.2.3', '--line=a', '--batch-approve'], 2, '--batch-approve goes before the first recipe'],
+        [['acme:notes:1.2.3', '--line=a', '--force'], 2, '--force goes before the first recipe'],
+        [['acme:notes:1.2.3', '--line=a', '--skip'], 2, '--skip goes before the first recipe'],
+        [['--force', '--skip', 'acme:notes:1.2.3', '--line=a'], 2, '--force and --skip exclude each other'],
+        [['--force', 'notes.groovy'], 2, '--force and --skip apply to recipe coordinates'],
+        [['--skip', 'notes.groovy'], 2, '--force and --skip apply to recipe coordinates'],
         [
           ['acme:notes:1.2.3:more', 'acme:notes:1.2.3:more'],
           1,

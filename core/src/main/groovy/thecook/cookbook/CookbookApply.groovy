@@ -12,9 +12,12 @@ import java.lang.reflect.InvocationTargetException
  */
 final class CookbookApply {
   private final File destination
+  private final ExistingSeed existing
 
-  CookbookApply(File destination) {
+  /** `existing` decides what a recipe's first apply does with a file its `existing = 'fail'` seed writes. */
+  CookbookApply(File destination, ExistingSeed existing = ExistingSeed.REFUSE) {
     this.destination = destination
+    this.existing = existing
   }
 
   /** Evaluates `requests` in order and returns the proposed changes, written only by `Proposal.commit`. */
@@ -26,6 +29,7 @@ final class CookbookApply {
     Map<String, ClassLoader> models = [:]
     Set<String> applied = []
     List<Applied> recipes = []
+    def seeds = new SeedOutcomes()
     requests.eachWithIndex { request, index ->
       def label = requests.size() > 1 ? "recipe ${index + 1} (${request.operand})" : request.operand
       try {
@@ -48,7 +52,7 @@ final class CookbookApply {
         def ingredients = RecipeRun.run(compiled, request.arguments) { Class type, String at -> model(type, at, reads) }
         ingredients*.getClass().unique().each { checkPristine(it, reads, name) }
         def declared = Declarations.of(ingredients, name)
-        apply(name, declared, draft, lock)
+        apply(name, declared, draft, lock, seeds)
         lock.record(name, coordinates.recipeAddress(recipe), artifact.sha256, declared.owned*.target)
         def texts = RecipeSource.texts(source, "${recipe}.groovy")
         recipes.add(new Applied(coordinates.recipeAddress(recipe), texts?.confirm, texts?.yieldText))
@@ -57,8 +61,9 @@ final class CookbookApply {
         throw new IllegalArgumentException("${label}: ${cause.message ?: cause.class.simpleName}", cause)
       }
     }
+    seeds.refuse()
     draft.write(CookLock.PATH, lock.render())
-    new Proposal(draft, recipes)
+    new Proposal(draft, recipes, seeds)
   }
 
   private static CookbookModel model(Class type, String at, ModelReads reads) {
@@ -80,7 +85,7 @@ final class CookbookApply {
     }
   }
 
-  private static void apply(String name, Declared declared, Draft draft, CookLock lock) {
+  private void apply(String name, Declared declared, Draft draft, CookLock lock, SeedOutcomes seeds) {
     def owned = declared.owned
     owned.eachWithIndex { first, index ->
       def second = owned.drop(index + 1).find { it.target.overlaps(first.target) }
@@ -92,8 +97,7 @@ final class CookbookApply {
       if (draft.read(seed.file) == null) {
         draft.write(seed.file, seed.text)
       } else if (seed.failsOnExisting && !lock.applied(name)) {
-        throw new IllegalArgumentException("${seed.file} already exists, and this recipe writes it from a template on its first " +
-        'apply. Move the file away and apply again.')
+        seeds.existing(existing, seed, name, draft)
       }
     }
     def targets = owned*.target
@@ -135,14 +139,54 @@ final class Applied {
   }
 }
 
+/** What a recipe's first apply does with a file its `existing = 'fail'` seed writes. */
+enum ExistingSeed {
+  /** Fails, naming the file. */
+  REFUSE,
+  /** Writes the seed over the file, or over the link at its path. */
+  REPLACE,
+  /** Leaves the file as it is. */
+  KEEP
+}
+
+/** The existing files that seeds refused, replaced or kept during one invocation. */
+final class SeedOutcomes {
+  final Set<String> replaced = new TreeSet<>()
+  final Set<String> kept = new TreeSet<>()
+  private final Map<String, String> refused = new TreeMap<>()
+
+  void existing(ExistingSeed choice, Seeding seed, String recipe, Draft draft) {
+    if (choice == ExistingSeed.REPLACE) {
+      draft.write(seed.file, seed.text)
+      replaced.add(seed.file)
+    } else if (choice == ExistingSeed.KEEP) {
+      kept.add(seed.file)
+    } else {
+      refused[seed.file] = recipe
+    }
+  }
+
+  /** Fails when a seed refused an existing file, naming the file, its recipe and the options that resolve it. */
+  void refuse() {
+    if (!refused) {
+      return
+    }
+    def first = refused.entrySet().first()
+    throw new IllegalArgumentException("${first.key} already exists; ${first.value} writes it from a template on its first apply. " +
+    'Run with --force to replace it, or --skip to keep it.')
+  }
+}
+
 /** The changes recipes propose, written by `commit`. */
 final class Proposal {
   private final Draft draft
+  private final SeedOutcomes seeds
   final List<Applied> recipes
 
-  Proposal(Draft draft, List<Applied> recipes) {
+  Proposal(Draft draft, List<Applied> recipes, SeedOutcomes seeds) {
     this.draft = draft
     this.recipes = recipes
+    this.seeds = seeds
   }
 
   /** The paths that change, in path order. */
@@ -150,9 +194,15 @@ final class Proposal {
     draft.changes
   }
 
-  /** Each changed path, in path order, with what happens to it: `create`, `update` or `delete`. */
+  /**
+   * Each changed or kept path, in path order, with what happens to it: `create`, `update`, `delete`, `replace` for an
+   * existing file a seed wrote over, or `keep` for one it left.
+   */
   Map<String, String> getActions() {
-    draft.changes.collectEntries { [(it): draft.action(it)] }
+    def changes = draft.changes
+    (changes + seeds.kept).unique().sort().collectEntries { path ->
+      [(path): !(path in changes) ? 'keep' : path in seeds.replaced ? 'replace' : draft.action(path)]
+    }
   }
 
   /** The text of a changed `path` before the apply; `null` when it is created. */
