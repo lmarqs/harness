@@ -43,7 +43,9 @@ argument, as in
 `./cook dev.thecook:agents:0.1.0:permissions --harness=claude dev.thecook:agents:0.1.0:instructions --harness=claude`.
 Recipes run left to right against one in-memory draft, so each sees what the ones before it wrote. A recipe removes
 what it owned and no longer declares, and the last recipe to write a section, key, file or link owns it. `cook.lock`
-records each recipe's short name, coordinates, the jar's sha256 and what it owns. Before writing, Cook shows each
+records each recipe's short name, coordinates, the jar's sha256 and what it owns. The kitchen keeps and commits
+`cook.lock`: it is the only record of which recipes were applied and what each owns, and without it a first-apply
+refusal cannot tell a file a recipe wrote from one written by hand. Before writing, Cook shows each
 recipe's `@confirm` text under its address and a unified diff of every changed path, then asks
 `Apply these changes? [y/N]`; `--batch-approve` shows the same and writes without asking, and without a terminal Cook
 writes only with `--batch-approve`. After the writes, Cook prints one line per changed

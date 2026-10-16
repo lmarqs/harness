@@ -7,7 +7,9 @@ import org.yaml.snakeyaml.constructor.SafeConstructor
 
 /**
  * `cook.lock`: for each applied recipe, its short name, its source, the source's sha256 and the sections, keys, whole
- * files and links it owns. It is the record Cook reads to withdraw what a recipe no longer declares.
+ * files and links it owns. It is the only record of which recipes were applied and what each owns, so the kitchen keeps
+ * and commits it: Cook reads it to withdraw what a recipe no longer declares, and to tell a recipe's first apply, which
+ * refuses an existing file its seed writes, from a later one.
  */
 final class CookLock {
   static final String PATH = 'cook.lock'

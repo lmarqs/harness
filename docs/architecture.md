@@ -168,7 +168,9 @@ and retain the batch record and failure (FR-13).
 
 ## Ownership and the lock
 
-`cook.lock` is a YAML file at the kitchen's root that Cook writes after each apply.
+`cook.lock` is a YAML file at the kitchen's root that Cook writes after each apply. The kitchen keeps and commits it,
+because it is the only record of which recipes were applied and what each owns: without it, Cook cannot withdraw what
+a recipe no longer declares, and a first-apply refusal cannot tell a file a recipe wrote from one written by hand.
 For each applied recipe it records the short name, the source, the source's sha256, and the sections, keys, whole files
 and links the recipe owns. It records no recipe arguments (FR-14).
 
