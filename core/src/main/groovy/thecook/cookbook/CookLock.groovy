@@ -12,7 +12,13 @@ import org.yaml.snakeyaml.constructor.SafeConstructor
 final class CookLock {
   static final String PATH = 'cook.lock'
   private static final String HEADER = '# Written by the-cook. Review changes in pull requests; do not edit by hand.'
-  private static final Map<String, String> GROUPS = [sections: 'section', keys: 'key', files: 'file', links: 'link']
+  // In the order the lock lists them, each read from its `<kind>s` group.
+  private static final Map<String, Closure<Target>> KINDS = [
+    section: { Map item -> new SectionTarget((String) item.file, (String) item.id) },
+    key: { Map item -> new KeyTarget((String) item.file, ((List) item.path)*.toString()) },
+    file: { String file -> new FileTarget(file) },
+    link: { String file -> new LinkTarget(file) },
+  ]
 
   private final Map<String, Entry> entries = new TreeMap<>()
 
@@ -33,15 +39,7 @@ final class CookLock {
     }
     data.recipes.each { Map recipe ->
       def owns = (Map) (recipe.owns ?: [:])
-      def targets = GROUPS.collectMany { group, kind ->
-        (owns[group] ?: []).collect { item ->
-          switch (kind) {
-            case 'section': return new Target(kind, item.file, item.id)
-            case 'key': return new Target(kind, item.file, item.path)
-            default: return new Target(kind, item, null)
-          }
-        }
-      }
+      def targets = KINDS.collectMany { kind, create -> (owns["${kind}s"] ?: []).collect(create) }
       lock.entries[recipe.name] = new Entry(recipe.name, recipe.source, recipe.sha256, targets)
     }
     lock
@@ -82,30 +80,28 @@ final class CookLock {
       lines << "  - name: ${quote(entry.name)}"
       lines << "    source: ${quote(entry.source)}"
       lines << "    sha256: ${quote(entry.sha256)}"
-      def groups = GROUPS.collectEntries { group, kind -> [(group): entry.targets.findAll { it.kind == kind }] }
-      .findAll { group, targets -> targets }
+      def groups = KINDS.keySet().collectEntries { kind -> [(kind): entry.targets.findAll { it.kind == kind }] }
+      .findAll { kind, targets -> targets }
       lines << (groups ? '    owns:' : '    owns: {}')
-      groups.each { group, List<Target> targets ->
-        lines << "      ${group}:"
-        targets.sort { it.toString() }.each { target ->
-          switch (target.kind) {
-            case 'section':
-              lines << "        - file: ${quote(target.file)}" << "          id: ${quote(target.address)}"
-              break
-            case 'key':
-              lines << "        - file: ${quote(target.file)}" << "          path: ${JsonOutput.toJson(target.address)}"
-              break
-            default:
-              lines << "        - ${quote(target.file)}"
-          }
-        }
+      groups.each { kind, List<Target> targets ->
+        lines << "      ${kind}s:"
+        targets.sort { it.toString() }.each { lines.addAll(item(it.entry)) }
       }
     }
     lines.join('\n') + '\n'
   }
 
-  private static String quote(Object value) {
-    JsonOutput.toJson(value?.toString())
+  private static String quote(String value) {
+    JsonOutput.toJson(value)
+  }
+
+  /** A target's lines in its group: its fields, or its path for a whole file or link. */
+  private static List<String> item(Object entry) {
+    if (!(entry instanceof Map)) {
+      return ["        - ${JsonOutput.toJson(entry)}".toString()]
+    }
+    ((Map) entry).collect { field, value -> "${field}: ${JsonOutput.toJson(value)}".toString() }
+    .withIndex().collect { line, index -> (index ? '          ' : '        - ') + line }
   }
 
   private static final class Entry {

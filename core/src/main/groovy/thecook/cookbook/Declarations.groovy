@@ -1,6 +1,5 @@
 package thecook.cookbook
 
-import groovy.transform.EqualsAndHashCode
 import thecook.cookbook.api.Delete
 import thecook.cookbook.api.File as WholeFile
 import thecook.cookbook.api.Files
@@ -15,7 +14,7 @@ import java.lang.reflect.AccessibleObject
 import java.lang.reflect.InvocationTargetException
 import java.lang.reflect.Method
 
-/** Reads what a model instance declares through its annotated members. */
+/** Reads what model instances declare through their annotated members. */
 final class Declarations {
   private static final List<Class<? extends Annotation>> KINDS = [Seed, Section, Key, Keys, WholeFile, Files, Links, Delete]
 
@@ -26,13 +25,22 @@ final class Declarations {
     directory in ['.', ''] ? path : "${directory}/${path}"
   }
 
-  /** Everything `instance` declares, member by member in name order; a member returning `null` declares nothing. */
-  static List<Declaration> of(Object instance) {
-    members(instance.getClass()).collectMany { member ->
-      def annotation = KINDS.findResult { member.getAnnotation(it) }
-      def value = read(instance, member)
-      value == null ? [] : declarations(instance, "${instance.getClass().simpleName}.${name(member)}", annotation, value)
+  /**
+   * Everything `models` declare when the recipe `recipe` applies them, member by member in name order; a member
+   * returning `null` declares nothing.
+   */
+  static Declared of(List<CookbookModel> models, String recipe) {
+    def declared = new Declared()
+    models.each { model ->
+      members(model.getClass()).each { member ->
+        def value = read(model, member)
+        if (value != null) {
+          def annotation = KINDS.findResult { member.getAnnotation(it) }
+          add(declared, model, recipe, "${model.getClass().simpleName}.${name(member)}", annotation, value)
+        }
+      }
     }
+    declared
   }
 
   private static List<AccessibleObject> members(Class type) {
@@ -62,32 +70,52 @@ final class Declarations {
     }
   }
 
-  private static List<Declaration> declarations(Object instance, String member, Annotation annotation, Object value) {
-    String base = join(instance.directory, expand(instance, member, annotation.path()))
+  private static void add(Declared declared, CookbookModel model, String recipe, String member, Annotation annotation, Object value) {
+    String base = join(model.directory, expand(model, member, annotation.path()))
     switch (annotation) {
       case Seed:
-        return [new Declaration(member, 'seed', base, null, value.toString())]
+        declared.seeds << new Seeding(member, base, value.toString())
+        break
+      case Delete:
+        if (value == true) {
+          declared.deletes << new Deletion(member, base)
+        }
+        break
       case Section:
-        def comment = ((Section) annotation).comment()
-        return [new Declaration(member, 'section', base, ((Section) annotation).id(), lines(member, value), null, comment)]
+        def section = (Section) annotation
+        declared.owned << new Declaration(member, new SectionTarget(base, "${recipe}#${section.id()}".toString(), section.comment() ?: null),
+            lines(member, value))
+        break
       case Key:
-        return [new Declaration(member, 'key', base, ((Key) annotation).segments().toList(), value)]
+        declared.owned << new Declaration(member, key(member, base, ((Key) annotation).segments().toList()), value)
+        break
       case Keys:
         def under = ((Keys) annotation).under().toList()
-        return entries(member, value).collect { key, entry ->
-          new Declaration(member, 'key', base, under + (key instanceof List ? key*.toString() : [key.toString()]), entry)
+        entries(member, value).each { name, entry ->
+          def path = under + (name instanceof List ? name*.toString() : [name.toString()])
+          declared.owned << new Declaration(member, key(member, base, path), entry)
         }
+        break
       case WholeFile:
-        return [new Declaration(member, 'file', base, null, value.toString(), ((WholeFile) annotation).mode())]
+        declared.owned << new Declaration(member, new FileTarget(base, ((WholeFile) annotation).mode()), value.toString())
+        break
       case Files:
-        return entries(member, value).collect { name, content ->
-          new Declaration(member, 'file', "${base}/${name}", null, content.toString(), ((Files) annotation).mode())
+        entries(member, value).each { name, content ->
+          declared.owned << new Declaration(member, new FileTarget("${base}/${name}", ((Files) annotation).mode()), content.toString())
         }
-      case Links:
-        return entries(member, value).collect { name, target -> new Declaration(member, 'link', "${base}/${name}", null, target.toString()) }
+        break
       default:
-        return value == true ? [new Declaration(member, 'delete', base, null, null)] : []
+        entries(member, value).each { name, target ->
+          declared.owned << new Declaration(member, new LinkTarget("${base}/${name}"), target.toString())
+        }
     }
+  }
+
+  private static KeyTarget key(String member, String file, List<String> path) {
+    if (!KeyTarget.format(file)) {
+      throw new IllegalArgumentException("${member} declares a key in ${file}, which is not a JSON, TOML or YAML file")
+    }
+    new KeyTarget(file, path)
   }
 
   private static String expand(Object instance, String member, String path) {
@@ -115,80 +143,70 @@ final class Declarations {
   }
 }
 
-/**
- * One part of a destination file a model declares: a `seed`, `section`, `key`, `file`, `link` or `delete`. `address` is
- * a section's region or a key's path; `value` is the section's lines, the key's value, the file's content or the link's
- * target.
- */
-final class Declaration {
-  final String member
-  final String kind
-  final String file
-  final Object address
-  final Object value
-  final String mode
-  final String comment
+/** What models declare: the parts they own, the files they seed and the files they delete. */
+final class Declared {
+  final List<Declaration> owned = []
+  final List<Seeding> seeds = []
+  final List<Deletion> deletes = []
 
-  Declaration(String member, String kind, String file, Object address, Object value, String mode = null, String comment = null) {
-    this.member = member
-    this.kind = kind
-    this.file = file
-    this.address = address
-    this.value = value
-    this.mode = mode ?: null
-    this.comment = comment ?: null
-  }
-
-  /** The target this declaration owns when the recipe `recipe` applies it; `null` for a seed or a delete. */
-  Target target(String recipe) {
-    switch (kind) {
-      case ['seed', 'delete']: return null
-      case 'section': return new Target(kind, file, "${recipe}#${address}")
-      default: return new Target(kind, file, address)
-    }
+  /** Every declaration, each read as `<member> declares ...`. */
+  List<Object> getAll() {
+    seeds + owned + deletes
   }
 }
 
-/** A part of a destination file that a recipe owns: a `section`, `key`, `file` or `link`. */
-@EqualsAndHashCode
-final class Target {
-  final String kind
-  final String file
-  /** The section's marker id, `<recipe>#<region>`; the key's path as a list; or `null` for a whole file or link. */
-  final Object address
+/** A part a model member declares: the target it owns and the value written there. */
+final class Declaration {
+  final String member
+  final Target target
+  final Object value
 
-  Target(String kind, String file, Object address) {
-    this.kind = kind
-    this.file = file
-    this.address = address
+  Declaration(String member, Target target, Object value) {
+    this.member = member
+    this.target = target
+    this.value = value
   }
 
-  /** Whether writing this target changes `other`: the same section, overlapping keys, or a whole file or link. */
-  boolean overlaps(Target other) {
-    if (file != other.file) {
-      return false
-    }
-    if (kind in ['file', 'link'] || other.kind in ['file', 'link']) {
-      return true
-    }
-    if (kind != other.kind) {
-      return false
-    }
-    if (kind == 'section') {
-      return address == other.address
-    }
-    List path = (List) address
-    List otherPath = (List) other.address
-    path.take(otherPath.size()) == otherPath || otherPath.take(path.size()) == path
+  void write(Draft draft) {
+    target.write(draft, value)
   }
 
   @Override
   String toString() {
-    switch (kind) {
-      case 'section': return "${file} section ${address}"
-      case 'key': return "${file} key ${((List) address).join('.')}"
-      case 'link': return "${file} link"
-      default: return file
-    }
+    "${member} declares a ${target.kind} of ${target.file}"
+  }
+}
+
+/** A file a model member writes only when it does not exist yet, and never owns. */
+final class Seeding {
+  final String member
+  final String file
+  final String text
+
+  Seeding(String member, String file, String text) {
+    this.member = member
+    this.file = file
+    this.text = text
+  }
+
+  @Override
+  String toString() {
+    "${member} declares a seed of ${file}"
+  }
+}
+
+/** A file a model member deletes. */
+final class Deletion {
+  final String member
+  final String file
+
+  Deletion(String member, String file) {
+    this.member = member
+    this.file = file
+  }
+
+  @Override
+  String toString() {
+    "${member} declares a delete of ${file}"
   }
 }

@@ -201,6 +201,52 @@ lint();
     assert new File(kitchen, 'build.js').text == 'run();\n'
   }
 
+  @Test void deletesAFileTheRecipeOwnedAndNoLongerDeclares() {
+    def kitchen = kitchen()
+    publish(kitchen, 'acme:config:1.0.0', [
+      'Config.groovy': '''package acme.config
+
+@Ingredient
+class Config {
+  Boolean migrated
+  @File(path = 'old.cfg')
+  String old() { migrated == false ? 'old' : null }
+  @Delete(path = 'old.cfg')
+  Boolean gone() { migrated ?: null }
+}
+''',
+      'config.groovy': '''@help('Writes or retires old.cfg.')
+import acme.config.Config
+@param(value = ['migrated'], doc = 'Whether old.cfg is retired', default = ['false']) boolean migrated
+@ingredient(Config) def config
+config.migrated = migrated
+''',
+    ])
+    apply(kitchen, 'acme:config:1.0.0', [:]).commit()
+    assert new File(kitchen, 'old.cfg').text == 'old'
+    apply(kitchen, 'acme:config:1.0.0', [migrated: ['true']]).commit()
+    assert !new File(kitchen, 'old.cfg').exists()
+  }
+
+  @Test void namesTheRecipeWhoseModelFailsToConstruct() {
+    def kitchen = kitchen()
+    publish(kitchen, 'acme:broken:1.0.0', [
+      'Broken.groovy': '''package acme.broken
+
+@Ingredient
+class Broken {
+  Broken() { throw new IllegalStateException('cannot start') }
+}
+''',
+      'broken.groovy': '''@help('Fails.')
+import acme.broken.Broken
+@ingredient(Broken) def broken
+''',
+    ])
+    def error = shouldFail(IllegalArgumentException) { apply(kitchen, 'acme:broken:1.0.0', [:]) }
+    assert error.message == 'acme:broken:1.0.0: cannot start'
+  }
+
   @Test void refusesAModelThatDeclaresOutputOnANewInstance() {
     def kitchen = kitchen()
     publish(kitchen, 'acme:noisy:1.0.0', [
@@ -233,7 +279,7 @@ import acme.noisy.Noisy
   }
 
   private static RecipeRequest request(String operand, Map<String, List<String>> arguments) {
-    new RecipeRequest(operand, Coordinates.parse(operand), arguments)
+    new RecipeRequest(operand, arguments)
   }
 
   private static File publishDirectory(File kitchen, String name, Map<String, Object> extra = [:]) {

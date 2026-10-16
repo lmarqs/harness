@@ -2,15 +2,8 @@ package thecook.cookbook
 
 import thecook.cookbook.api.Ingredient
 import thecook.filesystem.TargetPath
-import thecook.formats.BlockDocument
-import thecook.formats.Document
-import thecook.formats.Documents
-import thecook.reconciliation.Permissions
-import thecook.rendering.BlockLocation
-import thecook.rendering.KeyLocation
 
-import groovy.json.JsonOutput
-import groovy.json.JsonSlurper
+import java.lang.reflect.InvocationTargetException
 
 /**
  * Applies recipes by their coordinates, left to right, into one draft of the destination: each recipe withdraws what
@@ -44,7 +37,7 @@ final class CookbookApply {
           artifact.recipes.collect { coordinates.recipeAddress(it) }.join(', '))
         }
         def source = artifact.recipeSource(recipe)
-        def name = "${coordinates.group}:${coordinates.artifact}:${recipe}"
+        String name = "${coordinates.group}:${coordinates.artifact}:${recipe}"
         if (!applied.add(name)) {
           throw new IllegalArgumentException("${name} is applied twice; apply it once per invocation")
         }
@@ -53,20 +46,21 @@ final class CookbookApply {
         def reads = [resource: { artifact.resource(it) }, resources: { artifact.resources(it) },
           current: { draft.read(it) }] as ModelReads
         def ingredients = RecipeRun.run(compiled, request.arguments) { Class type, String at -> model(type, at, reads) }
-        ingredients*.getClass().unique().each { checkPristine(it, reads) }
-        def declarations = ingredients.collectMany { Declarations.of(it) }
-        apply(name, declarations, draft, lock)
-        lock.record(name, coordinates.recipeAddress(recipe), artifact.sha256, declarations*.target(name).findAll())
+        ingredients*.getClass().unique().each { checkPristine(it, reads, name) }
+        def declared = Declarations.of(ingredients, name)
+        apply(name, declared, draft, lock)
+        lock.record(name, coordinates.recipeAddress(recipe), artifact.sha256, declared.owned*.target)
         recipes.add(new Applied(coordinates.recipeAddress(recipe), RecipeSource.texts(source, "${recipe}.groovy")?.yieldText))
-      } catch (RuntimeException error) {
-        throw new IllegalArgumentException("${label}: ${error.message ?: error.class.simpleName}", error)
+      } catch (Exception error) {
+        def cause = error instanceof InvocationTargetException && error.cause instanceof Exception ? error.cause : error
+        throw new IllegalArgumentException("${label}: ${cause.message ?: cause.class.simpleName}", cause)
       }
     }
     draft.write(CookLock.PATH, lock.render())
     new Proposal(draft, recipes)
   }
 
-  private static Object model(Class type, String at, ModelReads reads) {
+  private static CookbookModel model(Class type, String at, ModelReads reads) {
     if (!type.getAnnotation(Ingredient) || !CookbookModel.isAssignableFrom(type)) {
       throw new IllegalArgumentException("${type.simpleName} is not a model; a model class is marked @Ingredient")
     }
@@ -78,156 +72,48 @@ final class CookbookApply {
     instance
   }
 
-  private static void checkPristine(Class type, ModelReads reads) {
-    def declared = Declarations.of(model(type, '.', reads))
+  private static void checkPristine(Class type, ModelReads reads, String name) {
+    def declared = Declarations.of([model(type, '.', reads)], name).all
     if (declared) {
-      throw new IllegalArgumentException("${declared.first().member} declares a ${declared.first().kind} of " +
-      "${declared.first().file} on a new instance; a model declares only what a recipe asks for")
+      throw new IllegalArgumentException("${declared.first()} on a new instance; a model declares only what a recipe asks for")
     }
   }
 
-  private static void apply(String name, List<Declaration> declarations, Draft draft, CookLock lock) {
-    def owned = declarations.findAll { it.target(name) }
+  private static void apply(String name, Declared declared, Draft draft, CookLock lock) {
+    def owned = declared.owned
     owned.eachWithIndex { first, index ->
-      def second = owned.drop(index + 1).find { it.target(name).overlaps(first.target(name)) }
+      def second = owned.drop(index + 1).find { it.target.overlaps(first.target) }
       if (second) {
-        throw new IllegalArgumentException("${first.member} and ${second.member} both declare ${first.target(name)}")
+        throw new IllegalArgumentException("${first.member} and ${second.member} both declare ${first.target}")
       }
     }
-    declarations.findAll { it.kind == 'seed' }.each { seed ->
+    declared.seeds.each { seed ->
       if (draft.read(seed.file) == null) {
-        draft.write(seed.file, seed.value)
+        draft.write(seed.file, seed.text)
       }
     }
-    def targets = owned*.target(name)
-    lock.owned(name).findAll { !(it in targets) }.each { withdraw(it, draft) }
-    owned.each { write(it, name, draft) }
-    declarations.findAll { it.kind == 'delete' }.each { deletion ->
-      def owner = lock.ownerOf(new Target('file', deletion.file, null), null) ?:
-          (owned.any { it.file == deletion.file } ? name : null)
+    def targets = owned*.target
+    lock.owned(name).findAll { !(it in targets) }.each { it.withdraw(draft) }
+    owned.each { it.write(draft) }
+    declared.deletes.each { deletion ->
+      def owner = lock.ownerOf(new FileTarget(deletion.file), name) ?: (targets.any { it.file == deletion.file } ? name : null)
       if (owner) {
         throw new IllegalArgumentException("${deletion.member} deletes ${deletion.file}, which ${owner} owns")
       }
       draft.delete(deletion.file)
     }
   }
-
-  private static void withdraw(Target target, Draft draft) {
-    switch (target.kind) {
-      case 'section':
-        def comment = markerComment(draft.read(target.file), target.address.toString())
-        if (comment != null) {
-          edit(draft, target.file, 'section', comment) { Document document ->
-            document.remove(target.address.toString(), new BlockLocation())
-          }
-        }
-        break
-      case 'key':
-        edit(draft, target.file, 'key') { Document document ->
-          document.remove(target.address.toString(), new KeyLocation((List<String>) target.address))
-        }
-        break
-      default:
-        draft.delete(target.file)
-    }
-  }
-
-  /**
-   * The comment that opens the begin marker of `id` in `text`, or `null` without one. The lock does not record a
-   * section's comment syntax, so withdrawing a section reads it from the file.
-   */
-  private static String markerComment(String text, String id) {
-    def marker = text?.readLines()?.find { it.contains("cook:begin ${id}") }
-    marker == null ? null : marker.substring(0, marker.indexOf('cook:begin ')).trim()
-  }
-
-  private static void write(Declaration declaration, String name, Draft draft) {
-    switch (declaration.kind) {
-      case 'section':
-        def marker = declaration.target(name).address.toString()
-        edit(draft, declaration.file, 'section', declaration.comment) { Document document ->
-          document.write(marker, new BlockLocation(), document.render(((List) declaration.value).join('\n')))
-        }
-        break
-      case 'key':
-        if (!format(declaration.file)) {
-          throw new IllegalArgumentException("${declaration.member} declares a key in ${declaration.file}, " +
-          'which is not a JSON, TOML or YAML file')
-        }
-        edit(draft, declaration.file, 'key') { Document document ->
-          def location = new KeyLocation((List<String>) declaration.address)
-          def rendered = document.render(declaration.value)
-          if (!same(declaration.file, document.read(location.path.join('.'), location), rendered)) {
-            document.write(location.path.join('.'), location, rendered)
-          }
-        }
-        break
-      case 'link':
-        draft.link(declaration.file, declaration.value)
-        break
-      default:
-        draft.write(declaration.file, declaration.value, declaration.mode ? Permissions.parse(declaration.mode) : null)
-    }
-  }
-
-  /**
-   * Opens `file` for a `section` or a `key`, applies `change` and puts the result back; a file left empty is deleted.
-   */
-  private static void edit(Draft draft, String file, String part, String comment = null, Closure change) {
-    String text = draft.read(file)
-    Document document = part == 'key' ? new Documents().open(format(file), text ?: '') : sections(file, text ?: '', comment)
-    change(document)
-    if (document.empty) {
-      draft.delete(file)
-    } else if (text == null && part == 'key' && format(file) == 'json') {
-      draft.write(file, pretty(new JsonSlurper().parseText(document.text), '') + '\n')
-    } else {
-      draft.write(file, document.text)
-    }
-  }
-
-  private static BlockDocument sections(String file, String text, String comment) {
-    if (file ==~ /(?i).*\.(md|markdown)/ || comment == '<!--') {
-      return new BlockDocument(text, '<!-- ', ' -->')
-    }
-    new BlockDocument(text, "${comment ?: '#'} ", '')
-  }
-
-  /** Whether a key already holds `rendered`, so its text, and the file's formatting, stay as they are. */
-  private static boolean same(String file, String existing, String rendered) {
-    if (existing == null) {
-      return false
-    }
-    format(file) == 'json' ? new JsonSlurper().parseText(existing) == new JsonSlurper().parseText(rendered) : existing == rendered
-  }
-
-  private static String pretty(Object value, String indent) {
-    def inner = indent + '  '
-    if (value instanceof Map && value) {
-      return '{\n' + value.collect { key, item -> inner + JsonOutput.toJson(key.toString()) + ': ' + pretty(item, inner) }
-      .join(',\n') + '\n' + indent + '}'
-    }
-    if (value instanceof List && value) {
-      return '[\n' + value.collect { inner + pretty(it, inner) }.join(',\n') + '\n' + indent + ']'
-    }
-    JsonOutput.toJson(value)
-  }
-
-  private static String format(String file) {
-    def extension = file.contains('.') ? file.substring(file.lastIndexOf('.') + 1).toLowerCase(Locale.ROOT) : ''
-    [json: 'json', toml: 'toml', yaml: 'yaml', yml: 'yaml'][extension]
-  }
 }
 
-/** One recipe to apply: its operand as written, its coordinates and its arguments by param name. */
+/** One recipe to apply: its coordinates as written and its arguments by param name. */
 final class RecipeRequest {
   final String operand
   final Coordinates coordinates
   final Map<String, List<String>> arguments
 
-  RecipeRequest(String operand, Coordinates coordinates, Map<String, List<String>> arguments) {
+  RecipeRequest(String operand, Map<String, List<String>> arguments) {
     this.operand = operand
-    this.coordinates = coordinates
+    this.coordinates = Coordinates.parse(operand)
     this.arguments = arguments
   }
 }

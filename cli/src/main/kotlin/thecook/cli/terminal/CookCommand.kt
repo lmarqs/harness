@@ -203,38 +203,40 @@ class CookCommand(
     if (root.remove || root.libraries.isNotEmpty()) {
       throw UsageError("--remove and --library do not apply to recipe coordinates")
     }
-    val requests = mutableListOf<RecipeRequest>()
-    var operand: String? = null
-    var arguments = linkedMapOf<String, MutableList<String>>()
-    fun close() {
-      operand?.let { requests.add(RecipeRequest(it, Coordinates.parse(it), arguments)) }
-    }
+    // Checked in reading order, so `--name value` reports the missing `=` before `value` reads as a recipe.
+    val recipes = mutableListOf<Pair<String, MutableMap<String, MutableList<String>>>>()
     for (token in root.operands) {
-      if (!token.startsWith("-")) {
-        close()
-        if (token.endsWith(".groovy") || !Coordinates.written(token)) {
-          throw UsageError(
-            if (token.endsWith(".groovy")) {
-              "Not supported yet: the path $token together with recipe coordinates; apply it in its own invocation"
-            } else {
-              "Not a recipe: $token. Recipe arguments start with --"
-            },
-          )
-        }
-        operand = token
-        arguments = linkedMapOf()
-        continue
+      if (token.startsWith("-")) {
+        val (name, value) = coordinatesArgument(token)
+        recipes.last().second.getOrPut(name) { mutableListOf() }.add(value)
+      } else {
+        recipes.add(coordinatesOperand(token) to linkedMapOf())
       }
-      val name = token.substringBefore('=')
-      if (name in BEFORE_RECIPE) throw UsageError("$name goes before the first recipe")
-      if (!name.matches(Regex("--[a-z][a-z0-9-]*"))) throw UsageError("Unknown option for the recipe: $token")
-      if ('=' !in token) throw UsageError("$name needs a value: write $name=<value>")
-      val value = token.substringAfter('=')
-      if (value.isEmpty()) throw UsageError("Missing value for $name")
-      arguments.getOrPut(name.removePrefix("--")) { mutableListOf() }.add(value)
     }
-    close()
+    val requests = recipes.map { (operand, arguments) -> RecipeRequest(operand, arguments) }
     return CookCoordinates(kitchen.toAbsolutePath(), requests, root.dryRun)
+  }
+
+  private fun coordinatesOperand(token: String): String {
+    if (token.endsWith(".groovy")) {
+      throw UsageError(
+        "Not supported yet: the path $token together with recipe coordinates; apply it in its own invocation",
+      )
+    }
+    if (!Coordinates.written(token)) throw UsageError("Not a recipe: $token. Recipe arguments start with --")
+    return token
+  }
+
+  private fun coordinatesArgument(token: String): Pair<String, String> {
+    val name = token.substringBefore('=')
+    if (name in BEFORE_RECIPE) throw UsageError("$name goes before the first recipe")
+    if (!name.matches(Regex("--[a-z][a-z0-9-]*")) || name in RESERVED) {
+      throw UsageError("Unknown option for the recipe: $token")
+    }
+    if ('=' !in token) throw UsageError("$name needs a value: write $name=<value>")
+    val value = token.substringAfter('=')
+    if (value.isEmpty()) throw UsageError("Missing value for $name")
+    return name.removePrefix("--") to value
   }
 
   // A recipe's arguments are its own; Cook only splits them into names and values and refuses its own options here.

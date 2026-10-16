@@ -841,6 +841,7 @@ more
 
       [
         [['acme:notes:1.2.3', '--line', 'first'], 2, '--line needs a value: write --line=<value>'],
+        [['acme:notes:1.2.3', '--set=first'], 2, 'Unknown option for the recipe: --set=first'],
         [['acme:notes:1.2.3', 'line=first'], 2, 'Not a recipe: line=first. Recipe arguments start with --'],
         [
           ['acme:notes:1.2.3', '--line=a', 'notes.groovy'],

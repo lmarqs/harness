@@ -2,8 +2,10 @@ package thecook.cookbook
 
 import thecook.filesystem.AtomicFiles
 import thecook.filesystem.Repository
+import thecook.formats.Document
 
 import java.nio.channels.FileChannel
+import java.nio.channels.OverlappingFileLockException
 import java.nio.file.StandardOpenOption
 
 /**
@@ -32,6 +34,15 @@ final class Draft {
     def current = state(path)
     after[path] = [exists: true, content: content, kind: 'file',
       mode: mode ?: (current.kind == 'file' ? current.mode : null) ?: DEFAULT_MODE]
+  }
+
+  /** Writes `document` to `path`, or deletes `path` when the document is empty. */
+  void replace(String path, Document document) {
+    if (document.empty) {
+      delete(path)
+    } else {
+      write(path, document.text)
+    }
   }
 
   /** Makes `path` a symbolic link to `target`. */
@@ -84,7 +95,12 @@ final class Draft {
     def name = "the-cook-${Repository.digest(repository.directory.path.getBytes('UTF-8'))}.lock"
     def file = new File(System.getProperty('java.io.tmpdir'), name)
     FileChannel.open(file.toPath(), StandardOpenOption.CREATE, StandardOpenOption.WRITE).withCloseable { channel ->
-      def held = channel.tryLock()
+      def held
+      try {
+        held = channel.tryLock()
+      } catch (OverlappingFileLockException ignored) {
+        held = null
+      }
       if (held == null) {
         throw new IllegalStateException("Another Cook process is writing ${repository.directory}")
       }
