@@ -1,7 +1,7 @@
 # Cookbook
 
-This directory is a design sketch. Its files use a Groovy-like pseudo language to show the shape of recipes and
-ingredients, and nothing here runs.
+This directory shows the shape of recipes and ingredients. The engine runs the `agents` artifact; the other
+directories are a design sketch in Groovy that has not been compiled.
 
 ## Units
 
@@ -57,7 +57,8 @@ several programs in its directory names the program first: `agents/claude-settin
 
 The engine imports its own annotations, `groovy.json`, `groovy.yaml`, `groovy.toml` and `java.nio.file` into every
 unit, as the Groovy shell imports `java.util`. A unit imports nothing from the engine and nothing for JSON, YAML,
-TOML or paths.
+TOML or paths. The annotations come first, so `File` and `Files` name them; write `java.io.File` and
+`java.nio.file.Files` in full.
 
 ## The author's API
 

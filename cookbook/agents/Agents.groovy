@@ -58,7 +58,7 @@ class Agents {
    */
   void skills(String... names) {
     names.each { if (!resources("skills/${it}")) throw new IllegalArgumentException("No packaged skill named ${it}") }
-    skills += names
+    skills += names.toList()
   }
 
   /** The shared agent policy at `.agents/policy.yaml`, or the starter when the file is absent. */

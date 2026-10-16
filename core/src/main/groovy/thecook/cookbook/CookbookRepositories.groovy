@@ -2,6 +2,7 @@ package thecook.cookbook
 
 import org.tomlj.Toml
 import org.tomlj.TomlArray
+import thecook.filesystem.Repository
 
 import java.util.zip.ZipInputStream
 
@@ -52,9 +53,9 @@ final class CookbookRepositories {
   /** The artifact that `coordinates` name, read from the first repository holding its jar. */
   CookbookArtifact artifact(Coordinates coordinates) {
     for (URI repository : uris) {
-      def files = read(repository.resolve(coordinates.jarPath), coordinates.packagePath)
-      if (files != null) {
-        return new CookbookArtifact(coordinates, files)
+      def jar = read(repository.resolve(coordinates.jarPath))
+      if (jar != null) {
+        return new CookbookArtifact(coordinates, unpack(jar, coordinates.packagePath), Repository.digest(jar))
       }
     }
     throw new IllegalArgumentException(
@@ -65,20 +66,22 @@ final class CookbookRepositories {
     (0..<array.size()).collect { array.get(it) }
   }
 
-  private static Map<String, byte[]> read(URI jar, String packagePath) {
-    InputStream stream
+  private static byte[] read(URI jar) {
     try {
       def connection = jar.toURL().openConnection()
       connection.connectTimeout = TIMEOUT_MILLIS
       connection.readTimeout = TIMEOUT_MILLIS
-      stream = connection.inputStream
+      return connection.inputStream.withCloseable { it.readAllBytes() }
     } catch (FileNotFoundException ignored) {
       return null
     } catch (IOException error) {
       throw new IllegalArgumentException("Cannot read ${jar}: ${error.message}", error)
     }
+  }
+
+  private static Map<String, byte[]> unpack(byte[] jar, String packagePath) {
     Map<String, byte[]> files = [:]
-    new ZipInputStream(stream).withCloseable { zip ->
+    new ZipInputStream(new ByteArrayInputStream(jar)).withCloseable { zip ->
       for (def entry = zip.nextEntry; entry != null; entry = zip.nextEntry) {
         if (!entry.directory && entry.name.startsWith(packagePath)) {
           files[entry.name.substring(packagePath.length())] = zip.readAllBytes()

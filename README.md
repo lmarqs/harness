@@ -20,7 +20,7 @@ the tool never notice it.
 This section describes the repository's executable behavior. The [architecture](docs/architecture.md) defines the
 intended design, and [issue #15](https://github.com/lmarqs/the-cook/issues/15) tracks implementing it.
 
-The core and CLI use Kotlin, with Groovy document and filesystem adapters. Local recipes for the current core are Groovy scripts. The [cookbook](cookbook/README.md) is a design sketch of how recipes and ingredients are written and distributed, in a Groovy-like pseudo language that does not run; the CLI ships without packaged recipes. `./gradlew :cookbook:publish` packages it with the `dev.thecook.cookbook` Gradle plugin, built from [`plugin`](plugin) apart from the engine, into the Maven-layout repository at `cookbook/build/repository`: a jar and a POM per directory and the `dev.thecook:cookbook` BOM. Packaging compiles nothing, so the sketch packages as it is.
+The core and CLI use Kotlin, with Groovy document and filesystem adapters. Local recipes for the current core are Groovy scripts. The [cookbook](cookbook/README.md) shows how recipes and ingredients are written and distributed. Its `agents` artifact runs: `./cook` applies its recipes by coordinates. The other directories are a design sketch that has not been compiled, and the CLI ships without packaged recipes. `./gradlew :cookbook:publish` packages the cookbook with the `dev.thecook.cookbook` Gradle plugin, built from [`plugin`](plugin) apart from the engine, into the Maven-layout repository at `cookbook/build/repository`: a jar and a POM per directory and the `dev.thecook:cookbook` BOM. Packaging compiles nothing; the engine compiles an artifact's sources when one of its recipes is applied.
 
 `./cook <recipe>` renders the desired batch into native project files. Ingredients can share separate blocks or keys in a file, while whole files and symlinks have exclusive owners. Cooking checks for managed edits and uses a transaction journal with rollback on write failure. Declared applications update their own contributions; a legacy direct Batch updates its unassigned contributions while retaining independently owned applications.
 
@@ -35,8 +35,19 @@ on `group:artifact:version` the artifact's README with its recipes and models, f
 from the first repository holding it in the `repositories` list of the kitchen's `cook.toml`, each an `https://` URL
 or a path relative to the kitchen, and from Maven Central when the kitchen has no `cook.toml`. This repository's
 `cook.toml` lists `cookbook/build/repository`, so `./gradlew :cookbook:publish` followed by
-`./cook help dev.thecook:agents:0.1.0:instructions` reads the packaged recipe. Applying coordinates is not
-implemented. The core enforces adoption and managed-edit gates.
+`./cook help dev.thecook:agents:0.1.0:instructions` reads the packaged recipe.
+
+`./cook` applies coordinates through a separate path in the engine, which never reads or writes `.cook/state.json`.
+Each recipe after the first starts at a word without `--`, and its arguments are written `--name=value`, as in
+`./cook dev.thecook:agents:0.1.0:permissions --harness=claude dev.thecook:agents:0.1.0:instructions --harness=claude`.
+Recipes run left to right against one in-memory draft, so each sees what the ones before it wrote. A recipe removes
+what it owned and no longer declares, and the last recipe to write a section, key, file or link owns it. `cook.lock`
+records each recipe's short name, coordinates, the jar's sha256 and what it owns. Cook prints the changed paths, or
+`Already cooked.`, then each recipe's `@yield` text after the writes; `--dry-run` writes nothing. Not implemented on
+this path: the diff and approval prompt, `@confirm`, batch records and `revert`, `--remove` and `--library`, a path
+and coordinates in one invocation, models that use another artifact's types, `@Lines` and `@cookbook`.
+
+The core enforces adoption and managed-edit gates for `.groovy` recipe paths.
 
 ### Start from a fresh clone
 
@@ -56,7 +67,7 @@ directory it runs from is the kitchen Cook cooks in. `-C <dir>` or `--kitchen=<d
 
 `./gradlew check` includes `spotlessCheck`, which enforces the format of Kotlin (ktlint), Groovy and Gradle (Groovy-Eclipse, [settings](gradle/spotless/greclipse.properties)) and plain-text files, with 2-space indentation per [`.editorconfig`](.editorconfig). `./gradlew spotlessApply` fixes violations. The Groovy formatter on Java 17 cannot parse the `!in` operator; write `!(a in b)` instead.
 
-`./gradlew check` also requires braces around every `if`/`else`/`for`/`while` body, with the body on its own line. In Kotlin this is a custom ktlint rule ([`gradle/lint/ktlint-rules`](gradle/lint/ktlint-rules)) that Spotless runs; an `if` used as a value (`val x = if (a) b else c`, an argument, a return value, an expression body, the final `if`/`else` of a lambda) is exempt. In Groovy and Gradle, CodeNarc (`./gradlew codenarc`, [rules](gradle/lint/codenarc.groovy)) requires the braces, and Groovy-Eclipse moves braced bodies onto their own line. Violations that predate the rule are baselined: Groovy per violation in [`codenarc-baseline.xml`](gradle/lint/codenarc-baseline.xml), which `./gradlew codenarcBaseline` regenerates, and Kotlin per file in the `suppressLintsFor` list in [`build.gradle`](build.gradle). Remove a file's entry once its violations are fixed. The cookbook sketch under `cookbook/` is pseudo-Groovy, so Spotless's Groovy step and CodeNarc skip it.
+`./gradlew check` also requires braces around every `if`/`else`/`for`/`while` body, with the body on its own line. In Kotlin this is a custom ktlint rule ([`gradle/lint/ktlint-rules`](gradle/lint/ktlint-rules)) that Spotless runs; an `if` used as a value (`val x = if (a) b else c`, an argument, a return value, an expression body, the final `if`/`else` of a lambda) is exempt. In Groovy and Gradle, CodeNarc (`./gradlew codenarc`, [rules](gradle/lint/codenarc.groovy)) requires the braces, and Groovy-Eclipse moves braced bodies onto their own line. Violations that predate the rule are baselined: Groovy per violation in [`codenarc-baseline.xml`](gradle/lint/codenarc-baseline.xml), which `./gradlew codenarcBaseline` regenerates, and Kotlin per file in the `suppressLintsFor` list in [`build.gradle`](build.gradle). Remove a file's entry once its violations are fixed. Spotless's Groovy step and CodeNarc skip `cookbook/`, most of which is a design sketch that has not been compiled.
 
 `docs/` is its own build. `./gradlew -p docs check`, which `./gradlew check` includes, fails on a relative link in
 `docs/` that points to a missing file or heading anchor; [`docs/build.gradle`](docs/build.gradle) defines the check.

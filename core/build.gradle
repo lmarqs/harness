@@ -25,6 +25,13 @@ dependencies {
   implementation localGroovy()
   implementation 'org.tomlj:tomlj:1.0.0'
   implementation 'org.yaml:snakeyaml:2.4'
+  // Recipes and models import groovy.yaml and groovy.toml by default. They match the Groovy that runs them, which
+  // already supplies the Groovy modules they depend on.
+  ['groovy-yaml', 'groovy-toml'].each { module ->
+    implementation("org.apache.groovy:${module}:${GroovySystem.version}") {
+      exclude group: 'org.apache.groovy'
+    }
+  }
   testImplementation 'junit:junit:4.13.2'
 }
 

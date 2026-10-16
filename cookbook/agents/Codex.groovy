@@ -54,9 +54,9 @@ class Codex implements Harness {
   void permit(Policy policy) {
     config += [sandbox_mode: 'workspace-write', approval_policy: 'on-request',
                sandbox_workspace_write: [network_access: false]]
-    commands = policy.allow.collect { rule(it, 'allow') } +
-      policy.ask.collect { rule(it, 'prompt') } +
-      policy.deny.collect { rule(it, 'forbidden') }
+    commands = policy.allow.collect { prefixRule(it, 'allow') } +
+      policy.ask.collect { prefixRule(it, 'prompt') } +
+      policy.deny.collect { prefixRule(it, 'forbidden') }
   }
 
   /** Adds top-level configuration keys; a supplied key replaces its earlier value whole. */
@@ -75,7 +75,7 @@ class Codex implements Harness {
   }
 
   /** Appends Markdown instruction lines to the `codex` section in `AGENTS.md`. */
-  void instruct(String... lines) { instructions += lines }
+  void instruct(String... lines) { instructions += lines.toList() }
 
   /** Checks that `path` is `AGENTS.md`, which Codex reads natively in its own directory; rejects any other path. */
   void readInstructions(String path) { readsNatively(path, 'AGENTS.md') }
@@ -110,7 +110,7 @@ class Codex implements Harness {
     if (path != expected) throw new IllegalArgumentException("Codex reads ${expected} in its own directory, not ${path}")
   }
 
-  private static String rule(Command command, String decision) {
+  private static String prefixRule(Command command, String decision) {
     def pattern = command.prefix.collect { "\"${it}\"" }.join(', ')
     "prefix_rule(pattern = [${pattern}], decision = \"${decision}\")"
   }

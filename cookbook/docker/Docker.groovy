@@ -42,7 +42,7 @@ class Docker {
   private Map<String, Map> stages = [:]   // stage -> [image, expected]
 
   /** Adds Docker ignore patterns as supplied; repeated patterns appear only once in the whole ignore file. */
-  void ignore(String... patterns) { ignore = (ignore ?: []) + patterns }
+  void ignore(String... patterns) { ignore = (ignore ?: []) + patterns.toList() }
 
   /**
    * Requests a base image for a named stage, replacing an earlier request for that stage. The new image must

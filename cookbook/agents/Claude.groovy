@@ -63,7 +63,7 @@ class Claude implements Harness {
   void settings(Map more) { settings += more }
 
   /** Appends Markdown instruction lines to the managed section in `CLAUDE.md`. */
-  void instruct(String... lines) { instructions += lines }
+  void instruct(String... lines) { instructions += lines.toList() }
 
   /** Adds `@<path>` to `CLAUDE.md` to read shared instructions; `path` is relative to this instance's directory. */
   void readInstructions(String path) { instruct("@${path}") }

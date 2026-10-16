@@ -29,7 +29,7 @@ cook.parameters = gradle.startParameter.projectProperties.findAll { !(it.key in 
 
 spotless {
   def generated = ['**/build/**', '**/.gradle/**', '.cook/**']
-  // The cookbook is a pseudo-language design sketch, not compiled Groovy.
+  // Most of the cookbook is a design sketch that has not been compiled.
   def sketch = ['cookbook/**']
   kotlin {
     target '**/*.kt'

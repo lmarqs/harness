@@ -33,7 +33,7 @@ class Git {
   private List<String> patterns = []
 
   /** Adds Git ignore patterns as individual strings, relative to this instance's directory. */
-  void ignore(String... values) { patterns += values }
+  void ignore(String... values) { patterns += values.toList() }
 
   /** Adds a collection of Git ignore patterns, relative to this instance's directory. */
   void ignore(Collection<String> values) { patterns += values }

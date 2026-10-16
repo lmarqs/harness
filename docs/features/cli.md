@@ -50,13 +50,16 @@ discard; [apply](apply.md) and [revert](revert.md) explain them with examples.
 
 ## Recipe operands
 
-A recipe operand is a path inside the destination repository or an `https://` URL. An ordinary relative path such as
-`recipe.groovy` is accepted. Cook refuses an operand outside the repository.
+A recipe operand is a path inside the destination repository, an `https://` URL, or a recipe's coordinates,
+`group:artifact:version[:recipe]`. An ordinary relative path such as `recipe.groovy` is accepted. Cook refuses an
+operand outside the repository. Coordinates resolve from the repositories that the destination's `cook.toml` lists;
+without a recipe, they apply the recipe named like the artifact.
 
 ```sh
 ./cook recipe.groovy
 ./cook ./recipes/project.groovy
 ./cook https://example.com/recipes/project.groovy
+./cook dev.thecook:agents:0.1.0:instructions --harness=claude
 ```
 
 `help` prints a recipe's `@help`, `@confirm` and `@yield` texts with its `@param` and `@ingredient` annotations, read
@@ -98,6 +101,20 @@ An argument value that looks like a recipe path remains an argument value:
 
 The first invocation evaluates only `a.groovy` and gives it `source` with the value `./b.groovy`. The second evaluates
 `a.groovy`, then `b.groovy`, as two recipes.
+
+Because every word without `--` starts a recipe, an argument always carries its value after `=`:
+
+| Written | Result |
+| --- | --- |
+| `--agent=codex` | The value `codex` for `agent` |
+| `--agent codex` | Refused: `--agent needs a value: write --agent=<value>` |
+| `agent=codex` | Refused: `Not a recipe: agent=codex. Recipe arguments start with --` |
+| `--force`, for a yes-or-no param | Refused; write `--force=true` |
+| The same recipe twice, with any arguments or versions | Refused: `cook.lock` keeps one entry per recipe |
+
+When a recipe fails to evaluate, nothing is written, and the error names the recipe by its position and operand, such
+as `recipe 2 (dev.thecook:agents:0.1.0:instructions)`. After the writes, Cook prints each recipe's `@yield` text in
+order, headed by its address.
 
 ## Batch options and approval
 

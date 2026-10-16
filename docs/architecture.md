@@ -31,7 +31,8 @@ include Git's ignore file and Codex's configuration and skills. The ingredient c
 A recipe is trusted executable Groovy code that describes requested file operations using these models. Evaluating
 recipes produces the batch that Cook reviews and writes. The models describe program configuration; the engine
 handles the resulting file operations. Each recipe has a short name, such as `agentic/context`, that markers and the
-lock use to identify it.
+lock use to identify it. A recipe applied by its coordinates is named by its address without the version, such as
+`dev.thecook:agents:instructions`, so applying a new version keeps the same owner.
 
 A cookbook repository holds and distributes ingredients and recipes. Cookbook distribution is separate from engine
 distribution, and a cookbook can have its own build. Keeping program models in cookbooks lets their authors maintain
@@ -175,22 +176,28 @@ files the recipe owns. It records no recipe arguments (FR-14).
 # Written by the-cook. Review changes in pull requests; do not edit by hand.
 version: 1
 recipes:
-  - name: agentic/context
-    source: cookbook/recipes/agentic/context/recipe.groovy
+  - name: "dev.thecook:agents:permissions"
+    source: "dev.thecook:agents:0.1.0:permissions"
+    sha256: "3f5a…"
+    owns:
+      keys:
+        - file: ".claude/settings.json"
+          path: ["permissions"]
+      files:
+        - ".codex/rules/default.rules"
+  - name: "dev.thecook:agents:instructions"
+    source: "dev.thecook:agents:0.1.0:instructions"
     sha256: "3f5a…"
     owns:
       sections:
-        - file: CLAUDE.md
-          id: agentic/context#instructions
-      keys:
-        - file: .claude/settings.json
-          path: permissions.allow
-      files:
-        - .codex/rules/default.rules
+        - file: "CLAUDE.md"
+          id: "dev.thecook:agents:instructions#instructions"
 ```
 
-The source is a path relative to the repository root, or an `https://` URL. The sha256 identifies the recipe version
-that produced the recorded ownership. Because the lock is committed, every clone has the same ownership information.
+The source is a path relative to the repository root, an `https://` URL, or the recipe's coordinates. A key path is a
+list, so a key containing a dot stays one segment; `links` lists the symbolic links a recipe owns. The sha256
+identifies the recipe version that produced the recorded ownership: the file's for a path or URL, the jar's for
+coordinates. Because the lock is committed, every clone has the same ownership information.
 
 Apply works without the lock. When the lock is missing or names no entry for a recipe, Cook evaluates the recipe as
 usual and shows the diff; it has no previous ownership to compare against, so it removes nothing on the recipe's
@@ -348,8 +355,8 @@ Other documents cite these requirements by number.
 ### Ownership, discard, and revert
 
 - **FR-14:** The repository commits `cook.lock`, a YAML file at its root. For each applied recipe it records the short
-  name, the source as a repository-relative path or `https://` URL, the source's sha256, and the owned sections, keys,
-  and files. It records no recipe arguments.
+  name, the source as a repository-relative path, an `https://` URL or coordinates, the source's sha256, and the owned
+  sections, keys, files and links. It records no recipe arguments.
 - **FR-15:** Discarding a recipe removes what `cook.lock` lists for it, without evaluating the recipe. Discard is
   deferred until a concrete need.
 - **FR-16:** Reverting a batch applies its reverse patches against current content without evaluating recipes. Later
@@ -364,11 +371,12 @@ Other documents cite these requirements by number.
   usage. `help` prints each recipe's help from its source without running it. A first operand of exactly `apply`,
   `revert`, `batch`, or `help` selects a command; a recipe file with one of those names is supplied as a path, such as
   `./revert`.
-- **FR-18:** Recipe operands are paths inside the destination repository or `https://` URLs. Ordinary relative paths
-  such as `recipe.groovy` are accepted.
+- **FR-18:** Recipe operands are paths inside the destination repository, `https://` URLs, or coordinates
+  `group:artifact:version[:recipe]` resolved from the repositories the destination's `cook.toml` lists. Ordinary
+  relative paths such as `recipe.groovy` are accepted.
 - **FR-19:** Batch options precede recipe operands, or the batch ID for `revert`. Recipe arguments follow their recipe
-  and use `--name=value`, including shell-quoted values. A misplaced batch option after a recipe receives the normal
-  unknown-option error.
+  and use `--name=value`, including shell-quoted values; a word without `--` starts the next recipe. A recipe appears
+  once per invocation. A misplaced batch option after a recipe receives the normal unknown-option error.
 - **FR-20:** `--batch-approve` is the only preapproval spelling.
 
 ### Paths and batch records

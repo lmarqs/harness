@@ -3,9 +3,11 @@ package thecook.cli.terminal
 import picocli.CommandLine
 import thecook.application.CookService
 import thecook.cookbook.Cookbook
-import thecook.cookbook.Coordinates
+import thecook.cookbook.CookbookApply
 import thecook.cookbook.CookbookArtifact
 import thecook.cookbook.CookbookRepositories
+import thecook.cookbook.Coordinates
+import thecook.cookbook.RecipeRequest
 import thecook.cookbook.RecipeSource
 import thecook.model.RecipeInput
 import thecook.model.RecipeArguments
@@ -70,6 +72,21 @@ class CookCommand(
             if (command.dryRun) "Would remove" else "Removed"
           } else if (command.dryRun) "Would cook" else "Cooked"
           changes.forEach { stdout.println("$verb $it") }
+        }
+
+        is CookCoordinates -> {
+          val proposal = CookbookApply(command.repository.toFile()).propose(command.requests)
+          val changes = proposal.changes
+          if (!command.dryRun) proposal.commit()
+          if (changes.isEmpty()) stdout.println("Already cooked.")
+          changes.forEach { stdout.println("${if (command.dryRun) "Would cook" else "Cooked"} $it") }
+          if (!command.dryRun && changes.isNotEmpty()) {
+            proposal.recipes.filter { it.yieldText != null }.forEach {
+              stdout.println()
+              stdout.println("After applying ${it.address}")
+              stdout.println(indent(it.yieldText))
+            }
+          }
         }
 
         is Plan -> {
@@ -149,11 +166,7 @@ class CookCommand(
   ): Command {
     val entrypoint = root.operands.firstOrNull() ?: throw UsageError("A command or recipe is required")
     val localScript = entrypoint.endsWith(".groovy") && !entrypoint.contains("://")
-    if (!localScript && Coordinates.written(entrypoint)) {
-      throw IllegalArgumentException(
-        "Applying recipe coordinates is not supported yet: $entrypoint. Read the recipe with ./cook help $entrypoint",
-      )
-    }
+    if (!localScript && Coordinates.written(entrypoint)) return coordinates(kitchen, root)
     val repository = kitchen.toAbsolutePath()
     val recipe =
       if (localScript) {
@@ -180,6 +193,48 @@ class CookCommand(
     }
     val removal = if (root.remove) RecipeArguments.removal(declaration(recipe), arguments) else emptySet()
     return Cook(repository, recipe, libraries(kitchen, root.libraries), arguments, root.dryRun, root.remove, removal)
+  }
+
+  // Values are written only as --name=value, so a word without -- always starts the next recipe.
+  private fun coordinates(
+    kitchen: Path,
+    root: RootArgs,
+  ): Command {
+    if (root.remove || root.libraries.isNotEmpty()) {
+      throw UsageError("--remove and --library do not apply to recipe coordinates")
+    }
+    val requests = mutableListOf<RecipeRequest>()
+    var operand: String? = null
+    var arguments = linkedMapOf<String, MutableList<String>>()
+    fun close() {
+      operand?.let { requests.add(RecipeRequest(it, Coordinates.parse(it), arguments)) }
+    }
+    for (token in root.operands) {
+      if (!token.startsWith("-")) {
+        close()
+        if (token.endsWith(".groovy") || !Coordinates.written(token)) {
+          throw UsageError(
+            if (token.endsWith(".groovy")) {
+              "Not supported yet: the path $token together with recipe coordinates; apply it in its own invocation"
+            } else {
+              "Not a recipe: $token. Recipe arguments start with --"
+            },
+          )
+        }
+        operand = token
+        arguments = linkedMapOf()
+        continue
+      }
+      val name = token.substringBefore('=')
+      if (name in BEFORE_RECIPE) throw UsageError("$name goes before the first recipe")
+      if (!name.matches(Regex("--[a-z][a-z0-9-]*"))) throw UsageError("Unknown option for the recipe: $token")
+      if ('=' !in token) throw UsageError("$name needs a value: write $name=<value>")
+      val value = token.substringAfter('=')
+      if (value.isEmpty()) throw UsageError("Missing value for $name")
+      arguments.getOrPut(name.removePrefix("--")) { mutableListOf() }.add(value)
+    }
+    close()
+    return CookCoordinates(kitchen.toAbsolutePath(), requests, root.dryRun)
   }
 
   // A recipe's arguments are its own; Cook only splits them into names and values and refuses its own options here.
@@ -391,6 +446,12 @@ class CookCommand(
     val dryRun: Boolean,
     val remove: Boolean,
     val removalApplications: Set<String>,
+  ) : Command
+
+  private data class CookCoordinates(
+    val repository: Path,
+    val requests: List<RecipeRequest>,
+    val dryRun: Boolean,
   ) : Command
 
   private data class Plan(

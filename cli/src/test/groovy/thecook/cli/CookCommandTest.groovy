@@ -778,13 +778,87 @@ Models
       assert cli.execute(['-C', repo.path, 'help', 'acme:notes:latest'] as String[]) == 1
       assert stderr.toString('UTF-8').contains('Invalid recipe coordinates: acme:notes:latest')
       stderr.reset()
-      assert cli.execute(['-C', repo.path, 'acme:notes:1.2.3:notes'] as String[]) == 1
-      assert stderr.toString('UTF-8') ==
-      'Applying recipe coordinates is not supported yet: acme:notes:1.2.3:notes. ' +
-      'Read the recipe with ./cook help acme:notes:1.2.3:notes\n'
-      stderr.reset()
       assert cli.execute(['-C', repo.path, 'a:notes.groovy'] as String[]) == 1
       assert stderr.toString('UTF-8').contains('Recipe file not found: a:notes.groovy')
+    }
+  }
+
+  @Test void appliesRecipeCoordinatesLeftToRightAndPrintsWhatToDoNext() {
+    workspace { root, repo, ignored ->
+      def jar = new File(repo, 'repository/acme/notes/1.2.3/notes-1.2.3.jar'); jar.parentFile.mkdirs()
+      new java.util.jar.JarOutputStream(jar.newOutputStream()).withCloseable { out ->
+        ['acme/notes/Notes.groovy': """package acme.notes
+
+@Ingredient
+class Notes {
+  private List<String> lines = []
+  void add(String line) { lines += line }
+  @Section(path = 'NOTES.md', id = 'notes')
+  List<String> section() { lines ?: null }
+}
+""", 'acme/notes/notes.groovy': """@help('Adds a line to `NOTES.md`.')
+@yield('Read `NOTES.md`.')
+import acme.notes.Notes
+
+@param(value = ['line'], doc = 'The line to add') String line
+@ingredient(Notes) def notes
+
+notes.add(line)
+""", 'acme/notes/more.groovy': """@help('Adds another line.')
+import acme.notes.Notes
+
+@ingredient(Notes) def notes
+
+notes.add('more')
+"""].each { path, text ->
+          out.putNextEntry(new java.util.jar.JarEntry(path)); out.write(text.getBytes('UTF-8')); out.closeEntry()
+        }
+      }
+      new File(repo, 'cook.toml').text = 'repositories = ["repository"]\n'
+      def stdout = new ByteArrayOutputStream(); def stderr = new ByteArrayOutputStream()
+      def cli = command(stdout, stderr)
+      def notes = new File(repo, 'NOTES.md')
+
+      assert cli.execute(['-C', repo.path, '--dry-run', 'acme:notes:1.2.3', '--line=first'] as String[]) == 0 :
+      stderr.toString('UTF-8')
+      assert stdout.toString('UTF-8') == 'Would cook NOTES.md\nWould cook cook.lock\n'
+      assert !notes.exists()
+
+      stdout.reset()
+      assert cli.execute(['-C', repo.path, 'acme:notes:1.2.3', '--line=first', 'acme:notes:1.2.3:more'] as String[]) == 0 :
+      stderr.toString('UTF-8')
+      assert stdout.toString('UTF-8') == 'Cooked NOTES.md\nCooked cook.lock\n\nAfter applying acme:notes:1.2.3:notes\n  Read `NOTES.md`.\n'
+      assert notes.text == """<!-- cook:begin acme:notes:notes#notes -->
+first
+<!-- cook:end acme:notes:notes#notes -->
+<!-- cook:begin acme:notes:more#notes -->
+more
+<!-- cook:end acme:notes:more#notes -->
+"""
+      stdout.reset()
+      assert cli.execute(['-C', repo.path, 'acme:notes:1.2.3', '--line=first', 'acme:notes:1.2.3:more'] as String[]) == 0
+      assert stdout.toString('UTF-8').startsWith('Already cooked.\n')
+
+      [
+        [['acme:notes:1.2.3', '--line', 'first'], 2, '--line needs a value: write --line=<value>'],
+        [['acme:notes:1.2.3', 'line=first'], 2, 'Not a recipe: line=first. Recipe arguments start with --'],
+        [
+          ['acme:notes:1.2.3', '--line=a', 'notes.groovy'],
+          2,
+          'Not supported yet: the path notes.groovy together with recipe coordinates; apply it in its own invocation'
+        ],
+        [['acme:notes:1.2.3', '--line=a', '--dry-run'], 2, '--dry-run goes before the first recipe'],
+        [
+          ['acme:notes:1.2.3:more', 'acme:notes:1.2.3:more'],
+          1,
+          'recipe 2 (acme:notes:1.2.3:more): acme:notes:more is applied twice; apply it once per invocation'
+        ],
+        [['acme:notes:1.2.3'], 1, 'acme:notes:1.2.3: Missing --line: The line to add'],
+      ].each { arguments, status, message ->
+        stderr.reset()
+        assert cli.execute((['-C', repo.path] + arguments) as String[]) == status
+        assert stderr.toString('UTF-8').readLines().first() == message
+      }
     }
   }
 

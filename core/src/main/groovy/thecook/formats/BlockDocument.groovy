@@ -4,8 +4,12 @@ import thecook.rendering.RegionLocation
 
 class BlockDocument implements Document {
   String text
-  BlockDocument(String text) {
-    this.text = text; validateMarkers()
+  private final String open
+  private final String close
+
+  /** `open` and `close` surround each marker line: `# ` and nothing by default, `<!-- ` and ` -->` in Markdown. */
+  BlockDocument(String text, String open = '# ', String close = '') {
+    this.text = text; this.open = open; this.close = close; validateMarkers()
   }
   private final Set<String> separators = new LinkedHashSet<>()
   void seed(Map metadata) {
@@ -20,28 +24,34 @@ class BlockDocument implements Document {
   private String newline() {
     text.contains('\r\n') ? '\r\n' : '\n'
   }
-  private static String begin(String id) {
-    "# cook:begin ${id}"
+  private String begin(String id) {
+    "${open}cook:begin ${id}${close}"
   }
-  private static String end(String id) {
-    "# cook:end ${id}"
+  private String end(String id) {
+    "${open}cook:end ${id}${close}"
+  }
+  private String markedId(String line, String word) {
+    def prefix = "${open}cook:${word} "
+    line.startsWith(prefix) && line.endsWith(close) && line.length() >= prefix.length() + close.length() ?
+        line.substring(prefix.length(), line.length() - close.length()) : null
   }
   private void validateMarkers() {
-    String open = null
+    String unclosed = null
     def seen = new HashSet()
     text.readLines().each { line ->
-      if (line.startsWith('# cook:begin ')) {
-        def id = line.substring(13)
-        if (!(id ==~ /[a-zA-Z0-9][a-zA-Z0-9_.:\/-]*/)) throw new IllegalArgumentException('Invalid Cook marker identity')
-        if (open || !seen.add(id)) throw new IllegalArgumentException('Nested or duplicate Cook markers')
-        open = id
+      def begun = markedId(line, 'begin')
+      if (begun != null) {
+        if (!(begun ==~ /[a-zA-Z0-9][a-zA-Z0-9_.:\/#-]*/)) throw new IllegalArgumentException('Invalid Cook marker identity')
+        if (unclosed || !seen.add(begun)) throw new IllegalArgumentException('Nested or duplicate Cook markers')
+        unclosed = begun
       }
-      if (line.startsWith('# cook:end ')) {
-        if (open != line.substring(11)) throw new IllegalArgumentException('Mismatched Cook markers')
-        open = null
+      def ended = markedId(line, 'end')
+      if (ended != null) {
+        if (unclosed != ended) throw new IllegalArgumentException('Mismatched Cook markers')
+        unclosed = null
       }
     }
-    if (open) throw new IllegalArgumentException('Unterminated Cook marker')
+    if (unclosed) throw new IllegalArgumentException('Unterminated Cook marker')
   }
   private List<Integer> bounds(String id) {
     def first = java.util.regex.Pattern.compile('(?m)^' + java.util.regex.Pattern.quote(begin(id)) + '\\r?$').matcher(text)
@@ -62,7 +72,7 @@ class BlockDocument implements Document {
   }
   String render(Object value) {
     def result = value instanceof Collection ? value.collect { it.toString() }.unique().join('\n') : value.toString()
-    if (result.contains('# cook:begin ') || result.contains('# cook:end ')) throw new IllegalArgumentException('Reserved marker in rendered content')
+    if (result.contains("${open}cook:begin ") || result.contains("${open}cook:end ")) throw new IllegalArgumentException('Reserved marker in rendered content')
     result = result.replace('\r\n', '\n').replace('\n', newline())
     result ? result.replaceAll(/(?:\r?\n)+$/, '') + newline() : ''
   }
@@ -83,9 +93,10 @@ class BlockDocument implements Document {
     boolean separator = recorded
     if (separator && range[0] > 0) {
       def following = text.substring(range[1])
-      if (following.startsWith('# cook:begin ')) {
+      def next = following ? markedId(following.readLines().first(), 'begin') : null
+      if (next != null) {
         // The newline still separates handwritten text from the next managed block.
-        separators.add(following.readLines().first().substring(13))
+        separators.add(next)
       } else if (!following) {
         range[0] -= range[0] >= 2 && text.charAt(range[0] - 2) == '\r' as char ? 2 : 1
       }

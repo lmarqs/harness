@@ -6,12 +6,15 @@ package thecook.cookbook
  */
 final class CookbookArtifact {
   final Coordinates coordinates
+  /** The sha256 of the jar the files were read from. */
+  final String sha256
   private final Map<String, byte[]> files
 
   /** `files` holds the artifact's files keyed by their path below its package path. */
-  CookbookArtifact(Coordinates coordinates, Map<String, byte[]> files) {
+  CookbookArtifact(Coordinates coordinates, Map<String, byte[]> files, String sha256 = null) {
     this.coordinates = coordinates
     this.files = files
+    this.sha256 = sha256
   }
 
   /** The artifact's front page, or `null` when its jar holds no `README.md`. */
@@ -34,6 +37,22 @@ final class CookbookArtifact {
       "No recipe ${name} in ${coordinates.artifactAddress}; its recipes are: ${recipes.join(', ') ?: 'none'}")
     }
     text("${name}.groovy")
+  }
+
+  /** The source of the model `name`. */
+  String modelSource(String name) {
+    text("${name}.groovy")
+  }
+
+  /** The text of the packaged file at `path`, or `null` when the artifact has none. */
+  String resource(String path) {
+    text(path)
+  }
+
+  /** Every packaged file under the directory `path`, keyed by its path below it. */
+  Map<String, String> resources(String path) {
+    def prefix = path.endsWith('/') ? path : "${path}/"
+    files.keySet().findAll { it.startsWith(prefix) }.sort().collectEntries { [(it.substring(prefix.length())): text(it)] }
   }
 
   private List<String> sources() {
