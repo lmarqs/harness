@@ -30,7 +30,13 @@ Cook's grammar. `--dry-run` reports proposed changed paths; a normal cooking inv
 prompt or a terminal content diff. `--remove` withdraws selected applications using ownership records. The existing `apply` command applies a saved plan. No-argument invocation reports a missing
 command; use `--help` or `help` explicitly. `help <recipe>...` prints each recipe's help; for a recipe whose first
 import carries `@help`, such as `./cook help cookbook/agents/instructions.groovy`, the help is read from its source
-without running it. The core enforces adoption and managed-edit gates.
+without running it. `help` also takes coordinates, `group:artifact:version[:recipe]`, and reads the recipe, or
+on `group:artifact:version` the artifact's README with its recipes and models, from the artifact's jar. The jar comes
+from the first repository holding it in the `repositories` list of the kitchen's `cook.toml`, each an `https://` URL
+or a path relative to the kitchen, and from Maven Central when the kitchen has no `cook.toml`. This repository's
+`cook.toml` lists `cookbook/build/repository`, so `./gradlew :cookbook:publish` followed by
+`./cook help dev.thecook:agents:0.1.0:instructions` reads the packaged recipe. Applying coordinates is not
+implemented. The core enforces adoption and managed-edit gates.
 
 ### Start from a fresh clone
 

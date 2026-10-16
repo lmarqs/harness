@@ -3,6 +3,9 @@ package thecook.cli.terminal
 import picocli.CommandLine
 import thecook.application.CookService
 import thecook.cookbook.Cookbook
+import thecook.cookbook.Coordinates
+import thecook.cookbook.CookbookArtifact
+import thecook.cookbook.CookbookRepositories
 import thecook.cookbook.RecipeSource
 import thecook.model.RecipeInput
 import thecook.model.RecipeArguments
@@ -40,7 +43,15 @@ class CookCommand(
         }
 
         is RecipeHelp -> {
-          stdout.println(command.recipes.joinToString("\n\n") { recipeHelp(it) })
+          val repositories by lazy { CookbookRepositories.at(command.kitchen.toAbsolutePath().toFile()) }
+          stdout.println(
+            command.recipes.joinToString("\n\n") { target ->
+              when (target) {
+                is LocalRecipe -> recipeHelp(target)
+                is Address -> addressHelp(target.coordinates, repositories)
+              }
+            },
+          )
         }
 
         is Init -> {
@@ -232,21 +243,50 @@ class CookCommand(
   ): Command {
     if (operands.isEmpty()) return Help
     return RecipeHelp(
+      kitchen,
       operands.map { operand ->
         if (operand.startsWith("-")) throw UsageError("help takes recipes only: $operand")
-        if (operand.endsWith(".groovy") && !operand.contains("://")) {
+        if (Coordinates.written(operand)) {
+          Address(Coordinates.parse(operand))
+        } else if (operand.endsWith(".groovy") && !operand.contains("://")) {
           val script = path(kitchen, operand, "recipe")
           if (!Files.isRegularFile(script)) throw IllegalArgumentException("Recipe file not found: $operand")
-          HelpTarget(script, null)
+          LocalRecipe(script, null)
         } else {
           if (!operand.matches(RECIPE_NAME)) throw UsageError("Invalid recipe name: $operand")
-          HelpTarget(findRecipe(kitchen.toAbsolutePath(), operand), operand)
+          LocalRecipe(findRecipe(kitchen.toAbsolutePath(), operand), operand)
         }
       },
     )
   }
 
-  private fun recipeHelp(command: HelpTarget): String {
+  private fun addressHelp(
+    coordinates: Coordinates,
+    repositories: CookbookRepositories,
+  ): String {
+    val artifact = repositories.artifact(coordinates)
+    val recipe = coordinates.recipe ?: return frontPage(artifact)
+    val texts =
+      RecipeSource.texts(artifact.recipeSource(recipe), "$recipe.groovy")
+        ?: throw IllegalArgumentException("$coordinates has no help: its first import carries no @help")
+    return render(coordinates.toString(), texts)
+  }
+
+  private fun frontPage(artifact: CookbookArtifact): String {
+    val coordinates = artifact.coordinates
+    return listOfNotNull(
+      coordinates.artifactAddress,
+      artifact.readme?.trim(),
+      artifact.recipes.takeIf { it.isNotEmpty() }?.let { recipes ->
+        "Recipes\n${recipes.joinToString("\n") { "  ${coordinates.recipeAddress(it)}" }}"
+      },
+      artifact.models.takeIf { it.isNotEmpty() }?.let { models ->
+        "Models\n${models.joinToString("\n") { "  ${coordinates.group}.${coordinates.artifact}.$it" }}"
+      },
+    ).joinToString("\n\n")
+  }
+
+  private fun recipeHelp(command: LocalRecipe): String {
     if (Files.isRegularFile(command.script)) {
       val name = command.script.fileName.toString().removeSuffix(".groovy")
       RecipeSource.texts(Files.readString(command.script), command.script.fileName.toString())?.let {
@@ -326,9 +366,13 @@ class CookCommand(
 
   private data object Help : Command
 
-  private data class RecipeHelp(val recipes: List<HelpTarget>) : Command
+  private data class RecipeHelp(val kitchen: Path, val recipes: List<HelpTarget>) : Command
 
-  private data class HelpTarget(val script: Path, val expectedName: String?)
+  private sealed interface HelpTarget
+
+  private data class LocalRecipe(val script: Path, val expectedName: String?) : HelpTarget
+
+  private data class Address(val coordinates: Coordinates) : HelpTarget
 
   private data class Init(
     val repository: Path,

@@ -24,7 +24,12 @@ A loose recipe declares `@cookbook('dev.thecook:0.1.0')` once per cookbook it us
 cookbook's BOM at that release so its model imports resolve to the listed jars. Two versions of one artifact
 inside one recipe's dependency tree are an error.
 
-A committed `cook.toml` at the destination lists the repositories to resolve from. Maven Central is the default.
+A committed `cook.toml` at the destination lists the repositories to resolve from, in order, as `repositories`:
+`https://` URLs or paths relative to the destination. Maven Central is the default.
+
+```toml
+repositories = ["https://repo.maven.apache.org/maven2/", "cookbook/build/repository"]
+```
 
 The engine does not find recipes. People find them in a cookbook's repository, on an artifact host or through a
 teammate's link. Given the coordinates:

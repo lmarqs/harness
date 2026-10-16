@@ -735,4 +735,48 @@ After applying
       assert repo.list() as Set == ['notes.groovy'] as Set
     }
   }
+
+  @Test void helpReadsRecipesAndFrontPagesFromTheKitchensRepositories() {
+    workspace { root, repo, ignored ->
+      def jar = new File(repo, 'repository/acme/notes/1.2.3/notes-1.2.3.jar'); jar.parentFile.mkdirs()
+      new java.util.jar.JarOutputStream(jar.newOutputStream()).withCloseable { out ->
+        ['acme/notes/README.md': 'Notes for the repository.\n', 'acme/notes/Notes.groovy': 'class Notes {}\n',
+          'acme/notes/notes.groovy': """@help(\'\'\'
+Seeds `NOTES.md`.
+\'\'\')
+import acme.notes.Notes
+
+@ingredient(Notes) def notes
+"""].each { path, text ->
+          out.putNextEntry(new java.util.jar.JarEntry(path)); out.write(text.getBytes('UTF-8')); out.closeEntry()
+        }
+      }
+      new File(repo, 'cook.toml').text = 'repositories = ["repository"]\n'
+      def stdout = new ByteArrayOutputStream(); def stderr = new ByteArrayOutputStream()
+      def cli = command(stdout, stderr)
+      assert cli.execute(['-C', repo.path, 'help', 'acme:notes:1.2.3:notes', 'acme:notes:1.2.3'] as String[]) == 0 :
+      stderr.toString('UTF-8')
+      assert stdout.toString('UTF-8') == """acme:notes:1.2.3:notes
+
+Seeds `NOTES.md`.
+
+Ingredients
+  acme.notes.Notes
+
+acme:notes:1.2.3
+
+Notes for the repository.
+
+Recipes
+  acme:notes:1.2.3:notes
+
+Models
+  acme.notes.Notes
+"""
+      assert cli.execute(['-C', repo.path, 'help', 'acme:notes:1.2.4'] as String[]) == 1
+      assert stderr.toString('UTF-8').contains('acme:notes:1.2.4 not found in the repositories in')
+      assert cli.execute(['-C', repo.path, 'help', 'acme:notes:latest'] as String[]) == 1
+      assert stderr.toString('UTF-8').contains('Invalid recipe coordinates: acme:notes:latest')
+    }
+  }
 }
