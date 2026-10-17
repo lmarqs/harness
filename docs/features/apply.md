@@ -132,8 +132,8 @@ The invocation directory is the destination, regardless of the executable locati
 deletions stay within it, including paths resolved through symlinks. A symlink cannot route a declared target outside
 that boundary.
 
-Recipes come from paths inside the destination repository or `https://` URLs. Relative recipe/template source
-references resolve from the referencing recipe's location: inside the repository for a local recipe, and against
+Recipes come from paths inside the destination repository, `https://` URLs or coordinates. Relative recipe/template
+source references resolve from the referencing recipe's location: inside the repository for a local recipe, and against
 the source URL for a remote one. A local operand or reference that resolves outside the repository is refused. For
 example, when invoked from `/work/project`:
 

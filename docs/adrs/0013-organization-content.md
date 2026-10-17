@@ -16,7 +16,8 @@ repository accepts while preserving choices outside those changes.
 - [Ingredients](../features/glossary.md) model programs' native files and configuration, including an organization's
   own program. Cookbook repositories hold and ship ingredients and trusted Groovy recipes; cookbook builds can be
   separate from Cook's build ([architecture](../architecture.md#ingredients-recipes-and-cookbooks)).
-- Recipes come from paths inside the destination repository or from `https://` URLs; a local recipe or reference
+- Recipes come from paths inside the destination repository, from `https://` URLs, or from coordinates resolved from
+  the cookbook repositories the destination lists ([0029](0029-cookbook-distribution.md)); a local recipe or reference
   outside the repository is refused ([source origins](../architecture.md#destination-and-source-origins)). Relative
   recipe and template references resolve from the referencing recipe's original location, not from the copy saved in
   the batch record.
@@ -32,9 +33,9 @@ repository accepts while preserving choices outside those changes.
    and writes; ingredients model native program configuration.
 2. Cookbooks distribute their ingredients and recipes through their repositories and may build independently.
    Engine upgrades do not manage recipe versions.
-3. Reused content can participate in recipe evaluation from paths inside the destination repository or from
-   `https://` URLs. Users manage recipe versions and supply the version to apply; `cook.lock` records which version
-   produced the current ownership.
+3. Reused content can participate in recipe evaluation from paths inside the destination repository, from `https://`
+   URLs, or by coordinates from a cookbook release ([0029](0029-cookbook-distribution.md)). Users manage recipe versions
+   and supply the version to apply; `cook.lock` records which version produced the current ownership.
 4. Ordered composition, ownership and review of the resulting changes follow [0007](0007-ownership.md).
 5. Native output stays readable without Cook ([0010](0010-dependence-on-the-binary.md)), and the batch record keeps
    the evaluated sources ([0014](0014-directory-layout.md)).

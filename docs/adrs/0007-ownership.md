@@ -31,8 +31,8 @@ stays intact, every clone agrees on which recipe produced which output, and a re
    section, key or file, the last one wins and becomes its owner; the diff is the only notice. Applying recipe B does
    not remove output that recipe A owns, even when A is omitted from the invocation.
 3. The repository commits `cook.lock`, a YAML file at its root ([example](../architecture.md#ownership-and-the-lock)).
-   - For each applied recipe it records the short name, the source as a repository-relative path or `https://` URL,
-     the source's sha256, and the owned sections, keys and files. It records no recipe arguments.
+   - For each applied recipe it records the short name, the source as a repository-relative path, `https://` URL or
+     coordinates, the source's sha256, and the owned sections, keys, files and links. It records no recipe arguments.
    - Applying a new version of a recipe also removes what its previous version owned and the new version no longer
      declares; the diff shows that removal.
    - Without a lock entry for a recipe, apply removes nothing on its behalf.

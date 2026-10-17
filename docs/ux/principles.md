@@ -123,10 +123,10 @@ place; reversal follows principle 5
 
 ## 9. Sources and effects are reviewable
 
-Cook accepts recipe paths inside the destination repository and `https://` URLs. Users supply the recipe versions
-they intend to apply, and the committed `cook.lock` records which source and sha256 produced the current ownership
-([the lock](../architecture.md#ownership-and-the-lock)). A repository commit alone does not determine the effects of
-trusted recipe code. Why: a reviewer can trust or question only a source they can identify.
+Cook accepts recipe paths inside the destination repository, `https://` URLs and coordinates. Users supply the recipe
+versions they intend to apply, and the committed `cook.lock` records which source and sha256 produced the current
+ownership ([the lock](../architecture.md#ownership-and-the-lock)). A repository commit alone does not determine the
+effects of trusted recipe code. Why: a reviewer can trust or question only a source they can identify.
 
 Each batch keeps one record of the sources it evaluated and consumed, with their origins, arguments and order, and one
 reversible patch per touched file ([batch record](../architecture.md#one-record-for-the-batch)). Apply needs neither

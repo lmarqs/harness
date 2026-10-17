@@ -17,7 +17,8 @@ an inspectable record of the sources actually used.
   ([architecture](../architecture.md#evaluation-review-and-writes), FR-1, FR-3, FR-4).
 - [Ingredients](../features/glossary.md) model native program files and configuration; cookbook repositories hold and
   ship ingredients and recipes, with builds that can be separate from Cook ([0022](0022-tool-integration.md), FR-2).
-- Recipes are supplied as paths inside the destination repository or as `https://` URLs; a local operand or reference
+- Recipes are supplied as paths inside the destination repository, as `https://` URLs, or as coordinates of a cookbook
+  release ([0029](0029-cookbook-distribution.md)); a local operand or reference
   outside the repository is refused. Relative references resolve from their original source locations, not from the
   copies in the batch record (FR-18, FR-22).
 - Engine package verification checks bytes against a committed checksum; it does not alone authenticate the publisher

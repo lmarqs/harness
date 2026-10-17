@@ -23,7 +23,7 @@ updates. People need to see the actual requested changes and keep unrelated cont
 
 1. Declared writes and deletions stay within the invocation's current working directory, regardless of the recipe
    or executable location. Targets resolved through symlinks remain within that boundary.
-2. Recipes come from paths inside the destination repository or from `https://` URLs
+2. Recipes come from paths inside the destination repository, from `https://` URLs, or by coordinates
    ([0013](0013-organization-content.md)). Relative references to recipes and templates resolve from the referencing
    recipe's location; for an HTTPS source, they resolve against its source URL. A local operand or reference that
    resolves outside the repository is refused.

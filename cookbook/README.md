@@ -9,26 +9,36 @@ A cookbook directory is one artifact holding its models, recipes, resources and 
 how a program reads its files, or supplies content another model consumes; a recipe chooses a setup through models.
 Models may depend on other models for their types and on ordinary libraries. Recipes depend on models.
 
-A cookbook has one release version. It publishes one jar per directory to a Maven-layout repository, with a POM
-for each jar and a bill of materials (BOM), `<group>:cookbook:<version>`, listing the artifacts at that release, so
-no directory is named `cookbook`. Each jar holds the directory's sources, resources and README under its package
-path, such as `dev/thecook/ralph/`: everything a reader needs without the source checkout. The `dev.thecook.cookbook`
-Gradle plugin packages them from the cookbook root.
+A cookbook has one release version, released as a git tag on the repository that holds it: `v<version>` when
+`cookbook.toml` is at the repository root, `<dir>/v<version>` when the cookbook is in the directory `<dir>`. This
+cookbook releases as `cookbook/v0.1.0`.
+
+Publishing jars is optional packaging of the same release. The `dev.thecook.cookbook` Gradle plugin packages one jar
+per directory into a Maven-layout repository, with a POM for each jar and a bill of materials (BOM),
+`<group>:cookbook:<version>`, listing the artifacts at that release, so no directory is named `cookbook`. Each jar
+holds the directory's sources, resources and README under its package path, such as `dev/thecook/ralph/`: everything
+a reader needs without the source checkout.
 
 A recipe is addressed as `group:artifact:version[:recipe]`. The recipe named like its directory is the apply
 default: `dev.thecook:ralph:0.1.0` applies `ralph`, while `dev.thecook:ralph:0.1.0:prd-story` applies `prd-story`.
-Only exact release versions are accepted; snapshots and version ranges are refused. `cook.lock` records the
-address and the jar's sha256.
+Only exact release versions are accepted; branches, commits, snapshots and version ranges are refused. `cook.lock`
+records the address and a sha256 of the artifact's sources, the same whether a tag or a jar supplied them.
 
 A loose recipe declares `@cookbook('dev.thecook:0.1.0')` once per cookbook it uses. The declaration selects the
-cookbook's BOM at that release so its model imports resolve to the listed jars. Two versions of one artifact
+cookbook at that release so its model imports resolve to its artifacts. Two versions of one artifact
 inside one recipe's dependency tree are an error.
 
-A committed `cook.toml` at the destination lists the repositories to resolve from, in order, as `repositories`:
-`https://` URLs or paths relative to the destination. Maven Central is the default.
+A committed `cook.toml` at the destination lists the repositories to resolve from, in order, as `repositories`: a git
+repository as `{ git = "<url>", dir = "<dir>" }`, with `dir` naming the cookbook's directory when it is not at the
+root, or a Maven-layout repository as an `https://` URL or a path relative to the destination. A git repository is
+used for a group when its `cookbook.toml` at the release tag names that group. Without a `cook.toml`, Cook resolves
+from Maven Central. [ADR 0029](../docs/adrs/0029-cookbook-distribution.md) records the reasons.
 
 ```toml
-repositories = ["https://repo.maven.apache.org/maven2/", "cookbook/build/repository"]
+repositories = [
+  { git = "https://github.com/lmarqs/the-cook", dir = "cookbook" },
+  "https://repo.maven.apache.org/maven2/",
+]
 ```
 
 The engine does not find recipes. People find them in a cookbook's repository, on an artifact host or through a

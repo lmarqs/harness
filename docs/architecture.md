@@ -35,7 +35,8 @@ lock use to identify it. A recipe applied by its coordinates is named by its add
 `dev.thecook:agents:instructions`, so applying a new version keeps the same owner.
 
 A cookbook repository holds and distributes ingredients and recipes. Cookbook distribution is separate from engine
-distribution, and a cookbook can have its own build. Keeping program models in cookbooks lets their authors maintain
+distribution: a cookbook releases by git tag, and may also publish jars of the same sources
+([cookbook distribution](#cookbook-distribution)). Keeping program models in cookbooks lets their authors maintain
 program-specific setup separately from the engine's evaluation, review, and writing responsibilities.
 
 Cook writes native files so the configured programs consume their own configuration directly. A recipe may describe
@@ -197,9 +198,10 @@ recipes:
 ```
 
 The source is a path relative to the repository root, an `https://` URL, or the recipe's coordinates. A key path is a
-list, so a key containing a dot stays one segment; `links` lists the symbolic links a recipe owns. The sha256
-identifies the recipe version that produced the recorded ownership: the file's for a path or URL, the jar's for
-coordinates. Because the lock is committed, every clone has the same ownership information.
+list, so a key containing a dot stays one segment; `links` lists the symbolic links a recipe owns. The sha256 identifies
+the recipe version that produced the recorded ownership. For a path or URL it is the file's hash. For coordinates it is
+a hash of the artifact's sources, each path and its content in path order, whichever repository supplied them.
+Because the lock is committed, every clone has the same ownership information.
 
 Apply works without the lock. When the lock is missing or names no entry for a recipe, Cook evaluates the recipe as
 usual and shows the diff; it has no previous ownership to compare against, so it removes nothing on the recipe's
@@ -245,10 +247,11 @@ Declared writes and deletions stay within that directory, including paths resolv
 reaches outside the destination through a symlink is outside the permitted output boundary (FR-21). See the
 [write boundary ADR](adrs/0012-write-boundary.md).
 
-Recipes come from two places: a path inside the destination repository, or an `https://` URL. Relative references to
-recipes and templates resolve from the referencing recipe's location: inside the repository for a local recipe, and
-against the source URL for a remote one. A local reference that resolves outside the repository is refused, as is a
-recipe operand outside it; move the file into the repository or serve it over HTTPS (FR-22).
+Recipes come from three places: a path inside the destination repository, an `https://` URL, or coordinates resolved
+from the repositories the destination's `cook.toml` lists ([cookbook distribution](#cookbook-distribution)). Relative
+references to recipes and templates resolve from the referencing recipe's location: inside the repository for a local
+recipe, and against the source URL for a remote one. A local reference that resolves outside the repository is refused,
+as is a recipe operand outside it; move the file into the repository or serve it over HTTPS (FR-22).
 
 For example, run either invocation from `/work/project`:
 
@@ -313,6 +316,17 @@ builds that can be independent of the engine build. Users supply the recipe vers
 
 The root README's [install section](../README.md#install) describes the current local packaging entry path.
 
+## Cookbook distribution
+
+A cookbook releases by git tag on the repository that holds it: `v<version>`, or `<dir>/v<version>` for a cookbook in
+the directory `<dir>`. The destination's committed `cook.toml` lists the repositories coordinates resolve from, in
+order: git repositories, and Maven-layout repositories holding jars of the same sources; without a `cook.toml`, Maven
+Central. Coordinates name exact releases only.
+
+`cook.lock` records a hash of the artifact's sources, so one release has one hash from either kind of repository, and
+a different hash under a recorded version shows as a changed source before the diff. The
+[cookbook distribution ADR](adrs/0029-cookbook-distribution.md) records the reasons.
+
 ## Requirements
 
 Other documents cite these requirements by number.
@@ -357,8 +371,9 @@ Other documents cite these requirements by number.
 ### Ownership, discard, and revert
 
 - **FR-14:** The repository commits `cook.lock`, a YAML file at its root. For each applied recipe it records the short
-  name, the source as a repository-relative path, an `https://` URL or coordinates, the source's sha256, and the owned
-  sections, keys, files and links. It records no recipe arguments.
+  name, the source as a repository-relative path, an `https://` URL or coordinates, the source's sha256 (for
+  coordinates, of the artifact's sources), and the owned sections, keys, files and links. It records no recipe
+  arguments.
 - **FR-15:** Discarding a recipe removes what `cook.lock` lists for it, without evaluating the recipe. Discard is
   deferred until a concrete need.
 - **FR-16:** Reverting a batch applies its reverse patches against current content without evaluating recipes. Later

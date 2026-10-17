@@ -28,7 +28,7 @@ of the batch they approve.
 | Content | Location | Purpose |
 | --- | --- | --- |
 | Native configuration and guidance | Paths declared by recipes within the destination, where the program reads them | Settings, ignore entries, instruction files, skills, and other requested output |
-| Recipe and template sources | Paths inside the destination repository or `https://` URLs | Trusted input; relative references resolve from the referencing recipe's location or URL |
+| Recipe and template sources | Paths inside the destination repository, `https://` URLs, or coordinates from a cookbook release | Trusted input; relative references resolve from the referencing recipe's location or URL |
 | Ownership lock | Committed `cook.lock` at the repository root | Each applied recipe's short name, source, sha256, and owned sections, keys, and files |
 | Batch records | The destination's ignored `.cook/batches/<batchId>/` directory | One record per batch: source snapshots and reversible patches for revert |
 | Engine wrapper | Committed `./cook` | Pins the engine version and package checksum; first use fetches and caches the platform package |

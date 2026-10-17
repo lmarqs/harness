@@ -30,10 +30,10 @@ approving it, without first converting their configuration through a separate im
    import of existing rules and no proof that new rules are equivalent before a change, and has no `--adopt` flag or
    alias. Cook does not silently drop rules to enforce a built-in minimum permission set, nor prescribe a universal
    cross-program rule grammar or precedence.
-3. Personal settings are not implicitly imported into shared configuration. A recipe that explicitly copies choices
-   into a declared destination file exposes that output in the same batch review. Recipe and template references
-   come from inside the destination repository or from `https://` URLs; declared writes and deletions remain within
-   the destination ([0012](0012-write-boundary.md)).
+3. Personal settings are not implicitly imported into shared configuration. A recipe that explicitly copies choices into
+   a declared destination file exposes that output in the same batch review. Recipe and template references come from
+   inside the destination repository, from `https://` URLs, or by coordinates; declared writes and deletions remain
+   within the destination ([0012](0012-write-boundary.md)).
 4. The permission rules and keys a recipe writes are recorded as its own in the committed `cook.lock`
    ([0007](0007-ownership.md)). That ownership decides which rules the recipe's later versions update and remove; it
    never vetoes a change to an edited rule and never extends to rules the recipe did not write. Reverting a batch
