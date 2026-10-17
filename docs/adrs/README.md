@@ -186,3 +186,4 @@ Must be maintained:
 | [0025](0025-recipes.md) | How are setup choices reused? | Trusted Groovy recipes describe reusable file changes |
 | [0026](0026-cookbook-trust.md) | What does batch approval establish about cookbook trust? | Cookbook execution requires trust beyond batch approval |
 | [0028](0028-place-of-the-tool.md) | What place does the tool take among the people who use it? | Cook supports shared setup without controlling how people work |
+| [0029](0029-cookbook-distribution.md) | How are cookbooks released and resolved? | Cookbooks release by git tag, with jars as optional packaging |
