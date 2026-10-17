@@ -19,7 +19,14 @@ class CookbookRepositoriesTest {
     ['dev.thecook', 'agents', '0.1.0', 'instructions']
     assert coordinates.jarPath == 'dev/thecook/agents/0.1.0/agents-0.1.0.jar'
     assert Coordinates.parse('dev.thecook:agents:0.1.0').recipe == null
-    ['dev.thecook:agents', 'dev.thecook:agents:0.1', 'dev.thecook:agents:0.1.0-SNAPSHOT', 'dev.thecook:agents:[0.1,)']
+    [
+      'dev.thecook:agents',
+      'dev.thecook:agents:0.1',
+      'dev.thecook:agents:0.1.0-SNAPSHOT',
+      'dev.thecook:agents:[0.1,)',
+      'dev.thecook:agents:main',
+      'dev.thecook:agents:3f5a2c1'
+    ]
     .each { text ->
       def error = shouldFail(IllegalArgumentException) { Coordinates.parse(text) }
       assert error.message.startsWith("Invalid recipe coordinates: ${text}")
@@ -71,6 +78,87 @@ class CookbookRepositoriesTest {
     assert reverse == forward
   }
 
+  @Test void readsAnArtifactFromTheReleaseTagOfACookbookInADirectory() {
+    def files = ['notes/README.md': 'Notes.', 'notes/notes.groovy': 'notes', 'notes/templates/NOTES.md': 'resource',
+      'other/other.groovy': 'other']
+    gitCookbook('source', 'cookbook', '1.2.3', files)
+    def kitchen = folder.newFolder('kitchen')
+    new File(kitchen, 'cook.toml').text = 'repositories = [{ git = "../source", dir = "cookbook" }]\n'
+
+    def artifact = repositories(kitchen).artifact(Coordinates.parse('acme:notes:1.2.3'))
+
+    assert artifact.readme == 'Notes.'
+    assert artifact.recipes == ['notes']
+    assert artifact.resources('templates') == ['NOTES.md': 'resource']
+    publish(new File(kitchen, 'maven'), files.findAll { it.key.startsWith('notes/') }.collectEntries { path, text ->
+      ['acme/' + path, text]
+    })
+    new File(kitchen, 'cook.toml').text = 'repositories = ["maven"]\n'
+    assert repositories(kitchen).artifact(Coordinates.parse('acme:notes:1.2.3')).sha256 == artifact.sha256
+  }
+
+  @Test void readsACookbookAtTheRepositoryRootFromItsVersionTag() {
+    def source = gitCookbook('source', null, '1.2.3', ['notes/notes.groovy': 'notes'])
+    def kitchen = folder.newFolder('kitchen')
+    new File(kitchen, 'cook.toml').text = 'repositories = [{ git = "file://' + source.absolutePath + '" }]\n'
+
+    assert repositories(kitchen).artifact(Coordinates.parse('acme:notes:1.2.3')).recipeSource('notes') == 'notes'
+  }
+
+  @Test void skipsAGitRepositoryWithoutTheReleaseOrForAnotherGroup() {
+    gitCookbook('other', null, '1.2.3', ['notes/notes.groovy': 'another group'], 'other')
+    gitCookbook('older', null, '1.2.2', ['notes/notes.groovy': 'an older release'])
+    def kitchen = folder.newFolder('kitchen')
+    publish(new File(kitchen, 'maven'), ['acme/notes/notes.groovy': 'from the jar'])
+    new File(kitchen, 'cook.toml').text = 'repositories = [{ git = "../other" }, { git = "../older" }, "maven"]\n'
+
+    assert repositories(kitchen).artifact(Coordinates.parse('acme:notes:1.2.3')).recipeSource('notes') == 'from the jar'
+  }
+
+  @Test void fetchesAMovedTagAgainAndReusesAFetchedReleaseOffline() {
+    def source = gitCookbook('source', 'cookbook', '1.2.3', ['notes/notes.groovy': 'first'])
+    def kitchen = folder.newFolder('kitchen')
+    new File(kitchen, 'cook.toml').text = 'repositories = [{ git = "../source", dir = "cookbook" }]\n'
+    def coordinates = Coordinates.parse('acme:notes:1.2.3')
+    def first = repositories(kitchen).artifact(coordinates)
+
+    new File(source, 'cookbook/notes/notes.groovy').text = 'second'
+    release(source, 'cookbook/v1.2.3')
+    def moved = repositories(kitchen).artifact(coordinates)
+    assert moved.recipeSource('notes') == 'second'
+    assert moved.sha256 != first.sha256
+
+    assert source.renameTo(new File(folder.root, 'gone'))
+    assert repositories(kitchen).artifact(coordinates).sha256 == moved.sha256
+    def error = shouldFail(IllegalArgumentException) {
+      repositories(kitchen).artifact(Coordinates.parse('acme:notes:1.2.4'))
+    }
+    assert error.message.startsWith("acme:notes:1.2.4 is not cached, and ${source} cannot be read: ")
+    assert error.message.endsWith('; connect to it and run again')
+  }
+
+  @Test void refusesGitRepositoriesThatAreUnauthenticatedMisshapedOrMisversioned() {
+    def kitchen = folder.newFolder('kitchen')
+    [
+      '{ git = "http://example.com/book.git" }': 'git repository http://example.com/book.git must use https://, ssh or a path; ' +
+      'http:// and git:// are not authenticated',
+      '{ git = "git://example.com/book.git" }': 'git repository git://example.com/book.git must use https://, ssh or a path; ' +
+      'http:// and git:// are not authenticated',
+      '{ git = "../book", branch = "main" }': 'a git repository is { git = "<url>", dir = "<dir>" }, with dir optional',
+      '{ git = "../book", dir = "../x" }': 'dir ../x must be a directory inside the git repository',
+    ].each { entry, message ->
+      new File(kitchen, 'cook.toml').text = "repositories = [${entry}]\n"
+      def error = shouldFail(IllegalArgumentException) { repositories(kitchen) }
+      assert error.message == "${new File(kitchen, 'cook.toml')}: ${message}"
+    }
+
+    def book = gitCookbook('book', null, '1.2.0', ['notes/notes.groovy': 'notes'])
+    git(book, 'tag', 'v1.2.3')
+    new File(kitchen, 'cook.toml').text = 'repositories = [{ git = "../book" }]\n'
+    def error = shouldFail(IllegalArgumentException) { repositories(kitchen).artifact(Coordinates.parse('acme:notes:1.2.3')) }
+    assert error.message == "the tag v1.2.3 in ${book} holds version 1.2.0 in cookbook.toml; tag each release with its own version"
+  }
+
   @Test void missingArtifactNamesTheRepositoriesSearched() {
     def kitchen = folder.newFolder('kitchen')
     new File(kitchen, 'cook.toml').text = 'repositories = ["repository"]\n'
@@ -92,7 +180,7 @@ class CookbookRepositoriesTest {
     assert error.message.endsWith('repository http://example.com/maven2 must be an https:// URL or a path')
     new File(kitchen, 'cook.toml').text = 'repositories = "repository"\n'
     error = shouldFail(IllegalArgumentException) { CookbookRepositories.at(kitchen) }
-    assert error.message.endsWith('repositories must be a list of https:// URLs or paths')
+    assert error.message.endsWith('repositories must be a list of https:// URLs, paths and { git = "<url>", dir = "<dir>" } tables')
   }
 
   private static void publish(File repository, Map<String, String> files) {
@@ -105,6 +193,39 @@ class CookbookRepositoriesTest {
         out.closeEntry()
       }
     }
+  }
+
+  private CookbookRepositories repositories(File kitchen) {
+    CookbookRepositories.at(kitchen, new File(folder.root, 'cache'))
+  }
+
+  /** A git repository holding a cookbook of `group` in `dir`, or at its root, with `files` below it, tagged as `version`. */
+  private File gitCookbook(String name, String dir, String version, Map<String, String> files, String group = 'acme') {
+    def root = folder.newFolder(name)
+    git(root, 'init', '-q')
+    def cookbook = dir ? new File(root, dir) : root
+    (['cookbook.toml': "group = \"${group}\"\nversion = \"${version}\"\napi = 1\n".toString()] + files).each { path, text ->
+      def file = new File(cookbook, path)
+      file.parentFile.mkdirs()
+      file.text = text
+    }
+    release(root, (dir ? dir + '/' : '') + 'v' + version)
+    root
+  }
+
+  private static void release(File root, String tag) {
+    git(root, 'add', '-A')
+    git(root, 'commit', '-q', '-m', tag)
+    git(root, 'tag', '-f', '-a', '-m', tag, tag)
+  }
+
+  private static String git(File directory, String... arguments) {
+    def settings = ['user.name=Test', 'user.email=test@example.com', 'commit.gpgsign=false', 'tag.gpgsign=false']
+    def command = ['git'] + settings.collectMany { ['-c', it] } + arguments.toList()
+    def process = new ProcessBuilder(command).directory(directory).redirectErrorStream(true).start()
+    def output = process.inputStream.text
+    assert process.waitFor() == 0 : output
+    output
   }
 
   private static String digest(byte[] bytes) {

@@ -31,7 +31,10 @@ inside one recipe's dependency tree are an error.
 A committed `cook.toml` at the destination lists the repositories to resolve from, in order, as `repositories`: a git
 repository as `{ git = "<url>", dir = "<dir>" }`, with `dir` naming the cookbook's directory when it is not at the
 root, or a Maven-layout repository as an `https://` URL or a path relative to the destination. A git repository is
-used for a group when its `cookbook.toml` at the release tag names that group. Without a `cook.toml`, Cook resolves
+used for a group when its `cookbook.toml` at the release tag names that group. Cook fetches the tag with the machine's
+`git`, which uses the credentials git already has, and keeps it in `$XDG_CACHE_HOME/the-cook/git`, or
+`~/.cache/the-cook/git`, so a fetched release applies offline; each later apply fetches the tag again when the
+repository can be read, so a moved tag shows as a changed hash in `cook.lock`. Without a `cook.toml`, Cook resolves
 from Maven Central. [ADR 0029](../docs/adrs/0029-cookbook-distribution.md) records the reasons.
 
 ```toml

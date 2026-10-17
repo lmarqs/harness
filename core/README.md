@@ -11,8 +11,9 @@ kitchen. The author's annotations are Kotlin, in `thecook.cookbook.api`; the eng
 `CookbookApply.propose` takes the recipes in the order given and returns a `Proposal`; nothing reaches the disk until
 `Proposal.commit`.
 
-1. `RecipeLoader` resolves each operand. Coordinates read the artifact's jar from the kitchen's repositories
-   (`CookbookRepositories`). A path must resolve inside the kitchen, symbolic links included; its model imports
+1. `RecipeLoader` resolves each operand. Coordinates read the artifact from the first of the kitchen's repositories
+   that holds it (`CookbookRepositories`): a jar from a Maven-layout repository (`MavenRepository`), or the artifact's
+   directory at the release tag of a git repository (`GitRepository`), fetched with `git` into a cache. A path must resolve inside the kitchen, symbolic links included; its model imports
    resolve from the releases its `@cookbook('group:version')` annotations name. Each artifact is read, and its models
    compiled, once per invocation.
 2. `CookbookCompiler` compiles an artifact's models in a class loader of their own, then the recipe in its own class

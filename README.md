@@ -68,14 +68,16 @@ Cook cooks in. `-C <dir>` or `--kitchen=<dir>` before the first recipe cooks in 
   ([the lock](docs/architecture.md#ownership-and-the-lock)).
 - `help` on an artifact, a recipe or a recipe path, read without running it.
 
-Coordinates resolve from the jar in the first repository of the kitchen's `cook.toml` `repositories` list that holds
-it, each an `https://` URL or a path, and from Maven Central when the kitchen has no `cook.toml`. Arguments follow
+Coordinates resolve from the first repository of the kitchen's `cook.toml` `repositories` list that holds them, and
+from Maven Central when the kitchen has no `cook.toml`. An entry is a Maven-layout repository of jars, an `https://` URL
+or a path, or a git repository, `{ git = "<url>", dir = "<dir>" }`, read at the release tag with the machine's `git`
+([cookbook](cookbook/README.md)). Arguments follow
 their recipe as `--name=value` or `--name value`, and a yes-or-no argument as a bare `--name` or `--name=false`. A
 word that contains `/` or `:` or ends with `.groovy` starts the next recipe, so a value shaped like one is written
 `--name=value`.
 
-The design has these, and they do not run yet: revert and batch records, `https://` recipe operands, `apply` written
-as a command, and git repositories in `cook.toml` ([ADR 0029](docs/adrs/0029-cookbook-distribution.md)).
+The design has these, and they do not run yet: revert and batch records, `https://` recipe operands, and `apply`
+written as a command.
 
 ### Recipe paths
 

@@ -2,11 +2,13 @@ package thecook.cookbook
 
 import org.tomlj.Toml
 import org.tomlj.TomlArray
+import org.tomlj.TomlTable
 
 /**
  * The repositories that cookbook artifacts resolve from: the `repositories` list of the kitchen's `cook.toml`, or Maven
  * Central when the kitchen has none. An entry is a Maven-layout repository, an `https://` URL or a path relative to the
- * kitchen. They are tried in order and the first that holds the artifact supplies it.
+ * kitchen, or a git repository, `{ git = "<url>", dir = "<dir>" }`. They are tried in order and the first that holds
+ * the artifact supplies it.
  */
 final class CookbookRepositories {
   static final URI CENTRAL = URI.create('https://repo.maven.apache.org/maven2/')
@@ -19,8 +21,11 @@ final class CookbookRepositories {
     this.origin = origin
   }
 
-  /** The repositories that `cook.toml` in `kitchen` lists, or Maven Central without that file. */
-  static CookbookRepositories at(File kitchen) {
+  /**
+   * The repositories that `cook.toml` in `kitchen` lists, or Maven Central without that file. Git repositories keep
+   * the tags they fetch in `cache`.
+   */
+  static CookbookRepositories at(File kitchen, File cache = defaultCache()) {
     def manifest = new File(kitchen, 'cook.toml')
     def central = [new MavenRepository(CENTRAL)] as List<CookbookRepository>
     if (!manifest.isFile()) {
@@ -33,18 +38,19 @@ final class CookbookRepositories {
     if (!toml.contains('repositories')) {
       return new CookbookRepositories(central, "Maven Central; ${manifest} lists no repositories")
     }
-    if (!toml.isArray('repositories') || !entries(toml.getArray('repositories')).every { it instanceof String }) {
-      throw new IllegalArgumentException("${manifest}: repositories must be a list of https:// URLs or paths")
+    if (!toml.isArray('repositories') || !entries(toml.getArray('repositories')).every { it instanceof String || it instanceof TomlTable }) {
+      throw new IllegalArgumentException("${manifest}: repositories must be a list of https:// URLs, paths and " +
+      '{ git = "<url>", dir = "<dir>" } tables')
     }
-    def base = kitchen.toPath().toAbsolutePath().toUri()
-    List<CookbookRepository> repositories = entries(toml.getArray('repositories')).collect { String entry ->
-      def uri = base.resolve(entry.endsWith('/') ? entry : "${entry}/")
-      if (!(uri.scheme in ['https', 'file'])) {
-        throw new IllegalArgumentException("${manifest}: repository ${entry} must be an https:// URL or a path")
-      }
-      new MavenRepository(uri)
+    List<CookbookRepository> repositories = entries(toml.getArray('repositories')).collect { entry ->
+      entry instanceof TomlTable ? git((TomlTable) entry, kitchen, manifest, cache) : maven((String) entry, kitchen, manifest)
     }
     new CookbookRepositories(repositories, "the repositories in ${manifest}: ${repositories.join(', ')}")
+  }
+
+  /** `$XDG_CACHE_HOME/the-cook/git`, or `~/.cache/the-cook/git` when that variable is unset. */
+  static File defaultCache() {
+    new File(System.getenv('XDG_CACHE_HOME') ?: new File(System.getProperty('user.home'), '.cache').path, 'the-cook/git')
   }
 
   /** The artifact that `coordinates` name, read from the first repository holding it. */
@@ -57,6 +63,34 @@ final class CookbookRepositories {
     }
     throw new IllegalArgumentException(
     "${coordinates.artifactAddress} not found in ${origin}; publish it there, or list its repository in cook.toml")
+  }
+
+  private static MavenRepository maven(String entry, File kitchen, File manifest) {
+    def uri = kitchen.toPath().toAbsolutePath().toUri().resolve(entry.endsWith('/') ? entry : "${entry}/")
+    if (!(uri.scheme in ['https', 'file'])) {
+      throw new IllegalArgumentException("${manifest}: repository ${entry} must be an https:// URL or a path")
+    }
+    new MavenRepository(uri)
+  }
+
+  private static GitRepository git(TomlTable entry, File kitchen, File manifest, File cache) {
+    if (!entry.isString('git') || !(entry.keySet() - ['git', 'dir']).isEmpty() || (entry.contains('dir') && !entry.isString('dir'))) {
+      throw new IllegalArgumentException("${manifest}: a git repository is { git = \"<url>\", dir = \"<dir>\" }, with dir optional")
+    }
+    def url = entry.getString('git')
+    if (url ==~ /(?i)(http|git):\/\/.*/) {
+      throw new IllegalArgumentException("${manifest}: git repository ${url} must use https://, ssh or a path; " +
+      'http:// and git:// are not authenticated')
+    }
+    // As git does, a colon before the first slash makes `host:path` an ssh address rather than a path.
+    if (!url.contains('://') && !(url ==~ /[^\/]+:.*/)) {
+      url = kitchen.toPath().toAbsolutePath().resolve(url).normalize().toString()
+    }
+    def dir = entry.getString('dir')?.replaceAll(/\/+$/, '') ?: null
+    if (dir != null && (dir.startsWith('/') || '..' in dir.split('/'))) {
+      throw new IllegalArgumentException("${manifest}: dir ${dir} must be a directory inside the git repository")
+    }
+    new GitRepository(url, dir, cache)
   }
 
   private static List<Object> entries(TomlArray array) {
