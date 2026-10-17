@@ -16,7 +16,7 @@ class CookTomlTest {
   @Test void readsTheArtifactFromTheFirstListedRepositoryHoldingIt() {
     def kitchen = folder.newFolder('kitchen')
     publish(new File(kitchen, 'second'), [
-      'acme/notes/README.md'  : 'Notes for the repository.',
+      'acme/notes/README.md': 'Notes for the repository.',
       'acme/notes/notes.groovy': 'second notes',
       'acme/notes/review.groovy': 'review',
       'acme/notes/Notes.groovy': 'class Notes {}',

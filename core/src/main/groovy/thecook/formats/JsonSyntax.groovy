@@ -66,9 +66,13 @@ class JsonSyntax {
       cursor++; return [kind: 'array', start: start, end: cursor]
     }
     while (true) {
-      value(); whitespace(); if (peek(']')) {
-        cursor++; break
-      }; consume(',')
+      value()
+      whitespace()
+      if (peek(']')) {
+        cursor++
+        break
+      }
+      consume(',')
     }
     [kind: 'array', start: start, end: cursor]
   }

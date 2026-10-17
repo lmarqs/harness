@@ -1,8 +1,8 @@
+package thecook.cookbook.api
+
 // The author's API: the only engine types a recipe or model reaches. The engine imports this package into every unit,
 // so recipes write `@param` and models write `@Section` without an import. Recipe annotations are lower case so they
 // read as keywords in a recipe; model annotations name the part of a file they declare.
-
-package thecook.cookbook.api
 
 import java.lang.annotation.ElementType
 import java.lang.annotation.Retention
@@ -12,9 +12,7 @@ import java.lang.annotation.Target
 /** Marks a model class. The engine gives it `directory`, `resource`, `resources` and `current`. */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
-@interface Ingredient {
-}
-
+@interface Ingredient {}
 /** The marked section `id` of a shared text file; `comment` names the line comment when the extension does not. */
 @Target([ElementType.METHOD, ElementType.FIELD])
 @Retention(RetentionPolicy.RUNTIME)

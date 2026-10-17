@@ -1,12 +1,10 @@
 package thecook.rendering
 
 /** Where a recipe's region sits in a document: a marked block, or a key path. */
-abstract class RegionLocation {
-}
+abstract class RegionLocation {}
 
 /** The block between a recipe's markers. */
-final class BlockLocation extends RegionLocation {
-}
+final class BlockLocation extends RegionLocation {}
 
 /** A key path in a structured document. */
 final class KeyLocation extends RegionLocation {

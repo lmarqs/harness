@@ -4,7 +4,6 @@ plugins {
 }
 
 abstract class DocsLinkCheck extends DefaultTask {
-
   @InputFiles
   @PathSensitive(PathSensitivity.RELATIVE)
   abstract ConfigurableFileCollection getMarkdown()
