@@ -2,6 +2,7 @@ package thecook.cookbook
 
 import thecook.filesystem.Repository
 
+import java.util.regex.Pattern
 import java.util.zip.ZipInputStream
 
 /**
@@ -17,11 +18,21 @@ final class CookbookArtifact {
   final String sha256
   private final Map<String, byte[]> files
 
-  /** `files` holds the artifact's files keyed by their path below the artifact's directory. */
+  // Ant's default excludes, which Gradle leaves out of every jar. A file whose path has a name matching one is not a
+  // source, so a tag holding it hashes as the jar of the same directory does.
+  private static final List<Pattern> EXCLUDED = ('*~ #*# .#* %*% ._* CVS .cvsignore SCCS vssver.scc .svn .git ' +
+  '.gitattributes .gitignore .gitmodules .hg .hgignore .hgsubstate .hgtags .bzr .bzrignore .DS_Store').split(' ').collect { glob ->
+    Pattern.compile(glob.split(/\*/, -1).collect { Pattern.quote(it) }.join('.*'))
+  }
+
+  /**
+   * `files` holds the artifact's files keyed by their path below the artifact's directory; those a jar leaves out are
+   * dropped.
+   */
   CookbookArtifact(Coordinates coordinates, Map<String, byte[]> files) {
     this.coordinates = coordinates
-    this.files = files
-    this.sha256 = sourcesSha256(files)
+    this.files = files.findAll { path, bytes -> source(path) }
+    this.sha256 = sourcesSha256(this.files)
   }
 
   /** The artifact whose files are the entries of the ZIP archive `zip` below `directory`. */
@@ -77,6 +88,14 @@ final class CookbookArtifact {
 
   private List<String> sources() {
     files.keySet().findAll { !it.contains('/') && it.endsWith('.groovy') }*.replaceAll(/\.groovy$/, '').sort()
+  }
+
+  private static boolean source(String path) {
+    !path.split('/').any { name ->
+      EXCLUDED.any {
+        it.matcher(name).matches()
+      }
+    }
   }
 
   private static String sourcesSha256(Map<String, byte[]> files) {

@@ -202,8 +202,9 @@ list, so a key containing a dot stays one segment; `links` lists the symbolic li
 the recipe version that produced the recorded ownership. For a path or URL it is the file's hash. For coordinates it is
 the hash of the artifact's sources, the same whichever repository supplied them: the sha256 of one line
 `<sha256 of the file>  <path>` per file, each ending in a newline, sorted by the UTF-8 bytes of the path. The path is
-relative to the artifact's directory and separated by `/`, and both hashes are written in lower-case hex.
-Because the lock is committed, every clone has the same ownership information.
+relative to the artifact's directory and separated by `/`, and both hashes are written in lower-case hex. A file
+with a name on its path that matches one of Ant's default excludes, which Gradle leaves out of every jar (`.git`,
+`.gitignore`, `.gitattributes`, `.DS_Store`, `*~` and the like), is not a source. Because the lock is committed, every clone has the same ownership information.
 
 Apply works without the lock. When the lock is missing or names no entry for a recipe, Cook evaluates the recipe as
 usual and shows the diff; it has no previous ownership to compare against, so it removes nothing on the recipe's

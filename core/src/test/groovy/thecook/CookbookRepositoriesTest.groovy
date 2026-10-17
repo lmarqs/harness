@@ -97,6 +97,20 @@ class CookbookRepositoriesTest {
     assert repositories(kitchen).artifact(Coordinates.parse('acme:notes:1.2.3')).sha256 == artifact.sha256
   }
 
+  @Test void leavesOutOfTheSourcesTheFilesAGradleJarLeavesOut() {
+    def files = ['notes/notes.groovy': 'notes', 'notes/.gitignore': 'out/\n', 'notes/templates/.DS_Store': '',
+      'notes/templates/NOTES.md~': 'backup', 'notes/.svn/entries': '']
+    gitCookbook('source', null, '1.2.3', files)
+    def kitchen = folder.newFolder('kitchen')
+    publish(new File(kitchen, 'maven'), ['acme/notes/notes.groovy': 'notes'])
+    new File(kitchen, 'cook.toml').text = 'repositories = [{ git = "../source" }]\n'
+    def tag = repositories(kitchen).artifact(Coordinates.parse('acme:notes:1.2.3'))
+    new File(kitchen, 'cook.toml').text = 'repositories = ["maven"]\n'
+
+    assert tag.resources('templates') == [:]
+    assert tag.sha256 == repositories(kitchen).artifact(Coordinates.parse('acme:notes:1.2.3')).sha256
+  }
+
   @Test void readsACookbookAtTheRepositoryRootFromItsVersionTag() {
     def source = gitCookbook('source', null, '1.2.3', ['notes/notes.groovy': 'notes'])
     def kitchen = folder.newFolder('kitchen')
