@@ -54,7 +54,9 @@ class CookbookPlugin implements Plugin<Project> {
       artifactId = BOM
       pom.packaging = 'pom'
       pom.withXml { xml ->
-        def dependencies = xml.asNode().appendNode('dependencyManagement').appendNode('dependencies')
+        def dependencies = xml.asNode()
+            .appendNode('dependencyManagement')
+            .appendNode('dependencies')
         artifacts.each { artifact ->
           def dependency = dependencies.appendNode('dependency')
           dependency.appendNode('groupId', project.group.toString())

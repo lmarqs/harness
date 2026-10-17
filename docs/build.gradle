@@ -95,7 +95,9 @@ abstract class DocsLinkCheck extends DefaultTask {
 
       if (heading.find()) {
         String text = heading.group(1).replaceAll(/\[([^\]]*)\]\([^)]*\)/, '$1')
-        String slug = text.toLowerCase(Locale.ROOT).replaceAll(/[^\p{L}\p{N}\s_-]/, '').replaceAll(/\s/, '-')
+        String slug = text.toLowerCase(Locale.ROOT)
+            .replaceAll(/[^\p{L}\p{N}\s_-]/, '')
+            .replaceAll(/\s/, '-')
         int count = seen.getOrDefault(slug, 0)
         seen[slug] = count + 1
         result << (count == 0 ? slug : "${slug}-${count}".toString())

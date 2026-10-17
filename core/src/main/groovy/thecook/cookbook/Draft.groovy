@@ -61,7 +61,9 @@ final class Draft {
 
   /** The paths whose content, kind or permissions differ from the disk, in path order. */
   List<String> getChanges() {
-    after.keySet().findAll { changed(it) }.sort()
+    after.keySet()
+        .findAll { changed(it) }
+        .sort()
   }
 
   /** The text of `path` on the disk, or `symbolic link to <target>` for a link; `null` when absent. */

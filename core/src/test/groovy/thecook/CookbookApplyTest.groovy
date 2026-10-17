@@ -725,7 +725,9 @@ config.migrated = migrated
     Map<String, Object> files = [:] + extra
     directory.eachFileRecurse { file ->
       if (file.isFile()) {
-        files[directory.toPath().relativize(file.toPath()).toString()] = file.bytes
+        files[directory.toPath()
+              .relativize(file.toPath())
+              .toString()] = file.bytes
       }
     }
     publish(kitchen, "dev.thecook:${name}:0.1.0", files)
@@ -750,16 +752,26 @@ config.migrated = migrated
   }
 
   private static String sha256(byte[] bytes) {
-    MessageDigest.getInstance('SHA-256').digest(bytes).encodeHex().toString()
+    MessageDigest.getInstance('SHA-256')
+        .digest(bytes)
+        .encodeHex()
+        .toString()
   }
 
   // The definition in docs/architecture.md: one line `<sha256 of the file>  <path>` per file, in path order.
   private static String sourcesSha256(File directory) {
     List<String> paths = []
     directory.eachFileRecurse(groovy.io.FileType.FILES) {
-      paths << directory.toPath().relativize(it.toPath()).toString()
+      paths << directory.toPath()
+          .relativize(it.toPath())
+          .toString()
     }
-    sha256(paths.sort().collect { "${sha256(new File(directory, it))}  ${it}\n" }.join().getBytes('UTF-8'))
+    sha256(paths.sort()
+        .collect {
+          "${sha256(new File(directory, it))}  ${it}\n"
+        }
+        .join()
+        .getBytes('UTF-8'))
   }
 
   private static Throwable shouldFail(Class<? extends Throwable> type, Closure action) {

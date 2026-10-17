@@ -67,7 +67,9 @@ class TomlDocument implements Document {
     throw new IllegalArgumentException("Unsupported TOML value: ${value}")
   }
   private static String quote(String value) {
-    new groovy.json.JsonGenerator.Options().disableUnicodeEscaping().build().toJson(value)
+    new groovy.json.JsonGenerator.Options().disableUnicodeEscaping()
+        .build()
+        .toJson(value)
   }
   private static String keyName(String key) {
     key ==~ /[a-zA-Z0-9_-]+/ ? key : quote(key)

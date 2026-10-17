@@ -170,11 +170,14 @@ class YamlDocument implements Document {
   @Override
   void remove(String id, RegionLocation location) {
     deleteKey(((KeyLocation) location).path)
-    createdParents.sort { -it.size() }.toList().each { path ->
+    def deepestFirst = createdParents.sort { -it.size() }.toList()
+
+    deepestFirst.each { path ->
       def node = at(path)
 
       if ((node instanceof MappingNode && node.value.isEmpty()) || node?.tag == Tag.NULL) {
-        deleteKey(path); createdParents.remove(path)
+        deleteKey(path)
+        createdParents.remove(path)
       }
     }
   }

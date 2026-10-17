@@ -20,7 +20,11 @@ final class RecipeRun {
     def script = (Script) recipe.type.getDeclaredConstructor().newInstance()
     List<Field> fields = recipe.fields.collect { recipe.type.getDeclaredField(it) }
     def params = fields.findAll { it.getAnnotation(Param) }
-    def names = params.collectMany { it.getAnnotation(Param).value().toList() }
+    def names = params.collectMany {
+      it.getAnnotation(Param)
+          .value()
+          .toList()
+    }
     def unknown = arguments*.name.findAll { !(it in names) }
 
     if (unknown) {

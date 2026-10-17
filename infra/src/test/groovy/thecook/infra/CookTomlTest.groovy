@@ -44,7 +44,10 @@ class CookTomlTest {
       'acme/notes/README.md': '',
     ]
     publish(new File(kitchen, 'forward'), files)
-    publish(new File(kitchen, 'reverse'), files.entrySet().toList().reverse().collectEntries())
+    publish(new File(kitchen, 'reverse'), files.entrySet()
+        .toList()
+        .reverse()
+        .collectEntries())
     def coordinates = Coordinates.parse('acme:notes:1.2.3')
     new File(kitchen, 'cook.toml').text = 'repositories = ["forward"]\n'
     def forward = repositories(kitchen).artifact(coordinates).sha256
@@ -97,7 +100,9 @@ class CookTomlTest {
     def kitchen = folder.newFolder('kitchen')
     new File(kitchen, 'cook.toml').text = 'repositories = [{ git = "file://' + source.absolutePath + '" }]\n'
 
-    assert repositories(kitchen).artifact(Coordinates.parse('acme:notes:1.2.3')).recipeSource('notes') == 'notes'
+    assert repositories(kitchen)
+    .artifact(Coordinates.parse('acme:notes:1.2.3'))
+    .recipeSource('notes') == 'notes'
   }
 
   @Test void readsTheSourcesAsCommittedWhateverTheTagsExportAttributes() {
@@ -106,7 +111,9 @@ class CookTomlTest {
     def kitchen = folder.newFolder('kitchen')
     new File(kitchen, 'cook.toml').text = 'repositories = [{ git = "../source" }]\n'
 
-    assert repositories(kitchen).artifact(Coordinates.parse('acme:notes:1.2.3')).recipeSource('notes') ==
+    assert repositories(kitchen)
+    .artifact(Coordinates.parse('acme:notes:1.2.3'))
+    .recipeSource('notes') ==
     'line\n$Format:%H$\n'
   }
 
@@ -130,7 +137,9 @@ class CookTomlTest {
     publish(new File(kitchen, 'maven'), ['acme/notes/notes.groovy': 'from the jar'])
     new File(kitchen, 'cook.toml').text = 'repositories = [{ git = "../other" }, { git = "../older" }, "maven"]\n'
 
-    assert repositories(kitchen).artifact(Coordinates.parse('acme:notes:1.2.3')).recipeSource('notes') == 'from the jar'
+    assert repositories(kitchen)
+    .artifact(Coordinates.parse('acme:notes:1.2.3'))
+    .recipeSource('notes') == 'from the jar'
   }
 
   @Test void fetchesAMovedTagAgainAndReusesAFetchedReleaseOffline() {
@@ -209,9 +218,13 @@ class CookTomlTest {
     new File(kitchen, 'cook.toml').text = 'repositories = ["~/.m2/repository", { git = "~/kit" }, "~user/x"]\n'
 
     assert repositories(kitchen).repositories*.toString() == [
-      new File(home, '.m2/repository').toURI().toString().replaceAll(/\/?$/, '/'),
+      new File(home, '.m2/repository').toURI()
+      .toString()
+      .replaceAll(/\/?$/, '/'),
       new File(home, 'kit').path,
-      new File(kitchen, '~user/x').toURI().toString().replaceAll(/\/?$/, '/'),
+      new File(kitchen, '~user/x').toURI()
+      .toString()
+      .replaceAll(/\/?$/, '/'),
     ]
   }
 
@@ -269,14 +282,19 @@ class CookTomlTest {
   private static String git(File directory, String... arguments) {
     def settings = ['user.name=Test', 'user.email=test@example.com', 'commit.gpgsign=false', 'tag.gpgsign=false']
     def command = ['git'] + settings.collectMany { ['-c', it] } + arguments.toList()
-    def process = new ProcessBuilder(command).directory(directory).redirectErrorStream(true).start()
+    def process = new ProcessBuilder(command).directory(directory)
+        .redirectErrorStream(true)
+        .start()
     def output = process.inputStream.text
     assert process.waitFor() == 0 : output
     output
   }
 
   private static String digest(byte[] bytes) {
-    MessageDigest.getInstance('SHA-256').digest(bytes).encodeHex().toString()
+    MessageDigest.getInstance('SHA-256')
+        .digest(bytes)
+        .encodeHex()
+        .toString()
   }
 
   private static Throwable shouldFail(Class<? extends Throwable> type, Closure action) {

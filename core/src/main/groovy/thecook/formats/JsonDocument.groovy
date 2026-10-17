@@ -77,11 +77,14 @@ class JsonDocument implements Document {
   @Override
   void remove(String id, RegionLocation location) {
     deleteKey(((KeyLocation) location).path)
-    createdParents.sort { -it.size() }.toList().each { path ->
+    def deepestFirst = createdParents.sort { -it.size() }.toList()
+
+    deepestFirst.each { path ->
       def node = at(path)
 
       if (node?.kind == 'object' && node.members.isEmpty()) {
-        deleteKey(path); createdParents.remove(path)
+        deleteKey(path)
+        createdParents.remove(path)
       }
     }
   }

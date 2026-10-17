@@ -23,7 +23,11 @@ final class CookbookArtifact {
   private static final List<Pattern> EXCLUDED = ('*~ #*# .#* %*% ._* CVS .cvsignore SCCS vssver.scc .svn .git ' +
   '.gitattributes .gitignore .gitmodules .hg .hgignore .hgsubstate .hgtags ' +
   '.bzr .bzrignore .DS_Store').split(' ').collect { glob ->
-    Pattern.compile(glob.split(/\*/, -1).collect { Pattern.quote(it) }.join('.*'))
+    Pattern.compile(glob.split(/\*/, -1)
+        .collect {
+          Pattern.quote(it)
+        }
+        .join('.*'))
   }
 
   /**
@@ -85,12 +89,17 @@ final class CookbookArtifact {
   /** Every packaged file under the directory `path`, keyed by its path below it. */
   Map<String, String> resources(String path) {
     def prefix = path.endsWith('/') ? path : "${path}/"
-    files.keySet().findAll { it.startsWith(prefix) }.sort()
-    .collectEntries { [(it.substring(prefix.length())): text(it)] }
+    files.keySet()
+        .findAll { it.startsWith(prefix) }
+        .sort()
+        .collectEntries { [(it.substring(prefix.length())): text(it)] }
   }
 
   private List<String> sources() {
-    files.keySet().findAll { !it.contains('/') && it.endsWith('.groovy') }*.replaceAll(/\.groovy$/, '').sort()
+    files.keySet()
+        .findAll { !it.contains('/') && it.endsWith('.groovy') }
+        *.replaceAll(/\.groovy$/, '')
+        .sort()
   }
 
   private static boolean source(String path) {
@@ -103,7 +112,11 @@ final class CookbookArtifact {
 
   private static String sourcesSha256(Map<String, byte[]> files) {
     def paths = files.keySet().sort { a, b -> Arrays.compareUnsigned(a.getBytes('UTF-8'), b.getBytes('UTF-8')) }
-    Repository.digest(paths.collect { "${Repository.digest(files[it])}  ${it}\n" }.join().getBytes('UTF-8'))
+    Repository.digest(paths.collect {
+      "${Repository.digest(files[it])}  ${it}\n"
+    }
+    .join()
+    .getBytes('UTF-8'))
   }
 
   private String text(String path) {

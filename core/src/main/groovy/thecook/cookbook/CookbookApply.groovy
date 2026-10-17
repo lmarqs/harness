@@ -49,7 +49,9 @@ final class CookbookApply {
         def ingredients = RecipeRun.run(compiled, request.arguments) { Class type, String at ->
           model(type, at, loader.reads(type, draft))
         }
-        ingredients*.getClass().unique().each { checkPristine(it, loader.reads(it, draft), name) }
+        ingredients*.getClass()
+            .unique()
+            .each { checkPristine(it, loader.reads(it, draft), name) }
         def declared = Declarations.of(ingredients, name)
         apply(name, declared, draft, lock, seeds)
         def recorded = lock.sha256(name, recipe.address)
@@ -111,7 +113,9 @@ final class CookbookApply {
       }
     }
     def targets = owned*.target
-    lock.owned(name).findAll { !(it in targets) }.each { it.withdraw(draft) }
+    lock.owned(name)
+        .findAll { !(it in targets) }
+        .each { it.withdraw(draft) }
     owned.each { it.write(draft) }
     declared.deletes.each { deletion ->
       def owner = lock.ownerOf(new FileTarget(deletion.file), name) ?:
@@ -236,9 +240,11 @@ final class Proposal {
    */
   Map<String, String> getActions() {
     def changes = draft.changes
-    (changes + seeds.kept).unique().sort().collectEntries { path ->
-      [(path): !(path in changes) ? 'keep' : path in seeds.replaced ? 'replace' : draft.action(path)]
-    }
+    (changes + seeds.kept).unique()
+        .sort()
+        .collectEntries { path ->
+          [(path): !(path in changes) ? 'keep' : path in seeds.replaced ? 'replace' : draft.action(path)]
+        }
   }
 
   /** The text of a changed `path` before the batch; `null` when it is created. */

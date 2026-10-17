@@ -42,7 +42,9 @@ notes.add('local')
 
     try {
       def builder = new ProcessBuilder(([launcher.absolutePath] + args) as String[])
-      .directory(directory).redirectErrorStream(true).redirectOutput(output)
+      .directory(directory)
+      .redirectErrorStream(true)
+      .redirectOutput(output)
       ['JAVA_HOME', 'JRE_HOME', 'CLASSPATH', 'JAVA_TOOL_OPTIONS', 'JDK_JAVA_OPTIONS', '_JAVA_OPTIONS'].each {
         builder.environment().remove(it)
       }

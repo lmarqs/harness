@@ -94,7 +94,8 @@ final class GitRepository implements CookbookRepository {
 
     if (remote.exit == 0) {
       // ls-remote matches the pattern against the end of each ref name, so only the line naming the tag itself counts.
-      def published = new String(remote.output, 'UTF-8').readLines()*.split('\t')
+      def published = new String(remote.output, 'UTF-8').readLines()
+          *.split('\t')
           .find { it.size() == 2 && it[1] == ref }
 
       if (published == null) {
@@ -115,8 +116,11 @@ final class GitRepository implements CookbookRepository {
   // The blobs as committed, keyed by their path below `directory`. git archive would apply the machine's
   // core.autocrlf and the tag's export attributes, so the sources and their hash would differ between machines.
   private Map<String, byte[]> files(String commit, String directory) {
-    def blobs = new String(git('ls-tree', '-r', '-z', commit, '--', directory), 'UTF-8').split('\u0000')
-        .findAll { it }.collect { it.split('\t', 2) }.findAll { it[0].split(' ')[1] == 'blob' }
+    def blobs = new String(git('ls-tree', '-r', '-z', commit, '--', directory), 'UTF-8')
+        .split('\u0000')
+        .findAll { it }
+        .collect { it.split('\t', 2) }
+        .findAll { it[0].split(' ')[1] == 'blob' }
     blobs.collectEntries { blob ->
       [blob[1].substring(directory.length()), git('cat-file', 'blob', blob[0].split(' ')[2])]
     }
@@ -151,7 +155,9 @@ final class GitRepository implements CookbookRepository {
 
   // ssh and git can write warnings and hints before the line that states the failure.
   private static String firstError(String stderr) {
-    def lines = stderr.readLines()*.trim().findAll { it }
+    def lines = stderr.readLines()
+        *.trim()
+        .findAll { it }
     lines.find { !(it ==~ /(?i)(warning|hint):.*/) } ?: lines.find() ?: ''
   }
 

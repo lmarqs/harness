@@ -42,7 +42,10 @@ class CookbookPluginTest {
   }
 
   private Project project(File root) {
-    ProjectBuilder.builder().withProjectDir(root).withGradleUserHomeDir(folder.newFolder('home')).build()
+    ProjectBuilder.builder()
+        .withProjectDir(root)
+        .withGradleUserHomeDir(folder.newFolder('home'))
+        .build()
   }
 
   private File cookbook(List<String> directories) {

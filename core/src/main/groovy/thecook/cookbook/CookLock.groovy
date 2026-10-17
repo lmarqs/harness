@@ -107,8 +107,9 @@ final class CookLock {
       lines << "  - name: ${quote(entry.name)}"
       lines << "    source: ${quote(entry.source)}"
       lines << "    sha256: ${quote(entry.sha256)}"
-      def groups = KINDS.keySet().collectEntries { kind -> [(kind): entry.targets.findAll { it.kind == kind }] }
-      .findAll { kind, targets -> targets }
+      def groups = KINDS.keySet()
+          .collectEntries { kind -> [(kind): entry.targets.findAll { it.kind == kind }] }
+          .findAll { kind, targets -> targets }
       lines << (groups ? '    owns:' : '    owns: {}')
       groups.each { kind, List<Target> targets ->
         lines << "      ${kind}s:"
@@ -129,7 +130,8 @@ final class CookLock {
     }
 
     ((Map) entry).collect { field, value -> "${field}: ${JsonOutput.toJson(value)}".toString() }
-    .withIndex().collect { line, index -> (index ? '          ' : '        - ') + line }
+    .withIndex()
+    .collect { line, index -> (index ? '          ' : '        - ') + line }
   }
 
   private static final class Entry {

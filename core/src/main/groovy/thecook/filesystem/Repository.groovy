@@ -10,7 +10,9 @@ import java.security.MessageDigest
 class Repository {
   final File directory
   Repository(File directory) {
-    def path = directory.toPath().toAbsolutePath().normalize()
+    def path = directory.toPath()
+        .toAbsolutePath()
+        .normalize()
     def part = path.root
     path.each { segment ->
       part = part.resolve(segment)
@@ -78,7 +80,10 @@ class Repository {
     [exists: true, hash: digest(bytes), content: text, mode: permissions(file)]
   }
   static String digest(byte[] bytes) {
-    MessageDigest.getInstance('SHA-256').digest(bytes).encodeHex().toString()
+    MessageDigest.getInstance('SHA-256')
+        .digest(bytes)
+        .encodeHex()
+        .toString()
   }
   static String permissions(File file) {
     def view = Files.getFileAttributeView(file.toPath(), java.nio.file.attribute.PosixFileAttributeView)

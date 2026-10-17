@@ -30,7 +30,9 @@ class CookCommandTest {
     }
     stderr.reset()
     assert cli.execute(['init'] as String[]) == 2
-    assert stderr.toString('UTF-8').readLines().first() ==
+    assert stderr.toString('UTF-8')
+    .readLines()
+    .first() ==
     'Not a recipe: init. A recipe is coordinates or a .groovy path'
   }
 
@@ -112,7 +114,9 @@ After cooking
       ].each { misplaced ->
         stderr.reset()
         assert cli.execute((['-C', repo.path] + misplaced) as String[]) == 2
-        assert stderr.toString('UTF-8').readLines().first() in [
+        assert stderr.toString('UTF-8')
+        .readLines()
+        .first() in [
           '--help takes no other arguments; use help <recipe> to read a recipe',
           'help takes recipes only: --owner=me',
         ]
@@ -125,7 +129,9 @@ After cooking
       ].each { arguments, status, message ->
         stderr.reset()
         assert cli.execute((['-C', repo.path] + arguments) as String[]) == status
-        assert stderr.toString('UTF-8').readLines().first() == message
+        assert stderr.toString('UTF-8')
+        .readLines()
+        .first() == message
       }
       stdout.reset()
       assert cli.execute(['help'] as String[]) == 0 && stdout.toString('UTF-8').startsWith('Usage:')
@@ -305,7 +311,9 @@ notes.add('local')
       ].each { arguments, status, message ->
         stderr.reset()
         assert cli.execute((['-C', repo.path] + arguments) as String[]) == status
-        assert stderr.toString('UTF-8').readLines().first() == message
+        assert stderr.toString('UTF-8')
+        .readLines()
+        .first() == message
       }
     }
   }
@@ -396,7 +404,9 @@ notes.add('local')
         stderr.reset()
         assert cli.execute((arguments.take(1) + ['-C', repo.path] + arguments.drop(1)) as String[]) == status :
         arguments
-        assert stderr.toString('UTF-8').readLines().first() == message
+        assert stderr.toString('UTF-8')
+        .readLines()
+        .first() == message
       }
     }
   }

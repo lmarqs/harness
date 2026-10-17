@@ -119,8 +119,9 @@ Packaging compiles nothing; the engine compiles an artifact's sources when one o
 `imports`, `unused` and `formatting` rulesets ([rules](gradle/lint/codenarc.groovy)). Every `if`/`else`/`for`/`while`
 body has braces, and Groovy-Eclipse moves braced bodies onto their own line. A statement with a block, such as `if`,
 `for` or `try`, has a blank line before and after it, except at the start or end of its own block
-([rule](gradle/lint/BlankLinesAroundBlocksRule.groovy)). Spotless's Groovy step and CodeNarc skip `cookbook/`, most of
-which is a design sketch that has not been compiled.
+([rule](gradle/lint/BlankLinesAroundBlocksRule.groovy)). A chain of more than two method calls puts each call on its own
+line ([rule](gradle/lint/ChainedCallsRule.groovy)). Spotless's Groovy step and CodeNarc skip `cookbook/`, most of which
+is a design sketch that has not been compiled.
 
 `docs/` is its own build. `./gradlew -p docs check`, which `./gradlew check` includes, fails on a relative link in
 `docs/` that points to a missing file or heading anchor; [`docs/build.gradle`](docs/build.gradle) defines the check.

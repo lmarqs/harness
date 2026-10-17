@@ -15,4 +15,5 @@ ruleset {
     }
   }
   rule('file:gradle/lint/BlankLinesAroundBlocksRule.groovy')
+  rule('file:gradle/lint/ChainedCallsRule.groovy')
 }

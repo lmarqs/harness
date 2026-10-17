@@ -94,7 +94,9 @@ final class RecipeLoader {
       throw new IllegalArgumentException('the recipe is outside the kitchen; move it into the kitchen')
     }
 
-    kitchen.relativize(path).collect { it.toString() }.join('/')
+    kitchen.relativize(path)
+        .collect { it.toString() }
+        .join('/')
   }
 
   private CookbookArtifact artifact(Coordinates coordinates) {

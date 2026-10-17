@@ -29,7 +29,8 @@ rootProject.name = 'book'
     new File(book, 'notes').mkdirs()
     new File(book, 'notes/notes.groovy').text = "@help('Notes.')\nimport java.util.List\n"
 
-    GradleRunner.create().withProjectDir(book)
+    GradleRunner.create()
+        .withProjectDir(book)
         .withArguments('publishToMavenLocal', "-Dmaven.repo.local=${repository}")
         .build()
 

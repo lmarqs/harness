@@ -110,7 +110,9 @@ final class CookCommand {
       throw new UsageError('Option may only be supplied once: --kitchen')
     }
 
-    def kitchen = kitchen(kitchens ? kitchens.first() : null).toAbsolutePath().toFile()
+    def kitchen = kitchen(kitchens ? kitchens.first() : null)
+        .toAbsolutePath()
+        .toFile()
 
     switch (command) {
       case null:
@@ -256,7 +258,9 @@ final class CookCommand {
         throw new UsageError("Not a recipe: ${operand}. A recipe is coordinates or a .groovy path")
       }
 
-      RecipeLoader.name(kitchen.toPath().toAbsolutePath().normalize(), operand)
+      RecipeLoader.name(kitchen.toPath()
+          .toAbsolutePath()
+          .normalize(), operand)
       def script = path(kitchen.toPath(), operand, 'recipe')
 
       if (!Files.isRegularFile(script)) {
@@ -401,11 +405,15 @@ final class CookCommand {
 
     stdout.print('Write these changes? [y/N] ')
     stdout.flush()
-    stdin.readLine()?.trim()?.toLowerCase() in ['y', 'yes']
+    stdin.readLine()
+        ?.trim()
+        ?.toLowerCase() in ['y', 'yes']
   }
 
   private static String indent(String text) {
-    text.split(/\r\n|\r|\n/, -1).collect { it.isEmpty() ? it : "  ${it}" }.join('\n')
+    text.split(/\r\n|\r|\n/, -1)
+        .collect { it.isEmpty() ? it : "  ${it}" }
+        .join('\n')
   }
 
   private static Path path(Path kitchen, String value, String option) {

@@ -95,7 +95,9 @@ final class CookToml {
     // As git does, a colon before the first slash makes `host:path` an ssh address rather than a path.
     if (!url.contains('://') && !(url ==~ /[^\/]+:.*/)) {
       def (Path directory, String path) = base(url, kitchen, home)
-      url = directory.resolve(path).normalize().toString()
+      url = directory.resolve(path)
+          .normalize()
+          .toString()
     }
 
     def dir = entry.getString('dir')?.replaceAll(/\/+$/, '') ?: null
