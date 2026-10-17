@@ -78,7 +78,8 @@ final class FilePatch {
 
   // The first line, at or after `from`, where the run's written lines stand as written: the one whose context matches
   // best, then the nearest to `expected`. A run that wrote no line is placed by its context alone, all of which must
-  // match.
+  // match; when it has no context on one side, it deleted the file's first or last lines, so its context must reach
+  // that end of the file, or lines restored there before would be restored again.
   private static Integer place(Map run, List<String> current, int expected, int from) {
     List<String> after = run.lines.findAll { !it.startsWith('-') }
     boolean wrote = after.any { it.startsWith('+') }
@@ -93,12 +94,15 @@ final class FilePatch {
       (0..<after.size()).every { i -> !after[i].startsWith('+') || current[at + i] == after[i].substring(1) }
     }.collect { at -> [at: at, context: (0..<after.size()).count { i -> after[i].startsWith(' ') && current[at + i] == after[i].substring(1) }] }
     def context = after.count { it.startsWith(' ') }
-    def fitting = wrote ? candidates : candidates.findAll { it.context == context }
+    def fitting = wrote ? candidates : candidates.findAll {
+      it.context == context && (!run.start || it.at == 0) && (!run.end || it.at == last)
+    }
     fitting ? fitting.min { a, b -> b.context <=> a.context ?: (a.at - expected).abs() <=> (b.at - expected).abs() }.at : null
   }
 
-  // Each run of changed lines in the hunk with the context lines around it, and the line where it starts in the
-  // content the change left.
+  // Each run of changed lines in the hunk with the context lines around it, the line where it starts in the content the
+  // change left, and whether it begins or ends the hunk with a changed line, which only the file's first or last lines
+  // do.
   private static List<Map> runs(List<String> hunk) {
     def start = (hunk.first() =~ /\+(\d+)/)[0][1] as int
     def lines = hunk.drop(1)
@@ -120,10 +124,16 @@ final class FilePatch {
       while (to < Math.min(lines.size(), i + CONTEXT) && lines[to].startsWith(' ')) {
         to++
       }
+      if (runs && from == first && to == i) {
+        // The run before took all of this run's context, so this run is placed with it.
+        def previous = runs.last()
+        previous.lines = lines.subList(previous.from, to)
+        previous.end = true
+      } else {
+        int expected = Math.max(start - 1, 0) + lines.subList(0, from).count { !it.startsWith('-') }
+        runs.add([lines: lines.subList(from, to), expected: expected, from: from, start: first == 0, end: i == lines.size()])
+      }
       taken = to
-      def run = lines.subList(from, to)
-      int expected = Math.max(start - 1, 0) + lines.subList(0, from).count { !it.startsWith('-') }
-      runs.add([lines: run, expected: expected])
     }
     runs
   }

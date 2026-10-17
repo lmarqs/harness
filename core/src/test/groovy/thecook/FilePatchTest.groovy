@@ -76,6 +76,22 @@ class FilePatchTest {
     assert FilePatch.reverse(patch, ['a', 'C']).conflicts == [['@@ -1,3 +1,2 @@', ' a', '-b', ' c']]
   }
 
+  @Test void restoresADeletionWhoseContextTheChangeBeforeItHolds() {
+    def patch = FilePatch.of('notes.md', 'x\na\nc\nd\n', 'x\nb\nc\n')
+
+    assert FilePatch.reverse(patch, ['x', 'b', 'c']).lines == ['x', 'a', 'c', 'd']
+  }
+
+  @Test void restoresLinesDeletedAtEitherEndOfTheFileOnlyThere() {
+    def last = FilePatch.of('notes.md', 'a\nb\nc\nx\n', 'a\nb\nc\n')
+    def first = FilePatch.of('notes.md', 'x\na\nb\nc\n', 'a\nb\nc\n')
+
+    assert FilePatch.reverse(last, ['a', 'b', 'c']).lines == ['a', 'b', 'c', 'x']
+    assert FilePatch.reverse(last, ['a', 'b', 'c', 'x']).conflicts == [['@@ -1,4 +1,3 @@', ' a', ' b', ' c', '-x']]
+    assert FilePatch.reverse(first, ['a', 'b', 'c']).lines == ['x', 'a', 'b', 'c']
+    assert FilePatch.reverse(first, ['x', 'a', 'b', 'c']).conflicts == [['@@ -1,4 +1,3 @@', '-x', ' a', ' b', ' c']]
+  }
+
   @Test void reversesACreationAndADeletion() {
     assert FilePatch.reverse(FilePatch.of('notes.md', null, 'a\nb\n'), ['a', 'b']).lines == []
     assert FilePatch.reverse(FilePatch.of('notes.md', 'a\nb\n', null), []).lines == ['a', 'b']
