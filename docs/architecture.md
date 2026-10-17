@@ -198,10 +198,11 @@ recipes:
 
 The source is a path relative to the repository root or the recipe's coordinates. A key path is a
 list, so a key containing a dot stays one segment; `links` lists the symbolic links a recipe owns. The sha256 identifies
-the recipe version that produced the recorded ownership. For a path it is the file's hash. For coordinates it is
-the hash of the artifact's sources, the same whichever repository supplied them: the sha256 of one line
-`<sha256 of the file>  <path>` per file, each ending in a newline, sorted by the UTF-8 bytes of the path. The path is
-relative to the artifact's directory and separated by `/`, and both hashes are written in lower-case hex. A file
+the recipe version that produced the recorded ownership. It is the hash of the recipe's sources: for a path, the
+recipe file and the files its `@resource` lines name; for coordinates, the artifact's files, the same whichever
+repository supplied them. The hash is the sha256 of one line `<sha256 of the file>  <path>` per file, each ending in a
+newline, sorted by the UTF-8 bytes of the path. The path is relative to the repository root for a recipe path and to
+the artifact's directory for coordinates, separated by `/`, and both hashes are written in lower-case hex. A file
 with a name on its path that matches one of Ant's default excludes, which Gradle leaves out of every jar (`.git`,
 `.gitignore`, `.gitattributes`, `.DS_Store`, `*~` and the like), is not a source. Because the lock is committed, every clone has the same ownership information.
 
@@ -251,9 +252,10 @@ reaches outside the destination through a symlink is outside the permitted outpu
 Recipes come from two places: a path inside the destination repository, or coordinates resolved from the
 repositories the destination's `cook.toml` lists ([cookbook distribution](#cookbook-distribution)). A URL is not a
 recipe operand; a recipe shared beyond one repository is published in a cookbook and cooked by its coordinates.
-Relative references to recipes and templates resolve from the referencing recipe's location inside the repository. A
-local reference that resolves outside the repository is refused, as is a recipe operand outside it; move the file into
-the repository (FR-22).
+A recipe reads a file, such as a template, through a `@resource('<path>')` line, which gives it the file's text. For a
+recipe path, the path resolves from the recipe's directory, and a file outside the repository, directly or through a
+symbolic link, is refused, as is a recipe operand outside it; move the file into the repository. For coordinates, the
+path names a file in the recipe's artifact (FR-22).
 
 For example, run this invocation from `/work/project`:
 
@@ -262,12 +264,12 @@ cd /work/project
 ./cook cookbook/recipes/project.groovy
 ```
 
-Suppose the recipe references `./base.groovy` and `../templates/settings.toml`, and declares `settings.toml` as an
-output:
+Suppose the recipe declares `@resource('../templates/settings.toml') String settings` and writes it to
+`settings.toml`:
 
-| Recipe origin | Referenced recipe | Referenced template | Declared output |
-| --- | --- | --- | --- |
-| `cookbook/recipes/project.groovy` | `cookbook/recipes/base.groovy` | `cookbook/templates/settings.toml` | `settings.toml` |
+| Recipe origin | Resource | Declared output |
+| --- | --- | --- |
+| `cookbook/recipes/project.groovy` | `cookbook/templates/settings.toml` | `settings.toml` |
 
 ## Command line and build boundary
 
@@ -345,8 +347,8 @@ Other documents cite these requirements by number.
 ### Ownership and discard
 
 - **FR-14:** The repository commits `cook.lock`, a YAML file at its root. For each cooked recipe it records the short
-  name, the source as a repository-relative path or coordinates, the source's sha256 (for
-  coordinates, of the artifact's sources), and the owned sections, keys, files and links. It records no recipe
+  name, the source as a repository-relative path or coordinates, the sha256 of its sources (for a path, the recipe
+  and its `@resource` files; for coordinates, the artifact's sources), and the owned sections, keys, files and links. It records no recipe
   arguments.
 - **FR-15:** Discarding recipes removes what `cook.lock` lists for each, without evaluating them: a section with its
   markers, a key, a whole file or a link, deleting a file left empty, and drops each recipe's lock entry. It restores
@@ -375,8 +377,8 @@ Other documents cite these requirements by number.
 
 - **FR-21:** The current working directory is the destination, regardless of the executable location. Declared writes
   and deletions stay within that directory, including paths resolved through symlinks.
-- **FR-22:** Relative references to recipes and templates resolve from the referencing recipe's location inside the
-  repository. A local operand or reference outside the repository is refused.
+- **FR-22:** A recipe reads a file through `@resource`, resolved from a recipe path's directory inside the repository
+  or from the recipe's artifact. A local operand or resource outside the repository is refused.
 - **FR-25:** Cooking does not require `cook.lock`. Every invocation evaluates the supplied recipes against current
   content; nothing marks a recipe as already cooked. Without a lock entry, cooking removes nothing on a recipe's
   behalf.
