@@ -10,9 +10,10 @@ final class Main {
 
   static void main(String[] args) {
     def stdin = System.console() ? new BufferedReader(new InputStreamReader(System.in)) : null
-    def cache = new File(System.getenv('XDG_CACHE_HOME') ?: new File(System.getProperty('user.home'), '.cache').path, 'the-cook/git')
+    def home = new File(System.getProperty('user.home'))
+    def cache = new File(System.getenv('XDG_CACHE_HOME') ?: new File(home, '.cache').path, 'the-cook/git')
     def command = new CookCommand(new PrintWriter(System.out, true), new PrintWriter(System.err, true),
-        { File kitchen -> CookToml.repositories(kitchen, cache) }, stdin)
+        { File kitchen -> CookToml.repositories(kitchen, cache, home) }, stdin)
     System.exit(command.execute(args))
   }
 }

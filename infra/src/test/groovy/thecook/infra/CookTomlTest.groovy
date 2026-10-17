@@ -187,7 +187,19 @@ class CookTomlTest {
   }
 
   @Test void withoutCookTomlTheRepositoryIsMavenCentral() {
-    assert CookToml.repositories(folder.newFolder('kitchen'), new File(folder.root, 'cache')).repositories*.toString() == [CookToml.CENTRAL.toString()]
+    assert repositories(folder.newFolder('kitchen')).repositories*.toString() == [CookToml.CENTRAL.toString()]
+  }
+
+  @Test void readsPathsStartingWithTildeSlashFromTheUsersHome() {
+    def kitchen = folder.newFolder('kitchen')
+    def home = folder.newFolder('home')
+    new File(kitchen, 'cook.toml').text = 'repositories = ["~/.m2/repository", { git = "~/kit" }, "~user/x"]\n'
+
+    assert repositories(kitchen).repositories*.toString() == [
+      new File(home, '.m2/repository').toURI().toString().replaceAll(/\/?$/, '/'),
+      new File(home, 'kit').path,
+      new File(kitchen, '~user/x').toURI().toString().replaceAll(/\/?$/, '/'),
+    ]
   }
 
   @Test void refusesRepositoriesThatAreNeitherHttpsNorPaths() {
@@ -213,7 +225,7 @@ class CookTomlTest {
   }
 
   private CookbookRepositories repositories(File kitchen) {
-    CookToml.repositories(kitchen, new File(folder.root, 'cache'))
+    CookToml.repositories(kitchen, new File(folder.root, 'cache'), new File(folder.root, 'home'))
   }
 
   /** A git repository holding a cookbook of `group` in `dir`, or at its root, with `files` below it, tagged as `version`. */
