@@ -51,9 +51,10 @@ discard; [apply](apply.md) and [revert](revert.md) explain them with examples.
 ## Recipe operands
 
 A recipe operand is a path inside the destination repository, an `https://` URL, or a recipe's coordinates,
-`group:artifact:version[:recipe]`. An ordinary relative path such as `recipe.groovy` is accepted. Cook refuses an
-operand outside the repository. Coordinates resolve from the repositories that the destination's `cook.toml` lists;
-without a recipe, they apply the recipe named like the artifact.
+`group:artifact:version[:recipe]`. A word is a recipe operand when it contains `/` or `:` or ends with `.groovy`, so an
+ordinary relative path such as `recipe.groovy` is one; a recipe file with none of these marks is given as `./notes`.
+Cook refuses an operand outside the repository. Coordinates resolve from the repositories that the destination's
+`cook.toml` lists; without a recipe, they apply the recipe named like the artifact.
 
 ```sh
 ./cook recipe.groovy
@@ -79,39 +80,39 @@ make its path explicit:
 
 ## Recipe arguments and ordering
 
-Recipe arguments follow their recipe and use `--name=value`. Each following recipe operand starts a new argument
-scope. Shell-quote values containing spaces so the shell passes the value as part of one argument.
+Recipe arguments follow their recipe as `--name=value` or `--name value`. Each following recipe operand starts a new
+argument scope. Shell-quote values containing spaces so the shell passes the value as part of one argument.
 
 ```sh
-./cook apply --batch-approve ./base.groovy --agent=codex ./project.groovy --agent=claude
+./cook apply --batch-approve ./base.groovy --agent codex ./project.groovy --agent=claude
 ./cook ./recipe.groovy --instructions='Keep existing comments.'
 ```
 
-In the first invocation, `--agent=codex` belongs to `base.groovy`, and `--agent=claude` belongs to `project.groovy`.
+In the first invocation, `--agent codex` belongs to `base.groovy`, and `--agent=claude` belongs to `project.groovy`.
 Recipes and their operations compose left to right into one batch; the
 [architecture](../architecture.md#ordered-composition-and-declared-targets) defines how the last writer of a section,
 key or file wins.
 
-An argument value that looks like a recipe path remains an argument value:
+After `--name`, the next word is the argument's value unless it is a recipe operand. A value that looks like a recipe
+operand is written with `=`:
 
 ```sh
 ./cook apply ./a.groovy --source=./b.groovy
-./cook apply ./a.groovy ./b.groovy
+./cook apply ./a.groovy --source ./b.groovy
 ```
 
-The first invocation evaluates only `a.groovy` and gives it `source` with the value `./b.groovy`. The second evaluates
-`a.groovy`, then `b.groovy`, as two recipes.
-
-Because every word without `--` starts a recipe, an argument carries its value after `=`, and a yes-or-no argument
-may be written bare:
+The first invocation evaluates only `a.groovy` and gives it `source` with the value `./b.groovy`. In the second,
+`./b.groovy` starts a second recipe, and `--source` is left without a value.
 
 | Written | Result |
 | --- | --- |
 | `--agent=codex` | The value `codex` for `agent` |
-| `--agent codex` | Refused: `Not a recipe: codex. To give it to --agent, write --agent=codex` |
-| `agent=codex` | Refused: `Not a recipe: agent=codex. Recipe arguments start with --` |
-| `--verbose`, for a yes-or-no param | The value `true` for `verbose`; `--verbose=false` turns it off |
-| `--agent`, for any other param | Refused, naming the recipe: `--agent needs a value: write --agent=<value>` |
+| `--agent codex` | The value `codex` for `agent` |
+| `--source=./b.groovy` | The value `./b.groovy` for `source` |
+| `--source ./b.groovy` | `./b.groovy` starts the next recipe, and `--source` is refused: `--source needs a value: write --source=<value>` |
+| `agent=codex`, after a recipe or a complete argument | Refused: `Not a recipe: agent=codex. Recipe arguments start with --, and a recipe contains / or : or ends with .groovy` |
+| `--verbose`, for a yes-or-no param | The value `true` for `verbose`; `--verbose=false` or `--verbose false` turns it off |
+| `--agent` with no value after it, for any other param | Refused, naming the recipe: `--agent needs a value: write --agent=<value>` |
 | The same recipe twice, with any arguments or versions | Refused: `cook.lock` keeps one entry per recipe |
 
 When a recipe fails to evaluate, nothing is written, and the error names the recipe by its position and operand, such

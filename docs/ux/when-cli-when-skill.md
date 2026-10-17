@@ -69,7 +69,8 @@ choose declared targets and maintenance sources accordingly.
 The engine's commands are apply, revert and `batch` ([CLI reference](../features/cli.md)). A new engine command or flag
 requires its own decision when it changes that scope. Do not add a command for each program or organization, or invent
 a setting that bypasses the agreed review and recovery guarantees, because program and organization choices belong in
-cookbooks. Per-recipe choices use recipe arguments following that recipe as `--name=value`.
+cookbooks. Per-recipe choices use recipe arguments following that recipe
+([CLI reference](../features/cli.md#recipe-arguments-and-ordering)).
 
 ## Recipes
 

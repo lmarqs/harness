@@ -15,7 +15,7 @@ requirements. For commands supported by the current implementation, see the [roo
 
 Apply evaluates trusted Groovy recipes into an ordered batch of file operations. Ingredients model programs' native
 files and configuration; cookbooks supply ingredients and recipes separately from the engine. The CLI accepts recipe
-paths inside the destination repository or `https://` URLs.
+paths inside the destination repository, `https://` URLs or coordinates.
 
 ```sh
 ./cook ./recipe.groovy
@@ -30,9 +30,9 @@ paths inside the destination repository or `https://` URLs.
 ./cook apply [batch-options] <recipe> [recipe-arguments] [<recipe> [recipe-arguments]]...
 ```
 
-Apply is the default. Batch options precede recipe operands; recipe arguments follow their recipe as `--name=value`.
-To review interactively, omit `--batch-approve` and inspect the diff before answering the whole-batch prompt. The
-[CLI reference](cli.md) defines the grammar, operand and option scope.
+Apply is the default. Batch options precede recipe operands; recipe arguments follow their recipe as `--name=value`
+or `--name value`. To review interactively, omit `--batch-approve` and inspect the diff before answering the
+whole-batch prompt. The [CLI reference](cli.md) defines the grammar, operand and option scope.
 
 ## Ordered operations
 

@@ -23,6 +23,7 @@ see the [root README](../../README.md) and [core implementation guide](../../cor
 | Batch record | The local record of one batch in the ignored `.cook/batches/<batchId>/` directory, which revert uses to reverse that batch. See [one record for the batch](../architecture.md#one-record-for-the-batch). |
 | `cook.lock` | The committed YAML file at the repository root that records each applied recipe's short name, source, source sha256 and owned sections, keys and files. See [the lock](../architecture.md#ownership-and-the-lock). |
 | Cookbook | A repository that holds and ships ingredients and recipes. Its build and distribution can be separate from the engine's. See [cookbooks](../architecture.md#ingredients-recipes-and-cookbooks). |
+| Coordinates | A recipe's address in a cookbook, `group:artifact:version[:recipe]`, such as `dev.thecook:agents:0.1.0:instructions`. Without `:recipe` they name the recipe called like the artifact. See [CLI](cli.md#recipe-operands). |
 | Cooking | Running recipes through the CLI, which is the public cooking interface. See [CLI](cli.md). |
 | Destination | The invocation's current working directory. Declared writes and deletions stay within it, including symlink resolution, regardless of executable location. See [destination and source origins](../architecture.md#destination-and-source-origins). |
 | Diff | The change from current content to the combined final batch result, displayed in the terminal before target writes. See [apply](apply.md#review-and-recovery). |
@@ -41,8 +42,8 @@ see the [root README](../../README.md) and [core implementation guide](../../cor
 | Owner | The recipe that `cook.lock` records for a section, key or file: the last recipe to write it. Ownership decides what that recipe's later versions update and remove, and never blocks a change. See [the lock](../architecture.md#ownership-and-the-lock). |
 | Patch | The reversible change to one touched file in a batch, combining every recipe's change to that file. One patch supports forward and reverse application. See [one record for the batch](../architecture.md#one-record-for-the-batch). |
 | Recipe | Trusted executable Groovy code describing requested file operations using program models. See [recipes](../architecture.md#ingredients-recipes-and-cookbooks). |
-| Recipe argument | A value following its recipe operand in `--name=value` form. Each next recipe starts its own argument scope. See [CLI](cli.md). |
-| Recipe operand | A path inside the destination repository or an `https://` URL; operands outside the repository are refused. |
+| Recipe argument | A value following its recipe operand, written `--name=value` or `--name value`, or a bare `--name` for a yes-or-no param. Each next recipe starts its own argument scope. See [CLI](cli.md#recipe-arguments-and-ordering). |
+| Recipe operand | A word that contains `/` or `:` or ends with `.groovy`: a path inside the destination repository, an `https://` URL or coordinates. Operands outside the repository are refused. See [CLI](cli.md#recipe-operands). |
 | Region | The name after `#` in a marker, identifying one of the owning recipe's sections. |
 | Release pin | The engine version and matching platform package checksum selected by the committed wrapper. Changing the pin is an explicit upgrade, separate from cookbook and recipe versions. See [wrapper](wrapper.md). |
 | Revert | The operation that applies a recorded batch's reverse patches against current content, without evaluating recipes, and writes nothing when a later edit overlaps the batch's changes. See [revert](revert.md#revert). |

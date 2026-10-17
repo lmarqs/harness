@@ -374,11 +374,14 @@ Other documents cite these requirements by number.
   `revert`, `batch`, or `help` selects a command; a recipe file with one of those names is supplied as a path, such as
   `./revert`.
 - **FR-18:** Recipe operands are paths inside the destination repository, `https://` URLs, or coordinates
-  `group:artifact:version[:recipe]` resolved from the repositories the destination's `cook.toml` lists. Ordinary
-  relative paths such as `recipe.groovy` are accepted.
+  `group:artifact:version[:recipe]` resolved from the repositories the destination's `cook.toml` lists. A word is a
+  recipe operand when it contains `/` or `:` or ends with `.groovy`, as `recipe.groovy` does; a recipe file with none
+  of these marks is given with `./`, such as `./notes`.
 - **FR-19:** Batch options precede recipe operands, or the batch ID for `revert`. Recipe arguments follow their recipe
-  and use `--name=value`, including shell-quoted values; a word without `--` starts the next recipe. A recipe appears
-  once per invocation. A misplaced batch option after a recipe receives the normal unknown-option error.
+  as `--name=value` or `--name value`, including shell-quoted values. After `--name`, the next word is its value unless
+  it is a recipe operand, so a value that looks like an operand is written with `=`. A yes-or-no param may be given as
+  a bare `--name`. A recipe appears once per invocation. A misplaced batch option after a recipe receives the normal
+  unknown-option error.
 - **FR-20:** `--batch-approve` is the only preapproval spelling.
 
 ### Paths and batch records

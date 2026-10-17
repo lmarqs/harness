@@ -44,6 +44,11 @@ second accepted form for the same meaning is refused with a message naming the o
 another reading a caller, a document and a test must account for; `--help` therefore stands alone, and reading a
 recipe is `help <recipe>`.
 
+Recipe arguments take two forms, `--name value` and `--name=value`, with one meaning. Callers type the space form in
+every other command-line tool, and a refusal of it is an error they meet on their first invocation; the `=` form
+carries a value that looks like a recipe operand. Whether a word is a value or a recipe is decided by the word alone,
+by its marks: `/`, `:` or a `.groovy` ending.
+
 ## Apply and revert
 
 Apply evaluates the supplied recipes against current content and `cook.lock` and proposes their declared changes.
@@ -157,10 +162,11 @@ execution. Do not open a pager or editor that an unattended caller would have to
 ## Help text
 
 With no arguments, with `help` alone or with `--help` alone, show help. `help <recipe>...` shows each recipe's help in
-order without running it, because a recipe inside an artifact cannot be read with a pager. Present the operation summary, grammar, operand and argument scope, batch approval
-behavior, and examples in a consistent order, because readers need to predict how a command works. Examples use
-`./cook` and exact recipe paths or `https://` URLs. Explain that apply evaluates supplied recipes while revert uses a
-recorded batch's patches, and link to the [CLI reference](../features/cli.md) for details.
+order without running it, because a recipe inside an artifact cannot be read with a pager. Present the operation
+summary, grammar, operand and argument scope, batch approval behavior, and examples in a consistent order, because
+readers need to predict how a command works. Examples use `./cook` and exact recipe paths, `https://` URLs or
+coordinates. Explain that apply evaluates supplied recipes while revert uses a recorded batch's patches, and link to the
+[CLI reference](../features/cli.md) for details.
 
 Help advertises only the commands in the [command grammar](#command-grammar), because callers act on what help lists.
 

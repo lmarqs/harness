@@ -42,7 +42,7 @@ location or source URL, never from the snapshot location; a local reference outs
 
 ## Inputs
 
-Recipe operands, `--name=value` recipe arguments and their per-recipe scope follow the
+Recipe operands, recipe arguments and their per-recipe scope follow the
 [CLI reference](../features/cli.md). Users manage recipe versions and supply the version they intend to apply;
 `cook.lock` records which version produced the current ownership. Remote and local sources are trusted executable code,
 not data confined by batch approval.
