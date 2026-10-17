@@ -64,7 +64,6 @@ When a write fails, it restores the paths it already wrote and fails.
 ## Differences from the intended architecture
 
 - `Draft.commit` keeps no journal, so a process killed mid-commit can leave files and `cook.lock` half-written.
-- No `https://` recipe operands.
 - Models use only their own artifact's types.
 - A document forgets, between invocations, which empty parents it created, so withdrawing a key leaves those parents.
 

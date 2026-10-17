@@ -160,7 +160,7 @@ execution. Do not open a pager or editor that an unattended caller would have to
 With no arguments, with `help` alone or with `--help` alone, show help. `help <recipe>...` shows each recipe's help in
 order without running it, because a recipe inside an artifact cannot be read with a pager. Present the operation
 summary, grammar, operand and argument scope, batch approval behavior, and examples in a consistent order, because
-readers need to predict how a command works. Examples use `./cook` and exact recipe paths, `https://` URLs or
+readers need to predict how a command works. Examples use `./cook` and exact recipe paths or
 coordinates. Explain that cooking evaluates supplied recipes while discard reads only `cook.lock`, and link to the
 [CLI reference](../features/cli.md) for details.
 

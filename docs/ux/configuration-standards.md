@@ -28,14 +28,14 @@ of the batch they approve.
 | Content | Location | Purpose |
 | --- | --- | --- |
 | Native configuration and guidance | Paths declared by recipes within the destination, where the program reads them | Settings, ignore entries, instruction files, skills, and other requested output |
-| Recipe and template sources | Paths inside the destination repository, `https://` URLs, or coordinates from a cookbook release | Trusted input; relative references resolve from the referencing recipe's location or URL |
+| Recipe and template sources | Paths inside the destination repository, or coordinates from a cookbook release | Trusted input; relative references resolve from the referencing recipe's location |
 | Ownership lock | Committed `cook.lock` at the repository root | Each cooked recipe's short name, source, sha256, and owned sections, keys, and files |
 | Engine wrapper | Committed `./cook` | Pins the engine version and package checksum; first use fetches and caches the platform package |
 
 Committed ownership lives in `cook.lock`; Cook keeps no other state in the destination. A recipe may use shared
 guidance under `.agents/` where that suits the native program.
 
-Relative template references resolve from the referencing recipe's location or source URL; a local reference outside
+Relative template references resolve from the referencing recipe's location; a local reference outside
 the repository is refused.
 [Destination and source paths](../features/cook.md#destination-and-source-paths) works through an example.
 

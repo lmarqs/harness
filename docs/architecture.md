@@ -134,9 +134,9 @@ files, YAML, TOML, and shell scripts. For example:
 ```markdown
 Text outside the section stays in place.
 
-<!-- cook:begin agentic/context#commands -->
+<!-- cook:begin recipes/setup#commands -->
 Run the project's build command.
-<!-- cook:end agentic/context#commands -->
+<!-- cook:end recipes/setup#commands -->
 
 More unrelated text stays in place.
 ```

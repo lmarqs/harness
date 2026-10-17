@@ -40,7 +40,7 @@ The same rules apply to guidance read by coding agents, because ambiguity can be
 - Put supporting detail on indented lines. Identify the operation and affected file or source, because readers need
   to distinguish a recipe input failure from a target write failure.
 - Name destination files relative to the invocation directory, with `:line:column` when known. Identify source files
-  by their original location or URL, because that is the source to edit.
+  by their original location or coordinates, because that is the source to edit.
 - Distinguish warnings from failures in words. Leave exit codes out of message guidance, because exit-code meanings
   are undecided ([errors](cli-standards.md#errors)).
 - Do not emit ANSI escapes to non-TTY streams, because logs and transcripts must remain readable. Formatting and
@@ -194,7 +194,7 @@ A directory README is the artifact's front page. The shape is defined in [cookbo
 - Use Cook or `the-cook` for the engine and `./cook` for the repository entry point. Show the equivalent global entry
   point when useful ([entry points](cli-standards.md#entry-points)). Use one term per engine concept.
 - Use generic organizations such as `acme` in made-up examples. Recipe operands must still be exact supported paths or
-  URIs, such as `https://example.com/cookbook/recipe.groovy`; do not invent a cookbook-name lookup scheme.
+  coordinates, such as `acme:setup:1.0.0:project`; do not invent a cookbook-name lookup scheme.
 - Explain program-specific files and settings when they clarify native configuration. Attribute those choices to
   cookbook ingredients and recipes rather than promising engine contracts for every program. Name the program rather
   than inventing a generic role in its place.

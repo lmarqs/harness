@@ -40,7 +40,7 @@ own pace.
 
 | Surface | Compatibility concern |
 | --- | --- |
-| Commands and arguments | Removing or renaming a command, changing operand meaning or argument scope, or changing accepted paths and URLs |
+| Commands and arguments | Removing or renaming a command, changing operand meaning or argument scope, or changing accepted paths and coordinates |
 | Approval | Suppressing the actual diff, accepting noninteractive execution as authorization, or changing whole-batch approval into partial selection |
 | Ordered operations | Reordering recipes, rejecting intentional overlap, skipping repeated evaluation, or removing output another recipe owns |
 | Native output | Changing a program's effective settings, replacing a broader target, losing unrelated keys or comments, or changing marker syntax |

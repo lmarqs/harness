@@ -48,9 +48,9 @@ format's appropriate comment syntax:
 ```markdown
 Text outside the section remains intact.
 
-<!-- cook:begin agentic/context#commands -->
+<!-- cook:begin recipes/setup#commands -->
 Run the project's build command.
-<!-- cook:end agentic/context#commands -->
+<!-- cook:end recipes/setup#commands -->
 ```
 
 ```gitignore
@@ -66,7 +66,7 @@ inside the section appear in the next proposed diff; ownership never blocks a ch
 ### Recipe and region names
 
 Each recipe has a short name that markers and `cook.lock` use. The region is a name the recipe chooses, after the `#`:
-in `agentic/context#commands`, the recipe is `agentic/context` and the region is `commands`. Several recipes can
+in `recipes/setup#commands`, the recipe is `recipes/setup` and the region is `commands`. Several recipes can
 therefore keep separate sections in one file. `cook.lock` lists each recipe's sections by file and
 `<recipe>#<region>`. Recipes declare the sections they address.
 

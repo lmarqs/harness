@@ -121,7 +121,7 @@ place; removal follows principle 5
 
 ## 9. Sources and effects are reviewable
 
-Cook accepts recipe paths inside the destination repository, `https://` URLs and coordinates. Users supply the recipe
+Cook accepts recipe paths inside the destination repository and coordinates. Users supply the recipe
 versions they intend to cook, and the committed `cook.lock` records which source and sha256 produced the current
 ownership ([the lock](../architecture.md#ownership-and-the-lock)). A repository commit alone does not determine the
 effects of trusted recipe code. Why: a reviewer can trust or question only a source they can identify.
@@ -137,5 +137,5 @@ and make the affected scope explicit. Ownership never blocks a change.
 For example, a batch changed a key from `old` to `new`, and a person then edited it to `custom`. Cooking the recipe
 again proposes `custom` to `new` in the diff. Discarding the recipe proposes removing the key, `custom` value
 included, for approval, preserving unrelated keys; getting `old` back is the repository history's job. A
-shared remote recipe also requires source trust; batch approval cannot authorize or reverse every effect its code might
+recipe shared through a cookbook also requires source trust; batch approval cannot authorize or reverse every effect its code might
 cause.
