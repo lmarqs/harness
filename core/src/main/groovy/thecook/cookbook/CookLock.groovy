@@ -47,6 +47,11 @@ final class CookLock {
     lock
   }
 
+  /** The sha256 the recipe `name` was last applied with from `source`, or `null` when it was not applied from it. */
+  String sha256(String name, String source) {
+    entries[name]?.source == source ? entries[name].sha256 : null
+  }
+
   /** Whether the recipe `name` was applied before. */
   boolean applied(String name) {
     entries.containsKey(name)

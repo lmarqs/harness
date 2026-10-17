@@ -176,6 +176,10 @@ the file to whoever edits it.
 `--batch-approve` is the batch option and the only preapproval spelling. Without it, Cook asks before changing target
 files. Noninteractive execution without this flag does not silently authorize writes.
 
+The review starts with a `Changed source` notice for each release whose sources differ from what `cook.lock` recorded
+under the same coordinates, as when a release tag moved, with both sha256 values. The diff that follows shows what the
+changed sources write.
+
 ```sh
 ./cook --batch-approve ./recipe.groovy
 ./cook apply --batch-approve ./a.groovy ./b.groovy

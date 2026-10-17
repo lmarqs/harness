@@ -256,11 +256,18 @@ constructor(
     ).joinToString("\n\n")
   }
 
-  // Each recipe's consequence the diff cannot show, then the diff itself: what one approval covers.
+  // Each release whose sources changed under a recorded version, each recipe's consequence the diff cannot show, then
+  // the diff itself: what one approval covers.
   private fun review(
     proposal: Proposal,
     paths: Collection<String>,
   ) {
+    proposal.changedSources.forEach {
+      stdout.println("Changed source ${it.address}")
+      stdout.println("  cook.lock recorded sha256 ${it.recorded}; the release now has sha256 ${it.current}")
+      stdout.println("  its sources changed under the same version; review the diff before approving")
+      stdout.println()
+    }
     proposal.recipes.filter { it.confirm != null }.forEach {
       stdout.println("Confirm ${it.address}")
       stdout.println(indent(it.confirm))

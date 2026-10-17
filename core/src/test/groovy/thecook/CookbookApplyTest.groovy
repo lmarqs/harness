@@ -270,6 +270,31 @@ agents.connect([claude])
     assert apply(kitchen, './recipes/skills.groovy', [:]).changes.empty
   }
 
+  @Test void reportsAChangedSourceUnderARecordedVersionButNotAnEditedPath() {
+    def kitchen = kitchen()
+    publishDirectory(kitchen, 'agents')
+    def path = recipe(kitchen, 'recipes/skills.groovy', """@help('Links one skill.')
+@cookbook('dev.thecook:0.1.0')
+import dev.thecook.agents.Agents
+@ingredient(Agents) def agents
+agents.skills('solid')
+""")
+    def requests = [request('dev.thecook:agents:0.1.0:instructions', [:]), request('recipes/skills.groovy', [:])]
+    def first = new CookbookApply(kitchen).propose(requests)
+    assert first.changedSources.empty
+    first.commit()
+
+    publishDirectory(kitchen, 'agents', ['NOTICE.md': 'changed under the same version'])
+    path.text += '// edited\n'
+    def again = new CookbookApply(kitchen).propose(requests)
+
+    assert again.changedSources*.address == ['dev.thecook:agents:0.1.0:instructions']
+    def changed = again.changedSources.first()
+    assert changed.recorded == sourcesSha256(new File(COOKBOOK, 'agents'))
+    assert changed.current != changed.recorded
+    assert again.after('cook.lock').contains(changed.current)
+  }
+
   @Test void composesARecipePathWithCoordinatesUnderItsShortName() {
     def kitchen = kitchen()
     publishDirectory(kitchen, 'agents')

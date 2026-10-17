@@ -1,11 +1,14 @@
 package thecook.cli
 
 class Fixtures {
-  /** Writes into `kitchen` a Maven-layout repository holding `acme:notes:1.2.3` and a `cook.toml` listing it. */
-  static void notesCookbook(File kitchen) {
+  /**
+   * Writes into `kitchen` a Maven-layout repository holding `acme:notes:1.2.3`, with `extra` files beside its own, and
+   * a `cook.toml` listing it.
+   */
+  static void notesCookbook(File kitchen, Map<String, String> extra = [:]) {
     def jar = new File(kitchen, 'repository/acme/notes/1.2.3/notes-1.2.3.jar'); jar.parentFile.mkdirs()
     new java.util.jar.JarOutputStream(jar.newOutputStream()).withCloseable { out ->
-      ['acme/notes/Notes.groovy': """package acme.notes
+      (['acme/notes/Notes.groovy': """package acme.notes
 
 @Ingredient
 class Notes {
@@ -30,7 +33,7 @@ import acme.notes.Notes
 @ingredient(Notes) def notes
 
 notes.add('more')
-"""].each { path, text ->
+"""] + extra).each { path, text ->
         out.putNextEntry(new java.util.jar.JarEntry(path)); out.write(text.getBytes('UTF-8')); out.closeEntry()
       }
     }

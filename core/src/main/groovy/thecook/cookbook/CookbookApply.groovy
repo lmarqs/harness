@@ -27,6 +27,7 @@ final class CookbookApply {
     def lock = CookLock.parse(draft.read(CookLock.PATH))
     Set<String> applied = []
     List<Applied> recipes = []
+    List<ChangedSource> changedSources = []
     def seeds = new SeedOutcomes()
     requests.eachWithIndex { request, index ->
       def label = requests.size() > 1 ? "recipe ${index + 1} (${request.operand})" : request.operand
@@ -43,6 +44,10 @@ final class CookbookApply {
         ingredients*.getClass().unique().each { checkPristine(it, loader.reads(it, draft), name) }
         def declared = Declarations.of(ingredients, name)
         apply(name, declared, draft, lock, seeds)
+        def recorded = lock.sha256(name, recipe.address)
+        if (Coordinates.written(recipe.address) && recorded != null && recorded != recipe.sha256) {
+          changedSources.add(new ChangedSource(recipe.address, recorded, recipe.sha256))
+        }
         lock.record(name, recipe.address, recipe.sha256, declared.owned*.target)
         def texts = RecipeSource.texts(recipe.source, "${recipe.fileName}.groovy")
         recipes.add(new Applied(recipe.address, texts?.confirm, texts?.yieldText))
@@ -53,7 +58,7 @@ final class CookbookApply {
     }
     seeds.refuse()
     draft.write(CookLock.PATH, lock.render())
-    new Proposal(draft, recipes, seeds)
+    new Proposal(draft, recipes, changedSources, seeds)
   }
 
   private static CookbookModel model(Class type, String at, ModelReads reads) {
@@ -127,6 +132,22 @@ final class Applied {
   }
 }
 
+/**
+ * A release whose sources differ from those `cook.lock` recorded under the same coordinates, as when its tag moved:
+ * its address and the sha256 the lock recorded and the one it has now.
+ */
+final class ChangedSource {
+  final String address
+  final String recorded
+  final String current
+
+  ChangedSource(String address, String recorded, String current) {
+    this.address = address
+    this.recorded = recorded
+    this.current = current
+  }
+}
+
 /** What a recipe's first apply does with a file its `existing = 'fail'` seed writes. */
 enum ExistingSeed {
   /** Fails, naming the file. */
@@ -173,10 +194,12 @@ final class Proposal {
   private final Draft draft
   private final SeedOutcomes seeds
   final List<Applied> recipes
+  final List<ChangedSource> changedSources
 
-  Proposal(Draft draft, List<Applied> recipes, SeedOutcomes seeds) {
+  Proposal(Draft draft, List<Applied> recipes, List<ChangedSource> changedSources, SeedOutcomes seeds) {
     this.draft = draft
     this.recipes = recipes
+    this.changedSources = changedSources
     this.seeds = seeds
   }
 

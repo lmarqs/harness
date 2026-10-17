@@ -282,6 +282,33 @@ notes.add('local')
     }
   }
 
+  @Test void appliesAReleaseWhoseSourcesChangedAfterSayingSoAboveTheDiff() {
+    workspace { root, repo ->
+      Fixtures.notesCookbook(repo)
+      def stdout = new ByteArrayOutputStream(); def stderr = new ByteArrayOutputStream()
+      def cli = command(stdout, stderr)
+      def lock = new File(repo, 'cook.lock')
+      assert cli.execute(['-C', repo.path, '--batch-approve', 'acme:notes:1.2.3:more'] as String[]) == 0
+      def recorded = (lock.text =~ /sha256: "(\w+)"/)[0][1]
+
+      Fixtures.notesCookbook(repo, ['acme/notes/NOTICE.md': 'Changed under the same version.'])
+      stdout.reset()
+      assert cli.execute(['-C', repo.path, '--batch-approve', 'acme:notes:1.2.3:more'] as String[]) == 0 :
+      stderr.toString('UTF-8')
+
+      def current = (lock.text =~ /sha256: "(\w+)"/)[0][1]
+      assert current != recorded
+      assert stdout.toString('UTF-8').startsWith("""Changed source acme:notes:1.2.3:more
+  cook.lock recorded sha256 ${recorded}; the release now has sha256 ${current}
+  its sources changed under the same version; review the diff before approving
+
+--- a/cook.lock
++++ b/cook.lock
+""")
+      assert stdout.toString('UTF-8').endsWith('\nUpdated cook.lock\n')
+    }
+  }
+
   private static Object command(ByteArrayOutputStream stdout, ByteArrayOutputStream stderr, String input = null) {
     def stdin = input == null ? null : new BufferedReader(new StringReader(input))
     new thecook.cli.terminal.CookCommand(new PrintWriter(stdout, true), new PrintWriter(stderr, true), stdin)
