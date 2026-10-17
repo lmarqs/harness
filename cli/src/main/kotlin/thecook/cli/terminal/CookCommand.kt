@@ -340,13 +340,11 @@ constructor(
         if (operand.startsWith("-")) throw UsageError("help takes recipes only: $operand")
         if (Coordinates.written(operand)) {
           Address(Coordinates.parse(operand))
-        } else if (operand.endsWith(".groovy") && !operand.contains("://")) {
+        } else {
+          if (!operand(operand)) throw UsageError("Not a recipe: $operand. A recipe is coordinates or a .groovy path")
           val script = path(kitchen, operand, "recipe")
           if (!Files.isRegularFile(script)) throw IllegalArgumentException("Recipe file not found: $operand")
-          LocalRecipe(script, null)
-        } else {
-          if (!operand.matches(RECIPE_NAME)) throw UsageError("Invalid recipe name: $operand")
-          LocalRecipe(findRecipe(kitchen.toAbsolutePath(), operand), operand)
+          LocalRecipe(script, operand)
         }
       },
     )
@@ -379,26 +377,10 @@ constructor(
   }
 
   private fun recipeHelp(command: LocalRecipe): String {
-    if (Files.isRegularFile(command.script)) {
-      val name = command.script.fileName.toString().removeSuffix(".groovy")
-      RecipeSource.texts(Files.readString(command.script), command.script.fileName.toString())?.let {
-        return render(command.expectedName ?: name, it)
-      }
-    }
-    val declaration = declaration(command.script)
-    if (command.expectedName != null && declaration.name != command.expectedName) {
-      throw IllegalArgumentException("Recipe identity does not match: ${command.expectedName}")
-    }
-    val arguments = declaration.arguments.joinToString("\n") { input ->
-      when (input) {
-        is RecipeInput.RequiredPath -> "  --${input.name} PATH  required, once"
-        is RecipeInput.RequiredChoices ->
-          "  --${input.name} CHOICE  required, repeatable; choices: ${input.choices.joinToString(", ")}"
-        is RecipeInput.OptionalChoices ->
-          "  --${input.name} CHOICE  optional, once; choices: ${input.choices.joinToString(", ")}"
-      }
-    }
-    return "Usage: cook [-C DIR] [--dry-run] [--remove] ${declaration.name} [arguments]\n$arguments"
+    val texts =
+      RecipeSource.texts(Files.readString(command.script), command.script.fileName.toString())
+        ?: throw IllegalArgumentException("${command.operand} has no help: its first import carries no @help")
+    return render(command.operand, texts)
   }
 
   private fun render(
@@ -509,7 +491,7 @@ constructor(
 
   private sealed interface HelpTarget
 
-  private data class LocalRecipe(val script: Path, val expectedName: String?) : HelpTarget
+  private data class LocalRecipe(val script: Path, val operand: String) : HelpTarget
 
   private data class Address(val coordinates: Coordinates) : HelpTarget
 

@@ -702,7 +702,7 @@ import example.notes.Notes
 
 throw new IllegalStateException('the recipe ran')
 """
-      def expected = '''notes
+      def expected = '''notes.groovy
 
 Seeds `NOTES.md`.
 
@@ -731,9 +731,19 @@ After applying
         assert cli.execute((['-C', repo.path] + misplaced) as String[]) == 2
         assert stderr.toString('UTF-8').readLines().first() in ['--help takes no other arguments; use help <recipe> to read a recipe', 'help takes recipes only: --owner=me']
       }
+      new File(repo, 'bare.groovy').text = 'println "no help"\n'
+      [
+        [['help', 'bare.groovy'], 1, 'bare.groovy has no help: its first import carries no @help'],
+        [['help', 'missing.groovy'], 1, 'Recipe file not found: missing.groovy'],
+        [['help', 'notes'], 2, 'Not a recipe: notes. A recipe is coordinates or a .groovy path'],
+      ].each { arguments, status, message ->
+        stderr.reset()
+        assert cli.execute((['-C', repo.path] + arguments) as String[]) == status
+        assert stderr.toString('UTF-8').readLines().first() == message
+      }
       stdout.reset()
       assert cli.execute(['help'] as String[]) == 0 && stdout.toString('UTF-8').startsWith('Usage:')
-      assert repo.list() as Set == ['notes.groovy'] as Set
+      assert repo.list() as Set == ['notes.groovy', 'bare.groovy'] as Set
     }
   }
 
