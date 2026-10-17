@@ -19,7 +19,9 @@ tasks.named('test') {
   useJUnit()
   dependsOn tasks.named('jar')
   systemProperty 'cook.recipeName', providers.gradleProperty('cookbookPath').get()
-  systemProperty 'cook.artifact', tasks.named('jar').flatMap { it.archiveFile }.get().asFile.absolutePath
+  systemProperty 'cook.artifact', tasks.named('jar')
+      .flatMap { it.archiveFile }
+      .get().asFile.absolutePath
   testLogging { events 'failed' }
 }
 
