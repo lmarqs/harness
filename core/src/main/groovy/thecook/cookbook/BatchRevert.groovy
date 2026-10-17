@@ -19,6 +19,10 @@ final class BatchRevert {
    */
   Proposal propose(String batchId) {
     def batch = RecordedBatch.read(destination, batchId)
+    if (batch.result == 'pending') {
+      throw new IllegalArgumentException("Batch ${batchId} did not finish writing (pending), so it may have written some of " +
+      "its files; ./cook batch inspect ${batchId} shows them and their patches")
+    }
     if (batch.result != 'written') {
       throw new IllegalArgumentException("Batch ${batchId} did not finish writing (${batch.result}); there is nothing of it to revert")
     }
@@ -45,6 +49,9 @@ final class BatchRevert {
     if (whole && current != after) {
       return ["changed since the batch ${after == null ? 'deleted it' : 'wrote it'}"]
     }
+    if (!whole && current?.kind != 'file') {
+      return ["${current == null ? 'deleted' : 'changed'} since the batch wrote it".toString()]
+    }
     def reversal = FilePatch.reverse(patch, FilePatch.lines(draft.after(path)))
     if (reversal.conflicts) {
       return reversal.conflicts.flatten() as List<String>
@@ -57,6 +64,10 @@ final class BatchRevert {
       return []
     }
     if (before.kind == 'symlink') {
+      // The reversal restores the link as one line; any other line is a later edit the link would discard.
+      if (reversal.lines.size() != 1) {
+        return ['changed since the batch wrote it']
+      }
       draft.link(path, (String) before.target)
       return []
     }

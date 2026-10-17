@@ -86,6 +86,39 @@ settings.toml
     assert link.text == '@AGENTS.md\n'
   }
 
+  @Test void keepsLinesAddedSinceTheBatchToAFileThatWasALink() {
+    def kitchen = folder.newFolder()
+    def link = new File(kitchen, 'CLAUDE.md').toPath()
+    Files.createSymbolicLink(link, Path.of('AGENTS.md'))
+    def id = batch(kitchen) { it.write('CLAUDE.md', '@AGENTS.md\n') }
+    link.text = '@AGENTS.md\nmine\n'
+
+    def error = shouldFail { new BatchRevert(kitchen).propose(id) }
+
+    assert error.message.endsWith(':\nCLAUDE.md\n  changed since the batch wrote it')
+    assert link.text == '@AGENTS.md\nmine\n'
+  }
+
+  @Test void namesAFileDeletedOrReplacedByALinkSinceTheBatchChangedIt() {
+    def kitchen = folder.newFolder()
+    def notes = new File(kitchen, 'notes.md')
+    notes.text = 'a'
+    def script = new File(kitchen, 'run.sh')
+    script.text = 'echo hi\n'
+    def id = batch(kitchen) {
+      it.write('notes.md', 'a\n')
+      it.write('run.sh', 'echo hi\n', 'rwxr-xr-x')
+    }
+    notes.delete()
+    Files.createSymbolicLink(notes.toPath(), Path.of('elsewhere'))
+    script.delete()
+
+    def error = shouldFail { new BatchRevert(kitchen).propose(id) }
+
+    assert error.message.endsWith(':\nnotes.md\n  changed since the batch wrote it\nrun.sh\n  deleted since the batch wrote it')
+    assert Files.readSymbolicLink(notes.toPath()) == Path.of('elsewhere')
+  }
+
   @Test void keepsAFileWithoutItsLastNewlineAsItWas() {
     def kitchen = folder.newFolder()
     def notes = new File(kitchen, 'notes.md')
@@ -107,6 +140,11 @@ settings.toml
     new File(failed, 'batch.yaml').text = 'result: failed\nfiles: []\n'
     assert shouldFail { new BatchRevert(kitchen).propose('2026-10-14T15-04-05Z') }.message ==
     'Batch 2026-10-14T15-04-05Z did not finish writing (failed); there is nothing of it to revert'
+    new File(failed, 'batch.yaml').text = 'result: pending\nfiles: []\n'
+    assert shouldFail { new BatchRevert(kitchen).propose('2026-10-14T15-04-05Z') }.message ==
+    'Batch 2026-10-14T15-04-05Z did not finish writing (pending), so it may have written some of its files; ' +
+    './cook batch inspect 2026-10-14T15-04-05Z shows them and their patches'
+    assert shouldFail { new BatchRevert(kitchen).propose('batches\\..\\2026-10-14T15-04-05Z') }.message.startsWith('No batch ')
   }
 
   private static String batch(File kitchen, Closure changes) {
