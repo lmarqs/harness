@@ -28,7 +28,7 @@ final class Coordinates {
 
   /** Whether `operand` is written as coordinates rather than as a path, a name or a URL. */
   static boolean written(String operand) {
-    operand.contains(':') && !operand.contains('://')
+    operand.contains(':') && !operand.contains('://') && !operand.endsWith('.groovy')
   }
 
   /** Parses `text`, rejecting anything but `group:artifact:version[:recipe]` with an exact release version. */

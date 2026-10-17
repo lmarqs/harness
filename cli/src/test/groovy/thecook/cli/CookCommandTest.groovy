@@ -883,6 +883,16 @@ more
       stdout.reset()
       assert cli.execute(['-C', repo.path, '--dry-run', 'acme:notes:1.2.3', '--line', 'second', '--loud'] as String[]) == 0
       assert stdout.toString('UTF-8').contains('\n-second\n+SECOND\n')
+      new File(repo, 'local.groovy').text = """@cookbook('acme:1.2.3')
+import acme.notes.Notes
+@ingredient(Notes) def notes
+notes.add('local')
+"""
+      stdout.reset()
+      assert cli.execute(['-C', repo.path, '--dry-run', 'acme:notes:1.2.3', '--line', 'second', 'local.groovy'] as String[]) == 0 :
+      stderr.toString('UTF-8')
+      assert stdout.toString('UTF-8').contains('\n+<!-- cook:begin local#notes -->\n+local\n+<!-- cook:end local#notes -->\n')
+      assert stdout.toString('UTF-8').endsWith('\nWould update NOTES.md\nWould update cook.lock\n')
 
       [
         [['acme:notes:1.2.3', '--line', 'a:b'], 2, 'Not a recipe: a:b. To give it to --line, write --line=a:b'],
@@ -896,18 +906,12 @@ more
         [['acme:notes:1.2.3', '--line='], 2, 'Missing value for --line'],
         [['acme:notes:1.2.3', '--set=first'], 2, 'Unknown option for the recipe: --set=first'],
         [['acme:notes:1.2.3', 'line=first'], 2, 'Not a recipe: line=first. Recipe arguments start with --'],
-        [
-          ['acme:notes:1.2.3', '--line=a', 'notes.groovy'],
-          2,
-          'Not supported yet: the path notes.groovy together with recipe coordinates; apply it in its own invocation'
-        ],
+        [['../outside.groovy'], 1, '../outside.groovy: the recipe is outside the kitchen; move it into the kitchen'],
         [['acme:notes:1.2.3', '--line=a', '--dry-run'], 2, '--dry-run goes before the first recipe'],
         [['acme:notes:1.2.3', '--line=a', '--batch-approve'], 2, '--batch-approve goes before the first recipe'],
         [['acme:notes:1.2.3', '--line=a', '--force'], 2, '--force goes before the first recipe'],
         [['acme:notes:1.2.3', '--line=a', '--skip'], 2, '--skip goes before the first recipe'],
         [['--force', '--skip', 'acme:notes:1.2.3', '--line=a'], 2, '--force and --skip exclude each other'],
-        [['--force', 'notes.groovy'], 2, '--force and --skip apply to recipe coordinates'],
-        [['--skip', 'notes.groovy'], 2, '--force and --skip apply to recipe coordinates'],
         [
           ['acme:notes:1.2.3:more', 'acme:notes:1.2.3:more'],
           1,

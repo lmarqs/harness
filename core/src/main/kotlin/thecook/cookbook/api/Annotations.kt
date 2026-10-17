@@ -80,6 +80,15 @@ annotation class Delete(
   val path: String,
 )
 
+/**
+ * The cookbook release, `group:version`, whose artifacts a recipe path imports models from; once per cookbook, on one
+ * of its imports.
+ */
+@Retention(AnnotationRetention.RUNTIME)
+annotation class cookbook(
+  val value: String,
+)
+
 /** The recipe's description, in Markdown, on its first import. */
 @Retention(AnnotationRetention.RUNTIME)
 annotation class help(

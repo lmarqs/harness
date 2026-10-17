@@ -84,7 +84,7 @@ constructor(
           changes.forEach { stdout.println("$verb $it") }
         }
 
-        is CookCoordinates -> {
+        is ApplyRecipes -> {
           val proposal = CookbookApply(command.repository.toFile(), command.existing).propose(command.requests)
           val actions = proposal.actions
           if (actions.isEmpty()) {
@@ -185,32 +185,22 @@ constructor(
     root: RootArgs,
   ): Command {
     val entrypoint = root.operands.firstOrNull() ?: throw UsageError("A command or recipe is required")
-    val localScript = entrypoint.endsWith(".groovy") && !entrypoint.contains("://")
-    if (!localScript && Coordinates.written(entrypoint)) return coordinates(kitchen, root)
+    if (operand(entrypoint)) return recipes(kitchen, root)
     if (root.force || root.skip) throw UsageError("--force and --skip apply to recipe coordinates")
     val repository = kitchen.toAbsolutePath()
-    val recipe =
-      if (localScript) {
-        path(kitchen, entrypoint, "recipe").also {
-          if (!Files.isRegularFile(it)) throw IllegalArgumentException("Recipe file not found: $entrypoint")
-        }
-      } else {
-        if (!entrypoint.matches(RECIPE_NAME)) throw UsageError("Invalid recipe name: $entrypoint")
-        findRecipe(repository, entrypoint)
-      }
+    if (!entrypoint.matches(RECIPE_NAME)) throw UsageError("Invalid recipe name: $entrypoint")
+    val recipe = findRecipe(repository, entrypoint)
     val arguments = recipeArguments(root.operands.drop(1))
-    if (!localScript) {
-      val declared = try {
-        declaration(recipe)
-      } catch (error: IllegalArgumentException) {
-        if (error.message?.startsWith("Recipe has no argument declaration:") != true &&
-          error.message?.startsWith("Cookbook source not found:") != true
-        ) throw error
-        null
-      }
-      if (declared != null && declared.name != entrypoint) {
-        throw IllegalArgumentException("Recipe identity does not match: $entrypoint")
-      }
+    val declared = try {
+      declaration(recipe)
+    } catch (error: IllegalArgumentException) {
+      if (error.message?.startsWith("Recipe has no argument declaration:") != true &&
+        error.message?.startsWith("Cookbook source not found:") != true
+      ) throw error
+      null
+    }
+    if (declared != null && declared.name != entrypoint) {
+      throw IllegalArgumentException("Recipe identity does not match: $entrypoint")
     }
     val removal = if (root.remove) RecipeArguments.removal(declaration(recipe), arguments) else emptySet()
     return Cook(repository, recipe, libraries(kitchen, root.libraries), arguments, root.dryRun, root.remove, removal)
@@ -218,22 +208,22 @@ constructor(
 
   // A word is a recipe when it contains / or : or ends with .groovy; any other word is the value of the bare --name
   // before it, so `--name value` and `--name=value` read the same.
-  private fun coordinates(
+  private fun recipes(
     kitchen: Path,
     root: RootArgs,
   ): Command {
     if (root.remove || root.libraries.isNotEmpty()) {
-      throw UsageError("--remove and --library do not apply to recipe coordinates")
+      throw UsageError("--remove and --library do not apply to recipe coordinates or paths")
     }
     val recipes = mutableListOf<Pair<String, MutableList<Argument>>>()
     var bare: String? = null
     for (token in root.operands) {
       if (token.startsWith("-")) {
-        val argument = coordinatesArgument(token)
+        val argument = recipeArgument(token)
         recipes.last().second.add(argument)
         bare = argument.name.takeIf { argument.form == Argument.Form.BARE }
       } else if (operand(token)) {
-        recipes.add(coordinatesOperand(token, bare) to mutableListOf())
+        recipes.add(recipeOperand(token, bare) to mutableListOf())
         bare = null
       } else {
         val name = bare ?: throw UsageError("Not a recipe: $token. Recipe arguments start with --")
@@ -248,20 +238,16 @@ constructor(
         root.skip -> ExistingSeed.KEEP
         else -> ExistingSeed.REFUSE
       }
-    return CookCoordinates(kitchen.toAbsolutePath(), requests, root.dryRun, root.batchApprove, existing)
+    return ApplyRecipes(kitchen.toAbsolutePath(), requests, root.dryRun, root.batchApprove, existing)
   }
 
   private fun operand(token: String): Boolean = '/' in token || ':' in token || token.endsWith(".groovy")
 
-  private fun coordinatesOperand(
+  private fun recipeOperand(
     token: String,
     bare: String?,
   ): String {
-    if (!Coordinates.written(token)) {
-      throw UsageError(
-        "Not supported yet: the path $token together with recipe coordinates; apply it in its own invocation",
-      )
-    }
+    if (!Coordinates.written(token)) return token
     try {
       Coordinates.parse(token)
     } catch (error: IllegalArgumentException) {
@@ -271,7 +257,7 @@ constructor(
     return token
   }
 
-  private fun coordinatesArgument(token: String): Argument {
+  private fun recipeArgument(token: String): Argument {
     val name = token.substringBefore('=')
     if (name in BEFORE_RECIPE) throw UsageError("$name goes before the first recipe")
     if (!name.matches(Regex("--[a-z][a-z0-9-]*")) || name in RESERVED) {
@@ -541,7 +527,7 @@ constructor(
     val removalApplications: Set<String>,
   ) : Command
 
-  private data class CookCoordinates(
+  private data class ApplyRecipes(
     val repository: Path,
     val requests: List<RecipeRequest>,
     val dryRun: Boolean,

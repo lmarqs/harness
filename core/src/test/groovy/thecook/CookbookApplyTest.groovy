@@ -246,6 +246,85 @@ agents.connect([claude])
     assert new File(kitchen, 'CLAUDE.md').isFile()
   }
 
+  @Test void appliesARecipePathWithModelsFromTheCookbookItDeclares() {
+    def kitchen = kitchen()
+    publishDirectory(kitchen, 'agents')
+    def recipe = recipe(kitchen, 'recipes/skills.groovy', """@help('Links one skill.')
+@cookbook('dev.thecook:0.1.0')
+import dev.thecook.agents.Agents
+import dev.thecook.agents.Claude
+@ingredient(Agents) def agents
+@ingredient(Claude) def claude
+agents.skills('solid')
+agents.connect([claude])
+""")
+
+    apply(kitchen, 'recipes/skills.groovy', [:]).commit()
+
+    assert new File(kitchen, '.agents/skills/solid/SKILL.md').text ==
+    new File(COOKBOOK, 'agents/skills/solid/SKILL.md').text
+    assert new File(kitchen, 'cook.lock').text.contains("""  - name: "recipes/skills"
+    source: "recipes/skills.groovy"
+    sha256: "${sha256(recipe)}"
+""")
+    assert apply(kitchen, './recipes/skills.groovy', [:]).changes.empty
+  }
+
+  @Test void composesARecipePathWithCoordinatesUnderItsShortName() {
+    def kitchen = kitchen()
+    publishDirectory(kitchen, 'agents')
+    publish(kitchen, 'acme:notes:1.0.0', ['Notes.groovy': '''package acme.notes
+
+@Ingredient
+class Notes {
+  private List<String> lines = []
+  void add(String line) { lines += line }
+  @Section(path = 'NOTES.md', id = 'notes')
+  List<String> section() { lines ?: null }
+}
+'''])
+    recipe(kitchen, 'notes.groovy', """@cookbook('acme:1.0.0')
+import acme.notes.Notes
+@param(value = ['line'], doc = 'The line') String line
+@ingredient(Notes) def notes
+notes.add(line)
+""")
+
+    def proposal = new CookbookApply(kitchen).propose([
+      request('dev.thecook:agents:0.1.0:instructions', [harness: ['claude']]),
+      request('notes.groovy', [line: ['first']]),
+    ])
+
+    assert proposal.recipes*.address == ['dev.thecook:agents:0.1.0:instructions', 'notes.groovy']
+    proposal.commit()
+    assert new File(kitchen, 'NOTES.md').text ==
+    '<!-- cook:begin notes#notes -->\nfirst\n<!-- cook:end notes#notes -->\n'
+    def lock = new File(kitchen, 'cook.lock').text
+    assert lock.contains('- name: "dev.thecook:agents:instructions"')
+    assert lock.contains('- name: "notes"\n    source: "notes.groovy"')
+  }
+
+  @Test void refusesARecipePathOutsideTheKitchenOrWithTwoReleasesOfACookbook() {
+    def kitchen = kitchen()
+    publishDirectory(kitchen, 'agents')
+    def outside = new File(kitchen.parentFile, 'outside.groovy'); outside.text = "@help('Outside.')\nimport java.util.List\n"
+    java.nio.file.Files.createSymbolicLink(new File(kitchen, 'linked.groovy').toPath(), outside.toPath())
+    recipe(kitchen, 'twice.groovy', """@cookbook('dev.thecook:0.1.0')
+import dev.thecook.agents.Agents
+@cookbook('dev.thecook:0.2.0')
+import dev.thecook.agents.Claude
+""")
+    [
+      '../outside.groovy': '../outside.groovy: the recipe is outside the kitchen; move it into the kitchen',
+      'linked.groovy': 'linked.groovy: the recipe is outside the kitchen; move it into the kitchen',
+      'missing.groovy': 'missing.groovy: Recipe file not found: missing.groovy',
+      'twice.groovy': 'twice.groovy: @cookbook names dev.thecook at 0.1.0 and 0.2.0; use one release per cookbook',
+    ].each { operand, message ->
+      def error = shouldFail(IllegalArgumentException) { apply(kitchen, operand, [:]) }
+      assert error.message == message
+    }
+  }
+
   @Test void theLastRecipeToWriteAKeyOwnsIt() {
     def kitchen = kitchen()
     publish(kitchen, 'acme:notes:1.0.0', [
@@ -405,6 +484,13 @@ import acme.noisy.Noisy
     def kitchen = folder.newFolder('kitchen')
     new File(kitchen, 'cook.toml').text = 'repositories = ["repository"]\n'
     kitchen
+  }
+
+  private static File recipe(File kitchen, String path, String text) {
+    def file = new File(kitchen, path)
+    file.parentFile.mkdirs()
+    file.text = text
+    file
   }
 
   private static def apply(File kitchen, String operand, Map<String, List<String>> arguments) {

@@ -6,7 +6,7 @@ import thecook.filesystem.TargetPath
 import java.lang.reflect.InvocationTargetException
 
 /**
- * Applies recipes by their coordinates, left to right, into one draft of the destination: each recipe withdraws what
+ * Applies recipes, by coordinates or by path, left to right, into one draft of the destination: each recipe withdraws what
  * it owned and no longer declares, then writes what it declares, taking ownership from the recipes that held it.
  * `cook.lock` records the result.
  */
@@ -22,40 +22,30 @@ final class CookbookApply {
 
   /** Evaluates `requests` in order and returns the proposed changes, written only by `Proposal.commit`. */
   Proposal propose(List<RecipeRequest> requests) {
-    def repositories = CookbookRepositories.at(destination)
+    def loader = new RecipeLoader(destination)
     def draft = new Draft(destination)
     def lock = CookLock.parse(draft.read(CookLock.PATH))
-    Map<String, CookbookArtifact> artifacts = [:]
-    Map<String, ClassLoader> models = [:]
     Set<String> applied = []
     List<Applied> recipes = []
     def seeds = new SeedOutcomes()
     requests.eachWithIndex { request, index ->
       def label = requests.size() > 1 ? "recipe ${index + 1} (${request.operand})" : request.operand
       try {
-        def coordinates = request.coordinates
-        def artifact = artifacts.computeIfAbsent(coordinates.artifactAddress) { repositories.artifact(coordinates) }
-        def recipe = coordinates.recipe ?: coordinates.artifact
-        if (!coordinates.recipe && !(recipe in artifact.recipes)) {
-          throw new IllegalArgumentException("${coordinates} has no recipe named ${recipe} to apply by default; name one: " +
-          artifact.recipes.collect { coordinates.recipeAddress(it) }.join(', '))
-        }
-        def source = artifact.recipeSource(recipe)
-        String name = "${coordinates.group}:${coordinates.artifact}:${recipe}"
+        def recipe = loader.load(request.operand)
+        String name = recipe.name
         if (!applied.add(name)) {
           throw new IllegalArgumentException("${name} is applied twice; apply it once per invocation")
         }
-        def loader = models.computeIfAbsent(coordinates.artifactAddress) { CookbookCompiler.models(artifact) }
-        def compiled = CookbookCompiler.recipe(source, recipe, loader)
-        def reads = [resource: { artifact.resource(it) }, resources: { artifact.resources(it) },
-          current: { draft.read(it) }] as ModelReads
-        def ingredients = RecipeRun.run(compiled, request.arguments) { Class type, String at -> model(type, at, reads) }
-        ingredients*.getClass().unique().each { checkPristine(it, reads, name) }
+        def compiled = CookbookCompiler.recipe(recipe.source, recipe.fileName, recipe.models)
+        def ingredients = RecipeRun.run(compiled, request.arguments) { Class type, String at ->
+          model(type, at, loader.reads(type, draft))
+        }
+        ingredients*.getClass().unique().each { checkPristine(it, loader.reads(it, draft), name) }
         def declared = Declarations.of(ingredients, name)
         apply(name, declared, draft, lock, seeds)
-        lock.record(name, coordinates.recipeAddress(recipe), artifact.sha256, declared.owned*.target)
-        def texts = RecipeSource.texts(source, "${recipe}.groovy")
-        recipes.add(new Applied(coordinates.recipeAddress(recipe), texts?.confirm, texts?.yieldText))
+        lock.record(name, recipe.address, recipe.sha256, declared.owned*.target)
+        def texts = RecipeSource.texts(recipe.source, "${recipe.fileName}.groovy")
+        recipes.add(new Applied(recipe.address, texts?.confirm, texts?.yieldText))
       } catch (Exception error) {
         def cause = error instanceof InvocationTargetException && error.cause instanceof Exception ? error.cause : error
         throw new IllegalArgumentException("${label}: ${cause.message ?: cause.class.simpleName}", cause)
@@ -113,15 +103,13 @@ final class CookbookApply {
   }
 }
 
-/** One recipe to apply: its coordinates as written and its arguments in the order given. */
+/** One recipe to apply: its operand as written, coordinates or a path in the kitchen, and its arguments in order. */
 final class RecipeRequest {
   final String operand
-  final Coordinates coordinates
   final List<Argument> arguments
 
   RecipeRequest(String operand, List<Argument> arguments) {
     this.operand = operand
-    this.coordinates = Coordinates.parse(operand)
     this.arguments = arguments
   }
 }
