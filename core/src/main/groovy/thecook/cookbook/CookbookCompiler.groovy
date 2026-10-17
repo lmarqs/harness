@@ -136,4 +136,9 @@ final class CompiledRecipe {
     this.fields = fields
     this.defaulted = defaulted
   }
+
+  /** Whether the param in the field `name` declares a default, so the recipe runs without it. */
+  boolean hasDefault(String name) {
+    defaulted.contains(name)
+  }
 }

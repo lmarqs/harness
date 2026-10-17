@@ -880,9 +880,18 @@ more
       stdout.reset()
       assert cli.execute(['-C', repo.path, '--dry-run', 'acme:notes:1.2.3', '--line=second', '--loud=false'] as String[]) == 0
       assert stdout.toString('UTF-8') == 'Already cooked.\n'
+      stdout.reset()
+      assert cli.execute(['-C', repo.path, '--dry-run', 'acme:notes:1.2.3', '--line', 'second', '--loud'] as String[]) == 0
+      assert stdout.toString('UTF-8').contains('\n-second\n+SECOND\n')
 
       [
-        [['acme:notes:1.2.3', '--line', 'first'], 2, 'Not a recipe: first. To give it to --line, write --line=first'],
+        [['acme:notes:1.2.3', '--line', 'a:b'], 2, 'Not a recipe: a:b. To give it to --line, write --line=a:b'],
+        [['acme:notes:1.2.3', '--line', 'a', 'b'], 2, 'Not a recipe: b. Recipe arguments start with --'],
+        [
+          ['acme:notes:1.2.3', '--line=a', '--loud', 'false'],
+          1,
+          'acme:notes:1.2.3: --loud takes no separate value; write --loud=false'
+        ],
         [['acme:notes:1.2.3', '--line'], 1, 'acme:notes:1.2.3: --line needs a value: write --line=<value>'],
         [['acme:notes:1.2.3', '--line='], 2, 'Missing value for --line'],
         [['acme:notes:1.2.3', '--set=first'], 2, 'Unknown option for the recipe: --set=first'],

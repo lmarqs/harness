@@ -3,6 +3,7 @@ package thecook
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import thecook.cookbook.Argument
 import thecook.cookbook.Coordinates
 import thecook.cookbook.CookbookApply
 import thecook.cookbook.ExistingSeed
@@ -411,7 +412,11 @@ import acme.noisy.Noisy
   }
 
   private static RecipeRequest request(String operand, Map<String, List<String>> arguments) {
-    new RecipeRequest(operand, arguments)
+    new RecipeRequest(operand, arguments.collectMany { name, values ->
+      values.collect {
+        Argument.inline(name, it)
+      }
+    })
   }
 
   private static File publishDirectory(File kitchen, String name, Map<String, Object> extra = [:]) {

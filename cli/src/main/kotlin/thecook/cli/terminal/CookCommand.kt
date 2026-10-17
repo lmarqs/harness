@@ -4,6 +4,7 @@ import com.github.difflib.DiffUtils
 import com.github.difflib.UnifiedDiffUtils
 import picocli.CommandLine
 import thecook.application.CookService
+import thecook.cookbook.Argument
 import thecook.cookbook.Cookbook
 import thecook.cookbook.CookbookApply
 import thecook.cookbook.CookbookArtifact
@@ -215,8 +216,8 @@ constructor(
     return Cook(repository, recipe, libraries(kitchen, root.libraries), arguments, root.dryRun, root.remove, removal)
   }
 
-  // Values are written only as --name=value, so a word without -- always starts the next recipe; a bare --name carries
-  // no value, and the recipe reads it as true for a yes-or-no param.
+  // A word is a recipe when it contains / or : or ends with .groovy; any other word is the value of the bare --name
+  // before it, so `--name value` and `--name=value` read the same.
   private fun coordinates(
     kitchen: Path,
     root: RootArgs,
@@ -224,16 +225,19 @@ constructor(
     if (root.remove || root.libraries.isNotEmpty()) {
       throw UsageError("--remove and --library do not apply to recipe coordinates")
     }
-    // Checked in reading order, so `--name value` reports the missing `=` before `value` reads as a recipe.
-    val recipes = mutableListOf<Pair<String, MutableMap<String, MutableList<String?>>>>()
+    val recipes = mutableListOf<Pair<String, MutableList<Argument>>>()
     var bare: String? = null
     for (token in root.operands) {
       if (token.startsWith("-")) {
-        val (name, value) = coordinatesArgument(token)
-        recipes.last().second.getOrPut(name) { mutableListOf() }.add(value)
-        bare = if (value == null) "--$name" else null
+        val argument = coordinatesArgument(token)
+        recipes.last().second.add(argument)
+        bare = argument.name.takeIf { argument.form == Argument.Form.BARE }
+      } else if (operand(token)) {
+        recipes.add(coordinatesOperand(token, bare) to mutableListOf())
+        bare = null
       } else {
-        recipes.add(coordinatesOperand(token, bare) to linkedMapOf())
+        val name = bare ?: throw UsageError("Not a recipe: $token. Recipe arguments start with --")
+        recipes.last().second.apply { set(lastIndex, Argument.separate(name, token)) }
         bare = null
       }
     }
@@ -247,32 +251,36 @@ constructor(
     return CookCoordinates(kitchen.toAbsolutePath(), requests, root.dryRun, root.batchApprove, existing)
   }
 
+  private fun operand(token: String): Boolean = '/' in token || ':' in token || token.endsWith(".groovy")
+
   private fun coordinatesOperand(
     token: String,
     bare: String?,
   ): String {
-    if (token.endsWith(".groovy")) {
+    if (!Coordinates.written(token)) {
       throw UsageError(
         "Not supported yet: the path $token together with recipe coordinates; apply it in its own invocation",
       )
     }
-    if (!Coordinates.written(token)) {
-      if (bare != null) throw UsageError("Not a recipe: $token. To give it to $bare, write $bare=$token")
-      throw UsageError("Not a recipe: $token. Recipe arguments start with --")
+    try {
+      Coordinates.parse(token)
+    } catch (error: IllegalArgumentException) {
+      if (bare != null) throw UsageError("Not a recipe: $token. To give it to --$bare, write --$bare=$token")
+      throw error
     }
     return token
   }
 
-  private fun coordinatesArgument(token: String): Pair<String, String?> {
+  private fun coordinatesArgument(token: String): Argument {
     val name = token.substringBefore('=')
     if (name in BEFORE_RECIPE) throw UsageError("$name goes before the first recipe")
     if (!name.matches(Regex("--[a-z][a-z0-9-]*")) || name in RESERVED) {
       throw UsageError("Unknown option for the recipe: $token")
     }
-    if ('=' !in token) return name.removePrefix("--") to null
+    if ('=' !in token) return Argument.bare(name.removePrefix("--"))
     val value = token.substringAfter('=')
     if (value.isEmpty()) throw UsageError("Missing value for $name")
-    return name.removePrefix("--") to value
+    return Argument.inline(name.removePrefix("--"), value)
   }
 
   // A recipe's arguments are its own; Cook only splits them into names and values and refuses its own options here.

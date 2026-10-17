@@ -11,21 +11,20 @@ final class RecipeRun {
   private RecipeRun() { }
 
   /**
-   * Runs `recipe` with `arguments`, keyed by param name, and returns its ingredients in declaration order. A `null`
-   * value is a bare `--name`: `true` for a yes-or-no param, and an error for any other.
-   * `newIngredient` creates an instance of a model type at a directory.
+   * Runs `recipe` with `arguments` and returns its ingredients in declaration order. A bare `--name` is `true` for a
+   * yes-or-no param and an error for any other. `newIngredient` creates an instance of a model type at a directory.
    */
-  static List<Object> run(CompiledRecipe recipe, Map<String, List<String>> arguments, Closure newIngredient) {
+  static List<Object> run(CompiledRecipe recipe, List<Argument> arguments, Closure newIngredient) {
     def script = (Script) recipe.type.getDeclaredConstructor().newInstance()
     List<Field> fields = recipe.fields.collect { recipe.type.getDeclaredField(it) }
     def params = fields.findAll { it.getAnnotation(Param) }
     def names = params.collectMany { it.getAnnotation(Param).value().toList() }
-    def unknown = arguments.keySet().findAll { !(it in names) }
+    def unknown = arguments*.name.findAll { !(it in names) }
     if (unknown) {
       def takes = names ? 'its arguments are ' + names.collect { "--${it}" }.join(', ') : 'it takes no arguments'
       throw new IllegalArgumentException("Unknown argument --${unknown.first()}; ${takes}")
     }
-    params.each { field -> set(script, field, bind(field, arguments, recipe.defaulted.contains(field.name))) }
+    params.each { field -> set(script, field, bind(field, arguments, recipe)) }
     def ingredients = fields.findAll { it.getAnnotation(Injected) }.collect { field ->
       def injected = field.getAnnotation(Injected)
       def instance = newIngredient(injected.value(), injected.at())
@@ -36,18 +35,22 @@ final class RecipeRun {
     ingredients
   }
 
-  private static Object bind(Field field, Map<String, List<String>> arguments, boolean defaulted) {
+  private static Object bind(Field field, List<Argument> arguments, CompiledRecipe recipe) {
     def declared = field.getAnnotation(Param)
     def name = "--${declared.value().first()}"
-    List<String> values = declared.value().collectMany { arguments[it] ?: [] }
-    if (values.contains(null)) {
-      if (!(field.type in [boolean, Boolean])) {
-        throw new IllegalArgumentException("${name} needs a value: write ${name}=<value>")
-      }
-      values = values.collect { it == null ? 'true' : it }
+    def given = arguments.findAll { it.name in declared.value() }
+    boolean yesOrNo = field.type in [boolean, Boolean]
+    // As in Go's flag package, a yes-or-no value comes only after `=`, so a bare --name means true whatever follows.
+    def separate = given.find { it.form == Argument.Form.SEPARATE }
+    if (yesOrNo && separate) {
+      throw new IllegalArgumentException("--${separate.name} takes no separate value; write --${separate.name}=${separate.value}")
     }
+    if (!yesOrNo && given.any { it.form == Argument.Form.BARE }) {
+      throw new IllegalArgumentException("${name} needs a value: write ${name}=<value>")
+    }
+    List<String> values = given.collect { it.form == Argument.Form.BARE ? 'true' : it.value }
     if (!values) {
-      if (!defaulted) {
+      if (!recipe.hasDefault(field.name)) {
         throw new IllegalArgumentException("Missing ${name}: ${declared.doc()}")
       }
       values = declared."default"().toList()

@@ -113,13 +113,13 @@ final class CookbookApply {
   }
 }
 
-/** One recipe to apply: its coordinates as written and its arguments by param name, `null` for a bare `--name`. */
+/** One recipe to apply: its coordinates as written and its arguments in the order given. */
 final class RecipeRequest {
   final String operand
   final Coordinates coordinates
-  final Map<String, List<String>> arguments
+  final List<Argument> arguments
 
-  RecipeRequest(String operand, Map<String, List<String>> arguments) {
+  RecipeRequest(String operand, List<Argument> arguments) {
     this.operand = operand
     this.coordinates = Coordinates.parse(operand)
     this.arguments = arguments
