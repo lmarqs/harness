@@ -7,9 +7,13 @@ import org.yaml.snakeyaml.Yaml
 import thecook.cookbook.Argument
 import thecook.cookbook.Coordinates
 import thecook.cookbook.CookbookApply
+import thecook.cookbook.Draft
 import thecook.cookbook.ExistingSeed
+import thecook.cookbook.Proposal
 import thecook.cookbook.RecipeRequest
+import thecook.cookbook.SeedOutcomes
 
+import java.nio.file.Files
 import java.security.MessageDigest
 import java.util.jar.JarEntry
 import java.util.jar.JarOutputStream
@@ -509,8 +513,9 @@ config.migrated = migrated
     blocked.mkdir()
     blocked.setWritable(false)
 
+    Throwable error
     try {
-      shouldFail(Exception) { proposal.commit() }
+      error = shouldFail(Exception) { proposal.commit() }
     } finally {
       blocked.setWritable(true)
     }
@@ -520,6 +525,21 @@ config.migrated = migrated
     assert batches.size() == 1
     assert batch(kitchen, batches[0].name).result == 'failed'
     assert new File(batches[0], 'failure.log').text.contains('sub')
+    assert error.message.endsWith("\n  record and failure kept in .cook/batches/${batches[0].name}/")
+  }
+
+  @Test void refusesToKeepABatchRecordThroughALink() {
+    def kitchen = kitchen()
+    def elsewhere = folder.newFolder()
+    Files.createSymbolicLink(new File(kitchen, '.cook').toPath(), elsewhere.toPath())
+    def draft = new Draft(kitchen)
+    draft.write('notes.md', 'mine\n')
+
+    def error = shouldFail(IllegalStateException) { new Proposal(draft, [], [], new SeedOutcomes(), [:]).commit() }
+
+    assert error.message == '.cook is a symbolic link; batch records are kept only inside the kitchen'
+    assert !new File(kitchen, 'notes.md').exists()
+    assert elsewhere.list().length == 0
   }
 
   @Test void namesTheRecipeWhoseModelFailsToConstruct() {

@@ -202,6 +202,7 @@ final class Proposal {
   private final SeedOutcomes seeds
   private final Map<String, String> sources
   private final Map command
+  private final Map<String, List<String>> patches = [:]
   final List<Applied> recipes
   final List<ChangedSource> changedSources
 
@@ -245,23 +246,36 @@ final class Proposal {
     draft.after(path)
   }
 
+  /** The unified diff of a changed `path`, as the review shows it and the batch record keeps it. */
+  List<String> patch(String path) {
+    patches.computeIfAbsent(path) { FilePatch.of(path, draft.before(path), draft.after(path)) }
+  }
+
   /**
    * Saves the batch record, then writes the changes; a failed write leaves the files as they were and the failure in
-   * the record. Returns the batch ID, or `null` when nothing changes and no batch is recorded.
+   * the record, whose place the error names. Returns the batch ID, or `null` when nothing changes and no batch is
+   * recorded.
    */
   String commit() {
     def paths = draft.changes
     if (!paths) {
       return null
     }
+    def actions = this.actions
     def record = BatchRecord.create(draft.destination)
-    record.save(command + [recipes: recipes.collect { recorded(it) }, files: paths.collect { recorded(it) }],
-    paths.collectEntries { [(it): FilePatch.of(it, draft.before(it), draft.after(it))] }, sources)
+    record.save(command + [recipes: recipes.collect { recorded(it) }, files: paths.collect { recorded(it, actions[it]) }],
+    paths.collectEntries { [(it): patch(it)] }, sources)
     try {
       draft.commit()
     } catch (Exception failure) {
-      record.failed(failure)
-      throw failure
+      def kept = "record and failure kept in ${BatchRecord.DIRECTORY}/${record.id}/"
+      try {
+        record.failed(failure)
+      } catch (Exception recording) {
+        failure.addSuppressed(recording)
+        kept = "record kept in ${BatchRecord.DIRECTORY}/${record.id}/ without the failure: ${recording.message}"
+      }
+      throw new IllegalStateException("${failure.message ?: failure.class.simpleName}\n  ${kept}", failure)
     }
     record.written()
     record.id
@@ -272,7 +286,7 @@ final class Proposal {
       arguments: recipe.request.arguments.collect { [name: it.name, value: it.value, form: it.form.name()] }]
   }
 
-  private Map recorded(String path) {
-    [path: path, action: actions[path], before: draft.recordedBefore(path), after: draft.recordedAfter(path)]
+  private Map recorded(String path, String action) {
+    [path: path, action: action, before: draft.recordedBefore(path), after: draft.recordedAfter(path)]
   }
 }

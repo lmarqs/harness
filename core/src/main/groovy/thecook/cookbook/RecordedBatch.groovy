@@ -41,7 +41,7 @@ final class RecordedBatch {
   /** The batch `id` recorded in `destination`; fails, pointing to `./cook batch list`, when none is. */
   static RecordedBatch read(File destination, String id) {
     def directory = new File(destination, "${BatchRecord.DIRECTORY}/${id}")
-    if (id.contains('/') || id.startsWith('.') || !new File(directory, 'batch.yaml').isFile()) {
+    if (!(id ==~ /[0-9A-Za-z][0-9A-Za-z-]*/) || !new File(directory, 'batch.yaml').isFile()) {
       throw new IllegalArgumentException("No batch ${id} is recorded in ${BatchRecord.DIRECTORY}; ./cook batch list shows the recorded batches")
     }
     load(directory)

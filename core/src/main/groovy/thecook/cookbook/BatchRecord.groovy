@@ -2,7 +2,9 @@ package thecook.cookbook
 
 import org.yaml.snakeyaml.DumperOptions
 import org.yaml.snakeyaml.Yaml
+import thecook.filesystem.AtomicFiles
 
+import java.nio.file.Files
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
@@ -30,6 +32,13 @@ final class BatchRecord {
   /** A new, empty record in `destination`, named by the time `started`. */
   static BatchRecord create(File destination, Instant started = Instant.now()) {
     def batches = new File(destination, DIRECTORY)
+    // A link here would put the record outside the kitchen, like a declared write through a link.
+    for (def part = batches; part != destination; part = part.parentFile) {
+      if (Files.isSymbolicLink(part.toPath())) {
+        throw new IllegalStateException("${destination.toPath().relativize(part.toPath())} is a symbolic link; " +
+        'batch records are kept only inside the kitchen')
+      }
+    }
     batches.mkdirs()
     def base = ID.format(started)
     for (int suffix = 1; ; suffix++) {
@@ -82,9 +91,10 @@ final class BatchRecord {
     write()
   }
 
+  // Replaced whole, so an interrupted rewrite never leaves a truncated record that `batch list` cannot read.
   private void write() {
     def options = new DumperOptions()
     options.defaultFlowStyle = DumperOptions.FlowStyle.BLOCK
-    new File(directory, 'batch.yaml').setText(new Yaml(options).dump(batch), 'UTF-8')
+    new AtomicFiles().write(new File(directory, 'batch.yaml'), new Yaml(options).dump(batch), null)
   }
 }

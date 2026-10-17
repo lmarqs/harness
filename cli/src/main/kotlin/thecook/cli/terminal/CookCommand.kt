@@ -8,7 +8,6 @@ import thecook.cookbook.CookbookArtifact
 import thecook.cookbook.CookbookRepositories
 import thecook.cookbook.Coordinates
 import thecook.cookbook.ExistingSeed
-import thecook.cookbook.FilePatch
 import thecook.cookbook.Proposal
 import thecook.cookbook.RecipeRequest
 import thecook.cookbook.RecipeSource
@@ -310,7 +309,7 @@ constructor(
       stdout.println(indent(it.confirm))
       stdout.println()
     }
-    paths.forEach { path -> FilePatch.of(path, proposal.before(path), proposal.after(path)).forEach(stdout::println) }
+    paths.forEach { path -> proposal.patch(path).forEach(stdout::println) }
     stdout.println()
     stdout.flush()
   }
