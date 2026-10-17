@@ -312,6 +312,53 @@ notes.add('local')
     }
   }
 
+  @Test void discardsWhatTheLockListsForEachRecipeAndKeepsTheRestOfTheFile() {
+    workspace { root, repo ->
+      Fixtures.notesCookbook(repo)
+      def stdout = new ByteArrayOutputStream(); def stderr = new ByteArrayOutputStream()
+      def cli = command(stdout, stderr)
+      def notes = new File(repo, 'NOTES.md'); def lock = new File(repo, 'cook.lock')
+      assert cli.execute(['-C', repo.path, '--batch-approve', 'acme:notes:1.2.3', '--line=first', 'acme:notes:1.2.3:more'] as String[]) == 0
+      notes.text += 'mine\n'
+
+      def declined = new ByteArrayOutputStream(); stderr.reset()
+      assert command(declined, stderr, 'n\n').execute(['discard', '-C', repo.path, 'acme:notes:1.2.3:more'] as String[]) == 1
+      assert declined.toString('UTF-8').contains('\n-<!-- cook:begin acme:notes:more#notes -->\n-more\n-<!-- cook:end acme:notes:more#notes -->\n')
+      assert stderr.toString('UTF-8') == 'Nothing written.\n'
+
+      stdout.reset()
+      assert cli.execute(['discard', '-C', repo.path, '--dry-run', 'acme:notes:1.2.3:more'] as String[]) == 0
+      assert stdout.toString('UTF-8').endsWith('\nWould update NOTES.md\nWould update cook.lock\n')
+      stdout.reset()
+      assert cli.execute(['discard', '-C', repo.path, '--batch-approve', 'acme:notes:1.2.3:more'] as String[]) == 0 : stderr.toString('UTF-8')
+      assert stdout.toString('UTF-8').endsWith('\nUpdated NOTES.md\nUpdated cook.lock\n')
+      assert notes.text == '<!-- cook:begin acme:notes:notes#notes -->\nfirst\n<!-- cook:end acme:notes:notes#notes -->\nmine\n'
+
+      stdout.reset()
+      assert cli.execute(['discard', '-C', repo.path, '--batch-approve', 'acme:notes:1.2.3'] as String[]) == 0 : stderr.toString('UTF-8')
+      assert stdout.toString('UTF-8').endsWith('\nUpdated NOTES.md\nDeleted cook.lock\n')
+      assert notes.text == 'mine\n'
+      assert !lock.exists()
+
+      [
+        [['discard'], 2, 'A recipe is required'],
+        [['discard', 'notes'], 2, 'Not a recipe: notes. A recipe is coordinates or a .groovy path'],
+        [['discard', 'acme:notes:1.2.3', '--batch-approve'], 2, '--batch-approve goes before the first recipe'],
+        [['discard', 'acme:notes:1.2.3', '--line=a'], 2, 'discard takes no recipe arguments: --line=a'],
+        [
+          ['--dry-run', 'discard', 'acme:notes:1.2.3'],
+          2,
+          '--dry-run, --batch-approve, --force and --skip go before a recipe, not before a command'
+        ],
+        [['discard', 'acme:notes:1.2.3'], 1, 'acme:notes:notes is not in cook.lock, which lists no recipe'],
+      ].each { arguments, status, message ->
+        stderr.reset()
+        assert cli.execute((arguments.take(1) + ['-C', repo.path] + arguments.drop(1)) as String[]) == status : arguments
+        assert stderr.toString('UTF-8').readLines().first() == message
+      }
+    }
+  }
+
   @Test void appliesThenRevertsABatchAndKeepsALaterEditBesideIt() {
     workspace { root, repo ->
       Fixtures.notesCookbook(repo)

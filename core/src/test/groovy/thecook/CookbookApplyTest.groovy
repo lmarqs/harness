@@ -8,6 +8,7 @@ import thecook.cookbook.Argument
 import thecook.cookbook.Coordinates
 import thecook.cookbook.CookbookApply
 import thecook.cookbook.CookbookArtifact
+import thecook.cookbook.CookbookDiscard
 import thecook.cookbook.CookbookRepositories
 import thecook.cookbook.CookbookRepository
 import thecook.cookbook.Draft
@@ -481,6 +482,82 @@ config.migrated = migrated
     assert new File(kitchen, 'old.cfg').text == 'old'
     apply(kitchen, 'acme:config:1.0.0', [migrated: ['true']]).commit()
     assert !new File(kitchen, 'old.cfg').exists()
+  }
+
+  @Test void discardRemovesTheSectionsARecipeOwnsAndLeavesTheRestOfTheFile() {
+    def kitchen = kitchen()
+    publishDirectory(kitchen, 'agents')
+    apply(kitchen, 'dev.thecook:agents:0.1.0:instructions', [harness: ['claude']]).commit()
+    def claude = new File(kitchen, 'CLAUDE.md')
+    claude.text = 'mine\n' + claude.text
+    def agents = new File(kitchen, 'AGENTS.md').text
+
+    def discard = new CookbookDiscard(kitchen).propose(['dev.thecook:agents:9.9.9:instructions'])
+
+    assert discard.actions == ['CLAUDE.md': 'update', 'cook.lock': 'delete']
+    discard.commit()
+    assert claude.text == 'mine\n'
+    assert new File(kitchen, 'AGENTS.md').text == agents
+    assert !new File(kitchen, 'cook.lock').exists()
+  }
+
+  @Test void discardRemovesOwnedKeysWithoutRestoringEarlierValues() {
+    def kitchen = kitchen()
+    publish(kitchen, 'acme:notes:1.0.0', [
+      'Notes.groovy': '''package acme.notes
+
+@Ingredient
+class Notes {
+  private Map values = [:]
+  void set(Map more) { values += more }
+  @Keys(path = 'settings.json')
+  Map keys() { values ?: null }
+}
+''',
+      'notes.groovy': '''@help('Sets test.')
+import acme.notes.Notes
+@ingredient(Notes) def notes
+notes.set(test: 'new', other: 'mine')
+''',
+    ])
+    def settings = new File(kitchen, 'settings.json')
+    settings.text = '{"test": "old", "kept": true}\n'
+    apply(kitchen, 'acme:notes:1.0.0', [:]).commit()
+    recipe(kitchen, 'local.groovy', '''@cookbook('acme:1.0.0')
+import acme.notes.Notes
+@ingredient(Notes) def notes
+notes.set(test: 'new', other: 'mine')
+''')
+    apply(kitchen, 'local.groovy', [:]).commit()
+    new File(kitchen, 'local.groovy').delete()
+
+    new CookbookDiscard(kitchen).propose(['local.groovy']).commit()
+
+    assert new groovy.json.JsonSlurper().parse(settings) == [kept: true]
+    assert new File(kitchen, 'cook.lock').text.contains('name: "acme:notes:notes"')
+    assert !new File(kitchen, 'cook.lock').text.contains('local')
+  }
+
+  @Test void discardRefusesARecipeTheLockDoesNotListOrThatIsGivenTwice() {
+    def kitchen = kitchen()
+    publishDirectory(kitchen, 'agents')
+    apply(kitchen, 'dev.thecook:agents:0.1.0:instructions', [:]).commit()
+    [
+      [
+        ['dev.thecook:agents:0.1.0:permissions'],
+        'dev.thecook:agents:permissions is not in cook.lock, which lists dev.thecook:agents:instructions'
+      ],
+      [
+        ['dev.thecook:agents:0.1.0:instructions', 'dev.thecook:agents:0.2.0:instructions'],
+        'dev.thecook:agents:instructions is discarded twice; discard it once per invocation'
+      ],
+      [['../outside.groovy'], 'the recipe is outside the kitchen; move it into the kitchen'],
+    ].each { operands, message ->
+      assert shouldFail(IllegalArgumentException) { new CookbookDiscard(kitchen).propose(operands) }.message == message
+    }
+    new File(kitchen, 'cook.lock').delete()
+    assert shouldFail(IllegalArgumentException) { new CookbookDiscard(kitchen).propose(['notes.groovy']) }.message ==
+    'notes is not in cook.lock, which lists no recipe'
   }
 
   @Test void recordsEachBatchThatWritesBeforeItsWrites() {

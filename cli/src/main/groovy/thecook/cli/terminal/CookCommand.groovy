@@ -6,6 +6,7 @@ import thecook.cookbook.BatchRecord
 import thecook.cookbook.BatchRevert
 import thecook.cookbook.CookbookApply
 import thecook.cookbook.CookbookArtifact
+import thecook.cookbook.CookbookDiscard
 import thecook.cookbook.CookbookRepositories
 import thecook.cookbook.Coordinates
 import thecook.cookbook.ExistingSeed
@@ -102,6 +103,8 @@ final class CookCommand {
         return recipes(kitchen, root)
       case HelpArgs:
         return help(kitchen, ((HelpArgs) command).recipes)
+      case DiscardArgs:
+        return discard(kitchen, (DiscardArgs) command)
       case RevertArgs:
         def revert = (RevertArgs) command
         return { -> write(new BatchRevert(kitchen).propose(revert.batch), false, revert.batchApprove) }
@@ -151,6 +154,22 @@ final class CookCommand {
     def requests = [operands, arguments].transpose().collect { new RecipeRequest((String) it[0], (List<Argument>) it[1]) }
     def existing = root.force ? ExistingSeed.REPLACE : root.skip ? ExistingSeed.KEEP : ExistingSeed.REFUSE
     return { -> write(new CookbookApply(kitchen, repositories.apply(kitchen), existing).propose(requests), root.dryRun, root.batchApprove) }
+  }
+
+  private Closure<Boolean> discard(File kitchen, DiscardArgs args) {
+    if (!args.recipes) {
+      throw new UsageError('A recipe is required')
+    }
+    args.recipes.each { operand ->
+      if (operand.startsWith('-')) {
+        def name = operand.split('=', 2)[0]
+        throw new UsageError(name in BEFORE_RECIPE ? "${name} goes before the first recipe" : "discard takes no recipe arguments: ${operand}")
+      }
+      if (!isOperand(operand)) {
+        throw new UsageError("Not a recipe: ${operand}. A recipe is coordinates or a .groovy path")
+      }
+    }
+    return { -> write(new CookbookDiscard(kitchen).propose(args.recipes), args.dryRun, args.batchApprove) }
   }
 
   private static boolean isOperand(String token) {

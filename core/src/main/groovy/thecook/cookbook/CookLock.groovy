@@ -62,6 +62,16 @@ final class CookLock {
     entries[name]?.targets ?: []
   }
 
+  /** The recipes the lock lists, by short name. */
+  Set<String> getNames() {
+    entries.keySet()
+  }
+
+  /** Drops the recipe `name` and returns what it owned. */
+  List<Target> forget(String name) {
+    entries.remove(name)?.targets ?: []
+  }
+
   /** The recipe that owns `target`, other than `except`, or `null`. */
   String ownerOf(Target target, String except) {
     entries.find { name, entry ->

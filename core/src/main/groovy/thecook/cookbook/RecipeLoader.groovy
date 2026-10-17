@@ -32,6 +32,14 @@ final class RecipeLoader {
     recipe
   }
 
+  /**
+   * The short name for markers and `cook.lock` of the recipe `operand` names, read from the operand alone: coordinates
+   * without their version, or the path's place in `kitchen` without `.groovy`.
+   */
+  static String name(Path kitchen, String operand) {
+    Coordinates.written(operand) ? Coordinates.parse(operand).recipeName : relative(kitchen, operand).replaceAll(/\.groovy$/, '')
+  }
+
   /** What a model of `type` reads: its own artifact's packaged files, and `draft` as the current content. */
   ModelReads reads(Class type, Draft draft) {
     def artifact = modelArtifacts[type.classLoader]
@@ -61,29 +69,34 @@ final class RecipeLoader {
       throw new IllegalArgumentException("${coordinates} has no recipe named ${recipe} to apply by default; name one: " +
       artifact.recipes.collect { coordinates.recipeAddress(it) }.join(', '))
     }
-    new LoadedRecipe("${coordinates.group}:${coordinates.artifact}:${recipe}", coordinates.recipeAddress(recipe),
+    new LoadedRecipe(coordinates.recipeName, coordinates.recipeAddress(recipe),
         artifact.sha256, artifact.recipeSource(recipe), recipe, models(coordinates))
   }
 
   // A path's short name is its place in the kitchen, so moving the file renames the recipe.
   private LoadedRecipe fromPath(String operand) {
-    def path = kitchen.resolve(operand).normalize()
-    if (!path.startsWith(kitchen)) {
-      throw new IllegalArgumentException('the recipe is outside the kitchen; move it into the kitchen')
-    }
+    def place = relative(kitchen, operand)
+    def path = kitchen.resolve(place)
     if (!Files.isRegularFile(path)) {
       throw new IllegalArgumentException("Recipe file not found: ${operand}")
     }
     if (!path.toRealPath().startsWith(kitchen)) {
       throw new IllegalArgumentException('the recipe is outside the kitchen; move it into the kitchen')
     }
-    def relative = kitchen.relativize(path).collect { it.toString() }.join('/')
     def bytes = Files.readAllBytes(path)
     def source = new String(bytes, 'UTF-8')
     def file = path.fileName.toString()
     def loaders = RecipeSource.cookbookArtifacts(source, file).collect { models(it) }
-    new LoadedRecipe(relative.replaceAll(/\.groovy$/, ''), relative, Repository.digest(bytes), source,
+    new LoadedRecipe(name(kitchen, operand), place, Repository.digest(bytes), source,
         file.replaceAll(/\.groovy$/, ''), loaders.size() == 1 ? loaders.first() : new ModelLoaders(loaders))
+  }
+
+  private static String relative(Path kitchen, String operand) {
+    def path = kitchen.resolve(operand).normalize()
+    if (!path.startsWith(kitchen)) {
+      throw new IllegalArgumentException('the recipe is outside the kitchen; move it into the kitchen')
+    }
+    kitchen.relativize(path).collect { it.toString() }.join('/')
   }
 
   private CookbookArtifact artifact(Coordinates coordinates) {
