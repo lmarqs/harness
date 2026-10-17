@@ -12,12 +12,6 @@ class BlockDocument implements Document {
     this.text = text; this.open = open; this.close = close; validateMarkers()
   }
   private final Set<String> separators = new LinkedHashSet<>()
-  void seed(Map metadata) {
-    separators.addAll(metadata.separators ?: [])
-  }
-  Map getMetadata() {
-    separators ? [separators: separators.toList().sort()] : [:]
-  }
   boolean isEmpty() {
     text.isEmpty()
   }
@@ -102,12 +96,6 @@ class BlockDocument implements Document {
       }
     }
     splice(range, '')
-  }
-  void release(String id, RegionLocation location) {
-    def content = read(id, location)
-    def range = bounds(id)
-    separators.remove(id)
-    if (range) splice(range, content)
   }
   private void splice(List<Integer> range, String replacement) {
     text = text.substring(0, range[0]) + replacement + text.substring(range[1])

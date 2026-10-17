@@ -1,6 +1,5 @@
 package thecook.filesystem
 
-import groovy.json.JsonSlurper
 import java.nio.ByteBuffer
 import java.nio.charset.CodingErrorAction
 import java.nio.charset.StandardCharsets
@@ -22,9 +21,6 @@ class Repository {
   File target(String relative, boolean allowLeafLink = false) {
     TargetPath.of(relative)
     resolve(relative, allowLeafLink)
-  }
-  File metadata(String name) {
-    resolve('.cook/' + name)
   }
   private File resolve(String relative, boolean allowLeafLink = false) {
     def current = directory.toPath()
@@ -63,17 +59,5 @@ class Repository {
   static String permissions(File file) {
     def view = Files.getFileAttributeView(file.toPath(), java.nio.file.attribute.PosixFileAttributeView)
     view ? java.nio.file.attribute.PosixFilePermissions.toString(view.readAttributes().permissions()) : null
-  }
-  Map state() {
-    if (metadata('transaction.json').exists()) throw new IllegalStateException('Incomplete transaction: run cookRecover')
-    def file = metadata('state.json')
-    state(snapshot(file))
-  }
-  Map state(Map observed) {
-    if (metadata('transaction.json').exists()) throw new IllegalStateException('Incomplete transaction: run cookRecover')
-    if (!observed.exists) return [version: 1, files: [:]]
-    def state = new JsonSlurper().parseText(observed.content)
-    thecook.reconciliation.StateSchema.validate(state)
-    state
   }
 }

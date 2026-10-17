@@ -1,7 +1,7 @@
 plugins {
   id 'org.jetbrains.kotlin.jvm' version '2.4.20'
   id 'groovy'
-  id 'java-gradle-plugin'
+  id 'java-library'
 }
 
 group = 'dev.thecook'
@@ -22,7 +22,8 @@ tasks.named('compileGroovy') {
 }
 
 dependencies {
-  implementation localGroovy()
+  // Core's classes are Groovy classes, so callers compile against Groovy.
+  api localGroovy()
   implementation 'org.tomlj:tomlj:1.0.0'
   implementation 'org.yaml:snakeyaml:2.4'
   // Recipes and models import groovy.yaml and groovy.toml by default. They match the Groovy that runs them, which
@@ -35,19 +36,8 @@ dependencies {
   testImplementation 'junit:junit:4.13.2'
 }
 
-gradlePlugin {
-  plugins {
-    cook { id = 'dev.thecook'; implementationClass = 'thecook.gradle.CookPlugin' }
-  }
-}
-
 tasks.named('test') {
   useJUnit()
-  systemProperty 'cook.report', layout.buildDirectory.file('reports/model-checks.json').get().asFile.absolutePath
   systemProperty 'cook.cookbook', file('../cookbook').absolutePath
   testLogging { events 'failed' }
-}
-
-tasks.register('modelChecks') {
-  dependsOn 'test'
 }

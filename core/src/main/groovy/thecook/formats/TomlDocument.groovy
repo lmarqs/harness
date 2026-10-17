@@ -12,12 +12,6 @@ class TomlDocument implements Document {
   TomlDocument(String text) {
     this.text = text; parsed()
   }
-  void seed(Map metadata) {
-    createdTables.addAll(metadata.createdTables ?: [])
-  }
-  Map getMetadata() {
-    [createdTables: createdTables]
-  }
   boolean isEmpty() {
     parsed().isEmpty() && !text.trim()
   }
@@ -112,7 +106,6 @@ class TomlDocument implements Document {
       createdTables.remove(table)
     }
   }
-  void release(String id, RegionLocation location) {}
   private void splice(int start, int end, String value) {
     text = text.substring(0, start) + value + text.substring(end); parsed()
   }

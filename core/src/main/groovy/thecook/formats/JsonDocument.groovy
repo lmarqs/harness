@@ -11,12 +11,6 @@ class JsonDocument implements Document {
   JsonDocument(String text) {
     this.text = text ?: '{}\n'; root()
   }
-  void seed(Map metadata) {
-    createdParents.addAll(metadata.createdParents ?: [])
-  }
-  Map getMetadata() {
-    [createdParents: createdParents]
-  }
   boolean isEmpty() {
     root().members.isEmpty()
   }
@@ -86,7 +80,6 @@ class JsonDocument implements Document {
     int end = members.size() > 1 ? members[1].keyStart : entry.value.end
     splice(entry.keyStart, end, '')
   }
-  void release(String id, RegionLocation location) {}
   private void splice(int start, int end, String replacement) {
     text = text.substring(0, start) + replacement + text.substring(end); root()
   }

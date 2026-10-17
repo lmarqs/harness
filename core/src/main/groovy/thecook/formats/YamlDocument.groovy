@@ -14,12 +14,6 @@ class YamlDocument implements Document {
   YamlDocument(String text) {
     this.text = text; root()
   }
-  void seed(Map metadata) {
-    createdParents.addAll(metadata.createdParents ?: [])
-  }
-  Map getMetadata() {
-    [createdParents: createdParents]
-  }
   boolean isEmpty() {
     !root() || (root() instanceof MappingNode && root().value.isEmpty())
   }
@@ -138,7 +132,6 @@ class YamlDocument implements Document {
     }
     splice(start, end, '')
   }
-  void release(String id, RegionLocation location) {}
   private void splice(int start, int end, String content) {
     text = text.substring(0, start) + content + text.substring(end); root()
   }

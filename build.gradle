@@ -1,5 +1,4 @@
 plugins {
-  id 'dev.thecook'
   id 'com.diffplug.spotless' version '8.10.4'
 }
 
@@ -17,16 +16,6 @@ dependencies {
   codenarc 'org.codenarc:CodeNarc:3.7.0-groovy-4.0'
 }
 
-cook.repository = file(providers.gradleProperty('repo').getOrElse('build/example'))
-cook.recipe = providers.gradleProperty('recipe').getOrElse('development')
-cook.cookbookDirectory = file('cookbook')
-
-if (providers.gradleProperty('script').isPresent()) {
-  cook.script = file(providers.gradleProperty('script').get())
-}
-
-cook.parameters = gradle.startParameter.projectProperties.findAll { !(it.key in ['repo', 'recipe', 'script']) }
-
 spotless {
   def generated = ['**/build/**', '**/.gradle/**', '.cook/**']
   // Most of the cookbook is a design sketch that has not been compiled.
@@ -36,7 +25,7 @@ spotless {
     targetExclude generated
     ktlint('1.8.0').customRuleSets(['dev.thecook.lint:ktlint-rules:0.1.0'])
     // Baseline: files with braces violations that predate the rule.
-    ['cli/src/main/kotlin/thecook/cli/terminal/CookCommand.kt', 'core/src/main/kotlin/thecook/application/CookService.kt'].each { baselined ->
+    ['cli/src/main/kotlin/thecook/cli/terminal/CookCommand.kt'].each { baselined ->
       suppressLintsFor {
         step = 'ktlint'
         shortCode = 'thecook:mandatory-braces'

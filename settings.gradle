@@ -1,8 +1,6 @@
-pluginManagement {
-  includeBuild('core')
-}
-
 rootProject.name = 'the-cook'
+
+includeBuild('core')
 
 includeBuild('cli') { name = 'cli' }
 includeBuild('docs') { name = 'docs' }
