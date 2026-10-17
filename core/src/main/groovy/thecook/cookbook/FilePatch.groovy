@@ -9,18 +9,35 @@ import com.github.difflib.UnifiedDiffUtils
  */
 final class FilePatch {
   private static final int CONTEXT = 3
+  private static final String NO_NEWLINE = '\\ No newline at end of file'
+  // Marks a last line without a newline while diffing, so a change to the final newline alone is a change of lines.
+  private static final String UNTERMINATED = '\u0000'
 
   private FilePatch() {
   }
 
   /** The diff from `before` to `after` for `path`; an absent side, `null`, is `/dev/null`. */
   static List<String> of(String path, String before, String after) {
-    def original = lines(before)
-    def revised = lines(after)
+    def original = marked(before)
+    def revised = marked(after)
     def diff = UnifiedDiffUtils.generateUnifiedDiff(before == null ? '/dev/null' : "a/${path}",
         after == null ? '/dev/null' : "b/${path}", original, DiffUtils.diff(original, revised), CONTEXT)
-    // java-diff-utils numbers an empty side from 1; git and GNU diff write it as 0,0.
-    diff.collect { it.startsWith('@@') ? it.replace(' -1,0 ', ' -0,0 ').replace(' +1,0 ', ' +0,0 ') : it }
+    diff.collectMany { line ->
+      if (line.endsWith(UNTERMINATED)) {
+        return [line.substring(0, line.length() - 1), NO_NEWLINE]
+      }
+      // java-diff-utils numbers an empty side from 1; git and GNU diff write it as 0,0.
+      [line.startsWith('@@') ? line.replace(' -1,0 ', ' -0,0 ').replace(' +1,0 ', ' +0,0 ') : line]
+    }
+  }
+
+  // The lines of `text`, its last line marked when no newline ends it, as git marks it in a diff.
+  private static List<String> marked(String text) {
+    def lines = lines(text)
+    if (text && !text.endsWith('\n')) {
+      lines[-1] = lines[-1] + UNTERMINATED
+    }
+    lines
   }
 
   /** The lines of `text`, without the newline that ends its last line; none for `null`. */
@@ -94,7 +111,8 @@ final class FilePatch {
       (0..<after.size()).every { i -> !after[i].startsWith('+') || current[at + i] == after[i].substring(1) }
     }.collect { at -> [at: at, context: (0..<after.size()).count { i -> after[i].startsWith(' ') && current[at + i] == after[i].substring(1) }] }
     def context = after.count { it.startsWith(' ') }
-    def fitting = wrote ? candidates : candidates.findAll {
+    // Written lines alone may stand elsewhere too, so a run none of whose context still matches stays where it was.
+    def fitting = wrote ? candidates.findAll { context == 0 || it.context > 0 || it.at == expected } : candidates.findAll {
       it.context == context && (!run.start || it.at == 0) && (!run.end || it.at == last)
     }
     fitting ? fitting.min { a, b -> b.context <=> a.context ?: (a.at - expected).abs() <=> (b.at - expected).abs() }.at : null
@@ -143,7 +161,7 @@ final class FilePatch {
     patch.each { line ->
       if (line.startsWith('@@')) {
         hunks.add([line])
-      } else if (hunks) {
+      } else if (hunks && line != NO_NEWLINE) {
         hunks.last().add(line)
       }
     }

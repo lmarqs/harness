@@ -92,6 +92,19 @@ class FilePatchTest {
     assert FilePatch.reverse(first, ['x', 'a', 'b', 'c']).conflicts == [['@@ -1,4 +1,3 @@', '-x', ' a', ' b', ' c']]
   }
 
+  @Test void showsAndReversesAChangeToTheFinalNewlineAlone() {
+    def patch = FilePatch.of('n.txt', 'a', 'a\n')
+
+    assert patch == ['--- a/n.txt', '+++ b/n.txt', '@@ -1,1 +1,1 @@', '-a', '\\ No newline at end of file', '+a']
+    assert FilePatch.reverse(patch, ['a']).lines == ['a']
+  }
+
+  @Test void neverMovesAChangeWhoseContextNoLongerMatchesToAnotherCopyOfItsLines() {
+    def patch = FilePatch.of('settings.toml', 'a\nb\nc\nx = 1\nd\ne\nf\n', 'a\nb\nc\nx = 2\nd\ne\nf\n')
+
+    assert FilePatch.reverse(patch, ['other', 'x = 2']).conflicts
+  }
+
   @Test void reversesACreationAndADeletion() {
     assert FilePatch.reverse(FilePatch.of('notes.md', null, 'a\nb\n'), ['a', 'b']).lines == []
     assert FilePatch.reverse(FilePatch.of('notes.md', 'a\nb\n', null), []).lines == ['a', 'b']

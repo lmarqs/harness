@@ -54,7 +54,8 @@ the recipes again or require their original sources to remain available elsewher
 
 Revert reverses only the batch's own changes. Later edits to other parts of the same files survive, including lines next
 to the batch's changes. A later edit overlaps a change when it alters a line the batch wrote, or, where the batch only
-deleted lines, one of the three lines on either side; then the revert writes nothing and lists each conflicting file
+deleted lines, one of the three lines on either side. A change whose surrounding lines were all edited reverts only at
+the line where the batch left it, never at another copy of the same lines. On an overlap the revert writes nothing and lists each conflicting file
 with the batch's hunk that no longer matches. Resolve those and run it again. A file the batch created, deleted or
 turned into or out of a symbolic link reverts only while it is exactly as the batch left it, and permissions the batch
 changed revert only while they are as it set them. `cook.lock` is one of the files a batch touches, so reverting a batch

@@ -501,7 +501,7 @@ config.migrated = migrated
     assert first.files[1] == [path: 'old.cfg', action: 'create', before: null,
       after: [kind: 'file', mode: 'rw-r--r--', newline: false]]
     assert new File(kitchen, ".cook/batches/${created}/patches/old.cfg.patch").text ==
-    '--- /dev/null\n+++ b/old.cfg\n@@ -0,0 +1,1 @@\n+old\n'
+    '--- /dev/null\n+++ b/old.cfg\n@@ -0,0 +1,1 @@\n+old\n\\ No newline at end of file\n'
     def second = batch(kitchen, deleted)
     assert second.recipes[0].arguments == [[name: 'migrated', value: 'true', form: 'INLINE']]
     assert second.files.find { it.path == 'old.cfg' }.subMap(['action', 'after']) == [action: 'delete', after: null]
