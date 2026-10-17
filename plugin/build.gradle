@@ -1,6 +1,7 @@
 plugins {
   id 'groovy'
   id 'java-gradle-plugin'
+  id 'maven-publish'
 }
 
 group = 'dev.thecook'
@@ -25,6 +26,18 @@ gradlePlugin {
   }
 }
 
+// A Maven-local layout inside the build, so the tests resolve the published plugin without touching ~/.m2.
+def testMavenLocal = layout.buildDirectory.dir('maven-local')
+
+publishing {
+  repositories {
+    maven { name = 'testMavenLocal'; url = testMavenLocal }
+  }
+}
+
 tasks.named('test') {
   useJUnit()
+  dependsOn 'publishAllPublicationsToTestMavenLocalRepository'
+  systemProperty 'thecook.mavenLocal', testMavenLocal.get().asFile.path
+  systemProperty 'thecook.pluginVersion', version
 }

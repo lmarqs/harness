@@ -30,7 +30,8 @@ inside one recipe's dependency tree are an error.
 
 A committed `cook.toml` at the destination lists the repositories to resolve from, in order, as `repositories`: a git
 repository as `{ git = "<url>", dir = "<dir>" }`, with `dir` naming the cookbook's directory when it is not at the
-root, or a Maven-layout repository as an `https://` URL or a path relative to the destination. A git repository is
+root, or a Maven-layout repository as an `https://` URL or a path: one starting with `~/` is relative to the user's
+home, any other to the destination. A git repository is
 used for a group when its `cookbook.toml` at the release tag names that group. Cook fetches the tag with the machine's
 `git`, which uses the credentials git already has, and keeps it in `$XDG_CACHE_HOME/the-cook/git`, or
 `~/.cache/the-cook/git`, so a fetched release cooks offline; each later run fetches the tag again when the
@@ -264,3 +265,47 @@ group = "dev.thecook"
 version = "0.1.0"
 api = 1
 ```
+
+## A cookbook outside this repository
+
+A developer's own recipes live in their own cookbook, packaged by the same plugin and cooked by coordinates from Maven
+local. The plugin comes from Maven local too: `./gradlew -p plugin publishToMavenLocal` in a checkout of this
+repository publishes `dev.thecook.cookbook` there.
+
+The cookbook's root holds `cookbook.toml`, as above, one directory per artifact, and these two build files. The
+plugin depends on a library from Maven Central, so plugin resolution lists both repositories:
+
+```groovy
+// settings.gradle
+pluginManagement {
+  repositories {
+    mavenLocal()
+    mavenCentral()
+  }
+}
+rootProject.name = 'my-cookbook'
+```
+
+```groovy
+// build.gradle
+plugins {
+  id 'dev.thecook.cookbook' version '0.1.0'
+}
+```
+
+`./gradlew publishToMavenLocal` publishes each artifact's jar and the BOM to `~/.m2/repository`. A kitchen that
+cooks from there lists it in its `cook.toml`, last so that shared repositories come first:
+
+```toml
+repositories = [
+  { git = "https://github.com/lmarqs/the-cook", dir = "cookbook" },
+  "~/.m2/repository",
+]
+```
+
+```sh
+./cook <group>:<artifact>:<version>:<recipe>
+```
+
+Coordinates take exact release versions. Publishing a changed cookbook under the same version is cooked as it is
+now: the next cook prints `Changed source <address>` above the diff and records the new sha256 in `cook.lock`.
