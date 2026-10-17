@@ -14,7 +14,9 @@ class Repository {
     def part = path.root
     path.each { segment ->
       part = part.resolve(segment)
-      if (Files.isSymbolicLink(part)) throw new IllegalArgumentException('Symlink repository root or ancestor')
+      if (Files.isSymbolicLink(part)) {
+        throw new IllegalArgumentException('Symlink repository root or ancestor')
+      }
     }
     this.directory = directory.canonicalFile
   }
@@ -24,24 +26,35 @@ class Repository {
   }
   private File resolve(String relative, boolean allowLeafLink = false) {
     def current = directory.toPath()
-    if (Files.isSymbolicLink(current)) throw new IllegalArgumentException('Symlink repository root')
+    if (Files.isSymbolicLink(current)) {
+      throw new IllegalArgumentException('Symlink repository root')
+    }
     def segments = relative.split('/')
     segments.eachWithIndex { segment, index ->
-      if (Files.exists(current) && !Files.isDirectory(current)) throw new IllegalArgumentException("Output parent is a regular file: ${relative}")
+      if (Files.exists(current) && !Files.isDirectory(current)) {
+        throw new IllegalArgumentException("Output parent is a regular file: ${relative}")
+      }
       current = current.resolve(segment)
-      if (Files.isSymbolicLink(current) && !(allowLeafLink && index == segments.length - 1))
+      if (Files.isSymbolicLink(current) && !(allowLeafLink && index == segments.length - 1)) {
         throw new IllegalArgumentException("Symlink target: ${relative}")
+      }
     }
     current.toFile()
   }
   Map snapshot(File file, boolean allowLink = false) {
     if (Files.isSymbolicLink(file.toPath())) {
-      if (!allowLink) throw new IllegalArgumentException("Symlink target: ${file}")
+      if (!allowLink) {
+        throw new IllegalArgumentException("Symlink target: ${file}")
+      }
       String target = Files.readSymbolicLink(file.toPath()).toString()
       return [exists: true, hash: digest(target.getBytes('UTF-8')), content: target, mode: null, kind: 'symlink']
     }
-    if (!file.exists()) return [exists: false, hash: null, content: null, mode: null]
-    if (!Files.isRegularFile(file.toPath(), LinkOption.NOFOLLOW_LINKS)) throw new IllegalArgumentException("Not a regular file: ${file}")
+    if (!file.exists()) {
+      return [exists: false, hash: null, content: null, mode: null]
+    }
+    if (!Files.isRegularFile(file.toPath(), LinkOption.NOFOLLOW_LINKS)) {
+      throw new IllegalArgumentException("Not a regular file: ${file}")
+    }
     def bytes = file.bytes
     def decoder = StandardCharsets.UTF_8.newDecoder().onMalformedInput(CodingErrorAction.REPORT)
     String text

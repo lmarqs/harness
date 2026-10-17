@@ -51,20 +51,12 @@ def codenarcArgs = { String report ->
 }
 
 tasks.register('codenarc', JavaExec) {
-  description = 'Requires braces on Groovy and Gradle if/else/for/while bodies, except baselined violations.'
+  description = 'Requires braces on Groovy and Gradle if/else/for/while bodies.'
   group = 'verification'
   classpath = configurations.codenarc
   mainClass = 'org.codenarc.CodeNarc'
   args codenarcArgs('-report=console')
-  args '-excludeBaseline=file:' + file('gradle/lint/codenarc-baseline.xml'), '-maxPriority1Violations=0', '-maxPriority2Violations=0', '-maxPriority3Violations=0'
-}
-
-tasks.register('codenarcBaseline', JavaExec) {
-  description = 'Records the current CodeNarc violations as the baseline.'
-  group = 'verification'
-  classpath = configurations.codenarc
-  mainClass = 'org.codenarc.CodeNarc'
-  args codenarcArgs('-report=org.codenarc.report.BaselineXmlReportWriter:' + file('gradle/lint/codenarc-baseline.xml'))
+  args '-maxPriority1Violations=0', '-maxPriority2Violations=0', '-maxPriority3Violations=0'
 }
 
 tasks.named('check') {

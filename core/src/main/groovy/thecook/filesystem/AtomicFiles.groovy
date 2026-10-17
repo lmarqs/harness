@@ -26,7 +26,9 @@ class AtomicFiles {
     def temporary = Files.createTempFile(file.parentFile.toPath(), '.cook-', '.tmp')
     try {
       Files.writeString(temporary, content)
-      if (mode) Files.setPosixFilePermissions(temporary, PosixFilePermissions.fromString(mode))
+      if (mode) {
+        Files.setPosixFilePermissions(temporary, PosixFilePermissions.fromString(mode))
+      }
       Files.move(temporary, file.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
     } finally {
       Files.deleteIfExists(temporary)

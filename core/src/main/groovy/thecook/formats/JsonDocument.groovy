@@ -20,9 +20,13 @@ class JsonDocument implements Document {
   private Map at(List<String> path) {
     def node = root()
     for (part in path) {
-      if (node.kind != 'object') throw new IllegalArgumentException("Expected JSON object before ${part}")
+      if (node.kind != 'object') {
+        throw new IllegalArgumentException("Expected JSON object before ${part}")
+      }
       node = node.members[part]?.value
-      if (!node) return null
+      if (!node) {
+        return null
+      }
     }
     node
   }
@@ -48,7 +52,9 @@ class JsonDocument implements Document {
       if (!at(parent)) {
         insert(parent, '{}'); createdParents.add(parent)
       }
-      if (at(parent).kind != 'object') throw new IllegalArgumentException("Expected JSON object at ${parent}")
+      if (at(parent).kind != 'object') {
+        throw new IllegalArgumentException("Expected JSON object at ${parent}")
+      }
     }
   }
   private void insert(List<String> path, String content) {
@@ -69,10 +75,14 @@ class JsonDocument implements Document {
   }
   private void deleteKey(List<String> path) {
     def parent = at(path.dropRight(1))
-    if (!parent) return
-      def entry = parent.members[path[-1]]
-    if (!entry) return
-      def members = parent.members.values().toList()
+    if (!parent) {
+      return
+    }
+    def entry = parent.members[path[-1]]
+    if (!entry) {
+      return
+    }
+    def members = parent.members.values().toList()
     int index = members.indexOf(entry)
     if (index > 0) {
       splice(members[index - 1].value.end, entry.value.end, ''); return

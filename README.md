@@ -115,7 +115,7 @@ Packaging compiles nothing; the engine compiles an artifact's sources when one o
 
 `./gradlew check` includes `spotlessCheck`, which enforces the format of Groovy and Gradle (Groovy-Eclipse, [settings](gradle/spotless/greclipse.properties)) and plain-text files, with 2-space indentation per [`.editorconfig`](.editorconfig). `./gradlew spotlessApply` fixes violations. The Groovy formatter on Java 17 cannot parse the `!in` operator or a GString nested inside another; write `!(a in b)` and build such strings with `+`.
 
-`./gradlew check` also requires braces around every `if`/`else`/`for`/`while` body, with the body on its own line: CodeNarc (`./gradlew codenarc`, [rules](gradle/lint/codenarc.groovy)) requires the braces, and Groovy-Eclipse moves braced bodies onto their own line. Violations that predate the rule are baselined per violation in [`codenarc-baseline.xml`](gradle/lint/codenarc-baseline.xml), which `./gradlew codenarcBaseline` regenerates. Spotless's Groovy step and CodeNarc skip `cookbook/`, most of which is a design sketch that has not been compiled.
+`./gradlew check` also requires braces around every `if`/`else`/`for`/`while` body, with the body on its own line: CodeNarc (`./gradlew codenarc`, [rules](gradle/lint/codenarc.groovy)) requires the braces, and Groovy-Eclipse moves braced bodies onto their own line. Spotless's Groovy step and CodeNarc skip `cookbook/`, most of which is a design sketch that has not been compiled.
 
 `docs/` is its own build. `./gradlew -p docs check`, which `./gradlew check` includes, fails on a relative link in
 `docs/` that points to a missing file or heading anchor; [`docs/build.gradle`](docs/build.gradle) defines the check.

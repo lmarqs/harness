@@ -5,7 +5,9 @@ class Documents {
     toml: { new TomlDocument(it) }, yaml: { new YamlDocument(it) }]
   Document open(String format, String text) {
     def factory = factories[format]
-    if (!factory) throw new IllegalArgumentException("Unsupported output format: ${format}")
+    if (!factory) {
+      throw new IllegalArgumentException("Unsupported output format: ${format}")
+    }
     factory.call(text)
   }
 }
