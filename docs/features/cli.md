@@ -21,7 +21,7 @@ see the root README's [current implementation](../../README.md#current-implement
 `apply` is the default. Running `./cook` with no arguments, `./cook help` or `./cook --help` shows the usage.
 `--help` takes no other arguments.
 
-`<batchId>` identifies a recorded batch: the UTC time the batch started, such as `2026-10-14T15-04-05Z`, with a
+`<batchId>` identifies a recorded batch: the UTC time the batch started writing, after approval, such as `2026-10-14T15-04-05Z`, with a
 suffix when two batches start in the same second.
 
 ## Commands

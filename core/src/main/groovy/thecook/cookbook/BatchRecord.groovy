@@ -14,8 +14,8 @@ import java.util.regex.Pattern
  * The record of one batch in the destination's `.cook/batches/<batchId>/`: `batch.yaml` with the recipes, their
  * arguments and order, the sources they consumed, each touched file's state before and after and the result;
  * `patches/<path>.patch` with each file's change; `sources/<n>-<name>` with each source; and `failure.log` when the
- * writes failed. The batch ID is the UTC time the batch started, with a suffix when another batch started in the same
- * second.
+ * writes failed. The batch ID is the UTC time the batch started writing, after approval, with a suffix when another
+ * batch did in the same second.
  */
 final class BatchRecord {
   static final String DIRECTORY = '.cook/batches'
@@ -176,7 +176,7 @@ final class BatchRecord {
     new BatchRecord(id, directory, (Map) new Yaml().load(new File(directory, 'batch.yaml').getText('UTF-8')))
   }
 
-  // The time the batch started, then its suffix, padded so -10 sorts after -9.
+  // The time the batch started writing, then its suffix, padded so -10 sorts after -9.
   private static String order(String id) {
     def matcher = ID.matcher(id)
     matcher.matches()

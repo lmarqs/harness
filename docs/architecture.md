@@ -277,7 +277,7 @@ output. These are alternative invocations with the same destination:
 ### One record for the batch
 
 Each batch has one record in the destination's ignored `.cook/batches/<batchId>/` directory. The batch ID is the UTC
-time the batch started, such as `2026-10-14T15-04-05Z`, with a suffix when two batches start in the same second. The
+time the batch started writing, after approval, such as `2026-10-14T15-04-05Z`, with a suffix when two batches start in the same second. The
 record holds (FR-23):
 
 - One reversible patch per touched file, describing the combined change to that file, `cook.lock` included.

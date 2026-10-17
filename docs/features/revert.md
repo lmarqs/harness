@@ -25,7 +25,7 @@ recipe's output: revert the batches that applied the recipe.
 | Restore the content from before a recorded batch | `./cook revert <batchId>` | That batch's reverse patches |
 | Keep the configured native files and stop invoking Cook | Stop invoking Cook | Programs consume their native files directly |
 
-`<batchId>` stands for the recorded batch's identifier, the UTC time the batch started, such as
+`<batchId>` stands for the recorded batch's identifier, the UTC time the batch started writing, after approval, such as
 `2026-10-14T15-04-05Z`. Omitting an ingredient or recipe from a later apply invocation leaves its output in place; see
 [apply](apply.md#ordered-operations).
 
