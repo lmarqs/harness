@@ -39,7 +39,10 @@ rootProject.name = 'book'
 
   private static File copy(Path source, Path target) {
     Files.walk(source).withCloseable { paths ->
-      paths.forEach { Path path -> Files.copy(path, target.resolve(source.relativize(path).toString()), java.nio.file.StandardCopyOption.REPLACE_EXISTING) }
+      paths.forEach { Path path ->
+        Files.copy(path, target.resolve(source.relativize(path).toString()),
+            java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+      }
     }
     target.toFile()
   }

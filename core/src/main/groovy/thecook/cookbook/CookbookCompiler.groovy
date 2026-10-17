@@ -97,7 +97,9 @@ final class CookbookCompiler {
             names.add(declaration.variableExpression.name)
 
             // Annotation reflection cannot tell `default = []` from no default, and only the latter is required.
-            if (declaration.annotations.any { it.classNode.nameWithoutPackage == 'param' && it.getMember('default') != null }) {
+            if (declaration.annotations.any {
+                  it.classNode.nameWithoutPackage == 'param' && it.getMember('default') != null
+                }) {
               defaulted.add(declaration.variableExpression.name)
             }
           }

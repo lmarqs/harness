@@ -30,7 +30,8 @@ class CookCommandTest {
     }
     stderr.reset()
     assert cli.execute(['init'] as String[]) == 2
-    assert stderr.toString('UTF-8').readLines().first() == 'Not a recipe: init. A recipe is coordinates or a .groovy path'
+    assert stderr.toString('UTF-8').readLines().first() ==
+    'Not a recipe: init. A recipe is coordinates or a .groovy path'
   }
 
   @Test void kitchenOptionCooksAsIfStartedThereAndGoesBeforeTheRecipe() {
@@ -48,9 +49,11 @@ notes.add('notes')
       assert cli.execute(['-C', repo.path, 'notes.groovy', '--kitchen', repo.path] as String[]) == 2
       assert cli.execute(['-C', repo.path, '--kitchen', repo.path, 'notes.groovy'] as String[]) == 2
       assert cli.execute(['--kitchen', new File(root, 'missing').path, 'notes.groovy'] as String[]) == 1
-      assert cli.execute(['--kitchen=' + repo.path, '--dry-run', 'notes.groovy'] as String[]) == 0 : stderr.toString('UTF-8')
+      assert cli.execute(['--kitchen=' + repo.path, '--dry-run', 'notes.groovy'] as String[]) == 0 :
+      stderr.toString('UTF-8')
       assert !notes.exists()
-      assert cli.execute(['--kitchen', repo.path, '--batch-approve', 'notes.groovy'] as String[]) == 0 : stderr.toString('UTF-8')
+      assert cli.execute(['--kitchen', repo.path, '--batch-approve', 'notes.groovy'] as String[]) == 0 :
+      stderr.toString('UTF-8')
       assert notes.text == '<!-- cook:begin notes#notes -->\nnotes\n<!-- cook:end notes#notes -->\n'
       stdout.reset()
       assert cli.execute(['-C', repo.path, 'notes.groovy'] as String[]) == 0 : stderr.toString('UTF-8')
@@ -99,12 +102,20 @@ After cooking
       assert cli.execute(['-C', repo.path, 'help', 'notes.groovy'] as String[]) == 0 : stderr.toString('UTF-8')
       assert stdout.toString('UTF-8') == expected
       stdout.reset()
-      assert cli.execute(['help', '-C', repo.path, 'notes.groovy', 'notes.groovy'] as String[]) == 0 : stderr.toString('UTF-8')
+      assert cli.execute(['help', '-C', repo.path, 'notes.groovy', 'notes.groovy'] as String[]) == 0 :
+      stderr.toString('UTF-8')
       assert stdout.toString('UTF-8') == expected.trim() + '\n\n' + expected
-      [['notes.groovy', '--help'], ['--help', 'notes.groovy'], ['help', 'notes.groovy', '--owner=me']].each { misplaced ->
+      [
+        ['notes.groovy', '--help'],
+        ['--help', 'notes.groovy'],
+        ['help', 'notes.groovy', '--owner=me'],
+      ].each { misplaced ->
         stderr.reset()
         assert cli.execute((['-C', repo.path] + misplaced) as String[]) == 2
-        assert stderr.toString('UTF-8').readLines().first() in ['--help takes no other arguments; use help <recipe> to read a recipe', 'help takes recipes only: --owner=me']
+        assert stderr.toString('UTF-8').readLines().first() in [
+          '--help takes no other arguments; use help <recipe> to read a recipe',
+          'help takes recipes only: --owner=me',
+        ]
       }
       new File(repo, 'bare.groovy').text = 'println "no help"\n'
       [
@@ -199,21 +210,25 @@ Models
       assert !notes.exists()
 
       def declined = new ByteArrayOutputStream(); stderr.reset()
-      assert command(declined, stderr, 'n\n').execute(['-C', repo.path, 'acme:notes:1.2.3', '--line=first'] as String[]) == 1
+      assert command(declined, stderr, 'n\n')
+      .execute(['-C', repo.path, 'acme:notes:1.2.3', '--line=first'] as String[]) == 1
       assert declined.toString('UTF-8').endsWith('\n\nWrite these changes? [y/N] ')
       assert stderr.toString('UTF-8') == 'Nothing written.\n'
       assert !notes.exists()
 
       def accepted = new ByteArrayOutputStream()
-      assert command(accepted, stderr, 'y\n').execute(['-C', repo.path, 'acme:notes:1.2.3', '--line=first'] as String[]) == 0
+      assert command(accepted, stderr, 'y\n')
+      .execute(['-C', repo.path, 'acme:notes:1.2.3', '--line=first'] as String[]) == 0
       assert accepted.toString('UTF-8').startsWith(review)
       assert accepted.toString('UTF-8').endsWith('Write these changes? [y/N] Created NOTES.md\nCreated cook.lock\n\n' +
       'After cooking acme:notes:1.2.3:notes\n  Read `NOTES.md`.\n')
 
       stdout.reset()
-      assert cli.execute(['-C', repo.path, '--batch-approve', 'acme:notes:1.2.3', '--line=first', 'acme:notes:1.2.3:more'] as String[]) == 0 :
+      def cookBoth = ['-C', repo.path, '--batch-approve', 'acme:notes:1.2.3', '--line=first', 'acme:notes:1.2.3:more']
+      assert cli.execute(cookBoth as String[]) == 0 :
       stderr.toString('UTF-8')
-      assert stdout.toString('UTF-8').endsWith('Updated NOTES.md\nUpdated cook.lock\n\nAfter cooking acme:notes:1.2.3:notes\n  Read `NOTES.md`.\n')
+      assert stdout.toString('UTF-8').endsWith('Updated NOTES.md\nUpdated cook.lock\n\n' +
+      'After cooking acme:notes:1.2.3:notes\n  Read `NOTES.md`.\n')
       assert notes.text == """<!-- cook:begin acme:notes:notes#notes -->
 first
 <!-- cook:end acme:notes:notes#notes -->
@@ -222,7 +237,8 @@ more
 <!-- cook:end acme:notes:more#notes -->
 """
       stdout.reset()
-      assert cli.execute(['-C', repo.path, 'acme:notes:1.2.3', '--line=first', 'acme:notes:1.2.3:more'] as String[]) == 0
+      def recookBoth = ['-C', repo.path, 'acme:notes:1.2.3', '--line=first', 'acme:notes:1.2.3:more']
+      assert cli.execute(recookBoth as String[]) == 0
       assert stdout.toString('UTF-8') == 'Already cooked.\n'
       stdout.reset()
       assert cli.execute(['-C', repo.path, '--batch-approve', 'acme:notes:1.2.3', '--line=second'] as String[]) == 0
@@ -232,10 +248,12 @@ more
       assert cli.execute(['-C', repo.path, '--dry-run', 'acme:notes:1.2.3', '--line=second', '--loud'] as String[]) == 0
       assert stdout.toString('UTF-8').contains('\n-second\n+SECOND\n')
       stdout.reset()
-      assert cli.execute(['-C', repo.path, '--dry-run', 'acme:notes:1.2.3', '--line=second', '--loud=false'] as String[]) == 0
+      def quiet = ['-C', repo.path, '--dry-run', 'acme:notes:1.2.3', '--line=second', '--loud=false']
+      assert cli.execute(quiet as String[]) == 0
       assert stdout.toString('UTF-8') == 'Already cooked.\n'
       stdout.reset()
-      assert cli.execute(['-C', repo.path, '--dry-run', 'acme:notes:1.2.3', '--line', 'second', '--loud'] as String[]) == 0
+      def loudSeparate = ['-C', repo.path, '--dry-run', 'acme:notes:1.2.3', '--line', 'second', '--loud']
+      assert cli.execute(loudSeparate as String[]) == 0
       assert stdout.toString('UTF-8').contains('\n-second\n+SECOND\n')
       new File(repo, 'local.groovy').text = """@cookbook('acme:1.2.3')
 import acme.notes.Notes
@@ -243,9 +261,11 @@ import acme.notes.Notes
 notes.add('local')
 """
       stdout.reset()
-      assert cli.execute(['-C', repo.path, '--dry-run', 'acme:notes:1.2.3', '--line', 'second', 'local.groovy'] as String[]) == 0 :
+      def withLocal = ['-C', repo.path, '--dry-run', 'acme:notes:1.2.3', '--line', 'second', 'local.groovy']
+      assert cli.execute(withLocal as String[]) == 0 :
       stderr.toString('UTF-8')
-      assert stdout.toString('UTF-8').contains('\n+<!-- cook:begin local#notes -->\n+local\n+<!-- cook:end local#notes -->\n')
+      assert stdout.toString('UTF-8').contains('\n+<!-- cook:begin local#notes -->\n+local\n' +
+      '+<!-- cook:end local#notes -->\n')
       assert stdout.toString('UTF-8').endsWith('\nWould update NOTES.md\nWould update cook.lock\n')
 
       [
@@ -323,24 +343,30 @@ notes.add('local')
       def stdout = new ByteArrayOutputStream(); def stderr = new ByteArrayOutputStream()
       def cli = command(stdout, stderr)
       def notes = new File(repo, 'NOTES.md'); def lock = new File(repo, 'cook.lock')
-      assert cli.execute(['-C', repo.path, '--batch-approve', 'acme:notes:1.2.3', '--line=first', 'acme:notes:1.2.3:more'] as String[]) == 0
+      def cookBoth = ['-C', repo.path, '--batch-approve', 'acme:notes:1.2.3', '--line=first', 'acme:notes:1.2.3:more']
+      assert cli.execute(cookBoth as String[]) == 0
       notes.text += 'mine\n'
 
       def declined = new ByteArrayOutputStream(); stderr.reset()
-      assert command(declined, stderr, 'n\n').execute(['discard', '-C', repo.path, 'acme:notes:1.2.3:more'] as String[]) == 1
-      assert declined.toString('UTF-8').contains('\n-<!-- cook:begin acme:notes:more#notes -->\n-more\n-<!-- cook:end acme:notes:more#notes -->\n')
+      assert command(declined, stderr, 'n\n')
+      .execute(['discard', '-C', repo.path, 'acme:notes:1.2.3:more'] as String[]) == 1
+      assert declined.toString('UTF-8').contains('\n-<!-- cook:begin acme:notes:more#notes -->\n-more\n' +
+      '-<!-- cook:end acme:notes:more#notes -->\n')
       assert stderr.toString('UTF-8') == 'Nothing written.\n'
 
       stdout.reset()
       assert cli.execute(['discard', '-C', repo.path, '--dry-run', 'acme:notes:1.2.3:more'] as String[]) == 0
       assert stdout.toString('UTF-8').endsWith('\nWould update NOTES.md\nWould update cook.lock\n')
       stdout.reset()
-      assert cli.execute(['discard', '-C', repo.path, '--batch-approve', 'acme:notes:1.2.3:more'] as String[]) == 0 : stderr.toString('UTF-8')
+      assert cli.execute(['discard', '-C', repo.path, '--batch-approve', 'acme:notes:1.2.3:more'] as String[]) == 0 :
+      stderr.toString('UTF-8')
       assert stdout.toString('UTF-8').endsWith('\nUpdated NOTES.md\nUpdated cook.lock\n')
-      assert notes.text == '<!-- cook:begin acme:notes:notes#notes -->\nfirst\n<!-- cook:end acme:notes:notes#notes -->\nmine\n'
+      assert notes.text ==
+      '<!-- cook:begin acme:notes:notes#notes -->\nfirst\n<!-- cook:end acme:notes:notes#notes -->\nmine\n'
 
       stdout.reset()
-      assert cli.execute(['discard', '-C', repo.path, '--batch-approve', 'acme:notes:1.2.3'] as String[]) == 0 : stderr.toString('UTF-8')
+      assert cli.execute(['discard', '-C', repo.path, '--batch-approve', 'acme:notes:1.2.3'] as String[]) == 0 :
+      stderr.toString('UTF-8')
       assert stdout.toString('UTF-8').endsWith('\nUpdated NOTES.md\nDeleted cook.lock\n')
       assert notes.text == 'mine\n'
       assert !lock.exists()
@@ -368,7 +394,8 @@ notes.add('local')
         ],
       ].each { arguments, status, message ->
         stderr.reset()
-        assert cli.execute((arguments.take(1) + ['-C', repo.path] + arguments.drop(1)) as String[]) == status : arguments
+        assert cli.execute((arguments.take(1) + ['-C', repo.path] + arguments.drop(1)) as String[]) == status :
+        arguments
         assert stderr.toString('UTF-8').readLines().first() == message
       }
     }
@@ -378,8 +405,10 @@ notes.add('local')
     def stdin = input == null ? null : new BufferedReader(new StringReader(input))
     // The CLI tests resolve only from paths, so git never fills this cache.
     def cache = new File(System.getProperty('java.io.tmpdir'), 'the-cook-test-cache')
-    def repositories = { File kitchen -> thecook.infra.CookToml.repositories(kitchen, cache, new File(System.getProperty('java.io.tmpdir'), 'the-cook-test-home')) }
-    new thecook.cli.terminal.CookCommand(new PrintWriter(stdout, true), new PrintWriter(stderr, true), repositories, stdin)
+    def home = new File(System.getProperty('java.io.tmpdir'), 'the-cook-test-home')
+    def repositories = { File kitchen -> thecook.infra.CookToml.repositories(kitchen, cache, home) }
+    new thecook.cli.terminal.CookCommand(new PrintWriter(stdout, true), new PrintWriter(stderr, true), repositories,
+        stdin)
   }
 
   private static void workspace(Closure body) {

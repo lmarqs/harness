@@ -14,10 +14,12 @@ class FilePatchTest {
       ' other = "x"',
     ]
     assert FilePatch.of('notes.md', null, 'a\n') == ['--- /dev/null', '+++ b/notes.md', '@@ -0,0 +1,1 @@', '+a']
-    assert FilePatch.of('notes.md', 'a\nb\n', null) == ['--- a/notes.md', '+++ /dev/null', '@@ -1,2 +0,0 @@', '-a', '-b']
+    assert FilePatch.of('notes.md', 'a\nb\n', null) ==
+    ['--- a/notes.md', '+++ /dev/null', '@@ -1,2 +0,0 @@', '-a', '-b']
   }
 
   @Test void showsAChangeToTheFinalNewlineAlone() {
-    assert FilePatch.of('n.txt', 'a', 'a\n') == ['--- a/n.txt', '+++ b/n.txt', '@@ -1,1 +1,1 @@', '-a', '\\ No newline at end of file', '+a']
+    assert FilePatch.of('n.txt', 'a', 'a\n') ==
+    ['--- a/n.txt', '+++ b/n.txt', '@@ -1,1 +1,1 @@', '-a', '\\ No newline at end of file', '+a']
   }
 }

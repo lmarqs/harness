@@ -2,8 +2,8 @@ package thecook.cookbook
 
 /**
  * Discards recipes without evaluating them: withdraws everything `cook.lock` lists for each one, a marked section with
- * its markers, a key, a whole file or a link, and drops its entry. A file left empty is deleted, and so is the lock once
- * it lists no recipe. Earlier content is not restored; the kitchen's version control holds it.
+ * its markers, a key, a whole file or a link, and drops its entry. A file left empty is deleted, and so is the lock
+ * once it lists no recipe. Earlier content is not restored; the kitchen's version control holds it.
  */
 final class CookbookDiscard {
   private final File destination

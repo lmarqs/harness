@@ -50,13 +50,18 @@ class RootArgs extends KitchenScoped {
   @Option(names = ['--dry-run'], description = ['Report the proposed changes without writing.'])
   boolean dryRun
 
-  @Option(names = ['--batch-approve'], description = ["Show the recipes' confirm texts and the diff, then write without asking."])
+  @Option(names = ['--batch-approve'],
+  description = ["Show the recipes' confirm texts and the diff, then write without asking."])
   boolean batchApprove
 
-  @Option(names = ['--force'], description = ['Replace a file that a recipe writes from a template the first time it is cooked, instead of refusing.'])
+  @Option(names = ['--force'], description = [
+    'Replace a file that a recipe writes from a template the first time it is cooked, instead of refusing.'
+  ])
   boolean force
 
-  @Option(names = ['--skip'], description = ['Keep a file that a recipe writes from a template the first time it is cooked, and cook the rest.'])
+  @Option(names = ['--skip'], description = [
+    'Keep a file that a recipe writes from a template the first time it is cooked, and cook the rest.'
+  ])
   boolean skip
 
   @Parameters(paramLabel = 'RECIPE [ARGUMENT]', description = ['The recipe, then its arguments.'])

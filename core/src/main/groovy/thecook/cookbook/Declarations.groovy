@@ -16,7 +16,8 @@ import java.lang.reflect.Method
 
 /** Reads what model instances declare through their annotated members. */
 final class Declarations {
-  private static final List<Class<? extends Annotation>> KINDS = [Seed, Section, Key, Keys, WholeFile, Files, Links, Delete]
+  private static final List<Class<? extends Annotation>> KINDS =
+  [Seed, Section, Key, Keys, WholeFile, Files, Links, Delete]
 
   private Declarations() { }
 
@@ -47,7 +48,8 @@ final class Declarations {
   private static List<AccessibleObject> members(Class type) {
     List<AccessibleObject> found = []
 
-    for (Class current = type; current != null && current != CookbookModel && current != Object; current = current.superclass) {
+    for (Class current = type; current != null && current != CookbookModel && current != Object;
+        current = current.superclass) {
       def methods = current.declaredMethods.findAll { !it.synthetic && !it.bridge && it.parameterCount == 0 }
       found.addAll((methods + current.declaredFields.toList()).findAll { member ->
         KINDS.any {
@@ -74,7 +76,8 @@ final class Declarations {
     }
   }
 
-  private static void add(Declared declared, CookbookModel model, String recipe, String member, Annotation annotation, Object value) {
+  private static void add(Declared declared, CookbookModel model, String recipe, String member, Annotation annotation,
+      Object value) {
     String base = join(model.directory, expand(model, member, annotation.path()))
 
     switch (annotation) {
@@ -89,8 +92,8 @@ final class Declarations {
         break
       case Section:
         def section = (Section) annotation
-        declared.owned << new Declaration(member, new SectionTarget(base, "${recipe}#${section.id()}".toString(), section.comment() ?: null),
-            lines(member, value))
+        def target = new SectionTarget(base, "${recipe}#${section.id()}".toString(), section.comment() ?: null)
+        declared.owned << new Declaration(member, target, lines(member, value))
         break
       case Key:
         declared.owned << new Declaration(member, key(member, base, ((Key) annotation).segments().toList()), value)
@@ -103,11 +106,13 @@ final class Declarations {
         }
         break
       case WholeFile:
-        declared.owned << new Declaration(member, new FileTarget(base, ((WholeFile) annotation).mode()), value.toString())
+        declared.owned << new Declaration(member, new FileTarget(base, ((WholeFile) annotation).mode()),
+        value.toString())
         break
       case Files:
         entries(member, value).each { name, content ->
-          declared.owned << new Declaration(member, new FileTarget("${base}/${name}", ((Files) annotation).mode()), content.toString())
+          declared.owned << new Declaration(member, new FileTarget("${base}/${name}", ((Files) annotation).mode()),
+              content.toString())
         }
         break
       default:

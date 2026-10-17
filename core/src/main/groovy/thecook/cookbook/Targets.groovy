@@ -54,7 +54,8 @@ abstract class Target {
     def target = draft.linkTarget(file)
 
     if (target != null) {
-      throw new IllegalArgumentException("${file} is a symbolic link to ${target}; Cook writes sections and keys only into regular files")
+      throw new IllegalArgumentException(
+      "${file} is a symbolic link to ${target}; Cook writes sections and keys only into regular files")
     }
 
     draft.read(file)
@@ -153,7 +154,9 @@ final class KeyTarget extends Target {
     [file: file, path: path]
   }
 
-  /** Leaves a key that already holds `value` as it is, so the file keeps its formatting; a new JSON file is indented. */
+  /**
+   * Leaves a key that already holds `value` as it is, so the file keeps its formatting; a new JSON file is indented.
+   */
   void write(Draft draft, Object value) {
     String text = editable(draft)
     def document = open(text)
@@ -204,15 +207,18 @@ final class KeyTarget extends Target {
       return false
     }
 
-    format(file) == 'json' ? new JsonSlurper().parseText(existing) == new JsonSlurper().parseText(rendered) : existing == rendered
+    format(file) == 'json' ?
+        new JsonSlurper().parseText(existing) == new JsonSlurper().parseText(rendered) :
+        existing == rendered
   }
 
   private static String indented(Object value, String indent) {
     def inner = indent + '  '
 
     if (value instanceof Map && value) {
-      return '{\n' + value.collect { key, item -> inner + JsonOutput.toJson(key.toString()) + ': ' + indented(item, inner) }
-      .join(',\n') + '\n' + indent + '}'
+      return '{\n' + value.collect { key, item ->
+        inner + JsonOutput.toJson(key.toString()) + ': ' + indented(item, inner)
+      }.join(',\n') + '\n' + indent + '}'
     }
 
     if (value instanceof List && value) {

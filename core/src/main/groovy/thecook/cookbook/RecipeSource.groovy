@@ -56,16 +56,19 @@ final class RecipeSource {
   static List<Coordinates> cookbookArtifacts(String source, String name) {
     def module = module(source, name)
     Map<String, String> releases = [:]
-    (module.imports + module.starImports).collectMany { it.annotations }.findAll { it.classNode.name == 'cookbook' }.each {
+    def importAnnotations = (module.imports + module.starImports).collectMany { it.annotations }
+    importAnnotations.findAll { it.classNode.name == 'cookbook' }.each {
       def release = (String) constant(it.getMember('value'))
       def (group, version) = release?.tokenize(':') ?: []
 
       if (!(release ==~ /[^:]+:[^:]+/)) {
-        throw new IllegalArgumentException("@cookbook('${release}') must name a release as group:version, such as dev.thecook:0.1.0")
+        throw new IllegalArgumentException(
+        "@cookbook('${release}') must name a release as group:version, such as dev.thecook:0.1.0")
       }
 
       if (releases[group] && releases[group] != version) {
-        throw new IllegalArgumentException("@cookbook names ${group} at ${releases[group]} and ${version}; use one release per cookbook")
+        throw new IllegalArgumentException(
+        "@cookbook names ${group} at ${releases[group]} and ${version}; use one release per cookbook")
       }
 
       releases[group] = version

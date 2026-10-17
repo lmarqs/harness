@@ -148,7 +148,8 @@ class TomlDocument implements Document {
 
       int start = header[0]
 
-      if (table.separator && start >= table.separator.length() && text.substring(start - table.separator.length(), start) == table.separator) {
+      if (table.separator && start >= table.separator.length() &&
+          text.substring(start - table.separator.length(), start) == table.separator) {
         start -= table.separator.length()
       }
 

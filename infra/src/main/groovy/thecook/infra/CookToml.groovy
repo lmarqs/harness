@@ -79,8 +79,10 @@ final class CookToml {
   }
 
   private static GitRepository git(TomlTable entry, File kitchen, File home, File manifest, File cache) {
-    if (!entry.isString('git') || !(entry.keySet() - ['git', 'dir']).isEmpty() || (entry.contains('dir') && !entry.isString('dir'))) {
-      throw new IllegalArgumentException("${manifest}: a git repository is { git = \"<url>\", dir = \"<dir>\" }, with dir optional")
+    if (!entry.isString('git') || !(entry.keySet() - ['git', 'dir']).isEmpty() ||
+        (entry.contains('dir') && !entry.isString('dir'))) {
+      throw new IllegalArgumentException(
+      "${manifest}: a git repository is { git = \"<url>\", dir = \"<dir>\" }, with dir optional")
     }
 
     def url = entry.getString('git')
@@ -105,7 +107,8 @@ final class CookToml {
     new GitRepository(url, dir, cache)
   }
 
-  // A path entry's directory and its path from there: the user's home for `~/`, as shells read it, otherwise the kitchen.
+  // A path entry's directory and its path from there: the user's home for `~/`, as shells read it, otherwise the
+  // kitchen.
   private static Tuple2<Path, String> base(String entry, File kitchen, File home) {
     entry.startsWith('~/')
         ? new Tuple2<>(home.toPath().toAbsolutePath(), entry.substring(2))

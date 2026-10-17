@@ -48,7 +48,8 @@ final class GitRepository implements CookbookRepository {
     def toml = Toml.parse(new String(manifest.output, 'UTF-8'))
 
     if (toml.hasErrors()) {
-      throw new IllegalArgumentException("Cannot read ${prefix}cookbook.toml at the tag ${tag} in ${url}: ${toml.errors().first()}")
+      throw new IllegalArgumentException(
+      "Cannot read ${prefix}cookbook.toml at the tag ${tag} in ${url}: ${toml.errors().first()}")
     }
 
     if (toml.getString('group') != coordinates.group) {
@@ -93,7 +94,8 @@ final class GitRepository implements CookbookRepository {
 
     if (remote.exit == 0) {
       // ls-remote matches the pattern against the end of each ref name, so only the line naming the tag itself counts.
-      def published = new String(remote.output, 'UTF-8').readLines()*.split('\t').find { it.size() == 2 && it[1] == ref }
+      def published = new String(remote.output, 'UTF-8').readLines()*.split('\t')
+          .find { it.size() == 2 && it[1] == ref }
 
       if (published == null) {
         return null
@@ -115,7 +117,9 @@ final class GitRepository implements CookbookRepository {
   private Map<String, byte[]> files(String commit, String directory) {
     def blobs = new String(git('ls-tree', '-r', '-z', commit, '--', directory), 'UTF-8').split('\u0000')
         .findAll { it }.collect { it.split('\t', 2) }.findAll { it[0].split(' ')[1] == 'blob' }
-    blobs.collectEntries { blob -> [blob[1].substring(directory.length()), git('cat-file', 'blob', blob[0].split(' ')[2])] }
+    blobs.collectEntries { blob ->
+      [blob[1].substring(directory.length()), git('cat-file', 'blob', blob[0].split(' ')[2])]
+    }
   }
 
   private byte[] git(Object... arguments) {
@@ -135,8 +139,8 @@ final class GitRepository implements CookbookRepository {
     try {
       process = new ProcessBuilder((['git', "--git-dir=${mirror}"] + arguments.toList())*.toString()).start()
     } catch (IOException error) {
-      throw new IllegalArgumentException("Cannot run git to read ${url}: ${error.message}; install git and put it on the PATH",
-      error)
+      throw new IllegalArgumentException(
+      "Cannot run git to read ${url}: ${error.message}; install git and put it on the PATH", error)
     }
 
     def output = new ByteArrayOutputStream()

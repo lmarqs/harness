@@ -78,6 +78,7 @@ class BlankLinesAroundBlocksVisitor extends AbstractAstVisitor {
   }
 
   private void report(int line, String message) {
-    violations.add(new Violation(rule: rule, lineNumber: line, sourceLine: sourceCode.lines[line - 1].trim(), message: message))
+    violations.add(new Violation(rule: rule, lineNumber: line, sourceLine: sourceCode.lines[line - 1].trim(),
+    message: message))
   }
 }

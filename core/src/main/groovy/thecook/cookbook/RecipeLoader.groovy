@@ -33,7 +33,9 @@ final class RecipeLoader {
    * without their version, or the path's place in `kitchen` without `.groovy`.
    */
   static String name(Path kitchen, String operand) {
-    Coordinates.written(operand) ? Coordinates.parse(operand).recipeName : relative(kitchen, operand).replaceAll(/\.groovy$/, '')
+    Coordinates.written(operand) ?
+        Coordinates.parse(operand).recipeName :
+        relative(kitchen, operand).replaceAll(/\.groovy$/, '')
   }
 
   /** What a model of `type` reads: its own artifact's packaged files, and `draft` as the current content. */
@@ -82,7 +84,8 @@ final class RecipeLoader {
 
   private static String relative(Path kitchen, String operand) {
     if (operand.contains('://')) {
-      throw new IllegalArgumentException('a URL is not a recipe; list its repository in cook.toml and cook the recipe by its coordinates')
+      throw new IllegalArgumentException(
+      'a URL is not a recipe; list its repository in cook.toml and cook the recipe by its coordinates')
     }
 
     def path = kitchen.resolve(operand).normalize()

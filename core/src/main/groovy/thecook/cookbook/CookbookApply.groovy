@@ -6,8 +6,8 @@ import thecook.filesystem.TargetPath
 import java.lang.reflect.InvocationTargetException
 
 /**
- * Cooks recipes, by coordinates or by path, left to right, into one draft of the destination: each recipe withdraws what
- * it owned and no longer declares, then writes what it declares, taking ownership from the recipes that held it.
+ * Cooks recipes, by coordinates or by path, left to right, into one draft of the destination: each recipe withdraws
+ * what it owned and no longer declares, then writes what it declares, taking ownership from the recipes that held it.
  * `cook.lock` records the result.
  */
 final class CookbookApply {
@@ -89,7 +89,8 @@ final class CookbookApply {
     def declared = Declarations.of([model(type, '.', reads)], name).all
 
     if (declared) {
-      throw new IllegalArgumentException("${declared.first()} on a new instance; a model declares only what a recipe asks for")
+      throw new IllegalArgumentException(
+      "${declared.first()} on a new instance; a model declares only what a recipe asks for")
     }
   }
 
@@ -113,7 +114,8 @@ final class CookbookApply {
     lock.owned(name).findAll { !(it in targets) }.each { it.withdraw(draft) }
     owned.each { it.write(draft) }
     declared.deletes.each { deletion ->
-      def owner = lock.ownerOf(new FileTarget(deletion.file), name) ?: (targets.any { it.file == deletion.file } ? name : null)
+      def owner = lock.ownerOf(new FileTarget(deletion.file), name) ?:
+          (targets.any { it.file == deletion.file } ? name : null)
 
       if (owner) {
         throw new IllegalArgumentException("${deletion.member} deletes ${deletion.file}, which ${owner} owns")
@@ -195,13 +197,16 @@ final class SeedOutcomes {
   void refuse() {
     if (refused.size() == 1) {
       def only = refused.entrySet().first()
-      throw new IllegalArgumentException("${only.key} already exists; ${only.value} writes it from a template the first time it is cooked. " +
-      'Run with --force to replace it, or --skip to keep it.')
+      throw new IllegalArgumentException("${only.key} already exists; ${only.value} writes it from a template " +
+      'the first time it is cooked. Run with --force to replace it, or --skip to keep it.')
     }
 
     if (refused) {
-      throw new IllegalArgumentException((['These files already exist, and their recipes write them from a template the first time they are cooked:'] +
-      refused.collect { file, recipe -> "  ${file} (${recipe})" } + ['Run with --force to replace them, or --skip to keep them.']).join('\n'))
+      def header = 'These files already exist, and their recipes write them from a template ' +
+          'the first time they are cooked:'
+      def files = refused.collect { file, recipe -> "  ${file} (${recipe})" }
+      def footer = 'Run with --force to replace them, or --skip to keep them.'
+      throw new IllegalArgumentException(([header] + files + [footer]).join('\n'))
     }
   }
 }

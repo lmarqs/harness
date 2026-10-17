@@ -63,7 +63,8 @@ class BlockDocument implements Document {
     }
   }
   private List<Integer> bounds(String id) {
-    def first = java.util.regex.Pattern.compile('(?m)^' + java.util.regex.Pattern.quote(begin(id)) + '\\r?$').matcher(text)
+    def first = java.util.regex.Pattern.compile('(?m)^' + java.util.regex.Pattern.quote(begin(id)) + '\\r?$')
+        .matcher(text)
 
     if (!first.find()) {
       return null
@@ -87,7 +88,8 @@ class BlockDocument implements Document {
     }
 
     def first = text.indexOf('\n', range[0]) + 1
-    def marker = java.util.regex.Pattern.compile('(?m)^' + java.util.regex.Pattern.quote(end(id)) + '\\r?$').matcher(text)
+    def marker = java.util.regex.Pattern.compile('(?m)^' + java.util.regex.Pattern.quote(end(id)) + '\\r?$')
+        .matcher(text)
     marker.find(first)
     def last = marker.start()
     text.substring(first, last)

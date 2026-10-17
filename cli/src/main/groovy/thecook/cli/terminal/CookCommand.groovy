@@ -24,7 +24,8 @@ import java.util.function.Function
  * resolve from the repositories that `repositories` reads for a kitchen.
  */
 final class CookCommand {
-  private static final Set<String> BEFORE_RECIPE = ['-C', '--kitchen', '--dry-run', '--batch-approve', '--force', '--skip'] as Set
+  private static final Set<String> BEFORE_RECIPE =
+  ['-C', '--kitchen', '--dry-run', '--batch-approve', '--force', '--skip'] as Set
   private static final Map<String, String> STATUS =
   [create: 'Created', update: 'Updated', delete: 'Deleted', replace: 'Replaced', keep: 'Kept']
 
@@ -102,7 +103,8 @@ final class CookCommand {
       throw new UsageError('--force and --skip exclude each other')
     }
 
-    def kitchens = [root.kitchen.kitchen, command instanceof KitchenScoped ? command.kitchen.kitchen : null].findAll { it != null }
+    def commandKitchen = command instanceof KitchenScoped ? command.kitchen.kitchen : null
+    def kitchens = [root.kitchen.kitchen, commandKitchen].findAll { it != null }
 
     if (kitchens.size() > 1) {
       throw new UsageError('Option may only be supplied once: --kitchen')
@@ -158,9 +160,14 @@ final class CookCommand {
         bare = null
       }
     }
-    def requests = [operands, arguments].transpose().collect { new RecipeRequest((String) it[0], (List<Argument>) it[1]) }
+    def requests = [operands, arguments].transpose()
+    .collect { new RecipeRequest((String) it[0], (List<Argument>) it[1]) }
     def existing = root.force ? ExistingSeed.REPLACE : root.skip ? ExistingSeed.KEEP : ExistingSeed.REFUSE
-    return { -> write(new CookbookApply(kitchen, repositories.apply(kitchen), existing).propose(requests), root.dryRun, root.batchApprove) }
+    return {
+      ->
+      def proposal = new CookbookApply(kitchen, repositories.apply(kitchen), existing).propose(requests)
+      write(proposal, root.dryRun, root.batchApprove)
+    }
   }
 
   private Closure<Boolean> discard(File kitchen, DiscardArgs args) {
@@ -171,7 +178,9 @@ final class CookCommand {
     args.recipes.each { operand ->
       if (operand.startsWith('-')) {
         def name = operand.split('=', 2)[0]
-        throw new UsageError(name in BEFORE_RECIPE ? "${name} goes before the first recipe" : "discard takes no recipe arguments: ${operand}")
+        throw new UsageError(name in BEFORE_RECIPE ?
+        "${name} goes before the first recipe" :
+        "discard takes no recipe arguments: ${operand}")
       }
 
       if (!isOperand(operand)) {
@@ -314,7 +323,8 @@ final class CookCommand {
         param.choices ? "choices: ${param.choices.join(', ')}" : null,
         param.many ? 'repeatable' : null,
       ].findAll { it != null }
-      '  ' + param.names.collect { '--' + it + '=<' + param.type + '>' }.join(', ') + '\n      ' + (param.doc ?: '') + '; ' + facts.join('; ')
+      '  ' + param.names.collect { '--' + it + '=<' + param.type + '>' }.join(', ') +
+      '\n      ' + (param.doc ?: '') + '; ' + facts.join('; ')
     }.join('\n')
     [
       name,

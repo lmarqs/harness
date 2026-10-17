@@ -74,7 +74,10 @@ final class Draft {
     shown(state(path))
   }
 
-  /** What happens to a changed `path`:`create` when it is absent from the disk, `delete` when the draft removes it, else `update`. */
+  /**
+   * What happens to a changed `path`:`create` when it is absent from the disk, `delete` when the draft removes it,
+   * else `update`.
+   */
   String action(String path) {
     if (!before[path].exists) {
       return 'create'
@@ -128,7 +131,8 @@ final class Draft {
   private boolean changed(String path) {
     def was = before[path]
     def now = after[path]
-    was.exists != now.exists || was.content != now.content || was.kind != now.kind || (now.kind == 'file' && was.mode != now.mode)
+    was.exists != now.exists || was.content != now.content || was.kind != now.kind ||
+        (now.kind == 'file' && was.mode != now.mode)
   }
 
   private void put(String path, Map state) {

@@ -67,8 +67,8 @@ recipes:
     publishDirectory(kitchen, 'agents')
     new File(kitchen, 'AGENTS.md').text = '# Ours\n'
     def error = shouldFail(IllegalArgumentException) { apply(kitchen, 'dev.thecook:agents:0.1.0:instructions', [:]) }
-    assert error.message == 'AGENTS.md already exists; dev.thecook:agents:instructions writes it from a template the first ' +
-    'time it is cooked. Run with --force to replace it, or --skip to keep it.'
+    assert error.message == 'AGENTS.md already exists; dev.thecook:agents:instructions writes it from a template ' +
+    'the first time it is cooked. Run with --force to replace it, or --skip to keep it.'
     assert !new File(kitchen, 'cook.lock').exists()
 
     new File(kitchen, 'AGENTS.md').delete()
@@ -85,17 +85,20 @@ recipes:
     def agents = new File(kitchen, 'AGENTS.md')
     agents.text = '# Ours\n'
 
-    def kept = new CookbookApply(kitchen, repositories(kitchen), ExistingSeed.KEEP).propose([request('dev.thecook:agents:0.1.0:instructions', [harness: ['claude']])])
+    def kept = new CookbookApply(kitchen, repositories(kitchen), ExistingSeed.KEEP)
+        .propose([request('dev.thecook:agents:0.1.0:instructions', [harness: ['claude']])])
     assert kept.actions == ['AGENTS.md': 'keep', 'CLAUDE.md': 'create', 'cook.lock': 'create']
     kept.commit()
     assert agents.text == '# Ours\n'
     assert new File(kitchen, 'cook.lock').text.contains('"dev.thecook:agents:instructions"')
-    assert new CookbookApply(kitchen, repositories(kitchen), ExistingSeed.REPLACE).propose([request('dev.thecook:agents:0.1.0:instructions', [harness: ['claude']])])
+    assert new CookbookApply(kitchen, repositories(kitchen), ExistingSeed.REPLACE)
+    .propose([request('dev.thecook:agents:0.1.0:instructions', [harness: ['claude']])])
     .actions == [:]
 
     new File(kitchen, 'cook.lock').delete()
     new File(kitchen, 'CLAUDE.md').delete()
-    def replaced = new CookbookApply(kitchen, repositories(kitchen), ExistingSeed.REPLACE).propose([request('dev.thecook:agents:0.1.0:instructions', [:])])
+    def replaced = new CookbookApply(kitchen, repositories(kitchen), ExistingSeed.REPLACE)
+        .propose([request('dev.thecook:agents:0.1.0:instructions', [:])])
     assert replaced.actions == ['AGENTS.md': 'replace', 'cook.lock': 'create']
     replaced.commit()
     assert agents.text == template
@@ -104,7 +107,8 @@ recipes:
     agents.delete()
     def ours = new File(kitchen, 'OURS.md'); ours.text = '# Ours\n'
     Files.createSymbolicLink(agents.toPath(), java.nio.file.Paths.get('OURS.md'))
-    new CookbookApply(kitchen, repositories(kitchen), ExistingSeed.REPLACE).propose([request('dev.thecook:agents:0.1.0:instructions', [:])]).commit()
+    new CookbookApply(kitchen, repositories(kitchen), ExistingSeed.REPLACE)
+        .propose([request('dev.thecook:agents:0.1.0:instructions', [:])]).commit()
     assert !Files.isSymbolicLink(agents.toPath())
     assert agents.text == template
     assert ours.text == '# Ours\n'
@@ -139,9 +143,11 @@ starters.second = 'second'
     new File(kitchen, 'FIRST.md').text = 'ours\n'
     new File(kitchen, 'SECOND.md').text = 'ours\n'
     def error = shouldFail(IllegalArgumentException) {
-      new CookbookApply(kitchen, repositories(kitchen)).propose([request('acme:starters:1.0.0:one', [:]), request('acme:starters:1.0.0:two', [:])])
+      new CookbookApply(kitchen, repositories(kitchen))
+          .propose([request('acme:starters:1.0.0:one', [:]), request('acme:starters:1.0.0:two', [:])])
     }
-    assert error.message == '''These files already exist, and their recipes write them from a template the first time they are cooked:
+    assert error.message == 'These files already exist, and their recipes write them from a template ' +
+    '''the first time they are cooked:
   FIRST.md (acme:starters:one)
   SECOND.md (acme:starters:two)
 Run with --force to replace them, or --skip to keep them.'''
@@ -156,16 +162,20 @@ Run with --force to replace them, or --skip to keep them.'''
       Files.createSymbolicLink(file.toPath(), java.nio.file.Paths.get(target))
     }
     link('CLAUDE.md', 'AGENTS.md')
-    def section = shouldFail(IllegalArgumentException) { apply(kitchen, 'dev.thecook:agents:0.1.0:instructions', [harness: ['claude']]) }
+    def section = shouldFail(IllegalArgumentException) {
+      apply(kitchen, 'dev.thecook:agents:0.1.0:instructions', [harness: ['claude']])
+    }
     assert section.message == 'dev.thecook:agents:0.1.0:instructions: CLAUDE.md is a symbolic link to AGENTS.md; ' +
     'Cook writes sections and keys only into regular files'
 
     new File(kitchen, '.claude').mkdirs()
     new File(kitchen, '.claude/shared.json').text = '{}\n'
     link('.claude/settings.json', 'shared.json')
-    def key = shouldFail(IllegalArgumentException) { apply(kitchen, 'dev.thecook:agents:0.1.0:permissions', [harness: ['claude']]) }
-    assert key.message == 'dev.thecook:agents:0.1.0:permissions: .claude/settings.json is a symbolic link to shared.json; ' +
-    'Cook writes sections and keys only into regular files'
+    def key = shouldFail(IllegalArgumentException) {
+      apply(kitchen, 'dev.thecook:agents:0.1.0:permissions', [harness: ['claude']])
+    }
+    assert key.message == 'dev.thecook:agents:0.1.0:permissions: .claude/settings.json is a symbolic link to ' +
+    'shared.json; Cook writes sections and keys only into regular files'
     assert new File(kitchen, '.claude/shared.json').text == '{}\n'
     assert !new File(kitchen, 'cook.lock').exists()
     assert Files.isSymbolicLink(new File(kitchen, 'CLAUDE.md').toPath())
@@ -180,9 +190,11 @@ Run with --force to replace them, or --skip to keep them.'''
       '# cook:begin claude-context/instructions\n@AGENTS.md\n# cook:end claude-context/instructions\n': 2,
     ].each { text, line ->
       claude.text = text
-      def error = shouldFail(IllegalArgumentException) { apply(kitchen, 'dev.thecook:agents:0.1.0:instructions', [harness: ['claude']]) }
-      assert error.message == "dev.thecook:agents:0.1.0:instructions: CLAUDE.md already imports @AGENTS.md on line ${line}; " +
-      'remove that line so Cook owns the import'
+      def error = shouldFail(IllegalArgumentException) {
+        apply(kitchen, 'dev.thecook:agents:0.1.0:instructions', [harness: ['claude']])
+      }
+      assert error.message == 'dev.thecook:agents:0.1.0:instructions: CLAUDE.md already imports @AGENTS.md ' +
+      "on line ${line}; remove that line so Cook owns the import"
       assert claude.text == text
       assert !new File(kitchen, 'cook.lock').exists()
     }
@@ -200,7 +212,8 @@ Run with --force to replace them, or --skip to keep them.'''
       request('dev.thecook:agents:0.1.0:permissions', [harness: ['claude', 'codex']]),
       request('dev.thecook:agents:0.1.0:instructions', [harness: ['claude']]),
     ])
-    assert proposal.changes == ['.agents/policy.yaml', '.claude/settings.json', '.codex/config.toml', 'AGENTS.md', 'CLAUDE.md', 'cook.lock']
+    assert proposal.changes ==
+    ['.agents/policy.yaml', '.claude/settings.json', '.codex/config.toml', 'AGENTS.md', 'CLAUDE.md', 'cook.lock']
     proposal.commit()
     assert new File(kitchen, '.agents/policy.yaml').text == 'version: 1\ninstructions: []\ncommands: {}\n'
     assert new groovy.json.JsonSlurper().parse(new File(kitchen, '.claude/settings.json')) ==
@@ -339,7 +352,8 @@ notes.add(line)
   @Test void refusesARecipePathOutsideTheKitchenOrWithTwoReleasesOfACookbook() {
     def kitchen = kitchen()
     publishDirectory(kitchen, 'agents')
-    def outside = new File(kitchen.parentFile, 'outside.groovy'); outside.text = "@help('Outside.')\nimport java.util.List\n"
+    def outside = new File(kitchen.parentFile, 'outside.groovy')
+    outside.text = "@help('Outside.')\nimport java.util.List\n"
     Files.createSymbolicLink(new File(kitchen, 'linked.groovy').toPath(), outside.toPath())
     recipe(kitchen, 'twice.groovy', """@cookbook('dev.thecook:0.1.0')
 import dev.thecook.agents.Agents
@@ -742,7 +756,9 @@ config.migrated = migrated
   // The definition in docs/architecture.md: one line `<sha256 of the file>  <path>` per file, in path order.
   private static String sourcesSha256(File directory) {
     List<String> paths = []
-    directory.eachFileRecurse(groovy.io.FileType.FILES) { paths << directory.toPath().relativize(it.toPath()).toString() }
+    directory.eachFileRecurse(groovy.io.FileType.FILES) {
+      paths << directory.toPath().relativize(it.toPath()).toString()
+    }
     sha256(paths.sort().collect { "${sha256(new File(directory, it))}  ${it}\n" }.join().getBytes('UTF-8'))
   }
 

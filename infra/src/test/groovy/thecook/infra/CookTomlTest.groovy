@@ -38,7 +38,11 @@ class CookTomlTest {
 
   @Test void hashesTheArtifactsSourcesWhateverTheJarsEntryOrder() {
     def kitchen = folder.newFolder('kitchen')
-    def files = ['acme/notes/notes.groovy': 'notes', 'acme/notes/templates/a b.md': 'resource', 'acme/notes/README.md': '']
+    def files = [
+      'acme/notes/notes.groovy': 'notes',
+      'acme/notes/templates/a b.md': 'resource',
+      'acme/notes/README.md': '',
+    ]
     publish(new File(kitchen, 'forward'), files)
     publish(new File(kitchen, 'reverse'), files.entrySet().toList().reverse().collectEntries())
     def coordinates = Coordinates.parse('acme:notes:1.2.3')
@@ -102,7 +106,8 @@ class CookTomlTest {
     def kitchen = folder.newFolder('kitchen')
     new File(kitchen, 'cook.toml').text = 'repositories = [{ git = "../source" }]\n'
 
-    assert repositories(kitchen).artifact(Coordinates.parse('acme:notes:1.2.3')).recipeSource('notes') == 'line\n$Format:%H$\n'
+    assert repositories(kitchen).artifact(Coordinates.parse('acme:notes:1.2.3')).recipeSource('notes') ==
+    'line\n$Format:%H$\n'
   }
 
   @Test void neverReadsAGitUrlAsAnOption() {
@@ -146,17 +151,18 @@ class CookTomlTest {
     def error = shouldFail(IllegalArgumentException) {
       repositories(kitchen).artifact(Coordinates.parse('acme:notes:1.2.4'))
     }
-    assert error.message ==~ /acme:notes:1\.2\.4 is not cached, and \S+ cannot be read: fatal: [^;]+; connect to it and run again/
+    assert error.message ==~
+    /acme:notes:1\.2\.4 is not cached, and \S+ cannot be read: fatal: [^;]+; connect to it and run again/
     assert error.message.contains("${source} cannot be read: ")
   }
 
   @Test void refusesGitRepositoriesThatAreUnauthenticatedMisshapedOrMisversioned() {
     def kitchen = folder.newFolder('kitchen')
     [
-      '{ git = "http://example.com/book.git" }': 'git repository http://example.com/book.git must use https://, ssh or a path; ' +
-      'http:// and git:// are not authenticated',
-      '{ git = "git://example.com/book.git" }': 'git repository git://example.com/book.git must use https://, ssh or a path; ' +
-      'http:// and git:// are not authenticated',
+      '{ git = "http://example.com/book.git" }': 'git repository http://example.com/book.git must use https://, ' +
+      'ssh or a path; http:// and git:// are not authenticated',
+      '{ git = "git://example.com/book.git" }': 'git repository git://example.com/book.git must use https://, ' +
+      'ssh or a path; http:// and git:// are not authenticated',
       '{ git = "../book", branch = "main" }': 'a git repository is { git = "<url>", dir = "<dir>" }, with dir optional',
       '{ git = "../book", dir = "../x" }': 'dir ../x must be a directory inside the git repository',
     ].each { entry, message ->
@@ -168,12 +174,17 @@ class CookTomlTest {
     def book = gitCookbook('book', null, '1.2.0', ['notes/notes.groovy': 'notes'])
     git(book, 'tag', 'v1.2.3')
     new File(kitchen, 'cook.toml').text = 'repositories = [{ git = "../book" }]\n'
-    def error = shouldFail(IllegalArgumentException) { repositories(kitchen).artifact(Coordinates.parse('acme:notes:1.2.3')) }
-    assert error.message == "the tag v1.2.3 in ${book} holds version 1.2.0 in cookbook.toml; tag each release with its own version"
+    def error = shouldFail(IllegalArgumentException) {
+      repositories(kitchen).artifact(Coordinates.parse('acme:notes:1.2.3'))
+    }
+    assert error.message ==
+    "the tag v1.2.3 in ${book} holds version 1.2.0 in cookbook.toml; tag each release with its own version"
 
     new File(book, 'cookbook.toml').text = 'group = \n'
     release(book, 'v1.2.3')
-    error = shouldFail(IllegalArgumentException) { repositories(kitchen).artifact(Coordinates.parse('acme:notes:1.2.3')) }
+    error = shouldFail(IllegalArgumentException) {
+      repositories(kitchen).artifact(Coordinates.parse('acme:notes:1.2.3'))
+    }
     assert error.message.startsWith("Cannot read cookbook.toml at the tag v1.2.3 in ${book}: ")
   }
 
@@ -183,7 +194,8 @@ class CookTomlTest {
     def error = shouldFail(IllegalArgumentException) {
       repositories(kitchen).artifact(Coordinates.parse('acme:notes:1.2.4'))
     }
-    assert error.message.startsWith("acme:notes:1.2.4 not found in the repositories in ${new File(kitchen, 'cook.toml')}")
+    assert error.message
+    .startsWith("acme:notes:1.2.4 not found in the repositories in ${new File(kitchen, 'cook.toml')}")
     assert error.message.endsWith('publish it there, or list its repository in cook.toml')
   }
 
@@ -210,7 +222,8 @@ class CookTomlTest {
     assert error.message.endsWith('repository http://example.com/maven2 must be an https:// URL or a path')
     new File(kitchen, 'cook.toml').text = 'repositories = "repository"\n'
     error = shouldFail(IllegalArgumentException) { repositories(kitchen) }
-    assert error.message.endsWith('repositories must be a list of https:// URLs, paths and { git = "<url>", dir = "<dir>" } tables')
+    assert error.message
+    .endsWith('repositories must be a list of https:// URLs, paths and { git = "<url>", dir = "<dir>" } tables')
   }
 
   private static void publish(File repository, Map<String, String> files) {
@@ -229,12 +242,16 @@ class CookTomlTest {
     CookToml.repositories(kitchen, new File(folder.root, 'cache'), new File(folder.root, 'home'))
   }
 
-  /** A git repository holding a cookbook of `group` in `dir`, or at its root, with `files` below it, tagged as `version`. */
+  /**
+   * A git repository holding a cookbook of `group` in `dir`, or at its root, with `files` below it, tagged as
+   * `version`.
+   */
   private File gitCookbook(String name, String dir, String version, Map<String, String> files, String group = 'acme') {
     def root = folder.newFolder(name)
     git(root, 'init', '-q')
     def cookbook = dir ? new File(root, dir) : root
-    (['cookbook.toml': "group = \"${group}\"\nversion = \"${version}\"\napi = 1\n".toString()] + files).each { path, text ->
+    def manifest = "group = \"${group}\"\nversion = \"${version}\"\napi = 1\n".toString()
+    (['cookbook.toml': manifest] + files).each { path, text ->
       def file = new File(cookbook, path)
       file.parentFile.mkdirs()
       file.text = text

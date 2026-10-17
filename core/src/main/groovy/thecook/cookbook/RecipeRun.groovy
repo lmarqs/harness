@@ -6,7 +6,9 @@ import thecook.cookbook.api.param as Param
 
 import java.lang.reflect.Field
 
-/** Runs a compiled recipe: binds its `@param` fields from the arguments, injects its ingredients, then runs its body. */
+/**
+ * Runs a compiled recipe: binds its `@param` fields from the arguments, injects its ingredients, then runs its body.
+ */
 final class RecipeRun {
   private RecipeRun() { }
 
@@ -46,7 +48,8 @@ final class RecipeRun {
     def separate = given.find { it.form == Argument.Form.SEPARATE }
 
     if (yesOrNo && separate) {
-      throw new IllegalArgumentException("--${separate.name} takes no separate value; write --${separate.name}=${separate.value}")
+      throw new IllegalArgumentException(
+      "--${separate.name} takes no separate value; write --${separate.name}=${separate.value}")
     }
 
     if (!yesOrNo && given.any { it.form == Argument.Form.BARE }) {

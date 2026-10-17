@@ -21,7 +21,8 @@ final class CookbookArtifact {
   // Ant's default excludes, which Gradle leaves out of every jar. A file whose path has a name matching one is not a
   // source, so a tag holding it hashes as the jar of the same directory does.
   private static final List<Pattern> EXCLUDED = ('*~ #*# .#* %*% ._* CVS .cvsignore SCCS vssver.scc .svn .git ' +
-  '.gitattributes .gitignore .gitmodules .hg .hgignore .hgsubstate .hgtags .bzr .bzrignore .DS_Store').split(' ').collect { glob ->
+  '.gitattributes .gitignore .gitmodules .hg .hgignore .hgsubstate .hgtags ' +
+  '.bzr .bzrignore .DS_Store').split(' ').collect { glob ->
     Pattern.compile(glob.split(/\*/, -1).collect { Pattern.quote(it) }.join('.*'))
   }
 
@@ -84,7 +85,8 @@ final class CookbookArtifact {
   /** Every packaged file under the directory `path`, keyed by its path below it. */
   Map<String, String> resources(String path) {
     def prefix = path.endsWith('/') ? path : "${path}/"
-    files.keySet().findAll { it.startsWith(prefix) }.sort().collectEntries { [(it.substring(prefix.length())): text(it)] }
+    files.keySet().findAll { it.startsWith(prefix) }.sort()
+    .collectEntries { [(it.substring(prefix.length())): text(it)] }
   }
 
   private List<String> sources() {
