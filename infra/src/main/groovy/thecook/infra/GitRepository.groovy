@@ -1,6 +1,9 @@
-package thecook.cookbook
+package thecook.infra
 
 import org.tomlj.Toml
+import thecook.cookbook.Coordinates
+import thecook.cookbook.CookbookArtifact
+import thecook.cookbook.CookbookRepository
 import thecook.filesystem.Repository
 
 /**

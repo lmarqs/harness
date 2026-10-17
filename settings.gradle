@@ -1,6 +1,7 @@
 rootProject.name = 'the-cook'
 
 includeBuild('core')
+includeBuild('infra') { name = 'infra' }
 
 includeBuild('cli') { name = 'cli' }
 includeBuild('docs') { name = 'docs' }

@@ -12,17 +12,22 @@ import java.lang.reflect.InvocationTargetException
  */
 final class CookbookApply {
   private final File destination
+  private final CookbookRepositories repositories
   private final ExistingSeed existing
 
-  /** `existing` decides what a recipe's first apply does with a file its `existing = 'fail'` seed writes. */
-  CookbookApply(File destination, ExistingSeed existing = ExistingSeed.REFUSE) {
+  /**
+   * Coordinates resolve from `repositories`; `existing` decides what a recipe's first apply does with a file its
+   * `existing = 'fail'` seed writes.
+   */
+  CookbookApply(File destination, CookbookRepositories repositories, ExistingSeed existing = ExistingSeed.REFUSE) {
     this.destination = destination
+    this.repositories = repositories
     this.existing = existing
   }
 
   /** Evaluates `requests` in order and returns the proposed changes, written only by `Proposal.commit`. */
   Proposal propose(List<RecipeRequest> requests) {
-    def loader = new RecipeLoader(destination)
+    def loader = new RecipeLoader(destination, repositories)
     def draft = new Draft(destination)
     def lock = CookLock.parse(draft.read(CookLock.PATH))
     Set<String> applied = []

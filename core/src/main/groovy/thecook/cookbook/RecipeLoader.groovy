@@ -20,9 +20,9 @@ final class RecipeLoader {
   /** Each source the invocation evaluated or read, by its origin, in the order it was first consumed. */
   final Map<String, String> sources = [:]
 
-  RecipeLoader(File kitchen) {
+  RecipeLoader(File kitchen, CookbookRepositories repositories) {
     this.kitchen = kitchen.toPath().toRealPath()
-    this.repositories = CookbookRepositories.at(kitchen)
+    this.repositories = repositories
   }
 
   /** The recipe that `operand` names: coordinates when written as coordinates, otherwise a path in the kitchen. */

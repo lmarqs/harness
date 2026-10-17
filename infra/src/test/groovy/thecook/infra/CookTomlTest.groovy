@@ -1,4 +1,4 @@
-package thecook
+package thecook.infra
 
 import org.junit.Rule
 import org.junit.Test
@@ -10,31 +10,8 @@ import java.security.MessageDigest
 import java.util.jar.JarEntry
 import java.util.jar.JarOutputStream
 
-class CookbookRepositoriesTest {
+class CookTomlTest {
   @Rule public TemporaryFolder folder = new TemporaryFolder()
-
-  @Test void parsesCoordinatesWithAnExactReleaseVersion() {
-    def coordinates = Coordinates.parse('dev.thecook:agents:0.1.0:instructions')
-    assert [coordinates.group, coordinates.artifact, coordinates.version, coordinates.recipe] ==
-    ['dev.thecook', 'agents', '0.1.0', 'instructions']
-    assert coordinates.jarPath == 'dev/thecook/agents/0.1.0/agents-0.1.0.jar'
-    assert Coordinates.parse('dev.thecook:agents:0.1.0').recipe == null
-    [
-      'dev.thecook:agents',
-      'dev.thecook:agents:0.1',
-      'dev.thecook:agents:0.1.0-SNAPSHOT',
-      'dev.thecook:agents:[0.1,)',
-      'dev.thecook:agents:main',
-      'dev.thecook:agents:3f5a2c1'
-    ]
-    .each { text ->
-      def error = shouldFail(IllegalArgumentException) { Coordinates.parse(text) }
-      assert error.message.startsWith("Invalid recipe coordinates: ${text}")
-    }
-    assert Coordinates.written('acme:notes:1.2.3')
-    assert !Coordinates.written('https://example.com/notes.groovy')
-    assert !Coordinates.written('notes.groovy')
-  }
 
   @Test void readsTheArtifactFromTheFirstListedRepositoryHoldingIt() {
     def kitchen = folder.newFolder('kitchen')
@@ -49,7 +26,7 @@ class CookbookRepositoriesTest {
     new File(kitchen, 'cook.toml').text = 'repositories = ["first", "second"]\n'
     new File(kitchen, 'first').mkdirs()
 
-    def artifact = CookbookRepositories.at(kitchen).artifact(Coordinates.parse('acme:notes:1.2.3'))
+    def artifact = repositories(kitchen).artifact(Coordinates.parse('acme:notes:1.2.3'))
 
     assert artifact.readme == 'Notes for the repository.'
     assert artifact.recipes == ['notes', 'review']
@@ -66,9 +43,9 @@ class CookbookRepositoriesTest {
     publish(new File(kitchen, 'reverse'), files.entrySet().toList().reverse().collectEntries())
     def coordinates = Coordinates.parse('acme:notes:1.2.3')
     new File(kitchen, 'cook.toml').text = 'repositories = ["forward"]\n'
-    def forward = CookbookRepositories.at(kitchen).artifact(coordinates).sha256
+    def forward = repositories(kitchen).artifact(coordinates).sha256
     new File(kitchen, 'cook.toml').text = 'repositories = ["reverse"]\n'
-    def reverse = CookbookRepositories.at(kitchen).artifact(coordinates).sha256
+    def reverse = repositories(kitchen).artifact(coordinates).sha256
 
     def lines = ['README.md', 'notes.groovy', 'templates/a b.md'].collect { path ->
       def text = files['acme/notes/' + path]
@@ -203,23 +180,23 @@ class CookbookRepositoriesTest {
     def kitchen = folder.newFolder('kitchen')
     new File(kitchen, 'cook.toml').text = 'repositories = ["repository"]\n'
     def error = shouldFail(IllegalArgumentException) {
-      CookbookRepositories.at(kitchen).artifact(Coordinates.parse('acme:notes:1.2.4'))
+      repositories(kitchen).artifact(Coordinates.parse('acme:notes:1.2.4'))
     }
     assert error.message.startsWith("acme:notes:1.2.4 not found in the repositories in ${new File(kitchen, 'cook.toml')}")
     assert error.message.endsWith('publish it there, or list its repository in cook.toml')
   }
 
   @Test void withoutCookTomlTheRepositoryIsMavenCentral() {
-    assert CookbookRepositories.at(folder.newFolder('kitchen')).repositories*.toString() == [CookbookRepositories.CENTRAL.toString()]
+    assert CookToml.repositories(folder.newFolder('kitchen'), new File(folder.root, 'cache')).repositories*.toString() == [CookToml.CENTRAL.toString()]
   }
 
   @Test void refusesRepositoriesThatAreNeitherHttpsNorPaths() {
     def kitchen = folder.newFolder('kitchen')
     new File(kitchen, 'cook.toml').text = 'repositories = ["http://example.com/maven2"]\n'
-    def error = shouldFail(IllegalArgumentException) { CookbookRepositories.at(kitchen) }
+    def error = shouldFail(IllegalArgumentException) { repositories(kitchen) }
     assert error.message.endsWith('repository http://example.com/maven2 must be an https:// URL or a path')
     new File(kitchen, 'cook.toml').text = 'repositories = "repository"\n'
-    error = shouldFail(IllegalArgumentException) { CookbookRepositories.at(kitchen) }
+    error = shouldFail(IllegalArgumentException) { repositories(kitchen) }
     assert error.message.endsWith('repositories must be a list of https:// URLs, paths and { git = "<url>", dir = "<dir>" } tables')
   }
 
@@ -236,7 +213,7 @@ class CookbookRepositoriesTest {
   }
 
   private CookbookRepositories repositories(File kitchen) {
-    CookbookRepositories.at(kitchen, new File(folder.root, 'cache'))
+    CookToml.repositories(kitchen, new File(folder.root, 'cache'))
   }
 
   /** A git repository holding a cookbook of `group` in `dir`, or at its root, with `files` below it, tagged as `version`. */

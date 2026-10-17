@@ -2,6 +2,8 @@
 /build/
 /core/.gradle/
 /core/build/
+/infra/.gradle/
+/infra/build/
 /cli/.gradle/
 /cli/build/
 /docs/.gradle/

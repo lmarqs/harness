@@ -6,14 +6,17 @@ and [issue #15](https://github.com/lmarqs/the-cook/issues/15) tracks the parts t
 The core is one engine, `thecook.cookbook`, that applies recipes named by coordinates or by a `.groovy` path in the
 kitchen. The author's annotations are Kotlin, in `thecook.cookbook.api`; the engine is Groovy.
 
+The core reaches no network and runs no external command. It declares `CookbookRepository`, and the caller hands
+`CookbookApply` the repositories coordinates resolve from: the CLI builds them from the kitchen's `cook.toml` with
+[infra](../infra/README.md).
+
 ## One invocation
 
 `CookbookApply.propose` takes the recipes in the order given and returns a `Proposal`; nothing reaches the disk until
 `Proposal.commit`.
 
-1. `RecipeLoader` resolves each operand. Coordinates read the artifact from the first of the kitchen's repositories
-   that holds it (`CookbookRepositories`): a jar from a Maven-layout repository (`MavenRepository`), or the artifact's
-   directory at the release tag of a git repository (`GitRepository`), fetched with `git` into a cache. A path must resolve inside the kitchen, symbolic links included; its model imports
+1. `RecipeLoader` resolves each operand. Coordinates read the artifact from the first of the given repositories that
+   holds it (`CookbookRepositories`). A path must resolve inside the kitchen, symbolic links included; its model imports
    resolve from the releases its `@cookbook('group:version')` annotations name. Each artifact is read, and its models
    compiled, once per invocation.
 2. `CookbookCompiler` compiles an artifact's models in a class loader of their own, then the recipe in its own class
@@ -70,4 +73,5 @@ When a write fails, it restores the paths it already wrote and fails.
 
 `./gradlew check` runs the core tests: `CookbookApplyTest` applies the `agents` artifact and small artifacts built
 in the test, by coordinates and by path; `DocumentsTest` edits JSON and TOML through the documents' own API;
-`CookbookRepositoriesTest` and `RecipeSourceTest` cover resolution and recipe texts.
+`CoordinatesTest` and `RecipeSourceTest` cover coordinates and recipe texts; `BatchRecordTest`, `BatchRevertTest`
+and `FilePatchTest` cover the batch record and revert.

@@ -7,6 +7,9 @@ import org.yaml.snakeyaml.Yaml
 import thecook.cookbook.Argument
 import thecook.cookbook.Coordinates
 import thecook.cookbook.CookbookApply
+import thecook.cookbook.CookbookArtifact
+import thecook.cookbook.CookbookRepositories
+import thecook.cookbook.CookbookRepository
 import thecook.cookbook.Draft
 import thecook.cookbook.ExistingSeed
 import thecook.cookbook.Proposal
@@ -83,17 +86,17 @@ recipes:
     def agents = new File(kitchen, 'AGENTS.md')
     agents.text = '# Ours\n'
 
-    def kept = new CookbookApply(kitchen, ExistingSeed.KEEP).propose([request('dev.thecook:agents:0.1.0:instructions', [harness: ['claude']])])
+    def kept = new CookbookApply(kitchen, repositories(kitchen), ExistingSeed.KEEP).propose([request('dev.thecook:agents:0.1.0:instructions', [harness: ['claude']])])
     assert kept.actions == ['AGENTS.md': 'keep', 'CLAUDE.md': 'create', 'cook.lock': 'create']
     kept.commit()
     assert agents.text == '# Ours\n'
     assert new File(kitchen, 'cook.lock').text.contains('"dev.thecook:agents:instructions"')
-    assert new CookbookApply(kitchen, ExistingSeed.REPLACE).propose([request('dev.thecook:agents:0.1.0:instructions', [harness: ['claude']])])
+    assert new CookbookApply(kitchen, repositories(kitchen), ExistingSeed.REPLACE).propose([request('dev.thecook:agents:0.1.0:instructions', [harness: ['claude']])])
     .actions == [:]
 
     new File(kitchen, 'cook.lock').delete()
     new File(kitchen, 'CLAUDE.md').delete()
-    def replaced = new CookbookApply(kitchen, ExistingSeed.REPLACE).propose([request('dev.thecook:agents:0.1.0:instructions', [:])])
+    def replaced = new CookbookApply(kitchen, repositories(kitchen), ExistingSeed.REPLACE).propose([request('dev.thecook:agents:0.1.0:instructions', [:])])
     assert replaced.actions == ['AGENTS.md': 'replace', 'cook.lock': 'create']
     replaced.commit()
     assert agents.text == template
@@ -102,7 +105,7 @@ recipes:
     agents.delete()
     def ours = new File(kitchen, 'OURS.md'); ours.text = '# Ours\n'
     java.nio.file.Files.createSymbolicLink(agents.toPath(), java.nio.file.Paths.get('OURS.md'))
-    new CookbookApply(kitchen, ExistingSeed.REPLACE).propose([request('dev.thecook:agents:0.1.0:instructions', [:])]).commit()
+    new CookbookApply(kitchen, repositories(kitchen), ExistingSeed.REPLACE).propose([request('dev.thecook:agents:0.1.0:instructions', [:])]).commit()
     assert !java.nio.file.Files.isSymbolicLink(agents.toPath())
     assert agents.text == template
     assert ours.text == '# Ours\n'
@@ -137,7 +140,7 @@ starters.second = 'second'
     new File(kitchen, 'FIRST.md').text = 'ours\n'
     new File(kitchen, 'SECOND.md').text = 'ours\n'
     def error = shouldFail(IllegalArgumentException) {
-      new CookbookApply(kitchen).propose([request('acme:starters:1.0.0:one', [:]), request('acme:starters:1.0.0:two', [:])])
+      new CookbookApply(kitchen, repositories(kitchen)).propose([request('acme:starters:1.0.0:one', [:]), request('acme:starters:1.0.0:two', [:])])
     }
     assert error.message == '''These files already exist, and their recipes write them from a template on their first apply:
   FIRST.md (acme:starters:one)
@@ -194,7 +197,7 @@ Run with --force to replace them, or --skip to keep them.'''
   @Test void composesPermissionsAndInstructionsInOneInvocation() {
     def kitchen = kitchen()
     publishDirectory(kitchen, 'agents')
-    def proposal = new CookbookApply(kitchen).propose([
+    def proposal = new CookbookApply(kitchen, repositories(kitchen)).propose([
       request('dev.thecook:agents:0.1.0:permissions', [harness: ['claude', 'codex']]),
       request('dev.thecook:agents:0.1.0:instructions', [harness: ['claude']]),
     ])
@@ -213,7 +216,7 @@ Run with --force to replace them, or --skip to keep them.'''
   }
 }
 '''
-    def same = new CookbookApply(kitchen).propose([
+    def same = new CookbookApply(kitchen, repositories(kitchen)).propose([
       request('dev.thecook:agents:0.1.0:permissions', [harness: ['claude', 'codex']]),
       request('dev.thecook:agents:0.1.0:instructions', [harness: ['claude']]),
     ])
@@ -285,13 +288,13 @@ import dev.thecook.agents.Agents
 agents.skills('solid')
 """)
     def requests = [request('dev.thecook:agents:0.1.0:instructions', [:]), request('recipes/skills.groovy', [:])]
-    def first = new CookbookApply(kitchen).propose(requests)
+    def first = new CookbookApply(kitchen, repositories(kitchen)).propose(requests)
     assert first.changedSources.empty
     first.commit()
 
     publishDirectory(kitchen, 'agents', ['NOTICE.md': 'changed under the same version'])
     path.text += '// edited\n'
-    def again = new CookbookApply(kitchen).propose(requests)
+    def again = new CookbookApply(kitchen, repositories(kitchen)).propose(requests)
 
     assert again.changedSources*.address == ['dev.thecook:agents:0.1.0:instructions']
     def changed = again.changedSources.first()
@@ -320,7 +323,7 @@ import acme.notes.Notes
 notes.add(line)
 """)
 
-    def proposal = new CookbookApply(kitchen).propose([
+    def proposal = new CookbookApply(kitchen, repositories(kitchen)).propose([
       request('dev.thecook:agents:0.1.0:instructions', [harness: ['claude']]),
       request('notes.groovy', [line: ['first']]),
     ])
@@ -416,7 +419,7 @@ notes.set(test: 'second')
     ]
     failures.each { requests, message ->
       def error = shouldFail(IllegalArgumentException) {
-        new CookbookApply(kitchen).propose(requests.collect { request(it[0], it[1]) })
+        new CookbookApply(kitchen, repositories(kitchen)).propose(requests.collect { request(it[0], it[1]) })
       }
       assert error.message == message
     }
@@ -583,9 +586,17 @@ import acme.noisy.Noisy
   }
 
   private File kitchen() {
-    def kitchen = folder.newFolder('kitchen')
-    new File(kitchen, 'cook.toml').text = 'repositories = ["repository"]\n'
-    kitchen
+    folder.newFolder('kitchen')
+  }
+
+  // Coordinates resolve from the jars that publish writes under the kitchen's repository directory.
+  private static CookbookRepositories repositories(File kitchen) {
+    def directory = new File(kitchen, 'repository')
+    def jars = { Coordinates coordinates ->
+      def jar = new File(directory, coordinates.jarPath)
+      jar.isFile() ? CookbookArtifact.fromZip(coordinates, jar.bytes, coordinates.packagePath) : null
+    } as CookbookRepository
+    new CookbookRepositories([jars], directory.path)
   }
 
   private static File recipe(File kitchen, String path, String text) {
@@ -622,7 +633,7 @@ config.migrated = migrated
   }
 
   private static def apply(File kitchen, String operand, Map<String, List<String>> arguments) {
-    new CookbookApply(kitchen).propose([request(operand, arguments)])
+    new CookbookApply(kitchen, repositories(kitchen)).propose([request(operand, arguments)])
   }
 
   private static RecipeRequest request(String operand, Map<String, List<String>> arguments) {

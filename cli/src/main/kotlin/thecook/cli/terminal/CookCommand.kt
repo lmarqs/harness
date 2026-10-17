@@ -14,17 +14,22 @@ import thecook.cookbook.RecipeRequest
 import thecook.cookbook.RecipeSource
 import thecook.model.RecipeTexts
 import java.io.BufferedReader
+import java.io.File
 import java.io.PrintWriter
 import java.nio.file.Files
 import java.nio.file.InvalidPathException
 import java.nio.file.Path
 
-/** Cook's command line. `stdin` answers the approval question; without it, writing needs `--batch-approve`. */
+/**
+ * Cook's command line. `stdin` answers the approval question; without it, writing needs `--batch-approve`. Coordinates
+ * resolve from the repositories that `repositories` reads for a kitchen.
+ */
 class CookCommand
 @JvmOverloads
 constructor(
   private val stdout: PrintWriter,
   private val stderr: PrintWriter,
+  private val repositories: (File) -> CookbookRepositories,
   private val stdin: BufferedReader? = null,
 ) {
   fun execute(args: Array<String>): Int {
@@ -49,7 +54,7 @@ constructor(
         }
 
         is RecipeHelp -> {
-          val repositories by lazy { CookbookRepositories.at(command.kitchen.toAbsolutePath().toFile()) }
+          val repositories by lazy { repositories(command.kitchen.toAbsolutePath().toFile()) }
           stdout.println(
             command.recipes.joinToString("\n\n") { target ->
               when (target) {
@@ -61,7 +66,7 @@ constructor(
         }
 
         is ApplyRecipes -> {
-          val proposal = CookbookApply(command.repository.toFile(), command.existing).propose(command.requests)
+          val proposal = CookbookApply(command.repository.toFile(), repositories(command.repository.toFile()), command.existing).propose(command.requests)
           if (!write(proposal, command.dryRun, command.batchApprove)) return 1
         }
 
