@@ -74,6 +74,8 @@ Cook cooks in. `-C <dir>` or `--kitchen=<dir>` before the first recipe cooks in 
 - `./cook revert [--batch-approve] <batchId>`, which reverses one recorded batch against the current content with the
   same review, keeps later edits beside the batch's changes, and writes nothing when one overlaps them, naming each
   file and the batch's hunk ([revert](docs/features/revert.md)).
+- `./cook batch list`, one line per recorded batch, and `./cook batch inspect <batchId>`, one batch's recipes,
+  arguments, files, patches and any failure.
 - `help` on an artifact, a recipe or a recipe path, read without running it.
 
 Coordinates resolve from the first repository of the kitchen's `cook.toml` `repositories` list that holds them, and
@@ -84,8 +86,8 @@ their recipe as `--name=value` or `--name value`, and a yes-or-no argument as a 
 word that contains `/` or `:` or ends with `.groovy` starts the next recipe, so a value shaped like one is written
 `--name=value`.
 
-The design has these, and they do not run yet: batch listing and inspection, `https://` recipe operands,
-and `apply` written as a command.
+The design has these, and they do not run yet: `https://` recipe operands and `apply` written as a
+command.
 
 ### Recipe paths
 

@@ -27,7 +27,7 @@ internal class KitchenOption {
 
 @Command(
   name = "cook",
-  subcommands = [HelpArgs::class, RevertArgs::class],
+  subcommands = [HelpArgs::class, RevertArgs::class, BatchArgs::class],
   description = ["Applies a recipe: Cook's options come first, then the recipe, then the recipe's own arguments."],
   footer = [
     "",
@@ -83,6 +83,26 @@ internal class RevertArgs {
 
   @Option(names = ["--batch-approve"], description = ["Show the diff, then write without asking."])
   var batchApprove = false
+
+  @Parameters(paramLabel = "BATCH", description = ["The batch ID, as ./cook batch list shows it."])
+  lateinit var batch: String
+}
+
+@Command(
+  name = "batch",
+  description = ["Read the recorded batches."],
+  subcommands = [BatchListArgs::class, BatchInspectArgs::class],
+)
+internal class BatchArgs
+
+@Command(name = "list", description = ["Show the recorded batches, oldest first."])
+internal class BatchListArgs {
+  @Mixin var kitchen = KitchenOption()
+}
+
+@Command(name = "inspect", description = ["Show one batch's recipes, arguments, files, patches and any failure."])
+internal class BatchInspectArgs {
+  @Mixin var kitchen = KitchenOption()
 
   @Parameters(paramLabel = "BATCH", description = ["The batch ID, as ./cook batch list shows it."])
   lateinit var batch: String

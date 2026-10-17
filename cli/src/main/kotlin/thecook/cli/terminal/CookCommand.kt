@@ -12,6 +12,7 @@ import thecook.cookbook.FilePatch
 import thecook.cookbook.Proposal
 import thecook.cookbook.RecipeRequest
 import thecook.cookbook.RecipeSource
+import thecook.cookbook.RecordedBatch
 import thecook.model.RecipeTexts
 import java.io.BufferedReader
 import java.io.PrintWriter
@@ -69,6 +70,14 @@ constructor(
           val proposal = BatchRevert(command.repository.toFile()).propose(command.batch)
           if (!write(proposal, false, command.batchApprove)) return 1
         }
+
+        is ListBatches -> {
+          listBatches(stdout, RecordedBatch.list(command.repository.toFile()))
+        }
+
+        is InspectBatch -> {
+          inspectBatch(stdout, RecordedBatch.read(command.repository.toFile(), command.batch))
+        }
       }
       stdout.flush()
       0
@@ -92,22 +101,34 @@ constructor(
         throw UsageError(error.message ?: "Invalid arguments")
       }
     val root = line.getCommand<RootArgs>()
-    val command = parsed.subcommand()?.commandSpec()?.userObject()
+    val chosen = parsed.subcommand()
+    val command = (chosen?.subcommand() ?: chosen)?.commandSpec()?.userObject()
     if (command != null && (root.dryRun || root.batchApprove || root.force || root.skip)) {
       throw UsageError("--dry-run, --batch-approve, --force and --skip go before a recipe, not before a command")
     }
     if (root.force && root.skip) throw UsageError("--force and --skip exclude each other")
-    val kitchens =
-      listOfNotNull(root.kitchen.kitchen, (command as? HelpArgs)?.kitchen?.kitchen, (command as? RevertArgs)?.kitchen?.kitchen)
+    val kitchens = listOfNotNull(root.kitchen.kitchen, kitchenOption(command))
     if (kitchens.size > 1) throw UsageError("Option may only be supplied once: --kitchen")
     val kitchen = kitchen(kitchens.singleOrNull())
     return when (command) {
       null -> recipes(kitchen, root)
       is HelpArgs -> help(kitchen, command.recipes)
       is RevertArgs -> RevertBatch(kitchen.toAbsolutePath(), command.batch, command.batchApprove)
+      is BatchArgs -> throw UsageError("batch takes list or inspect <batchId>")
+      is BatchListArgs -> ListBatches(kitchen.toAbsolutePath())
+      is BatchInspectArgs -> InspectBatch(kitchen.toAbsolutePath(), command.batch)
       else -> throw IllegalStateException("Unhandled command: $command")
     }
   }
+
+  private fun kitchenOption(command: Any?): String? =
+    when (command) {
+      is HelpArgs -> command.kitchen.kitchen
+      is RevertArgs -> command.kitchen.kitchen
+      is BatchListArgs -> command.kitchen.kitchen
+      is BatchInspectArgs -> command.kitchen.kitchen
+      else -> null
+    }
 
   private fun recipes(
     kitchen: Path,
@@ -354,6 +375,15 @@ constructor(
     val repository: Path,
     val batch: String,
     val batchApprove: Boolean,
+  ) : Command
+
+  private data class ListBatches(
+    val repository: Path,
+  ) : Command
+
+  private data class InspectBatch(
+    val repository: Path,
+    val batch: String,
   ) : Command
 
   private class UsageError(

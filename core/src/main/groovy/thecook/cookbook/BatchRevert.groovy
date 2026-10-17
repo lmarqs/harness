@@ -1,12 +1,10 @@
 package thecook.cookbook
 
-import org.yaml.snakeyaml.Yaml
-
 /**
  * Reverses one recorded batch against the destination's current content, without evaluating its recipes again. Each
  * file's patch is undone where the batch's own lines still stand, so later edits beside them survive. A file the batch
- * created, deleted or turned into or out of a link, or whose permissions it changed, reverses only when it is still
- * as the batch left it.
+ * created, deleted or turned into or out of a link reverses only when it is still as the batch left it, and
+ * permissions the batch changed only while they are as it set them.
  */
 final class BatchRevert {
   private final File destination
@@ -20,22 +18,16 @@ final class BatchRevert {
    * each conflicting file and hunk, when a later edit overlaps the batch's changes.
    */
   Proposal propose(String batchId) {
-    def directory = new File(destination, "${BatchRecord.DIRECTORY}/${batchId}")
-    def record = new File(directory, 'batch.yaml')
-    if (batchId.contains('/') || !record.isFile()) {
-      throw new IllegalArgumentException("No batch ${batchId} is recorded in ${BatchRecord.DIRECTORY}; ./cook batch list shows the recorded batches")
-    }
-    Map batch = (Map) new Yaml().load(record.getText('UTF-8'))
+    def batch = RecordedBatch.read(destination, batchId)
     if (batch.result != 'written') {
       throw new IllegalArgumentException("Batch ${batchId} did not finish writing (${batch.result}); there is nothing of it to revert")
     }
     def draft = new Draft(destination)
     Map<String, List<String>> conflicts = [:]
-    batch.files.each { Map file ->
-      def patch = FilePatch.lines(new File(directory, "patches/${file.path}.patch").getText('UTF-8'))
-      def conflict = reverse(draft, (String) file.path, (Map) file.before, (Map) file.after, patch)
+    batch.files.each { file ->
+      def conflict = reverse(draft, file.path, file.before, file.after, batch.patch(file.path))
       if (conflict) {
-        conflicts[(String) file.path] = conflict
+        conflicts[file.path] = conflict
       }
     }
     if (conflicts) {

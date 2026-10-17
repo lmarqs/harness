@@ -342,6 +342,63 @@ notes.add('local')
     }
   }
 
+  @Test void appliesThenListsAndInspectsTheRecordedBatches() {
+    workspace { root, repo ->
+      Fixtures.notesCookbook(repo)
+      def stdout = new ByteArrayOutputStream(); def stderr = new ByteArrayOutputStream()
+      def cli = command(stdout, stderr)
+      assert cli.execute(['batch', 'list', '-C', repo.path] as String[]) == 0
+      assert stdout.toString('UTF-8') == 'No batches are recorded in .cook/batches.\n'
+
+      assert cli.execute(['-C', repo.path, '--batch-approve', 'acme:notes:1.2.3', '--line', 'first'] as String[]) == 0
+      def applied = new File(repo, '.cook/batches').list().toList().first()
+      assert cli.execute(['revert', '-C', repo.path, '--batch-approve', applied] as String[]) == 0
+      def reverted = new File(repo, '.cook/batches').list().find { it != applied }
+      def failed = new File(repo, '.cook/batches/2099-01-01T00-00-00Z')
+      failed.mkdirs()
+      new File(failed, 'batch.yaml').text = 'command: apply\nresult: failed\nrecipes: []\nfiles: []\n'
+      new File(failed, 'failure.log').text = 'java.io.IOException: disk full\n\tat somewhere\n'
+
+      stdout.reset()
+      assert cli.execute(['batch', 'list', '-C', repo.path] as String[]) == 0 : stderr.toString('UTF-8')
+      assert stdout.toString('UTF-8').readLines() == [
+        "${applied}  apply  written  acme:notes:1.2.3:notes",
+        "${reverted}  revert  written  ${applied}",
+        '2099-01-01T00-00-00Z  apply  failed',
+      ]*.toString()
+
+      stdout.reset()
+      assert cli.execute(['batch', 'inspect', '-C', repo.path, applied] as String[]) == 0
+      assert stdout.toString('UTF-8') == """Batch ${applied}: apply, written
+
+Recipes
+  acme:notes:1.2.3:notes
+    acme:notes:1.2.3 --line first
+
+Files
+  create NOTES.md
+  create cook.lock
+
+--- /dev/null
++++ b/NOTES.md
+@@ -0,0 +1,3 @@
++<!-- cook:begin acme:notes:notes#notes -->
++first
++<!-- cook:end acme:notes:notes#notes -->
+
+""" + new File(repo, ".cook/batches/${applied}/patches/cook.lock.patch").text
+
+      stdout.reset()
+      assert cli.execute(['batch', 'inspect', '-C', repo.path, failed.name] as String[]) == 0
+      assert stdout.toString('UTF-8').endsWith('\nFailure\n  java.io.IOException: disk full\n  \tat somewhere\n')
+
+      stderr.reset()
+      assert cli.execute(['batch', 'inspect', '-C', repo.path, 'nope'] as String[]) == 1
+      assert stderr.toString('UTF-8') == 'No batch nope is recorded in .cook/batches; ./cook batch list shows the recorded batches\n'
+      assert cli.execute(['batch', '-C', repo.path] as String[]) == 2
+    }
+  }
+
   private static Object command(ByteArrayOutputStream stdout, ByteArrayOutputStream stderr, String input = null) {
     def stdin = input == null ? null : new BufferedReader(new StringReader(input))
     new thecook.cli.terminal.CookCommand(new PrintWriter(stdout, true), new PrintWriter(stderr, true), stdin)
