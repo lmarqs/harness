@@ -6,10 +6,10 @@ import org.yaml.snakeyaml.Yaml
 import org.yaml.snakeyaml.constructor.SafeConstructor
 
 /**
- * `cook.lock`: for each applied recipe, its short name, its source, the source's sha256 and the sections, keys, whole
- * files and links it owns. It is the only record of which recipes were applied and what each owns, so the kitchen keeps
- * and commits it: Cook reads it to withdraw what a recipe no longer declares, and to tell a recipe's first apply, which
- * refuses an existing file its seed writes, from a later one.
+ * `cook.lock`: for each cooked recipe, its short name, its source, the source's sha256 and the sections, keys, whole
+ * files and links it owns. It is the only record of which recipes were cooked and what each owns, so the kitchen keeps
+ * and commits it: Cook reads it to withdraw what a recipe no longer declares, and to tell the first time a recipe is
+ * cooked, which refuses an existing file its seed writes, from a later one.
  */
 final class CookLock {
   static final String PATH = 'cook.lock'
@@ -47,17 +47,17 @@ final class CookLock {
     lock
   }
 
-  /** The sha256 the recipe `name` was last applied with from `source`, or `null` when it was not applied from it. */
+  /** The sha256 the recipe `name` was last cooked with from `source`, or `null` when it was not cooked from it. */
   String sha256(String name, String source) {
     entries[name]?.source == source ? entries[name].sha256 : null
   }
 
-  /** Whether the recipe `name` was applied before. */
+  /** Whether the recipe `name` was cooked before. */
   boolean applied(String name) {
     entries.containsKey(name)
   }
 
-  /** What the recipe `name` owned when it was last applied; empty when it never was. */
+  /** What the recipe `name` owned when it was last cooked; empty when it never was. */
   List<Target> owned(String name) {
     entries[name]?.targets ?: []
   }
@@ -81,7 +81,7 @@ final class CookLock {
     }?.key
   }
 
-  /** Records `name` as applied from `source`, owning `targets`, and takes each target from the recipes that held it. */
+  /** Records `name` as cooked from `source`, owning `targets`, and takes each target from the recipes that held it. */
   void record(String name, String source, String sha256, List<Target> targets) {
     entries.each { other, entry ->
       if (other != name) {

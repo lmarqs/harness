@@ -8,7 +8,7 @@ class CookCommandTest {
     def stdout = new ByteArrayOutputStream(); def stderr = new ByteArrayOutputStream()
     def cli = command(stdout, stderr)
     assert cli.execute(['--help'] as String[]) == 0
-    assert stdout.toString('UTF-8').contains('Applies a recipe')
+    assert stdout.toString('UTF-8').contains('Cooks recipes')
     [
       ['--mystery', 'x.groovy'],
       ['-C'],
@@ -91,7 +91,7 @@ Ingredients
 Confirm
   Nothing outside the repository changes.
 
-After applying
+After cooking
   Edit `NOTES.md`.
 '''
       def stdout = new ByteArrayOutputStream(); def stderr = new ByteArrayOutputStream()
@@ -200,20 +200,20 @@ Models
 
       def declined = new ByteArrayOutputStream(); stderr.reset()
       assert command(declined, stderr, 'n\n').execute(['-C', repo.path, 'acme:notes:1.2.3', '--line=first'] as String[]) == 1
-      assert declined.toString('UTF-8').endsWith('\n\nApply these changes? [y/N] ')
+      assert declined.toString('UTF-8').endsWith('\n\nWrite these changes? [y/N] ')
       assert stderr.toString('UTF-8') == 'Nothing written.\n'
       assert !notes.exists()
 
       def accepted = new ByteArrayOutputStream()
       assert command(accepted, stderr, 'y\n').execute(['-C', repo.path, 'acme:notes:1.2.3', '--line=first'] as String[]) == 0
       assert accepted.toString('UTF-8').startsWith(review)
-      assert accepted.toString('UTF-8').endsWith('Apply these changes? [y/N] Created NOTES.md\nCreated cook.lock\n\n' +
-      'After applying acme:notes:1.2.3:notes\n  Read `NOTES.md`.\n')
+      assert accepted.toString('UTF-8').endsWith('Write these changes? [y/N] Created NOTES.md\nCreated cook.lock\n\n' +
+      'After cooking acme:notes:1.2.3:notes\n  Read `NOTES.md`.\n')
 
       stdout.reset()
       assert cli.execute(['-C', repo.path, '--batch-approve', 'acme:notes:1.2.3', '--line=first', 'acme:notes:1.2.3:more'] as String[]) == 0 :
       stderr.toString('UTF-8')
-      assert stdout.toString('UTF-8').endsWith('Updated NOTES.md\nUpdated cook.lock\n\nAfter applying acme:notes:1.2.3:notes\n  Read `NOTES.md`.\n')
+      assert stdout.toString('UTF-8').endsWith('Updated NOTES.md\nUpdated cook.lock\n\nAfter cooking acme:notes:1.2.3:notes\n  Read `NOTES.md`.\n')
       assert notes.text == """<!-- cook:begin acme:notes:notes#notes -->
 first
 <!-- cook:end acme:notes:notes#notes -->
@@ -227,7 +227,7 @@ more
       stdout.reset()
       assert cli.execute(['-C', repo.path, '--batch-approve', 'acme:notes:1.2.3', '--line=second'] as String[]) == 0
       assert stdout.toString('UTF-8').contains('\n-first\n+second\n')
-      assert stdout.toString('UTF-8').contains('\nUpdated NOTES.md\n\nAfter applying')
+      assert stdout.toString('UTF-8').contains('\nUpdated NOTES.md\n\nAfter cooking')
       stdout.reset()
       assert cli.execute(['-C', repo.path, '--dry-run', 'acme:notes:1.2.3', '--line=second', '--loud'] as String[]) == 0
       assert stdout.toString('UTF-8').contains('\n-second\n+SECOND\n')
@@ -273,7 +273,7 @@ notes.add('local')
         [
           ['acme:notes:1.2.3:more', 'acme:notes:1.2.3:more'],
           1,
-          'recipe 2 (acme:notes:1.2.3:more): acme:notes:more is applied twice; apply it once per invocation'
+          'recipe 2 (acme:notes:1.2.3:more): acme:notes:more is named twice; name it once per invocation'
         ],
         [['acme:notes:1.2.3'], 1, 'acme:notes:1.2.3: Missing --line: The line to add'],
       ].each { arguments, status, message ->

@@ -26,7 +26,7 @@ final class Declarations {
   }
 
   /**
-   * Everything `models` declare when the recipe `recipe` applies them, member by member in name order; a member
+   * Everything `models` declare when the recipe `recipe` uses them, member by member in name order; a member
    * returning `null` declares nothing.
    */
   static Declared of(List<CookbookModel> models, String recipe) {
@@ -185,8 +185,8 @@ final class Declaration {
 }
 
 /**
- * A file a model member writes only when it does not exist yet, and never owns. `failsOnExisting` refuses the recipe's
- * first apply when the file exists.
+ * A file a model member writes only when it does not exist yet, and never owns. `failsOnExisting` refuses the recipe
+ * the first time it is cooked, when the file exists.
  */
 final class Seeding {
   final String member

@@ -36,7 +36,7 @@ abstract class KitchenScoped {
 @Command(
 name = 'cook',
 subcommands = [HelpArgs, DiscardArgs],
-description = ["Applies a recipe: Cook's options come first, then the recipe, then the recipe's own arguments."],
+description = ["Cooks recipes: Cook's options come first, then the recipe, then the recipe's own arguments."],
 footer = [
   '',
   "A recipe is coordinates, group:artifact:version[:recipe], resolved from the repositories listed in the kitchen's " +
@@ -53,10 +53,10 @@ class RootArgs extends KitchenScoped {
   @Option(names = ['--batch-approve'], description = ["Show the recipes' confirm texts and the diff, then write without asking."])
   boolean batchApprove
 
-  @Option(names = ['--force'], description = ["Replace a file that a recipe's first apply writes from a template, instead of refusing."])
+  @Option(names = ['--force'], description = ['Replace a file that a recipe writes from a template the first time it is cooked, instead of refusing.'])
   boolean force
 
-  @Option(names = ['--skip'], description = ["Keep a file that a recipe's first apply writes from a template, and apply the rest."])
+  @Option(names = ['--skip'], description = ['Keep a file that a recipe writes from a template the first time it is cooked, and cook the rest.'])
   boolean skip
 
   @Parameters(paramLabel = 'RECIPE [ARGUMENT]', description = ['The recipe, then its arguments.'])
@@ -77,6 +77,6 @@ class DiscardArgs extends KitchenScoped {
   @Option(names = ['--batch-approve'], description = ['Show the diff, then write without asking.'])
   boolean batchApprove
 
-  @Parameters(paramLabel = 'RECIPE', description = ['A recipe as apply takes it: coordinates or a .groovy path.'])
+  @Parameters(paramLabel = 'RECIPE', description = ['A recipe as cooking takes it: coordinates or a .groovy path.'])
   List<String> recipes = []
 }

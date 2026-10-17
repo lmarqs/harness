@@ -40,7 +40,7 @@ final class CookbookApply {
         def recipe = loader.load(request.operand)
         String name = recipe.name
         if (!applied.add(name)) {
-          throw new IllegalArgumentException("${name} is applied twice; apply it once per invocation")
+          throw new IllegalArgumentException("${name} is named twice; name it once per invocation")
         }
         def compiled = CookbookCompiler.recipe(recipe.source, recipe.fileName, recipe.models)
         def ingredients = RecipeRun.run(compiled, request.arguments) { Class type, String at ->
@@ -153,7 +153,7 @@ final class ChangedSource {
   }
 }
 
-/** What a recipe's first apply does with a file its `existing = 'fail'` seed writes. */
+/** What cooking a recipe the first time does with a file its `existing = 'fail'` seed writes. */
 enum ExistingSeed {
   /** Fails, naming the file. */
   REFUSE,
@@ -184,11 +184,11 @@ final class SeedOutcomes {
   void refuse() {
     if (refused.size() == 1) {
       def only = refused.entrySet().first()
-      throw new IllegalArgumentException("${only.key} already exists; ${only.value} writes it from a template on its first apply. " +
+      throw new IllegalArgumentException("${only.key} already exists; ${only.value} writes it from a template the first time it is cooked. " +
       'Run with --force to replace it, or --skip to keep it.')
     }
     if (refused) {
-      throw new IllegalArgumentException((['These files already exist, and their recipes write them from a template on their first apply:'] +
+      throw new IllegalArgumentException((['These files already exist, and their recipes write them from a template the first time they are cooked:'] +
       refused.collect { file, recipe -> "  ${file} (${recipe})" } + ['Run with --force to replace them, or --skip to keep them.']).join('\n'))
     }
   }

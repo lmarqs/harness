@@ -280,7 +280,7 @@ final class CookCommand {
       params ? "Parameters\n${params}" : null,
       section('Ingredients', texts.ingredients),
       texts.confirm != null ? "Confirm\n${indent(texts.confirm)}" : null,
-      texts.yieldText != null ? "After applying\n${indent(texts.yieldText)}" : null,
+      texts.yieldText != null ? "After cooking\n${indent(texts.yieldText)}" : null,
     ].findAll { it != null }.join('\n\n')
   }
 
@@ -304,7 +304,7 @@ final class CookCommand {
     if (!dryRun) {
       proposal.recipes.findAll { it.yieldText != null }.each {
         stdout.println()
-        stdout.println("After applying ${it.address}")
+        stdout.println("After cooking ${it.address}")
         stdout.println(indent(it.yieldText))
       }
     }
@@ -339,7 +339,7 @@ final class CookCommand {
       throw new IllegalArgumentException(
       'Cook asks before writing, and there is no terminal to ask in; run with --batch-approve to write without asking')
     }
-    stdout.print('Apply these changes? [y/N] ')
+    stdout.print('Write these changes? [y/N] ')
     stdout.flush()
     stdin.readLine()?.trim()?.toLowerCase() in ['y', 'yes']
   }

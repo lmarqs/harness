@@ -11,7 +11,7 @@ import org.tomlj.Toml
  * Packages a cookbook from its root, where `cookbook.toml` names its `group` and release `version`. Each top-level
  * directory is one artifact: a jar of the directory's files under its package path, `<group>/<dir>/`, with a POM.
  * The `cookbook` BOM lists every artifact at the release. `publish` writes them to the Maven-layout repository at
- * `build/repository`. Packaging compiles nothing, because the engine compiles recipe sources when it applies them.
+ * `build/repository`. Packaging compiles nothing, because the engine compiles recipe sources when it cooks them.
  */
 class CookbookPlugin implements Plugin<Project> {
   static final String BOM = 'cookbook'

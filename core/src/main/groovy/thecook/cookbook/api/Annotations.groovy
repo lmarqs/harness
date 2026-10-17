@@ -64,9 +64,9 @@ import java.lang.annotation.Target
 }
 
 /**
- * Content written only when the file is absent, and never owned. With `existing = "fail"`, the recipe's first apply
- * fails when the file already exists, so the file always starts from this content, unless Cook runs with `--force`,
- * which replaces the file, or `--skip`, which keeps it; `"keep"` leaves an existing file.
+ * Content written only when the file is absent, and never owned. With `existing = "fail"`, cooking the recipe the first
+ * time fails when the file already exists, so the file always starts from this content, unless Cook runs with
+ * `--force`, which replaces the file, or `--skip`, which keeps it; `"keep"` leaves an existing file.
  */
 @Target([ElementType.METHOD, ElementType.FIELD])
 @Retention(RetentionPolicy.RUNTIME)

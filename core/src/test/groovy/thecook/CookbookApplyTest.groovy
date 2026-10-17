@@ -64,8 +64,8 @@ recipes:
     publishDirectory(kitchen, 'agents')
     new File(kitchen, 'AGENTS.md').text = '# Ours\n'
     def error = shouldFail(IllegalArgumentException) { apply(kitchen, 'dev.thecook:agents:0.1.0:instructions', [:]) }
-    assert error.message == 'AGENTS.md already exists; dev.thecook:agents:instructions writes it from a template on its ' +
-    'first apply. Run with --force to replace it, or --skip to keep it.'
+    assert error.message == 'AGENTS.md already exists; dev.thecook:agents:instructions writes it from a template the first ' +
+    'time it is cooked. Run with --force to replace it, or --skip to keep it.'
     assert !new File(kitchen, 'cook.lock').exists()
 
     new File(kitchen, 'AGENTS.md').delete()
@@ -138,7 +138,7 @@ starters.second = 'second'
     def error = shouldFail(IllegalArgumentException) {
       new CookbookApply(kitchen, repositories(kitchen)).propose([request('acme:starters:1.0.0:one', [:]), request('acme:starters:1.0.0:two', [:])])
     }
-    assert error.message == '''These files already exist, and their recipes write them from a template on their first apply:
+    assert error.message == '''These files already exist, and their recipes write them from a template the first time they are cooked:
   FIRST.md (acme:starters:one)
   SECOND.md (acme:starters:two)
 Run with --force to replace them, or --skip to keep them.'''
@@ -398,9 +398,9 @@ notes.set(test: 'second')
       [['acme:notes:1.0.0:first', [value: ['A'], other: ['x']]]]:
       'acme:notes:1.0.0:first: Unknown argument --other; its arguments are --value',
       [['acme:notes:1.0.0:second', [:]], ['acme:notes:1.0.0:second', [:]]]:
-      'recipe 2 (acme:notes:1.0.0:second): acme:notes:second is applied twice; apply it once per invocation',
+      'recipe 2 (acme:notes:1.0.0:second): acme:notes:second is named twice; name it once per invocation',
       [['acme:notes:1.0.0', [:]]]:
-      'acme:notes:1.0.0: acme:notes:1.0.0 has no recipe named notes to apply by default; name one: ' +
+      'acme:notes:1.0.0: acme:notes:1.0.0 has no recipe named notes to cook by default; name one: ' +
       'acme:notes:1.0.0:first, acme:notes:1.0.0:second',
     ]
     failures.each { requests, message ->
