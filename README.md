@@ -6,14 +6,13 @@
 
 ## Objective
 
-**Problem.** Teams share repositories, and each person works with their own programs: coding agents, loop runners,
-trackers and editors. Those programs leave their files in the repository. One person's setup gets committed, and every
-teammate inherits it. A way of working learned in one repository reaches the others only by copying it by hand, and the
-copies drift.
+**Problem.** Teams reuse setup across repositories: agent instructions and permissions, editor settings, ignore rules,
+build and CI files. Copied by hand, the copies drift. Those files are shared: a setup that replaces one whole loses
+what teammates and other tools wrote in it, and nobody can tell which part came from where or remove a part cleanly.
 
-**Goal.** A way of working learned once reaches every repository through one reviewed change, and is withdrawn the same
-way. Everyone keeps their own way of working, and when they are done only the work remains. People who do not use
-the tool never notice it.
+**Goal.** A setup learned once reaches every repository through one reviewed change, lives beside hand-written content
+in the same files, and is withdrawn the same way. Contributors who do not run Cook need nothing to contribute: their
+programs read the native files directly, and the lock and markers Cook leaves are reviewed like any other change.
 
 ## Current implementation
 
