@@ -6,7 +6,11 @@ import thecook.rendering.KeyLocation
 import groovy.json.JsonOutput
 import org.yaml.snakeyaml.Yaml
 import org.yaml.snakeyaml.DumperOptions.FlowStyle
-import org.yaml.snakeyaml.nodes.*
+import org.yaml.snakeyaml.nodes.MappingNode
+import org.yaml.snakeyaml.nodes.Node
+import org.yaml.snakeyaml.nodes.ScalarNode
+import org.yaml.snakeyaml.nodes.SequenceNode
+import org.yaml.snakeyaml.nodes.Tag
 
 class YamlDocument implements Document {
   String text
@@ -76,6 +80,7 @@ class YamlDocument implements Document {
     }
     node
   }
+  @Override
   String read(String id, RegionLocation location) {
     def node = at(((KeyLocation) location).path)
     if (!node) {
@@ -87,6 +92,7 @@ class YamlDocument implements Document {
   String render(Object value) {
     JsonOutput.toJson(value)
   }
+  @Override
   void write(String id, RegionLocation location, String content) {
     def path = ((KeyLocation) location).path
     ensureParents(path.dropRight(1))
@@ -135,6 +141,7 @@ class YamlDocument implements Document {
     entry = (' ' * mark.column) + JsonOutput.toJson(path[-1]) + ': ' + content + ending
     splice(start, start, entry)
   }
+  @Override
   void remove(String id, RegionLocation location) {
     deleteKey(((KeyLocation) location).path)
     createdParents.sort { -it.size() }.toList().each { path ->

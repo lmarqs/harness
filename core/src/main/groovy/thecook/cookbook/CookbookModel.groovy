@@ -13,6 +13,8 @@ abstract class CookbookModel {
   String directory = '.'
 
   // Private and read statically: dynamic lookup from a model, in another package, would not find this field.
+  // CodeNarc misses the field access through `this.@engineReads`.
+  @SuppressWarnings('UnusedPrivateField')
   private ModelReads engineReads
 
   /** Places `model` at `directory` with the engine's reads. */

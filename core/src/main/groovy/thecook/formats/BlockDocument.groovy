@@ -67,6 +67,7 @@ class BlockDocument implements Document {
     def finish = text.indexOf('\n', last.end())
     [first.start(), finish < 0 ? text.length() : finish + 1]
   }
+  @Override
   String read(String id, RegionLocation location) {
     def range = bounds(id)
     if (!range) {
@@ -86,6 +87,7 @@ class BlockDocument implements Document {
     result = result.replace('\r\n', '\n').replace('\n', newline())
     result ? result.replaceAll(/(?:\r?\n)+$/, '') + newline() : ''
   }
+  @Override
   void write(String id, RegionLocation location, String content) {
     def range = bounds(id)
     def block = begin(id) + newline() + content + end(id) + newline()
@@ -98,6 +100,7 @@ class BlockDocument implements Document {
     }
     text += (separator ? newline() : '') + block
   }
+  @Override
   void remove(String id, RegionLocation location) {
     def range = bounds(id)
     if (!range) {

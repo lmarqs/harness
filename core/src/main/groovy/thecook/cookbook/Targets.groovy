@@ -44,6 +44,7 @@ abstract class Target {
   }
 
   /** Whether this target and `other`, of the same class and file, share a part. */
+  @SuppressWarnings('UnusedMethodParameter')
   protected boolean sharesPart(Target other) {
     false
   }
@@ -107,6 +108,7 @@ final class SectionTarget extends Target {
   }
 
   @Override
+  @SuppressWarnings('UnusedMethodParameter')
   protected boolean sharesPart(Target other) {
     id == ((SectionTarget) other).id
   }
@@ -171,6 +173,7 @@ final class KeyTarget extends Target {
   }
 
   @Override
+  @SuppressWarnings('UnusedMethodParameter')
   protected boolean sharesPart(Target other) {
     List<String> otherPath = ((KeyTarget) other).path
     path.take(otherPath.size()) == otherPath || otherPath.take(path.size()) == path

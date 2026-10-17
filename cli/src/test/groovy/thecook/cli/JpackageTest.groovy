@@ -48,7 +48,7 @@ notes.add('local')
       def process = builder.start()
       if (!process.waitFor(60, TimeUnit.SECONDS)) {
         process.destroyForcibly()
-        assert false: 'Packaged CLI timed out'
+        throw new AssertionError('Packaged CLI timed out')
       }
       assert process.exitValue() == expected: output.text
       output.getText('UTF-8')

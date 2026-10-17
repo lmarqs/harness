@@ -103,9 +103,9 @@ recipes:
     new File(kitchen, 'cook.lock').delete()
     agents.delete()
     def ours = new File(kitchen, 'OURS.md'); ours.text = '# Ours\n'
-    java.nio.file.Files.createSymbolicLink(agents.toPath(), java.nio.file.Paths.get('OURS.md'))
+    Files.createSymbolicLink(agents.toPath(), java.nio.file.Paths.get('OURS.md'))
     new CookbookApply(kitchen, repositories(kitchen), ExistingSeed.REPLACE).propose([request('dev.thecook:agents:0.1.0:instructions', [:])]).commit()
-    assert !java.nio.file.Files.isSymbolicLink(agents.toPath())
+    assert !Files.isSymbolicLink(agents.toPath())
     assert agents.text == template
     assert ours.text == '# Ours\n'
   }
@@ -153,7 +153,7 @@ Run with --force to replace them, or --skip to keep them.'''
     publishDirectory(kitchen, 'agents')
     def link = { String path, String target ->
       def file = new File(kitchen, path); file.parentFile.mkdirs()
-      java.nio.file.Files.createSymbolicLink(file.toPath(), java.nio.file.Paths.get(target))
+      Files.createSymbolicLink(file.toPath(), java.nio.file.Paths.get(target))
     }
     link('CLAUDE.md', 'AGENTS.md')
     def section = shouldFail(IllegalArgumentException) { apply(kitchen, 'dev.thecook:agents:0.1.0:instructions', [harness: ['claude']]) }
@@ -168,7 +168,7 @@ Run with --force to replace them, or --skip to keep them.'''
     'Cook writes sections and keys only into regular files'
     assert new File(kitchen, '.claude/shared.json').text == '{}\n'
     assert !new File(kitchen, 'cook.lock').exists()
-    assert java.nio.file.Files.isSymbolicLink(new File(kitchen, 'CLAUDE.md').toPath())
+    assert Files.isSymbolicLink(new File(kitchen, 'CLAUDE.md').toPath())
   }
 
   @Test void refusesASecondAgentsImportInClaudeInstructions() {
@@ -242,7 +242,7 @@ agents.connect([claude])
     assert new File(kitchen, '.agents/skills/solid/SKILL.md').text ==
     new File(COOKBOOK, 'agents/skills/solid/SKILL.md').text
     def link = new File(kitchen, '.claude/skills/solid').toPath()
-    assert java.nio.file.Files.readSymbolicLink(link).toString() == '../../.agents/skills/solid'
+    assert Files.readSymbolicLink(link).toString() == '../../.agents/skills/solid'
     assert new File(kitchen, '.claude/skills/solid/SKILL.md').isFile()
 
     def fewer = apply(kitchen, 'dev.thecook:agents:0.1.0:skill-check', [:])
@@ -340,7 +340,7 @@ notes.add(line)
     def kitchen = kitchen()
     publishDirectory(kitchen, 'agents')
     def outside = new File(kitchen.parentFile, 'outside.groovy'); outside.text = "@help('Outside.')\nimport java.util.List\n"
-    java.nio.file.Files.createSymbolicLink(new File(kitchen, 'linked.groovy').toPath(), outside.toPath())
+    Files.createSymbolicLink(new File(kitchen, 'linked.groovy').toPath(), outside.toPath())
     recipe(kitchen, 'twice.groovy', """@cookbook('dev.thecook:0.1.0')
 import dev.thecook.agents.Agents
 @cookbook('dev.thecook:0.2.0')

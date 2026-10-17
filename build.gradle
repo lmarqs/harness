@@ -51,7 +51,7 @@ def codenarcArgs = { String report ->
 }
 
 tasks.register('codenarc', JavaExec) {
-  description = 'Requires braces on Groovy and Gradle if/else/for/while bodies.'
+  description = 'Lints Groovy and Gradle files with the rulesets in gradle/lint/codenarc.groovy.'
   group = 'verification'
   classpath = configurations.codenarc
   mainClass = 'org.codenarc.CodeNarc'

@@ -12,7 +12,8 @@ class Permissions {
     def result = EnumSet.noneOf(PosixFilePermission)
     def permissions = PosixFilePermission.values()
     for (int index = 0; index < 9; index++) {
-      if (bits & (1 << (8 - index))) {
+      def bit = bits & (1 << (8 - index))
+      if (bit != 0) {
         result.add(permissions[index])
       }
     }

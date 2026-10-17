@@ -28,7 +28,7 @@ class CookbookPluginTest {
     def project = project(cookbook(['cookbook']))
     try {
       project.pluginManager.apply('dev.thecook.cookbook')
-      assert false : 'expected the plugin to refuse a directory named cookbook'
+      throw new AssertionError('expected the plugin to refuse a directory named cookbook')
     } catch (Exception error) {
       def cause = error
       while (cause.cause != null && !(cause instanceof IllegalStateException)) {

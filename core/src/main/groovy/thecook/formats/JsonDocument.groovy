@@ -30,6 +30,7 @@ class JsonDocument implements Document {
     }
     node
   }
+  @Override
   String read(String id, RegionLocation location) {
     def node = at(((KeyLocation) location).path)
     node ? text.substring(node.start, node.end) : null
@@ -37,6 +38,7 @@ class JsonDocument implements Document {
   String render(Object value) {
     JsonOutput.toJson(value)
   }
+  @Override
   void write(String id, RegionLocation location, String content) {
     def path = ((KeyLocation) location).path
     ensureParents(path.dropRight(1))
@@ -64,6 +66,7 @@ class JsonDocument implements Document {
     def entry = (members ? ', ' : '') + JsonOutput.toJson(path[-1]) + ':' + content
     splice(offset, offset, entry)
   }
+  @Override
   void remove(String id, RegionLocation location) {
     deleteKey(((KeyLocation) location).path)
     createdParents.sort { -it.size() }.toList().each { path ->
