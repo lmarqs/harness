@@ -32,7 +32,9 @@ define ordered file changes, review, recorded ownership and discard.
    evaluating it again. Moving a recipe file renames it; cooking the new name and discarding the old one moves the
    ownership.
 4. A recipe's source stays where its user keeps it; Cook keeps no copy of it ([0014](0014-directory-layout.md)).
-5. A recipe describes file operations; it does not launch agents or verify their results. Batch approval and rollback
+5. A recipe reads a file through a `@resource('<path>')` line, which gives it the file's text: beside a recipe path,
+   inside the repository, or in the recipe's artifact. The file counts toward the recipe's sha256.
+6. A recipe describes file operations; it does not launch agents or verify their results. Batch approval and rollback
    cover declared file operations, not arbitrary effects of trusted code.
 
 ## Reasons
@@ -51,7 +53,11 @@ define ordered file changes, review, recorded ownership and discard.
   The trade of renaming by discard is a second command after moving a file.
 - **4.** The lock's source and sha256 identify which recipe version produced the current output; the repository or
   cookbook that holds the source keeps its history. [0014](0014-directory-layout.md) gives the reasons.
-- **5.** FR-3 and FR-4 distinguish configuration writes from running programs; a contract to verify results and resume
+- **5.** FR-22: every target writes text, and a recipe by coordinates has no file on disk, so text is the one value
+  that reads the same from a path and from an artifact. Declaring the file on a recipe line, as `@param` and
+  `@ingredient` declare inputs, lets the engine read it, refuse a path outside the repository and hash it before the
+  body runs. The trade is that a recipe reads only files it names with a constant path.
+- **6.** FR-3 and FR-4 distinguish configuration writes from running programs; a contract to verify results and resume
   interrupted runs would make Cook run programs, outside its scope. The trade is that checks, delivery and session
   control belong to the programs or callers responsible for them.
 
@@ -75,6 +81,13 @@ At its best, moving a recipe file keeps its ownership without a discard: a new s
 entry in the lock takes over that entry. It loses because a file moved and edited in one change has a new sha256, so
 the detection fails exactly when a reviewer most needs to see what moved, and two recipes with one source would be
 indistinguishable.
+
+### A resource as a `File`, a stream or a `resource()` call
+
+At its best, a `File` or a stream gives a recipe binary content and lazy reads, and a `resource('<path>')` call in the
+body reads a path computed at run time. They lose because a recipe by coordinates has no file to hand over, a `File`
+lets the recipe read past the repository check and outside the sha256, a stream must be closed, and a call in the body
+is a second way to declare an input that the engine cannot see before the recipe runs.
 
 ## Consequences
 
