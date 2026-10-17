@@ -23,7 +23,7 @@ The commands for daily work, each verified here, with the flags that matter.
 | Add a dependency | |
 | Generate code | |
 | Run a migration or a one-off admin task | |
-| Done check: everything that must pass before a change is done, in order | |
+| Done check: all that must pass before a change is done, in order; takes [time], needs [services or none] | |
 
 ## Boundaries
 
@@ -31,7 +31,9 @@ What an agent always does here, what it asks before doing, what it never does, a
 
 **Always**
 
-- A change is done only when the Done check passes.
+- Run the quick check, the Quick reference test and lint commands on what changed, before moving on. A change is
+  done only when the Done check passes.
+- Report what you ran and what it returned. A check you did not run is reported as not run.
 - Read an area's Gotchas entry before changing it; add one when you get something wrong.
 - Update this file in the same change that alters a command, path or rule it names.
 - Keep this file near [N] words: a line stays while removing it would cause mistakes, a check that catches a rule
@@ -40,14 +42,16 @@ What an agent always does here, what it asks before doing, what it never does, a
 
 **Ask first**
 
-- [What needs the developer's request, such as new dependencies, schema changes, pushes and writes outside this
-  machine]
+- [What needs the developer's request, such as new dependencies, schema changes, rewriting pushed history, and
+  pushes and writes outside this machine]
 
 **Never**
 
 - Commit secrets, credentials or tokens.
 - Put personal data ([the fields that count as personal here]) in logs, fixtures, documents, issues or commits.
 - Edit generated files ([paths]) by hand. Change their source and run the generator.
+- Make a check pass by weakening it: deleting or skipping a test, suppressing a warning, loosening a type or an
+  assertion.
 
 **Stop and ask** when a check keeps failing after you fixed what it reported, when a command is refused, or when the
 request leaves a decision open.
@@ -120,14 +124,10 @@ Where extra checkouts go, how one runs beside the main one, and how one is remov
 | Create one ready to run, with its own ports, container and database names | |
 | Remove one, with its local services, their data and its generated files | |
 
-### Verification
-
-While editing, run the Quick reference test and lint commands on what changed. The Done check takes [time] and needs
-[local services, or none].
-
 ### Tests
 
-How a test is written here, each rule with a file that follows it.
+How a test is written here, each rule with a file that follows it. A behavior change ships with a test; a bug fix
+with one that failed before the fix.
 
 | Need | Rule |
 | --- | --- |
@@ -147,14 +147,19 @@ follows it or shows a short good and bad pair.
 - Names and comments describe the code as it is, never the change that made it ("new", "now uses X"). The change
   goes in the commit message.
 - Dead code is deleted, not commented out.
-- New code matches the code around it in naming, error handling and idiom.
+- Change only what the task needs: no unrequested options, abstractions, renames or reformatting of untouched lines,
+  and no debug output or scratch files left behind.
+- New code matches the code around it in naming, error handling and idiom, and uses the libraries and patterns the
+  repository already has before adding one.
+- Errors surface; none is caught only to be ignored.
 - [Rule], as in [path to a file that follows it].
 
 ## Ship
 
 ### Workflow
 
-How a change moves from a branch to the main branch, and who may do which step.
+How a change moves from a branch to the main branch, and who may do which step. A commit holds one change, passes
+the quick check and says why; only the files the change touches are staged.
 
 | Step | Rule |
 | --- | --- |
