@@ -7,11 +7,14 @@ import thecook.cookbook.Argument
 import thecook.cookbook.Coordinates
 import thecook.cookbook.CookbookApply
 import thecook.cookbook.CookbookArtifact
+import thecook.cookbook.CookLock
 import thecook.cookbook.CookbookDiscard
 import thecook.cookbook.CookbookRepositories
 import thecook.cookbook.CookbookRepository
 import thecook.cookbook.ExistingSeed
+import thecook.cookbook.KeyTarget
 import thecook.cookbook.RecipeRequest
+import thecook.cookbook.SectionTarget
 
 import java.nio.file.Files
 import java.security.MessageDigest
@@ -523,6 +526,45 @@ notes.set(test: 'new', other: 'mine')
     assert new groovy.json.JsonSlurper().parse(settings) == [kept: true]
     assert new File(kitchen, 'cook.lock').text.contains('name: "acme:notes:notes"')
     assert !new File(kitchen, 'cook.lock').text.contains('local')
+  }
+
+  @Test void movingARecipeRenamesItAndDiscardingTheOldNameRemovesOnlyWhatTheLockStillListsForIt() {
+    def kitchen = kitchen()
+    publish(kitchen, 'acme:notes:1.0.0', ['Notes.groovy': '''package acme.notes
+
+@Ingredient
+class Notes {
+  private String line
+  void set(String value) { line = value }
+  @Section(path = 'NOTES.md', id = 'notes')
+  List<String> section() { line ? [line] : null }
+  @Keys(path = 'settings.json')
+  Map keys() { line ? [test: line] : null }
+}
+'''])
+    def source = """@cookbook('acme:1.0.0')
+import acme.notes.Notes
+@ingredient(Notes) def notes
+notes.set('kept')
+"""
+    def a = recipe(kitchen, 'recipes/a.groovy', source)
+    apply(kitchen, 'recipes/a.groovy', [:]).commit()
+    a.delete()
+    recipe(kitchen, 'recipes/b.groovy', source)
+    apply(kitchen, 'recipes/b.groovy', [:]).commit()
+
+    def notes = new File(kitchen, 'NOTES.md')
+    assert notes.text.contains('cook:begin recipes/a#notes') && notes.text.contains('cook:begin recipes/b#notes')
+    def lock = CookLock.parse(new File(kitchen, 'cook.lock').text)
+    assert lock.names == ['recipes/a', 'recipes/b'] as Set
+    assert lock.owned('recipes/a').every { it instanceof SectionTarget }
+    assert lock.owned('recipes/b').any { it instanceof KeyTarget }
+
+    new CookbookDiscard(kitchen).propose(['recipes/a.groovy']).commit()
+
+    assert notes.text == '<!-- cook:begin recipes/b#notes -->\nkept\n<!-- cook:end recipes/b#notes -->\n'
+    assert new groovy.json.JsonSlurper().parse(new File(kitchen, 'settings.json')) == [test: 'kept']
+    assert CookLock.parse(new File(kitchen, 'cook.lock').text).names == ['recipes/b'] as Set
   }
 
   @Test void discardRefusesARecipeTheLockDoesNotListOrThatIsGivenTwice() {
