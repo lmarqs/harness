@@ -1,7 +1,6 @@
 package thecook.cookbook
 
 import org.tomlj.Toml
-import org.tomlj.TomlArray
 import org.tomlj.TomlTable
 
 /**
@@ -38,12 +37,19 @@ final class CookbookRepositories {
     if (!toml.contains('repositories')) {
       return new CookbookRepositories(central, "Maven Central; ${manifest} lists no repositories")
     }
-    if (!toml.isArray('repositories') || !entries(toml.getArray('repositories')).every { it instanceof String || it instanceof TomlTable }) {
-      throw new IllegalArgumentException("${manifest}: repositories must be a list of https:// URLs, paths and " +
-      '{ git = "<url>", dir = "<dir>" } tables')
+    if (!toml.isArray('repositories')) {
+      throw misshapen(manifest)
     }
-    List<CookbookRepository> repositories = entries(toml.getArray('repositories')).collect { entry ->
-      entry instanceof TomlTable ? git((TomlTable) entry, kitchen, manifest, cache) : maven((String) entry, kitchen, manifest)
+    def array = toml.getArray('repositories')
+    List<CookbookRepository> repositories = (0..<array.size()).collect { index ->
+      def entry = array.get(index)
+      if (entry instanceof String) {
+        return maven(entry, kitchen, manifest)
+      }
+      if (entry instanceof TomlTable) {
+        return git(entry, kitchen, manifest, cache)
+      }
+      throw misshapen(manifest)
     }
     new CookbookRepositories(repositories, "the repositories in ${manifest}: ${repositories.join(', ')}")
   }
@@ -63,6 +69,11 @@ final class CookbookRepositories {
     }
     throw new IllegalArgumentException(
     "${coordinates.artifactAddress} not found in ${origin}; publish it there, or list its repository in cook.toml")
+  }
+
+  private static IllegalArgumentException misshapen(File manifest) {
+    new IllegalArgumentException("${manifest}: repositories must be a list of https:// URLs, paths and " +
+        '{ git = "<url>", dir = "<dir>" } tables')
   }
 
   private static MavenRepository maven(String entry, File kitchen, File manifest) {
@@ -91,10 +102,6 @@ final class CookbookRepositories {
       throw new IllegalArgumentException("${manifest}: dir ${dir} must be a directory inside the git repository")
     }
     new GitRepository(url, dir, cache)
-  }
-
-  private static List<Object> entries(TomlArray array) {
-    (0..<array.size()).collect { array.get(it) }
   }
 }
 

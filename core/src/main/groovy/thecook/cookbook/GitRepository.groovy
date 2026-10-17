@@ -28,12 +28,15 @@ final class GitRepository implements CookbookRepository {
     if (commit == null) {
       return null
     }
-    def manifest = run(['show', "${commit}:${prefix}cookbook.toml"])
+    def manifest = run('show', "${commit}:${prefix}cookbook.toml")
     if (manifest.exit != 0) {
       throw new IllegalArgumentException("the tag ${tag} in ${url} has no ${prefix}cookbook.toml; " +
       "set dir to the cookbook's directory in cook.toml")
     }
     def toml = Toml.parse(new String(manifest.output, 'UTF-8'))
+    if (toml.hasErrors()) {
+      throw new IllegalArgumentException("Cannot read ${prefix}cookbook.toml at the tag ${tag} in ${url}: ${toml.errors().first()}")
+    }
     if (toml.getString('group') != coordinates.group) {
       return null
     }
@@ -63,21 +66,21 @@ final class GitRepository implements CookbookRepository {
       mirror.parentFile.mkdirs()
       git('init', '--bare', '-q')
     }
-    def remote = run(['ls-remote', '--exit-code', url, "refs/tags/${tag}"])
+    def remote = run('ls-remote', '--exit-code', url, "refs/tags/${tag}")
     if (remote.exit == 2) {
       return null
     }
     if (remote.exit == 0) {
       git('fetch', '-q', '--depth', '1', '--no-tags', url, "+refs/tags/${tag}:refs/tags/${tag}")
-    } else if (run(['rev-parse', '-q', '--verify', "refs/tags/${tag}"]).exit != 0) {
+    } else if (run('rev-parse', '-q', '--verify', "refs/tags/${tag}").exit != 0) {
       throw new IllegalArgumentException("${coordinates.artifactAddress} is not cached, and ${url} cannot be read: " +
       "${remote.error}; connect to it and run again")
     }
     new String(git('rev-parse', "refs/tags/${tag}^{commit}"), 'UTF-8').trim()
   }
 
-  private byte[] git(String... arguments) {
-    def result = run(arguments.toList())
+  private byte[] git(Object... arguments) {
+    def result = run(arguments)
     if (result.exit != 0) {
       throw new IllegalArgumentException("git ${arguments.first()} failed for ${url}: ${result.error}")
     }
@@ -85,10 +88,10 @@ final class GitRepository implements CookbookRepository {
   }
 
   // An explicit --git-dir outranks an inherited GIT_DIR, so a run from a git hook never touches the user's repository.
-  private GitResult run(List<String> arguments) {
+  private GitResult run(Object... arguments) {
     Process process
     try {
-      process = new ProcessBuilder((['git', "--git-dir=${mirror}"] + arguments)*.toString()).start()
+      process = new ProcessBuilder((['git', "--git-dir=${mirror}"] + arguments.toList())*.toString()).start()
     } catch (IOException error) {
       throw new IllegalArgumentException("Cannot run git to read ${url}: ${error.message}; install git and put it on the PATH",
       error)

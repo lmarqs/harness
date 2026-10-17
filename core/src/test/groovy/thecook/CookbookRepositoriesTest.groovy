@@ -157,6 +157,11 @@ class CookbookRepositoriesTest {
     new File(kitchen, 'cook.toml').text = 'repositories = [{ git = "../book" }]\n'
     def error = shouldFail(IllegalArgumentException) { repositories(kitchen).artifact(Coordinates.parse('acme:notes:1.2.3')) }
     assert error.message == "the tag v1.2.3 in ${book} holds version 1.2.0 in cookbook.toml; tag each release with its own version"
+
+    new File(book, 'cookbook.toml').text = 'group = \n'
+    release(book, 'v1.2.3')
+    error = shouldFail(IllegalArgumentException) { repositories(kitchen).artifact(Coordinates.parse('acme:notes:1.2.3')) }
+    assert error.message.startsWith("Cannot read cookbook.toml at the tag v1.2.3 in ${book}: ")
   }
 
   @Test void missingArtifactNamesTheRepositoriesSearched() {
