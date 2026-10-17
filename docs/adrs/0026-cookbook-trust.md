@@ -17,7 +17,7 @@ an inspectable record of the sources actually used.
   ([architecture](../architecture.md#evaluation-review-and-writes), FR-1, FR-3, FR-4).
 - [Ingredients](../features/glossary.md) model native program files and configuration; cookbook repositories hold and
   ship ingredients and recipes, with builds that can be separate from Cook ([0022](0022-tool-integration.md), FR-2).
-- Recipes are supplied as paths inside the destination repository, as `https://` URLs, or as coordinates of a cookbook
+- Recipes are supplied as paths inside the destination repository or as coordinates of a cookbook
   release ([0029](0029-cookbook-distribution.md)); a local operand or reference
   outside the repository is refused. Relative references resolve from their original source locations (FR-18, FR-22).
 - Engine package verification checks bytes against a committed checksum; it does not alone authenticate the publisher
@@ -71,7 +71,7 @@ artifact, and a batch diff omits arbitrary recipe side effects. Neither answers 
 ### Reject remote or executable sources
 
 At its best, a local, data-only format reduces some exposure. It loses because local code can still be harmful, and
-the agreed design permits trusted Groovy recipes and HTTPS operands. Introducing a data-only format or sandbox would
+the agreed design permits trusted Groovy recipes and cookbook releases resolved from listed repositories. Introducing a data-only format or sandbox would
 change that design.
 
 ### Require signatures from every cookbook author
@@ -93,9 +93,8 @@ Must be maintained:
 
 ## Confirmation
 
-- Review against FR-18 and FR-22: do a local recipe and an HTTPS recipe both use the invocation directory as
-  destination and resolve relative references against their original source bases, and is a local recipe outside the
-  repository refused?
+- Review against FR-18 and FR-22: do a local recipe and a recipe cooked by coordinates both use the invocation
+  directory as destination, is a local recipe outside the repository refused, and is a URL operand refused?
 - Review against FR-14: does `cook.lock` record each cooked recipe's source and sha256?
 - Review against FR-4 and FR-26: does any document promise that an engine checksum or approval of the diff stops code
   side effects? None may.

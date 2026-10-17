@@ -33,7 +33,8 @@ release can tell when the content under that release changes.
 1. A cookbook release is a git tag on the repository that holds the cookbook: `v<version>` when `cookbook.toml` is at
    the repository root, and `<dir>/v<version>` when the cookbook is in the directory `<dir>`.
 2. A repository entry in the kitchen's `cook.toml` is a Maven-layout repository, an `https://` URL or a path, or a
-   git repository, written `{ git = "<url>", dir = "<dir>" }` with `dir` optional. Entries are tried in order.
+   git repository, written `{ git = "<url>", dir = "<dir>" }` with `dir` optional. A path starting with `~/` is
+   relative to the user's home, any other path to the kitchen. Entries are tried in order.
 3. For a git entry, the engine reads `cookbook.toml` at the release tag. An entry whose `group` differs from the
    coordinate's group is skipped. The artifact is the cookbook's directory named like it.
 4. A jar in a Maven-layout repository holds the same sources as the tag. Publishing jars is optional packaging, for
@@ -54,7 +55,9 @@ release can tell when the content under that release changes.
   rule the author must follow.
 - **2, 3.** Listing repositories in the kitchen keeps the sources a repository trusts in one reviewed file. Matching
   on the `group` in `cookbook.toml` lets a coordinate stay the same whichever entry holds it. The trade is that a git
-  entry is read before the engine knows whether it holds the group.
+  entry is read before the engine knows whether it holds the group. A `~/` path lets a committed `cook.toml` name
+  Maven local, `~/.m2/repository`, where a developer publishes their own cookbooks, without writing a personal home
+  directory into the file. The trade is an entry that resolves differently on each machine.
 - **4.** The jars carry the sources already, so a package repository serves organizations that have one, at no cost
   to those that do not. The trade is two forms to keep equivalent, which decision 5 makes checkable.
 - **5.** A jar's bytes and a commit hash both identify more or less than the artifact: two builds of one jar can
@@ -80,6 +83,14 @@ copy-by-hand it replaces.
 At its best, an author shares work without a release step. It loses because a branch moves under the same name, and a
 raw commit says nothing about compatibility; decision 6 keeps coordinates to releases the author chose.
 
+### A recipe at an `https://` URL
+
+At its best, sharing a recipe is serving one file, with no cookbook, tag or build. It loses because a URL carries no
+release identity: its short name would change with a version written into the URL, or two hosts serving one path
+would collide under one name; each template the recipe references would be fetched one by one; and git tags and
+Maven-layout repositories already distribute versioned sources, which a developer can publish to Maven local
+without hosting. A recipe operand is therefore a path inside the repository or coordinates.
+
 ### A bundled git client
 
 At its best, the engine fetches without depending on the machine. It loses because a bundled client does not use the
@@ -103,3 +114,5 @@ Must be maintained:
 - Review a release of the same sources as a tag and as a jar: does `cook.lock` record the same hash for both?
 - Review a moved tag: does the next run show a changed source before the diff?
 - Review a cookbook in a subdirectory: does it release as `<dir>/v<version>`, beside unrelated tags in the repository?
+- Review a kitchen that lists `~/.m2/repository`: does a cookbook its developer published to Maven local cook by its
+  coordinates?

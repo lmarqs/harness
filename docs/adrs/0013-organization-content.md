@@ -16,7 +16,7 @@ repository accepts while preserving choices outside those changes.
 - [Ingredients](../features/glossary.md) model programs' native files and configuration, including an organization's
   own program. Cookbook repositories hold and ship ingredients and trusted Groovy recipes; cookbook builds can be
   separate from Cook's build ([architecture](../architecture.md#ingredients-recipes-and-cookbooks)).
-- Recipes come from paths inside the destination repository, from `https://` URLs, or from coordinates resolved from
+- Recipes come from paths inside the destination repository or from coordinates resolved from
   the cookbook repositories the destination lists ([0029](0029-cookbook-distribution.md)); a local recipe or reference
   outside the repository is refused ([source origins](../architecture.md#destination-and-source-origins)). Relative
   recipe and template references resolve from the referencing recipe's original location.
@@ -32,8 +32,8 @@ repository accepts while preserving choices outside those changes.
    and writes; ingredients model native program configuration.
 2. Cookbooks distribute their ingredients and recipes through their repositories and may build independently.
    Engine upgrades do not manage recipe versions.
-3. Reused content can participate in recipe evaluation from paths inside the destination repository, from `https://`
-   URLs, or by coordinates from a cookbook release ([0029](0029-cookbook-distribution.md)). Users manage recipe versions
+3. Reused content can participate in recipe evaluation from paths inside the destination repository or by
+   coordinates from a cookbook release ([0029](0029-cookbook-distribution.md)). Users manage recipe versions
    and supply the version to cook; `cook.lock` records which version produced the current ownership.
 4. Ordered composition, ownership and review of the resulting changes follow [0007](0007-ownership.md).
 5. Native output stays readable without Cook ([0010](0010-dependence-on-the-binary.md)), and `cook.lock` names the
@@ -45,8 +45,8 @@ repository accepts while preserving choices outside those changes.
   making every change an engine release or organization-specific fork. Cookbook content is still executable or
   consumed input that users must trust.
 - **3.** Shared sources address hand-copying without forcing all inputs into each destination repository. Limiting
-  local sources to the repository keeps every local input visible in the same clone, while HTTPS carries content
-  shared between repositories. Recording each recipe's source and sha256 lets a reviewer find the exact input.
+  local sources to the repository keeps every local input visible in the same clone, while cookbook releases carry
+  content shared between repositories. Recording each recipe's source and sha256 lets a reviewer find the exact input.
   Trusted code may use changing inputs, so engine pinning alone is not a promise of identical output across machines
   or days.
 - **4.** Review exposes what the requested setup changes in this repository, and a shared recipe overridden by a
@@ -64,8 +64,8 @@ separately.
 
 ### Only copied repository content may affect evaluation
 
-At its best, all source material is visible in one checkout. It loses because it prohibits the agreed HTTPS
-source flow and turns copying and merge management into engine responsibilities. Native output, the reviewed diff
+At its best, all source material is visible in one checkout. It loses because it prohibits cookbook
+releases cooked by coordinates and turns copying and merge management into engine responsibilities. Native output, the reviewed diff
 and captured consumed sources provide distinct views without forbidding composition.
 
 ### Add-only templates and three-way recipe merges
@@ -93,4 +93,4 @@ Must be maintained:
 
 - Review the acme example with shared setup and a repository-specific choice: does the batch change only declared
   targets, show later overrides in its final diff, and preserve unrelated configuration?
-- Review a batch with local and remote recipes: does `cook.lock` name each cooked recipe's source and sha256?
+- Review a batch with a local recipe and one cooked by coordinates: does `cook.lock` name each cooked recipe's source and sha256?

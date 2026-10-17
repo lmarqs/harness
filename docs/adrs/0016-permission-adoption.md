@@ -32,7 +32,7 @@ approving it, without first converting their configuration through a separate im
    cross-program rule grammar or precedence.
 3. Personal settings are not implicitly imported into shared configuration. A recipe that explicitly copies choices into
    a declared destination file exposes that output in the same batch review. Recipe and template references come from
-   inside the destination repository, from `https://` URLs, or by coordinates; declared writes and deletions remain
+   inside the destination repository or by coordinates; declared writes and deletions remain
    within the destination ([0012](0012-write-boundary.md)).
 4. The permission rules and keys a recipe writes are recorded as its own in the committed `cook.lock`
    ([0007](0007-ownership.md)). That ownership decides which rules the recipe's later versions update and remove; it

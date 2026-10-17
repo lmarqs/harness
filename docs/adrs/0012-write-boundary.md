@@ -23,10 +23,9 @@ updates. People need to see the actual requested changes and keep unrelated cont
 
 1. Declared writes and deletions stay within the invocation's current working directory, regardless of the recipe
    or executable location. Targets resolved through symlinks remain within that boundary.
-2. Recipes come from paths inside the destination repository, from `https://` URLs, or by coordinates
+2. Recipes come from paths inside the destination repository or by coordinates
    ([0013](0013-organization-content.md)). Relative references to recipes and templates resolve from the referencing
-   recipe's location; for an HTTPS source, they resolve against its source URL. A local operand or reference that
-   resolves outside the repository is refused.
+   recipe's location. A local operand or reference that resolves outside the repository is refused.
 3. A batch affects its declared file paths, structured key paths, or marked text sections, including directory and
    symlink operations where applicable, and the targets its recipes owned before. Content outside those targets is
    preserved. Markers name the owning recipe and region ([0007](0007-ownership.md)); whole-file targets have
@@ -44,12 +43,12 @@ updates. People need to see the actual requested changes and keep unrelated cont
 
 ## Reasons
 
-- **1.** The invocation directory makes the destination explicit even for remote recipes. Resolving symlink targets
+- **1.** The invocation directory makes the destination explicit even for recipes cooked by coordinates. Resolving symlink targets
   within it prevents a declared path from redirecting a batch write elsewhere.
 - **2.** Source origins have a different role from the destination: they locate inputs without moving outputs or
   changing relative resolution. Keeping local sources inside the
   repository means every local input is one a reviewer can see in the same repository; the trade is that a shared
-  recipe elsewhere on disk must be moved in or served over HTTPS.
+  recipe elsewhere on disk must be moved in or published in a cookbook and cooked by coordinates.
 - **3.** Target scope protects the unrelated database and settings in Context while allowing the setting the user
   requested to change. The trade is that declaring a whole file permits a broader change than declaring one key;
   users must review that scope in the diff.

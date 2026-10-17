@@ -25,9 +25,12 @@ define ordered file changes, review, recorded ownership and discard.
    can replace earlier values. Cooking a recipe does not remove outputs another recipe owns. Existing or edited
    targets use the same review and approval flow; recorded ownership never blocks a change.
 3. Users manage recipe versions and supply the version they intend to cook. Each recipe has a short name that
-   markers and `cook.lock` use, and `cook.lock` records its source, sha256 and owned targets
-   ([0007](0007-ownership.md)). Cooking a new version removes what the previous version owned and no longer declares,
-   including edited values. Discarding a recipe removes what the lock lists for it without evaluating it again.
+   markers and `cook.lock` use: a path's place in the repository without `.groovy`, such as `recipes/setup`, or
+   coordinates without the version, such as `dev.thecook:agents:instructions`. `cook.lock` records its source, sha256
+   and owned targets ([0007](0007-ownership.md)). Cooking a new version removes what the previous version owned and no
+   longer declares, including edited values. Discarding a recipe removes what the lock lists for it without
+   evaluating it again. Moving a recipe file renames it; cooking the new name and discarding the old one moves the
+   ownership.
 4. A recipe's source stays where its user keeps it; Cook keeps no copy of it ([0014](0014-directory-layout.md)).
 5. A recipe describes file operations; it does not launch agents or verify their results. Batch approval and rollback
    cover declared file operations, not arbitrary effects of trusted code.
@@ -44,7 +47,8 @@ define ordered file changes, review, recorded ownership and discard.
   reevaluating an earlier version, and FR-15 discards a recipe from the lock alone. The short name ties
   versions of one recipe together without a stored copy of the previous version for merging, which would add version
   management outside the agreed design. Users must supply the recipe version they mean, rather than relying on Cook to
-  reconstruct it.
+  reconstruct it. Both short-name rules come from the operand alone, so discard names a recipe whose file is gone.
+  The trade of renaming by discard is a second command after moving a file.
 - **4.** The lock's source and sha256 identify which recipe version produced the current output; the repository or
   cookbook that holds the source keeps its history. [0014](0014-directory-layout.md) gives the reasons.
 - **5.** FR-3 and FR-4 distinguish configuration writes from running programs; a contract to verify results and resume
@@ -64,6 +68,13 @@ file-operation responsibility.
 At its best, source copies can be adapted locally, and a merge can help incorporate upstream changes. It loses
 because making this the engine's contract would add recipe identity tracking, stored copies of previous versions for
 merging, and version management. Users can manage their sources without Cook mandating a copy or merge protocol.
+
+### Rename detection by sha256
+
+At its best, moving a recipe file keeps its ownership without a discard: a new short name whose sha256 matches an
+entry in the lock takes over that entry. It loses because a file moved and edited in one change has a new sha256, so
+the detection fails exactly when a reviewer most needs to see what moved, and two recipes with one source would be
+indistinguishable.
 
 ## Consequences
 
