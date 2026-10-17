@@ -58,7 +58,7 @@ final class CookbookApply {
     }
     seeds.refuse()
     draft.write(CookLock.PATH, lock.render())
-    new Proposal(draft, recipes, changedSources, seeds)
+    new Proposal(draft, recipes, changedSources, seeds, loader.sources)
   }
 
   private static CookbookModel model(Class type, String at, ModelReads reads) {
@@ -200,17 +200,22 @@ final class SeedOutcomes {
 final class Proposal {
   private final Draft draft
   private final SeedOutcomes seeds
+  private final Map<String, String> sources
   private final Map command
   final List<Applied> recipes
   final List<ChangedSource> changedSources
 
-  /** `command` names the operation in the batch record, such as `[command: 'apply']`. */
+  /**
+   * `sources` holds each source the batch evaluated or read, by its origin; `command` names the operation in the batch
+   * record, such as `[command: 'apply']`.
+   */
   Proposal(Draft draft, List<Applied> recipes, List<ChangedSource> changedSources, SeedOutcomes seeds,
-  Map command = [command: 'apply']) {
+  Map<String, String> sources, Map command = [command: 'apply']) {
     this.draft = draft
     this.recipes = recipes
     this.changedSources = changedSources
     this.seeds = seeds
+    this.sources = sources
     this.command = command
   }
 
@@ -251,7 +256,7 @@ final class Proposal {
     }
     def record = BatchRecord.create(draft.destination)
     record.save(command + [recipes: recipes.collect { recorded(it) }, files: paths.collect { recorded(it) }],
-    paths.collectEntries { [(it): FilePatch.of(it, draft.before(it), draft.after(it))] })
+    paths.collectEntries { [(it): FilePatch.of(it, draft.before(it), draft.after(it))] }, sources)
     try {
       draft.commit()
     } catch (Exception failure) {

@@ -322,7 +322,17 @@ notes.add(line)
     ])
 
     assert proposal.recipes*.address == ['dev.thecook:agents:0.1.0:instructions', 'notes.groovy']
-    proposal.commit()
+    def id = proposal.commit()
+    def sources = batch(kitchen, id).sources.collectEntries { [(it.origin): new File(kitchen, ".cook/batches/${id}/${it.file}").text] }
+    assert sources.keySet().containsAll([
+      'dev.thecook:agents:0.1.0:instructions',
+      'dev.thecook:agents:0.1.0/AGENTS.template.md',
+      'acme:notes:1.0.0/Notes.groovy',
+      'notes.groovy'
+    ])
+    assert sources['notes.groovy'] == new File(kitchen, 'notes.groovy').text
+    assert sources['dev.thecook:agents:0.1.0/AGENTS.template.md'] == new File(COOKBOOK, 'agents/AGENTS.template.md').text
+    assert sources['dev.thecook:agents:0.1.0:instructions'] == new File(COOKBOOK, 'agents/instructions.groovy').text
     assert new File(kitchen, 'NOTES.md').text ==
     '<!-- cook:begin notes#notes -->\nfirst\n<!-- cook:end notes#notes -->\n'
     def lock = new File(kitchen, 'cook.lock').text

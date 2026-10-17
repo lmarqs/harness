@@ -17,6 +17,8 @@ final class RecipeLoader {
   private final Map<String, CookbookArtifact> artifacts = [:]
   private final Map<String, ClassLoader> models = [:]
   private final Map<ClassLoader, CookbookArtifact> modelArtifacts = [:]
+  /** Each source the invocation evaluated or read, by its origin, in the order it was first consumed. */
+  final Map<String, String> sources = [:]
 
   RecipeLoader(File kitchen) {
     this.kitchen = kitchen.toPath().toRealPath()
@@ -25,13 +27,31 @@ final class RecipeLoader {
 
   /** The recipe that `operand` names: coordinates when written as coordinates, otherwise a path in the kitchen. */
   LoadedRecipe load(String operand) {
-    Coordinates.written(operand) ? fromCoordinates(Coordinates.parse(operand)) : fromPath(operand)
+    def recipe = Coordinates.written(operand) ? fromCoordinates(Coordinates.parse(operand)) : fromPath(operand)
+    sources.putIfAbsent(recipe.address, recipe.source)
+    recipe
   }
 
   /** What a model of `type` reads: its own artifact's packaged files, and `draft` as the current content. */
   ModelReads reads(Class type, Draft draft) {
     def artifact = modelArtifacts[type.classLoader]
-    [resource: { artifact?.resource(it) }, resources: { artifact?.resources(it) }, current: { draft.read(it) }] as ModelReads
+    def origin = { String path -> "${artifact.coordinates.artifactAddress}/${path}".toString() }
+    [
+      resource: { String path ->
+        def text = artifact?.resource(path)
+        if (text != null) {
+          sources.putIfAbsent(origin(path), text)
+        }
+        text
+      },
+      resources: { String path ->
+        def found = artifact?.resources(path)
+        def prefix = path.endsWith('/') ? path : "${path}/"
+        found?.each { name, text -> sources.putIfAbsent(origin("${prefix}${name}"), text) }
+        found
+      },
+      current: { draft.read(it) },
+    ] as ModelReads
   }
 
   private LoadedRecipe fromCoordinates(Coordinates coordinates) {
@@ -75,6 +95,7 @@ final class RecipeLoader {
       def artifact = artifact(coordinates)
       def loader = CookbookCompiler.models(artifact)
       modelArtifacts[loader] = artifact
+      artifact.models.each { sources.putIfAbsent("${coordinates.artifactAddress}/${it}.groovy".toString(), artifact.modelSource(it)) }
       loader
     }
   }

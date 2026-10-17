@@ -9,8 +9,9 @@ import java.time.format.DateTimeFormatter
 
 /**
  * The record of one batch in the destination's `.cook/batches/<batchId>/`: `batch.yaml` with the recipes, their
- * arguments and order, each touched file's state before and after and the result; `patches/<path>.patch` with each
- * file's change; and `failure.log` when the writes failed. The batch ID is the UTC time the batch started, with a
+ * arguments and order, the sources they consumed, each touched file's state before and after and the result;
+ * `patches/<path>.patch` with each file's change; `sources/<n>-<name>` with each source; and `failure.log` when the
+ * writes failed. The batch ID is the UTC time the batch started, with a
  * suffix when another batch started in the same second.
  */
 final class BatchRecord {
@@ -44,14 +45,25 @@ final class BatchRecord {
     }
   }
 
-  /** Saves `batch` with the result `pending`, and each file's patch, before the batch writes. */
-  void save(Map batch, Map<String, List<String>> patches) {
+  /**
+   * Saves `batch` with the result `pending`, each file's patch and each source, keyed by its origin, before the batch
+   * writes.
+   */
+  void save(Map batch, Map<String, List<String>> patches, Map<String, String> sources) {
     patches.each { path, lines ->
       def patch = new File(directory, "patches/${path}.patch")
       patch.parentFile.mkdirs()
-      patch.text = lines.collect { "${it}\n" }.join()
+      patch.setText(lines.collect { "${it}\n" }.join(), 'UTF-8')
     }
-    this.batch = [id: id] + batch + [result: 'pending']
+    List<Map> saved = []
+    sources.eachWithIndex { origin, text, index ->
+      def file = "sources/${index + 1}-${origin.tokenize('/:').last()}".toString()
+      def snapshot = new File(directory, file)
+      snapshot.parentFile.mkdirs()
+      snapshot.setText(text, 'UTF-8')
+      saved.add([origin: origin, file: file])
+    }
+    this.batch = [id: id] + batch + [sources: saved, result: 'pending']
     write()
   }
 
@@ -65,7 +77,7 @@ final class BatchRecord {
   void failed(Throwable failure) {
     def log = new StringWriter()
     failure.printStackTrace(new PrintWriter(log))
-    new File(directory, 'failure.log').text = log.toString()
+    new File(directory, 'failure.log').setText(log.toString(), 'UTF-8')
     batch.result = 'failed'
     write()
   }
@@ -73,6 +85,6 @@ final class BatchRecord {
   private void write() {
     def options = new DumperOptions()
     options.defaultFlowStyle = DumperOptions.FlowStyle.BLOCK
-    new File(directory, 'batch.yaml').text = new Yaml(options).dump(batch)
+    new File(directory, 'batch.yaml').setText(new Yaml(options).dump(batch), 'UTF-8')
   }
 }
