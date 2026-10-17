@@ -84,6 +84,22 @@ Hand-written notes stay.
 
 together with the removal of the recipe's entry from `cook.lock`.
 
+### Renaming a recipe
+
+A path recipe's short name is its place in the repository, so moving `recipes/a.groovy` to `recipes/b.groovy` renames
+it. Cooking `recipes/b.groovy` writes its own sections, such as `recipes/b#notes`, and takes over the keys and files
+both declare; `recipes/a`'s sections stay, because cooking one recipe never removes another's output. Discarding the
+old name removes what the lock still lists for it, although its file is gone:
+
+```sh
+git mv recipes/a.groovy recipes/b.groovy
+./cook recipes/b.groovy
+./cook discard recipes/a.groovy
+```
+
+A recipe cooked by coordinates keeps its short name across versions, so only a changed group, artifact or recipe
+name renames it, with the same two steps.
+
 ## Keeping native configuration
 
 Programs consume their own native files directly, so those files and their markers stay usable when you stop

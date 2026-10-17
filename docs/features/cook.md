@@ -15,7 +15,7 @@ requirements. For commands supported by the current implementation, see the [roo
 
 Cooking evaluates trusted Groovy recipes into an ordered batch of file operations. Ingredients model programs' native
 files and configuration; cookbooks supply ingredients and recipes separately from the engine. The CLI accepts recipe
-paths inside the destination repository, `https://` URLs or coordinates.
+paths inside the destination repository or coordinates.
 
 ```sh
 ./cook ./recipe.groovy
@@ -85,17 +85,19 @@ recipes can keep separate sections in one file. Markers use the file format's co
 ```markdown
 Text people wrote outside the section.
 
-<!-- cook:begin agentic/context#commands -->
+<!-- cook:begin recipes/setup#commands -->
 Run the project's build command.
-<!-- cook:end agentic/context#commands -->
+<!-- cook:end recipes/setup#commands -->
 
 More unrelated text.
 ```
 
 ### Short names and regions
 
-A marker names the owning recipe's short name, such as `agentic/context`, followed by `#` and the region within that
-recipe, such as `commands`. Each recipe has a short name that markers and `cook.lock` use. Manual edits within the
+A marker names the owning recipe's short name, such as `recipes/setup`, followed by `#` and the region within that
+recipe, such as `commands`. Each recipe has a short name that markers and `cook.lock` use: a path's place in the
+repository without `.groovy`, so `recipes/setup.groovy` is `recipes/setup`, or coordinates without the version, such
+as `dev.thecook:agents:instructions`. Manual edits within the
 section are included in the next actual diff; ownership never blocks them.
 
 Omitting a recipe from a later invocation leaves its section in place; a new version of the recipe that omits
@@ -128,15 +130,13 @@ The invocation directory is the destination, regardless of the executable locati
 deletions stay within it, including paths resolved through symlinks. A symlink cannot route a declared target outside
 that boundary.
 
-Recipes come from paths inside the destination repository, `https://` URLs or coordinates. Relative recipe/template
-source references resolve from the referencing recipe's location: inside the repository for a local recipe, and against
-the source URL for a remote one. A local operand or reference that resolves outside the repository is refused. For
-example, when invoked from `/work/project`:
+Recipes come from paths inside the destination repository or coordinates; a URL operand is refused. Relative
+recipe/template source references resolve from the referencing recipe's location inside the repository. A local operand
+or reference that resolves outside the repository is refused. For example, when invoked from `/work/project`:
 
 | Recipe operand | Template reference in that recipe | Resolved source | Output declared as `settings.toml` |
 | --- | --- | --- | --- |
 | `recipes/project.groovy` | `../templates/settings.toml` | `templates/settings.toml` | `/work/project/settings.toml` |
-| `https://example.com/recipes/project.groovy` | `../templates/settings.toml` | `https://example.com/templates/settings.toml` | `/work/project/settings.toml` |
 
 ## Without the lock
 

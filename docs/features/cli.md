@@ -39,16 +39,16 @@ The [architecture](../architecture.md#cooking-and-discard) defines these operati
 
 ## Recipe operands
 
-A recipe operand is a path inside the destination repository, an `https://` URL, or a recipe's coordinates,
+A recipe operand is a path inside the destination repository or a recipe's coordinates,
 `group:artifact:version[:recipe]`. A word is a recipe operand when it contains `/` or `:` or ends with `.groovy`, so an
 ordinary relative path such as `recipe.groovy` is one; a recipe file with none of these marks is given as `./notes`.
-Cook refuses an operand outside the repository. Coordinates resolve from the repositories that the destination's
+Cook refuses an operand outside the repository, and a URL with a message that points to `cook.toml`: a recipe shared
+beyond one repository is published in a cookbook and cooked by its coordinates. Coordinates resolve from the repositories that the destination's
 `cook.toml` lists; without a recipe, they cook the recipe named like the artifact.
 
 ```sh
 ./cook recipe.groovy
 ./cook ./recipes/project.groovy
-./cook https://example.com/recipes/project.groovy
 ./cook dev.thecook:agents:0.1.0:instructions --harness=claude
 ```
 

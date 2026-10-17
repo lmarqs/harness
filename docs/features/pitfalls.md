@@ -97,7 +97,7 @@ for terms.
 - **Why.** Recipes are trusted executable Groovy code. Evaluation can do more than declare file operations.
 - **Cook's responsibility.** Diff review, destination boundaries, reverse patches and rollback govern declared batch
   operations. Executing commands is not a batch action; arbitrary recipe effects are outside those guarantees.
-- **What you do.** Read and trust sources before evaluation, including dependencies; a source URL or a reviewed output
+- **What you do.** Read and trust sources before evaluation, including dependencies; a source's address or a reviewed output
   diff alone does not establish that code is safe to execute. Approving the resulting diff is a separate decision. See
   [trust recipes explicitly](../philosophy.md#trust-recipes-explicitly) and the
   [cookbook trust ADR](../adrs/0026-cookbook-trust.md).
@@ -243,12 +243,13 @@ commands in its task runner. These are project choices, and the programs that co
 ### Moving a recipe changes its relative source references
 
 - **Symptom.** A recipe cannot find a template, or consumes a different source after it is copied elsewhere.
-- **Why.** Relative recipe/template references resolve from the referencing recipe's original location or source URL.
+- **Why.** Relative recipe/template references resolve from the referencing recipe's original location.
   A local recipe or reference outside the repository is refused.
 - **Cook's responsibility.** Resolve each relative reference from the referencing recipe's origin, and refuse a local
   one outside the repository.
-- **What you do.** Review origins and referenced sources when relocating recipes. The executable's location does not
-  choose the destination. See [source paths](cook.md#destination-and-source-paths).
+- **What you do.** Review origins and referenced sources when relocating recipes. Moving a path recipe also renames
+  it; discard the old name after cooking the new one ([renaming a recipe](discard.md#renaming-a-recipe)). The
+  executable's location does not choose the destination. See [source paths](cook.md#destination-and-source-paths).
 
 ## Ordered operations and recovery
 
