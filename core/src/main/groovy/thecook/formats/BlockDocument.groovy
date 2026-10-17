@@ -65,7 +65,7 @@ class BlockDocument implements Document {
     text.substring(first, last)
   }
   String render(Object value) {
-    def result = value instanceof Collection ? value.collect { it.toString() }.unique().join('\n') : value.toString()
+    def result = value.toString()
     if (result.contains("${open}cook:begin ") || result.contains("${open}cook:end ")) throw new IllegalArgumentException('Reserved marker in rendered content')
     result = result.replace('\r\n', '\n').replace('\n', newline())
     result ? result.replaceAll(/(?:\r?\n)+$/, '') + newline() : ''
