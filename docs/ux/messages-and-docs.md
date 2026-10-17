@@ -19,11 +19,11 @@ diff with whole-batch approval. The [glossary](../features/glossary.md) defines 
 
 | Rule | Write | Avoid |
 | --- | --- | --- |
-| Present tense; describe the operation | `apply proposes additions and updates` | `apply now replaces the old command` |
-| Concise: one fact per sentence | `the-cook: apply: settings.toml: cannot read file` | `It looks like there may be a problem reading your configuration` |
+| Present tense; describe the operation | `cooking proposes additions and updates` | `cooking now replaces the old command` |
+| Concise: one fact per sentence | `the-cook: settings.toml: cannot read file` | `It looks like there may be a problem reading your configuration` |
 | Name the thing exactly | `settings.toml:14` | `your settings` |
 | Imperative for instructions | `Move --batch-approve before ./recipe.groovy.` | `You may want to consider moving the option.` |
-| Neutral, no blame | `the-cook: apply: settings.toml: invalid value` | `You broke settings.toml.` |
+| Neutral, no blame | `the-cook: settings.toml: invalid value` | `You broke settings.toml.` |
 | Plain words and no marketing | `writes native configuration` | `seamlessly configures everything` |
 | Consistent terms | the [glossary](../features/glossary.md) term | alternating undo, rollback and discard for one operation |
 
@@ -32,7 +32,8 @@ The same rules apply to guidance read by coding agents, because ambiguity can be
 ## CLI messages
 
 - Follow the [CLI output rules](cli-standards.md#streams-and-human-output). A diagnostic on stderr starts with
-  `the-cook: ` so readers can identify its source.
+  `the-cook: ` so readers can identify its source. `discard` and `help` add their command name, as in
+  `the-cook: discard: `, and cooking adds none, because the prefix repeats what the caller typed.
 - On a suitable TTY, a message for a person may use the documented status icon instead of that prefix. Keep a status
   word, because an icon alone cannot explain the result
   ([terminal presentation](cli-standards.md#color-emoji-and-terminal-control)).
@@ -56,13 +57,13 @@ Every actionable error explains three things, in this order:
 The following examples illustrate wording for the intended CLI:
 
 ```text
-the-cook: apply: unknown option --batch-approve after ./recipe.groovy
+the-cook: unknown option --batch-approve after ./recipe.groovy
   batch options precede the first recipe operand
-  run: ./cook apply --batch-approve ./recipe.groovy
+  run: ./cook --batch-approve ./recipe.groovy
 ```
 
 ```text
-the-cook: apply: target ../shared/settings.toml is outside the destination
+the-cook: target ../shared/settings.toml is outside the destination
   declared writes must stay inside the invocation directory, including symlink resolution
   edit ./recipe.groovy to target a path inside the destination
 ```
@@ -81,9 +82,9 @@ explicitly preapprove with `--batch-approve` before the operands. Neither a noni
 existing content authorizes writes. For example:
 
 ```text
-the-cook: apply: approval required; nothing was written
+the-cook: approval required; nothing was written
   the terminal is noninteractive and --batch-approve was not given
-  run interactively to review the diff, or run: ./cook apply --batch-approve ./recipe.groovy
+  run interactively to review the diff, or run: ./cook --batch-approve ./recipe.groovy
 ```
 
 Keep normal diagnostics focused on information the caller can act on, rather than internal type names or paths inside
@@ -91,7 +92,7 @@ the package. When a target write fails, name the file that failed, state that th
 rolled back. Do not claim recovery of side effects outside the declared batch. For example:
 
 ```text
-the-cook: apply: cannot write .codex/config.toml: permission denied
+the-cook: cannot write .codex/config.toml: permission denied
   rolled back the files the batch already wrote
 ```
 
@@ -126,7 +127,7 @@ in Markdown.
 | --- | --- |
 | `docs/architecture.md` | Intended responsibilities, operations, boundaries and distribution; supporting design pages follow it |
 | `docs/philosophy.md` | Problems, goals and tenets motivating the design |
-| `docs/features/` | Index and reading path, glossary, CLI grammar, apply and discard semantics, the wrapper, pitfalls and this repository's agent setup |
+| `docs/features/` | Index and reading path, glossary, CLI grammar, cooking and discard semantics, the wrapper, pitfalls and this repository's agent setup |
 | `docs/adrs/` | Architectural decisions and their reasons within the architecture |
 | `docs/ux/` | Interaction and documentation standards within the architecture |
 | Root and core usage guides | Truthful instructions and limitations for current implementation |
@@ -211,3 +212,4 @@ Words to avoid:
 
 - block, managed block or block ID for a section, its markers or its region
 - undo, revert or rollback for discard; rollback names only the recovery from a failed write
+- apply or applying for cooking

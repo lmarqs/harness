@@ -2,7 +2,7 @@
 
 ## Objective
 
-**Problem.** When rules for reviewing and applying configuration are mixed with filesystem access, source loading and
+**Problem.** When rules for reviewing and writing configuration are mixed with filesystem access, source loading and
 terminal interaction, a mechanism change can alter the operation contract. Maintainers also struggle to reason about
 failure recovery without exercising every external dependency.
 
@@ -17,7 +17,7 @@ write their inputs and results.
 - The invocation directory is the destination. Source references resolve from the referencing recipe's original
   location, including its URL for HTTPS sources. A local recipe or reference
   outside the repository is refused (FR-21, FR-22).
-- Apply evaluates supplied recipes against current content and does not need `cook.lock` (FR-25). The committed
+- Cooking evaluates supplied recipes against current content and does not need `cook.lock` (FR-25). The committed
   `cook.lock` records each recipe's ownership (FR-14). Discard removes what the lock lists for a recipe rather than
   evaluating it (FR-15).
 - The core proposes the batch and writes and records only the changes it receives as accepted; choosing individual
@@ -69,7 +69,7 @@ without wrapping every value or helper in an interface.
 
 At its best, version control and agent interfaces give a uniform surface for integrating with the programs a team
 runs. It loses because those contracts miss this engine's scope and would make configuration changes depend on
-programs they do not need. Apply requires neither a version control program nor `cook.lock`.
+programs they do not need. Cooking requires neither a version control program nor `cook.lock`.
 
 ## Consequences
 
@@ -90,5 +90,5 @@ Must be maintained:
   does a change to a core class import nothing from the CLI or from a connection?
 - Review against FR-21 and FR-22: does an HTTPS recipe still target the invocation directory, resolve its relative
   sources against its URL, and is a local recipe outside the repository refused?
-- Review against FR-13, FR-15 and FR-25: does apply work without `cook.lock`, does discard work from the lock alone,
+- Review against FR-13, FR-15 and FR-25: does cooking work without `cook.lock`, does discard work from the lock alone,
   and does a failed batch leave the files as they were after rollback?

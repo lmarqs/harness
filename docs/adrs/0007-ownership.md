@@ -29,14 +29,14 @@ disturbing anything else.
    and the region within it. Markers use the format's comment syntax, including HTML comments for Markdown. Content
    outside the declared targets is preserved ([0008](0008-native-configuration.md)).
 2. Recipes and their operations compose left to right against current content. When two recipes write the same
-   section, key or file, the last one wins and becomes its owner; the diff is the only notice. Applying recipe B does
+   section, key or file, the last one wins and becomes its owner; the diff is the only notice. Cooking recipe B does
    not remove output that recipe A owns, even when A is omitted from the invocation.
 3. The repository commits `cook.lock`, a YAML file at its root ([example](../architecture.md#ownership-and-the-lock)).
-   - For each applied recipe it records the short name, the source as a repository-relative path, `https://` URL or
+   - For each cooked recipe it records the short name, the source as a repository-relative path, `https://` URL or
      coordinates, the source's sha256, and the owned sections, keys, files and links. It records no recipe arguments.
-   - Applying a new version of a recipe also removes what its previous version owned and the new version no longer
+   - Cooking a new version of a recipe also removes what its previous version owned and the new version no longer
      declares; the diff shows that removal.
-   - Without a lock entry for a recipe, apply removes nothing on its behalf.
+   - Without a lock entry for a recipe, cooking removes nothing on its behalf.
 4. Ownership decides what a recipe's later versions update and remove; it never blocks a change. Existing or manually
    edited targets follow the same batch diff and approval flow as any other change.
 5. The core proposes the final combined diff, writes only the changes it receives as accepted, and records only those
@@ -45,9 +45,9 @@ disturbing anything else.
    changes is a separate interface decision.
 6. Discarding recipes removes what `cook.lock` lists for each, without evaluating them: a section with its markers, a
    key, a whole file or a link. A file left empty is deleted, and each recipe's entry leaves the lock. Discard restores
-   no value the recipe replaced. It follows the same diff and whole-batch approval as apply.
-7. Apply does not require `cook.lock`. Each invocation evaluates supplied recipes again; nothing skips a recipe as
-   already applied. An unchanged result may have an empty diff.
+   no value the recipe replaced. It follows the same diff and whole-batch approval as cooking.
+7. Cooking does not require `cook.lock`. Each invocation evaluates supplied recipes again; nothing skips a recipe as
+   already cooked. An unchanged result may have an empty diff.
 8. Cook keeps no history of its own. `cook.lock` is its only record; on a write failure, Cook rolls back the batch's
    completed writes in place and reports the failure. Earlier content lives in the repository's version control.
 
@@ -93,7 +93,7 @@ The trust limits of these guarantees follow [0011](0011-safety-invariants.md), a
 ### Keep ownership in ignored local state
 
 At its best, local state avoids a generated file in commits. It loses because each clone then knows a different
-ownership: a teammate applying a recipe's new version would leave behind what another clone recorded, and reviewers
+ownership: a teammate cooking a recipe's new version would leave behind what another clone recorded, and reviewers
 never see ownership change.
 
 ### Refuse manually edited targets
@@ -105,7 +105,7 @@ refusal blocks a developer's intended change.
 ### Withdraw output of recipes omitted from an invocation
 
 At its best, the repository then matches exactly the recipes in the latest invocation. It loses because a request to
-apply one recipe would delete every other recipe's output, turning omission into an unreviewed deletion request.
+cook one recipe would delete every other recipe's output, turning omission into an unreviewed deletion request.
 
 ### Record each batch and reverse it later
 
@@ -137,10 +137,10 @@ Must be maintained:
 - Two recipes set the same key in order; the combined diff shows the later value, `cook.lock` names the later recipe as
   owner, and unrelated earlier output stays.
 - A manual edit inside a declared section appears in the proposed change; text outside the markers stays intact.
-- In the worked example, applying version 2 proposes removing the section; discarding the recipe after the `custom`
+- In the worked example, cooking version 2 proposes removing the section; discarding the recipe after the `custom`
   edit proposes removing the key with its `custom` value, and the recipe's lock entry.
 - Discarding a recipe whose section shares a file with hand-written text removes the section and its markers and
   keeps the text; a file holding only the recipe's content is deleted.
-- With no `cook.lock`, apply still evaluates supplied recipes and removes nothing on their behalf. An identical
+- With no `cook.lock`, cooking still evaluates supplied recipes and removes nothing on their behalf. An identical
   invocation evaluates again.
 - A write failure rolls back completed batch changes and leaves no file of Cook's behind.

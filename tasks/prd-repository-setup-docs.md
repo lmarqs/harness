@@ -82,7 +82,7 @@ the tool by the problem it solves.
       space form is what callers type in every other CLI, and `=` is needed for a value that looks like an operand.
 - [ ] `docs/features/glossary.md` rows Recipe argument and Recipe operand follow FR-18 and FR-19, and a
       Coordinates row defines `group:artifact:version[:recipe]`.
-- [ ] `docs/features/apply.md`, `docs/ux/configuration-standards.md` and `docs/ux/when-cli-when-skill.md` no
+- [ ] `docs/features/cook.md`, `docs/ux/configuration-standards.md` and `docs/ux/when-cli-when-skill.md` no
       longer say that recipe arguments use `--name=value` only.
 - [ ] `README.md` "Current implementation" is unchanged by this story, because it describes the code on `main`.
 

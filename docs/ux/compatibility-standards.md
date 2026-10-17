@@ -24,7 +24,7 @@ Keep these version choices distinct, because changing one does not automatically
 | --- | --- | --- |
 | Cook engine and CLI | The committed wrapper pins an engine version and matching platform-package checksums | Command grammar, operation behavior and the pin change |
 | Ingredients and cookbooks | Cookbook authors maintain program models and recipes in their repositories and builds | Source changes and the native program versions and formats they cover |
-| Supplied recipes | Users supply the recipe version they intend to apply | The exact source and its consumed recipe/template dependencies |
+| Supplied recipes | Users supply the recipe version they intend to cook | The exact source and its consumed recipe/template dependencies |
 | `cook.lock` | Cook records the source and sha256 that produced each recipe's current ownership | The `cook.lock` change |
 | Native files and sections | The consuming program defines its format and semantics | Actual file changes, key paths, section boundaries and program defaults |
 
@@ -60,7 +60,7 @@ of identical output across machines or releases, or of network-free evaluation.
 
 An engine upgrade leaves native files and skill content as they are until users invoke the supplied sources. Later
 recipes can intentionally replace earlier values;
-[ordered composition](../architecture.md#ordered-composition-and-declared-targets) shows how, and what applying a new
+[ordered composition](../architecture.md#ordered-composition-and-declared-targets) shows how, and what cooking a new
 recipe version removes.
 
 ## Supported programs and tools
@@ -106,7 +106,7 @@ region; ownership never blocks a change.
 | Local, user or managed program settings | Do not implicitly import them; choose shared versus personal content explicitly, with batch writes confined to the destination |
 | Task-runner, build and CI files | Recipes may target native configuration; the repository's task runner or contributor instructions describe its preparation, build and check commands, and those programs execute their own tasks independently |
 | Trackers, loop runners and working-copy tools | Recipes may configure their native files; those tools select and assign tasks, track dependencies, update and synchronize issue state, launch sessions, signal completion and clean working copies |
-| Tracker databases and state files | They remain the tracker's data; applying configuration does not implicitly migrate, clear or synchronize them, and a recipe that targets them declares that change in the reviewed diff, within the destination |
+| Tracker databases and state files | They remain the tracker's data; cooking recipes does not implicitly migrate, clear or synchronize them, and a recipe that targets them declares that change in the reviewed diff, within the destination |
 | Version-control configuration, ignore rules and hook files | Recipes may declare them and the version-control program interprets and runs them; people and external tools create branches, manage worktrees, create or remove working copies, detect landed work, enforce delivery guards and preserve uncommitted work |
 | Pushes, pull requests, notifications and MCP services | External tools and people perform these activities |
 | Another program's data in `cook.lock` | Move it elsewhere first, because Cook writes ownership to `cook.lock` |
@@ -126,7 +126,7 @@ Destination and source resolution follow
 [destination and source origins](../architecture.md#destination-and-source-origins). A relative reference resolves
 from the referencing recipe's origin, because a rebased reference would resolve a different source.
 
-A failed write rolls back the batch's completed writes. Ownership lives in the committed `cook.lock`, so apply and
+A failed write rolls back the batch's completed writes. Ownership lives in the committed `cook.lock`, so cooking and
 discard work in every clone, and earlier content lives in the repository's history.
 
 ## Installation and version pinning

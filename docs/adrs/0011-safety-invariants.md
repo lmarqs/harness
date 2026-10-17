@@ -31,7 +31,7 @@ mechanisms for protection from arbitrary recipe execution or agent sessions.
 4. These guarantees cover declared batch operations. They do not sandbox trusted recipe execution, roll back arbitrary
    recipe side effects, or enforce the behavior of configured programs. Executing external commands is not a batch
    action ([0019](0019-action-kinds.md)).
-5. Recorded ownership never blocks a change, and apply does not need `cook.lock` ([0007](0007-ownership.md)).
+5. Recorded ownership never blocks a change, and cooking does not need `cook.lock` ([0007](0007-ownership.md)).
 
 ## Reasons
 

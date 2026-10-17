@@ -89,7 +89,7 @@ Must be maintained:
 ## Confirmation
 
 - Review the acme example against FR-1 through FR-10: does a shared model accept different recipe choices, can later
-  instructions replace earlier values, and does applying one recipe leave unrelated earlier output intact?
+  instructions replace earlier values, and does cooking one recipe leave unrelated earlier output intact?
 - Review a proposed ingredient: does it describe native files and configuration only, with nothing that launches or
   supervises the program?
 - Review an engine upgrade against FR-26: does it change the pin without selecting cookbook content?

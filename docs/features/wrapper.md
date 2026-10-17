@@ -36,7 +36,7 @@ platform packages as well as versions; a package built for one OS or architectur
 The specific tools, exact asset names, download-source configuration, pin file format, cache layout, shell
 prerequisites, and failure exit codes belong to the implementation.
 
-The wrapper passes its CLI arguments to the engine. The [CLI reference](cli.md) defines apply, discard and help, recipe
+The wrapper passes its CLI arguments to the engine. The [CLI reference](cli.md) defines cooking, discard and help, recipe
 operands, and batch options. The invocation directory is the destination for declared file
 operations, regardless of the wrapper's location.
 
@@ -55,9 +55,9 @@ Upgrade by explicitly changing the committed version and its corresponding packa
 the pin change; on the next use, obtain the new package through the same verified download/cache flow. An ordinary
 invocation does not move the pin or select a newer engine release.
 
-Changing the engine pin does not manage recipe versions, fetch cookbook updates, or automatically apply recipes to
+Changing the engine pin does not manage recipe versions, fetch cookbook updates, or automatically cook recipes into
 project files. Cookbooks ship ingredients and recipes through their repositories and can have separate builds. Users
-supply the recipe version to apply.
+supply the recipe version to cook.
 
 ## CI
 

@@ -34,9 +34,9 @@ updates. People need to see the actual requested changes and keep unrelated cont
 4. Cook proposes changes against current content, including existing files and manual edits; review, whole-batch
    approval and ownership that never blocks a change follow [0007](0007-ownership.md).
 5. A write failure rolls back the batch's completed writes ([0011](0011-safety-invariants.md)); `cook.lock` is not a
-   prerequisite for apply.
+   prerequisite for cooking.
 6. Deletion follows the requested operation: removal by a recipe's new version, even when current values differ, or
-   discard of a recipe ([0007](0007-ownership.md)). Neither infers ownership from names, and applying one recipe does not
+   discard of a recipe ([0007](0007-ownership.md)). Neither infers ownership from names, and cooking one recipe does not
    remove output another recipe owns.
 7. The batch contains file operations, not external commands, hosting-platform API calls, pushes, or delivery
    actions ([0019](0019-action-kinds.md)). Trusted recipe code can have side effects outside these guarantees
@@ -56,8 +56,8 @@ updates. People need to see the actual requested changes and keep unrelated cont
 - **4.** Current content is the relevant basis for approval. Creation records and directory names cannot establish
   whether today's change is wanted, so they hold no veto: useful edits proceed, and the decision rests on actual batch
   review, including deletion or replacement of content someone has edited.
-- **5.** Rolling back completed writes keeps a failed batch from leaving a half-applied result. Apply without the lock
-  still evaluates new recipes; it only has no earlier ownership to withdraw.
+- **5.** Rolling back completed writes keeps a failed batch from leaving a half-written result. Cooking without the
+  lock still evaluates new recipes; it only has no earlier ownership to withdraw.
 - **6.** Recorded ownership answers both deletions: what a recipe's new version no longer declares, and everything a
   discarded recipe owns. Names cannot answer either, as Context notes. The trade is that the lock must stay committed
   and accurate.
@@ -103,7 +103,7 @@ Must be maintained:
 - For a key update alongside unrelated keys and text, a whole-file replacement, and a target resolving outside the
   destination through a symlink, does the declared scope determine the diff and is the escaping target refused?
 - Does an existing manually edited target go through the ordinary batch diff and approval flow, whether or not
-  `cook.lock` records its owner, while applying another recipe leaves unrelated prior output in place?
+  `cook.lock` records its owner, while cooking another recipe leaves unrelated prior output in place?
 - Are a recipe operand and a template reference that resolve outside the repository both refused?
 - Do descriptions of recovery ordering and write failures match the architecture, without treating recipe evaluation
   side effects as reversible batch writes?

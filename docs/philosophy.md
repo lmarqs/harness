@@ -20,14 +20,14 @@ programs consume native files, often inside the repository. Reusing their setup 
 
 - A useful configuration change reaches another repository only when someone copies it, and the copies drift.
 - Replacing a shared file can erase unrelated settings or changes someone made by hand.
-- Hidden changes make it hard to judge what applying or discarding setup will do.
+- Hidden changes make it hard to judge what cooking or discarding setup will do.
 - Coupling program-specific configuration to the engine makes each program's evolution an engine concern.
 
 ## The goals
 
 - Reuse configuration through recipes and ingredients maintained in cookbook repositories.
 - Review the combined effect of the requested changes against current content before approving writes.
-- Preserve unrelated content when applying or discarding recipes.
+- Preserve unrelated content when cooking or discarding recipes.
 - Let configured programs consume their native files directly.
 - Keep the engine's responsibilities bounded so cookbooks can evolve separately.
 
@@ -77,9 +77,9 @@ separately from the engine. See the [organization content](adrs/0013-organizatio
 **Problem.** Hidden reconciliation or refusals based on manual edits prevent readers from judging the change they
 requested against the files they have now.
 
-**Tenet.** Evaluate supplied recipes against current content on every apply invocation and show their combined
+**Tenet.** Evaluate supplied recipes against current content on every invocation that cooks them and show their combined
 effect as one diff, approved as a whole. Ownership, recorded in the committed `cook.lock`, never blocks a change, and
-applying one recipe never removes another recipe's output. The cost is that when a later recipe takes over a target,
+cooking one recipe never removes another recipe's output. The cost is that when a later recipe takes over a target,
 the diff is the only notice. See [ordered composition](architecture.md#ordered-composition-and-declared-targets)
 (FR-7 to FR-9) and the [ownership](adrs/0007-ownership.md) ADR.
 
@@ -91,7 +91,7 @@ confused with restoring the past.
 **Tenet.** Roll back a failed batch so the files stay as they were. Discard removes exactly what a recipe owns and
 restores nothing; earlier content belongs to the repository's history. See
 [batch approval and failure recovery](architecture.md#batch-approval-and-failure-recovery) (FR-13, FR-15, FR-25),
-[apply](features/apply.md) and [discard](features/discard.md).
+[cooking](features/cook.md) and [discard](features/discard.md).
 
 ### Let native configuration stand on its own
 

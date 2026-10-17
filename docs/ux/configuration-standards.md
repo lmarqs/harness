@@ -29,7 +29,7 @@ of the batch they approve.
 | --- | --- | --- |
 | Native configuration and guidance | Paths declared by recipes within the destination, where the program reads them | Settings, ignore entries, instruction files, skills, and other requested output |
 | Recipe and template sources | Paths inside the destination repository, `https://` URLs, or coordinates from a cookbook release | Trusted input; relative references resolve from the referencing recipe's location or URL |
-| Ownership lock | Committed `cook.lock` at the repository root | Each applied recipe's short name, source, sha256, and owned sections, keys, and files |
+| Ownership lock | Committed `cook.lock` at the repository root | Each cooked recipe's short name, source, sha256, and owned sections, keys, and files |
 | Engine wrapper | Committed `./cook` | Pins the engine version and package checksum; first use fetches and caches the platform package |
 
 Committed ownership lives in `cook.lock`; Cook keeps no other state in the destination. A recipe may use shared
@@ -37,12 +37,12 @@ guidance under `.agents/` where that suits the native program.
 
 Relative template references resolve from the referencing recipe's location or source URL; a local reference outside
 the repository is refused.
-[Destination and source paths](../features/apply.md#destination-and-source-paths) works through an example.
+[Destination and source paths](../features/cook.md#destination-and-source-paths) works through an example.
 
 ## Inputs
 
 Recipe operands, recipe arguments and their per-recipe scope follow the
-[CLI reference](../features/cli.md). Users manage recipe versions and supply the version they intend to apply;
+[CLI reference](../features/cli.md). Users manage recipe versions and supply the version they intend to cook;
 `cook.lock` records which version produced the current ownership. Remote and local sources are trusted executable code,
 not data confined by batch approval.
 
@@ -84,7 +84,7 @@ programs can differ in matching, precedence, project trust, and local overrides.
 Where a program supports allow, ask and deny decisions, use them to express what the team intends to permit, confirm or
 prohibit. Record the reason for each group of rules, and review the effects of commands, including what a change makes
 broader, rather than assuming a whole executable is harmless. Why: a task runner can invoke other programs, and a broad
-prefix rule can permit more than its author intended. Applying or discarding permission configuration does not prove
+prefix rule can permit more than its author intended. Cooking or discarding permission configuration does not prove
 that it suits every program or user. For each configured program, establish:
 
 - What a rule matches: command prefixes, complete commands, paths, tools or another native form.

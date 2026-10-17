@@ -21,7 +21,7 @@ repository accepts while preserving choices outside those changes.
   outside the repository is refused ([source origins](../architecture.md#destination-and-source-origins)). Relative
   recipe and template references resolve from the referencing recipe's original location.
 - Cook evaluates supplied recipes against current content in declared order and shows one final batch diff.
-  `cook.lock` records each applied recipe's source and sha256.
+  `cook.lock` records each cooked recipe's source and sha256.
 - The engine's jpackage distribution and committed version and checksum pin are separate from cookbook and recipe
   versions ([distribution](../architecture.md#engine-distribution)).
 
@@ -34,7 +34,7 @@ repository accepts while preserving choices outside those changes.
    Engine upgrades do not manage recipe versions.
 3. Reused content can participate in recipe evaluation from paths inside the destination repository, from `https://`
    URLs, or by coordinates from a cookbook release ([0029](0029-cookbook-distribution.md)). Users manage recipe versions
-   and supply the version to apply; `cook.lock` records which version produced the current ownership.
+   and supply the version to cook; `cook.lock` records which version produced the current ownership.
 4. Ordered composition, ownership and review of the resulting changes follow [0007](0007-ownership.md).
 5. Native output stays readable without Cook ([0010](0010-dependence-on-the-binary.md)), and `cook.lock` names the
    source and sha256 that produced each recipe's output ([0007](0007-ownership.md)).
@@ -93,4 +93,4 @@ Must be maintained:
 
 - Review the acme example with shared setup and a repository-specific choice: does the batch change only declared
   targets, show later overrides in its final diff, and preserve unrelated configuration?
-- Review a batch with local and remote recipes: does `cook.lock` name each applied recipe's source and sha256?
+- Review a batch with local and remote recipes: does `cook.lock` name each cooked recipe's source and sha256?

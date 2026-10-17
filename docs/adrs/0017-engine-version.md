@@ -22,7 +22,7 @@ version through the repository's entry point without installing Java or Gradle s
   ([0013](0013-organization-content.md)). Ingredients model programs' native files and configuration; the engine
   evaluates recipes and reviews and writes their declared file operations.
 - Recipe ownership lives in the committed `cook.lock`, the only file of Cook's own in a destination
-  ([0014](0014-directory-layout.md)); apply does not need it.
+  ([0014](0014-directory-layout.md)); cooking does not need it.
 - The current [`cook` script](../../cook) launches a locally built JVM distribution, and the existing
   [jpackage build](../../cli/gradle/jpackage.gradle) produces an application image with bundled Java
   ([install](../../README.md#install)).
@@ -45,7 +45,7 @@ version through the repository's entry point without installing Java or Gradle s
    for declared writes regardless of the wrapper or package location. CI that chooses to invoke Cook uses the same
    pin and verification flow.
 6. Engine pinning is separate from cookbook distribution and recipe trust. Users manage recipe versions and supply
-   the version to apply.
+   the version to cook.
 
 ## Reasons
 
@@ -57,7 +57,7 @@ version through the repository's entry point without installing Java or Gradle s
   to the implementation avoids a storage decision the architecture does not require.
 - **2.** Bundling Java retains the JVM implementation without requiring each user to maintain a separate runtime.
   The launcher depends on its package contents, so downloading and caching only an executable would break that promise.
-- **4.** Explicit upgrades make a dependency change a repository decision. Separating that change from applying
+- **4.** Explicit upgrades make a dependency change a repository decision. Separating that change from cooking
   recipes avoids turning an ordinary invocation into an unrequested upgrade or file rewrite.
 - **5.** Committed pins, local executable caches and recipe ownership serve different purposes. Losing the cache must
   not erase the engine choice, and locating an executable must not change output paths.

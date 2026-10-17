@@ -129,16 +129,16 @@ scope and reason, inspect relevant project and personal settings, and review the
 CI requires a particular commit message, that convention belongs in repository guidance and the team's publication
 process. Cook may configure those programs.
 
-For recipe-maintained content, prefer updating the source and applying the supplied recipe through the normal diff and
+For recipe-maintained content, prefer updating the source and cooking the supplied recipe through the normal diff and
 approval flow. For externally maintained skills, update the source and then refresh the repository's copy through the
-chosen process. Repository-authored content can be edited directly. Manual edits are allowed; a later explicit apply may
+chosen process. Repository-authored content can be edited directly. Manual edits are allowed; a later run may
 propose replacing them. See [configuration review](configuration-standards.md#ordered-changes-and-approval).
 
 ## Explain the reasoning
 
 Each rule should carry a concrete reason, because readers need to apply it to cases the author did not foresee.
 
-- Good: "Update this recipe's skill source before applying it, because applying the old source can replace the local
+- Good: "Update this recipe's skill source before cooking it, because cooking the old source can replace the local
   correction; review the resulting batch diff."
 - Incomplete: "Never edit skills directly."
 

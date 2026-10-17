@@ -33,7 +33,7 @@ Cook writes in a repository is one that repository commits, without relocating u
    directory inside it is accepted as a target even when Cook did not create it.
 3. Cook writes nothing in the destination beyond declared native output and `cook.lock`: no local state directory,
    record or cache.
-4. Recipe ownership lives in the committed `cook.lock` at the repository root ([0007](0007-ownership.md)). Apply
+4. Recipe ownership lives in the committed `cook.lock` at the repository root ([0007](0007-ownership.md)). Cooking
    evaluates supplied recipes against current content and works without the lock.
 5. The engine pin and its cache follow [0017](0017-engine-version.md).
 6. Cookbook repositories and source origins follow [0013](0013-organization-content.md).
@@ -87,7 +87,7 @@ boundary.
 Costs:
 
 - Shared native configuration, a committed engine pin and local engine packages have different lifetimes; a missing
-  package requires obtaining the pinned package before applying recipes.
+  package requires obtaining the pinned package before cooking recipes.
 - Earlier content comes only from the repository's version control.
 
 Must be maintained:

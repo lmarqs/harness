@@ -8,7 +8,7 @@ shared files for what it wrote and without losing the content written by hand or
 **Goal.** Discarding a recipe proposes the removal of exactly what the recipe owns, and everything else in the same
 files stays.
 
-This page follows the intended [architecture](../architecture.md#apply-and-discard), which owns the requirements. For
+This page follows the intended [architecture](../architecture.md#cooking-and-discard), which owns the requirements. For
 current execution, see the [root README](../../README.md).
 
 ## Overview
@@ -20,13 +20,13 @@ evaluate the recipe or fetch its cookbook, so it works after the recipe's source
 
 | Intent | Request | Basis |
 | --- | --- | --- |
-| Add or update declared contributions | `./cook apply ./recipe.groovy` | Supplied recipes against current content and `cook.lock` |
-| Remove what a recipe's new version omits | `./cook apply ./recipe.groovy` with the new version | Ownership recorded for the recipe in `cook.lock` |
+| Add or update declared contributions | `./cook ./recipe.groovy` | Supplied recipes against current content and `cook.lock` |
+| Remove what a recipe's new version omits | `./cook ./recipe.groovy` with the new version | Ownership recorded for the recipe in `cook.lock` |
 | Remove everything a recipe owns | `./cook discard ./recipe.groovy` | Ownership recorded for the recipe in `cook.lock` |
-| Get back content from before an apply | The repository's version control, such as `git revert` | The commit history |
+| Get back content from before a run | The repository's version control, such as `git revert` | The commit history |
 | Keep the configured native files and stop invoking Cook | Stop invoking Cook | Programs consume their native files directly |
 
-Omitting a recipe from a later apply invocation leaves its output in place; see [apply](apply.md#ordered-operations).
+Omitting a recipe from a later invocation leaves its output in place; see [cooking](cook.md#ordered-operations).
 
 ## Reference
 
@@ -34,8 +34,8 @@ Omitting a recipe from a later apply invocation leaves its output in place; see 
 ./cook discard [batch-options] <recipe>...
 ```
 
-Each recipe is written as for apply: coordinates `group:artifact:version[:recipe]` or a `.groovy` path in the kitchen.
-Discard matches the recipe's short name in `cook.lock`, so the version in coordinates does not need to be the applied
+Each recipe is written as for cooking: coordinates `group:artifact:version[:recipe]` or a `.groovy` path in the kitchen.
+Discard matches the recipe's short name in `cook.lock`, so the version in coordinates does not need to be the cooked
 one, and a path's file does not need to exist any more. Discard takes no recipe arguments. Batch options precede the
 first recipe; the [CLI reference](cli.md) defines them.
 
@@ -50,8 +50,8 @@ first recipe; the [CLI reference](cli.md) defines them.
 
 A file left empty is deleted, because it existed only to hold the recipe's content. Each discarded recipe's entry
 leaves `cook.lock`, and a lock that lists no recipe is deleted. Everything the recipe does not own stays: other
-recipes' sections, hand-written text in the same file, and files a seed wrote from a template on the recipe's first
-apply.
+recipes' sections, hand-written text in the same file, and files a seed wrote from a template the first time the
+recipe was cooked.
 
 Discard does not restore values the recipe replaced. If a recipe changed `test = "old"` to `test = "new"`, discarding
 it removes the `test` key. To get `old` back, use the repository's history.
@@ -92,9 +92,9 @@ discarding a recipe. Cook does not delete recipe sources.
 
 ## Approval, boundaries, and recovery
 
-Discard uses the same terminal diff, whole-batch approval, `--dry-run` and write-failure rollback as apply; see
-[review and recovery](apply.md#review-and-recovery). The destination boundary is described in
-[destination and source paths](apply.md#destination-and-source-paths).
+Discard uses the same terminal diff, whole-batch approval, `--dry-run` and write-failure rollback as cooking; see
+[review and recovery](cook.md#review-and-recovery). The destination boundary is described in
+[destination and source paths](cook.md#destination-and-source-paths).
 
 Recipes are trusted executable code. Discard runs none, and it does not undo what a recipe's evaluation did outside
 its declared files.

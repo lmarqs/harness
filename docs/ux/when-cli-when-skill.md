@@ -66,8 +66,9 @@ choose declared targets and maintenance sources accordingly.
 
 ## Engine commands and recipe arguments
 
-The engine's commands are apply, `discard` and `help` ([CLI reference](../features/cli.md)). A new engine command or flag
-requires its own decision when it changes that scope. Do not add a command for each program or organization, or invent
+The engine's commands are cooking, which takes no command word, `discard` and `help`
+([CLI reference](../features/cli.md)). A new engine command or flag requires its own decision when it changes that
+scope. Do not add a command for each program or organization, or invent
 a setting that bypasses the agreed review and recovery guarantees, because program and organization choices belong in
 cookbooks. Per-recipe choices use recipe arguments following that recipe
 ([CLI reference](../features/cli.md#recipe-arguments-and-ordering)).
@@ -75,7 +76,7 @@ cookbooks. Per-recipe choices use recipe arguments following that recipe
 ## Recipes
 
 Use a recipe to reuse requested native setup, whether the invocation is a first application or an update. Recipes
-compose left to right into one combined diff, the last writer of a target becomes its owner, and applying B never
+compose left to right into one combined diff, the last writer of a target becomes its owner, and cooking B never
 removes A's output ([ordered composition](../architecture.md#ordered-composition-and-declared-targets)). Ownership
 never blocks a change.
 
@@ -92,7 +93,7 @@ setup. For instance, an organization skill can explain why certain native permis
 the agent's format and a recipe supplies the requested settings. The actual settings and diff remain reviewable.
 
 For repository-authored guidance or settings, direct edits are also legitimate. For recipe-maintained content,
-updating the source first avoids a later apply replacing a local correction. Neither process establishes permanent
+updating the source first avoids a later run replacing a local correction. Neither process establishes permanent
 ownership or prohibits deliberate later changes. See [skills standards](skills-standards.md).
 
 Skill discovery and session loading belong to the native program. Cook can supply instructions, links and settings as
@@ -109,7 +110,7 @@ evidence should fit the task.
 | --- | --- | --- |
 | Combine two recipes that set the same key | Engine ordered composition | Later values replace earlier ones; preview the final combined result |
 | Model Git ignore entries or Codex settings and skills | Ingredient in a cookbook | Knowledge follows the native program's files and formats |
-| Apply shared agent settings | Recipe using program models | Review native permission meaning and preserve unrelated keys |
+| Set shared agent settings | Recipe using program models | Review native permission meaning and preserve unrelated keys |
 | Restrict force pushes or task chaining | Native program controls and team guidance | Cook may configure supported controls; the consuming program enforces them |
 | Allow one repository's observability search tools | Native settings chosen with organization guidance | Fit the scope to the repository; file approval is not permission to contact the service |
 | Give a Node project lint/build/test commands and an edit hook | Recipe-declared task-runner and native hook files | Programs execute the resulting configuration independently |
@@ -125,7 +126,7 @@ evidence should fit the task.
 | Share organization skills | Team-selected installer, recipe or reviewed copies | Choose one maintenance process; native discovery determines loading |
 | Record a lesson or open an issue | Agent or person with appropriate tools | Knowledge and tracker activity need judgment and their own review |
 | Pin or upgrade the Cook engine | Explicit committed wrapper version/checksum change | Engine and cookbook versions are separate choices; see [wrapper](../features/wrapper.md) |
-| Apply setup across repositories | Separate CLI invocations from each destination | Each has its own actual diff, approval and `cook.lock`; external tools select repositories and deliver changes |
+| Set up several repositories | Separate CLI invocations from each destination | Each has its own actual diff, approval and `cook.lock`; external tools select repositories and deliver changes |
 | Remove a recipe's output | Discard | Removes what the recipe owns; earlier content comes from the repository's history |
 
 ## Paths and distribution
@@ -141,8 +142,8 @@ that fit each repository, review a representative change before repeating it els
 actual diff, for example:
 
 ```sh
-cd /work/repo-a && ./cook apply ./recipe.groovy
-cd /work/repo-b && ./cook apply ./recipe.groovy
+cd /work/repo-a && ./cook ./recipe.groovy
+cd /work/repo-b && ./cook ./recipe.groovy
 ```
 
 Approval covers a whole batch in one destination, and discard acts on that destination only. Rollback on write failure
@@ -166,7 +167,7 @@ external tools.
   that an agent loaded or followed guidance.
 - Treating batch approval as authorization for arbitrary recipe effects or publication: trusted evaluation and external
   actions have distinct consequences outside the declared batch.
-- Omitting a recipe to delete its previous output: its output is removed only by applying a new version of that
+- Omitting a recipe to delete its previous output: its output is removed only by cooking a new version of that
   recipe that no longer declares it, or by discarding the recipe ([discard](../features/discard.md)).
 - Refreshing recipes or skills automatically when the engine pin moves: engine and cookbook sources are separate
   version choices.

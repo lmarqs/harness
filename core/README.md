@@ -3,7 +3,7 @@
 This guide describes the engine on `main`. The [architecture](../docs/architecture.md) states the intended design,
 and [issue #15](https://github.com/lmarqs/the-cook/issues/15) tracks the parts that do not run yet.
 
-The core is one engine, `thecook.cookbook`, that applies recipes named by coordinates or by a `.groovy` path in the
+The core is one engine, `thecook.cookbook`, that cooks recipes named by coordinates or by a `.groovy` path in the
 kitchen. The engine and the author's annotations, in `thecook.cookbook.api`, are Groovy.
 
 The core reaches no network and runs no external command. It declares `CookbookRepository`, and the caller hands
@@ -27,7 +27,7 @@ The core reaches no network and runs no external command. It declares `CookbookR
    content.
 4. `Declarations` reads what the models declare through their annotated members: the sections, keys, whole files and
    links they own, the files they seed and the files they delete.
-5. The recipe applies to one in-memory `Draft` of the kitchen: it withdraws what `cook.lock` says it owned and no
+5. The recipe is cooked into one in-memory `Draft` of the kitchen: it withdraws what `cook.lock` says it owned and no
    longer declares, writes what it declares, and takes ownership from the recipes that held it. Each later recipe
    sees what the earlier ones wrote.
 6. `CookLock` records each recipe's short name, source, the source's sha256 and what it owns, and the draft writes
@@ -64,12 +64,12 @@ When a write fails, it restores the paths it already wrote and fails.
 ## Differences from the intended architecture
 
 - `Draft.commit` keeps no journal, so a process killed mid-commit can leave files and `cook.lock` half-written.
-- No `https://` recipe operands, and no `apply` written as a command.
+- No `https://` recipe operands.
 - Models use only their own artifact's types.
 - A document forgets, between invocations, which empty parents it created, so withdrawing a key leaves those parents.
 
 ## Verification
 
-`./gradlew check` runs the core tests: `CookbookApplyTest` applies the `agents` artifact and small artifacts built
+`./gradlew check` runs the core tests: `CookbookApplyTest` cooks the `agents` artifact and small artifacts built
 in the test, by coordinates and by path; `DocumentsTest` edits JSON and TOML through the documents' own API;
 `CoordinatesTest` and `RecipeSourceTest` cover coordinates and recipe texts; `FilePatchTest` covers the review diff.

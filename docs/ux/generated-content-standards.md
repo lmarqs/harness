@@ -97,7 +97,7 @@ Keep each memory file focused on one area, describe what is true with enough con
 and remove outdated advice; session notes and to-dos belong in the team's tracker. Maintain references to guidance
 and memory files when files are added, renamed, moved or removed, because a stale reference leads readers to the wrong
 file.
-Applying a new version of a recipe removes the memory content its previous version owned and the new version omits,
+Cooking a new version of a recipe removes the memory content its previous version owned and the new version omits,
 even after someone edited it; keep important knowledge by choosing and reviewing the intended declarations.
 
 ## Keys in native files
@@ -113,7 +113,7 @@ setting has the scope the recipe declares. A program enforces its own native set
 
 Recipes and their operations compose left to right against current content, and the last write to a section, key, or
 file wins; [ordered composition](../architecture.md#ordered-composition-and-declared-targets) works through an example.
-Every apply evaluates the supplied recipes again, so a manual edit appears in the next diff like any other difference.
+Every run evaluates the supplied recipes again, so a manual edit appears in the next diff like any other difference.
 
 ## Stable output
 
@@ -133,8 +133,8 @@ The CLI accepts the whole batch; choosing individual changes belongs to a separa
 the first invocation asks before writing and the second is preapproved:
 
 ```sh
-./cook apply ./base.groovy ./project.groovy
-./cook apply --batch-approve ./base.groovy ./project.groovy
+./cook ./base.groovy ./project.groovy
+./cook --batch-approve ./base.groovy ./project.groovy
 ```
 
 Noninteractive execution without `--batch-approve` does not authorize writes. See the

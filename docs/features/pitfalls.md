@@ -248,7 +248,7 @@ commands in its task runner. These are project choices, and the programs that co
 - **Cook's responsibility.** Resolve each relative reference from the referencing recipe's origin, and refuse a local
   one outside the repository.
 - **What you do.** Review origins and referenced sources when relocating recipes. The executable's location does not
-  choose the destination. See [source paths](apply.md#destination-and-source-paths).
+  choose the destination. See [source paths](cook.md#destination-and-source-paths).
 
 ## Ordered operations and recovery
 
@@ -258,16 +258,16 @@ commands in its task runner. These are project choices, and the programs that co
 - **Why.** Recipes and operations compose left to right; overlap is intentional.
 - **Cook's responsibility.** Show one diff from current content to the final combined result.
 - **What you do.** Review operand order and target scope. A whole-file declaration is broader than a key or section
-  declaration. See [ordered operations](apply.md#ordered-operations).
+  declaration. See [ordered operations](cook.md#ordered-operations).
 
-### A manual edit is changed by the next apply
+### A manual edit is changed by the next run
 
 - **Symptom.** A recipe proposes replacing a hand-edited value or marked section.
 - **Why.** Every invocation evaluates supplied recipes against current content; ownership never blocks a change.
 - **Cook's responsibility.** Show the actual diff for whole-batch approval. Noninteractive execution without
   `--batch-approve` does not authorize writes.
 - **What you do.** Review the proposed result and adjust declarations or recipe inputs if needed. Omitting an earlier
-  recipe does not withdraw its unrelated contributions. See [apply](apply.md).
+  recipe does not withdraw its unrelated contributions. See [cooking](cook.md).
 
 ### Discard removes an edited section
 
@@ -284,7 +284,7 @@ commands in its task runner. These are project choices, and the programs that co
 - **Why.** Discard removes what the recipe owns; it keeps no copy of what the recipe replaced.
 - **Cook's responsibility.** Remove only owned content and leave everything else as it is.
 - **What you do.** Restore earlier content from the repository's history, for example with `git revert` of the
-  commit that applied the recipe. Do not expect file changes to undo external program activity.
+  commit that cooked the recipe. Do not expect file changes to undo external program activity.
 
 ## Versions and the wrapper
 

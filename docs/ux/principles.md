@@ -39,7 +39,7 @@ composes their file operations and displays the actual diff. Why: showing what w
 information rather than asking them to infer a result from configuration.
 
 - Evaluate each supplied recipe against current content on every invocation. Nothing marks a recipe as
-  already applied. An unchanged result has an empty diff.
+  already cooked. An unchanged result has an empty diff.
 - Do not promise identical output across machines or a network-free evaluation: trusted Groovy recipes can read their
   environment and execute arbitrary code. Review source trust separately from the resulting batch.
 - Explain errors precisely enough for the caller to correct the request
@@ -65,7 +65,7 @@ alone only when grammar, order and paths follow fixed rules.
 - Compose recipes and operations left to right, last writer wins, and show the combined final result as one batch
   diff, because approval covers that combined result
   ([ordered composition](../architecture.md#ordered-composition-and-declared-targets)).
-- Applying B never removes output A owns.
+- Cooking B never removes output A owns.
 - The invocation directory is the destination, and relative source references resolve from the referencing recipe
   ([path resolution](../architecture.md#destination-and-source-origins)).
 
@@ -84,7 +84,7 @@ Proposed replacements and deletions need visible scope and a way to recover. Why
 - On write failure, roll back the changes already made by the batch and report the failure. This covers declared
   operations, not arbitrary recipe effects.
 - Discard removes what `cook.lock` lists for a recipe and shows the actual diff. Content the recipe does not own
-  survives, and no earlier value is restored ([operation semantics](../architecture.md#apply-and-discard)).
+  survives, and no earlier value is restored ([operation semantics](../architecture.md#cooking-and-discard)).
 
 ## 6. One clear interface and vocabulary
 
@@ -92,8 +92,7 @@ Use the CLI as the public cooking interface. Gradle builds and packages Cook and
 learn operation and approval semantics.
 
 Use `discard` and `help` as commands and `--batch-approve` as the preapproval spelling. The wrapper and a global
-installation expose the same grammar. Default apply and explicit apply have the same meaning
-([entry points](cli-standards.md#entry-points)).
+installation expose the same grammar ([entry points](cli-standards.md#entry-points)).
 
 Native configuration lives where its program reads it. Source recipes and templates retain their origins; ownership
 lives in the committed `cook.lock`. Use the
@@ -123,19 +122,19 @@ place; removal follows principle 5
 ## 9. Sources and effects are reviewable
 
 Cook accepts recipe paths inside the destination repository, `https://` URLs and coordinates. Users supply the recipe
-versions they intend to apply, and the committed `cook.lock` records which source and sha256 produced the current
+versions they intend to cook, and the committed `cook.lock` records which source and sha256 produced the current
 ownership ([the lock](../architecture.md#ownership-and-the-lock)). A repository commit alone does not determine the
 effects of trusted recipe code. Why: a reviewer can trust or question only a source they can identify.
 
-Apply does not need `cook.lock`; discard reads only `cook.lock`, so it works after a recipe's source is gone
-([apply and discard](../architecture.md#apply-and-discard)).
+Cooking does not need `cook.lock`; discard reads only `cook.lock`, so it works after a recipe's source is gone
+([cooking and discard](../architecture.md#cooking-and-discard)).
 
 ## When principles conflict
 
 Follow the architecture's operation and trust boundaries. Within them, protect review and recovery before convenience,
 and make the affected scope explicit. Ownership never blocks a change.
 
-For example, a batch changed a key from `old` to `new`, and a person then edited it to `custom`. Applying the recipe
+For example, a batch changed a key from `old` to `new`, and a person then edited it to `custom`. Cooking the recipe
 again proposes `custom` to `new` in the diff. Discarding the recipe proposes removing the key, `custom` value
 included, for approval, preserving unrelated keys; getting `old` back is the repository history's job. A
 shared remote recipe also requires source trust; batch approval cannot authorize or reverse every effect its code might

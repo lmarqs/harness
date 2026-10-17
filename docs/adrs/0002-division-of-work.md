@@ -27,7 +27,7 @@ choices.
    mechanically composes the declared operations against current content in the supplied order.
 2. The composed result is reviewed as one combined diff under whole-batch approval, and existing or edited content
    follows the same flow ([0007](0007-ownership.md)).
-3. Every apply evaluates the supplied recipes again ([0007](0007-ownership.md)). A repeated invocation of an
+3. Every run evaluates the supplied recipes again ([0007](0007-ownership.md)). A repeated invocation of an
    executable recipe can produce a different result.
 4. Cook can write declared prose, skills and policy like other file content. Neither deterministic batch handling nor
    review implies a sandbox for recipe evaluation ([0011](0011-safety-invariants.md)).
@@ -53,7 +53,7 @@ choices.
 
 At its best, a closed declarative model makes outputs reproducible for fixed inputs. It loses because current target
 content and the external inputs a recipe consults change between invocations. A result reproduced from earlier inputs
-cannot justify skipping an invocation as already applied.
+cannot justify skipping an invocation as already cooked.
 
 ### Setup entirely by hand or by a coding agent
 

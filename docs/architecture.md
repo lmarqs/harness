@@ -30,8 +30,8 @@ include Git's ignore file and Codex's configuration and skills. The ingredient c
 A recipe is trusted executable Groovy code that describes requested file operations using these models. Evaluating
 recipes produces the batch that Cook reviews and writes. The models describe program configuration; the engine
 handles the resulting file operations. Each recipe has a short name, such as `agentic/context`, that markers and the
-lock use to identify it. A recipe applied by its coordinates is named by its address without the version, such as
-`dev.thecook:agents:instructions`, so applying a new version keeps the same owner.
+lock use to identify it. A recipe cooked by its coordinates is named by its address without the version, such as
+`dev.thecook:agents:instructions`, so cooking a new version keeps the same owner.
 
 A cookbook repository holds and distributes ingredients and recipes. Cookbook distribution is separate from engine
 distribution: a cookbook releases by git tag, and may also publish jars of the same sources
@@ -74,7 +74,7 @@ flowchart TD
     result -->|"No"| rollback
 ```
 
-*Figure 2. Apply operation flow, scoped to declared batch operations. Answers FR-1, FR-3, FR-4, FR-7, and FR-11
+*Figure 2. Cooking operation flow, scoped to declared batch operations. Answers FR-1, FR-3, FR-4, FR-7, and FR-11
 through FR-13.*
 
 A batch contains file operations, including operations on directories and symlinks where applicable. Cook's recovery
@@ -92,11 +92,11 @@ When two recipes write the same section, key, or file, the last one wins and bec
 notice. The preview is one combined diff from current content to the final result (FR-7). The
 [ownership ADR](adrs/0007-ownership.md) records the reasons.
 
-Applying a batch affects its declared targets and the targets its recipes owned before. Applying recipe B does not
-remove output that recipe A owns, even when A is omitted from the new invocation. Applying a new version of recipe A
+Cooking a batch affects its declared targets and the targets its recipes owned before. Cooking recipe B does not
+remove output that recipe A owns, even when A is omitted from the new invocation. Cooking a new version of recipe A
 removes what A's previous version owned and the new version no longer declares; the diff shows that removal (FR-8).
 For example, suppose `settings.toml` initially has `test = "old"` and `other = "keep"`. Recipe A sets `test` to `A`
-and creates `notes.txt`; recipe B sets `test` to `B`. Applying A followed by B shows this final combined preview:
+and creates `notes.txt`; recipe B sets `test` to `B`. Cooking A followed by B shows this final combined preview:
 
 ```diff
 --- a/settings.toml
@@ -111,7 +111,7 @@ and creates `notes.txt`; recipe B sets `test` to `B`. Applying A followed by B s
 +Notes from recipe A.
 ```
 
-The final value is B's result, and B owns `test`. If A was instead applied in an earlier run and B is applied alone
+The final value is B's result, and B owns `test`. If A was instead cooked in an earlier run and B is cooked alone
 now, the preview changes `test = "A"` to `test = "B"`, moves ownership of `test` to B, and leaves `notes.txt` and
 `other = "keep"` intact.
 
@@ -155,22 +155,22 @@ change (FR-9).
 The core proposes the batch and writes only the changes it receives as accepted. It records only accepted changes in
 `cook.lock`, so the lock always describes what was written. The core is independent of any interface (FR-5).
 
-The CLI displays the final diff in the terminal and accepts the whole batch. Above the diff it displays each applied
+The CLI displays the final diff in the terminal and accepts the whole batch. Above the diff it displays each supplied
 recipe's `@confirm` text, under the recipe's address; one question covers the texts and the diff. Without
 preapproval, it asks before changing target files. With `--batch-approve`, it displays the texts and the diff and
 proceeds without prompting. Noninteractive execution without that flag does not silently authorize writes (FR-12).
-After the writes succeed, it prints each applied recipe's `@yield` text under the recipe's address (FR-28).
+After the writes succeed, it prints each cooked recipe's `@yield` text under the recipe's address (FR-28).
 
 If a write fails, roll back changes already made by the batch and report the failure, so the files stay as they were
 (FR-13).
 
 ## Ownership and the lock
 
-`cook.lock` is a YAML file at the kitchen's root that Cook writes after each apply. The kitchen keeps and commits it,
-because it is the only record of which recipes were applied and what each owns: without it, Cook cannot withdraw what
-a recipe no longer declares, and a first-apply refusal cannot tell a file a recipe wrote from one written by hand.
-For each applied recipe it records the short name, the source, the source's sha256, and the sections, keys, whole files
-and links the recipe owns. It records no recipe arguments (FR-14).
+`cook.lock` is a YAML file at the kitchen's root that Cook writes each time it cooks. The kitchen keeps and commits it,
+because it is the only record of which recipes were cooked and what each owns: without it, Cook cannot withdraw what
+a recipe no longer declares, and a seed's refusal the first time its recipe is cooked cannot tell a file a recipe
+wrote from one written by hand. For each cooked recipe it records the short name, the source, the source's sha256,
+and the sections, keys, whole files and links the recipe owns. It records no recipe arguments (FR-14).
 
 ```yaml
 # Written by the-cook; do not edit by hand.
@@ -203,21 +203,22 @@ relative to the artifact's directory and separated by `/`, and both hashes are w
 with a name on its path that matches one of Ant's default excludes, which Gradle leaves out of every jar (`.git`,
 `.gitignore`, `.gitattributes`, `.DS_Store`, `*~` and the like), is not a source. Because the lock is committed, every clone has the same ownership information.
 
-Apply works without the lock. When the lock is missing or names no entry for a recipe, Cook evaluates the recipe as
+Cooking works without the lock. When the lock is missing or names no entry for a recipe, Cook evaluates the recipe as
 usual and shows the diff; it has no previous ownership to compare against, so it removes nothing on the recipe's
 behalf (FR-25).
 
-## Apply and discard
+## Cooking and discard
 
-**Apply** evaluates the supplied recipes and proposes their declared additions and updates, together with the removal
-of what each recipe owned before and no longer declares. Every apply evaluates the supplied recipe versions against
-current content, even after an identical earlier invocation; an unchanged result produces an empty diff (FR-25).
+**Cooking** evaluates the supplied recipes and proposes their declared additions and updates, together with the
+removal of what each recipe owned before and no longer declares. Every run evaluates the supplied recipe versions
+against current content, even after an identical earlier invocation; an unchanged result produces an empty diff
+(FR-25).
 
 **Discard** removes what `cook.lock` lists for each named recipe, without evaluating it: a marked section together
 with its markers, a key, a whole file or a link. A file left empty is deleted, and the recipe's entry leaves the lock;
 a lock that lists no recipe is deleted. Content the recipe does not own stays, including other recipes' sections,
-hand-written text and files a seed wrote on the recipe's first apply. Discard removes; it does not restore the values
-the recipe replaced, because the repository's history already holds them (FR-15).
+hand-written text and files a seed wrote the first time the recipe was cooked. Discard removes; it does not restore
+the values the recipe replaced, because the repository's history already holds them (FR-15).
 
 For example, when `CLAUDE.md` holds a hand-written line above the section `dev.thecook:agents:instructions` owns,
 discarding that recipe proposes:
@@ -232,8 +233,8 @@ discarding that recipe proposes:
 -<!-- cook:end dev.thecook:agents:instructions#instructions -->
 ```
 
-Discard follows the same diff, whole-batch approval and failure rollback as apply. To get back content from before an
-apply, use the repository's version control.
+Discard follows the same diff, whole-batch approval and failure rollback as cooking. To get back content from before
+a run, use the repository's version control.
 
 ## Destination and source origins
 
@@ -255,8 +256,8 @@ For example, run either invocation from `/work/project`:
 
 ```sh
 cd /work/project
-./cook apply cookbook/recipes/project.groovy
-./cook apply https://example.com/cookbook/recipes/project.groovy
+./cook cookbook/recipes/project.groovy
+./cook https://example.com/cookbook/recipes/project.groovy
 ```
 
 Suppose each recipe references `./base.groovy` and `../templates/settings.toml`, and declares `settings.toml` as an
@@ -269,9 +270,9 @@ output. These are alternative invocations with the same destination:
 
 ## Command line and build boundary
 
-The CLI is the public cooking interface, and Gradle builds and packages Cook and cookbooks (FR-5). The commands are
-apply (the default), discard and help; batch options precede the first recipe operand, and recipe arguments follow
-their recipe. The [CLI reference](features/cli.md) defines the
+The CLI is the public cooking interface, and Gradle builds and packages Cook and cookbooks (FR-5). Without a command
+word, `./cook` cooks the recipes it is given; `discard` and `help` are the other commands. Batch options precede the
+first recipe operand, and recipe arguments follow their recipe. The [CLI reference](features/cli.md) defines the
 syntax, recipe operands, argument scope, and batch options (FR-17 through FR-20).
 
 ## Engine distribution
@@ -284,7 +285,7 @@ package it uses; [the wrapper](features/wrapper.md) describes pinning, checksum 
 caching, and explicit upgrades.
 
 Engine releases supply the packaged runtime. Cookbook repositories hold and ship ingredients and recipes, with
-builds that can be independent of the engine build. Users supply the recipe version they intend to apply;
+builds that can be independent of the engine build. Users supply the recipe version they intend to cook;
 `cook.lock` records which version produced the current ownership.
 
 The root README's [install section](../README.md#install) describes the current local packaging entry path.
@@ -322,8 +323,8 @@ Other documents cite these requirements by number.
 
 - **FR-7:** Recipes and their operations execute in declared order, left to right. When two recipes write the same
   section, key, or file, the last one wins and becomes its owner. Show the combined result as one batch diff.
-- **FR-8:** Applying a batch affects its declared targets and the targets its recipes owned before. Applying recipe B
-  does not remove output recipe A owns. Applying a new version of a recipe removes what its previous version owned
+- **FR-8:** Cooking a batch affects its declared targets and the targets its recipes owned before. Cooking recipe B
+  does not remove output recipe A owns. Cooking a new version of a recipe removes what its previous version owned
   and the new version no longer declares.
 - **FR-9:** Cook proposes the requested changes against current content, including content a developer edited.
   Ownership never blocks a change.
@@ -331,17 +332,17 @@ Other documents cite these requirements by number.
   `cook:begin <recipe>#<region>` and `cook:end <recipe>#<region>` markers in the file format's comment syntax,
   including HTML comments for Markdown.
 - **FR-11:** The core proposes the batch, writes only the accepted changes, and records only those in `cook.lock`.
-- **FR-12:** The CLI displays the final diff in the terminal, preceded by each applied recipe's `@confirm` text, and
+- **FR-12:** The CLI displays the final diff in the terminal, preceded by each supplied recipe's `@confirm` text, and
   accepts the whole batch. Without preapproval, it asks before changing target files. With `--batch-approve`, it
   displays the texts and the diff and proceeds without prompting. Noninteractive execution without this flag does not
   silently authorize writes.
 - **FR-13:** On a write failure, roll back changes already made by the batch and report the failure.
-- **FR-28:** After the writes succeed, the CLI prints each applied recipe's `@yield` text. A declined or failed batch
+- **FR-28:** After the writes succeed, the CLI prints each cooked recipe's `@yield` text. A declined or failed batch
   prints none.
 
 ### Ownership and discard
 
-- **FR-14:** The repository commits `cook.lock`, a YAML file at its root. For each applied recipe it records the short
+- **FR-14:** The repository commits `cook.lock`, a YAML file at its root. For each cooked recipe it records the short
   name, the source as a repository-relative path, an `https://` URL or coordinates, the source's sha256 (for
   coordinates, of the artifact's sources), and the owned sections, keys, files and links. It records no recipe
   arguments.
@@ -351,11 +352,11 @@ Other documents cite these requirements by number.
 
 ### CLI grammar
 
-- **FR-17:** The commands are `./cook [apply] [batch-options] <recipe> [recipe-arguments]...`,
-  `./cook discard [batch-options] <recipe>...`, and `./cook help [<recipe>]...`. `apply` is the default. With no
-  arguments, `help` alone, or `--help` alone, show the usage. `help` prints each recipe's help from its source without
-  running it. A first operand of exactly `apply`, `discard`, or `help` selects a command; a recipe file with one of
-  those names is supplied as a path, such as `./discard`.
+- **FR-17:** The commands are `./cook [batch-options] <recipe> [recipe-arguments]...`, which cooks the recipes,
+  `./cook discard [batch-options] <recipe>...`, and `./cook help [<recipe>]...`. With no arguments, `help` alone, or
+  `--help` alone, show the usage. `help` prints each recipe's help from its source without running it. A first operand
+  of exactly `discard` or `help` selects that command; a recipe file with one of those names is supplied as a path,
+  such as `./discard`.
 - **FR-18:** Recipe operands are paths inside the destination repository, `https://` URLs, or coordinates
   `group:artifact:version[:recipe]` resolved from the repositories the destination's `cook.toml` lists. A word is a
   recipe operand when it contains `/` or `:` or ends with `.groovy`, as `recipe.groovy` does; a recipe file with none
@@ -374,8 +375,8 @@ Other documents cite these requirements by number.
 - **FR-22:** Relative references to recipes and templates resolve from the referencing recipe's location: inside the
   repository for local recipes, against the source URL for remote ones. A local operand or reference outside the
   repository is refused.
-- **FR-25:** Apply does not require `cook.lock`. Every invocation evaluates the supplied recipes against current
-  content; nothing marks a recipe as already applied. Without a lock entry, apply removes nothing on a recipe's
+- **FR-25:** Cooking does not require `cook.lock`. Every invocation evaluates the supplied recipes against current
+  content; nothing marks a recipe as already cooked. Without a lock entry, cooking removes nothing on a recipe's
   behalf.
 
 ### Distribution and documentation authority

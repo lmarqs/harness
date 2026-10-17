@@ -4,9 +4,9 @@
 
 **Problem.** A cookbook author shares models and recipes with other repositories. When a release requires a build
 plugin, a package repository and hosting for it, sharing one recipe costs more than copying it by hand, and the copies
-drift. A repository that applies a release needs to know that the content it applies is the content it reviewed.
+drift. A repository that cooks a release needs to know that the content it cooks is the content it reviewed.
 
-**Goal.** An author releases a cookbook with the tools that already hold its source, and a repository applying a
+**Goal.** An author releases a cookbook with the tools that already hold its source, and a repository cooking a
 release can tell when the content under that release changes.
 
 ## Context
@@ -14,7 +14,7 @@ release can tell when the content under that release changes.
 - A [cookbook](../features/glossary.md) is a repository, or a directory in one, with `cookbook.toml` at its root
   naming its `group` and release `version`; each topic directory is one artifact holding models, recipes, resources and
   a README ([cookbook](../../cookbook/README.md)).
-- The engine compiles an artifact's sources when one of its recipes is applied. The jars that the cookbook Gradle
+- The engine compiles an artifact's sources when one of its recipes is cooked. The jars that the cookbook Gradle
   plugin builds hold those sources, resources and README, not compiled classes
   ([`CookbookPlugin`](../../plugin/src/main/groovy/thecook/gradle/CookbookPlugin.groovy)), so a checkout of the
   cookbook at its release carries the same content as its jars.
@@ -101,5 +101,5 @@ Must be maintained:
 ## Confirmation
 
 - Review a release of the same sources as a tag and as a jar: does `cook.lock` record the same hash for both?
-- Review a moved tag: does the next apply show a changed source before the diff?
+- Review a moved tag: does the next run show a changed source before the diff?
 - Review a cookbook in a subdirectory: does it release as `<dir>/v<version>`, beside unrelated tags in the repository?

@@ -18,15 +18,15 @@ setup changes before they are written.
 - Worked example: `acme/api` and `acme/infra` use the same agent configuration model but have different project
   instructions. The program model and the team's selection of settings are different responsibilities, even when
   distributed together.
-- Recipes and operations compose left to right; later instructions may replace earlier values. Applying recipe B
+- Recipes and operations compose left to right; later instructions may replace earlier values. Cooking recipe B
   alone leaves unrelated output from recipe A intact (FR-7, FR-8).
 
 ## Decision
 
 1. Ingredients are program data models, distinct in responsibility from recipes' setup choices. Cookbooks hold and
    ship ingredients and recipes; the engine evaluates recipes and reviews and writes the ordered batch.
-2. Reusable setup follows the agreed operation contract. Every apply invocation evaluates the supplied recipes against
-   current content; nothing marks setup as already applied. Later operations can replace earlier values in
+2. Reusable setup follows the agreed operation contract. Every invocation evaluates the supplied recipes against
+   current content; nothing marks setup as already cooked. Later operations can replace earlier values in
    one combined diff. Existing or edited content uses the same whole-batch approval flow; recorded ownership never
    blocks a change. Omitting a recipe leaves its earlier output in place.
 3. Engine version and checksum pinning is separate from cookbook builds and user-managed recipe versions. `cook.lock`
@@ -38,18 +38,18 @@ setup changes before they are written.
   model be reused without embedding one team's instructions as engine policy. The trade is that cookbook authors must
   make the distinction clear.
 - **2.** FR-7 through FR-9 and FR-25 make requested changes and their order authoritative. A first-value-wins,
-  add-only or already-applied rule would silently replace that contract. The trade is that applying shared setup can
+  add-only or already-cooked rule would silently replace that contract. The trade is that cooking shared setup can
   propose replacing a local value; the reviewer sees the final diff before approving the batch.
 - **3.** An engine pin chooses an executable package, while a supplied recipe chooses the requested setup. Treating
   the lock as an update baseline would add the recipe-version management the architecture excludes;
   the lock only records which version produced the current ownership (FR-14, FR-25). The trade is that users supply
-  the versions they intend to apply, independently of engine upgrades.
+  the versions they intend to cook, independently of engine upgrades.
 
 ## Rejected alternatives
 
 ### Fixed write behavior for each ingredient field
 
-At its best, an ingredient schema gives every field one fixed write behavior, such as regenerated on each apply,
+At its best, an ingredient schema gives every field one fixed write behavior, such as regenerated on each run,
 written once and then left alone, or enforcing a minimum rule set, which makes each field's effect predictable. It
 loses because it needs ownership checks that block changes, and it fixes per-field behavior that ordered composition
 and review of the final diff already decide. The distinction of responsibilities holds without that schema.
@@ -78,6 +78,6 @@ Must be maintained:
 - Review the acme example against FR-1 and FR-2: can two recipes reuse one program model while choosing different
   instructions?
 - Review against FR-7 through FR-9: if recipe A sets a key and recipe B overrides it, does the preview show B's value,
-  and does applying B alone leave A's unrelated file intact?
-- Review against FR-14 and FR-25: does repeating apply evaluate the recipe again, with unchanged content yielding an
+  and does cooking B alone leave A's unrelated file intact?
+- Review against FR-14 and FR-25: does cooking again evaluate the recipe again, with unchanged content yielding an
   empty diff?

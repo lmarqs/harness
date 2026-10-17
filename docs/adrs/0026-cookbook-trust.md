@@ -23,7 +23,7 @@ an inspectable record of the sources actually used.
 - Engine package verification checks bytes against a committed checksum; it does not alone authenticate the publisher
   or verify cookbook content ([0021](0021-release-trust.md)). A checksum obtained from the same replaceable source as
   an asset cannot independently establish that asset's author or trustworthiness.
-- `cook.lock` records each applied recipe's source and sha256 (FR-14); users manage recipe versions.
+- `cook.lock` records each cooked recipe's source and sha256 (FR-14); users manage recipe versions.
 
 ## Decision
 
@@ -31,7 +31,7 @@ an inspectable record of the sources actually used.
    recipe or ingredient takes. Trust in the source precedes evaluation; approving the resulting batch approves
    declared file changes, not the admission of arbitrary code into a sandbox. Being data-only is not a safety
    guarantee.
-2. `cook.lock` records the source and sha256 of each applied recipe; for coordinates the sha256 covers the
+2. `cook.lock` records the source and sha256 of each cooked recipe; for coordinates the sha256 covers the
    artifact's sources. It identifies which version produced the current output; it does not authenticate an author
    or undo arbitrary code side effects. Cook keeps no copy of the sources ([0014](0014-directory-layout.md)).
 3. Approval of the combined diff before target writes follows [0007](0007-ownership.md).
@@ -96,7 +96,7 @@ Must be maintained:
 - Review against FR-18 and FR-22: do a local recipe and an HTTPS recipe both use the invocation directory as
   destination and resolve relative references against their original source bases, and is a local recipe outside the
   repository refused?
-- Review against FR-14: does `cook.lock` record each applied recipe's source and sha256?
+- Review against FR-14: does `cook.lock` record each cooked recipe's source and sha256?
 - Review against FR-4 and FR-26: does any document promise that an engine checksum or approval of the diff stops code
   side effects? None may.
-- Review against FR-25: does apply stay available without `cook.lock`?
+- Review against FR-25: does cooking stay available without `cook.lock`?

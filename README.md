@@ -35,7 +35,7 @@ Read the `agents` artifact's front page and one of its recipes, without running 
 ./cook help dev.thecook:agents:0.1.0:instructions
 ```
 
-Make a scratch kitchen whose `cook.toml` resolves from this checkout's repository, then apply two recipes in it:
+Make a scratch kitchen whose `cook.toml` resolves from this checkout's repository, then cook two recipes in it:
 
 ```sh
 kitchen=$(mktemp -d)
@@ -43,7 +43,7 @@ printf 'repositories = ["%s/cookbook/build/repository"]\n' "$PWD" > "$kitchen/co
 ./cook -C "$kitchen" dev.thecook:agents:0.1.0:permissions --harness=claude dev.thecook:agents:0.1.0:instructions --harness=claude
 ```
 
-Cook shows the diff of every file it would write, `cook.lock` included, and asks `Apply these changes? [y/N]`. Answer
+Cook shows the diff of every file it would write, `cook.lock` included, and asks `Write these changes? [y/N]`. Answer
 `y`: it prints `Created` for `.agents/policy.yaml`, `.claude/settings.json`, `AGENTS.md`, `CLAUDE.md` and `cook.lock`,
 then what to do next. Run the same command again: nothing changed, so it prints `Already cooked.` and asks nothing.
 
@@ -53,7 +53,7 @@ Cook cooks in. `-C <dir>` or `--kitchen=<dir>` before the first recipe cooks in 
 
 ### What runs
 
-`./cook` applies recipes left to right in one invocation, each named by coordinates,
+`./cook` cooks recipes left to right in one invocation, each named by coordinates,
 `group:artifact:version[:recipe]`, or by a `.groovy` path inside the kitchen:
 
 - One review before any write: a `Changed source` notice for a release whose sources differ from what `cook.lock`
@@ -62,10 +62,10 @@ Cook cooks in. `-C <dir>` or `--kitchen=<dir>` before the first recipe cooks in 
   ([batch options and approval](docs/features/cli.md#batch-options-and-approval)).
 - One line per changed path after the writes, `Would` lines under `--dry-run`, then each recipe's `@yield` text
   ([recipe arguments and ordering](docs/features/cli.md#recipe-arguments-and-ordering)).
-- `--force` and `--skip` for a file a recipe's first apply writes from a template
+- `--force` and `--skip` for a file a recipe writes from a template the first time it is cooked
   ([existing files](docs/features/cli.md#existing-files)).
 - `cook.lock`, which the kitchen keeps and commits: each recipe's short name, source, the source's sha256 and what it
-  owns, so a later apply withdraws what a recipe no longer declares
+  owns, so a later run withdraws what a recipe no longer declares
   ([the lock](docs/architecture.md#ownership-and-the-lock)).
 - A failed write rolls back the writes already made, so the files are as they were, and prints the error.
 - `./cook discard [--dry-run] [--batch-approve] <recipe>...`, which removes what `cook.lock` lists for each recipe,
@@ -81,8 +81,7 @@ their recipe as `--name=value` or `--name value`, and a yes-or-no argument as a 
 word that contains `/` or `:` or ends with `.groovy` starts the next recipe, so a value shaped like one is written
 `--name=value`.
 
-The design has these, and they do not run yet: `https://` recipe operands and `apply` written as a
-command.
+The design has `https://` recipe operands; they do not run yet.
 
 ### Recipe paths
 
@@ -109,7 +108,7 @@ A path outside the kitchen, through a symbolic link too, is refused, as are two 
 Of the [cookbook](cookbook/README.md), the `agents` artifact runs; the other directories are a design sketch that has
 not been compiled. `./gradlew :cookbook:publish` packages the cookbook with the `dev.thecook.cookbook` Gradle plugin,
 built from [`plugin`](plugin) apart from the engine: a jar and a POM per directory and the `dev.thecook:cookbook` BOM.
-Packaging compiles nothing; the engine compiles an artifact's sources when one of its recipes is applied.
+Packaging compiles nothing; the engine compiles an artifact's sources when one of its recipes is cooked.
 
 ### Development tooling
 
@@ -120,7 +119,7 @@ Packaging compiles nothing; the engine compiles an artifact's sources when one o
 `docs/` is its own build. `./gradlew -p docs check`, which `./gradlew check` includes, fails on a relative link in
 `docs/` that points to a missing file or heading anchor; [`docs/build.gradle`](docs/build.gradle) defines the check.
 
-See [the core implementation](core/README.md) for how the engine applies a recipe and how it differs from the
+See [the core implementation](core/README.md) for how the engine cooks a recipe and how it differs from the
 intended architecture.
 [Infra](infra/README.md) reads the kitchen's `cook.toml` and fetches cookbook releases from Maven-layout and git
 repositories; the CLI hands its repositories to the core.
@@ -154,6 +153,6 @@ The paths above are for Linux. The build defines `the-cook.app/Contents/MacOS/th
 `the-cook/the-cook.exe` on Windows. Build on the target OS and architecture. This task produces an application
 directory. The Windows path in the build configuration does not establish verified Windows support.
 
-`./gradlew jpackageTest` builds the image and tests the native launcher with Java and Gradle absent from `PATH`: help, applying coordinates and a recipe path in one invocation, the refusal to write without a terminal, a repeated apply, `-C` and a usage error. This distribution check runs separately from `./gradlew check`.
+`./gradlew jpackageTest` builds the image and tests the native launcher with Java and Gradle absent from `PATH`: help, cooking coordinates and a recipe path in one invocation, the refusal to write without a terminal, a repeated run, `-C` and a usage error. This distribution check runs separately from `./gradlew check`.
 
 For development, `./gradlew cliBuild` builds the regular JVM distribution used by this repository's `./cook` entry point; that distribution requires Java 17 on the user's machine.

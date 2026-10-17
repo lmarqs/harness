@@ -28,7 +28,7 @@ setup readers encounter.
    Markdown and hash comments in ignore files. Markers name the owning recipe and region
    ([0007](0007-ownership.md)). Text outside the declared section is preserved ([0008](0008-native-configuration.md)).
 3. Instruction sections and ignore entries follow the ordered composition and ownership of
-   [0007](0007-ownership.md): applying another recipe leaves them in place, and a recipe's new version removes the
+   [0007](0007-ownership.md): cooking another recipe leaves them in place, and a recipe's new version removes the
    ones its previous version owned and no longer declares, even when their content was edited. Removing an ignore
    entry leaves the paths it describes in place.
 4. Stopping use of Cook needs no operation that strips Cook-specific text: native files, their markers and
@@ -48,8 +48,8 @@ setup readers encounter.
   so their deletion must be reviewed even though it leaves those paths in place. Overlapping declared targets still
   follow order: the last recipe to write a target wins and becomes its owner.
 - **4.** Native files already outlive the configuring invocation. Sorting text into what to keep and what to strip on
-  exit would add cleanup semantics that the agreed apply and discard contract does not need. A reviewer decides whether
-  a particular deletion leaves instructions that accurately describe the remaining setup.
+  exit would add cleanup semantics that the agreed cooking and discard contract does not need. A reviewer decides
+  whether a particular deletion leaves instructions that accurately describe the remaining setup.
 
 ## Rejected alternatives
 
@@ -87,6 +87,6 @@ Must be maintained:
 
 - Read the example's resulting native files without Cook: the repository convention remains understandable.
 - Review a Markdown section update: HTML comment markers bound the change and unrelated text remains intact.
-- Review a later unrelated apply: the earlier instruction and ignore sections remain in place.
+- Review a later unrelated run: the earlier instruction and ignore sections remain in place.
 - Review a recipe's new version that stops declaring an edited section and an ignore entry: the actual deletions
   appear for approval, with no automatic deletion of the described path or restoration of earlier text.

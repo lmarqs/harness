@@ -1,4 +1,4 @@
-# Apply recipe contributions
+# Cook recipe contributions
 
 ## Objective
 
@@ -13,26 +13,24 @@ requirements. For commands supported by the current implementation, see the [roo
 
 ## Overview
 
-Apply evaluates trusted Groovy recipes into an ordered batch of file operations. Ingredients model programs' native
+Cooking evaluates trusted Groovy recipes into an ordered batch of file operations. Ingredients model programs' native
 files and configuration; cookbooks supply ingredients and recipes separately from the engine. The CLI accepts recipe
 paths inside the destination repository, `https://` URLs or coordinates.
 
 ```sh
 ./cook ./recipe.groovy
-./cook apply ./recipe.groovy
-./cook apply --batch-approve ./base.groovy --agent=codex ./project.groovy --agent=claude
+./cook --batch-approve ./base.groovy --agent=codex ./project.groovy --agent=claude
 ```
 
 ## Reference
 
 ```text
 ./cook [batch-options] <recipe> [recipe-arguments] [<recipe> [recipe-arguments]]...
-./cook apply [batch-options] <recipe> [recipe-arguments] [<recipe> [recipe-arguments]]...
 ```
 
-Apply is the default. Batch options precede recipe operands; recipe arguments follow their recipe as `--name=value`
-or `--name value`. To review interactively, omit `--batch-approve` and inspect the diff before answering the
-whole-batch prompt. The [CLI reference](cli.md) defines the grammar, operand and option scope.
+Cooking takes no command word. Batch options precede recipe operands; recipe arguments follow their recipe as
+`--name=value` or `--name value`. To review interactively, omit `--batch-approve` and inspect the diff before
+answering the whole-batch prompt. The [CLI reference](cli.md) defines the grammar, operand and option scope.
 
 ## Ordered operations
 
@@ -41,14 +39,14 @@ section, key, or file, the last one wins and becomes its owner; the diff is the 
 combined diff for the whole batch.
 
 Suppose recipe A sets `test = "A"` in `settings.toml` and creates `notes.txt`, and recipe B sets `test = "B"`.
-Applying A followed by B previews B's final value and A's new file, and B owns `test`. Applying B alone after an
-earlier apply of A updates `test`, moves its ownership to B, and leaves `notes.txt` intact. Applying B never removes
-A's output, and omitting a recipe from an invocation leaves its outputs in place. Applying a new version of A removes
-what A's previous version owned and the new version omits, even content someone edited; the diff shows that removal,
-so review deletions as carefully as additions.
+Cooking A followed by B previews B's final value and A's new file, and B owns `test`. Cooking B alone after an
+earlier run that cooked A updates `test`, moves its ownership to B, and leaves `notes.txt` intact. Cooking B never
+removes A's output, and omitting a recipe from an invocation leaves its outputs in place. Cooking a new version of A
+removes what A's previous version owned and the new version omits, even content someone edited; the diff shows that
+removal, so review deletions as carefully as additions.
 
-Every apply invocation evaluates the supplied recipe versions, including an invocation identical to an earlier one.
-Nothing marks a recipe as already applied. An unchanged result has an empty diff.
+Every invocation evaluates the supplied recipe versions, including an invocation identical to an earlier one.
+Nothing marks a recipe as already cooked. An unchanged result has an empty diff.
 
 ## Declared outputs
 
@@ -57,7 +55,7 @@ such as generated configuration, wrapper files, agent instructions, skills, hook
 programs consume those files directly. Recipes may configure a program's own permissions, skills, or hook settings in
 the files that program consumes.
 
-| Target | Address | Effect of apply |
+| Target | Address | Effect of cooking |
 | --- | --- | --- |
 | Whole file | File path | Propose the declared whole-file addition or update |
 | Structured content | File path and key path | Propose the declared key change, preserving unrelated keys |
@@ -100,7 +98,7 @@ A marker names the owning recipe's short name, such as `agentic/context`, follow
 recipe, such as `commands`. Each recipe has a short name that markers and `cook.lock` use. Manual edits within the
 section are included in the next actual diff; ownership never blocks them.
 
-Omitting a recipe from a later apply invocation leaves its section in place; a new version of the recipe that omits
+Omitting a recipe from a later invocation leaves its section in place; a new version of the recipe that omits
 the section removes it. To remove all of a recipe's output, [discard](discard.md) the recipe.
 
 ### Instruction files
@@ -142,5 +140,5 @@ example, when invoked from `/work/project`:
 
 ## Without the lock
 
-Apply does not require `cook.lock`; without a lock entry for a recipe, it removes nothing on that recipe's behalf.
+Cooking does not require `cook.lock`; without a lock entry for a recipe, it removes nothing on that recipe's behalf.
 Discard needs the lock, because the lock is its only record of what a recipe owns.

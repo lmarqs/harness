@@ -20,13 +20,13 @@ define ordered file changes, review, recorded ownership and discard.
 
 1. A recipe is trusted Groovy code that describes requested file operations using program models. Cookbook
    repositories can publish recipes beside ingredients, and projects can supply their own recipe sources.
-2. Each apply evaluates the supplied recipe versions against current content, including repeated
+2. Each run evaluates the supplied recipe versions against current content, including repeated
    invocations. Recipes and their operations compose left to right into one final batch diff; later declarations
-   can replace earlier values. Applying a recipe does not remove outputs another recipe owns. Existing or edited
+   can replace earlier values. Cooking a recipe does not remove outputs another recipe owns. Existing or edited
    targets use the same review and approval flow; recorded ownership never blocks a change.
-3. Users manage recipe versions and supply the version they intend to apply. Each recipe has a short name that
+3. Users manage recipe versions and supply the version they intend to cook. Each recipe has a short name that
    markers and `cook.lock` use, and `cook.lock` records its source, sha256 and owned targets
-   ([0007](0007-ownership.md)). Applying a new version removes what the previous version owned and no longer declares,
+   ([0007](0007-ownership.md)). Cooking a new version removes what the previous version owned and no longer declares,
    including edited values. Discarding a recipe removes what the lock lists for it without evaluating it again.
 4. A recipe's source stays where its user keeps it; Cook keeps no copy of it ([0014](0014-directory-layout.md)).
 5. A recipe describes file operations; it does not launch agents or verify their results. Batch approval and rollback
@@ -38,7 +38,7 @@ define ordered file changes, review, recorded ownership and discard.
   without requiring a closed schema. Models hold program knowledge and recipes choose requested setup. The trade is
   that executable sources require trust before evaluation.
 - **2.** FR-7, FR-8 and FR-25 make supplied declarations and current content authoritative. Review shows the final
-  effect instead of silently skipping an already-applied recipe or removing omitted output. The trade is that a
+  effect instead of silently skipping an already-cooked recipe or removing omitted output. The trade is that a
   later recipe can replace a local value; whole-batch review exposes that change.
 - **3.** FR-14 records what each recipe owns, so a new version's removals follow from the lock rather than from
   reevaluating an earlier version, and FR-15 discards a recipe from the lock alone. The short name ties
@@ -80,7 +80,7 @@ Must be maintained:
 ## Confirmation
 
 - Review against FR-7 and FR-8: if recipe A sets a key and B replaces it, does the final diff show B's result, and does
-  applying B alone leave A's unrelated output intact?
+  cooking B alone leave A's unrelated output intact?
 - Review against FR-15: if a recipe owns a key and a developer then edited another key, does discarding the recipe
   propose removing only its key and keep the edit, without running the recipe?
 - Review a proposed recipe feature against FR-3 and FR-4: does it describe file operations only?
