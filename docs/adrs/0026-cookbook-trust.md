@@ -19,14 +19,11 @@ an inspectable record of the sources actually used.
   ship ingredients and recipes, with builds that can be separate from Cook ([0022](0022-tool-integration.md), FR-2).
 - Recipes are supplied as paths inside the destination repository, as `https://` URLs, or as coordinates of a cookbook
   release ([0029](0029-cookbook-distribution.md)); a local operand or reference
-  outside the repository is refused. Relative references resolve from their original source locations, not from the
-  copies in the batch record (FR-18, FR-22).
+  outside the repository is refused. Relative references resolve from their original source locations (FR-18, FR-22).
 - Engine package verification checks bytes against a committed checksum; it does not alone authenticate the publisher
   or verify cookbook content ([0021](0021-release-trust.md)). A checksum obtained from the same replaceable source as
   an asset cannot independently establish that asset's author or trustworthiness.
-- FR-23 and FR-24 record evaluated recipes and all consumed recipe and template sources, local as well as downloaded,
-  together with origins, arguments, execution order and outcome, in each batch record. `cook.lock` records each
-  applied recipe's source and sha256 (FR-14); users manage recipe versions.
+- `cook.lock` records each applied recipe's source and sha256 (FR-14); users manage recipe versions.
 
 ## Decision
 
@@ -34,10 +31,9 @@ an inspectable record of the sources actually used.
    recipe or ingredient takes. Trust in the source precedes evaluation; approving the resulting batch approves
    declared file changes, not the admission of arbitrary code into a sandbox. Being data-only is not a safety
    guarantee.
-2. The batch record keeps the sources actually evaluated and all consumed recipe and template sources, with their
-   origins, arguments, order and outcome, and preserves original reference resolution when capturing them. The
-   record supports inspection and recovery; it does not authenticate an author or undo arbitrary code side effects.
-   Its layout and rollback follow [0014](0014-directory-layout.md).
+2. `cook.lock` records the source and sha256 of each applied recipe; for coordinates the sha256 covers the
+   artifact's sources. It identifies which version produced the current output; it does not authenticate an author
+   or undo arbitrary code side effects. Cook keeps no copy of the sources ([0014](0014-directory-layout.md)).
 3. Approval of the combined diff before target writes follows [0007](0007-ownership.md).
 4. Engine delivery is verified independently ([0017](0017-engine-version.md), [0021](0021-release-trust.md)). Engine
    checksums do not vouch for cookbook authors or move recipe versions.
@@ -47,10 +43,10 @@ an inspectable record of the sources actually used.
 - **1.** FR-4 explicitly puts recipe code outside batch guarantees. Code can act during evaluation, before a diff
   exists, so output approval cannot establish trust in that code. The trade is reliance on users' source selection and
   code review; the engine promises no protection from a malicious trusted recipe.
-- **2.** A source can change after a batch, and local content matters as much as downloaded content. Capturing the bytes
-  used and their origins makes the declared operation inspectable later and preserves reference meaning. The trade is
-  local storage, which can contain sensitive source material; losing it loses the ability to revert those batches.
-  Capturing sources alone is neither authentication nor a sandbox.
+- **2.** A source can change after a batch. The sha256 lets a reviewer tell whether the source they read is the one
+  that produced the output, and a changed release shows before the diff; the source itself stays with its repository
+  or cookbook, which keeps its history. The trade is that a source that disappears cannot be read again from Cook. A
+  hash alone is neither authentication nor a sandbox.
 - **3.** FR-9 and FR-11 through FR-13 make visible requested changes and explicit approval the write boundary. An
   ownership veto or an import step would add a reconciliation step that the diff makes unnecessary. The trade is that
   edited values can be replaced after review; recovery protects declared writes, not every effect of the supplied code.
@@ -89,21 +85,18 @@ make, and authenticated code would still require trust.
 Costs:
 
 - Users trust sources before execution; declared-operation review and rollback cannot recover arbitrary code effects.
-- Captured sources and recovery patches require local storage and may contain sensitive material.
 - Users manage recipe versions independently of engine package pins; an engine upgrade cannot establish input trust.
 
 Must be maintained:
 
-- Accurate guarantees for package integrity, source trust, source capture and declared-operation approval.
-- Complete consumed recipe and template capture with original origins, separate from `cook.lock`.
+- Accurate guarantees for package integrity, source trust, source identification and declared-operation approval.
 
 ## Confirmation
 
 - Review against FR-18 and FR-22: do a local recipe and an HTTPS recipe both use the invocation directory as
-  destination and keep their original source bases in the batch record, and is a local recipe outside the repository
-  refused?
-- Review against FR-23: does the batch record contain what was consumed, not merely a URL to mutable content?
+  destination and resolve relative references against their original source bases, and is a local recipe outside the
+  repository refused?
+- Review against FR-14: does `cook.lock` record each applied recipe's source and sha256?
 - Review against FR-4 and FR-26: does any document promise that an engine checksum or approval of the diff stops code
   side effects? None may.
-- Review against FR-25: does losing the batch records leave apply available while preventing the revert of a batch
-  whose record is gone?
+- Review against FR-25: does apply stay available without `cook.lock`?

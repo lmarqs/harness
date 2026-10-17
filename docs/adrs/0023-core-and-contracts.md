@@ -12,14 +12,14 @@ write their inputs and results.
 ## Context
 
 - The [architecture](../architecture.md#evaluation-review-and-writes) defines the engine's work: evaluate trusted
-  Groovy recipes, combine ordered file operations, show the final diff, obtain approval, save the
-  [batch record](../features/glossary.md) and perform writes (FR-1, FR-7 through FR-13).
+  Groovy recipes, combine ordered file operations, show the final diff, obtain approval and perform
+  writes (FR-1, FR-7 through FR-13).
 - The invocation directory is the destination. Source references resolve from the referencing recipe's original
-  location, including its URL for HTTPS sources; the batch record preserves that origin. A local recipe or reference
+  location, including its URL for HTTPS sources. A local recipe or reference
   outside the repository is refused (FR-21, FR-22).
-- Apply evaluates supplied recipes against current content and needs neither earlier batch records nor `cook.lock`
-  (FR-25). The committed `cook.lock` records each recipe's ownership (FR-14). Reverting a batch applies its reverse
-  patches rather than reevaluating a recipe (FR-16).
+- Apply evaluates supplied recipes against current content and does not need `cook.lock` (FR-25). The committed
+  `cook.lock` records each recipe's ownership (FR-14). Discard removes what the lock lists for a recipe rather than
+  evaluating it (FR-15).
 - The core proposes the batch and writes and records only the changes it receives as accepted; choosing individual
   changes is a separate interface decision (FR-11).
 - Ingredients model native program files and configuration in cookbooks ([0022](0022-tool-integration.md)).
@@ -38,7 +38,7 @@ write their inputs and results.
 3. The core is independent of any interface and writes and records only the changes it receives as accepted
    ([0007](0007-ownership.md)). The destination is the invocation directory ([0012](0012-write-boundary.md)), not a
    root discovered by walking upward to a configuration directory or by consulting version control.
-4. The batch record follows [0014](0014-directory-layout.md).
+4. What Cook writes in the destination follows [0014](0014-directory-layout.md).
 5. Distribution follows [0017](0017-engine-version.md) and [0021](0021-release-trust.md).
 
 ## Reasons
@@ -51,10 +51,10 @@ write their inputs and results.
   encode responsibilities outside Cook's scope. Ingredient knowledge does not require banning all file-format concepts
   from the core.
 - **3.** FR-11 keeps acceptance outside the core, so another interface can choose individual changes without altering
-  operation rules, and `cook.lock` and the batch record describe only what was written. Upward root discovery could
+  operation rules, and `cook.lock` describes only what was written. Upward root discovery could
   redirect writes away from the invocation directory. The trade is that callers choose the destination by their
   working directory, even when the executable or recipe lives elsewhere.
-- **4, 5.** The batch record and distribution are fixed independently of the internal boundary shape; the linked ADRs
+- **4, 5.** The destination layout and distribution are fixed independently of the internal boundary shape; the linked ADRs
   give their reasons.
 
 ## Rejected alternatives
@@ -82,13 +82,13 @@ Costs:
 Must be maintained:
 
 - Dependency direction and the distinction between recipe choices, file-operation rules and external mechanisms.
-- Independent destination and source resolution and the batch record.
+- Independent destination and source resolution.
 
 ## Confirmation
 
 - Review `core/build.gradle` and `cli/build.gradle`: does the core build still declare no dependency on the CLI, and
   does a change to a core class import nothing from the CLI or from a connection?
-- Review against FR-21 and FR-22: does an HTTPS recipe still target the invocation directory, keep the origin of its
-  relative sources in the batch record, and is a local recipe outside the repository refused?
-- Review against FR-13, FR-25 and FR-16: does apply work without earlier batch records or `cook.lock`, does reversal
-  require the batch record, and does a failed batch keep its batch record after rollback?
+- Review against FR-21 and FR-22: does an HTTPS recipe still target the invocation directory, resolve its relative
+  sources against its URL, and is a local recipe outside the repository refused?
+- Review against FR-13, FR-15 and FR-25: does apply work without `cook.lock`, does discard work from the lock alone,
+  and does a failed batch leave the files as they were after rollback?

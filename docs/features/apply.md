@@ -48,7 +48,7 @@ what A's previous version owned and the new version omits, even content someone 
 so review deletions as carefully as additions.
 
 Every apply invocation evaluates the supplied recipe versions, including an invocation identical to an earlier one.
-Batch records never mark a recipe as already applied. An unchanged result has an empty diff.
+Nothing marks a recipe as already applied. An unchanged result has an empty diff.
 
 ## Declared outputs
 
@@ -101,8 +101,7 @@ recipe, such as `commands`. Each recipe has a short name that markers and `cook.
 section are included in the next actual diff; ownership never blocks them.
 
 Omitting a recipe from a later apply invocation leaves its section in place; a new version of the recipe that omits
-the section removes it. To undo a recipe's output, revert the batches that applied it. [Discard](revert.md#discard)
-is deferred.
+the section removes it. To remove all of a recipe's output, [discard](discard.md) the recipe.
 
 ### Instruction files
 
@@ -116,9 +115,8 @@ recipe's configuration choices.
 2. Display the final combined diff in the terminal.
 3. Ask for approval of the entire batch before changing target files. With `--batch-approve`, display the diff and
    proceed without prompting. Noninteractive execution without that flag does not authorize writes.
-4. Save the [batch record](#batch-record) before the first target write.
-5. Perform the approved writes and update `cook.lock`. On a write failure, roll back changes already made and retain
-   the batch record and failure.
+4. Perform the approved writes and update `cook.lock`. On a write failure, roll back changes already made and report
+   the failure; the files stay as they were.
 
 The core writes and records only accepted changes. The CLI accepts the whole batch, covering all files and hunks;
 choosing individual changes is a separate interface decision.
@@ -142,18 +140,7 @@ example, when invoked from `/work/project`:
 | `recipes/project.groovy` | `../templates/settings.toml` | `templates/settings.toml` | `/work/project/settings.toml` |
 | `https://example.com/recipes/project.groovy` | `../templates/settings.toml` | `https://example.com/templates/settings.toml` | `/work/project/settings.toml` |
 
-## Batch record
+## Without the lock
 
-Each batch has one record in the destination's ignored `.cook/batches/<batchId>/` directory, saved before the first
-target write. The record holds one reversible patch per touched file, `cook.lock` included. Multiple recipes touching
-one file produce one patch for the combined change, and a single patch supports forward and reverse application.
-
-The record also captures all consumed recipe/template sources, including local sources and the recipes actually
-evaluated, with their origins. Recording the origins preserves relative resolution for the captured sources. The
-recipe arguments, execution order, and result or failure log are recorded too. The metadata serialization format
-belongs to the implementation; the concrete patch representation is a separate decision.
-
-Apply requires neither a batch record nor `cook.lock`; without a lock entry for a recipe, it removes nothing on that
-recipe's behalf. Without `.cook/`, earlier batches cannot be reverted, but recipes still apply; ownership survives in
-the committed `cook.lock`. Reverting a batch requires its record; see [revert](revert.md) and
-[architecture: paths and batch records](../architecture.md#paths-source-snapshots-and-batch-records).
+Apply does not require `cook.lock`; without a lock entry for a recipe, it removes nothing on that recipe's behalf.
+Discard needs the lock, because the lock is its only record of what a recipe owns.

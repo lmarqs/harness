@@ -15,7 +15,7 @@ This page places a new capability in one of the destinations below: the engine a
 cookbook, native repository files, a skill or prose, or an external tool. It follows the
 [architecture](../architecture.md); the [glossary](../features/glossary.md) defines its engine terms. Cook evaluates
 trusted Groovy recipes into ordered file operations, presents the combined terminal diff, obtains whole-batch approval,
-records the batch and ownership and writes the declared targets. The CLI is the public cooking interface; Gradle
+records ownership and writes the declared targets. The CLI is the public cooking interface; Gradle
 builds and packages Cook and cookbooks.
 
 A capability may have several parts. Place each by responsibility and effect, rather than assuming every deterministic
@@ -66,7 +66,7 @@ choose declared targets and maintenance sources accordingly.
 
 ## Engine commands and recipe arguments
 
-The engine's commands are apply, revert and `batch` ([CLI reference](../features/cli.md)). A new engine command or flag
+The engine's commands are apply, `discard` and `help` ([CLI reference](../features/cli.md)). A new engine command or flag
 requires its own decision when it changes that scope. Do not add a command for each program or organization, or invent
 a setting that bypasses the agreed review and recovery guarantees, because program and organization choices belong in
 cookbooks. Per-recipe choices use recipe arguments following that recipe
@@ -79,8 +79,8 @@ compose left to right into one combined diff, the last writer of a target become
 removes A's output ([ordered composition](../architecture.md#ordered-composition-and-declared-targets)). Ownership
 never blocks a change.
 
-Revert writes a recorded batch's reverse patches without evaluating recipes again, so reversing a recorded change
-needs no recipe ([revert](../features/revert.md)).
+Discard removes what `cook.lock` lists for a recipe without evaluating it, so removing a recipe's output needs no
+recipe source ([discard](../features/discard.md)).
 
 A recipe is trusted executable code. External command execution is not a batch action. Arbitrary recipe side effects
 remain outside diff approval, output boundaries and rollback.
@@ -125,14 +125,13 @@ evidence should fit the task.
 | Share organization skills | Team-selected installer, recipe or reviewed copies | Choose one maintenance process; native discovery determines loading |
 | Record a lesson or open an issue | Agent or person with appropriate tools | Knowledge and tracker activity need judgment and their own review |
 | Pin or upgrade the Cook engine | Explicit committed wrapper version/checksum change | Engine and cookbook versions are separate choices; see [wrapper](../features/wrapper.md) |
-| Apply setup across repositories | Separate CLI invocations from each destination | Each has its own actual diff, approval, `cook.lock` and batch records; external tools select repositories and deliver changes |
-| Reverse a recorded change | Revert | Reverses one batch's changes; removing a recipe's whole contribution (discard) is deferred |
+| Apply setup across repositories | Separate CLI invocations from each destination | Each has its own actual diff, approval and `cook.lock`; external tools select repositories and deliver changes |
+| Remove a recipe's output | Discard | Removes what the recipe owns; earlier content comes from the repository's history |
 
-## Paths, batch records and distribution
+## Paths and distribution
 
 Each invocation works on one destination, its current working directory, so setup across repositories means one
-invocation per repository ([destination and source origins](../architecture.md#destination-and-source-origins)). Batch
-records stay local to that destination ([batch record](../architecture.md#one-record-for-the-batch)). The engine
+invocation per repository ([destination and source origins](../architecture.md#destination-and-source-origins)). The engine
 version is pinned by the committed wrapper and moves only by an explicit upgrade, separately from cookbook and recipe
 versions ([wrapper](../features/wrapper.md)).
 
@@ -146,7 +145,7 @@ cd /work/repo-a && ./cook apply ./recipe.groovy
 cd /work/repo-b && ./cook apply ./recipe.groovy
 ```
 
-Approval covers a whole batch in one destination, and revert acts on that destination only. Rollback on write failure
+Approval covers a whole batch in one destination, and discard acts on that destination only. Rollback on write failure
 covers the batch in that destination and provides no transaction across repositories. Checking repositories, tracking
 rollout results, running agents, committing, pushing and opening pull requests belong to the maintainer's workflow and
 external tools.
@@ -168,9 +167,9 @@ external tools.
 - Treating batch approval as authorization for arbitrary recipe effects or publication: trusted evaluation and external
   actions have distinct consequences outside the declared batch.
 - Omitting a recipe to delete its previous output: its output is removed only by applying a new version of that
-  recipe that no longer declares it, or by reverting a batch ([apply](../features/apply.md)).
+  recipe that no longer declares it, or by discarding the recipe ([discard](../features/discard.md)).
 - Refreshing recipes or skills automatically when the engine pin moves: engine and cookbook sources are separate
   version choices.
 - Committing credentials in native configuration, skill examples or helper scripts: shared files expose them to
-  everyone with repository access; use the program's credential mechanism and review captured sources and batch
-  records for sensitive content ([credential guidance](configuration-standards.md#no-secrets)).
+  everyone with repository access; use the program's credential mechanism and review sources and diffs for
+  sensitive content ([credential guidance](configuration-standards.md#no-secrets)).

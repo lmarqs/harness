@@ -32,7 +32,7 @@ setup readers encounter.
    ones its previous version owned and no longer declares, even when their content was edited. Removing an ignore
    entry leaves the paths it describes in place.
 4. Stopping use of Cook needs no operation that strips Cook-specific text: native files, their markers and
-   `cook.lock` can stay as they are. Reverting a batch follows [revert](../features/revert.md).
+   `cook.lock` can stay as they are. Removing a recipe's sections and entries is a [discard](../features/discard.md).
 
 ## Reasons
 
@@ -48,8 +48,8 @@ setup readers encounter.
   so their deletion must be reviewed even though it leaves those paths in place. Overlapping declared targets still
   follow order: the last recipe to write a target wins and becomes its owner.
 - **4.** Native files already outlive the configuring invocation. Sorting text into what to keep and what to strip on
-  exit would add cleanup semantics that the agreed apply and revert contract does not need. A reviewer decides whether a
-  particular deletion or reversal leaves instructions that accurately describe the remaining setup.
+  exit would add cleanup semantics that the agreed apply and discard contract does not need. A reviewer decides whether
+  a particular deletion leaves instructions that accurately describe the remaining setup.
 
 ## Rejected alternatives
 

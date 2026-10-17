@@ -12,7 +12,7 @@ keeping their preferred programs and control over how they work.
 ## Context
 
 - The [architecture](../architecture.md#scope-and-responsibilities) assigns Cook the evaluation of
-  [recipes](../features/glossary.md), batch review, the batch record and file writes. Ingredients model native program
+  [recipes](../features/glossary.md), batch review and file writes. Ingredients model native program
   files; cookbooks hold and ship those models and recipes.
 - Programs consume their own native configuration. Configuring a coding agent or editor does not require Cook to run
   it or to control its workflow.
@@ -24,7 +24,7 @@ keeping their preferred programs and control over how they work.
 ## Decision
 
 1. Cook evaluates trusted Groovy recipes into an ordered batch of file operations, presents the combined diff,
-   obtains whole-batch approval, records the batch and performs the declared writes.
+   obtains whole-batch approval and performs the declared writes.
 2. Ingredients model a program's native files and configuration. Cookbook repositories hold and ship ingredients and
    recipes, with builds that can be separate from the engine build. Cook's role remains file operations across
    programs.
@@ -38,7 +38,7 @@ keeping their preferred programs and control over how they work.
 ## Reasons
 
 - **1.** The acme example needs a shared way to propose configuration changes, not a shared runner. A combined diff
-  makes the requested result reviewable against current content; the batch record supports reversal of the writes.
+  makes the requested result reviewable against current content.
   The trade: Cook does not determine whether the resulting setup is the best workflow for the team.
 - **2.** Program configuration changes on each program's schedule. Cookbook-maintained models let authors update that
   knowledge separately from the engine's review and writing logic. The trade: cookbook authors maintain compatibility
@@ -77,7 +77,7 @@ Must be maintained:
 ## Confirmation
 
 - Does the [architecture](../architecture.md#scope-and-responsibilities) assign the engine only recipe evaluation,
-  review, the batch record and writes (FR-1), with batches of file operations (FR-3)?
+  review and writes (FR-1), with batches of file operations (FR-3)?
 - Do the approval and recovery claims in the documentation apply only to declared operations (FR-4)?
 - Does a proposed engine change run a model, hold provider credentials or impose stages on a team's work? Such a
   change falls outside the role this decision gives Cook.

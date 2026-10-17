@@ -1,8 +1,7 @@
 # Cook architecture
 
 Cook is a recipe driven configuration engine. It evaluates trusted Groovy [recipes](features/glossary.md) into an
-ordered batch of file operations, presents the resulting diff, obtains approval, records the batch, and performs the
-writes.
+ordered batch of file operations, presents the resulting diff, obtains approval, and performs the writes.
 
 This document states the intended architecture. Supporting design and reference documents follow it; descriptions of
 the current implementation belong in the [root README](../README.md) and [core implementation guide](../core/README.md).
@@ -17,7 +16,7 @@ and recipes that describe the setup.
 
 | Area | Responsibility | Requirement |
 | --- | --- | --- |
-| Cook engine | Evaluate trusted Groovy recipes, assemble their ordered file operations, present the diff, obtain approval, record the batch, and perform the writes. | FR-1 |
+| Cook engine | Evaluate trusted Groovy recipes, assemble their ordered file operations, present the diff, obtain approval, and perform the writes. | FR-1 |
 | Ingredients and cookbooks | Model programs' native files and configuration in ingredients; hold and ship ingredients and recipes through cookbook repositories, with builds that can be separate from Cook's build. | FR-2 |
 | Batch | Contain file operations, including directory and symlink operations where applicable. | FR-3 |
 | Trust boundary | Govern declared batch operations with approval, output boundaries, and rollback. Recipe execution is trusted code, outside any sandbox guarantee. | FR-4 |
@@ -63,14 +62,13 @@ flowchart TD
     batch["Compose file operations in declared order"]
     diff["Present the final batch diff"]
     approval{"Changes accepted?"}
-    recovery["Save the batch record before the first target write"]
     write["Write the accepted changes and update cook.lock"]
     result{"Writes succeeded?"}
-    done["Record success"]
-    rollback["Roll back changes already made; retain the batch record and failure"]
+    done["Report the written files"]
+    rollback["Roll back changes already made; report the failure"]
     stop["Do not write"]
     evaluate --> batch --> diff --> approval
-    approval -->|"Yes"| recovery --> write --> result
+    approval -->|"Yes"| write --> result
     approval -->|"No"| stop
     result -->|"Yes"| done
     result -->|"No"| rollback
@@ -143,7 +141,7 @@ More unrelated text stays in place.
 
 ```gitignore
 # cook:begin git#ignore
-/.cook/
+/.claude/settings.local.json
 # cook:end git#ignore
 ```
 
@@ -155,8 +153,7 @@ change (FR-9).
 ### Batch approval and failure recovery
 
 The core proposes the batch and writes only the changes it receives as accepted. It records only accepted changes in
-`cook.lock` and in the batch record, so the lock and `revert` always describe what was written. The core is
-independent of any interface (FR-5).
+`cook.lock`, so the lock always describes what was written. The core is independent of any interface (FR-5).
 
 The CLI displays the final diff in the terminal and accepts the whole batch. Above the diff it displays each applied
 recipe's `@confirm` text, under the recipe's address; one question covers the texts and the diff. Without
@@ -164,8 +161,8 @@ preapproval, it asks before changing target files. With `--batch-approve`, it di
 proceeds without prompting. Noninteractive execution without that flag does not silently authorize writes (FR-12).
 After the writes succeed, it prints each applied recipe's `@yield` text under the recipe's address (FR-28).
 
-Save the batch record before the first target write. If a write fails, roll back changes already made by the batch
-and retain the batch record and failure (FR-13).
+If a write fails, roll back changes already made by the batch and report the failure, so the files stay as they were
+(FR-13).
 
 ## Ownership and the lock
 
@@ -210,39 +207,35 @@ Apply works without the lock. When the lock is missing or names no entry for a r
 usual and shows the diff; it has no previous ownership to compare against, so it removes nothing on the recipe's
 behalf (FR-25).
 
-## Apply, discard, and revert
+## Apply and discard
 
 **Apply** evaluates the supplied recipes and proposes their declared additions and updates, together with the removal
-of what each recipe owned before and no longer declares.
+of what each recipe owned before and no longer declares. Every apply evaluates the supplied recipe versions against
+current content, even after an identical earlier invocation; an unchanged result produces an empty diff (FR-25).
 
-**Revert** reverses one recorded batch. It applies the batch's reverse patches against current content and does not
-evaluate recipes again. Later edits to other parts of the same files survive. If a later edit overlaps a change the
-batch made, the revert writes nothing and lists each conflicting file with the batch's hunk that no longer matches;
-resolve those and run it again.
-`cook.lock` is one of the files a batch touches, so reverting a batch also restores the ownership it changed (FR-16).
+**Discard** removes what `cook.lock` lists for each named recipe, without evaluating it: a marked section together
+with its markers, a key, a whole file or a link. A file left empty is deleted, and the recipe's entry leaves the lock;
+a lock that lists no recipe is deleted. Content the recipe does not own stays, including other recipes' sections,
+hand-written text and files a seed wrote on the recipe's first apply. Discard removes; it does not restore the values
+the recipe replaced, because the repository's history already holds them (FR-15).
 
-For example, an apply batch changes `test` in `settings.toml` from `old` to `new`, and a later edit changes `other`.
-Reverting that batch proposes:
+For example, when `CLAUDE.md` holds a hand-written line above the section `dev.thecook:agents:instructions` owns,
+discarding that recipe proposes:
 
 ```diff
---- a/settings.toml
-+++ b/settings.toml
-@@ -1,2 +1,2 @@
--test = "new"
-+test = "old"
- other = "edited"
+--- a/CLAUDE.md
++++ b/CLAUDE.md
+@@ -1,4 +1,1 @@
+ Hand-written notes stay.
+-<!-- cook:begin dev.thecook:agents:instructions#instructions -->
+-@AGENTS.md
+-<!-- cook:end dev.thecook:agents:instructions#instructions -->
 ```
 
-If the later edit had changed `test` instead, the revert would refuse and name `settings.toml` with the batch's hunk
-that wrote `test = "new"`.
+Discard follows the same diff, whole-batch approval and failure rollback as apply. To get back content from before an
+apply, use the repository's version control.
 
-**Discard**, which removes everything the lock lists for a recipe across all the batches that wrote it, is deferred
-(FR-15). To remove a recipe's contribution, revert the batches that applied it, or remove its sections and keys by
-hand.
-
-## Paths, source snapshots, and batch records
-
-### Destination and source origins
+## Destination and source origins
 
 The invocation's current working directory is the destination, regardless of where the Cook executable lives. Cook
 never searches parent directories or asks version control for the destination
@@ -274,36 +267,11 @@ output. These are alternative invocations with the same destination:
 | `cookbook/recipes/project.groovy` | `cookbook/recipes/base.groovy` | `cookbook/templates/settings.toml` | `settings.toml` |
 | `https://example.com/cookbook/recipes/project.groovy` | `https://example.com/cookbook/recipes/base.groovy` | `https://example.com/cookbook/templates/settings.toml` | `settings.toml` |
 
-### One record for the batch
-
-Each batch has one record in the destination's ignored `.cook/batches/<batchId>/` directory. The batch ID is the UTC
-time the batch started writing, after approval, such as `2026-10-14T15-04-05Z`, with a suffix when two batches start in the same second. The
-record holds (FR-23):
-
-- One reversible patch per touched file, describing the combined change to that file, `cook.lock` included.
-- Snapshots of the recipe sources evaluated and of the recipe and template sources they consumed, with their
-  origins.
-- The recipe arguments and execution order.
-- The result or failure log.
-
-If several recipes touch the same file, the batch keeps one patch for the combined change, and that patch serves both
-forward and reverse application (FR-24). [Batch approval and failure recovery](#batch-approval-and-failure-recovery)
-states when the record is saved and what a failed write retains (FR-13).
-
-### Batch record availability
-
-Every apply invocation evaluates the supplied recipe versions against current content, even after an identical
-earlier invocation; an unchanged result produces an empty diff (FR-25).
-
-Batch records are local. Reverting a batch requires its record, so earlier batches cannot be reverted once `.cook/`
-is lost; apply keeps working, and ownership survives in the committed `cook.lock`. See
-[revert](features/revert.md) for details.
-
 ## Command line and build boundary
 
 The CLI is the public cooking interface, and Gradle builds and packages Cook and cookbooks (FR-5). The commands are
-apply (the default), revert of one recorded batch, and read-only batch listing and inspection; batch options precede
-the first recipe operand, and recipe arguments follow their recipe. The [CLI reference](features/cli.md) defines the
+apply (the default), discard and help; batch options precede the first recipe operand, and recipe arguments follow
+their recipe. The [CLI reference](features/cli.md) defines the
 syntax, recipe operands, argument scope, and batch options (FR-17 through FR-20).
 
 ## Engine distribution
@@ -339,7 +307,7 @@ Other documents cite these requirements by number.
 ### Responsibilities and scope
 
 - **FR-1:** Cook evaluates trusted Groovy recipes into an ordered batch of file operations. Cook presents the
-  resulting diff, obtains approval, records the batch, and performs the writes.
+  resulting diff, obtains approval, and performs the writes.
 - **FR-2:** Ingredients model a program's native files and configuration, such as Git's ignore file or Codex's
   configuration and skills. Cookbooks hold and ship ingredients and recipes through their repositories; their builds
   can be separate from Cook's build.
@@ -362,63 +330,53 @@ Other documents cite these requirements by number.
 - **FR-10:** Whole-file targets use file paths; structured targets use key paths; sections in shared text files use
   `cook:begin <recipe>#<region>` and `cook:end <recipe>#<region>` markers in the file format's comment syntax,
   including HTML comments for Markdown.
-- **FR-11:** The core proposes the batch, writes only the accepted changes, and records only those in `cook.lock` and
-  the batch record.
+- **FR-11:** The core proposes the batch, writes only the accepted changes, and records only those in `cook.lock`.
 - **FR-12:** The CLI displays the final diff in the terminal, preceded by each applied recipe's `@confirm` text, and
   accepts the whole batch. Without preapproval, it asks before changing target files. With `--batch-approve`, it
   displays the texts and the diff and proceeds without prompting. Noninteractive execution without this flag does not
   silently authorize writes.
-- **FR-13:** Save the batch record before the first target write. On a write failure, roll back changes already made
-  by the batch and retain the record and failure.
+- **FR-13:** On a write failure, roll back changes already made by the batch and report the failure.
 - **FR-28:** After the writes succeed, the CLI prints each applied recipe's `@yield` text. A declined or failed batch
   prints none.
 
-### Ownership, discard, and revert
+### Ownership and discard
 
 - **FR-14:** The repository commits `cook.lock`, a YAML file at its root. For each applied recipe it records the short
   name, the source as a repository-relative path, an `https://` URL or coordinates, the source's sha256 (for
   coordinates, of the artifact's sources), and the owned sections, keys, files and links. It records no recipe
   arguments.
-- **FR-15:** Discarding a recipe removes what `cook.lock` lists for it, without evaluating the recipe. Discard is
-  deferred until a concrete need.
-- **FR-16:** Reverting a batch applies its reverse patches against current content without evaluating recipes. Later
-  edits that do not overlap the batch's changes survive. An overlapping edit makes the revert write nothing and list
-  each conflicting file with the batch's hunk that no longer matches.
+- **FR-15:** Discarding recipes removes what `cook.lock` lists for each, without evaluating them: a section with its
+  markers, a key, a whole file or a link, deleting a file left empty, and drops each recipe's lock entry. It restores
+  no earlier value. A recipe the lock does not list is refused.
 
 ### CLI grammar
 
 - **FR-17:** The commands are `./cook [apply] [batch-options] <recipe> [recipe-arguments]...`,
-  `./cook revert [batch-options] <batchId>`, `./cook batch list`, `./cook batch inspect <batchId>`, and
-  `./cook help [<recipe>]...`. `apply` is the default. With no arguments, `help` alone, or `--help` alone, show the
-  usage. `help` prints each recipe's help from its source without running it. A first operand of exactly `apply`,
-  `revert`, `batch`, or `help` selects a command; a recipe file with one of those names is supplied as a path, such as
-  `./revert`.
+  `./cook discard [batch-options] <recipe>...`, and `./cook help [<recipe>]...`. `apply` is the default. With no
+  arguments, `help` alone, or `--help` alone, show the usage. `help` prints each recipe's help from its source without
+  running it. A first operand of exactly `apply`, `discard`, or `help` selects a command; a recipe file with one of
+  those names is supplied as a path, such as `./discard`.
 - **FR-18:** Recipe operands are paths inside the destination repository, `https://` URLs, or coordinates
   `group:artifact:version[:recipe]` resolved from the repositories the destination's `cook.toml` lists. A word is a
   recipe operand when it contains `/` or `:` or ends with `.groovy`, as `recipe.groovy` does; a recipe file with none
   of these marks is given with `./`, such as `./notes`.
-- **FR-19:** Batch options precede recipe operands, or the batch ID for `revert`. Recipe arguments follow their recipe
+- **FR-19:** Batch options precede recipe operands. Recipe arguments follow their recipe
   as `--name=value` or `--name value`, including shell-quoted values. After `--name`, the next word is its value unless
   it is a recipe operand, so a value that looks like an operand is written with `=`. A yes-or-no param is a bare
   `--name`, or `--name=false`, and takes no separate value. A recipe appears once per invocation. A misplaced batch
-  option after a recipe receives the normal unknown-option error.
+  option after a recipe receives the normal unknown-option error. Discard takes recipes without arguments.
 - **FR-20:** `--batch-approve` is the only preapproval spelling.
 
-### Paths and batch records
+### Paths
 
 - **FR-21:** The current working directory is the destination, regardless of the executable location. Declared writes
   and deletions stay within that directory, including paths resolved through symlinks.
 - **FR-22:** Relative references to recipes and templates resolve from the referencing recipe's location: inside the
   repository for local recipes, against the source URL for remote ones. A local operand or reference outside the
   repository is refused.
-- **FR-23:** Each batch has a record in the ignored `.cook/batches/<batchId>/` directory, where the batch ID is the UTC
-  start time. The record holds one reversible patch per touched file, the evaluated and consumed sources with their
-  origins, the arguments, the execution order, and the result or failure log.
-- **FR-24:** A single patch supports forward and reverse application. The metadata serialization format and storage
-  schema belong to the implementation.
-- **FR-25:** Apply requires neither batch records nor `cook.lock`. Every invocation evaluates the supplied recipes
-  against current content; a batch record never marks a recipe as already applied. Without a lock entry, apply removes
-  nothing on a recipe's behalf. Reverting a batch requires its record.
+- **FR-25:** Apply does not require `cook.lock`. Every invocation evaluates the supplied recipes against current
+  content; nothing marks a recipe as already applied. Without a lock entry, apply removes nothing on a recipe's
+  behalf.
 
 ### Distribution and documentation authority
 
@@ -431,4 +389,4 @@ Other documents cite these requirements by number.
 ## Outside this design
 
 Configuring a loop runner or an agent through native files does not place its execution under Cook's control. A
-text-based interface that chooses individual changes, and the concrete patch representation, are separate decisions.
+text-based interface that chooses individual changes is a separate decision.

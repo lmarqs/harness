@@ -11,7 +11,7 @@ for the implementation they can run today.
 ## Overview
 
 Cook evaluates trusted executable Groovy [recipes](glossary.md) into an ordered batch of file operations, shows one
-combined terminal diff, obtains approval for the whole batch, saves the batch record before target writes and performs
+combined terminal diff, obtains approval for the whole batch and performs
 the writes. Ingredients model programs' native files, cookbook repositories hold and distribute ingredients and
 recipes separately from the engine, and programs consume the resulting files directly. The CLI is the public cooking
 interface.
@@ -24,12 +24,12 @@ sketches how recipes and ingredients are written and distributed.
 
 ## Reading path
 
-1. [Architecture](../architecture.md): responsibilities, ordered composition, ownership, batch records and
+1. [Architecture](../architecture.md): responsibilities, ordered composition, ownership, discard and
    distribution.
 2. [Glossary](glossary.md): the terms used throughout these pages.
 3. [CLI reference](cli.md): the commands and their arguments.
 4. [Apply](apply.md): what applying recipes proposes and records.
-5. [Revert](revert.md): how a recorded batch is reversed.
+5. [Discard](discard.md): how a recipe's output is removed.
 6. [Wrapper](wrapper.md): how a repository pins and obtains the engine.
 7. [Pitfalls](pitfalls.md): traps in permissions, recipe trust, paths, ordered changes and recovery.
 
@@ -38,9 +38,9 @@ sketches how recipes and ingredients are written and distributed.
 | Page | Subject |
 | --- | --- |
 | [Glossary](glossary.md) | The single list of Cook's terms |
-| [CLI reference](cli.md) | Apply, revert and batch grammar, recipe operands, recipe arguments and batch approval |
-| [Apply](apply.md) | Ordered file, key and marker contributions, ownership, review, source paths and the batch record |
-| [Revert](revert.md) | Reversing a recorded batch's changes; discard is deferred |
+| [CLI reference](cli.md) | Apply, discard and help grammar, recipe operands, recipe arguments and batch approval |
+| [Apply](apply.md) | Ordered file, key and marker contributions, ownership, review and source paths |
+| [Discard](discard.md) | Removing what a recipe owns, without evaluating it |
 | [Wrapper](wrapper.md) | Version and checksum pinning, first-use download and cache, explicit upgrades and the current launcher |
 | [Pitfalls, gaps and traps](pitfalls.md) | Symptoms, causes, Cook's responsibility and what to review |
 | [This repository's agent setup](agentic-dogfood.md) | How this checkout applies its own agent recipes with the current CLI |

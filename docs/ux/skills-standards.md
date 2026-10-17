@@ -111,8 +111,8 @@ infer preapproval merely because an agent is driving the command: use `--batch-a
 intended, because noninteractive execution alone does not authorize writes
 ([CLI approval](../features/cli.md#batch-options-and-approval)).
 
-Reverting a batch reverses its file changes only; actions an agent took after reading the skill stay in place
-([revert](../features/revert.md)).
+Discarding a recipe removes its file contributions only; actions an agent took after reading the skill stay in place
+([discard](../features/discard.md)).
 
 Trust the recipe source before evaluation. Recipes are executable Groovy; approval and recovery govern declared
 batch changes, not arbitrary effects of recipe code. A skill or native permission setting is not a sandbox supplied

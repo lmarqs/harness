@@ -20,21 +20,21 @@ programs consume native files, often inside the repository. Reusing their setup 
 
 - A useful configuration change reaches another repository only when someone copies it, and the copies drift.
 - Replacing a shared file can erase unrelated settings or changes someone made by hand.
-- Hidden changes make it hard to judge what applying or reverting setup will do.
+- Hidden changes make it hard to judge what applying or discarding setup will do.
 - Coupling program-specific configuration to the engine makes each program's evolution an engine concern.
 
 ## The goals
 
 - Reuse configuration through recipes and ingredients maintained in cookbook repositories.
 - Review the combined effect of the requested changes against current content before approving writes.
-- Preserve unrelated content when applying recipes or reverting batches.
+- Preserve unrelated content when applying or discarding recipes.
 - Let configured programs consume their native files directly.
 - Keep the engine's responsibilities bounded so cookbooks can evolve separately.
 
 ## What `the-cook` is
 
 Cook is a recipe driven configuration engine: its CLI evaluates trusted Groovy recipes into an ordered batch of file
-operations, shows the resulting diff, obtains approval, records the batch and the ownership in `cook.lock`, and
+operations, shows the resulting diff, obtains approval, records the ownership in `cook.lock`, and
 performs the writes, while cookbook repositories carry the ingredients and recipes for program-specific setup. The
 [architecture](architecture.md) states the full design, and the
 [current implementation](../README.md#current-implementation) describes what runs today.
@@ -85,13 +85,13 @@ the diff is the only notice. See [ordered composition](architecture.md#ordered-c
 
 ### Make recovery part of writing
 
-**Problem.** A failed write can leave only part of the approved change, and a later revert can be confused with
-restoring the past.
+**Problem.** A failed write can leave only part of the approved change, and removing a recipe's output can be
+confused with restoring the past.
 
-**Tenet.** Save the batch record before the first target write, so a failed batch rolls back, and let revert reverse
-exactly one recorded batch against current content, writing nothing when a later edit overlaps it. See
-[batch approval and failure recovery](architecture.md#batch-approval-and-failure-recovery) (FR-13, FR-16, FR-25),
-[apply](features/apply.md) and [revert](features/revert.md).
+**Tenet.** Roll back a failed batch so the files stay as they were. Discard removes exactly what a recipe owns and
+restores nothing; earlier content belongs to the repository's history. See
+[batch approval and failure recovery](architecture.md#batch-approval-and-failure-recovery) (FR-13, FR-15, FR-25),
+[apply](features/apply.md) and [discard](features/discard.md).
 
 ### Let native configuration stand on its own
 

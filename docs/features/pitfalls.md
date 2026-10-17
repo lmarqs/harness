@@ -201,7 +201,7 @@ commands in its task runner. These are project choices, and the programs that co
 - **Symptom.** A check succeeds while the change remains untested.
 - **Why.** A runner may accept a selection that matches no tests; passing unrelated tests provides no relevant evidence.
 - **Cook's responsibility.** Recipes can configure check commands and instructions; Cook does not verify test
-  selection or results. A batch record's result or failure log concerns Cook's file patches and is not proof that a
+  selection or results. Cook's report of written files concerns its own file operations and is not proof that a
   project's checks passed.
 - **What you do.** Name the check commands in instructions and explain which changes they exercise. Select tests that
   exercise the change, configure the runner's no-match behavior, and report which checks ran and which could not run,
@@ -211,11 +211,11 @@ commands in its task runner. These are project choices, and the programs that co
 
 ### Tool globs pick up temporary files
 
-- **Symptom.** A linter, test runner or editor scans batch records or nested working copies.
+- **Symptom.** A linter, test runner or editor scans nested working copies.
 - **Why.** A tool's include patterns may not honor version-control ignore rules.
-- **Cook's responsibility.** Keep batch records in the destination's ignored `.cook/`. Recipes may declare other
-  native exclusions.
-- **What you do.** Review each tool's exclusions for `.cook/` and any temporary working-copy directories.
+- **Cook's responsibility.** Write no local state of its own outside declared targets and `cook.lock`. Recipes may
+  declare native exclusions.
+- **What you do.** Review each tool's exclusions for temporary working-copy directories.
 
 ### Working copies inherit parent configuration and share services
 
@@ -223,7 +223,7 @@ commands in its task runner. These are project choices, and the programs that co
 - **Why.** Programs may search parent directories for configuration, dependencies or tracker data, while separate
   directories still share machine services.
 - **Cook's responsibility.** Write the declared file setup. Invoked inside a separate working copy, Cook treats that
-  working copy as the destination: declared writes stay within it, and its ignored `.cook/` holds its batch records.
+  working copy as the destination: declared writes stay within it.
 - **What you do.** Prepare dependencies in the intended working copy and configure unique service names or external
   locks where needed. Document dependency preparation and relevant tool behavior with the repository's working-copy
   convention, for example a `.worktrees/` location in contributor instructions with a matching ignore entry and
@@ -245,8 +245,8 @@ commands in its task runner. These are project choices, and the programs that co
 - **Symptom.** A recipe cannot find a template, or consumes a different source after it is copied elsewhere.
 - **Why.** Relative recipe/template references resolve from the referencing recipe's original location or source URL.
   A local recipe or reference outside the repository is refused.
-- **Cook's responsibility.** Capture consumed sources and record their origins, which preserves relative resolution
-  when the sources are snapshotted.
+- **Cook's responsibility.** Resolve each relative reference from the referencing recipe's origin, and refuse a local
+  one outside the repository.
 - **What you do.** Review origins and referenced sources when relocating recipes. The executable's location does not
   choose the destination. See [source paths](apply.md#destination-and-source-paths).
 
@@ -269,23 +269,22 @@ commands in its task runner. These are project choices, and the programs that co
 - **What you do.** Review the proposed result and adjust declarations or recipe inputs if needed. Omitting an earlier
   recipe does not withdraw its unrelated contributions. See [apply](apply.md).
 
-### Revert refuses after an overlapping edit
+### Discard removes an edited section
 
-- **Symptom.** Reverting a batch that changed `test` from `old` to `new` writes nothing after a manual edit to `test`.
-- **Why.** Revert uses the batch's reverse patches against current content without reevaluating recipes. A later
-  edit that overlaps the batch's changes conflicts with them.
-- **Cook's responsibility.** Write nothing and list each conflicting file with the batch's hunk that no longer
-  matches.
-- **What you do.** Resolve the listed conflicts, then revert again. See [revert](revert.md).
+- **Symptom.** Discarding a recipe removes a section or key that someone edited by hand.
+- **Why.** Discard removes what `cook.lock` lists for the recipe; ownership never blocks a change.
+- **Cook's responsibility.** Show the removal in the diff for whole-batch approval.
+- **What you do.** Review the diff before approving. Move content you want to keep outside the recipe's markers
+  first. See [discard](discard.md).
 
-### A lost batch record prevents reversal of that batch
+### Discard does not bring back earlier values
 
-- **Symptom.** A batch cannot be reverted after its `.cook/batches/<batchId>/` record is lost.
-- **Why.** Its reverse patches come from that [batch record](../architecture.md#one-record-for-the-batch).
-- **Cook's responsibility.** Apply needs neither batch records nor `cook.lock`; ownership survives in the committed
-  `cook.lock`.
-- **What you do.** Retain the batch records you may need and inspect failure records. Do not expect file reversal to
-  undo external program activity. See [history availability](../architecture.md#batch-record-availability).
+- **Symptom.** After discarding a recipe that changed `test` from `old` to `new`, the `test` key is gone rather than
+  back to `old`.
+- **Why.** Discard removes what the recipe owns; it keeps no copy of what the recipe replaced.
+- **Cook's responsibility.** Remove only owned content and leave everything else as it is.
+- **What you do.** Restore earlier content from the repository's history, for example with `git revert` of the
+  commit that applied the recipe. Do not expect file changes to undo external program activity.
 
 ## Versions and the wrapper
 

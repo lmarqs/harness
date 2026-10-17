@@ -3,11 +3,12 @@
 ## Objective
 
 **Problem.** Developers share configuration with other people and tools. An update can erase a manual change, output
-that a recipe stops declaring can linger after the recipe changes, and undoing one operation is a different request from
-changing what a recipe declares.
+that a recipe stops declaring can linger after the recipe changes, and removing everything a recipe produced is a
+different request from changing what it declares.
 
 **Goal.** Developers see the actual additions, updates and deletions before approving them, while unrelated content
-stays intact, every clone agrees on which recipe produced which output, and a recorded operation can be reversed.
+stays intact, every clone agrees on which recipe produced which output, and a recipe's output can be removed without
+disturbing anything else.
 
 ## Context
 
@@ -19,7 +20,7 @@ stays intact, every clone agrees on which recipe produced which output, and a re
   rule stay local to one clone.
 - Worked example: in `acme/api`, version 1 of a recipe changes a configuration key from `old` to `new` and adds a
   marked section of build commands. Version 2 declares the key but not the section. A developer then changes the key to
-  `custom`.
+  `custom`, and later stops using the recipe.
 
 ## Decision
 
@@ -39,24 +40,16 @@ stays intact, every clone agrees on which recipe produced which output, and a re
 4. Ownership decides what a recipe's later versions update and remove; it never blocks a change. Existing or manually
    edited targets follow the same batch diff and approval flow as any other change.
 5. The core proposes the final combined diff, writes only the changes it receives as accepted, and records only those
-   in `cook.lock` and the batch record. The CLI displays that diff in the terminal and accepts the whole batch.
+   in `cook.lock`. The CLI displays that diff in the terminal and accepts the whole batch.
    Preapproval still displays the diff; noninteractive execution alone does not authorize writes. Choosing individual
    changes is a separate interface decision.
-6. Reverting a batch applies its reverse patches against current content without evaluating recipes. Later edits that
-   do not overlap the batch's changes survive; an overlapping edit makes the revert write nothing and list each
-   conflicting file and section. `cook.lock` is one of the files a batch touches, so revert also restores the
-   ownership the batch changed. Discarding a recipe, which removes what `cook.lock` lists for it without evaluating it,
-   is deferred until a concrete need.
-7. Apply requires neither earlier batch records nor `cook.lock`. Each invocation evaluates supplied recipes again; a
-   batch record never skips a recipe as already applied. An unchanged result may have an empty diff.
-8. Each batch has one batch record in the ignored `.cook/batches/<batchId>/` directory, where the batch ID is the UTC
-   start time.
-   - The record holds one reversible patch per touched file, `cook.lock` included, the evaluated and consumed recipe
-     and template sources with their origins, arguments, order, and result or failure log.
-   - The record is saved before the first target write. On a write failure, Cook rolls back prior batch changes and
-     retains the record and failure.
-   - Reverting a batch requires its record; losing `.cook/` does not prevent apply, and ownership survives in
-     `cook.lock`.
+6. Discarding recipes removes what `cook.lock` lists for each, without evaluating them: a section with its markers, a
+   key, a whole file or a link. A file left empty is deleted, and each recipe's entry leaves the lock. Discard restores
+   no value the recipe replaced. It follows the same diff and whole-batch approval as apply.
+7. Apply does not require `cook.lock`. Each invocation evaluates supplied recipes again; nothing skips a recipe as
+   already applied. An unchanged result may have an empty diff.
+8. Cook keeps no history of its own. `cook.lock` is its only record; on a write failure, Cook rolls back the batch's
+   completed writes in place and reports the failure. Earlier content lives in the repository's version control.
 
 The trust limits of these guarantees follow [0011](0011-safety-invariants.md), and the destination boundary follows
 [0012](0012-write-boundary.md).
@@ -75,25 +68,25 @@ The trust limits of these guarantees follow [0011](0011-safety-invariants.md), a
   Comparing the new declarations with the recorded ownership answers that, and only a record of the previous version's
   targets can supply that comparison. Committing the record gives every clone the same answer and puts ownership changes
   in pull-request review; key paths and whole files carry no markers, so markers alone cannot hold it. The lock lists
-  the targets each recipe owns, and reading that ownership needs no arguments; the batch record keeps the arguments
-  (point 8). The trade: a generated file to commit and review.
+  the targets each recipe owns, and reading that ownership needs no arguments. The trade: a generated file to commit
+  and review.
 - **4.** Reviewing the actual diff exposes a manual edit that a requested update would replace. Approval makes that
   choice explicit; a veto would block the developer's intended change, and a separate step to bring existing content
   under Cook before changing it would add a second contract for content the diff already shows.
-- **5.** Recording only accepted changes keeps `cook.lock` and the batch record describing what was written, whatever
+- **5.** Recording only accepted changes keeps `cook.lock` describing what was written, whatever
   interface collected the acceptance. Whole-batch acceptance keeps the CLI's contract simple. The trade: a CLI user
   cannot accept only selected files or hunks.
-- **6.** In the worked example, reverting the version 1 batch would restore `old`, but the developer's `custom` overlaps
-  that change, so the revert lists the key and writes nothing instead of erasing the edit. Reverse patches restore
-  the batch's own changes without depending on recipe code that may have changed. Discard needs no record beyond
-  `cook.lock`, so deferring it costs no information. The trade: until discard exists, stopping a recipe means
-  reverting its batches or editing its output by hand.
+- **6.** In the worked example, the developer who stops using the recipe wants its key and section gone, and nothing
+  else. The lock already names exactly those targets, so discard needs no recipe code, which may have changed or
+  disappeared, and no record beyond the lock. Cook owns content, not files: a file it created only to hold that
+  content has no reason to stay once the content goes. The trade: the developer's `custom` value goes with the key,
+  and the diff is the only notice.
 - **7.** Current declarations and content suffice for a new proposal; a missing lock only means no previous ownership
   to compare. A record of earlier evaluation cannot determine what a recipe requests now.
-- **8.** Recovery needs the batch's actual prior values. A combined patch per file captures overlapping instructions as
-  one result. Saving the record before writes supports rollback after partial failure, at the cost of local storage and
-  a requirement to retain the record for later reversal. The batch record serves recovery in one clone, not shared
-  review, so it stays ignored.
+- **8.** The repository's version control already holds every earlier version of the files Cook writes, with tools
+  to restore, compare and merge them. A second history inside Cook would duplicate that, with weaker tools and one
+  clone's view. Rollback after a partial failure needs only the prior content of the batch's own files, which Cook
+  holds in memory while it writes. The trade: content that was never committed can be restored only by hand.
 
 ## Rejected alternatives
 
@@ -114,10 +107,17 @@ refusal blocks a developer's intended change.
 At its best, the repository then matches exactly the recipes in the latest invocation. It loses because a request to
 apply one recipe would delete every other recipe's output, turning omission into an unreviewed deletion request.
 
-### Revert by evaluating an earlier recipe version
+### Record each batch and reverse it later
 
-At its best, a revert then needs no stored patches. It loses because recipe code and its inputs change, the earlier
-version may be unavailable, and evaluating it would overwrite later edits rather than detect the overlap.
+At its best, a stored reverse patch per batch restores the exact values a batch replaced, keeping later edits beside
+them. It loses because it rebuilds version control inside Cook: patches, conflict detection and history, kept in one
+clone and lost with it, while the repository already restores earlier content with better tools.
+
+### Restore replaced values on discard
+
+At its best, discarding a recipe puts back what was there before it. It loses because that needs a copy of every value
+the recipe ever replaced, which is the batch history rejected above; and once other edits followed, the old value may
+no longer be what anyone wants.
 
 ## Consequences
 
@@ -125,20 +125,22 @@ Costs:
 
 - Approval can authorize replacing or deleting manually edited target content; review must show that actual change.
 - `cook.lock` changes with every batch that changes ownership, and reviewers read those changes with the native files.
-- Batch records are lost with `.cook/`. Native configuration and ownership remain usable without them.
+- Discard removes values a recipe replaced instead of restoring them; restoring them is the repository history's job.
 
 Must be maintained:
 
 - Target addressing, owner-named marker boundaries and combined diffs that preserve unrelated content.
-- `cook.lock` entries that match what was written, and batch records whose reverse patches include `cook.lock`.
+- `cook.lock` entries that match what was written, and that list everything discard must remove.
 
 ## Confirmation
 
 - Two recipes set the same key in order; the combined diff shows the later value, `cook.lock` names the later recipe as
   owner, and unrelated earlier output stays.
 - A manual edit inside a declared section appears in the proposed change; text outside the markers stays intact.
-- In the worked example, applying version 2 proposes removing the section; reverting the version 1 batch after the
-  `custom` edit writes nothing and names the key.
-- With no batch records and no `cook.lock`, apply still evaluates supplied recipes and removes nothing on their
-  behalf. An identical invocation evaluates again.
-- The batch record precedes target writes; a write failure rolls back completed batch changes and retains its record.
+- In the worked example, applying version 2 proposes removing the section; discarding the recipe after the `custom`
+  edit proposes removing the key with its `custom` value, and the recipe's lock entry.
+- Discarding a recipe whose section shares a file with hand-written text removes the section and its markers and
+  keeps the text; a file holding only the recipe's content is deleted.
+- With no `cook.lock`, apply still evaluates supplied recipes and removes nothing on their behalf. An identical
+  invocation evaluates again.
+- A write failure rolls back completed batch changes and leaves no file of Cook's behind.

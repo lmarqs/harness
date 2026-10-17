@@ -25,7 +25,7 @@ diff with whole-batch approval. The [glossary](../features/glossary.md) defines 
 | Imperative for instructions | `Move --batch-approve before ./recipe.groovy.` | `You may want to consider moving the option.` |
 | Neutral, no blame | `the-cook: apply: settings.toml: invalid value` | `You broke settings.toml.` |
 | Plain words and no marketing | `writes native configuration` | `seamlessly configures everything` |
-| Consistent terms | the [glossary](../features/glossary.md) term | alternating undo, rollback and revert for one operation |
+| Consistent terms | the [glossary](../features/glossary.md) term | alternating undo, rollback and discard for one operation |
 
 The same rules apply to guidance read by coding agents, because ambiguity can become an unintended action.
 
@@ -39,8 +39,7 @@ The same rules apply to guidance read by coding agents, because ambiguity can be
 - Put supporting detail on indented lines. Identify the operation and affected file or source, because readers need
   to distinguish a recipe input failure from a target write failure.
 - Name destination files relative to the invocation directory, with `:line:column` when known. Identify source files
-  by their original location or URL when needed; a copy's path in the batch record alone obscures which source to
-  edit.
+  by their original location or URL, because that is the source to edit.
 - Distinguish warnings from failures in words. Leave exit codes out of message guidance, because exit-code meanings
   are undecided ([errors](cli-standards.md#errors)).
 - Do not emit ANSI escapes to non-TTY streams, because logs and transcripts must remain readable. Formatting and
@@ -69,19 +68,13 @@ the-cook: apply: target ../shared/settings.toml is outside the destination
 ```
 
 ```text
-the-cook: revert: no record for batch 2026-10-14T15-04-05Z
-  reverting a batch requires its record in .cook/batches/
-  run: ./cook batch list
+the-cook: discard: cook.lock lists no recipe dev.thecook:agents:instructions; nothing was written
+  discard removes only what cook.lock records for a recipe
+  check the recipe's name in cook.lock
 ```
 
-```text
-the-cook: revert: 2026-10-14T15-04-05Z conflicts with later edits; nothing was written
-  settings.toml: test is "custom"; the batch set it to "new"
-  resolve the listed edits, then run the revert again
-```
-
-Do not suggest re-evaluating a recipe as an equivalent reversal: apply proposes a recipe's current declarations,
-whereas revert reverses one recorded batch's changes.
+Do not suggest discard as a way to restore earlier content: discard removes what a recipe owns, whereas earlier
+content comes from the repository's history.
 
 When approval needs a caller's decision, name the choices: run interactively to review and answer the prompt, or
 explicitly preapprove with `--batch-approve` before the operands. Neither a noninteractive terminal nor the presence of
@@ -95,13 +88,11 @@ the-cook: apply: approval required; nothing was written
 
 Keep normal diagnostics focused on information the caller can act on, rather than internal type names or paths inside
 the package. When a target write fails, name the file that failed, state that the files the batch already wrote were
-rolled back, and give the path of the retained batch record. Do not claim recovery of side effects outside the
-declared batch. For example:
+rolled back. Do not claim recovery of side effects outside the declared batch. For example:
 
 ```text
 the-cook: apply: cannot write .codex/config.toml: permission denied
-  rolled back the files batch 2026-10-14T15-04-05Z already wrote
-  record and failure kept in .cook/batches/2026-10-14T15-04-05Z/
+  rolled back the files the batch already wrote
 ```
 
 ## Output for automation and coding agents
@@ -135,7 +126,7 @@ in Markdown.
 | --- | --- |
 | `docs/architecture.md` | Intended responsibilities, operations, boundaries and distribution; supporting design pages follow it |
 | `docs/philosophy.md` | Problems, goals and tenets motivating the design |
-| `docs/features/` | Index and reading path, glossary, CLI grammar, apply and revert semantics, the wrapper, pitfalls and this repository's agent setup |
+| `docs/features/` | Index and reading path, glossary, CLI grammar, apply and discard semantics, the wrapper, pitfalls and this repository's agent setup |
 | `docs/adrs/` | Architectural decisions and their reasons within the architecture |
 | `docs/ux/` | Interaction and documentation standards within the architecture |
 | Root and core usage guides | Truthful instructions and limitations for current implementation |
@@ -214,10 +205,9 @@ A directory README is the artifact's front page. The shape is defined in [cookbo
 ### Names for engine concepts
 
 The [glossary](../features/glossary.md) is the single list of engine terms; use its term for each concept, because
-two names for one concept read as two concepts. A recipe is evaluated; a batch is reviewed, approved and recorded.
+two names for one concept read as two concepts. A recipe is evaluated; a batch is reviewed, approved and written.
 
 Words to avoid:
 
-- history, batch history, recovery information or snapshots for a batch record
 - block, managed block or block ID for a section, its markers or its region
-- undo or rollback for revert; rollback names only the recovery from a failed write
+- undo, revert or rollback for discard; rollback names only the recovery from a failed write

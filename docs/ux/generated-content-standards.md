@@ -55,7 +55,7 @@ Run the project's build command.
 
 ```gitignore
 # cook:begin git#ignore
-/.cook/
+/.claude/settings.local.json
 # cook:end git#ignore
 ```
 
@@ -143,17 +143,15 @@ Noninteractive execution without `--batch-approve` does not authorize writes. Se
 Review source trust as well as the resulting native settings. Arbitrary effects of recipe evaluation are outside the
 batch diff and recovery guarantee. Commit and delivery decisions belong to the repository's own workflow.
 
-## Destination and batch records
+## Destination
 
 The current working directory is the destination, and declared writes and deletions stay within it
-([destination and source origins](../architecture.md#destination-and-source-origins)). Before the first target write,
-Cook saves a [batch record](../architecture.md#one-record-for-the-batch) with one reversible patch per touched file;
-several recipes touching one file produce one patch for their combined change. See
+([destination and source origins](../architecture.md#destination-and-source-origins)). See
 [configuration locations](configuration-standards.md#where-files-live).
 
-## Revert
+## Discard
 
-Revert reverses one recorded batch's changes against current content without evaluating recipes again. Later edits
-that do not overlap the batch's changes survive; an overlapping edit makes the revert write nothing and list each
-conflicting file with the batch's hunk that no longer matches. The [revert](../features/revert.md) page works through an example. To keep native
+Discard removes what `cook.lock` lists for a recipe without evaluating it: each section together with its markers,
+each key, each whole file and link. A file left empty is deleted; everything the recipe does not own stays, and no
+earlier value is restored. The [discard](../features/discard.md) page works through an example. To keep native
 configuration, leave it in place.

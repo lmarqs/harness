@@ -34,8 +34,8 @@ recipe and template references resolve.
 
 ## Command grammar
 
-The [CLI reference](../features/cli.md) defines the commands: apply, implicit or explicit, as the default; `revert`
-with a batch ID; `batch list`; `batch inspect` with a batch ID; and `help` with recipes. It also defines recipe
+The [CLI reference](../features/cli.md) defines the commands: apply, implicit or explicit, as the default; `discard`
+with recipes; and `help` with recipes. It also defines recipe
 operands, per-recipe argument scope and the placement of batch options before the first operand. Help, messages and
 examples follow that grammar, because callers predict what a command does from its operands and argument scope.
 
@@ -49,22 +49,21 @@ every other command-line tool, and a refusal of it is an error they meet on thei
 carries a value that looks like a recipe operand. A word is a recipe by its marks alone, `/`, `:` or a `.groovy`
 ending, and a yes-or-no param never takes the next word, so no word's reading depends on what the shell expanded.
 
-## Apply and revert
+## Apply and discard
 
 Apply evaluates the supplied recipes against current content and `cook.lock` and proposes their declared changes.
-Revert reverses one recorded batch's changes without evaluating recipes again. The architecture states the semantics
-in [apply, discard, and revert](../architecture.md#apply-discard-and-revert) and
-[ownership and the lock](../architecture.md#ownership-and-the-lock); the [revert](../features/revert.md) page works
-through conflicts and examples.
+Discard removes what `cook.lock` lists for each named recipe without evaluating it. The architecture states the
+semantics in [apply and discard](../architecture.md#apply-and-discard) and
+[ownership and the lock](../architecture.md#ownership-and-the-lock); the [discard](../features/discard.md) page works
+through an example.
 
-### Repeated invocations and batch records
+### Repeated invocations
 
 Every apply invocation evaluates the supplied recipes against current content, even after an identical invocation.
 When the result is unchanged, report that there are no proposed changes rather than claiming evaluation was skipped,
 because evaluation always runs.
 
-Apply works without batch records or `cook.lock`; reverting a batch requires its record
-([history availability](../architecture.md#batch-record-availability)).
+Apply works without `cook.lock`; discard needs it, because the lock is its only record of what a recipe owns.
 
 ## Batch review and approval
 
@@ -73,16 +72,14 @@ change to current content. The CLI accepts the whole batch; choosing individual 
 decision.
 
 Without preapproval, ask before changing target files; declining approval leaves batch targets unchanged.
-[`--batch-approve`](../features/cli.md#batch-options-and-approval) preapproves the entire operation, apply or revert:
+[`--batch-approve`](../features/cli.md#batch-options-and-approval) preapproves the entire operation, apply or discard:
 display the diff and proceed without prompting. Existing and edited content follows this same review flow; ownership
 never blocks a change.
 
 ### Failure recovery
 
-Save the [batch record](../architecture.md#one-record-for-the-batch) before the first target write, so a failed write
-can be rolled back and the batch reverted later. If a write fails, roll back changes already made by the batch and
-retain the record and failure. Report the failure and recovery outcome clearly so the caller can inspect what
-happened.
+If a write fails, roll back changes already made by the batch, so the files stay as they were. Report the failure
+and the rollback clearly so the caller can tell what happened.
 
 ## Output
 
@@ -134,8 +131,7 @@ after a failure.
 ### Machine-readable output
 
 CLI results and diagnostics are the human output described under [streams and human output](#streams-and-human-output);
-scripts must not treat their wording as a stable data format. The metadata serialization format of batch records belongs
-to the implementation.
+scripts must not treat their wording as a stable data format.
 
 ### Progress
 
@@ -165,15 +161,15 @@ With no arguments, with `help` alone or with `--help` alone, show help. `help <r
 order without running it, because a recipe inside an artifact cannot be read with a pager. Present the operation
 summary, grammar, operand and argument scope, batch approval behavior, and examples in a consistent order, because
 readers need to predict how a command works. Examples use `./cook` and exact recipe paths, `https://` URLs or
-coordinates. Explain that apply evaluates supplied recipes while revert uses a recorded batch's patches, and link to the
+coordinates. Explain that apply evaluates supplied recipes while discard reads only `cook.lock`, and link to the
 [CLI reference](../features/cli.md) for details.
 
 Help advertises only the commands in the [command grammar](#command-grammar), because callers act on what help lists.
 
 ## Command set
 
-The command set is apply (implicit or explicit), revert, `batch list`, `batch inspect` and `help`; discard is
-deferred. Reserving `help` means a recipe file named `help` is given as a path, such as `./help`.
+The command set is apply (implicit or explicit), `discard` and `help`. Reserving `discard` and `help` means a recipe
+file named `discard` or `help` is given as a path, such as `./help`.
 [What counts as breaking](compatibility-standards.md#what-counts-as-breaking) covers removing or renaming a command.
 
 ## Prior art

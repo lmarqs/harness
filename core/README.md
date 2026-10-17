@@ -54,7 +54,7 @@ Each owned part is a `Target` that writes itself, withdraws itself and gives its
 | `LinkTarget` | A symbolic link |
 
 A section or key is never written through a symbolic link, and `TargetPath` refuses paths that leave the kitchen or
-enter `.git` or `.cook`.
+enter `.git`.
 
 ## Writing
 
@@ -63,8 +63,7 @@ When a write fails, it restores the paths it already wrote and fails.
 
 ## Differences from the intended architecture
 
-- No batch records and no `revert`: `Draft.commit` keeps no journal, so a process killed mid-commit can leave files
-  and `cook.lock` half-written.
+- `Draft.commit` keeps no journal, so a process killed mid-commit can leave files and `cook.lock` half-written.
 - No `https://` recipe operands, and no `apply` written as a command.
 - Models use only their own artifact's types.
 - A document forgets, between invocations, which empty parents it created, so withdrawing a key leaves those parents.
@@ -73,5 +72,4 @@ When a write fails, it restores the paths it already wrote and fails.
 
 `./gradlew check` runs the core tests: `CookbookApplyTest` applies the `agents` artifact and small artifacts built
 in the test, by coordinates and by path; `DocumentsTest` edits JSON and TOML through the documents' own API;
-`CoordinatesTest` and `RecipeSourceTest` cover coordinates and recipe texts; `BatchRecordTest`, `BatchRevertTest`
-and `FilePatchTest` cover the batch record and revert.
+`CoordinatesTest` and `RecipeSourceTest` cover coordinates and recipe texts; `FilePatchTest` covers the review diff.

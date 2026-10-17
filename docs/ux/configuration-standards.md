@@ -6,7 +6,7 @@
 change is unclear, reviewers cannot tell what it replaces or how to recover it.
 
 **Goal.** [Recipe](../features/glossary.md) inputs and native output are understandable, the proposed changes are
-visible before writes, and batch records explain the sources and operation that produced them.
+visible before writes, and `cook.lock` records which recipe owns each part.
 
 ## Overview
 
@@ -15,7 +15,7 @@ ordered file operations; ingredients model a program's native files and configur
 ingredients and recipes. The [feature reference](../features/README.md) expands these responsibilities.
 
 This page covers where files live, recipe inputs and their defaults, validation messages, native values, permission
-rules, hooks and secrets. For composition, approval and revert it links to the pages that define them; generated file
+rules, hooks and secrets. For composition, approval and discard it links to the pages that define them; generated file
 content follows the [generated-content standard](generated-content-standards.md). See the [root README](../../README.md)
 for current execution.
 
@@ -30,14 +30,13 @@ of the batch they approve.
 | Native configuration and guidance | Paths declared by recipes within the destination, where the program reads them | Settings, ignore entries, instruction files, skills, and other requested output |
 | Recipe and template sources | Paths inside the destination repository, `https://` URLs, or coordinates from a cookbook release | Trusted input; relative references resolve from the referencing recipe's location or URL |
 | Ownership lock | Committed `cook.lock` at the repository root | Each applied recipe's short name, source, sha256, and owned sections, keys, and files |
-| Batch records | The destination's ignored `.cook/batches/<batchId>/` directory | One record per batch: source snapshots and reversible patches for revert |
 | Engine wrapper | Committed `./cook` | Pins the engine version and package checksum; first use fetches and caches the platform package |
 
-`.cook/` holds local batch records; committed ownership lives in `cook.lock`. A recipe may use shared guidance under
-`.agents/` where that suits the native program.
+Committed ownership lives in `cook.lock`; Cook keeps no other state in the destination. A recipe may use shared
+guidance under `.agents/` where that suits the native program.
 
-Record source origins when saving snapshots. Relative template references resolve from the referencing recipe's
-location or source URL, never from the snapshot location; a local reference outside the repository is refused.
+Relative template references resolve from the referencing recipe's location or source URL; a local reference outside
+the repository is refused.
 [Destination and source paths](../features/apply.md#destination-and-source-paths) works through an example.
 
 ## Inputs
@@ -85,7 +84,7 @@ programs can differ in matching, precedence, project trust, and local overrides.
 Where a program supports allow, ask and deny decisions, use them to express what the team intends to permit, confirm or
 prohibit. Record the reason for each group of rules, and review the effects of commands, including what a change makes
 broader, rather than assuming a whole executable is harmless. Why: a task runner can invoke other programs, and a broad
-prefix rule can permit more than its author intended. Applying or reverting permission configuration does not prove
+prefix rule can permit more than its author intended. Applying or discarding permission configuration does not prove
 that it suits every program or user. For each configured program, establish:
 
 - What a rule matches: command prefixes, complete commands, paths, tools or another native form.
@@ -125,24 +124,22 @@ ownership. A declared transformation of existing or manually edited configuratio
 [whole-batch approval](../features/cli.md#batch-options-and-approval) as any other change. Why: approval must cover the
 actual combined effect of ordered operations, including changes to existing configuration.
 
-## Batch records and explicit reversal
+## Explicit removal
 
-Cook saves a [batch record](../architecture.md#one-record-for-the-batch) in `.cook/batches/<batchId>/` before the first
-target write. [Revert](../features/revert.md) reverses one recorded batch's changes. Leave native configuration in
-place when it should remain. Why: reverting a batch requires its record.
+[Discard](../features/discard.md) removes what a recipe owns and restores nothing. Leave native configuration in place
+when it should remain, and restore earlier values from the repository's history. Why: discard keeps no copy of what a
+recipe replaced.
 
 ## No secrets
 
 Keep secrets, credentials, and personal data out of shared recipe sources, templates, instruction files, knowledge,
 configuration, comments, URLs, and arguments that may be displayed or recorded. Use the native program's supported
 credential mechanism, such as an environment reference or its own credential store, rather than embedding a secret in
-generated output. Why: committed content reaches every reader of the repository, and diffs, arguments, and batch records
-can retain sensitive values locally too.
+generated output. Why: committed content reaches every reader of the repository, and diffs and arguments
+can show sensitive values in terminals and logs too.
 
-Batch records are not a secret store: the terminal diff, captured sources, and reversible patches can retain sensitive
-content, including prior values from existing files. Avoid declaring targets that hold secrets, treat the ignored
-`.cook/` directory as sensitive local data, and review source contents and target values with that retention in mind.
-Trusted Groovy code can read inherited credentials and perform arbitrary effects; batch boundaries and rollback do not
+The terminal diff shows prior values from existing files as well as new ones. Avoid declaring targets that hold
+secrets, and review source contents and target values before approving. Trusted Groovy code can read inherited credentials and perform arbitrary effects; batch boundaries and rollback do not
 confine it or promise automatic redaction.
 
 Keep personal and shared choices deliberate. Local overrides belong to the native program's configuration scopes;

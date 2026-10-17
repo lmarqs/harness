@@ -41,7 +41,7 @@ choices.
   concrete effect of the shared setup before it is written. The trade: reviewers must assess the proposed changes;
   approval is for the whole batch.
 - **3.** Current content and recipe inputs can change between invocations. Re-evaluation respects the request instead
-  of treating the batch record as an execution cache. The trade: recipe authors who want reproducible results must
+  of treating an earlier result as an execution cache. The trade: recipe authors who want reproducible results must
   control the inputs their code uses; Cook cannot promise universal byte-for-byte determinism or idempotence.
 - **4.** Writing supplied text is mechanical even when choosing that text required judgment. Banning entire file
   categories would prevent useful program configuration without resolving trust. The trade: declared file changes are

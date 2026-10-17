@@ -18,7 +18,7 @@ mechanisms for protection from arbitrary recipe execution or agent sessions.
 - Worked example: a recipe declares a settings-key update but also executes code that contacts a service during
   evaluation. A diff of the settings file describes only the declared update; rejecting it cannot undo the contact.
 - A partially written batch leaves a destination in a different state from either the starting content or the
-  approved result. The batch record is needed before any target write.
+  approved result. Undoing it needs the prior content of every file the batch has written so far.
 
 ## Decision
 
@@ -26,13 +26,12 @@ mechanisms for protection from arbitrary recipe execution or agent sessions.
    changing target files, as [0007](0007-ownership.md) decides.
 2. Declared writes and deletions stay within the destination, symlinks included ([0012](0012-write-boundary.md)), and
    content outside the declared targets is preserved ([0008](0008-native-configuration.md)).
-3. Cook saves the batch record before the first target write and rolls back the batch on a write failure; a revert
-   writes nothing when a later edit overlaps the batch's changes ([0007](0007-ownership.md)).
+3. Cook holds the prior content of each file it writes until the batch completes, and rolls back the batch's completed
+   writes on a write failure ([0007](0007-ownership.md)).
 4. These guarantees cover declared batch operations. They do not sandbox trusted recipe execution, roll back arbitrary
    recipe side effects, or enforce the behavior of configured programs. Executing external commands is not a batch
    action ([0019](0019-action-kinds.md)).
-5. Recorded ownership never blocks a change, and apply needs neither `cook.lock` nor earlier batch records
-   ([0007](0007-ownership.md)).
+5. Recorded ownership never blocks a change, and apply does not need `cook.lock` ([0007](0007-ownership.md)).
 
 ## Reasons
 
@@ -40,9 +39,9 @@ mechanisms for protection from arbitrary recipe execution or agent sessions.
   authorizes that combined result. Preapproval is an explicit choice; the absence of a terminal is not one.
 - **2.** A destination boundary limits declared output, and precise targets reduce incidental edits. Whole-file
   replacement carries a broader review responsibility. None of these limits constrains arbitrary recipe code.
-- **3.** A batch record saved after a write would be too late for that write's failure. The same patches later restore
-  the batch's own prior values without reevaluating recipes, and refusing on overlap keeps later edits. Recovery
-  depends on keeping the relevant local batch record.
+- **3.** Rollback must restore every file the batch already wrote, so their prior content has to be in hand before
+  the first write. Keeping it only for the batch's duration covers that failure without a second history beside the
+  repository's version control.
 - **4.** The example separates output approval from code trust. Claiming protection beyond the declared batch would
   promise control the engine does not provide. Developers must choose which recipes to trust before evaluating them.
 - **5.** Current content is the basis for review. Recorded ownership decides what a recipe's later versions remove,
@@ -76,8 +75,7 @@ Costs:
 
 - Recipe evaluation must be trusted separately from approval of its output.
 - Preapproval places responsibility for the entire displayed change on the caller.
-- Losing `.cook/` loses the batch records of past batches. Apply remains available and ownership survives in
-  `cook.lock`; reverting a particular batch requires its record.
+- A process killed mid-batch cannot roll back; earlier content then comes from the repository's version control.
 
 Must be maintained:
 
@@ -87,7 +85,6 @@ Must be maintained:
 ## Confirmation
 
 - For an edited target, is the actual proposed replacement or deletion displayed for approval?
-- For a batch with a write failure, does the batch record precede target writes, are completed changes rolled back,
-  and is the failure retained?
+- For a batch with a write failure, are completed changes rolled back and the failure reported?
 - For paths that resolve through symlinks, does declared output remain within the destination?
 - For the worked example, are approval and recovery described only for the declared file operations?

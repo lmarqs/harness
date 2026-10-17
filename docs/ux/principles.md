@@ -28,7 +28,7 @@ choosing the tool that produced it.
   own workflows.
 - Personal settings are not implicitly imported or changed. An explicitly declared target inside the destination
   uses the same review flow as any other target ([configuration](configuration-standards.md#where-files-live)).
-- Keeping native configuration means leaving it in place; reversal is the explicit revert operation (principle 5).
+- Keeping native configuration means leaving it in place; removal is the explicit discard operation (principle 5).
 - The committed wrapper pins the engine version; upgrades are explicit and separate from cookbook and recipe versions
   ([wrapper](../features/wrapper.md)).
 
@@ -38,7 +38,7 @@ People and coding agents choose trusted sources and review the proposed result. 
 composes their file operations and displays the actual diff. Why: showing what will change gives the reviewer concrete
 information rather than asking them to infer a result from configuration.
 
-- Evaluate each supplied recipe against current content on every invocation. A batch record never marks a recipe as
+- Evaluate each supplied recipe against current content on every invocation. Nothing marks a recipe as
   already applied. An unchanged result has an empty diff.
 - Do not promise identical output across machines or a network-free evaluation: trusted Groovy recipes can read their
   environment and execute arbitrary code. Review source trust separately from the resulting batch.
@@ -48,7 +48,7 @@ information rather than asking them to infer a result from configuration.
 ## 3. Configure programs through files
 
 Cook is a recipe driven configuration engine. It evaluates trusted Groovy recipes, obtains approval for an ordered
-batch, records the batch and ownership and performs declared writes. Why: program configuration can be reused without
+batch, records ownership and performs declared writes. Why: program configuration can be reused without
 placing the program's execution under Cook's control.
 
 Ingredients are program data models, including native settings, ignore files and skills. Recipes may declare prose,
@@ -81,23 +81,22 @@ Proposed replacements and deletions need visible scope and a way to recover. Why
   comments, including HTML comments in Markdown.
 - Existing and edited content uses the same approval flow. Ownership never blocks a change, including a change to
   content a developer edited.
-- Save the batch record before the first target write. On write failure, roll back the changes already made by the
-  batch and retain the record and failure. This covers declared operations, not arbitrary recipe effects.
-- Revert reverses one recorded batch's changes against current content and shows the actual diff. Later
-  non-overlapping edits survive; an overlapping edit makes revert write nothing and list the conflicts
-  ([operation semantics](../architecture.md#apply-discard-and-revert)).
+- On write failure, roll back the changes already made by the batch and report the failure. This covers declared
+  operations, not arbitrary recipe effects.
+- Discard removes what `cook.lock` lists for a recipe and shows the actual diff. Content the recipe does not own
+  survives, and no earlier value is restored ([operation semantics](../architecture.md#apply-and-discard)).
 
 ## 6. One clear interface and vocabulary
 
 Use the CLI as the public cooking interface. Gradle builds and packages Cook and cookbooks. Why: users need one place to
 learn operation and approval semantics.
 
-Use `revert`, `batch` and `help` as commands and `--batch-approve` as the preapproval spelling. The wrapper and a global
+Use `discard` and `help` as commands and `--batch-approve` as the preapproval spelling. The wrapper and a global
 installation expose the same grammar. Default apply and explicit apply have the same meaning
 ([entry points](cli-standards.md#entry-points)).
 
 Native configuration lives where its program reads it. Source recipes and templates retain their origins; ownership
-lives in the committed `cook.lock`, and batch records live under the destination's ignored `.cook/batches/`. Use the
+lives in the committed `cook.lock`. Use the
 [glossary](../features/glossary.md) consistently and link to command references instead of maintaining competing command
 descriptions.
 
@@ -118,8 +117,8 @@ without Cook ([generated-content-standards.md](generated-content-standards.md#in
 Why: people and programs keep reading these files after Cook leaves the repository.
 
 Markers bound a declared section and name its owning recipe and region. Keeping configuration means leaving it in
-place; reversal follows principle 5
-([generated-content-standards.md](generated-content-standards.md#revert)).
+place; removal follows principle 5
+([generated-content-standards.md](generated-content-standards.md#discard)).
 
 ## 9. Sources and effects are reviewable
 
@@ -128,10 +127,8 @@ versions they intend to apply, and the committed `cook.lock` records which sourc
 ownership ([the lock](../architecture.md#ownership-and-the-lock)). A repository commit alone does not determine the
 effects of trusted recipe code. Why: a reviewer can trust or question only a source they can identify.
 
-Each batch keeps one record of the sources it evaluated and consumed, with their origins, arguments and order, and one
-reversible patch per touched file ([batch record](../architecture.md#one-record-for-the-batch)). Apply needs neither
-batch records nor `cook.lock`; reverting a batch requires its record
-([history availability](../architecture.md#batch-record-availability)).
+Apply does not need `cook.lock`; discard reads only `cook.lock`, so it works after a recipe's source is gone
+([apply and discard](../architecture.md#apply-and-discard)).
 
 ## When principles conflict
 
@@ -139,7 +136,7 @@ Follow the architecture's operation and trust boundaries. Within them, protect r
 and make the affected scope explicit. Ownership never blocks a change.
 
 For example, a batch changed a key from `old` to `new`, and a person then edited it to `custom`. Applying the recipe
-again proposes `custom` to `new` in the diff. Reverting that batch writes nothing and lists the hunk that set the key as a
-conflict (principle 5); once the person resolves it, revert proposes the actual diff for approval, preserving unrelated keys. A
+again proposes `custom` to `new` in the diff. Discarding the recipe proposes removing the key, `custom` value
+included, for approval, preserving unrelated keys; getting `old` back is the repository history's job. A
 shared remote recipe also requires source trust; batch approval cannot authorize or reverse every effect its code might
 cause.

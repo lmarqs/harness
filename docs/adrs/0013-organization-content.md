@@ -19,10 +19,9 @@ repository accepts while preserving choices outside those changes.
 - Recipes come from paths inside the destination repository, from `https://` URLs, or from coordinates resolved from
   the cookbook repositories the destination lists ([0029](0029-cookbook-distribution.md)); a local recipe or reference
   outside the repository is refused ([source origins](../architecture.md#destination-and-source-origins)). Relative
-  recipe and template references resolve from the referencing recipe's original location, not from the copy saved in
-  the batch record.
-- Cook evaluates supplied recipes against current content in declared order and shows one final batch diff. Each batch
-  record captures the sources actually evaluated and consumed, including local sources, with origins and arguments.
+  recipe and template references resolve from the referencing recipe's original location.
+- Cook evaluates supplied recipes against current content in declared order and shows one final batch diff.
+  `cook.lock` records each applied recipe's source and sha256.
 - The engine's jpackage distribution and committed version and checksum pin are separate from cookbook and recipe
   versions ([distribution](../architecture.md#engine-distribution)).
 
@@ -37,8 +36,8 @@ repository accepts while preserving choices outside those changes.
    URLs, or by coordinates from a cookbook release ([0029](0029-cookbook-distribution.md)). Users manage recipe versions
    and supply the version to apply; `cook.lock` records which version produced the current ownership.
 4. Ordered composition, ownership and review of the resulting changes follow [0007](0007-ownership.md).
-5. Native output stays readable without Cook ([0010](0010-dependence-on-the-binary.md)), and the batch record keeps
-   the evaluated sources ([0014](0014-directory-layout.md)).
+5. Native output stays readable without Cook ([0010](0010-dependence-on-the-binary.md)), and `cook.lock` names the
+   source and sha256 that produced each recipe's output ([0007](0007-ownership.md)).
 
 ## Reasons
 
@@ -47,14 +46,13 @@ repository accepts while preserving choices outside those changes.
   consumed input that users must trust.
 - **3.** Shared sources address hand-copying without forcing all inputs into each destination repository. Limiting
   local sources to the repository keeps every local input visible in the same clone, while HTTPS carries content
-  shared between repositories. Capturing consumed sources and preserving their origins makes a batch inspectable.
+  shared between repositories. Recording each recipe's source and sha256 lets a reviewer find the exact input.
   Trusted code may use changing inputs, so engine pinning alone is not a promise of identical output across machines
   or days.
 - **4.** Review exposes what the requested setup changes in this repository, and a shared recipe overridden by a
   later, repository-specific one shows the override in the same diff. [0007](0007-ownership.md) gives the reasons.
-- **5.** Native output serves readers who do not run Cook; the batch record serves those inspecting a recorded
-  operation. Losing local batch records loses the ability to revert those batches, not the ability to apply supplied
-  recipes.
+- **5.** Native output serves readers who do not run Cook; the committed lock serves reviewers asking which source
+  produced it, in every clone.
 
 ## Rejected alternatives
 
@@ -81,7 +79,7 @@ supply recipe versions, and the diff against current content shows local edits b
 
 Costs:
 
-- Reviewers may need the cookbook sources and local batch records to explain how output was produced. Native output
+- Reviewers may need the cookbook sources named in `cook.lock` to explain how output was produced. Native output
   alone does not describe every dependency or arbitrary side effect of executable recipes.
 - Engine version and checksum pinning protects the selected engine download; it does not authenticate every recipe
   source or sandbox recipe execution. [0026](0026-cookbook-trust.md) explains cookbook trust.
@@ -95,5 +93,4 @@ Must be maintained:
 
 - Review the acme example with shared setup and a repository-specific choice: does the batch change only declared
   targets, show later overrides in its final diff, and preserve unrelated configuration?
-- Review a batch with local and remote recipes: does `./cook batch inspect` trace each consumed source to its original
-  location?
+- Review a batch with local and remote recipes: does `cook.lock` name each applied recipe's source and sha256?

@@ -22,8 +22,7 @@ notification; Cook's batch changes its configuration, rather than sending the no
 1. A [batch](../features/glossary.md) contains file operations, including directory and symlink operations where
    applicable. Cook does not execute external commands, HTTP requests or agent launches as batch actions.
 2. Recipes and their operations compose in declared order against current content. Cook presents the final combined
-   diff for whole-batch approval, saves the batch record before the first target write, and rolls back batch changes
-   on write failure while retaining patches and the failure record.
+   diff for whole-batch approval and rolls back the batch's completed writes on a write failure.
 3. Approval, destination boundaries and rollback govern declared operations. They do not sandbox trusted recipe
    evaluation or cover arbitrary side effects caused by recipe code.
 4. Configuring a program through native files does not make Cook that program's runner.
@@ -34,7 +33,7 @@ notification; Cook's batch changes its configuration, rather than sending the no
   configuration still lets recipes set up integrations, but the configured program performs them independently of
   Cook. The trade is that callers arrange any external execution outside the batch.
 - **2.** FR-7 (ordered composition shown as one diff) and FR-11 through FR-13 (writing only accepted changes, terminal
-  approval of the whole batch, and the batch record with rollback) make the combined result the unit of review and
+  approval of the whole batch, and rollback) make the combined result the unit of review and
   recovery. Later operations can replace earlier values without presenting intermediate results as separate
   approvals. The trade is that the CLI's approval covers the whole batch; choosing individual changes is a separate
   interface decision.

@@ -33,10 +33,10 @@ updates. People need to see the actual requested changes and keep unrelated cont
    whole-file scope.
 4. Cook proposes changes against current content, including existing files and manual edits; review, whole-batch
    approval and ownership that never blocks a change follow [0007](0007-ownership.md).
-5. The batch record is saved before the first target write and supports rollback on a write failure
-   ([0007](0007-ownership.md)); neither it nor `cook.lock` is a prerequisite for apply.
+5. A write failure rolls back the batch's completed writes ([0011](0011-safety-invariants.md)); `cook.lock` is not a
+   prerequisite for apply.
 6. Deletion follows the requested operation: removal by a recipe's new version, even when current values differ, or
-   revert of a batch ([0007](0007-ownership.md)). Neither infers ownership from names, and applying one recipe does not
+   discard of a recipe ([0007](0007-ownership.md)). Neither infers ownership from names, and applying one recipe does not
    remove output another recipe owns.
 7. The batch contains file operations, not external commands, hosting-platform API calls, pushes, or delivery
    actions ([0019](0019-action-kinds.md)). Trusted recipe code can have side effects outside these guarantees
@@ -47,7 +47,7 @@ updates. People need to see the actual requested changes and keep unrelated cont
 - **1.** The invocation directory makes the destination explicit even for remote recipes. Resolving symlink targets
   within it prevents a declared path from redirecting a batch write elsewhere.
 - **2.** Source origins have a different role from the destination: they locate inputs without moving outputs or
-  changing relative resolution when inputs are captured in the batch record. Keeping local sources inside the
+  changing relative resolution. Keeping local sources inside the
   repository means every local input is one a reviewer can see in the same repository; the trade is that a shared
   recipe elsewhere on disk must be moved in or served over HTTPS.
 - **3.** Target scope protects the unrelated database and settings in Context while allowing the setting the user
@@ -56,12 +56,11 @@ updates. People need to see the actual requested changes and keep unrelated cont
 - **4.** Current content is the relevant basis for approval. Creation records and directory names cannot establish
   whether today's change is wanted, so they hold no veto: useful edits proceed, and the decision rests on actual batch
   review, including deletion or replacement of content someone has edited.
-- **5.** A saved batch record makes completed batch writes reversible if a later write fails. The trade is local
-  storage for batch records; losing them loses recovery for recorded batches, not the ability to evaluate new
-  recipes.
-- **6.** Recorded ownership and a batch's reverse patches answer different questions: what a recipe's new version no
-  longer declares, and what a particular batch changed. Names cannot answer either, as Context notes. The trade is
-  that users retain the record of a batch they intend to revert.
+- **5.** Rolling back completed writes keeps a failed batch from leaving a half-applied result. Apply without the lock
+  still evaluates new recipes; it only has no earlier ownership to withdraw.
+- **6.** Recorded ownership answers both deletions: what a recipe's new version no longer declares, and everything a
+  discarded recipe owns. Names cannot answer either, as Context notes. The trade is that the lock must stay committed
+  and accurate.
 - **7.** File review and recovery cannot govern remote delivery or arbitrary executable code. Keeping those effects
   outside the batch avoids a second writer to the team's issue tracker or code-review platform and a misleading
   sandbox promise. The trade is that users must trust recipes even when their declared output is confined to the
@@ -91,13 +90,13 @@ Costs:
 
 - Approval can authorize changes to existing or edited content; it is not an ownership-based protection against a
   user accepting an unwanted diff.
-- Recovery needs the local batch record, and arbitrary recipe side effects are outside batch rollback.
+- Arbitrary recipe side effects are outside batch rollback.
 
 Must be maintained:
 
 - Declared target scope, destination containment including symlinks, and preservation of unrelated content.
-- Whole-batch diff and approval, a batch record before target writes, and the distinction between removal by a
-  recipe's new version and revert of a batch.
+- Whole-batch diff and approval, rollback on a write failure, and deletion only through a recipe's new version or a
+  discard, both read from `cook.lock`.
 
 ## Confirmation
 

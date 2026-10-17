@@ -20,8 +20,7 @@ checksums. It selects the pinned package for the machine's OS and architecture. 
 produced with `jpackage` and contains Java. The wrapper caches and launches the complete package.
 
 The engine pin belongs in committed repository content, separate from [`cook.lock`](glossary.md), which records
-recipe ownership. The destination's ignored `.cook/` directory holds the batch records; losing it does not prevent
-apply.
+recipe ownership.
 
 ## How it works
 
@@ -37,8 +36,8 @@ platform packages as well as versions; a package built for one OS or architectur
 The specific tools, exact asset names, download-source configuration, pin file format, cache layout, shell
 prerequisites, and failure exit codes belong to the implementation.
 
-The wrapper passes its CLI arguments to the engine. The [CLI reference](cli.md) defines apply, revert, batch list and
-inspect, recipe operands, and batch options. The invocation directory is the destination for declared file
+The wrapper passes its CLI arguments to the engine. The [CLI reference](cli.md) defines apply, discard and help, recipe
+operands, and batch options. The invocation directory is the destination for declared file
 operations, regardless of the wrapper's location.
 
 ## One pin

@@ -20,10 +20,9 @@ version through the repository's entry point without installing Java or Gradle s
   integrity and publisher authentication are distinct concerns ([0021](0021-release-trust.md)).
 - Cookbook repositories hold and ship ingredients and trusted Groovy recipes and can build separately from Cook
   ([0013](0013-organization-content.md)). Ingredients model programs' native files and configuration; the engine
-  evaluates recipes and reviews, records, and writes their declared file operations.
-- The destination-local `.cook/` directory holds the ignored [batch records](../features/glossary.md)
-  ([0014](0014-directory-layout.md)). Recipe ownership lives in the committed `cook.lock`; apply needs neither earlier
-  batch records nor that lock.
+  evaluates recipes and reviews and writes their declared file operations.
+- Recipe ownership lives in the committed `cook.lock`, the only file of Cook's own in a destination
+  ([0014](0014-directory-layout.md)); apply does not need it.
 - The current [`cook` script](../../cook) launches a locally built JVM distribution, and the existing
   [jpackage build](../../cli/gradle/jpackage.gradle) produces an application image with bundled Java
   ([install](../../README.md#install)).
@@ -31,8 +30,8 @@ version through the repository's entry point without installing Java or Gradle s
 ## Decision
 
 1. The repository commits an executable `./cook` wrapper with an exact engine version and matching checksums for the
-   platform packages the repository uses. The committed pin remains available independently of the ignored `.cook/`
-   batch records and is separate from the recipe ownership in `cook.lock`.
+   platform packages the repository uses. The committed pin is separate from the recipe ownership in
+   `cook.lock`.
 2. The engine ships as a complete platform-specific `jpackage` package containing Java. The wrapper caches and
    launches that complete package; copying only its launcher does not supply the runtime or other package contents.
 3. On first use of an uncached pin, the wrapper downloads the selected platform package and verifies it against the
@@ -60,8 +59,8 @@ version through the repository's entry point without installing Java or Gradle s
   The launcher depends on its package contents, so downloading and caching only an executable would break that promise.
 - **4.** Explicit upgrades make a dependency change a repository decision. Separating that change from applying
   recipes avoids turning an ordinary invocation into an unrequested upgrade or file rewrite.
-- **5.** Committed pins, local executable caches, and batch records serve different purposes. Losing batch records
-  must not erase the engine choice or prevent apply, and locating an executable must not change output paths.
+- **5.** Committed pins, local executable caches and recipe ownership serve different purposes. Losing the cache must
+  not erase the engine choice, and locating an executable must not change output paths.
 - **6.** Program models and recipes have their own authors and distribution. An engine version cannot establish the
   trustworthiness or intended version of those sources.
 
@@ -109,5 +108,5 @@ Must be maintained:
   launching it with the supplied arguments, and does a checksum mismatch prevent execution and cache acceptance?
 - Review a later invocation: does it reuse that pin offline, and does an explicit version and checksum change select
   the new package through the same verification flow without changing cookbook content or project configuration?
-- Review a clone with `.cook/` removed: is the committed pin still available, and does a wrapper or package invoked
-  elsewhere still target the caller's working directory?
+- Review a clone with the engine cache removed: is the committed pin still available, and does a wrapper or package
+  invoked elsewhere still target the caller's working directory?

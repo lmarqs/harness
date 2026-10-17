@@ -75,7 +75,7 @@ An ADR whose Reasons section does not cover every point is incomplete, whatever 
 ## When to write one
 
 Write an ADR for a decision that is hard to reverse or that constrains how other parts are built: the implementation
-language, the contract between the tool and its destination, the boundaries on declared writes, how the batch record
+language, the contract between the tool and its destination, the boundaries on declared writes, where ownership
 is kept, how releases are trusted.
 
 Do not write an ADR for a feature, a command, a flag, a file field, a task or a plan. Those belong in the
@@ -98,9 +98,9 @@ One ADR holds one decision. If its points serve two decisions, it is two ADRs.
 ## Writing rules
 
 - Present tense, no hedges.
-- Prefer generic mechanism names: the wrapper, the batch, the batch record, the destination, an ingredient,
+- Prefer generic mechanism names: the wrapper, the batch, the lock, the destination, an ingredient,
   a recipe. Use concrete command, flag, setting, environment-variable, exit-code or file references when necessary
-  to explain a decision, its boundary or its evidence, such as `--batch-approve` or the batch record under `.cook/`.
+  to explain a decision, its boundary or its evidence, such as `--batch-approve` or `cook.lock` at the repository root.
   Keep detailed usage in the [features](../features/) pages and terminology in the
   [glossary](../features/glossary.md); a concrete reference is not a reason to add an undecided contract.
 - Link the [glossary](../features/glossary.md) at the first use of an engine term in each ADR.
@@ -173,7 +173,7 @@ Must be maintained:
 | [0011](0011-safety-invariants.md) | What do Cook's guarantees cover? | Cook's guarantees cover declared batch operations |
 | [0012](0012-write-boundary.md) | What may Cook write? | Cook confines declared batch operations to reviewed destination targets |
 | [0013](0013-organization-content.md) | Where do shared organization choices belong? | Cookbooks carry organization choices separately from the engine |
-| [0014](0014-directory-layout.md) | Where does each kind of file live? | Native output and local batch records have separate homes |
+| [0014](0014-directory-layout.md) | Where does each kind of file live? | Native output and recipe ownership are the only files Cook writes |
 | [0016](0016-permission-adoption.md) | How are existing permission changes reviewed? | Existing permission changes receive explicit native-file review |
 | [0017](0017-engine-version.md) | Which release runs in a repository? | Each repository pins its engine release through a committed wrapper |
 | [0018](0018-conventions.md) | How do conventions remain readable without Cook? | Native instruction text states conventions independently of Cook |

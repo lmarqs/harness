@@ -26,12 +26,11 @@ setup changes before they are written.
 1. Ingredients are program data models, distinct in responsibility from recipes' setup choices. Cookbooks hold and
    ship ingredients and recipes; the engine evaluates recipes and reviews and writes the ordered batch.
 2. Reusable setup follows the agreed operation contract. Every apply invocation evaluates the supplied recipes against
-   current content; batch records never mark setup as already applied. Later operations can replace earlier values in
+   current content; nothing marks setup as already applied. Later operations can replace earlier values in
    one combined diff. Existing or edited content uses the same whole-batch approval flow; recorded ownership never
    blocks a change. Omitting a recipe leaves its earlier output in place.
-3. Engine version and checksum pinning is separate from cookbook builds and user-managed recipe versions. Batch records
-   capture consumed sources and origins for inspection and recovery; `cook.lock` records which recipe version produced
-   the current ownership without selecting the next one.
+3. Engine version and checksum pinning is separate from cookbook builds and user-managed recipe versions. `cook.lock`
+   records which recipe version produced the current ownership without selecting the next one.
 
 ## Reasons
 
@@ -42,7 +41,7 @@ setup changes before they are written.
   add-only or already-applied rule would silently replace that contract. The trade is that applying shared setup can
   propose replacing a local value; the reviewer sees the final diff before approving the batch.
 - **3.** An engine pin chooses an executable package, while a supplied recipe chooses the requested setup. Treating
-  batch records or the lock as an update baseline would add the recipe-version management the architecture excludes;
+  the lock as an update baseline would add the recipe-version management the architecture excludes;
   the lock only records which version produced the current ownership (FR-14, FR-25). The trade is that users supply
   the versions they intend to apply, independently of engine upgrades.
 
@@ -66,7 +65,7 @@ requested diff replaces a first-value-wins engine rule.
 Costs:
 
 - Updating reusable setup requires supplying the intended recipe version and reviewing changes to current content;
-  engine pins and local batch records do not perform that selection.
+  engine pins and the lock do not perform that selection.
 
 Must be maintained:
 

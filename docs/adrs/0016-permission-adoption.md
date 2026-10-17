@@ -36,9 +36,8 @@ approving it, without first converting their configuration through a separate im
    within the destination ([0012](0012-write-boundary.md)).
 4. The permission rules and keys a recipe writes are recorded as its own in the committed `cook.lock`
    ([0007](0007-ownership.md)). That ownership decides which rules the recipe's later versions update and remove; it
-   never vetoes a change to an edited rule and never extends to rules the recipe did not write. Reverting a batch
-   restores its prior values from reverse patches against current content, preserving unrelated content; a later edit
-   that overlaps the batch's changes makes the revert write nothing and list the conflict.
+   never vetoes a change to an edited rule and never extends to rules the recipe did not write. Discarding the recipe
+   removes the rules and keys it owns and preserves unrelated content; it restores no rule the recipe replaced.
 
 ## Reasons
 
@@ -54,8 +53,8 @@ approving it, without first converting their configuration through a separate im
   would linger with no recipe responsible for it. Recording only what the recipe wrote leaves the example's domain and
   secret-file rules outside its ownership, so no recipe version removes them. The trade is that a removed rule is
   visible only in the diff, so reviewers must read deletions.
-  - Reverting with reverse patches restores the batch's own values without reevaluating the recipe, and refusing on
-    overlap keeps a later manual rule change from being overwritten.
+  - Discard reads the same record, so stopping a recipe removes exactly its rules and leaves the example's domain and
+    secret-file rules in place.
 
 ## Rejected alternatives
 
@@ -95,6 +94,5 @@ Must be maintained:
 - Review a replacement of an entire permission list: every removed rule appears in the combined diff before approval.
 - Review a recipe whose new version stops declaring one rule: the diff proposes removing that rule and keeps the
   domain and secret-file rules.
-- Review a key changed from `old` to `new` by a batch, then edited elsewhere in the file: reverting the batch proposes
-  `new` to `old` and keeps the other edit. If the key itself was edited to `custom`, the revert writes nothing and
-  names the key. Neither case requires importing existing rules first.
+- Review a discard of a recipe that owns one permission key in a file with other edits: the diff proposes removing
+  that key and keeps the other edits. It requires no import of existing rules first.

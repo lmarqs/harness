@@ -13,8 +13,8 @@ For example, acme's API and web projects can reuse one program model while suppl
 
 The [architecture](../architecture.md#ingredients-recipes-and-cookbooks) and its
 [requirements](../architecture.md#requirements) FR-1 and FR-2 define recipes as trusted executable Groovy code and
-[ingredients](../features/glossary.md) as program data models. Cookbooks hold and ship both. FR-7 through FR-16
-define ordered file changes, review, recorded ownership, the deferred discard and batch revert.
+[ingredients](../features/glossary.md) as program data models. Cookbooks hold and ship both. FR-7 through FR-15
+define ordered file changes, review, recorded ownership and discard.
 
 ## Decision
 
@@ -27,8 +27,8 @@ define ordered file changes, review, recorded ownership, the deferred discard an
 3. Users manage recipe versions and supply the version they intend to apply. Each recipe has a short name that
    markers and `cook.lock` use, and `cook.lock` records its source, sha256 and owned targets
    ([0007](0007-ownership.md)). Applying a new version removes what the previous version owned and no longer declares,
-   including edited values. Revert applies a batch's reverse patches without evaluating recipes again.
-4. The batch record of the sources each apply evaluated follows [0014](0014-directory-layout.md).
+   including edited values. Discarding a recipe removes what the lock lists for it without evaluating it again.
+4. A recipe's source stays where its user keeps it; Cook keeps no copy of it ([0014](0014-directory-layout.md)).
 5. A recipe describes file operations; it does not launch agents or verify their results. Batch approval and rollback
    cover declared file operations, not arbitrary effects of trusted code.
 
@@ -41,12 +41,12 @@ define ordered file changes, review, recorded ownership, the deferred discard an
   effect instead of silently skipping an already-applied recipe or removing omitted output. The trade is that a
   later recipe can replace a local value; whole-batch review exposes that change.
 - **3.** FR-14 records what each recipe owns, so a new version's removals follow from the lock rather than from
-  reevaluating an earlier version, and FR-16 restores a batch's prior values from its patches. The short name ties
+  reevaluating an earlier version, and FR-15 discards a recipe from the lock alone. The short name ties
   versions of one recipe together without a stored copy of the previous version for merging, which would add version
   management outside the agreed design. Users must supply the recipe version they mean, rather than relying on Cook to
   reconstruct it.
-- **4.** Revert needs the evaluated content and origins, not just a recipe name; [0014](0014-directory-layout.md)
-  gives the reasons for the record's home and contents.
+- **4.** The lock's source and sha256 identify which recipe version produced the current output; the repository or
+  cookbook that holds the source keeps its history. [0014](0014-directory-layout.md) gives the reasons.
 - **5.** FR-3 and FR-4 distinguish configuration writes from running programs; a contract to verify results and resume
   interrupted runs would make Cook run programs, outside its scope. The trade is that checks, delivery and session
   control belong to the programs or callers responsible for them.
@@ -75,13 +75,12 @@ Costs:
 Must be maintained:
 
 - Reusable program models, ordered current-content proposals and whole-batch review.
-- The distinction between supplied recipe sources and local batch records.
+- The distinction between supplied recipe sources and the ownership recorded in `cook.lock`.
 
 ## Confirmation
 
 - Review against FR-7 and FR-8: if recipe A sets a key and B replaces it, does the final diff show B's result, and does
   applying B alone leave A's unrelated output intact?
-- Review against FR-16: if a batch changed `old` to `new` and a developer then edited another key, does reverting that
-  batch propose `old` and keep the edit, and if the developer instead wrote `custom` to the same key, does the revert
-  write nothing and name the key?
+- Review against FR-15: if a recipe owns a key and a developer then edited another key, does discarding the recipe
+  propose removing only its key and keep the edit, without running the recipe?
 - Review a proposed recipe feature against FR-3 and FR-4: does it describe file operations only?

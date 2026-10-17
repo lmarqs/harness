@@ -11,9 +11,7 @@ see the root README's [current implementation](../../README.md#current-implement
 ```text
 ./cook [-C <dir>] [batch-options] <recipe> [recipe-arguments] [<recipe> [recipe-arguments]]...
 ./cook apply [-C <dir>] [batch-options] <recipe> [recipe-arguments] [<recipe> [recipe-arguments]]...
-./cook revert [-C <dir>] [batch-options] <batchId>
-./cook batch list [-C <dir>]
-./cook batch inspect [-C <dir>] <batchId>
+./cook discard [-C <dir>] [batch-options] <recipe>...
 ./cook help [-C <dir>] [<recipe>]...
 ./cook --help
 ```
@@ -21,31 +19,24 @@ see the root README's [current implementation](../../README.md#current-implement
 `apply` is the default. Running `./cook` with no arguments, `./cook help` or `./cook --help` shows the usage.
 `--help` takes no other arguments.
 
-`<batchId>` identifies a recorded batch: the UTC time the batch started writing, after approval, such as `2026-10-14T15-04-05Z`, with a
-suffix when two batches start in the same second.
-
 ## Commands
 
 | Operation | Operand | Proposed change |
 | --- | --- | --- |
 | Apply, implicit or explicit | One or more recipes, with arguments for each | Declared additions and updates against current content, and removal of what each recipe's previous version owned and no longer declares |
-| Revert | One batch ID | Use the batch's reverse patches against current content; recipes are not evaluated again |
-| Batch list | None | Show the recorded batches; read only |
+| Discard | One or more recipes, without arguments | Removal of what `cook.lock` lists for each recipe; no recipe runs |
 | Help | One or more recipes, without arguments | Show each recipe's help in order; read only, and no recipe runs |
-| Batch inspect | One batch ID | Show one batch's recipes, arguments, files, patches and, for a failed batch, its failure log; read only |
 
-The [architecture](../architecture.md#apply-discard-and-revert) defines these operations, including the deferred
-discard; [apply](apply.md) and [revert](revert.md) explain them with examples.
+The [architecture](../architecture.md#apply-and-discard) defines these operations; [apply](apply.md) and
+[discard](discard.md) explain them with examples.
 
 ```sh
 # Default and explicit apply
 ./cook ./recipe.groovy
 ./cook apply ./recipe.groovy
 
-# Reverse a recorded batch, then list and inspect recorded batches
-./cook revert --batch-approve 2026-10-14T15-04-05Z
-./cook batch list
-./cook batch inspect 2026-10-14T15-04-05Z
+# Remove what two recipes own
+./cook discard dev.thecook:agents:0.1.0:instructions ./recipe.groovy
 ```
 
 ## Recipe operands
@@ -71,11 +62,14 @@ from its source without running it or resolving its imports. It is the one way t
 ./cook help ./recipes/project.groovy ./recipes/dependency.groovy
 ```
 
-A first operand equal to `apply`, `revert`, `batch` or `help` selects that command. To apply a recipe file named `revert`,
+Discard takes the same operands, without arguments, and matches each by its short name in `cook.lock`: coordinates
+match whatever version was applied, and a path matches after its file is gone. Discard resolves no coordinates.
+
+A first operand equal to `apply`, `discard` or `help` selects that command. To apply a recipe file named `discard`,
 make its path explicit:
 
 ```sh
-./cook ./revert
+./cook ./discard
 ```
 
 ## Recipe arguments and ordering
@@ -171,7 +165,8 @@ the file to whoever edits it.
 
 | Option | Applies to | Position | Effect |
 | --- | --- | --- | --- |
-| `--batch-approve` | `apply`, implicit or explicit, and `revert` | Before the first recipe operand; for `revert`, before the batch ID | Displays the final diff and proceeds without prompting; approval covers the whole batch |
+| `--batch-approve` | `apply`, implicit or explicit, and `discard` | Before the first recipe operand | Displays the final diff and proceeds without prompting; approval covers the whole batch |
+| `--dry-run` | `apply`, implicit or explicit, and `discard` | Before the first recipe operand | Displays the final diff and writes nothing |
 
 `--batch-approve` is the batch option and the only preapproval spelling. Without it, Cook asks before changing target
 files. Noninteractive execution without this flag does not silently authorize writes.
@@ -183,7 +178,7 @@ changed sources write.
 ```sh
 ./cook --batch-approve ./recipe.groovy
 ./cook apply --batch-approve ./a.groovy ./b.groovy
-./cook revert --batch-approve 2026-10-14T15-04-05Z
+./cook discard --batch-approve ./recipe.groovy
 ```
 
 A batch option after a recipe receives the normal unknown-option error. This invocation fails:
@@ -205,7 +200,7 @@ current working directory.
 
 | Option | Applies to | Position | Effect |
 | --- | --- | --- | --- |
-| `-C <dir>`, `--kitchen=<dir>` | Every command | Before the first recipe operand, or before the batch ID; once | Cooks in `<dir>` as if Cook had started there: recipe operands and other relative paths resolve against it |
+| `-C <dir>`, `--kitchen=<dir>` | Every command | Before the first recipe operand; once | Cooks in `<dir>` as if Cook had started there: recipe operands and other relative paths resolve against it |
 
 ```sh
 ./cook -C services/api ./recipe.groovy

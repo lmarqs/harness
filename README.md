@@ -67,15 +67,10 @@ Cook cooks in. `-C <dir>` or `--kitchen=<dir>` before the first recipe cooks in 
 - `cook.lock`, which the kitchen keeps and commits: each recipe's short name, source, the source's sha256 and what it
   owns, so a later apply withdraws what a recipe no longer declares
   ([the lock](docs/architecture.md#ownership-and-the-lock)).
-- A batch record, saved in the ignored `.cook/batches/<batchId>/` before the first write of each batch that writes:
-  the recipes in order with their arguments, a copy of each recipe, model and template the batch consumed with its
-  origin, each touched file's patch, `cook.lock`'s included, and the result or the failure, after which the files are
-  as they were ([batch record](docs/features/apply.md#batch-record)).
-- `./cook revert [--batch-approve] <batchId>`, which reverses one recorded batch against the current content with the
-  same review, keeps later edits beside the batch's changes, and writes nothing when one overlaps them, naming each
-  file and the batch's hunk ([revert](docs/features/revert.md)).
-- `./cook batch list`, one line per recorded batch, and `./cook batch inspect <batchId>`, one batch's recipes,
-  arguments, files, patches and any failure.
+- A failed write rolls back the writes already made, so the files are as they were, and prints the error.
+- `./cook discard [--dry-run] [--batch-approve] <recipe>...`, which removes what `cook.lock` lists for each recipe,
+  without running it, through the same review: each section with its markers, each key, each whole file and link,
+  deleting a file left empty, and the recipe's lock entry ([discard](docs/features/discard.md)).
 - `help` on an artifact, a recipe or a recipe path, read without running it.
 
 Coordinates resolve from the first repository of the kitchen's `cook.toml` `repositories` list that holds them, and

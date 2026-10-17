@@ -27,7 +27,6 @@ Keep these version choices distinct, because changing one does not automatically
 | Supplied recipes | Users supply the recipe version they intend to apply | The exact source and its consumed recipe/template dependencies |
 | `cook.lock` | Cook records the source and sha256 that produced each recipe's current ownership | The `cook.lock` change |
 | Native files and sections | The consuming program defines its format and semantics | Actual file changes, key paths, section boundaries and program defaults |
-| Batch records | Cook records each batch under the destination's ignored `.cook/batches/<batchId>/` | The recorded batch, captured sources and reversible patches |
 
 Changing the engine pin leaves recipe versions and project files as they are; see
 [upgrading](../features/wrapper.md#upgrading).
@@ -46,7 +45,7 @@ own pace.
 | Ordered operations | Reordering recipes, rejecting intentional overlap, skipping repeated evaluation, or removing output another recipe owns |
 | Native output | Changing a program's effective settings, replacing a broader target, losing unrelated keys or comments, or changing marker syntax |
 | Ownership | Changing a recipe's short name, which changes its markers and `cook.lock` entry |
-| Paths | Changing the invocation-directory destination or rebasing relative source references onto captured snapshots |
+| Paths | Changing the invocation-directory destination or rebasing relative source references onto another location |
 | Recovery | Changing recorded information in a way that prevents reversal of a retained batch or misstates its changes |
 | Distribution | Changing package/runtime requirements, checksum verification or explicit pinning behavior |
 | Skill guidance | Teaching commands or prerequisites unavailable in the version the guidance describes |
@@ -87,8 +86,8 @@ available to that job.
 CI uses the ordinary [approval contract](../features/cli.md#batch-options-and-approval): noninteractive execution
 without `--batch-approve` does not authorize target writes.
 
-Stopping Cook invocations leaves native content in place. [Revert](../features/revert.md) reverses one recorded batch's
-changes and keeps later non-overlapping edits; it does not reverse external activity by configured programs.
+Stopping Cook invocations leaves native content in place. [Discard](../features/discard.md) removes what a recipe owns
+and keeps everything else; it does not reverse external activity by configured programs.
 
 ## Coexistence
 
@@ -110,13 +109,13 @@ region; ownership never blocks a change.
 | Tracker databases and state files | They remain the tracker's data; applying configuration does not implicitly migrate, clear or synchronize them, and a recipe that targets them declares that change in the reviewed diff, within the destination |
 | Version-control configuration, ignore rules and hook files | Recipes may declare them and the version-control program interprets and runs them; people and external tools create branches, manage worktrees, create or remove working copies, detect landed work, enforce delivery guards and preserve uncommitted work |
 | Pushes, pull requests, notifications and MCP services | External tools and people perform these activities |
-| Another program's data in `.cook/` or `cook.lock` | Move it elsewhere first, because Cook writes batch records to `.cook/` and ownership to `cook.lock` |
+| Another program's data in `cook.lock` | Move it elsewhere first, because Cook writes ownership to `cook.lock` |
 | Executables on `PATH` or a global Cook install | The wrapper design runs its pinned cached package; use explicit paths when selecting another executable |
 
 Trackers own their assignment rules, sync settings, remotes and commands. Synchronized tracker data can expose
 assignments and comments to other machines, so choose local or shared data and remote-sync permissions with the
-tracker's own controls; writing configuration does not isolate its later activity, and reverting a configuration batch
-does not reverse task activity the tracker performed later.
+tracker's own controls; writing configuration does not isolate its later activity, and discarding a configuration
+recipe does not reverse task activity the tracker performed later.
 
 Approval, output boundaries and rollback cover declared batch operations, not arbitrary side effects of trusted Groovy
 recipe code. Trust sources before evaluating them; the resulting diff is not a sandbox.
@@ -124,12 +123,11 @@ recipe code. Trust sources before evaluating them; the resulting diff is not a s
 ## Paths and recovery
 
 Destination and source resolution follow
-[destination and source origins](../architecture.md#destination-and-source-origins). Capturing a source snapshot must
-not change the base for relative references, because a rebased reference would resolve a different source.
+[destination and source origins](../architecture.md#destination-and-source-origins). A relative reference resolves
+from the referencing recipe's origin, because a rebased reference would resolve a different source.
 
-Each batch keeps [one record](../architecture.md#one-record-for-the-batch), saved before the first target write.
-Reverting a batch requires its record, so losing `.cook/` makes earlier batches irreversible while apply keeps working
-and ownership survives in `cook.lock` ([history availability](../architecture.md#batch-record-availability)).
+A failed write rolls back the batch's completed writes. Ownership lives in the committed `cook.lock`, so apply and
+discard work in every clone, and earlier content lives in the repository's history.
 
 ## Installation and version pinning
 
