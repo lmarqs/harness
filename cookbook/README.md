@@ -19,8 +19,8 @@ per directory into a Maven-layout repository, with a POM for each jar and a bill
 holds the directory's sources, resources and README under its package path, such as `dev/thecook/ralph/`: everything
 a reader needs without the source checkout.
 
-A recipe is addressed as `group:artifact:version[:recipe]`. The recipe named like its directory is the apply
-default: `dev.thecook:ralph:0.1.0` applies `ralph`, while `dev.thecook:ralph:0.1.0:prd-story` applies `prd-story`.
+A recipe is addressed as `group:artifact:version[:recipe]`. The recipe named like its directory is the
+default: `dev.thecook:ralph:0.1.0` cooks `ralph`, while `dev.thecook:ralph:0.1.0:prd-story` cooks `prd-story`.
 Only exact release versions are accepted; branches, commits, snapshots and version ranges are refused. `cook.lock`
 records the address and a sha256 of the artifact's sources, the same whether a tag or a jar supplied them.
 
@@ -33,7 +33,7 @@ repository as `{ git = "<url>", dir = "<dir>" }`, with `dir` naming the cookbook
 root, or a Maven-layout repository as an `https://` URL or a path relative to the destination. A git repository is
 used for a group when its `cookbook.toml` at the release tag names that group. Cook fetches the tag with the machine's
 `git`, which uses the credentials git already has, and keeps it in `$XDG_CACHE_HOME/the-cook/git`, or
-`~/.cache/the-cook/git`, so a fetched release applies offline; each later apply fetches the tag again when the
+`~/.cache/the-cook/git`, so a fetched release cooks offline; each later run fetches the tag again when the
 repository can be read, so a moved tag shows as a changed hash in `cook.lock`. Without a `cook.toml`, Cook resolves
 from Maven Central. [ADR 0029](../docs/adrs/0029-cookbook-distribution.md) records the reasons.
 
@@ -88,7 +88,7 @@ An author's code reaches the engine only through annotations. It imports nothing
 | `@File(path, mode)` | member returning `String` | The whole file. |
 | `@Files(path, mode)` | member returning `Map<String, String>` | One whole file per entry, under `path`. |
 | `@Links(path)` | member returning `Map<String, String>` | One symbolic link per entry, under `path`, pointing at the value. |
-| `@Seed(path, existing)` | member returning `String` | Written only when the file is absent, and never owned. With `existing = 'fail'`, the recipe's first apply fails when the file exists, unless Cook runs with `--force`, which replaces the file, or `--skip`, which keeps it. |
+| `@Seed(path, existing)` | member returning `String` | Written only when the file is absent, and never owned. With `existing = 'fail'`, cooking the recipe the first time fails when the file exists, unless Cook runs with `--force`, which replaces the file, or `--skip`, which keeps it. |
 | `@Delete(path)` | member returning `boolean` | Deletes a file the recipe does not own, when true. |
 
 Rules:
@@ -98,11 +98,11 @@ Rules:
   the member, when anything is declared.
 - A declaration member may throw to reject the request, after the guard that keeps a pristine instance declaring
   nothing.
-- Sections, keys and lines are written only into regular files. When the path is a symbolic link, the apply fails,
+- Sections, keys and lines are written only into regular files. When the path is a symbolic link, cooking fails,
   naming the link and its target, and writes nothing.
 - `path` joins to the instance's `directory`. `${property}` in a path reads the instance, for files the recipe names.
 - Declare the entry the recipe means, never the list or file around it: a step, a requirement, a line. Ownership then
-  covers only that entry, and applying again finds it in place.
+  covers only that entry, and cooking again finds it in place.
 - A `Map` segment in a key path selects one entry of a list: `[id: 'cache']` the map entry whose `id` is `cache`,
   `[matches: regex]` the string entry the expression matches. An absent entry is inserted at `place`: `start`, `end`
   by default, `before:<value>` or `after:<value>`, compared the same way. An absent list is created. A path that
@@ -143,14 +143,14 @@ follow others says so in its doc comment, as `Agents.connect` does: call it afte
 A unit is read by someone who has its artifact and not its source, so `./cook` is how it is read: a recipe inside a
 jar cannot be opened with a pager. Everything the reader needs ships in the artifact: its README, the doc comments on
 its models and the annotations on its recipes. `./cook help <address>...` prints help for each address in order and
-applies nothing. An artifact address prints its front page; a recipe address or path prints that recipe's help.
+cooks nothing. An artifact address prints its front page; a recipe address or path prints that recipe's help.
 
 The engine reads a recipe's help from its parsed source, without running the recipe or resolving its imports, so help
 works for a recipe whose models are not available.
 
 | Unit | `help` prints, in order | The author writes |
 | --- | --- | --- |
-| Recipe | `@help`; the params from their annotations, each with its name, type, default or `required`, choices and `doc`; the ingredients it injects; `@confirm` as "Confirm"; `@yield` as "After applying" | `@help`, and a `doc` on every param |
+| Recipe | `@help`; the params from their annotations, each with its name, type, default or `required`, choices and `doc`; the ingredients it injects; `@confirm` as "Confirm"; `@yield` as "After cooking" | `@help`, and a `doc` on every param |
 | Model | The class doc comment; the API from the doc comments of its public members; the writes from its annotations and the doc comments of the annotated members | The class doc comment, and a doc comment on every public member and every annotated member |
 
 A fact that lives in code is rendered from the code and written nowhere else. State a model keeps for itself is
@@ -171,8 +171,8 @@ arguments; what the recipe actually wrote is in the diff and in the engine's rep
 | Section | Content |
 | --- | --- |
 | Lead | One or two sentences: what the destination gets |
-| Before applying | What must exist or be installed, and what the recipe reads |
-| Apply | One to three invocations showing the choices that matter; the params are not repeated |
+| Before cooking | What must exist or be installed, and what the recipe reads |
+| Cook | One to three invocations showing the choices that matter; the params are not repeated |
 | Writes | `Target`, `Part` and `When`: the argument value that triggers the row, or `Always`; then how the written setup behaves |
 | With other recipes | What it composes with, in which order, and which arguments must agree |
 
@@ -235,7 +235,7 @@ Ingredients
   dev.thecook.mise.Mise
   dev.thecook.ralph.Ralph
 
-After applying
+After cooking
   - `--mode=standalone`: run `.ralph-tui/run`, with a PRD path or a Beads epic id as its argument.
   ...
 ```

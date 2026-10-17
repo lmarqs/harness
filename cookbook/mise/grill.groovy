@@ -1,12 +1,12 @@
 @help('''
 Declares a mise task named `grill` that runs the supplied command.
 
-## Before applying
+## Before cooking
 
 mise and the programs used by the command must be installed to run the task. The command is shell text,
 stored as written; quote it for the shell when passing `--script`.
 
-## Apply
+## Cook
 
 ```sh
 ./cook dev.thecook:mise:0.1.0:grill --script='./gradlew check'
@@ -20,7 +20,7 @@ stored as written; quote it for the shell when passing `--script`.
 
 ## With other recipes
 
-Apply `dev.thecook:mise:0.1.0:runtime-version` alongside this recipe when the command needs a pinned runtime.
+Cook `dev.thecook:mise:0.1.0:runtime-version` alongside this recipe when the command needs a pinned runtime.
 Its tool pin and this task are separate targets. Other recipes can add tasks under different names; the last
 recipe to declare `tasks.grill` owns that task whole.
 ''')

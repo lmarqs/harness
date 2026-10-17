@@ -1,13 +1,13 @@
 @help('''
 Adds or replaces one service in a Compose file and declares a mise task that validates the file.
 
-## Before applying
+## Before cooking
 
 The input YAML file must exist in the destination and hold one non-empty service definition map, without
 a surrounding `services` key. The recipe reads that input as it is before the invocation. mise and Docker
 with Compose must be available to run the validation task.
 
-## Apply
+## Cook
 
 ```sh
 ./cook dev.thecook:docker:0.1.0:compose-service --service=redis --from=setup/redis.yaml

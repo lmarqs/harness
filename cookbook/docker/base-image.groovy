@@ -1,13 +1,13 @@
 @help('''
 Sets the base image of one named Dockerfile stage and declares a mise task that builds that stage.
 
-## Before applying
+## Before cooking
 
 The selected Dockerfile must exist. The recipe reads it as preceding recipes in the invocation leave it;
 the named stage must occur exactly once and use either the expected image or the requested image. The new
 image must be a literal reference. mise and Docker must be available to run the build task.
 
-## Apply
+## Cook
 
 ```sh
 ./cook dev.thecook:docker:0.1.0:base-image --stage=build --expected=eclipse-temurin:17 --image=eclipse-temurin:21

@@ -2,14 +2,14 @@
 Sets up Ralph TUI as the repository's loop runner: its configuration, a runner and the tracker it takes stories
 from.
 
-## Before applying
+## Before cooking
 
 - For the `json` tracker, a PRD in Ralph's JSON format at `--prd`. The recipe does not create one.
 - For `--mode=mise`, mise installed. Bun and Ralph TUI are pinned for it; `mise install` fetches them.
 - For `--mode=standalone`, `ralph-tui` on the `PATH`.
 - For the `beads` tracker, `bd` on the `PATH`.
 
-## Apply
+## Cook
 
 ```sh
 ./cook dev.thecook:ralph:0.1.0
@@ -33,7 +33,7 @@ Ralph's worktrees, iterations, reports and session files stay out of version con
 
 ## With other recipes
 
-- `dev.thecook:ralph:0.1.0:prd-story` writes a PRD reduced to one story. Apply it before
+- `dev.thecook:ralph:0.1.0:prd-story` writes a PRD reduced to one story. Cook it before
   `dev.thecook:ralph:0.1.0`, with `--prd` pointing at the same path.
 - `dev.thecook:ralph:0.1.0:bead-task` adds the task `ralph:bead`, which runs Ralph on one Beads issue.
   It needs `--tracker=beads` and `--mode=mise`.

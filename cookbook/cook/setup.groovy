@@ -2,12 +2,12 @@
 Sets up this repository's shared policy for Claude and Codex, three skills, working instructions and an
 ignore pattern for Claude's local settings file.
 
-## Before applying
+## Before cooking
 
 Reads `.agents/policy.yaml` when present, or uses the version 1 starter policy when absent.
 The policy supplies instruction lines and command permissions for both harnesses.
 
-## Apply
+## Cook
 
 ```sh
 ./cook dev.thecook:cook:0.1.0:setup
@@ -33,7 +33,7 @@ Codex reads `AGENTS.md` and `.agents/skills/` natively.
 ''')
 @yield('''
 Review the rendered permissions against each harness's permission model; edit the shared policy and
-apply again to update them.
+cook again to update them.
 ''')
 import dev.thecook.agents.Agents
 import dev.thecook.agents.Claude

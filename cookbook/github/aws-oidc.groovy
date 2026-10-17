@@ -2,12 +2,12 @@
 Declares an AWS OIDC credentials step in one workflow job and grants the permissions that step needs.
 An absent step is inserted at the selected placement; an existing step with the same id is replaced.
 
-## Before applying
+## Before cooking
 
 The selected workflow job must exist. A `before:<id>` or `after:<id>` placement names an existing step.
 The AWS role must trust the workflow's OIDC identity for the credentials step to assume it when the job runs.
 
-## Apply
+## Cook
 
 ```sh
 ./cook dev.thecook:github:0.1.0:aws-oidc --workflow=.github/workflows/deploy.yml --job=deploy \\
@@ -22,7 +22,7 @@ The AWS role must trust the workflow's OIDC identity for the credentials step to
 | The selected workflow file | `jobs.<job>.permissions.contents`, set to `read` | Always |
 | The selected workflow file | `jobs.<job>.permissions.id-token`, set to `write` | Always |
 
-The next workflow run uses the selected region and IAM role through its `awsCredentials` step. Applying
+The next workflow run uses the selected region and IAM role through its `awsCredentials` step. Cooking
 the same arguments again leaves the declared step and grants unchanged.
 
 ## With other recipes

@@ -1,13 +1,13 @@
 @help('''
 Records one requirement in an existing `go.mod` and declares a mise task that tidies and tests the module.
 
-## Before applying
+## Before cooking
 
 The selected module directory must contain `go.mod`. The recipe reads its requirement lines and rejects
 an existing requirement for the selected module at another version. mise and the project's Go toolchain
 must be available to run the task.
 
-## Apply
+## Cook
 
 ```sh
 ./cook dev.thecook:go:0.1.0:dependency --module=github.com/google/uuid --version=v1.6.0

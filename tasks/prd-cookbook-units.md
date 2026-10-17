@@ -45,7 +45,7 @@ later story follows a written rule instead of an exemplar.
 - [ ] Units states: a cookbook directory is one artifact holding models, recipes, resources and one README; one
       release version per cookbook with one jar per directory listed in a BOM; a jar holds sources, resources and
       README; a recipe is addressed `group:artifact:version[:recipe]` and the recipe named like its directory is the
-      apply default; exact release versions only, snapshots and ranges refused; a loose recipe declares
+      default; exact release versions only, snapshots and ranges refused; a loose recipe declares
       `@cookbook('dev.thecook:0.1.0')` once per cookbook it uses; each recipe in an invocation is evaluated in its
       own classloader and composition is by file content; two versions of one artifact inside one recipe's tree is
       an error; `cook.lock` records the address and the jar's sha256; a committed `cook.toml` at the destination
@@ -60,7 +60,7 @@ later story follows a written rule instead of an exemplar.
       instance declaring nothing; call order in the body is meaningful and a method that must follow others says
       so in its doc comment, as `Agents.connect` does.
 - [ ] Documentation states: a recipe file opens with a `/** */` doc comment holding, in order, a lead, Before
-      applying, Apply, Writes (columns Target, Part, When), After applying, With other recipes, empty sections
+      cooking, Cook, Writes (columns Target, Part, When), After cooking, With other recipes, empty sections
       omitted; a model's class doc comment holds a lead, Writes for, Instances, Use, With other models; every
       public method or property and every annotated member has a doc comment, an annotated member's stating the
       part written and when; state that is not API is `private`; a directory README is the artifact's front page,
@@ -306,7 +306,7 @@ recipes documented in their files.
 - [ ] `cookbook/cook/cook.groovy` (was the-cook) with leading doc comment, imports `dev.thecook.cook.Cook` and
       `dev.thecook.git.Git`, invocation `dev.thecook:cook:0.1.0`.
 - [ ] `cookbook/cook/setup.groovy` (was the-cook-setup) with leading doc comment whose With other recipes section
-      says to apply `dev.thecook:cook:0.1.0` with it; imports for `Agents`, `Claude`, `Codex`, `Git`, `Solid`,
+      says to cook `dev.thecook:cook:0.1.0` with it; imports for `Agents`, `Claude`, `Codex`, `Git`, `Solid`,
       `HexagonalLayout` and `EffectiveJavaCore` from their new packages; invocation `dev.thecook:cook:0.1.0:setup`.
 - [ ] `cookbook/ingredients/the-cook/`, `cookbook/recipes/the-cook/` and `cookbook/recipes/the-cook-setup/` are
       gone; `cookbook/cook/README.md` is one paragraph.
@@ -333,7 +333,7 @@ recipes documented in their files.
 - FR-2: A model's package is the cookbook group plus the directory name: `dev.thecook.<dir>`.
 - FR-3: A recipe is `<dir>/<name>.groovy`: a leading `/** */` doc comment, imports for every injected type,
   `@param` lines each with `doc`, `@ingredient` lines, then the body.
-- FR-4: A recipe is addressed `group:artifact:version[:recipe]`; the recipe named like its directory is the apply
+- FR-4: A recipe is addressed `group:artifact:version[:recipe]`; the recipe named like its directory is the
   default. All invocations in docs use `dev.thecook:<dir>:0.1.0[:<recipe>]`.
 - FR-5: One release version per cookbook, declared in `cookbook/cookbook.toml` with `group`, `version` and `api`.
 - FR-6: Recipe names are noun phrases naming the state the destination gets, without repeating the directory's
@@ -363,8 +363,8 @@ recipes documented in their files.
   | codex-settings | `codex` | `settings.groovy` |
   | skills/* | `skills` | none |
 
-- FR-7: A recipe's doc comment has, in order, a lead, Before applying, Apply, Writes (Target, Part, When), After
-  applying, With other recipes; empty sections are omitted.
+- FR-7: A recipe's doc comment has, in order, a lead, Before cooking, Cook, Writes (Target, Part, When), After
+  cooking, With other recipes; empty sections are omitted.
 - FR-8: A model's class doc comment has a lead, Writes for, Instances, Use, With other models.
 - FR-9: Every public method or property and every annotated member of a model has a doc comment; an annotated
   member's states the part written and when.

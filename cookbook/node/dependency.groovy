@@ -1,12 +1,12 @@
 @help('''
 Records one dependency in a package manifest and declares a mise task that installs it.
 
-## Before applying
+## Before cooking
 
 Choose the package directory and its package manager. mise and the selected package manager must be installed
 to run the install task. The version range is recorded as supplied.
 
-## Apply
+## Cook
 
 ```sh
 ./cook dev.thecook:node:0.1.0:dependency --package=zod --version=^3.23.0 --dir=packages/api
@@ -20,7 +20,7 @@ to run the install task. The version range is recorded as supplied.
 | `<dir>/package.json` | `<kind>.<package>`, owned whole | Always |
 | `mise.toml` | `tasks."dependency:node"`, owned whole, running the selected manager in `<dir>` | Always |
 
-Applying the recipe records the manifest entry and task; the task runs the package manager and updates its lock
+Cooking the recipe records the manifest entry and task; the task runs the package manager and updates its lock
 file.
 
 ## With other recipes

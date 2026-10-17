@@ -1,7 +1,7 @@
 @help('''
 Seeds `AGENTS.md` with a section template for an agent to fill in, and connects each selected harness to it.
 
-## Apply
+## Cook
 
 ```sh
 ./cook dev.thecook:agents:0.1.0:instructions
@@ -12,19 +12,19 @@ Seeds `AGENTS.md` with a section template for an agent to fill in, and connects 
 
 | Target | Part | When |
 | --- | --- | --- |
-| `AGENTS.md` | Section template, written on the first apply; never owned | Always |
+| `AGENTS.md` | Section template, written the first time the recipe is cooked; never owned | Always |
 | `CLAUDE.md` | The section `instructions`, containing `@AGENTS.md` | `--harness=claude` |
 
-The first apply fails when `AGENTS.md` already exists. Run with `--force` to replace it with the template, then
-have an agent carry what the old file still needs into it, or with `--skip` to keep it as it is.
+The first time the recipe is cooked, it fails when `AGENTS.md` already exists. Run with `--force` to replace it with
+the template, then have an agent carry what the old file still needs into it, or with `--skip` to keep it as it is.
 
 Claude reads the file through `CLAUDE.md`. When `CLAUDE.md` already imports `@AGENTS.md` outside the recipe's
-section, the apply fails and names the line; remove that line and apply again. Codex reads `AGENTS.md` natively, so
+section, cooking fails and names the line; remove that line and cook again. Codex reads `AGENTS.md` natively, so
 selecting `codex` adds no target.
 
 ## With other recipes
 
-Apply `dev.thecook:agents:0.1.0:permissions` with the same harness selection to render the shared policy.
+Cook `dev.thecook:agents:0.1.0:permissions` with the same harness selection to render the shared policy.
 The recipes write separate targets and work in either order.
 ''')
 @yield('''

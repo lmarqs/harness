@@ -1,13 +1,13 @@
 @help('''
 Declares a mise task that shows one Beads issue and then runs Ralph on it.
 
-## Before applying
+## Before cooking
 
 mise and `bd` must be on the PATH, and the Beads tracker must contain the supplied `--issue`.
-The `ralph:run` task must use the Beads tracker; apply `dev.thecook:ralph:0.1.0` with
+The `ralph:run` task must use the Beads tracker; cook `dev.thecook:ralph:0.1.0` with
 `--tracker=beads --mode=mise` to supply it and pin Bun and Ralph TUI.
 
-## Apply
+## Cook
 
 ```sh
 ./cook dev.thecook:ralph:0.1.0 --tracker=beads --mode=mise \\

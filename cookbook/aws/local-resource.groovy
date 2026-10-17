@@ -1,14 +1,14 @@
 @help('''
 Writes a Terraform file and declares a mise task that plans its directory against a LocalStack endpoint.
 
-## Before applying
+## Before cooking
 
 The input Terraform file must exist in the destination. The recipe reads its text as it is before the
 invocation. mise, Terraform and a running LocalStack endpoint are needed to run the plan task. The endpoint
 must be an HTTP URL at `localhost`, `127.0.0.1` or `localstack`, with an optional numeric port and no path.
 The Terraform configuration must use the supplied AWS endpoint and test credentials for local planning.
 
-## Apply
+## Cook
 
 ```sh
 ./cook dev.thecook:aws:0.1.0:local-resource --path=infra/local/queue.tf --from=setup/queue.tf

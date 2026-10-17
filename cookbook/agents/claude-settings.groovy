@@ -1,12 +1,12 @@
 @help('''
 Writes chosen Claude Code settings and instructions from files and arguments you supply.
 
-## Before applying
+## Before cooking
 
 The optional settings input is a JSON file in the destination. It is read as it exists before the invocation;
 each top-level key becomes one owned setting.
 
-## Apply
+## Cook
 
 ```sh
 ./cook dev.thecook:agents:0.1.0:claude-settings --settings=setup/claude.json --instructions='Run tests before committing.'
@@ -23,12 +23,12 @@ Claude Code reads the project settings and instructions.
 
 ## With other recipes
 
-Apply `dev.thecook:agents:0.1.0:instructions` after this recipe to use shared instructions in place of the
-supplied instructions. Apply `dev.thecook:agents:0.1.0:permissions` after it to use the shared policy for
+Cook `dev.thecook:agents:0.1.0:instructions` after this recipe to use shared instructions in place of the
+supplied instructions. Cook `dev.thecook:agents:0.1.0:permissions` after it to use the shared policy for
 `permissions`; other settings keys remain separate targets. Select `--harness=claude` for either recipe.
 ''')
 @yield('''
-Review permission settings against Claude's permission model. Apply again with updated inputs to change
+Review permission settings against Claude's permission model. Cook again with updated inputs to change
 them.
 ''')
 import dev.thecook.agents.Claude

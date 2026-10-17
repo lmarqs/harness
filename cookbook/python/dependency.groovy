@@ -1,14 +1,14 @@
 @help('''
 Records one requirement in `pyproject.toml` or `requirements.txt` and declares a mise task that installs it.
 
-## Before applying
+## Before cooking
 
 Choose the project directory and manifest. For `pyproject.toml`, the recipe reads the selected dependency
 group and rejects a different specification for the same package already present there. mise, the selected
 installer and the project's `.venv` virtual environment must be available to run the install task.
 The `pyproject.toml` project must support editable installation when that manifest is selected.
 
-## Apply
+## Cook
 
 ```sh
 ./cook dev.thecook:python:0.1.0:dependency --dependency='httpx>=0.27' --group=dev

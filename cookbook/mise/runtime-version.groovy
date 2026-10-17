@@ -1,12 +1,12 @@
 @help('''
 Pins a runtime version in mise and removes that runtime's separate version file.
 
-## Before applying
+## Before cooking
 
 Choose the runtime and its version explicitly. This recipe does not read the version from `.nvmrc` or
 `.python-version`; the selected file is deleted. mise must be installed to use the pin.
 
-## Apply
+## Cook
 
 ```sh
 ./cook dev.thecook:mise:0.1.0:runtime-version --runtime=node --version=22.12.0
@@ -26,7 +26,7 @@ mise holds the selected runtime's version for the project.
 ## With other recipes
 
 Other recipes can declare tasks and different tools in the same `mise.toml`. A recipe that also pins the
-selected runtime shares its `tools.<runtime>` target; apply this recipe last for `--version` to own that pin.
+selected runtime shares its `tools.<runtime>` target; cook this recipe last for `--version` to own that pin.
 ''')
 @yield('''
 Run `mise install` to install the pinned runtime.

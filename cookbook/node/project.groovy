@@ -2,12 +2,12 @@
 Sets up a Node project with npm or Yarn: tool versions in `mise.toml`, the engine and package manager in
 `package.json`, setup and lock tasks, and Git ignores for what those tools leave behind.
 
-## Before applying
+## Before cooking
 
 mise must be installed to use the tool pins and tasks. The setup task installs dependencies from an existing
 lock file; use the lock task to create or refresh it.
 
-## Apply
+## Cook
 
 ```sh
 ./cook dev.thecook:node:0.1.0:project --manager=yarn
@@ -27,7 +27,7 @@ lock file; use the lock task to create or refresh it.
 
 ## With other recipes
 
-Apply `dev.thecook:node:0.1.0:dependency` with the same manager and `--dir=.` to add a dependency to this
+Cook `dev.thecook:node:0.1.0:dependency` with the same manager and `--dir=.` to add a dependency to this
 project. Its dependency keys compose with the engine and manager keys; refresh the lock file after changes.
 Other recipes can add distinct tool pins and tasks in the same `mise.toml`.
 ''')

@@ -1,12 +1,12 @@
 @help('''
 Writes a copy of a JSON PRD reduced to one user story, where Ralph will read it.
 
-## Before applying
+## Before cooking
 
 The source PRD must exist in Ralph's JSON format and contain exactly one `userStories` entry with the supplied
 `--story` id. The source is read as earlier recipes in the invocation leave it.
 
-## Apply
+## Cook
 
 ```sh
 ./cook dev.thecook:ralph:0.1.0:prd-story --story=US-007 \\
@@ -21,7 +21,7 @@ The source PRD must exist in Ralph's JSON format and contain exactly one `userSt
 
 ## With other recipes
 
-Apply `dev.thecook:ralph:0.1.0` after this recipe, with `--prd` pointing at the same `--selected` path.
+Cook `dev.thecook:ralph:0.1.0` after this recipe, with `--prd` pointing at the same `--selected` path.
 `dev.thecook:ralph:0.1.0:bead-task` supplies a task for a Beads issue instead of a JSON story; it uses
 `dev.thecook:ralph:0.1.0` with `--tracker=beads --mode=mise`.
 ''')
