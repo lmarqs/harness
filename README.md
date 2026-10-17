@@ -53,7 +53,8 @@ Cook cooks in. `-C <dir>` or `--kitchen=<dir>` before the first recipe cooks in 
 
 ### What runs
 
-Recipes applied by coordinates, `group:artifact:version[:recipe]`, run through the intended engine:
+`./cook` applies recipes left to right in one invocation, each named by coordinates,
+`group:artifact:version[:recipe]`, or by a `.groovy` path inside the kitchen:
 
 - One review before any write: each recipe's `@confirm` text, a unified diff and one question; `--batch-approve` to
   write without asking, and nothing written without a terminal unless it is given
@@ -62,27 +63,41 @@ Recipes applied by coordinates, `group:artifact:version[:recipe]`, run through t
   ([recipe arguments and ordering](docs/features/cli.md#recipe-arguments-and-ordering)).
 - `--force` and `--skip` for a file a recipe's first apply writes from a template
   ([existing files](docs/features/cli.md#existing-files)).
-- `cook.lock`, which the kitchen keeps and commits: each recipe's short name, coordinates, the jar's sha256 and what it
+- `cook.lock`, which the kitchen keeps and commits: each recipe's short name, source, the source's sha256 and what it
   owns, so a later apply withdraws what a recipe no longer declares
   ([the lock](docs/architecture.md#ownership-and-the-lock)).
-- `help` on an artifact or a recipe, read from the jar without running it.
+- `help` on an artifact, a recipe or a recipe path, read without running it.
 
 Coordinates resolve from the jar in the first repository of the kitchen's `cook.toml` `repositories` list that holds
-it, each an `https://` URL or a path, and from Maven Central when the kitchen has no `cook.toml`. Arguments after
-coordinates are written `--name=value`, or a bare `--name` for a yes-or-no argument, and each word without `--` starts
-the next recipe.
+it, each an `https://` URL or a path, and from Maven Central when the kitchen has no `cook.toml`. Arguments follow
+their recipe as `--name=value` or `--name value`, and a yes-or-no argument as a bare `--name` or `--name=false`. A
+word that contains `/` or `:` or ends with `.groovy` starts the next recipe, so a value shaped like one is written
+`--name=value`.
 
-The design has these, and they do not run yet: revert and batch records, `https://` recipe operands, `@cookbook` in a
-loose recipe, git repositories in `cook.toml` ([ADR 0029](docs/adrs/0029-cookbook-distribution.md)), and
-`--name value` after coordinates.
+The design has these, and they do not run yet: revert and batch records, `https://` recipe operands, `apply` written
+as a command, and git repositories in `cook.toml` ([ADR 0029](docs/adrs/0029-cookbook-distribution.md)).
 
 ### Recipe paths
 
-A `.groovy` path runs through the earlier core: it writes without an approval prompt or a content diff, enforces
-adoption and managed-edit gates, keeps ownership outside `cook.lock`, and has the `init`, `cook`, `plan` and saved-plan
-`apply` commands and the `--remove` and `--library` options. A `.groovy` path and coordinates are applied in separate
-invocations. [Issue #15](https://github.com/lmarqs/the-cook/issues/15) tracks moving `.groovy` paths onto the
-coordinates engine.
+A `.groovy` path inside the kitchen is a recipe like any other. Its short name, in section markers and `cook.lock`, is
+its path in the kitchen without `.groovy`, so moving the file renames the recipe; the lock records its path and the
+file's sha256. It imports models from the cookbook releases it names with `@cookbook('group:version')` on one of its
+imports, resolved through the same repositories as coordinates:
+
+```groovy
+@help('Shares the solid skill with Claude, through AGENTS.md and CLAUDE.md.')
+@cookbook('dev.thecook:0.1.0')
+import dev.thecook.agents.Agents
+import dev.thecook.agents.Claude
+
+@ingredient(Agents) def agents
+@ingredient(Claude) def claude
+
+agents.skills('solid')
+agents.connect([claude])
+```
+
+A path outside the kitchen, through a symbolic link too, is refused, as are two releases of one cookbook.
 
 Of the [cookbook](cookbook/README.md), the `agents` artifact runs; the other directories are a design sketch that has
 not been compiled. `./gradlew :cookbook:publish` packages the cookbook with the `dev.thecook.cookbook` Gradle plugin,
@@ -98,8 +113,8 @@ Packaging compiles nothing; the engine compiles an artifact's sources when one o
 `docs/` is its own build. `./gradlew -p docs check`, which `./gradlew check` includes, fails on a relative link in
 `docs/` that points to a missing file or heading anchor; [`docs/build.gradle`](docs/build.gradle) defines the check.
 
-See [the core implementation](core/README.md) for ownership, contribution identities, migration and differences from
-the intended architecture.
+See [the core implementation](core/README.md) for how the engine applies a recipe and how it differs from the
+intended architecture.
 
 ## Read next
 
@@ -120,19 +135,16 @@ cli/build/jpackage/the-cook/bin/the-cook --help
 
 Its help output also begins with `Usage:`. The image includes the CLI and a Java runtime. Copy the **whole**
 `cli/build/jpackage/the-cook` directory to another machine with the same OS and architecture. Run its `bin/the-cook`
-from the repository you want to cook:
+from the repository you want to cook, or name it with `-C`:
 
 ```sh
-/path/to/the-cook/bin/the-cook init
+/path/to/the-cook/bin/the-cook -C /path/to/repository dev.thecook:agents:0.1.0:instructions --harness=claude
 ```
-
-The builtin `init` creates `cook.groovy` and preserves an existing regular file. `the-cook cook` evaluates the
-destination's `cook.groovy`; the script and any sources it requires must be available.
 
 The paths above are for Linux. The build defines `the-cook.app/Contents/MacOS/the-cook` on macOS and
 `the-cook/the-cook.exe` on Windows. Build on the target OS and architecture. This task produces an application
 directory. The Windows path in the build configuration does not establish verified Windows support.
 
-`./gradlew jpackageTest` builds the image and tests the native launcher with Java and Gradle absent from `PATH`, including `init`, local recipe discovery, repeated options, help, child updates, removal, legacy scripts, repeat cooking, and error exit codes. This distribution check runs separately from `./gradlew check`.
+`./gradlew jpackageTest` builds the image and tests the native launcher with Java and Gradle absent from `PATH`: help, applying coordinates and a recipe path in one invocation, the refusal to write without a terminal, a repeated apply, `-C` and a usage error. This distribution check runs separately from `./gradlew check`.
 
 For development, `./gradlew cliBuild` builds the regular JVM distribution used by this repository's `./cook` entry point; that distribution requires Java 17 on the user's machine.
