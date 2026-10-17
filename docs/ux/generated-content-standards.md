@@ -155,5 +155,5 @@ several recipes touching one file produce one patch for their combined change. S
 
 Revert reverses one recorded batch's changes against current content without evaluating recipes again. Later edits
 that do not overlap the batch's changes survive; an overlapping edit makes the revert write nothing and list each
-conflicting file and section. The [revert](../features/revert.md) page works through an example. To keep native
+conflicting file with the batch's hunk that no longer matches. The [revert](../features/revert.md) page works through an example. To keep native
 configuration, leave it in place.

@@ -217,7 +217,8 @@ of what each recipe owned before and no longer declares.
 
 **Revert** reverses one recorded batch. It applies the batch's reverse patches against current content and does not
 evaluate recipes again. Later edits to other parts of the same files survive. If a later edit overlaps a change the
-batch made, the revert writes nothing and lists each conflicting file and section; resolve those and run it again.
+batch made, the revert writes nothing and lists each conflicting file with the batch's hunk that no longer matches;
+resolve those and run it again.
 `cook.lock` is one of the files a batch touches, so reverting a batch also restores the ownership it changed (FR-16).
 
 For example, an apply batch changes `test` in `settings.toml` from `old` to `new`, and a later edit changes `other`.
@@ -232,7 +233,8 @@ Reverting that batch proposes:
  other = "edited"
 ```
 
-If the later edit had changed `test` instead, the revert would refuse and name `settings.toml` and `test`.
+If the later edit had changed `test` instead, the revert would refuse and name `settings.toml` with the batch's hunk
+that wrote `test = "new"`.
 
 **Discard**, which removes everything the lock lists for a recipe across all the batches that wrote it, is deferred
 (FR-15). To remove a recipe's contribution, revert the batches that applied it, or remove its sections and keys by
@@ -381,7 +383,7 @@ Other documents cite these requirements by number.
   deferred until a concrete need.
 - **FR-16:** Reverting a batch applies its reverse patches against current content without evaluating recipes. Later
   edits that do not overlap the batch's changes survive. An overlapping edit makes the revert write nothing and list
-  each conflicting file and section.
+  each conflicting file with the batch's hunk that no longer matches.
 
 ### CLI grammar
 

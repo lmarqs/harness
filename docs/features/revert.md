@@ -52,10 +52,13 @@ the recipes again or require their original sources to remain available elsewher
 ./cook revert --batch-approve 2026-10-14T15-04-05Z
 ```
 
-Revert reverses only the batch's own changes. Later edits to other parts of the same files survive. If a later edit
-overlaps a change the batch made, the revert writes nothing and lists each conflicting file and section; resolve
-those and run it again. `cook.lock` is one of the files a batch touches, so reverting a batch also restores the
-ownership it changed.
+Revert reverses only the batch's own changes. Later edits to other parts of the same files survive, including lines next
+to the batch's changes. A later edit overlaps a change when it alters a line the batch wrote, or, where the batch only
+deleted lines, one of the three lines on either side; then the revert writes nothing and lists each conflicting file
+with the batch's hunk that no longer matches. Resolve those and run it again. A file the batch created, deleted or
+turned into or out of a symbolic link reverts only while it is exactly as the batch left it, and permissions the batch
+changed revert only while they are as it set them. `cook.lock` is one of the files a batch touches, so reverting a batch
+also restores the ownership it changed.
 
 ### Revert example
 
@@ -72,8 +75,8 @@ the edited `other` key:
  other = "edited"
 ```
 
-If the developer had edited `test` instead, the revert would write nothing and name `settings.toml` and `test` as
-conflicting. The actual change is reviewed and approved as a batch.
+If the developer had edited `test` instead, the revert would write nothing and name `settings.toml` with the batch's
+hunk that wrote `test = "new"`. The actual change is reviewed and approved as a batch.
 
 ## Discard
 

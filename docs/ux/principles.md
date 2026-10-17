@@ -139,7 +139,7 @@ Follow the architecture's operation and trust boundaries. Within them, protect r
 and make the affected scope explicit. Ownership never blocks a change.
 
 For example, a batch changed a key from `old` to `new`, and a person then edited it to `custom`. Applying the recipe
-again proposes `custom` to `new` in the diff. Reverting that batch writes nothing and lists the key as a conflict
-(principle 5); once the person resolves it, revert proposes the actual diff for approval, preserving unrelated keys. A
+again proposes `custom` to `new` in the diff. Reverting that batch writes nothing and lists the hunk that set the key as a
+conflict (principle 5); once the person resolves it, revert proposes the actual diff for approval, preserving unrelated keys. A
 shared remote recipe also requires source trust; batch approval cannot authorize or reverse every effect its code might
 cause.

@@ -274,7 +274,8 @@ commands in its task runner. These are project choices, and the programs that co
 - **Symptom.** Reverting a batch that changed `test` from `old` to `new` writes nothing after a manual edit to `test`.
 - **Why.** Revert uses the batch's reverse patches against current content without reevaluating recipes. A later
   edit that overlaps the batch's changes conflicts with them.
-- **Cook's responsibility.** Write nothing and list each conflicting file and section.
+- **Cook's responsibility.** Write nothing and list each conflicting file with the batch's hunk that no longer
+  matches.
 - **What you do.** Resolve the listed conflicts, then revert again. See [revert](revert.md).
 
 ### A lost batch record prevents reversal of that batch
