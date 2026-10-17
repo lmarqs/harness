@@ -2,7 +2,7 @@
 
 This repository builds the-cook, a recipe driven configuration tool. Read
 `README.md`, the relevant page under `docs/features/` and the matching
-standard under `docs/ux/` before changing a workflow or the command line. Keep Groovy cookbook recipes and Kotlin core or CLI changes in their
+standard under `docs/ux/` before changing a workflow or the command line. Keep cookbook recipes and core, infra or CLI changes in their
 existing modules.
 
 Run the focused module check while developing. Before delivery, run

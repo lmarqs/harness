@@ -106,7 +106,7 @@ One ADR holds one decision. If its points serve two decisions, it is two ADRs.
 - Link the [glossary](../features/glossary.md) at the first use of an engine term in each ADR.
 - A third-party product whose behavior a decision depends on is named with the version that behavior was checked
   against. Prior art and rejected tools are named without a version, because nothing depends on their behavior.
-  Build tooling (the JDK, jpackage, Kotlin, Groovy, Gradle) is named without a version, because the build files pin
+  Build tooling (the JDK, jpackage, Groovy, Gradle) is named without a version, because the build files pin
   those versions.
 - Organizations appear only as the makers of third-party products whose behavior matters; examples use `acme`.
 

@@ -1,5 +1,4 @@
 plugins {
-  id 'org.jetbrains.kotlin.jvm' version '2.4.20'
   id 'groovy'
   id 'java-library'
 }
@@ -12,13 +11,10 @@ repositories {
   mavenCentral()
 }
 
-kotlin {
-  jvmToolchain(17)
-}
-
-tasks.named('compileGroovy') {
-  dependsOn tasks.named('compileKotlin')
-  classpath += files(tasks.named('compileKotlin').flatMap { it.destinationDirectory })
+java {
+  toolchain {
+    languageVersion = JavaLanguageVersion.of(17)
+  }
 }
 
 dependencies {

@@ -1,22 +1,24 @@
 plugins {
-  id 'org.jetbrains.kotlin.jvm' version '2.4.20'
   id 'groovy'
   id 'application'
 }
 group = 'dev.thecook'
 version = '0.1.0'
 repositories { mavenCentral() }
-kotlin { jvmToolchain(17) }
+java {
+  toolchain {
+    languageVersion = JavaLanguageVersion.of(17)
+  }
+}
 dependencies {
   implementation 'dev.thecook:the-cook-core:0.1.0'
   implementation 'dev.thecook:the-cook-infra:0.1.0'
   implementation 'info.picocli:picocli:4.7.7'
-  testImplementation localGroovy()
   testImplementation 'junit:junit:4.13.2'
 }
 application {
   applicationName = 'the-cook'
-  mainClass = 'thecook.cli.run.MainKt'
+  mainClass = 'thecook.cli.run.Main'
 }
 tasks.named('test') {
   exclude '**/JpackageTest*'

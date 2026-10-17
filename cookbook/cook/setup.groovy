@@ -60,7 +60,7 @@ agents.instruct(
   'Use .agents/skills/hexagonal-layout for application boundaries and adapters.',
   'Use .agents/skills/effective-java-core for Java and Groovy API design.',
   '',
-  'Core contracts and the CLI are Kotlin; cookbook ingredients and recipes are Groovy.',
+  'Core, infra, the CLI, and cookbook ingredients and recipes are Groovy.',
   'Build and verify changes with ./gradlew check cliBuild.')
 agents.instruct(agents.policy().instructions)
 agents.permit(harnesses)

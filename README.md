@@ -118,15 +118,17 @@ Packaging compiles nothing; the engine compiles an artifact's sources when one o
 
 ### Development tooling
 
-`./gradlew check` includes `spotlessCheck`, which enforces the format of Kotlin (ktlint), Groovy and Gradle (Groovy-Eclipse, [settings](gradle/spotless/greclipse.properties)) and plain-text files, with 2-space indentation per [`.editorconfig`](.editorconfig). `./gradlew spotlessApply` fixes violations. The Groovy formatter on Java 17 cannot parse the `!in` operator; write `!(a in b)` instead.
+`./gradlew check` includes `spotlessCheck`, which enforces the format of Groovy and Gradle (Groovy-Eclipse, [settings](gradle/spotless/greclipse.properties)) and plain-text files, with 2-space indentation per [`.editorconfig`](.editorconfig). `./gradlew spotlessApply` fixes violations. The Groovy formatter on Java 17 cannot parse the `!in` operator or a GString nested inside another; write `!(a in b)` and build such strings with `+`.
 
-`./gradlew check` also requires braces around every `if`/`else`/`for`/`while` body, with the body on its own line. In Kotlin this is a custom ktlint rule ([`gradle/lint/ktlint-rules`](gradle/lint/ktlint-rules)) that Spotless runs; an `if` used as a value (`val x = if (a) b else c`, an argument, a return value, an expression body, the final `if`/`else` of a lambda) is exempt. In Groovy and Gradle, CodeNarc (`./gradlew codenarc`, [rules](gradle/lint/codenarc.groovy)) requires the braces, and Groovy-Eclipse moves braced bodies onto their own line. Violations that predate the rule are baselined: Groovy per violation in [`codenarc-baseline.xml`](gradle/lint/codenarc-baseline.xml), which `./gradlew codenarcBaseline` regenerates, and Kotlin per file in the `suppressLintsFor` list in [`build.gradle`](build.gradle). Remove a file's entry once its violations are fixed. Spotless's Groovy step and CodeNarc skip `cookbook/`, most of which is a design sketch that has not been compiled.
+`./gradlew check` also requires braces around every `if`/`else`/`for`/`while` body, with the body on its own line: CodeNarc (`./gradlew codenarc`, [rules](gradle/lint/codenarc.groovy)) requires the braces, and Groovy-Eclipse moves braced bodies onto their own line. Violations that predate the rule are baselined per violation in [`codenarc-baseline.xml`](gradle/lint/codenarc-baseline.xml), which `./gradlew codenarcBaseline` regenerates. Spotless's Groovy step and CodeNarc skip `cookbook/`, most of which is a design sketch that has not been compiled.
 
 `docs/` is its own build. `./gradlew -p docs check`, which `./gradlew check` includes, fails on a relative link in
 `docs/` that points to a missing file or heading anchor; [`docs/build.gradle`](docs/build.gradle) defines the check.
 
 See [the core implementation](core/README.md) for how the engine applies a recipe and how it differs from the
 intended architecture.
+[Infra](infra/README.md) reads the kitchen's `cook.toml` and fetches cookbook releases from Maven-layout and git
+repositories; the CLI hands its repositories to the core.
 
 ## Read next
 

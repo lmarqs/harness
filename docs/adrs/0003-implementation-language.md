@@ -11,8 +11,8 @@ preparing a development environment.
 
 ## Context
 
-- The [root README](../../README.md#current-implementation) describes Kotlin core and CLI modules, Groovy adapters,
-  and Groovy cookbook ingredients and [recipes](../features/glossary.md).
+- The core, infra and CLI modules and the cookbook ingredients and [recipes](../features/glossary.md) are Groovy
+  ([root README](../../README.md#current-implementation)).
 - The [architecture](../architecture.md#engine-distribution) retains JVM distribution using jpackage with bundled Java.
   Recipes are trusted executable Groovy, and cookbook builds can be separate from the engine build.
 - The [architecture's requirements](../architecture.md#responsibilities-and-scope) make the CLI the public cooking
@@ -20,7 +20,7 @@ preparing a development environment.
 
 ## Decision
 
-1. Cook retains its Kotlin/Groovy JVM stack. Recipe evaluation accepts trusted Groovy code.
+1. Cook is Groovy on the JVM: its core, its connections and its CLI. Recipe evaluation accepts trusted Groovy code.
 2. Engine distribution uses complete platform-specific jpackage packages containing Java
    ([0004](0004-runtime-dependencies.md)), which the wrapper pins and verifies ([0017](0017-engine-version.md)).
 3. Engine and cookbook builds have distinct responsibilities; cookbooks hold and ship ingredients and recipes
@@ -29,9 +29,10 @@ preparing a development environment.
 
 ## Reasons
 
-- **1.** The retained stack supports the chosen executable recipe language and existing modules without a language
-  rewrite. The trade: contributors maintain JVM tooling and the Kotlin/Groovy boundary; the engine is a JVM
-  application, not a native single-file executable.
+- **1.** Recipes are Groovy, and the core compiles them, so writing the engine in Groovy too leaves one language, one
+  compiler, one formatter and one lint setup, and the author's annotations are written in the language recipes use.
+  The trade: Groovy's dynamic dispatch reports some type errors only when tests run; the engine is a JVM application,
+  not a native single-file executable.
 - **2.** Bundling Java meets the user-facing runtime objective without requiring each repository to install a matching
   runtime. The trade: packages include runtime files and must be built for their target platforms.
 - **3.** Cookbook authors maintain program models on the programs' schedules, while engine contributors maintain
@@ -55,7 +56,7 @@ the public CLI and complete runtime package, rather than a build environment in 
 
 Costs:
 
-- Contributors need the JVM development toolchain and maintain the Kotlin/Groovy boundary.
+- Contributors need the JVM development toolchain.
 - Releases build a complete package with a bundled runtime for each target platform.
 - Separate engine and cookbook builds need compatibility coordination.
 

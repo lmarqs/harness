@@ -20,22 +20,10 @@ spotless {
   def generated = ['**/build/**', '**/.gradle/**', '.cook/**']
   // Most of the cookbook is a design sketch that has not been compiled.
   def sketch = ['cookbook/**']
-  kotlin {
-    target '**/*.kt'
-    targetExclude generated
-    ktlint('1.8.0').customRuleSets(['dev.thecook.lint:ktlint-rules:0.1.0'])
-    // Baseline: files with braces violations that predate the rule.
-    ['cli/src/main/kotlin/thecook/cli/terminal/CookCommand.kt'].each { baselined ->
-      suppressLintsFor {
-        step = 'ktlint'
-        shortCode = 'thecook:mandatory-braces'
-        path = baselined
-      }
-    }
-  }
   groovy {
     target '**/*.groovy'
-    targetExclude generated + sketch
+    // The formatter cannot parse the quoted `default` member that recipes write as `@param(default = ...)`.
+    targetExclude generated + sketch + ['core/src/main/groovy/thecook/cookbook/api/Annotations.groovy']
     greclipse().configFile('gradle/spotless/greclipse.properties')
   }
   groovyGradle {
@@ -49,10 +37,6 @@ spotless {
     trimTrailingWhitespace()
     endWithNewline()
   }
-}
-
-tasks.named('spotlessKotlin') {
-  dependsOn gradle.includedBuild('ktlint-rules').task(':jar')
 }
 
 def codenarcArgs = { String report ->
@@ -84,7 +68,7 @@ tasks.register('codenarcBaseline', JavaExec) {
 }
 
 tasks.named('check') {
-  dependsOn 'codenarc', gradle.includedBuild('ktlint-rules').task(':check')
+  dependsOn 'codenarc'
   dependsOn gradle.includedBuild('core').task(':check'), gradle.includedBuild('infra').task(':check')
   dependsOn gradle.includedBuild('cli').task(':check')
   dependsOn gradle.includedBuild('docs').task(':check'), gradle.includedBuild('plugin').task(':check')

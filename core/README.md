@@ -4,7 +4,7 @@ This guide describes the engine on `main`. The [architecture](../docs/architectu
 and [issue #15](https://github.com/lmarqs/the-cook/issues/15) tracks the parts that do not run yet.
 
 The core is one engine, `thecook.cookbook`, that applies recipes named by coordinates or by a `.groovy` path in the
-kitchen. The author's annotations are Kotlin, in `thecook.cookbook.api`; the engine is Groovy.
+kitchen. The engine and the author's annotations, in `thecook.cookbook.api`, are Groovy.
 
 The core reaches no network and runs no external command. It declares `CookbookRepository`, and the caller hands
 `CookbookApply` the repositories coordinates resolve from: the CLI builds them from the kitchen's `cook.toml` with

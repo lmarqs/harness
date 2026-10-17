@@ -18,8 +18,6 @@
 /cookbook/recipes/**/build/
 /cookbook/targets/*/.gradle/
 /cookbook/targets/*/build/
-/gradle/lint/ktlint-rules/.gradle/
-/gradle/lint/ktlint-rules/build/
 # cook:begin git/ignore
 /.cook/
 # cook:end git/ignore

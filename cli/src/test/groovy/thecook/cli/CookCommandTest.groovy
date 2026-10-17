@@ -403,7 +403,7 @@ Files
     def stdin = input == null ? null : new BufferedReader(new StringReader(input))
     // The CLI tests resolve only from paths, so git never fills this cache.
     def cache = new File(System.getProperty('java.io.tmpdir'), 'the-cook-test-cache')
-    def repositories = { File kitchen -> thecook.infra.CookToml.repositories(kitchen, cache) } as kotlin.jvm.functions.Function1
+    def repositories = { File kitchen -> thecook.infra.CookToml.repositories(kitchen, cache) }
     new thecook.cli.terminal.CookCommand(new PrintWriter(stdout, true), new PrintWriter(stderr, true), repositories, stdin)
   }
 
