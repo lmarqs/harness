@@ -25,9 +25,11 @@ final class RecipeSource {
     def module = module(source, name)
     def texts = module.imports ? module.imports.first().annotations : []
     String help = text(texts, 'help')
+
     if (help == null) {
       return null
     }
+
     def declarations = module.statementBlock.statements
         .findAll { it instanceof ExpressionStatement && it.expression instanceof DeclarationExpression }
         .collect { (DeclarationExpression) ((ExpressionStatement) it).expression }
@@ -57,12 +59,15 @@ final class RecipeSource {
     (module.imports + module.starImports).collectMany { it.annotations }.findAll { it.classNode.name == 'cookbook' }.each {
       def release = (String) constant(it.getMember('value'))
       def (group, version) = release?.tokenize(':') ?: []
+
       if (!(release ==~ /[^:]+:[^:]+/)) {
         throw new IllegalArgumentException("@cookbook('${release}') must name a release as group:version, such as dev.thecook:0.1.0")
       }
+
       if (releases[group] && releases[group] != version) {
         throw new IllegalArgumentException("@cookbook names ${group} at ${releases[group]} and ${version}; use one release per cookbook")
       }
+
       releases[group] = version
     }
     def packages = module.imports.collect { it.className.substring(0, it.className.lastIndexOf('.')) } +

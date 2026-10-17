@@ -49,10 +49,12 @@ final class RecipeLoader {
   private LoadedRecipe fromCoordinates(Coordinates coordinates) {
     def artifact = artifact(coordinates)
     def recipe = coordinates.recipe ?: coordinates.artifact
+
     if (!coordinates.recipe && !(recipe in artifact.recipes)) {
       throw new IllegalArgumentException("${coordinates} has no recipe named ${recipe} to cook by default; name one: " +
       artifact.recipes.collect { coordinates.recipeAddress(it) }.join(', '))
     }
+
     new LoadedRecipe(coordinates.recipeName, coordinates.recipeAddress(recipe),
         artifact.sha256, artifact.recipeSource(recipe), recipe, models(coordinates))
   }
@@ -61,12 +63,15 @@ final class RecipeLoader {
   private LoadedRecipe fromPath(String operand) {
     def place = relative(kitchen, operand)
     def path = kitchen.resolve(place)
+
     if (!Files.isRegularFile(path)) {
       throw new IllegalArgumentException("Recipe file not found: ${operand}")
     }
+
     if (!path.toRealPath().startsWith(kitchen)) {
       throw new IllegalArgumentException('the recipe is outside the kitchen; move it into the kitchen')
     }
+
     def bytes = Files.readAllBytes(path)
     def source = new String(bytes, 'UTF-8')
     def file = path.fileName.toString()
@@ -79,10 +84,13 @@ final class RecipeLoader {
     if (operand.contains('://')) {
       throw new IllegalArgumentException('a URL is not a recipe; list its repository in cook.toml and cook the recipe by its coordinates')
     }
+
     def path = kitchen.resolve(operand).normalize()
+
     if (!path.startsWith(kitchen)) {
       throw new IllegalArgumentException('the recipe is outside the kitchen; move it into the kitchen')
     }
+
     kitchen.relativize(path).collect { it.toString() }.join('/')
   }
 
@@ -118,6 +126,7 @@ final class RecipeLoader {
           continue
         }
       }
+
       throw new ClassNotFoundException(name)
     }
   }

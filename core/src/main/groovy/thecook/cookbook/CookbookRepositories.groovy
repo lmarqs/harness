@@ -17,10 +17,12 @@ final class CookbookRepositories {
   CookbookArtifact artifact(Coordinates coordinates) {
     for (CookbookRepository repository : repositories) {
       def artifact = repository.artifact(coordinates)
+
       if (artifact != null) {
         return artifact
       }
     }
+
     throw new IllegalArgumentException(
     "${coordinates.artifactAddress} not found in ${origin}; publish it there, or list its repository in cook.toml")
   }

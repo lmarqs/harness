@@ -66,6 +66,7 @@ final class CookbookCompiler {
     @Override
     void call(SourceUnit source, GeneratorContext context, ClassNode type) {
       boolean model = type.annotations.any { it.classNode.nameWithoutPackage == 'Ingredient' }
+
       if (model && type.superClass == ClassHelper.OBJECT_TYPE) {
         type.superClass = ClassHelper.make(CookbookModel)
       }
@@ -86,12 +87,15 @@ final class CookbookCompiler {
       if (!type.script) {
         return
       }
+
       source.AST.statementBlock.statements.each { statement ->
         if (statement instanceof ExpressionStatement && statement.expression instanceof DeclarationExpression) {
           def declaration = (DeclarationExpression) statement.expression
+
           if (declaration.annotations.any { it.classNode.nameWithoutPackage in ['param', 'ingredient'] }) {
             declaration.addAnnotation(new AnnotationNode(ClassHelper.make(Field)))
             names.add(declaration.variableExpression.name)
+
             // Annotation reflection cannot tell `default = []` from no default, and only the latter is required.
             if (declaration.annotations.any { it.classNode.nameWithoutPackage == 'param' && it.getMember('default') != null }) {
               defaulted.add(declaration.variableExpression.name)
@@ -114,9 +118,11 @@ final class CookbookCompiler {
     @Override
     protected Class<?> findClass(String name) {
       byte[] bytes = classes[name]
+
       if (bytes == null) {
         throw new ClassNotFoundException(name)
       }
+
       defineClass(name, bytes, 0, bytes.length)
     }
   }

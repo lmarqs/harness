@@ -109,6 +109,7 @@ class CookTomlTest {
     def marker = new File("cook-option-${System.nanoTime()}")
     def kitchen = folder.newFolder('kitchen')
     new File(kitchen, 'cook.toml').text = "repositories = [{ git = \"--upload-pack=touch ${marker.name};:\" }]\n"
+
     try {
       shouldFail(IllegalArgumentException) { repositories(kitchen).artifact(Coordinates.parse('acme:notes:1.2.3')) }
       assert !marker.exists()
@@ -268,6 +269,7 @@ class CookTomlTest {
       assert type.isInstance(error)
       return error
     }
+
     throw new AssertionError("Expected ${type.simpleName}")
   }
 }

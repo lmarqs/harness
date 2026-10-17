@@ -67,6 +67,7 @@ final class CookbookArtifact {
       throw new IllegalArgumentException(
       "No recipe ${name} in ${coordinates.artifactAddress}; its recipes are: ${recipes.join(', ') ?: 'none'}")
     }
+
     text("${name}.groovy")
   }
 

@@ -36,12 +36,15 @@ final class CookbookApply {
     def seeds = new SeedOutcomes()
     requests.eachWithIndex { request, index ->
       def label = requests.size() > 1 ? "recipe ${index + 1} (${request.operand})" : request.operand
+
       try {
         def recipe = loader.load(request.operand)
         String name = recipe.name
+
         if (!applied.add(name)) {
           throw new IllegalArgumentException("${name} is named twice; name it once per invocation")
         }
+
         def compiled = CookbookCompiler.recipe(recipe.source, recipe.fileName, recipe.models)
         def ingredients = RecipeRun.run(compiled, request.arguments) { Class type, String at ->
           model(type, at, loader.reads(type, draft))
@@ -50,9 +53,11 @@ final class CookbookApply {
         def declared = Declarations.of(ingredients, name)
         apply(name, declared, draft, lock, seeds)
         def recorded = lock.sha256(name, recipe.address)
+
         if (Coordinates.written(recipe.address) && recorded != null && recorded != recipe.sha256) {
           changedSources.add(new ChangedSource(recipe.address, recorded, recipe.sha256))
         }
+
         lock.record(name, recipe.address, recipe.sha256, declared.owned*.target)
         def texts = RecipeSource.texts(recipe.source, "${recipe.fileName}.groovy")
         recipes.add(new Applied(recipe.address, texts?.confirm, texts?.yieldText))
@@ -70,9 +75,11 @@ final class CookbookApply {
     if (!type.getAnnotation(Ingredient) || !CookbookModel.isAssignableFrom(type)) {
       throw new IllegalArgumentException("${type.simpleName} is not a model; a model class is marked @Ingredient")
     }
+
     if (at != '.') {
       TargetPath.of(at)
     }
+
     def instance = (CookbookModel) type.getDeclaredConstructor().newInstance()
     CookbookModel.attach(instance, at, reads)
     instance
@@ -80,6 +87,7 @@ final class CookbookApply {
 
   private static void checkPristine(Class type, ModelReads reads, String name) {
     def declared = Declarations.of([model(type, '.', reads)], name).all
+
     if (declared) {
       throw new IllegalArgumentException("${declared.first()} on a new instance; a model declares only what a recipe asks for")
     }
@@ -89,6 +97,7 @@ final class CookbookApply {
     def owned = declared.owned
     owned.eachWithIndex { first, index ->
       def second = owned.drop(index + 1).find { it.target.overlaps(first.target) }
+
       if (second) {
         throw new IllegalArgumentException("${first.member} and ${second.member} both declare ${first.target}")
       }
@@ -105,9 +114,11 @@ final class CookbookApply {
     owned.each { it.write(draft) }
     declared.deletes.each { deletion ->
       def owner = lock.ownerOf(new FileTarget(deletion.file), name) ?: (targets.any { it.file == deletion.file } ? name : null)
+
       if (owner) {
         throw new IllegalArgumentException("${deletion.member} deletes ${deletion.file}, which ${owner} owns")
       }
+
       draft.delete(deletion.file)
     }
   }
@@ -187,6 +198,7 @@ final class SeedOutcomes {
       throw new IllegalArgumentException("${only.key} already exists; ${only.value} writes it from a template the first time it is cooked. " +
       'Run with --force to replace it, or --skip to keep it.')
     }
+
     if (refused) {
       throw new IllegalArgumentException((['These files already exist, and their recipes write them from a template the first time they are cooked:'] +
       refused.collect { file, recipe -> "  ${file} (${recipe})" } + ['Run with --force to replace them, or --skip to keep them.']).join('\n'))

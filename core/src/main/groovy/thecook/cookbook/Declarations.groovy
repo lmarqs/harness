@@ -34,6 +34,7 @@ final class Declarations {
     models.each { model ->
       members(model.getClass()).each { member ->
         def value = read(model, member)
+
         if (value != null) {
           def annotation = KINDS.findResult { member.getAnnotation(it) }
           add(declared, model, recipe, "${model.getClass().simpleName}.${name(member)}", annotation, value)
@@ -45,6 +46,7 @@ final class Declarations {
 
   private static List<AccessibleObject> members(Class type) {
     List<AccessibleObject> found = []
+
     for (Class current = type; current != null && current != CookbookModel && current != Object; current = current.superclass) {
       def methods = current.declaredMethods.findAll { !it.synthetic && !it.bridge && it.parameterCount == 0 }
       found.addAll((methods + current.declaredFields.toList()).findAll { member ->
@@ -54,6 +56,7 @@ final class Declarations {
       }
       .sort { name(it) })
     }
+
     found
   }
 
@@ -63,6 +66,7 @@ final class Declarations {
 
   private static Object read(Object instance, AccessibleObject member) {
     member.accessible = true
+
     try {
       member instanceof Method ? member.invoke(instance) : member.get(instance)
     } catch (InvocationTargetException error) {
@@ -72,6 +76,7 @@ final class Declarations {
 
   private static void add(Declared declared, CookbookModel model, String recipe, String member, Annotation annotation, Object value) {
     String base = join(model.directory, expand(model, member, annotation.path()))
+
     switch (annotation) {
       case Seed:
         declared.seeds << new Seeding(member, base, value.toString(), failsOnExisting(member, (Seed) annotation))
@@ -80,6 +85,7 @@ final class Declarations {
         if (value == true) {
           declared.deletes << new Deletion(member, base)
         }
+
         break
       case Section:
         def section = (Section) annotation
@@ -115,6 +121,7 @@ final class Declarations {
     if (!(seed.existing() in ['keep', 'fail'])) {
       throw new IllegalArgumentException("${member}: existing = '${seed.existing()}' is not keep or fail")
     }
+
     seed.existing() == 'fail'
   }
 
@@ -122,15 +129,18 @@ final class Declarations {
     if (!KeyTarget.format(file)) {
       throw new IllegalArgumentException("${member} declares a key in ${file}, which is not a JSON, TOML or YAML file")
     }
+
     new KeyTarget(file, path)
   }
 
   private static String expand(Object instance, String member, String path) {
     path.replaceAll(/\$\{(\w+)}/) { all, property ->
       def value = instance."${property}"
+
       if (value == null) {
         throw new IllegalArgumentException("${member}: the path ${path} reads ${property}, which is not set")
       }
+
       value.toString()
     }
   }
@@ -139,6 +149,7 @@ final class Declarations {
     if (!(value instanceof Collection)) {
       throw new IllegalArgumentException("${member} must return a list of lines")
     }
+
     value*.toString()
   }
 
@@ -146,6 +157,7 @@ final class Declarations {
     if (!(value instanceof Map)) {
       throw new IllegalArgumentException("${member} must return a map")
     }
+
     (Map) value
   }
 }

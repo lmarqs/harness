@@ -25,23 +25,28 @@ abstract class DocsLinkCheck extends DefaultTask {
       lines.eachWithIndex { String line, int index ->
         (line =~ /\]\(<?([^)\s>]+)>?(?:\s+"[^"]*")?\)/).each { match ->
           String url = match[1]
+
           if (url ==~ /^[a-zA-Z][a-zA-Z0-9+.-]*:.*/) {
             return
           }
+
           total++
           String path = url.contains('#') ? url.substring(0, url.indexOf('#')) : url
           String fragment = url.contains('#') ? url.substring(url.indexOf('#') + 1) : ''
           File target = path ? new File(file.parentFile, URLDecoder.decode(path, 'UTF-8')).canonicalFile : file
           String problem = null
+
           if (!target.exists()) {
             problem = 'missing file'
           }
           else if (fragment && target.name.endsWith('.md')) {
             Set<String> known = anchors.computeIfAbsent(target) { headingAnchors(it) }
+
             if (!(fragment in known)) {
               problem = 'missing anchor'
             }
           }
+
           if (problem) {
             broken << "${root.toPath().relativize(file.toPath())}:${index + 1}: ${problem}: ${url}".toString()
           }
@@ -49,9 +54,11 @@ abstract class DocsLinkCheck extends DefaultTask {
       }
     }
     report.get().asFile.text = "links ${total}, broken ${broken.size()}\n" + broken.collect { it + '\n' }.join('')
+
     if (broken) {
       throw new GradleException("Broken documentation links:\n" + broken.join('\n'))
     }
+
     logger.lifecycle("Documentation links: ${total} checked, none broken")
   }
 
@@ -60,17 +67,21 @@ abstract class DocsLinkCheck extends DefaultTask {
     String fence = null
     file.readLines('UTF-8').collect { String line ->
       def marker = line =~ /^\s{0,3}(`{3,}|~{3,})/
+
       if (marker.find()) {
         String found = marker.group(1)
+
         if (fence == null) {
           fence = found
           return ''
         }
+
         if (found[0] == fence[0] && found.length() >= fence.length() && line.trim() == found) {
           fence = null
           return ''
         }
       }
+
       fence == null ? line : ''
     }
   }
@@ -81,6 +92,7 @@ abstract class DocsLinkCheck extends DefaultTask {
     Set<String> result = [] as Set
     proseLines(file).each { String line ->
       def heading = line =~ /^#{1,6}\s+(.*?)\s*#*\s*$/
+
       if (heading.find()) {
         String text = heading.group(1).replaceAll(/\[([^\]]*)\]\([^)]*\)/, '$1')
         String slug = text.toLowerCase(Locale.ROOT).replaceAll(/[^\p{L}\p{N}\s_-]/, '').replaceAll(/\s/, '-')

@@ -9,10 +9,12 @@ final class TargetPath {
 
   TargetPath(String value) {
     def parts = value.split('/', -1)
+
     if (value.isEmpty() || value.contains('\\') || value.contains(':') || value.chars().anyMatch { it < 32 || it == 127 } ||
         parts.any { it.isEmpty() || it == '.' || it == '..' } || parts[0].toLowerCase(Locale.ROOT) == '.git') {
       throw new IllegalArgumentException("Unsafe output path: ${value}")
     }
+
     this.value = value
   }
 

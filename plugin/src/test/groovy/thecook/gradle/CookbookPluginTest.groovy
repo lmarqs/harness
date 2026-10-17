@@ -26,14 +26,17 @@ class CookbookPluginTest {
 
   @Test void refusesADirectoryNamedLikeTheBom() {
     def project = project(cookbook(['cookbook']))
+
     try {
       project.pluginManager.apply('dev.thecook.cookbook')
       throw new AssertionError('expected the plugin to refuse a directory named cookbook')
     } catch (Exception error) {
       def cause = error
+
       while (cause.cause != null && !(cause instanceof IllegalStateException)) {
         cause = cause.cause
       }
+
       assert cause.message == 'A cookbook directory cannot be named cookbook: the BOM uses that artifact name'
     }
   }

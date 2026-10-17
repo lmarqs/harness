@@ -23,6 +23,7 @@ final class FilePatch {
       if (line.endsWith(UNTERMINATED)) {
         return [line.substring(0, line.length() - 1), NO_NEWLINE]
       }
+
       // java-diff-utils numbers an empty side from 1; git and GNU diff write it as 0,0.
       [line.startsWith('@@') ? line.replace(' -1,0 ', ' -0,0 ').replace(' +1,0 ', ' +0,0 ') : line]
     }
@@ -31,9 +32,11 @@ final class FilePatch {
   // The lines of `text`, its last line marked when no newline ends it, as git marks it in a diff.
   private static List<String> marked(String text) {
     def lines = lines(text)
+
     if (text && !text.endsWith('\n')) {
       lines[-1] = lines[-1] + UNTERMINATED
     }
+
     lines
   }
 

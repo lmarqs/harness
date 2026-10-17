@@ -52,9 +52,11 @@ abstract class Target {
   /** The text of a file this target edits in place; a symbolic link is refused, since its text would be its target. */
   protected String editable(Draft draft) {
     def target = draft.linkTarget(file)
+
     if (target != null) {
       throw new IllegalArgumentException("${file} is a symbolic link to ${target}; Cook writes sections and keys only into regular files")
     }
+
     draft.read(file)
   }
 
@@ -100,6 +102,7 @@ final class SectionTarget extends Target {
     String text = editable(draft)
     def begin = ~/.*cook:begin ${java.util.regex.Pattern.quote(id)}(?:\s.*)?/
     def marker = text?.readLines()?.find { it ==~ begin }
+
     if (marker != null) {
       def document = blocks(text, marker.substring(0, marker.indexOf('cook:begin ')).trim())
       document.remove(id, new BlockLocation())
@@ -122,6 +125,7 @@ final class SectionTarget extends Target {
     if (file ==~ /(?i).*\.(md|markdown)/ || opening == '<!--') {
       return new BlockDocument(text ?: '', '<!-- ', ' -->')
     }
+
     new BlockDocument(text ?: '', "${opening ?: '#'} ", '')
   }
 }
@@ -155,10 +159,13 @@ final class KeyTarget extends Target {
     def document = open(text)
     def location = new KeyLocation(path)
     def rendered = document.render(value)
+
     if (holds(document.read(identity, location), rendered)) {
       return
     }
+
     document.write(identity, location, rendered)
+
     if (text == null && format(file) == 'json') {
       draft.write(file, indented(new JsonSlurper().parseText(document.text), '') + '\n')
     } else {
@@ -196,18 +203,22 @@ final class KeyTarget extends Target {
     if (existing == null) {
       return false
     }
+
     format(file) == 'json' ? new JsonSlurper().parseText(existing) == new JsonSlurper().parseText(rendered) : existing == rendered
   }
 
   private static String indented(Object value, String indent) {
     def inner = indent + '  '
+
     if (value instanceof Map && value) {
       return '{\n' + value.collect { key, item -> inner + JsonOutput.toJson(key.toString()) + ': ' + indented(item, inner) }
       .join(',\n') + '\n' + indent + '}'
     }
+
     if (value instanceof List && value) {
       return '[\n' + value.collect { inner + indented(it, inner) }.join(',\n') + '\n' + indent + ']'
     }
+
     JsonOutput.toJson(value)
   }
 }

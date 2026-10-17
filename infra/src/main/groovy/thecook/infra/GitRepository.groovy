@@ -27,29 +27,39 @@ final class GitRepository implements CookbookRepository {
   /** The artifact at the release tag, or `null` when the repository has no such tag or holds another group. */
   CookbookArtifact artifact(Coordinates coordinates) {
     def tag = "${prefix}v${coordinates.version}"
+
     if (!commits.containsKey(tag)) {
       commits[tag] = fetch(coordinates, tag)
     }
+
     def commit = commits[tag]
+
     if (commit == null) {
       return null
     }
+
     def manifest = run('show', "${commit}:${prefix}cookbook.toml")
+
     if (manifest.exit != 0) {
       throw new IllegalArgumentException("the tag ${tag} in ${url} has no ${prefix}cookbook.toml; " +
       "set dir to the cookbook's directory in cook.toml")
     }
+
     def toml = Toml.parse(new String(manifest.output, 'UTF-8'))
+
     if (toml.hasErrors()) {
       throw new IllegalArgumentException("Cannot read ${prefix}cookbook.toml at the tag ${tag} in ${url}: ${toml.errors().first()}")
     }
+
     if (toml.getString('group') != coordinates.group) {
       return null
     }
+
     if (toml.getString('version') != coordinates.version) {
       throw new IllegalArgumentException("the tag ${tag} in ${url} holds version ${toml.getString('version')} in " +
       "${prefix}cookbook.toml; tag each release with its own version")
     }
+
     def files = files(commit, "${prefix}${coordinates.artifact}/")
     files ? new CookbookArtifact(coordinates, files) : null
   }
@@ -66,22 +76,29 @@ final class GitRepository implements CookbookRepository {
   // tag fetched before, so a moved tag is fetched again whenever the remote can be read.
   private String fetch(Coordinates coordinates, String tag) {
     def ref = "refs/tags/${tag}"
+
     if (!mirror.isDirectory()) {
       mirror.parentFile.mkdirs()
       git('init', '--bare', '-q')
     }
+
     // `--` keeps a URL that starts with a dash from being read as an option, such as --upload-pack=<command>.
     def remote = run('ls-remote', '--exit-code', '--', url, ref)
+
     if (remote.exit == 2) {
       return null
     }
+
     def cached = run('rev-parse', '-q', '--verify', ref)
+
     if (remote.exit == 0) {
       // ls-remote matches the pattern against the end of each ref name, so only the line naming the tag itself counts.
       def published = new String(remote.output, 'UTF-8').readLines()*.split('\t').find { it.size() == 2 && it[1] == ref }
+
       if (published == null) {
         return null
       }
+
       if (cached.exit != 0 || new String(cached.output, 'UTF-8').trim() != published[0]) {
         git('fetch', '-q', '--depth', '1', '--no-tags', '--', url, "+${ref}:${ref}")
       }
@@ -89,6 +106,7 @@ final class GitRepository implements CookbookRepository {
       throw new IllegalArgumentException("${coordinates.artifactAddress} is not cached, and ${url} cannot be read: " +
       "${remote.error}; connect to it and run again")
     }
+
     new String(git('rev-parse', "${ref}^{commit}"), 'UTF-8').trim()
   }
 
@@ -102,21 +120,25 @@ final class GitRepository implements CookbookRepository {
 
   private byte[] git(Object... arguments) {
     def result = run(arguments)
+
     if (result.exit != 0) {
       throw new IllegalArgumentException("git ${arguments.first()} failed for ${url}: ${result.error}")
     }
+
     result.output
   }
 
   // An explicit --git-dir outranks an inherited GIT_DIR, so a run from a git hook never touches the user's repository.
   private GitResult run(Object... arguments) {
     Process process
+
     try {
       process = new ProcessBuilder((['git', "--git-dir=${mirror}"] + arguments.toList())*.toString()).start()
     } catch (IOException error) {
       throw new IllegalArgumentException("Cannot run git to read ${url}: ${error.message}; install git and put it on the PATH",
       error)
     }
+
     def output = new ByteArrayOutputStream()
     def error = new ByteArrayOutputStream()
     process.waitForProcessOutput(output, error)

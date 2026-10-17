@@ -19,15 +19,19 @@ class JsonDocument implements Document {
   }
   private Map at(List<String> path) {
     def node = root()
+
     for (part in path) {
       if (node.kind != 'object') {
         throw new IllegalArgumentException("Expected JSON object before ${part}")
       }
+
       node = node.members[part]?.value
+
       if (!node) {
         return null
       }
     }
+
     node
   }
   @Override
@@ -43,17 +47,21 @@ class JsonDocument implements Document {
     def path = ((KeyLocation) location).path
     ensureParents(path.dropRight(1))
     def node = at(path)
+
     if (node) {
       splice(node.start, node.end, content); return
     }
+
     insert(path, content)
   }
   private void ensureParents(List<String> path) {
     for (int count = 1; count <= path.size(); count++) {
       def parent = path.take(count)
+
       if (!at(parent)) {
         insert(parent, '{}'); createdParents.add(parent)
       }
+
       if (at(parent).kind != 'object') {
         throw new IllegalArgumentException("Expected JSON object at ${parent}")
       }
@@ -71,6 +79,7 @@ class JsonDocument implements Document {
     deleteKey(((KeyLocation) location).path)
     createdParents.sort { -it.size() }.toList().each { path ->
       def node = at(path)
+
       if (node?.kind == 'object' && node.members.isEmpty()) {
         deleteKey(path); createdParents.remove(path)
       }
@@ -78,18 +87,24 @@ class JsonDocument implements Document {
   }
   private void deleteKey(List<String> path) {
     def parent = at(path.dropRight(1))
+
     if (!parent) {
       return
     }
+
     def entry = parent.members[path[-1]]
+
     if (!entry) {
       return
     }
+
     def members = parent.members.values().toList()
     int index = members.indexOf(entry)
+
     if (index > 0) {
       splice(members[index - 1].value.end, entry.value.end, ''); return
     }
+
     int end = members.size() > 1 ? members[1].keyStart : entry.value.end
     splice(entry.keyStart, end, '')
   }

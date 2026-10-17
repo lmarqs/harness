@@ -81,6 +81,7 @@ class DocumentsTest {
     } catch (IllegalArgumentException error) {
       return error
     }
+
     throw new AssertionError('Expected an IllegalArgumentException')
   }
 }

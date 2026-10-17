@@ -12,6 +12,7 @@ final class KeyLocation extends RegionLocation {
 
   KeyLocation(List<String> path) {
     this.path = List.copyOf(path)
+
     if (this.path.isEmpty() || this.path.any { it.isEmpty() || it.contains('\n') }) {
       throw new IllegalArgumentException('Invalid key path')
     }

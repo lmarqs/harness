@@ -384,6 +384,7 @@ notes.add('local')
 
   private static void workspace(Closure body) {
     def root = Files.createTempDirectory('cook-cli-').toFile()
+
     try {
       def repo = new File(root, 'repository'); repo.mkdirs()
       body(root, repo)

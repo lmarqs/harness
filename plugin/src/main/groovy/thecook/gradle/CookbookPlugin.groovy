@@ -29,10 +29,12 @@ class CookbookPlugin implements Plugin<Project> {
     def packagePath = project.group.toString().replace('.', '/')
     def artifacts = project.projectDir.listFiles()
         .findAll { it.isDirectory() && !it.name.startsWith('.') && it.name != 'build' }
+
         *.name.sort()
     if (BOM in artifacts) {
       throw new IllegalStateException("A cookbook directory cannot be named ${BOM}: the BOM uses that artifact name")
     }
+
     artifacts.each { artifact ->
       def jar = project.tasks.register("${artifact}Jar", Jar) {
         group = 'cookbook'; description = "Package the ${artifact} artifact"

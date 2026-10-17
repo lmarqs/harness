@@ -34,11 +34,13 @@ final class Coordinates {
   /** Parses `text`, rejecting anything but `group:artifact:version[:recipe]` with an exact release version. */
   static Coordinates parse(String text) {
     Matcher match = text =~ "^${PATTERN}\$"
+
     if (!match.matches()) {
       throw new IllegalArgumentException(
       "Invalid recipe coordinates: ${text}; expected group:artifact:version[:recipe] with an exact release " +
       'version, such as dev.thecook:agents:0.1.0:instructions')
     }
+
     new Coordinates(match.group(1), match.group(2), match.group(3), match.group(4))
   }
 

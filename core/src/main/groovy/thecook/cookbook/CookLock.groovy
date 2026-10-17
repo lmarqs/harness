@@ -27,18 +27,23 @@ final class CookLock {
   /** The lock in `text`, or an empty lock when `text` is `null`. */
   static CookLock parse(String text) {
     def lock = new CookLock()
+
     if (text == null) {
       return lock
     }
+
     Map data
+
     try {
       data = (Map) new Yaml(new SafeConstructor(new LoaderOptions())).load(text)
     } catch (RuntimeException error) {
       throw new IllegalArgumentException("${PATH} is not valid YAML: ${error.message}", error)
     }
+
     if (data?.version != 1 || !(data.recipes instanceof List)) {
       throw new IllegalArgumentException("${PATH} must have version: 1 and a list of recipes")
     }
+
     data.recipes.each { Map recipe ->
       def owns = (Map) (recipe.owns ?: [:])
       def targets = KINDS.collectMany { kind, create -> (owns["${kind}s"] ?: []).collect(create) }
@@ -122,6 +127,7 @@ final class CookLock {
     if (!(entry instanceof Map)) {
       return ["        - ${JsonOutput.toJson(entry)}".toString()]
     }
+
     ((Map) entry).collect { field, value -> "${field}: ${JsonOutput.toJson(value)}".toString() }
     .withIndex().collect { line, index -> (index ? '          ' : '        - ') + line }
   }

@@ -8,15 +8,19 @@ class Permissions {
     if (!(mode ==~ /0?[0-7]{3}/)) {
       throw new IllegalArgumentException("Invalid file mode: ${mode}")
     }
+
     def bits = Integer.parseInt(mode, 8)
     def result = EnumSet.noneOf(PosixFilePermission)
     def permissions = PosixFilePermission.values()
+
     for (int index = 0; index < 9; index++) {
       def bit = bits & (1 << (8 - index))
+
       if (bit != 0) {
         result.add(permissions[index])
       }
     }
+
     PosixFilePermissions.toString(result)
   }
 }

@@ -16,4 +16,5 @@ ruleset {
       characterAfterColonRegex = /\s/
     }
   }
+  rule('file:gradle/lint/BlankLinesAroundBlocksRule.groovy')
 }

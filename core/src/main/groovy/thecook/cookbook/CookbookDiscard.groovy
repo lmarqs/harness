@@ -20,20 +20,25 @@ final class CookbookDiscard {
     Set<String> discarded = []
     operands.each { operand ->
       def name = RecipeLoader.name(kitchen, operand)
+
       if (!discarded.add(name)) {
         throw new IllegalArgumentException("${name} is discarded twice; discard it once per invocation")
       }
+
       if (!(name in lock.names)) {
         throw new IllegalArgumentException("${name} is not in ${CookLock.PATH}, " +
         (lock.names ? "which lists ${lock.names.join(', ')}" : 'which lists no recipe'))
       }
+
       lock.forget(name).each { it.withdraw(draft) }
     }
+
     if (lock.names) {
       draft.write(CookLock.PATH, lock.render())
     } else {
       draft.delete(CookLock.PATH)
     }
+
     new Proposal(draft, [], [], new SeedOutcomes())
   }
 }

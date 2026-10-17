@@ -79,6 +79,7 @@ final class Draft {
     if (!before[path].exists) {
       return 'create'
     }
+
     after[path].exists ? 'update' : 'delete'
   }
 
@@ -88,15 +89,18 @@ final class Draft {
    */
   void commit() {
     def paths = changes
+
     if (!paths) {
       return
     }
+
     paths.each { path ->
       if (repository.snapshot(repository.target(path, true), true).hash != before[path].hash) {
         throw new IllegalStateException("Changed since preview: ${path}")
       }
     }
     List<String> written = []
+
     try {
       paths.each { path ->
         written.add(path)
@@ -113,6 +117,7 @@ final class Draft {
       def snapshot = repository.snapshot(repository.target(path, true), true)
       before[path] = snapshot + [kind: snapshot.exists ? (snapshot.kind ?: 'file') : null]
     }
+
     after[path] ?: before[path]
   }
 
@@ -133,8 +138,10 @@ final class Draft {
       // A link at the path is replaced, not followed.
       files.write(repository.target(path, true), state.exists ? state.content : null, state.mode)
     }
+
     if (!state.exists) {
       def parent = repository.target(path, true).parentFile
+
       while (parent != repository.directory && parent.list()?.length == 0) {
         parent.delete()
         parent = parent.parentFile

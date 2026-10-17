@@ -20,10 +20,12 @@ final class RecipeRun {
     def params = fields.findAll { it.getAnnotation(Param) }
     def names = params.collectMany { it.getAnnotation(Param).value().toList() }
     def unknown = arguments*.name.findAll { !(it in names) }
+
     if (unknown) {
       def takes = names ? 'its arguments are ' + names.collect { "--${it}" }.join(', ') : 'it takes no arguments'
       throw new IllegalArgumentException("Unknown argument --${unknown.first()}; ${takes}")
     }
+
     params.each { field -> set(script, field, bind(field, arguments, recipe)) }
     def ingredients = fields.findAll { it.getAnnotation(Injected) }.collect { field ->
       def injected = field.getAnnotation(Injected)
@@ -42,22 +44,29 @@ final class RecipeRun {
     boolean yesOrNo = field.type in [boolean, Boolean]
     // As in Go's flag package, a yes-or-no value comes only after `=`, so a bare --name means true whatever follows.
     def separate = given.find { it.form == Argument.Form.SEPARATE }
+
     if (yesOrNo && separate) {
       throw new IllegalArgumentException("--${separate.name} takes no separate value; write --${separate.name}=${separate.value}")
     }
+
     if (!yesOrNo && given.any { it.form == Argument.Form.BARE }) {
       throw new IllegalArgumentException("${name} needs a value: write ${name}=<value>")
     }
+
     List<String> values = given.collect { it.form == Argument.Form.BARE ? 'true' : it.value }
+
     if (!values) {
       if (!recipe.hasDefault(field.name)) {
         throw new IllegalArgumentException("Missing ${name}: ${declared.doc()}")
       }
+
       values = declared."default"().toList()
     }
+
     if (!declared.many() && values.size() > 1) {
       throw new IllegalArgumentException("${name} takes one value; it was given ${values.size()}")
     }
+
     def choices = declared.choices().toList()
     values.each { value ->
       if (choices && !(value in choices)) {
@@ -71,25 +80,33 @@ final class RecipeRun {
     if (type.array) {
       return values as String[]
     }
+
     if (Collection.isAssignableFrom(type)) {
       return values
     }
+
     String value = values ? values.first() : null
+
     if (value == null || type in [String, Object, CharSequence]) {
       return value
     }
+
     if (type in [boolean, Boolean]) {
       if (!(value in ['true', 'false'])) {
         throw new IllegalArgumentException("${name}=${value} must be true or false")
       }
+
       return value == 'true'
     }
+
     if (type in [int, Integer, long, Long]) {
       if (!(value ==~ /-?[0-9]+/)) {
         throw new IllegalArgumentException("${name}=${value} must be a whole number")
       }
+
       return type in [int, Integer] ? value.toInteger() : value.toLong()
     }
+
     throw new IllegalArgumentException("${name} has the type ${type.simpleName}, which a param cannot have")
   }
 

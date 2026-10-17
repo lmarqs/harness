@@ -34,6 +34,7 @@ class CoordinatesTest {
       assert type.isInstance(error)
       return error
     }
+
     throw new AssertionError("Expected ${type.simpleName}")
   }
 }

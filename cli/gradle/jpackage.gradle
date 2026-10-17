@@ -38,6 +38,7 @@ tasks.register('jpackage', Exec) {
         '--dest', packageOutput.get().asFile,
         '--main-jar', tasks.named('jar').get().archiveFileName.get(),
         '--main-class', application.mainClass.get()
+
     if (windows) {
       args '--win-console'
     }
