@@ -24,7 +24,10 @@ final class GitRepository implements CookbookRepository {
   /** The artifact at the release tag, or `null` when the repository has no such tag or holds another group. */
   CookbookArtifact artifact(Coordinates coordinates) {
     def tag = "${prefix}v${coordinates.version}"
-    def commit = commits.computeIfAbsent(tag) { fetch(coordinates, tag) }
+    if (!commits.containsKey(tag)) {
+      commits[tag] = fetch(coordinates, tag)
+    }
+    def commit = commits[tag]
     if (commit == null) {
       return null
     }
@@ -44,11 +47,8 @@ final class GitRepository implements CookbookRepository {
       throw new IllegalArgumentException("the tag ${tag} in ${url} holds version ${toml.getString('version')} in " +
       "${prefix}cookbook.toml; tag each release with its own version")
     }
-    def directory = "${prefix}${coordinates.artifact}/"
-    if (!git('ls-tree', commit, '--', directory).length) {
-      return null
-    }
-    CookbookArtifact.fromZip(coordinates, git('archive', '--format=zip', commit, '--', directory), directory)
+    def files = files(commit, "${prefix}${coordinates.artifact}/")
+    files ? new CookbookArtifact(coordinates, files) : null
   }
 
   @Override String toString() {
@@ -62,21 +62,39 @@ final class GitRepository implements CookbookRepository {
   // A tag the remote lacks means another repository may hold the release; an unreachable remote falls back to the
   // tag fetched before, so a moved tag is fetched again whenever the remote can be read.
   private String fetch(Coordinates coordinates, String tag) {
+    def ref = "refs/tags/${tag}"
     if (!mirror.isDirectory()) {
       mirror.parentFile.mkdirs()
       git('init', '--bare', '-q')
     }
-    def remote = run('ls-remote', '--exit-code', url, "refs/tags/${tag}")
+    // `--` keeps a URL that starts with a dash from being read as an option, such as --upload-pack=<command>.
+    def remote = run('ls-remote', '--exit-code', '--', url, ref)
     if (remote.exit == 2) {
       return null
     }
+    def cached = run('rev-parse', '-q', '--verify', ref)
     if (remote.exit == 0) {
-      git('fetch', '-q', '--depth', '1', '--no-tags', url, "+refs/tags/${tag}:refs/tags/${tag}")
-    } else if (run('rev-parse', '-q', '--verify', "refs/tags/${tag}").exit != 0) {
+      // ls-remote matches the pattern against the end of each ref name, so only the line naming the tag itself counts.
+      def published = new String(remote.output, 'UTF-8').readLines()*.split('\t').find { it.size() == 2 && it[1] == ref }
+      if (published == null) {
+        return null
+      }
+      if (cached.exit != 0 || new String(cached.output, 'UTF-8').trim() != published[0]) {
+        git('fetch', '-q', '--depth', '1', '--no-tags', '--', url, "+${ref}:${ref}")
+      }
+    } else if (cached.exit != 0) {
       throw new IllegalArgumentException("${coordinates.artifactAddress} is not cached, and ${url} cannot be read: " +
       "${remote.error}; connect to it and run again")
     }
-    new String(git('rev-parse', "refs/tags/${tag}^{commit}"), 'UTF-8').trim()
+    new String(git('rev-parse', "${ref}^{commit}"), 'UTF-8').trim()
+  }
+
+  // The blobs as committed, keyed by their path below `directory`. git archive would apply the machine's
+  // core.autocrlf and the tag's export attributes, so the sources and their hash would differ between machines.
+  private Map<String, byte[]> files(String commit, String directory) {
+    def blobs = new String(git('ls-tree', '-r', '-z', commit, '--', directory), 'UTF-8').split('\u0000')
+        .findAll { it }.collect { it.split('\t', 2) }.findAll { it[0].split(' ')[1] == 'blob' }
+    blobs.collectEntries { blob -> [blob[1].substring(directory.length()), git('cat-file', 'blob', blob[0].split(' ')[2])] }
   }
 
   private byte[] git(Object... arguments) {
@@ -99,13 +117,19 @@ final class GitRepository implements CookbookRepository {
     def output = new ByteArrayOutputStream()
     def error = new ByteArrayOutputStream()
     process.waitForProcessOutput(output, error)
-    new GitResult(process.waitFor(), output.toByteArray(), error.toString('UTF-8').readLines().find { it.trim() }?.trim() ?: '')
+    new GitResult(process.waitFor(), output.toByteArray(), firstError(error.toString('UTF-8')))
+  }
+
+  // ssh and git can write warnings and hints before the line that states the failure.
+  private static String firstError(String stderr) {
+    def lines = stderr.readLines()*.trim().findAll { it }
+    lines.find { !(it ==~ /(?i)(warning|hint):.*/) } ?: lines.find() ?: ''
   }
 
   private static final class GitResult {
     final int exit
     final byte[] output
-    /** The first line git wrote to stderr, which states the failure. */
+    /** The first line git wrote to stderr that states the failure, past any warnings and hints. */
     final String error
 
     GitResult(int exit, byte[] output, String error) {

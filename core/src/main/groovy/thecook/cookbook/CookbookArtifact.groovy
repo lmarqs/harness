@@ -37,7 +37,7 @@ final class CookbookArtifact {
     new CookbookArtifact(coordinates, files)
   }
 
-  /** The artifact's front page, or `null` when its jar holds no `README.md`. */
+  /** The artifact's front page, or `null` when it holds no `README.md`. */
   String getReadme() {
     text('README.md')
   }

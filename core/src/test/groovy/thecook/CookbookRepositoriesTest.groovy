@@ -105,6 +105,27 @@ class CookbookRepositoriesTest {
     assert repositories(kitchen).artifact(Coordinates.parse('acme:notes:1.2.3')).recipeSource('notes') == 'notes'
   }
 
+  @Test void readsTheSourcesAsCommittedWhateverTheTagsExportAttributes() {
+    def files = ['notes/notes.groovy': 'line\n$Format:%H$\n', 'notes/.gitattributes': '* export-subst text eol=crlf\n']
+    gitCookbook('source', null, '1.2.3', files)
+    def kitchen = folder.newFolder('kitchen')
+    new File(kitchen, 'cook.toml').text = 'repositories = [{ git = "../source" }]\n'
+
+    assert repositories(kitchen).artifact(Coordinates.parse('acme:notes:1.2.3')).recipeSource('notes') == 'line\n$Format:%H$\n'
+  }
+
+  @Test void neverReadsAGitUrlAsAnOption() {
+    def marker = new File("cook-option-${System.nanoTime()}")
+    def kitchen = folder.newFolder('kitchen')
+    new File(kitchen, 'cook.toml').text = "repositories = [{ git = \"--upload-pack=touch ${marker.name};:\" }]\n"
+    try {
+      shouldFail(IllegalArgumentException) { repositories(kitchen).artifact(Coordinates.parse('acme:notes:1.2.3')) }
+      assert !marker.exists()
+    } finally {
+      marker.delete()
+    }
+  }
+
   @Test void skipsAGitRepositoryWithoutTheReleaseOrForAnotherGroup() {
     gitCookbook('other', null, '1.2.3', ['notes/notes.groovy': 'another group'], 'other')
     gitCookbook('older', null, '1.2.2', ['notes/notes.groovy': 'an older release'])
