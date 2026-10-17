@@ -1,20 +1,40 @@
 package thecook.cookbook
 
+import thecook.filesystem.Repository
+
+import java.util.zip.ZipInputStream
+
 /**
- * The files of one cookbook artifact, read from its jar: its README, its recipes, named in lower case, and its
- * models, named in upper case, each a `.groovy` file at the top of the artifact.
+ * The files of one cookbook artifact: its README, its recipes, named in lower case, and its models, named in upper
+ * case, each a `.groovy` file at the top of the artifact.
  */
 final class CookbookArtifact {
   final Coordinates coordinates
-  /** The sha256 of the jar the files were read from. */
+  /**
+   * The sha256 of the artifact's sources: of one line `<sha256 of the file>  <path>` per file, in the byte order of the
+   * paths, so a jar and a git tag holding the same files have the same hash.
+   */
   final String sha256
   private final Map<String, byte[]> files
 
-  /** `files` holds the artifact's files keyed by their path below its package path. */
-  CookbookArtifact(Coordinates coordinates, Map<String, byte[]> files, String sha256 = null) {
+  /** `files` holds the artifact's files keyed by their path below the artifact's directory. */
+  CookbookArtifact(Coordinates coordinates, Map<String, byte[]> files) {
     this.coordinates = coordinates
     this.files = files
-    this.sha256 = sha256
+    this.sha256 = sourcesSha256(files)
+  }
+
+  /** The artifact whose files are the entries of the ZIP archive `zip` below `directory`. */
+  static CookbookArtifact fromZip(Coordinates coordinates, byte[] zip, String directory) {
+    Map<String, byte[]> files = [:]
+    new ZipInputStream(new ByteArrayInputStream(zip)).withCloseable { entries ->
+      for (def entry = entries.nextEntry; entry != null; entry = entries.nextEntry) {
+        if (!entry.directory && entry.name.startsWith(directory)) {
+          files[entry.name.substring(directory.length())] = entries.readAllBytes()
+        }
+      }
+    }
+    new CookbookArtifact(coordinates, files)
   }
 
   /** The artifact's front page, or `null` when its jar holds no `README.md`. */
@@ -57,6 +77,11 @@ final class CookbookArtifact {
 
   private List<String> sources() {
     files.keySet().findAll { !it.contains('/') && it.endsWith('.groovy') }*.replaceAll(/\.groovy$/, '').sort()
+  }
+
+  private static String sourcesSha256(Map<String, byte[]> files) {
+    def paths = files.keySet().sort { a, b -> Arrays.compareUnsigned(a.getBytes('UTF-8'), b.getBytes('UTF-8')) }
+    Repository.digest(paths.collect { "${Repository.digest(files[it])}  ${it}\n" }.join().getBytes('UTF-8'))
   }
 
   private String text(String path) {

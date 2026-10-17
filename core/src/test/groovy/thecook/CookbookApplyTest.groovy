@@ -20,7 +20,7 @@ class CookbookApplyTest {
 
   @Test void appliesTheAgentsInstructionsAndRecordsOwnershipInTheLock() {
     def kitchen = kitchen()
-    def jar = publishDirectory(kitchen, 'agents')
+    publishDirectory(kitchen, 'agents')
 
     def proposal = apply(kitchen, 'dev.thecook:agents:0.1.0:instructions', [harness: ['claude']])
     assert proposal.changes == ['AGENTS.md', 'CLAUDE.md', 'cook.lock']
@@ -39,7 +39,7 @@ version: 1
 recipes:
   - name: "dev.thecook:agents:instructions"
     source: "dev.thecook:agents:0.1.0:instructions"
-    sha256: "${sha256(jar)}"
+    sha256: "${sourcesSha256(new File(COOKBOOK, 'agents'))}"
     owns:
       sections:
         - file: "CLAUDE.md"
@@ -531,7 +531,18 @@ import acme.noisy.Noisy
   }
 
   private static String sha256(File file) {
-    MessageDigest.getInstance('SHA-256').digest(file.bytes).encodeHex().toString()
+    sha256(file.bytes)
+  }
+
+  private static String sha256(byte[] bytes) {
+    MessageDigest.getInstance('SHA-256').digest(bytes).encodeHex().toString()
+  }
+
+  // The definition in docs/architecture.md: one line `<sha256 of the file>  <path>` per file, in path order.
+  private static String sourcesSha256(File directory) {
+    List<String> paths = []
+    directory.eachFileRecurse(groovy.io.FileType.FILES) { paths << directory.toPath().relativize(it.toPath()).toString() }
+    sha256(paths.sort().collect { "${sha256(new File(directory, it))}  ${it}\n" }.join().getBytes('UTF-8'))
   }
 
   private static Throwable shouldFail(Class<? extends Throwable> type, Closure action) {

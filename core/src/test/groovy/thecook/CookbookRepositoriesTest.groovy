@@ -6,6 +6,7 @@ import org.junit.rules.TemporaryFolder
 import thecook.cookbook.Coordinates
 import thecook.cookbook.CookbookRepositories
 
+import java.security.MessageDigest
 import java.util.jar.JarEntry
 import java.util.jar.JarOutputStream
 
@@ -51,6 +52,25 @@ class CookbookRepositoriesTest {
     assert error.message == 'No recipe other in acme:notes:1.2.3; its recipes are: notes, review'
   }
 
+  @Test void hashesTheArtifactsSourcesWhateverTheJarsEntryOrder() {
+    def kitchen = folder.newFolder('kitchen')
+    def files = ['acme/notes/notes.groovy': 'notes', 'acme/notes/templates/a b.md': 'resource', 'acme/notes/README.md': '']
+    publish(new File(kitchen, 'forward'), files)
+    publish(new File(kitchen, 'reverse'), files.entrySet().toList().reverse().collectEntries())
+    def coordinates = Coordinates.parse('acme:notes:1.2.3')
+    new File(kitchen, 'cook.toml').text = 'repositories = ["forward"]\n'
+    def forward = CookbookRepositories.at(kitchen).artifact(coordinates).sha256
+    new File(kitchen, 'cook.toml').text = 'repositories = ["reverse"]\n'
+    def reverse = CookbookRepositories.at(kitchen).artifact(coordinates).sha256
+
+    def lines = ['README.md', 'notes.groovy', 'templates/a b.md'].collect { path ->
+      def text = files['acme/notes/' + path]
+      "${digest(text.getBytes('UTF-8'))}  ${path}\n"
+    }
+    assert forward == digest(lines.join().getBytes('UTF-8'))
+    assert reverse == forward
+  }
+
   @Test void missingArtifactNamesTheRepositoriesSearched() {
     def kitchen = folder.newFolder('kitchen')
     new File(kitchen, 'cook.toml').text = 'repositories = ["repository"]\n'
@@ -85,6 +105,10 @@ class CookbookRepositoriesTest {
         out.closeEntry()
       }
     }
+  }
+
+  private static String digest(byte[] bytes) {
+    MessageDigest.getInstance('SHA-256').digest(bytes).encodeHex().toString()
   }
 
   private static Throwable shouldFail(Class<? extends Throwable> type, Closure action) {

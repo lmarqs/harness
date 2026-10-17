@@ -200,7 +200,9 @@ recipes:
 The source is a path relative to the repository root, an `https://` URL, or the recipe's coordinates. A key path is a
 list, so a key containing a dot stays one segment; `links` lists the symbolic links a recipe owns. The sha256 identifies
 the recipe version that produced the recorded ownership. For a path or URL it is the file's hash. For coordinates it is
-a hash of the artifact's sources, each path and its content in path order, whichever repository supplied them.
+the hash of the artifact's sources, the same whichever repository supplied them: the sha256 of one line
+`<sha256 of the file>  <path>` per file, each ending in a newline, sorted by the UTF-8 bytes of the path. The path is
+relative to the artifact's directory and separated by `/`, and both hashes are written in lower-case hex.
 Because the lock is committed, every clone has the same ownership information.
 
 Apply works without the lock. When the lock is missing or names no entry for a recipe, Cook evaluates the recipe as

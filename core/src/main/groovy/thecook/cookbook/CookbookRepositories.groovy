@@ -2,9 +2,6 @@ package thecook.cookbook
 
 import org.tomlj.Toml
 import org.tomlj.TomlArray
-import thecook.filesystem.Repository
-
-import java.util.zip.ZipInputStream
 
 /**
  * The Maven-layout repositories that cookbook artifacts resolve from: the `repositories` list of the kitchen's
@@ -55,7 +52,7 @@ final class CookbookRepositories {
     for (URI repository : uris) {
       def jar = read(repository.resolve(coordinates.jarPath))
       if (jar != null) {
-        return new CookbookArtifact(coordinates, unpack(jar, coordinates.packagePath), Repository.digest(jar))
+        return CookbookArtifact.fromZip(coordinates, jar, coordinates.packagePath)
       }
     }
     throw new IllegalArgumentException(
@@ -77,17 +74,5 @@ final class CookbookRepositories {
     } catch (IOException error) {
       throw new IllegalArgumentException("Cannot read ${jar}: ${error.message}", error)
     }
-  }
-
-  private static Map<String, byte[]> unpack(byte[] jar, String packagePath) {
-    Map<String, byte[]> files = [:]
-    new ZipInputStream(new ByteArrayInputStream(jar)).withCloseable { zip ->
-      for (def entry = zip.nextEntry; entry != null; entry = zip.nextEntry) {
-        if (!entry.directory && entry.name.startsWith(packagePath)) {
-          files[entry.name.substring(packagePath.length())] = zip.readAllBytes()
-        }
-      }
-    }
-    files
   }
 }

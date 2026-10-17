@@ -33,7 +33,7 @@ kitchen. The author's annotations are Kotlin, in `thecook.cookbook.api`; the eng
 
 | Operand | Short name | Source in `cook.lock` | sha256 of |
 | --- | --- | --- | --- |
-| `group:artifact:version[:recipe]` | `group:artifact:recipe` | the coordinates with the recipe | the jar |
+| `group:artifact:version[:recipe]` | `group:artifact:recipe` | the coordinates with the recipe | the artifact's sources, as [the lock](../docs/architecture.md#ownership-and-the-lock) defines |
 | A `.groovy` path in the kitchen | the path in the kitchen without `.groovy` | the path in the kitchen | the file |
 
 Section markers name the short name and the region: `cook:begin <short name>#<region>`.
