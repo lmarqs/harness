@@ -16,58 +16,78 @@ programs read the native files directly, and the lock and markers Cook leaves ar
 
 ## Current implementation
 
-This section describes the repository's executable behavior. The [architecture](docs/architecture.md) defines the
-intended design, and [issue #15](https://github.com/lmarqs/the-cook/issues/15) tracks implementing it.
+This section describes what runs on `main`. The [architecture](docs/architecture.md) defines the intended design, and
+[issue #15](https://github.com/lmarqs/the-cook/issues/15) tracks implementing it.
 
-The core and CLI use Kotlin, with Groovy document and filesystem adapters. Local recipes for the current core are Groovy scripts. The [cookbook](cookbook/README.md) shows how recipes and ingredients are written and distributed. Its `agents` artifact runs: `./cook` applies its recipes by coordinates. The other directories are a design sketch that has not been compiled, and the CLI ships without packaged recipes. `./gradlew :cookbook:publish` packages the cookbook with the `dev.thecook.cookbook` Gradle plugin, built from [`plugin`](plugin) apart from the engine, into the Maven-layout repository at `cookbook/build/repository`: a jar and a POM per directory and the `dev.thecook:cookbook` BOM. Packaging compiles nothing; the engine compiles an artifact's sources when one of its recipes is applied.
+### Quick start
 
-`./cook <recipe>` renders the desired batch into native project files. Ingredients can share separate blocks or keys in a file, while whole files and symlinks have exclusive owners. Cooking checks for managed edits and uses a transaction journal with rollback on write failure. Declared applications update their own contributions; a legacy direct Batch updates its unassigned contributions while retaining independently owned applications.
-
-The current CLI resolves local `.groovy` recipe paths. Cook's options go before the recipe and the recipe's own
-arguments follow it, as in `./cook --dry-run recipe.groovy --harness=claude`; [picocli](https://picocli.info) parses
-Cook's grammar. `--dry-run` reports proposed changed paths; a normal cooking invocation writes without an approval
-prompt or a terminal content diff. `--remove` withdraws selected applications using ownership records. The existing `apply` command applies a saved plan. No-argument invocation reports a missing
-command; use `--help` or `help` explicitly. `help <recipe>...` prints each recipe's help; for a recipe whose first
-import carries `@help`, such as `./cook help cookbook/agents/instructions.groovy`, the help is read from its source
-without running it. `help` also takes coordinates, `group:artifact:version[:recipe]`, and reads the recipe, or
-on `group:artifact:version` the artifact's README with its recipes and models, from the artifact's jar. The jar comes
-from the first repository holding it in the `repositories` list of the kitchen's `cook.toml`, each an `https://` URL
-or a path relative to the kitchen, and from Maven Central when the kitchen has no `cook.toml`. This repository's
-`cook.toml` lists `cookbook/build/repository`, so `./gradlew :cookbook:publish` followed by
-`./cook help dev.thecook:agents:0.1.0:instructions` reads the packaged recipe.
-
-`./cook` applies coordinates through its own path in the engine, with `cook.lock` as its record. Each recipe after
-the first starts at a word without `--`, and its arguments are written `--name=value`, or `--name` for a yes-or-no
-argument, as in
-`./cook dev.thecook:agents:0.1.0:permissions --harness=claude dev.thecook:agents:0.1.0:instructions --harness=claude`.
-Recipes run left to right against one in-memory draft, so each sees what the ones before it wrote. A recipe removes
-what it owned and no longer declares, and the last recipe to write a section, key, file or link owns it. `cook.lock`
-records each recipe's short name, coordinates, the jar's sha256 and what it owns. The kitchen keeps and commits
-`cook.lock`: it is the only record of which recipes were applied and what each owns, and without it a first-apply
-refusal cannot tell a file a recipe wrote from one written by hand. Before writing, Cook shows each
-recipe's `@confirm` text under its address and a unified diff of every changed path, then asks
-`Apply these changes? [y/N]`; `--batch-approve` shows the same and writes without asking, and without a terminal Cook
-writes only with `--batch-approve`. After the writes, Cook prints one line per changed
-path, `Created`, `Updated` or `Deleted`, or `Already cooked.`, then each recipe's `@yield` text after the writes;
-`--dry-run` prints `Would create`, `Would update` or `Would delete` and writes nothing. A `.groovy` path and coordinates are applied in separate invocations, and `--remove` and `--library` take a
-`.groovy` path. The work that remains on this path is tracked in
-[issue #15](https://github.com/lmarqs/the-cook/issues/15).
-
-The core enforces adoption and managed-edit gates for `.groovy` recipe paths.
-
-### Start from a fresh clone
-
-With a Java 17 JDK and access to obtain Gradle and build dependencies, build the local CLI and inspect its help from
-the checkout root:
+With a Java 17 JDK and access to obtain Gradle and build dependencies, from the checkout root, build the CLI and
+publish the cookbook to `cookbook/build/repository`:
 
 ```sh
-./gradlew cliBuild
-./cook --help
+./gradlew cliBuild :cookbook:publish
 ```
 
-The help output begins with `Usage:`. The repository's [`cook` script](cook) launches the local distribution, and the
-directory it runs from is the kitchen Cook cooks in. `-C <dir>` or `--kitchen=<dir>` before the first recipe cooks in
-`<dir>` as if Cook had started there, and relative paths resolve against it.
+Read the `agents` artifact's front page and one of its recipes, without running anything:
+
+```sh
+./cook help dev.thecook:agents:0.1.0
+./cook help dev.thecook:agents:0.1.0:instructions
+```
+
+Make a scratch kitchen whose `cook.toml` resolves from this checkout's repository, then apply two recipes in it:
+
+```sh
+kitchen=$(mktemp -d)
+printf 'repositories = ["%s/cookbook/build/repository"]\n' "$PWD" > "$kitchen/cook.toml"
+./cook -C "$kitchen" dev.thecook:agents:0.1.0:permissions --harness=claude dev.thecook:agents:0.1.0:instructions --harness=claude
+```
+
+Cook shows the diff of every file it would write, `cook.lock` included, and asks `Apply these changes? [y/N]`. Answer
+`y`: it prints `Created` for `.agents/policy.yaml`, `.claude/settings.json`, `AGENTS.md`, `CLAUDE.md` and `cook.lock`,
+then what to do next. Run the same command again: nothing changed, so it prints `Already cooked.` and asks nothing.
+
+The repository's [`cook` script](cook) launches the local distribution, and the directory it runs from is the kitchen
+Cook cooks in. `-C <dir>` or `--kitchen=<dir>` before the first recipe cooks in `<dir>` as if Cook had started there.
+`./cook --help` prints the usage.
+
+### What runs
+
+Recipes applied by coordinates, `group:artifact:version[:recipe]`, run through the intended engine:
+
+- One review before any write: each recipe's `@confirm` text, a unified diff and one question; `--batch-approve` to
+  write without asking, and nothing written without a terminal unless it is given
+  ([batch options and approval](docs/features/cli.md#batch-options-and-approval)).
+- One line per changed path after the writes, `Would` lines under `--dry-run`, then each recipe's `@yield` text
+  ([recipe arguments and ordering](docs/features/cli.md#recipe-arguments-and-ordering)).
+- `--force` and `--skip` for a file a recipe's first apply writes from a template
+  ([existing files](docs/features/cli.md#existing-files)).
+- `cook.lock`, which the kitchen keeps and commits: each recipe's short name, coordinates, the jar's sha256 and what it
+  owns, so a later apply withdraws what a recipe no longer declares
+  ([the lock](docs/architecture.md#ownership-and-the-lock)).
+- `help` on an artifact or a recipe, read from the jar without running it.
+
+Coordinates resolve from the jar in the first repository of the kitchen's `cook.toml` `repositories` list that holds
+it, each an `https://` URL or a path, and from Maven Central when the kitchen has no `cook.toml`. Arguments after
+coordinates are written `--name=value`, or a bare `--name` for a yes-or-no argument, and each word without `--` starts
+the next recipe.
+
+The design has these, and they do not run yet: revert and batch records, `https://` recipe operands, `@cookbook` in a
+loose recipe, git repositories in `cook.toml` ([ADR 0029](docs/adrs/0029-cookbook-distribution.md)), and
+`--name value` after coordinates.
+
+### Recipe paths
+
+A `.groovy` path runs through the earlier core: it writes without an approval prompt or a content diff, enforces
+adoption and managed-edit gates, keeps ownership outside `cook.lock`, and has the `init`, `cook`, `plan` and saved-plan
+`apply` commands and the `--remove` and `--library` options. A `.groovy` path and coordinates are applied in separate
+invocations. [Issue #15](https://github.com/lmarqs/the-cook/issues/15) tracks moving `.groovy` paths onto the
+coordinates engine.
+
+Of the [cookbook](cookbook/README.md), the `agents` artifact runs; the other directories are a design sketch that has
+not been compiled. `./gradlew :cookbook:publish` packages the cookbook with the `dev.thecook.cookbook` Gradle plugin,
+built from [`plugin`](plugin) apart from the engine: a jar and a POM per directory and the `dev.thecook:cookbook` BOM.
+Packaging compiles nothing; the engine compiles an artifact's sources when one of its recipes is applied.
 
 ### Development tooling
 

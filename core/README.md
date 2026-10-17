@@ -101,7 +101,7 @@ rejects overlaps, restores adopted originals, vetoes managed edits and withdraws
 recipe factories expose `--adopt`, and render records and reconcilers enforce adoption gates.
 
 The [repository launcher](../cook) requires the local `cliBuild` distribution and changes into the source checkout;
-see the [root build instructions](../README.md#start-from-a-fresh-clone).
+see the [root build instructions](../README.md#quick-start).
 
 ## Verification
 

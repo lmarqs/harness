@@ -92,4 +92,4 @@ root README's [install section](../../README.md#install) describes the existing 
 | An uncached package cannot be downloaded | Obtain the pinned platform package; a cached complete package runs offline |
 | A download does not match its checksum | Refuse execution; resolve the download or pin discrepancy |
 | A copied launcher cannot find its runtime | Transfer the complete jpackage image, including Java |
-| The current repository script prints `Build the CLI first: ./gradlew cliBuild` | The local CLI distribution is absent; run `./gradlew cliBuild`; see [start from a fresh clone](../../README.md#start-from-a-fresh-clone) |
+| The current repository script prints `Build the CLI first: ./gradlew cliBuild` | The local CLI distribution is absent; run `./gradlew cliBuild`; see the [quick start](../../README.md#quick-start) |
