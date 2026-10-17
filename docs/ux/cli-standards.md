@@ -46,8 +46,8 @@ recipe is `help <recipe>`.
 
 Recipe arguments take two forms, `--name value` and `--name=value`, with one meaning. Callers type the space form in
 every other command-line tool, and a refusal of it is an error they meet on their first invocation; the `=` form
-carries a value that looks like a recipe operand. Whether a word is a value or a recipe is decided by the word alone,
-by its marks: `/`, `:` or a `.groovy` ending.
+carries a value that looks like a recipe operand. A word is a recipe by its marks alone, `/`, `:` or a `.groovy`
+ending, and a yes-or-no param never takes the next word, so no word's reading depends on what the shell expanded.
 
 ## Apply and revert
 
@@ -175,3 +175,51 @@ Help advertises only the commands in the [command grammar](#command-grammar), be
 The command set is apply (implicit or explicit), revert, `batch list`, `batch inspect` and `help`; discard is
 deferred. Reserving `help` means a recipe file named `help` is given as a path, such as `./help`.
 [What counts as breaking](compatibility-standards.md#what-counts-as-breaking) covers removing or renaming a command.
+
+## Prior art
+
+Tools that write files a person may already have, and how each treats an existing file, as their documentation or
+source states it:
+
+| Tool | When the file exists | Override | Keep the existing file | Status per file |
+| --- | --- | --- | --- | --- |
+| Rails generators (Thor) | Asks `Overwrite <file>? [Ynaqdhm]`, with `d` for a diff and `a` for all | `-f`, `--force` | `-s`, `--skip` | `create`, `identical`, `force`, `skip`, `conflict`, also under `--pretend` |
+| Angular `ng generate` | Not documented | `--force` | Not documented | Not documented |
+| Yeoman | Asks before each write that overwrites content | Not documented | Not documented | Not documented |
+| Copier | Asks | `--overwrite`, which overwrites without asking | `skip_if_exists`, declared per file by the template | Not documented |
+| cookiecutter | Not documented | `-f`, `--overwrite-if-exists` | `-s`, `--skip-if-file-exists` | Not documented |
+| chezmoi | Asks when the file changed since chezmoi last wrote it | `--force`, which applies without prompting | Not documented | Not documented |
+| GNU Stow | Records a conflict and refuses to proceed | `--adopt`, which moves the existing file into the package | Not documented | Not documented |
+| Kubernetes server-side apply | Rejects a field another field manager owns | `--force-conflicts` | Leave the field out of the applied configuration | Not documented |
+| Ansible `copy` | Overwrites; `force` defaults to yes | Not applicable | `force: false`, which writes only when the destination is absent | Not documented |
+
+Go's `flag` package takes a bare `-flag` for a boolean flag and turns it off with `-flag=false`. It refuses
+`-flag value` for a boolean, because a shell wildcard after the flag would change its meaning.
+
+What Cook takes from them:
+
+- The default refuses: no tool keeps an existing file silently. Cook's refusal names every file and recipe, as Stow
+  and server-side apply refuse, and the approval prompt shows the diff, as Thor does on request.
+- The override is a tool option under the names people know, `--force` and `--skip`, covering the whole command, as
+  in Rails and cookiecutter.
+- The template declares how its file is treated, as Copier's `skip_if_exists` does; Cook's `@Seed` declares
+  `existing = 'fail'`.
+- One status line per file, under `--dry-run` too, as Thor reports under `--pretend`, so a replaced file is visible
+  before it is lost.
+- A yes-or-no recipe argument is a bare `--name`, turned off with `--name=false`, as in Go's `flag`.
+
+Sources:
+
+- [Go flag package](https://pkg.go.dev/flag)
+- [Rails generators guide](https://guides.rubyonrails.org/generators.html)
+- [Thor `create_file.rb`](https://github.com/rails/thor/blob/main/lib/thor/actions/create_file.rb)
+- [Thor `shell/basic.rb`](https://github.com/rails/thor/blob/main/lib/thor/shell/basic.rb)
+- [Angular `ng generate`](https://angular.dev/cli/generate)
+- [Yeoman file system](https://yeoman.io/authoring/file-system)
+- [Copier configuring](https://copier.readthedocs.io/en/stable/configuring/)
+- [cookiecutter CLI options](https://cookiecutter.readthedocs.io/en/stable/cli_options.html)
+- [chezmoi `apply`](https://www.chezmoi.io/reference/commands/apply/)
+- [chezmoi global flags](https://www.chezmoi.io/reference/command-line-flags/global/)
+- [GNU Stow man page](https://manpages.debian.org/bookworm/stow/stow.8.en.html)
+- [Kubernetes server-side apply](https://kubernetes.io/docs/reference/using-api/server-side-apply/)
+- [Ansible `copy` module source](https://github.com/ansible/ansible/blob/devel/lib/ansible/modules/copy.py)

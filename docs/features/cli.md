@@ -93,7 +93,8 @@ Recipes and their operations compose left to right into one batch; the
 [architecture](../architecture.md#ordered-composition-and-declared-targets) defines how the last writer of a section,
 key or file wins.
 
-After `--name`, the next word is the argument's value unless it is a recipe operand. A value that looks like a recipe
+After `--name`, the next word is the argument's value unless it is a recipe operand or the param is yes-or-no, which
+takes no separate value ([prior art](../ux/cli-standards.md#prior-art)). A value that looks like a recipe
 operand is written with `=`:
 
 ```sh
@@ -111,7 +112,8 @@ The first invocation evaluates only `a.groovy` and gives it `source` with the va
 | `--source=./b.groovy` | The value `./b.groovy` for `source` |
 | `--source ./b.groovy` | `./b.groovy` starts the next recipe, and `--source` is refused: `--source needs a value: write --source=<value>` |
 | `agent=codex`, after a recipe or a complete argument | Refused: `Not a recipe: agent=codex. Recipe arguments start with --, and a recipe contains / or : or ends with .groovy` |
-| `--verbose`, for a yes-or-no param | The value `true` for `verbose`; `--verbose=false` or `--verbose false` turns it off |
+| `--verbose`, for a yes-or-no param | The value `true` for `verbose`; `--verbose=false` turns it off |
+| `--verbose false`, for a yes-or-no param | Refused: `Not a recipe: false. To turn --verbose off, write --verbose=false` |
 | `--agent` with no value after it, for any other param | Refused, naming the recipe: `--agent needs a value: write --agent=<value>` |
 | The same recipe twice, with any arguments or versions | Refused: `cook.lock` keeps one entry per recipe |
 
@@ -149,7 +151,8 @@ AGENTS.md already exists; dev.thecook:agents:instructions writes it from a templ
 ```
 
 When several recipes of one command meet such files, one refusal lists every file with its recipe, so `--force` never
-replaces a file the refusal did not name.
+replaces a file the refusal did not name. The [prior art](../ux/cli-standards.md#prior-art) shows how other tools treat
+an existing file.
 
 | Option | Position | Effect |
 | --- | --- | --- |

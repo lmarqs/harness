@@ -394,9 +394,9 @@ Other documents cite these requirements by number.
   of these marks is given with `./`, such as `./notes`.
 - **FR-19:** Batch options precede recipe operands, or the batch ID for `revert`. Recipe arguments follow their recipe
   as `--name=value` or `--name value`, including shell-quoted values. After `--name`, the next word is its value unless
-  it is a recipe operand, so a value that looks like an operand is written with `=`. A yes-or-no param may be given as
-  a bare `--name`. A recipe appears once per invocation. A misplaced batch option after a recipe receives the normal
-  unknown-option error.
+  it is a recipe operand, so a value that looks like an operand is written with `=`. A yes-or-no param is a bare
+  `--name`, or `--name=false`, and takes no separate value. A recipe appears once per invocation. A misplaced batch
+  option after a recipe receives the normal unknown-option error.
 - **FR-20:** `--batch-approve` is the only preapproval spelling.
 
 ### Paths and batch records
