@@ -1,1 +1,0 @@
-Shared skill: hexagonal-layout

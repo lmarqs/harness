@@ -1,25 +1,39 @@
 package thecook.cli
 
-import java.nio.file.Files
-import java.nio.file.StandardCopyOption
-
 class Fixtures {
-  static void copy(String name, File destination) {
-    def resource = Fixtures.getResource('/fixtures/' + name)
-    assert resource != null: "Missing fixture: ${name}"
-    def source = new File(resource.toURI()).toPath()
-    Files.walk(source).withCloseable { paths ->
-      paths.forEach { path ->
-        def relative = source.relativize(path).toString()
-        // A suffix lets Gradle copy names such as .gitignore that it normally excludes.
-        if (relative.endsWith('.fixture')) relative = relative.substring(0, relative.length() - '.fixture'.length())
-        def target = destination.toPath().resolve(relative)
-        if (Files.isDirectory(path)) {
-          Files.createDirectories(target)
-          return
-        }
-        Files.copy(path, target, StandardCopyOption.REPLACE_EXISTING)
+  /** Writes into `kitchen` a Maven-layout repository holding `acme:notes:1.2.3` and a `cook.toml` listing it. */
+  static void notesCookbook(File kitchen) {
+    def jar = new File(kitchen, 'repository/acme/notes/1.2.3/notes-1.2.3.jar'); jar.parentFile.mkdirs()
+    new java.util.jar.JarOutputStream(jar.newOutputStream()).withCloseable { out ->
+      ['acme/notes/Notes.groovy': """package acme.notes
+
+@Ingredient
+class Notes {
+  private List<String> lines = []
+  void add(String line) { lines += line }
+  @Section(path = 'NOTES.md', id = 'notes')
+  List<String> section() { lines ?: null }
+}
+""", 'acme/notes/notes.groovy': """@help('Adds a line to `NOTES.md`.')
+@confirm('Everyone reads `NOTES.md`.')
+@yield('Read `NOTES.md`.')
+import acme.notes.Notes
+
+@param(value = ['line'], doc = 'The line to add') String line
+@param(value = ['loud'], doc = 'Whether the line is upper case', default = ['false']) boolean loud
+@ingredient(Notes) def notes
+
+notes.add(loud ? line.toUpperCase() : line)
+""", 'acme/notes/more.groovy': """@help('Adds another line.')
+import acme.notes.Notes
+
+@ingredient(Notes) def notes
+
+notes.add('more')
+"""].each { path, text ->
+        out.putNextEntry(new java.util.jar.JarEntry(path)); out.write(text.getBytes('UTF-8')); out.closeEntry()
       }
     }
+    new File(kitchen, 'cook.toml').text = 'repositories = ["repository"]\n'
   }
 }
