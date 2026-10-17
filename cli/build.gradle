@@ -10,7 +10,6 @@ kotlin { jvmToolchain(17) }
 dependencies {
   implementation 'dev.thecook:the-cook-core:0.1.0'
   implementation 'info.picocli:picocli:4.7.7'
-  implementation 'io.github.java-diff-utils:java-diff-utils:4.15'
   testImplementation localGroovy()
   testImplementation 'junit:junit:4.13.2'
 }

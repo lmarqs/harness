@@ -26,6 +26,7 @@ dependencies {
   api localGroovy()
   implementation 'org.tomlj:tomlj:1.1.1'
   implementation 'org.yaml:snakeyaml:2.4'
+  implementation 'io.github.java-diff-utils:java-diff-utils:4.15'
   // Recipes and models import groovy.yaml and groovy.toml by default. They match the Groovy that runs them, which
   // already supplies the Groovy modules they depend on.
   ['groovy-yaml', 'groovy-toml'].each { module ->

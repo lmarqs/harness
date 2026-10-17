@@ -1,7 +1,5 @@
 package thecook.cli.terminal
 
-import com.github.difflib.DiffUtils
-import com.github.difflib.UnifiedDiffUtils
 import picocli.CommandLine
 import thecook.cookbook.Argument
 import thecook.cookbook.CookbookApply
@@ -9,6 +7,7 @@ import thecook.cookbook.CookbookArtifact
 import thecook.cookbook.CookbookRepositories
 import thecook.cookbook.Coordinates
 import thecook.cookbook.ExistingSeed
+import thecook.cookbook.FilePatch
 import thecook.cookbook.Proposal
 import thecook.cookbook.RecipeRequest
 import thecook.cookbook.RecipeSource
@@ -273,27 +272,10 @@ constructor(
       stdout.println(indent(it.confirm))
       stdout.println()
     }
-    paths.forEach { path ->
-      val before = lines(proposal.before(path))
-      val after = lines(proposal.after(path))
-      val diff =
-        UnifiedDiffUtils.generateUnifiedDiff(
-          if (proposal.before(path) == null) "/dev/null" else "a/$path",
-          if (proposal.after(path) == null) "/dev/null" else "b/$path",
-          before,
-          DiffUtils.diff(before, after),
-          3,
-        )
-      // java-diff-utils numbers an empty side from 1; git and GNU diff write it as 0,0.
-      diff.forEach { line ->
-        stdout.println(if (line.startsWith("@@")) line.replace(" -1,0 ", " -0,0 ").replace(" +1,0 ", " +0,0 ") else line)
-      }
-    }
+    paths.forEach { path -> FilePatch.of(path, proposal.before(path), proposal.after(path)).forEach(stdout::println) }
     stdout.println()
     stdout.flush()
   }
-
-  private fun lines(text: String?): List<String> = text?.removeSuffix("\n")?.split("\n") ?: emptyList()
 
   private fun approved(): Boolean {
     val input =
