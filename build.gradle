@@ -17,7 +17,7 @@ dependencies {
 }
 
 spotless {
-  def generated = ['**/build/**', '**/.gradle/**']
+  def generated = ['**/build/**', '**/.gradle/**', '.worktrees/**']
   // Most of the cookbook is a design sketch that has not been compiled.
   def sketch = ['cookbook/**']
   groovy {
@@ -43,7 +43,7 @@ def codenarcArgs = { String report ->
   [
     '-basedir=.',
     '-includes=**/*.groovy,**/*.gradle',
-    '-excludes=**/build/**,**/.gradle/**,cookbook/**',
+    '-excludes=**/build/**,**/.gradle/**,.worktrees/**,cookbook/**',
     '-rulesetfiles=file:' + file('gradle/lint/codenarc.groovy'),
     '-failOnError=true',
     report,
