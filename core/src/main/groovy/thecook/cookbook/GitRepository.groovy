@@ -96,12 +96,13 @@ final class GitRepository implements CookbookRepository {
     def output = new ByteArrayOutputStream()
     def error = new ByteArrayOutputStream()
     process.waitForProcessOutput(output, error)
-    new GitResult(process.waitFor(), output.toByteArray(), error.toString('UTF-8').trim().readLines().join('; '))
+    new GitResult(process.waitFor(), output.toByteArray(), error.toString('UTF-8').readLines().find { it.trim() }?.trim() ?: '')
   }
 
   private static final class GitResult {
     final int exit
     final byte[] output
+    /** The first line git wrote to stderr, which states the failure. */
     final String error
 
     GitResult(int exit, byte[] output, String error) {

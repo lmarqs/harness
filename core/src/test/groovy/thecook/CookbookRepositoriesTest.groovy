@@ -133,8 +133,8 @@ class CookbookRepositoriesTest {
     def error = shouldFail(IllegalArgumentException) {
       repositories(kitchen).artifact(Coordinates.parse('acme:notes:1.2.4'))
     }
-    assert error.message.startsWith("acme:notes:1.2.4 is not cached, and ${source} cannot be read: ")
-    assert error.message.endsWith('; connect to it and run again')
+    assert error.message ==~ /acme:notes:1\.2\.4 is not cached, and \S+ cannot be read: fatal: [^;]+; connect to it and run again/
+    assert error.message.contains("${source} cannot be read: ")
   }
 
   @Test void refusesGitRepositoriesThatAreUnauthenticatedMisshapedOrMisversioned() {
