@@ -27,7 +27,7 @@ internal class KitchenOption {
 
 @Command(
   name = "cook",
-  subcommands = [HelpArgs::class],
+  subcommands = [HelpArgs::class, RevertArgs::class],
   description = ["Applies a recipe: Cook's options come first, then the recipe, then the recipe's own arguments."],
   footer = [
     "",
@@ -72,4 +72,18 @@ internal class HelpArgs {
 
   @Parameters(paramLabel = "RECIPE", description = ["A recipe: coordinates or a .groovy path."])
   var recipes = mutableListOf<String>()
+}
+
+@Command(
+  name = "revert",
+  description = ["Reverse one recorded batch against the current content, without running its recipes."],
+)
+internal class RevertArgs {
+  @Mixin var kitchen = KitchenOption()
+
+  @Option(names = ["--batch-approve"], description = ["Show the diff, then write without asking."])
+  var batchApprove = false
+
+  @Parameters(paramLabel = "BATCH", description = ["The batch ID, as ./cook batch list shows it."])
+  lateinit var batch: String
 }

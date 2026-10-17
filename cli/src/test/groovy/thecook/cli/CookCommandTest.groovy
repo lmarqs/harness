@@ -312,6 +312,36 @@ notes.add('local')
     }
   }
 
+  @Test void appliesThenRevertsABatchAndKeepsALaterEditBesideIt() {
+    workspace { root, repo ->
+      Fixtures.notesCookbook(repo)
+      def stdout = new ByteArrayOutputStream(); def stderr = new ByteArrayOutputStream()
+      def cli = command(stdout, stderr)
+      def notes = new File(repo, 'NOTES.md'); def lock = new File(repo, 'cook.lock')
+      assert cli.execute(['-C', repo.path, '--batch-approve', 'acme:notes:1.2.3', '--line=first'] as String[]) == 0
+      def firstNotes = notes.text; def firstLock = lock.text
+      assert cli.execute(['-C', repo.path, '--batch-approve', 'acme:notes:1.2.3', '--line=first', 'acme:notes:1.2.3:more'] as String[]) == 0
+      def batch = new File(repo, '.cook/batches').list().sort().last()
+      notes.text += 'mine\n'
+
+      def declined = new ByteArrayOutputStream(); stderr.reset()
+      assert command(declined, stderr, 'n\n').execute(['revert', '-C', repo.path, batch] as String[]) == 1
+      assert declined.toString('UTF-8').contains('\n-<!-- cook:begin acme:notes:more#notes -->\n-more\n')
+      assert stderr.toString('UTF-8') == 'Nothing written.\n'
+
+      stdout.reset(); stderr.reset()
+      assert cli.execute(['revert', '-C', repo.path, '--batch-approve', batch] as String[]) == 0 : stderr.toString('UTF-8')
+      assert stdout.toString('UTF-8').endsWith('\nUpdated NOTES.md\nUpdated cook.lock\n')
+      assert notes.text == firstNotes + 'mine\n'
+      assert lock.text == firstLock
+
+      stderr.reset()
+      assert cli.execute(['revert', '-C', repo.path, '--batch-approve', batch] as String[]) == 1
+      assert stderr.toString('UTF-8').startsWith("Cannot revert ${batch}: later edits overlap its changes.")
+      assert cli.execute(['revert', '-C', repo.path] as String[]) == 2
+    }
+  }
+
   private static Object command(ByteArrayOutputStream stdout, ByteArrayOutputStream stderr, String input = null) {
     def stdin = input == null ? null : new BufferedReader(new StringReader(input))
     new thecook.cli.terminal.CookCommand(new PrintWriter(stdout, true), new PrintWriter(stderr, true), stdin)

@@ -2,6 +2,7 @@ package thecook.cli.terminal
 
 import picocli.CommandLine
 import thecook.cookbook.Argument
+import thecook.cookbook.BatchRevert
 import thecook.cookbook.CookbookApply
 import thecook.cookbook.CookbookArtifact
 import thecook.cookbook.CookbookRepositories
@@ -61,28 +62,13 @@ constructor(
 
         is ApplyRecipes -> {
           val proposal = CookbookApply(command.repository.toFile(), command.existing).propose(command.requests)
-          val actions = proposal.actions
-          if (actions.isEmpty()) {
-            stdout.println("Already cooked.")
-          } else {
-            review(proposal, proposal.changes)
-            if (!command.dryRun && !command.batchApprove && !approved()) {
-              stderr.println("Nothing written.")
-              stderr.flush()
-              return 1
-            }
-            if (!command.dryRun) proposal.commit()
-            actions.forEach { (path, action) -> stdout.println("${status(action, command.dryRun)} $path") }
-            if (!command.dryRun) {
-              proposal.recipes.filter { it.yieldText != null }.forEach {
-                stdout.println()
-                stdout.println("After applying ${it.address}")
-                stdout.println(indent(it.yieldText))
-              }
-            }
-          }
+          if (!write(proposal, command.dryRun, command.batchApprove)) return 1
         }
 
+        is RevertBatch -> {
+          val proposal = BatchRevert(command.repository.toFile()).propose(command.batch)
+          if (!write(proposal, false, command.batchApprove)) return 1
+        }
       }
       stdout.flush()
       0
@@ -111,12 +97,14 @@ constructor(
       throw UsageError("--dry-run, --batch-approve, --force and --skip go before a recipe, not before a command")
     }
     if (root.force && root.skip) throw UsageError("--force and --skip exclude each other")
-    val kitchens = listOfNotNull(root.kitchen.kitchen, (command as? HelpArgs)?.kitchen?.kitchen)
+    val kitchens =
+      listOfNotNull(root.kitchen.kitchen, (command as? HelpArgs)?.kitchen?.kitchen, (command as? RevertArgs)?.kitchen?.kitchen)
     if (kitchens.size > 1) throw UsageError("Option may only be supplied once: --kitchen")
     val kitchen = kitchen(kitchens.singleOrNull())
     return when (command) {
       null -> recipes(kitchen, root)
       is HelpArgs -> help(kitchen, command.recipes)
+      is RevertArgs -> RevertBatch(kitchen.toAbsolutePath(), command.batch, command.batchApprove)
       else -> throw IllegalStateException("Unhandled command: $command")
     }
   }
@@ -255,6 +243,35 @@ constructor(
     ).joinToString("\n\n")
   }
 
+  // Reviews the proposal, asks unless approved in advance, writes it and reports each path; false when declined.
+  private fun write(
+    proposal: Proposal,
+    dryRun: Boolean,
+    batchApprove: Boolean,
+  ): Boolean {
+    val actions = proposal.actions
+    if (actions.isEmpty()) {
+      stdout.println("Already cooked.")
+      return true
+    }
+    review(proposal, proposal.changes)
+    if (!dryRun && !batchApprove && !approved()) {
+      stderr.println("Nothing written.")
+      stderr.flush()
+      return false
+    }
+    if (!dryRun) proposal.commit()
+    actions.forEach { (path, action) -> stdout.println("${status(action, dryRun)} $path") }
+    if (!dryRun) {
+      proposal.recipes.filter { it.yieldText != null }.forEach {
+        stdout.println()
+        stdout.println("After applying ${it.address}")
+        stdout.println(indent(it.yieldText))
+      }
+    }
+    return true
+  }
+
   // Each release whose sources changed under a recorded version, each recipe's consequence the diff cannot show, then
   // the diff itself: what one approval covers.
   private fun review(
@@ -331,6 +348,12 @@ constructor(
     val dryRun: Boolean,
     val batchApprove: Boolean,
     val existing: ExistingSeed,
+  ) : Command
+
+  private data class RevertBatch(
+    val repository: Path,
+    val batch: String,
+    val batchApprove: Boolean,
   ) : Command
 
   private class UsageError(
