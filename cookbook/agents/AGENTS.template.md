@@ -11,7 +11,7 @@
 
 ## Quick reference
 
-The commands for daily work, each verified here. A change that alters one updates this file in the same pull request.
+The commands for daily work, each verified here, with the flags that matter.
 
 | Need | Command |
 | --- | --- |
@@ -19,8 +19,11 @@ The commands for daily work, each verified here. A change that alters one update
 | Build | |
 | Test one file or path | |
 | Lint or format one file | |
+| Install dependencies | |
+| Add a dependency | |
 | Generate code | |
 | Run a migration or a one-off admin task | |
+| Done check: everything that must pass before a change is done, in order | |
 
 ## Boundaries
 
@@ -28,7 +31,12 @@ What an agent always does here, what it asks before doing, what it never does, a
 
 **Always**
 
-- [What an agent does on every change]
+- A change is done only when the Done check passes.
+- Read an area's Gotchas entry before changing it; add one when you get something wrong.
+- Update this file in the same change that alters a command, path or rule it names.
+- Keep this file near [N] words: a line stays while removing it would cause mistakes, a check that catches a rule
+  replaces it, and other knowledge goes where Documentation says.
+- [What else an agent does on every change here]
 
 **Ask first**
 
@@ -39,12 +47,13 @@ What an agent always does here, what it asks before doing, what it never does, a
 
 - Commit secrets, credentials or tokens.
 - Put personal data ([the fields that count as personal here]) in logs, fixtures, documents, issues or commits.
+- Edit generated files ([paths]) by hand. Change their source and run the generator.
 
 **Stop and ask** when a check keeps failing after you fixed what it reported, when a command is refused, or when the
 request leaves a decision open.
 
-Enforced by [the file that makes the agent tools refuse what this section forbids]. A refusal from it is the rule
-working, not a failure to retry.
+Enforced by [the file that makes agent tools refuse these], where one exists. A refusal from it is the rule working,
+not a failure to retry.
 
 ## Understand
 
@@ -62,12 +71,11 @@ The main languages, frameworks and services, each with its major version and the
 
 ### Architecture
 
-The main components and how they depend on each other, where each one's code lives, and the other repositories this
-one depends on or is deployed by.
+What the code cannot show: where new code goes, related repositories, and where the design is written down.
 
-| Component | What it does | Depends on | Code in |
-| --- | --- | --- | --- |
-| [Deployable unit, data store, queue or external service] | | | |
+| New code | Goes in |
+| --- | --- |
+| [A module, a test, a migration, a script] | |
 
 Other repositories: [each one and how this repository depends on it, or is deployed by it].
 
@@ -83,7 +91,6 @@ Where settings come from, which source wins, and where a new setting goes.
 | Local overrides | | |
 | Environment variables | | |
 | Secret store | | Names only, never values |
-| Feature flags | | |
 
 [Which source wins when two set the same value.] A new setting goes in [file].
 
@@ -93,45 +100,54 @@ Where settings come from, which source wins, and where a new setting goes.
 
 How a fresh checkout becomes runnable, where it differs from production, and how to take it apart again.
 
-| Step | Command | Deletes |
-| --- | --- | --- |
-| Set up: log in to what the other steps need | | |
-| Set up: install tools and dependencies | | |
-| Start: run the local services | | |
-| Stop: halt the local services, keeping their data | | |
-| Tear down: remove the local services and their data | | |
-| Clean up: delete generated files and installed dependencies | | |
+| Step | Command |
+| --- | --- |
+| Set up: log in to what the other steps need | |
+| Start: run the local services | |
+| Stop: halt the local services, keeping their data | |
+| Tear down: remove the local services and their data | |
+| Clean up: delete generated files and installed dependencies | |
 
 Differs from production: [emulated services, seeded data, missing integrations].
 
 ### Worktrees
 
-Where extra checkouts go, how one gets ready to run, how its local services stay apart from other checkouts, and when
-to remove it.
+Where extra checkouts go, how one runs beside the main one, and how one is removed leaving nothing behind.
 
 | Need | Command or place |
 | --- | --- |
-| Where worktrees go | |
-| Create one ready to run | |
-| Give it its own ports and project names | |
-| Remove one | |
+| Where worktrees are created | |
+| Create one ready to run, with its own ports, container and database names | |
+| Remove one, with its local services, their data and its generated files | |
 
 ### Verification
 
-What to run while editing and before calling a change done. A change is done only when the Done check passes.
+While editing, run the Quick reference test and lint commands on what changed. The Done check takes [time] and needs
+[local services, or none].
 
-| Check | Command | Needs local services |
-| --- | --- | --- |
-| Quick: while editing, scoped to the change | | |
-| Done: everything that must pass, in order | | |
+### Tests
 
-[Which changes need which tests, such as the changes that need end-to-end tests.]
+How a test is written here, each rule with a file that follows it.
+
+| Need | Rule |
+| --- | --- |
+| Where a test goes | |
+| Naming of files and cases | |
+| Fixtures and test data | |
+| Which kind (unit, integration, end-to-end) a change needs | |
 
 ### Conventions
 
-Rules this code follows that the checks do not catch, each pointing to a real file that follows it or showing a
-short good and bad pair. Code that breaks them passes the checks and fails review.
+Rules the checks do not catch: code that breaks them fails review. Each rule added here points to a file that
+follows it or shows a short good and bad pair.
 
+- Code explains itself through names and structure; where it needs a comment to be understood, rename or extract.
+- A comment records only a reason the code cannot show, such as a workaround or an outside constraint. API doc
+  comments, license headers and tool directives follow the language's standard.
+- Names and comments describe the code as it is, never the change that made it ("new", "now uses X"). The change
+  goes in the commit message.
+- Dead code is deleted, not commented out.
+- New code matches the code around it in naming, error handling and idiom.
 - [Rule], as in [path to a file that follows it].
 
 ## Ship
@@ -142,44 +158,31 @@ How a change moves from a branch to the main branch, and who may do which step.
 
 | Step | Rule |
 | --- | --- |
+| Tracker, and how a commit references it | |
 | Branch | |
 | Commit message | |
 | Pull request | |
 | CI | |
 | Merge | |
 
-### Deploy
+### Deploy and monitor
 
-What puts a change in production and how to tell it worked. Write "none" where there is none.
+What puts a change in production, how to tell it worked, and where the running system reports. Write "none" where
+there is none.
 
-| Step | Command or trigger |
+| Need | Command, trigger or place |
 | --- | --- |
 | Deploy | |
-| See what production runs | |
-| Check a deploy | |
+| Check a deploy, and see what production runs | |
 | Roll back | |
-
-Full procedure: [path or link].
-
-### Monitoring
-
-Where the running system reports, how to read it, and the rules new logs and metrics follow.
-
-| Need | Where |
-| --- | --- |
 | Logs | |
-| Metrics | |
-| Traces | |
-| Dashboards | |
-| Alerts | |
-| Rules for new logs and metrics | |
+| Metrics and dashboards | |
 
 Full procedure: [path or link].
 
 ## Gotchas
 
-Behavior that surprises newcomers or fails silently. Read the matching entry before changing that area, and add one
-when an agent gets something wrong.
+Behavior that surprises newcomers or fails silently, one entry per area.
 
 - [What goes wrong] when [what you do]: [what to do instead].
 
@@ -187,8 +190,7 @@ when an agent gets something wrong.
 
 ### Where a document goes
 
-Where each kind of written knowledge belongs. Durable knowledge learned during a task goes where this table says,
-not into this file.
+Where each kind of written knowledge belongs.
 
 | Kind | Where it goes |
 | --- | --- |
