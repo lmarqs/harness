@@ -85,7 +85,8 @@ class Agents {
   /**
    * Seeds `AGENTS.md` with the packaged `AGENTS.template.md`: a note telling agents to fill the file in when the
    * developer asks, then sections, related ones grouped under one heading, each with a line saying what it holds and a
-   * body in the shape of its answer: a table with labelled rows, or a list of bracketed placeholders. Written once
+   * body in the shape of its answer: a table with labelled rows, or a list of bracketed placeholders.
+   * `AGENTS.template.design.md` beside it states why the template is shaped so and names the sources. Written once
    * instructions are added or a harness is connected; when `AGENTS.md` already exists, cooking the recipe the first
    * time fails unless Cook runs with `--force`, which replaces it, or `--skip`, which keeps it; never owned.
    */
