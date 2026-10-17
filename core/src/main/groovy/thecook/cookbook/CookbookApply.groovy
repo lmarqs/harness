@@ -201,23 +201,30 @@ final class Proposal {
   private final Draft draft
   private final SeedOutcomes seeds
   private final Map<String, String> sources
-  private final Map command
+  private final String reverts
   private final Map<String, List<String>> patches = [:]
   final List<Applied> recipes
   final List<ChangedSource> changedSources
 
-  /**
-   * `sources` holds each source the batch evaluated or read, by its origin; `command` names the operation in the batch
-   * record, such as `[command: 'apply']`.
-   */
+  /** An apply's changes; `sources` holds each source the batch evaluated or read, by its origin. */
   Proposal(Draft draft, List<Applied> recipes, List<ChangedSource> changedSources, SeedOutcomes seeds,
-  Map<String, String> sources, Map command = [command: 'apply']) {
+  Map<String, String> sources) {
+    this(draft, recipes, changedSources, seeds, sources, null)
+  }
+
+  private Proposal(Draft draft, List<Applied> recipes, List<ChangedSource> changedSources, SeedOutcomes seeds,
+  Map<String, String> sources, String reverts) {
     this.draft = draft
     this.recipes = recipes
     this.changedSources = changedSources
     this.seeds = seeds
     this.sources = sources
-    this.command = command
+    this.reverts = reverts
+  }
+
+  /** The changes in `draft` that reverse the batch `batchId`, which run no recipe. */
+  static Proposal revert(Draft draft, String batchId) {
+    new Proposal(draft, [], [], new SeedOutcomes(), [:], batchId)
   }
 
   /** The paths that change, in path order. */
@@ -261,9 +268,10 @@ final class Proposal {
     if (!paths) {
       return null
     }
-    def actions = this.actions
+    def actions = getActions()
     def record = BatchRecord.create(draft.destination)
-    record.save(command + [recipes: recipes.collect { recorded(it) }, files: paths.collect { recorded(it, actions[it]) }],
+    record.save(reverts ? 'revert' : 'apply', reverts, recipes.collect { new RecordedRecipe(it.request, it.address, it.sha256) },
+    paths.collect { new RecordedFile(it, actions[it], draft.recordedBefore(it), draft.recordedAfter(it)) },
     paths.collectEntries { [(it): patch(it)] }, sources)
     try {
       draft.commit()
@@ -279,14 +287,5 @@ final class Proposal {
     }
     record.written()
     record.id
-  }
-
-  private static Map recorded(Applied recipe) {
-    [operand: recipe.request.operand, address: recipe.address, sha256: recipe.sha256,
-      arguments: recipe.request.arguments.collect { [name: it.name, value: it.value, form: it.form.name()] }]
-  }
-
-  private Map recorded(String path, String action) {
-    [path: path, action: action, before: draft.recordedBefore(path), after: draft.recordedAfter(path)]
   }
 }

@@ -18,7 +18,7 @@ final class BatchRevert {
    * each conflicting file and hunk, when a later edit overlaps the batch's changes.
    */
   Proposal propose(String batchId) {
-    def batch = RecordedBatch.read(destination, batchId)
+    def batch = BatchRecord.read(destination, batchId)
     if (batch.result == 'pending') {
       throw new IllegalArgumentException("Batch ${batchId} did not finish writing (pending), so it may have written some of " +
       "its files; ./cook batch inspect ${batchId} shows them and their patches")
@@ -29,7 +29,7 @@ final class BatchRevert {
     def draft = new Draft(destination)
     Map<String, List<String>> conflicts = [:]
     batch.files.each { file ->
-      def conflict = reverse(draft, file.path, file.before, file.after, batch.patch(file.path))
+      def conflict = reverse(draft, file, batch.patch(file.path))
       if (conflict) {
         conflicts[file.path] = conflict
       }
@@ -39,17 +39,19 @@ final class BatchRevert {
       throw new IllegalArgumentException(
       "Cannot revert ${batchId}: later edits overlap its changes. Resolve these and run it again:\n${listed.join('\n')}")
     }
-    new Proposal(draft, [], [], new SeedOutcomes(), [:], [command: 'revert', reverts: batchId])
+    Proposal.revert(draft, batchId)
   }
 
   // Writes the reversal of one file's change into `draft`; returns what conflicts, or nothing.
-  private static List<String> reverse(Draft draft, String path, Map before, Map after, List<String> patch) {
+  private static List<String> reverse(Draft draft, RecordedFile file, List<String> patch) {
+    def path = file.path
+    def before = file.before
+    def after = file.after
     def current = draft.recordedAfter(path)
-    boolean whole = before == null || after == null || before.kind != 'file' || after.kind != 'file'
-    if (whole && current != after) {
+    if (!file.edit && current != after) {
       return ["changed since the batch ${after == null ? 'deleted it' : 'wrote it'}"]
     }
-    if (!whole && current?.kind != 'file') {
+    if (file.edit && current?.kind != 'file') {
       return ["${current == null ? 'deleted' : 'changed'} since the batch wrote it".toString()]
     }
     def reversal = FilePatch.reverse(patch, FilePatch.lines(draft.after(path)))
@@ -72,13 +74,13 @@ final class BatchRevert {
       return []
     }
     String mode = current?.kind == 'file' ? current.mode : null
-    if (!whole && before.mode != after.mode) {
+    if (file.edit && before.mode != after.mode) {
       if (current.mode != after.mode) {
         return ["permissions changed since the batch set them to ${after.mode}"]
       }
       mode = before.mode
     }
-    boolean newline = whole || current.newline == after.newline ? before.newline : current.newline
+    boolean newline = !file.edit || current.newline == after.newline ? before.newline : current.newline
     draft.write(path, reversal.lines.join('\n') + (newline ? '\n' : ''), mode ?: (String) before.mode)
     []
   }

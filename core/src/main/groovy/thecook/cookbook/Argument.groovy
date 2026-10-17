@@ -34,4 +34,9 @@ final class Argument {
   static Argument separate(String name, String value) {
     new Argument(name, value, Form.SEPARATE)
   }
+
+  /** The argument `name` with `value`, as `form` writes it. */
+  static Argument of(String name, String value, Form form) {
+    new Argument(name, value, form)
+  }
 }

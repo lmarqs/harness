@@ -15,6 +15,11 @@ internal fun grammar(): CommandLine =
     .setStopAtPositional(true)
     .setOverwrittenOptionsAllowed(false)
 
+/** A command that accepts `-C`/`--kitchen`. */
+internal interface KitchenScoped {
+  val kitchen: KitchenOption
+}
+
 /** The directory Cook cooks in, accepted by every command. */
 internal class KitchenOption {
   @Option(
@@ -67,8 +72,8 @@ internal class RootArgs {
 }
 
 @Command(name = "help", description = ["Print each recipe's help in order, without running it; alone, this usage."])
-internal class HelpArgs {
-  @Mixin var kitchen = KitchenOption()
+internal class HelpArgs : KitchenScoped {
+  @Mixin override var kitchen = KitchenOption()
 
   @Parameters(paramLabel = "RECIPE", description = ["A recipe: coordinates or a .groovy path."])
   var recipes = mutableListOf<String>()
@@ -78,8 +83,8 @@ internal class HelpArgs {
   name = "revert",
   description = ["Reverse one recorded batch against the current content, without running its recipes."],
 )
-internal class RevertArgs {
-  @Mixin var kitchen = KitchenOption()
+internal class RevertArgs : KitchenScoped {
+  @Mixin override var kitchen = KitchenOption()
 
   @Option(names = ["--batch-approve"], description = ["Show the diff, then write without asking."])
   var batchApprove = false
@@ -96,13 +101,13 @@ internal class RevertArgs {
 internal class BatchArgs
 
 @Command(name = "list", description = ["Show the recorded batches, oldest first."])
-internal class BatchListArgs {
-  @Mixin var kitchen = KitchenOption()
+internal class BatchListArgs : KitchenScoped {
+  @Mixin override var kitchen = KitchenOption()
 }
 
 @Command(name = "inspect", description = ["Show one batch's recipes, arguments, files, patches and any failure."])
-internal class BatchInspectArgs {
-  @Mixin var kitchen = KitchenOption()
+internal class BatchInspectArgs : KitchenScoped {
+  @Mixin override var kitchen = KitchenOption()
 
   @Parameters(paramLabel = "BATCH", description = ["The batch ID, as ./cook batch list shows it."])
   lateinit var batch: String

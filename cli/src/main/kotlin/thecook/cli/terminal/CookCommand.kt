@@ -2,6 +2,7 @@ package thecook.cli.terminal
 
 import picocli.CommandLine
 import thecook.cookbook.Argument
+import thecook.cookbook.BatchRecord
 import thecook.cookbook.BatchRevert
 import thecook.cookbook.CookbookApply
 import thecook.cookbook.CookbookArtifact
@@ -11,7 +12,6 @@ import thecook.cookbook.ExistingSeed
 import thecook.cookbook.Proposal
 import thecook.cookbook.RecipeRequest
 import thecook.cookbook.RecipeSource
-import thecook.cookbook.RecordedBatch
 import thecook.model.RecipeTexts
 import java.io.BufferedReader
 import java.io.PrintWriter
@@ -71,11 +71,11 @@ constructor(
         }
 
         is ListBatches -> {
-          listBatches(stdout, RecordedBatch.list(command.repository.toFile()))
+          listBatches(stdout, BatchRecord.list(command.repository.toFile()))
         }
 
         is InspectBatch -> {
-          inspectBatch(stdout, RecordedBatch.read(command.repository.toFile(), command.batch))
+          inspectBatch(stdout, BatchRecord.read(command.repository.toFile(), command.batch))
         }
       }
       stdout.flush()
@@ -106,7 +106,7 @@ constructor(
       throw UsageError("--dry-run, --batch-approve, --force and --skip go before a recipe, not before a command")
     }
     if (root.force && root.skip) throw UsageError("--force and --skip exclude each other")
-    val kitchens = listOfNotNull(root.kitchen.kitchen, kitchenOption(command))
+    val kitchens = listOfNotNull(root.kitchen.kitchen, (command as? KitchenScoped)?.kitchen?.kitchen)
     if (kitchens.size > 1) throw UsageError("Option may only be supplied once: --kitchen")
     val kitchen = kitchen(kitchens.singleOrNull())
     return when (command) {
@@ -119,15 +119,6 @@ constructor(
       else -> throw IllegalStateException("Unhandled command: $command")
     }
   }
-
-  private fun kitchenOption(command: Any?): String? =
-    when (command) {
-      is HelpArgs -> command.kitchen.kitchen
-      is RevertArgs -> command.kitchen.kitchen
-      is BatchListArgs -> command.kitchen.kitchen
-      is BatchInspectArgs -> command.kitchen.kitchen
-      else -> null
-    }
 
   private fun recipes(
     kitchen: Path,

@@ -1,13 +1,13 @@
 package thecook.cli.terminal
 
 import thecook.cookbook.Argument
-import thecook.cookbook.RecordedBatch
+import thecook.cookbook.BatchRecord
 import java.io.PrintWriter
 
 /** One line per recorded batch, oldest first: its ID, command, result, and its recipes or the batch it reverted. */
 internal fun listBatches(
   out: PrintWriter,
-  batches: List<RecordedBatch>,
+  batches: List<BatchRecord>,
 ) {
   if (batches.isEmpty()) {
     out.println("No batches are recorded in .cook/batches.")
@@ -23,7 +23,7 @@ internal fun listBatches(
 /** One batch's recipes with their arguments, its files with what happened to each, their patches and any failure. */
 internal fun inspectBatch(
   out: PrintWriter,
-  batch: RecordedBatch,
+  batch: BatchRecord,
 ) {
   out.println("Batch ${batch.id}: ${batch.command}, ${batch.result}")
   batch.reverts?.let { out.println("Reverts $it") }
@@ -50,7 +50,7 @@ internal fun inspectBatch(
   }
 }
 
-private fun subject(batch: RecordedBatch): String = batch.reverts ?: batch.recipes.joinToString(", ") { it.address }
+private fun subject(batch: BatchRecord): String = batch.reverts ?: batch.recipes.joinToString(", ") { it.address }
 
 private fun written(argument: Argument): String =
   when (argument.form) {
