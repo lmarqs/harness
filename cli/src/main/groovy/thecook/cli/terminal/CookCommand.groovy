@@ -9,6 +9,7 @@ import thecook.cookbook.CookbookRepositories
 import thecook.cookbook.Coordinates
 import thecook.cookbook.ExistingSeed
 import thecook.cookbook.Proposal
+import thecook.cookbook.RecipeLoader
 import thecook.cookbook.RecipeRequest
 import thecook.cookbook.RecipeSource
 import thecook.model.RecipeTexts
@@ -214,6 +215,7 @@ final class CookCommand {
       if (!isOperand(operand)) {
         throw new UsageError("Not a recipe: ${operand}. A recipe is coordinates or a .groovy path")
       }
+      RecipeLoader.name(kitchen.toPath().toAbsolutePath().normalize(), operand)
       def script = path(kitchen.toPath(), operand, 'recipe')
       if (!Files.isRegularFile(script)) {
         throw new IllegalArgumentException("Recipe file not found: ${operand}")

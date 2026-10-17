@@ -76,6 +76,9 @@ final class RecipeLoader {
   }
 
   private static String relative(Path kitchen, String operand) {
+    if (operand.contains('://')) {
+      throw new IllegalArgumentException('a URL is not a recipe; list its repository in cook.toml and cook the recipe by its coordinates')
+    }
     def path = kitchen.resolve(operand).normalize()
     if (!path.startsWith(kitchen)) {
       throw new IllegalArgumentException('the recipe is outside the kitchen; move it into the kitchen')

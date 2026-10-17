@@ -265,6 +265,12 @@ notes.add('local')
         ],
         [['acme:notes:1.2.3', 'line=first'], 2, 'Not a recipe: line=first. Recipe arguments start with --'],
         [['../outside.groovy'], 1, '../outside.groovy: the recipe is outside the kitchen; move it into the kitchen'],
+        [
+          ['https://example.com/notes.groovy'],
+          1,
+          'https://example.com/notes.groovy: a URL is not a recipe; list its repository in cook.toml and cook the ' +
+          'recipe by its coordinates'
+        ],
         [['acme:notes:1.2.3', '--line=a', '--dry-run'], 2, '--dry-run goes before the first recipe'],
         [['acme:notes:1.2.3', '--line=a', '--batch-approve'], 2, '--batch-approve goes before the first recipe'],
         [['acme:notes:1.2.3', '--line=a', '--force'], 2, '--force goes before the first recipe'],
@@ -350,6 +356,16 @@ notes.add('local')
           '--dry-run, --batch-approve, --force and --skip go before a recipe, not before a command'
         ],
         [['discard', 'acme:notes:1.2.3'], 1, 'acme:notes:notes is not in cook.lock, which lists no recipe'],
+        [
+          ['help', 'https://example.com/notes.groovy'],
+          1,
+          'a URL is not a recipe; list its repository in cook.toml and cook the recipe by its coordinates'
+        ],
+        [
+          ['discard', 'https://example.com/notes.groovy'],
+          1,
+          'a URL is not a recipe; list its repository in cook.toml and cook the recipe by its coordinates'
+        ],
       ].each { arguments, status, message ->
         stderr.reset()
         assert cli.execute((arguments.take(1) + ['-C', repo.path] + arguments.drop(1)) as String[]) == status : arguments

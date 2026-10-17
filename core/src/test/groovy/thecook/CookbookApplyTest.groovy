@@ -347,6 +347,8 @@ import dev.thecook.agents.Claude
       '../outside.groovy': '../outside.groovy: the recipe is outside the kitchen; move it into the kitchen',
       'linked.groovy': 'linked.groovy: the recipe is outside the kitchen; move it into the kitchen',
       'missing.groovy': 'missing.groovy: Recipe file not found: missing.groovy',
+      'https://example.com/notes.groovy': 'https://example.com/notes.groovy: a URL is not a recipe; list its ' +
+      'repository in cook.toml and cook the recipe by its coordinates',
       'twice.groovy': 'twice.groovy: @cookbook names dev.thecook at 0.1.0 and 0.2.0; use one release per cookbook',
     ].each { operand, message ->
       def error = shouldFail(IllegalArgumentException) { apply(kitchen, operand, [:]) }
@@ -537,6 +539,10 @@ notes.set(test: 'new', other: 'mine')
         'dev.thecook:agents:instructions is discarded twice; discard it once per invocation'
       ],
       [['../outside.groovy'], 'the recipe is outside the kitchen; move it into the kitchen'],
+      [
+        ['https://example.com/notes.groovy'],
+        'a URL is not a recipe; list its repository in cook.toml and cook the recipe by its coordinates'
+      ],
     ].each { operands, message ->
       assert shouldFail(IllegalArgumentException) { new CookbookDiscard(kitchen).propose(operands) }.message == message
     }
