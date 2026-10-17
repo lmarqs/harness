@@ -46,7 +46,7 @@ final class CookbookApply {
         }
 
         def compiled = CookbookCompiler.recipe(recipe.source, recipe.fileName, recipe.models)
-        def ingredients = RecipeRun.run(compiled, request.arguments) { Class type, String at ->
+        def ingredients = RecipeRun.run(compiled, request.arguments, recipe.resources) { Class type, String at ->
           model(type, at, loader.reads(type, draft))
         }
         ingredients*.getClass()

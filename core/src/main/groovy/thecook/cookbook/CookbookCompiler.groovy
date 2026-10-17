@@ -40,7 +40,10 @@ final class CookbookCompiler {
     new DefinedClasses(unit.classes.collectEntries { [(it.name): it.bytes] }, engine)
   }
 
-  /** Compiles a recipe in its own class loader over `models`; its `@param` and `@ingredient` lines become fields. */
+  /**
+   * Compiles a recipe in its own class loader over `models`; its `@param`, `@ingredient` and `@resource` lines become
+   * fields.
+   */
   static CompiledRecipe recipe(String source, String name, ClassLoader models) {
     def config = configuration()
     def fields = new RecipeFields()
@@ -92,7 +95,7 @@ final class CookbookCompiler {
         if (statement instanceof ExpressionStatement && statement.expression instanceof DeclarationExpression) {
           def declaration = (DeclarationExpression) statement.expression
 
-          if (declaration.annotations.any { it.classNode.nameWithoutPackage in ['param', 'ingredient'] }) {
+          if (declaration.annotations.any { it.classNode.nameWithoutPackage in ['param', 'ingredient', 'resource'] }) {
             declaration.addAnnotation(new AnnotationNode(ClassHelper.make(Field)))
             names.add(declaration.variableExpression.name)
 
@@ -131,8 +134,8 @@ final class CookbookCompiler {
 }
 
 /**
- * A compiled recipe: its script class, the names of its `@param` and `@ingredient` fields in source order, and the
- * params that declare a default.
+ * A compiled recipe: its script class, the names of its `@param`, `@ingredient` and `@resource` fields in source order,
+ * and the params that declare a default.
  */
 final class CompiledRecipe {
   final Class type

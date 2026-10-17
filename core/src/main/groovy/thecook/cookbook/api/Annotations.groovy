@@ -125,3 +125,10 @@ import java.lang.annotation.Target
   Class value()
   String at() default '.'
 }
+
+/** The UTF-8 text of the file at `value`, beside a recipe path or in the recipe's artifact. */
+@Target([ElementType.FIELD, ElementType.LOCAL_VARIABLE])
+@Retention(RetentionPolicy.RUNTIME)
+@interface resource {
+  String value()
+}

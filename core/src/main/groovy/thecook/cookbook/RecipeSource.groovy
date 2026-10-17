@@ -30,9 +30,7 @@ final class RecipeSource {
       return null
     }
 
-    def declarations = module.statementBlock.statements
-        .findAll { it instanceof ExpressionStatement && it.expression instanceof DeclarationExpression }
-        .collect { (DeclarationExpression) ((ExpressionStatement) it).expression }
+    def declarations = declarations(module)
     def imported = module.imports.collectEntries { [it.alias, it.className] }
     new RecipeTexts(
         help, text(texts, 'confirm'), text(texts, 'yield'),
@@ -79,6 +77,27 @@ final class RecipeSource {
       def group = releases.keySet().find { pkg.startsWith("${it}.") }
       group ? [Coordinates.parse("${group}:${pkg.substring(group.length() + 1)}:${releases[group]}")] : []
     }
+  }
+
+  /** The paths the recipe's `@resource` lines name, in source order. */
+  static List<String> resources(String source, String name) {
+    declarations(module(source, name)).collectMany { declaration ->
+      declaration.annotations.findAll { it.classNode.name == 'resource' }.collect {
+        def path = constant(it.getMember('value'))
+
+        if (!(path instanceof String)) {
+          throw new IllegalArgumentException('@resource takes a constant path')
+        }
+
+        (String) path
+      }
+    }
+  }
+
+  private static List<DeclarationExpression> declarations(ModuleNode module) {
+    module.statementBlock.statements
+        .findAll { it instanceof ExpressionStatement && it.expression instanceof DeclarationExpression }
+        .collect { (DeclarationExpression) ((ExpressionStatement) it).expression }
   }
 
   private static ModuleNode module(String source, String name) {

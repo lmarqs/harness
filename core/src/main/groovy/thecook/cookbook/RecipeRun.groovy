@@ -3,20 +3,24 @@ package thecook.cookbook
 // Lower-case names would read as variables in Groovy expressions.
 import thecook.cookbook.api.ingredient as Injected
 import thecook.cookbook.api.param as Param
+import thecook.cookbook.api.resource as Resource
 
 import java.lang.reflect.Field
 
 /**
- * Runs a compiled recipe: binds its `@param` fields from the arguments, injects its ingredients, then runs its body.
+ * Runs a compiled recipe: binds its `@param` fields from the arguments, sets its `@resource` fields, injects its
+ * ingredients, then runs its body.
  */
 final class RecipeRun {
   private RecipeRun() { }
 
   /**
    * Runs `recipe` with `arguments` and returns its ingredients in declaration order. A bare `--name` is `true` for a
-   * yes-or-no param and an error for any other. `newIngredient` creates an instance of a model type at a directory.
+   * yes-or-no param and an error for any other. `resources` holds the text of each `@resource` path.
+   * `newIngredient` creates an instance of a model type at a directory.
    */
-  static List<Object> run(CompiledRecipe recipe, List<Argument> arguments, Closure newIngredient) {
+  static List<Object> run(CompiledRecipe recipe, List<Argument> arguments, Map<String, String> resources,
+      Closure newIngredient) {
     def script = (Script) recipe.type.getDeclaredConstructor().newInstance()
     List<Field> fields = recipe.fields.collect { recipe.type.getDeclaredField(it) }
     def params = fields.findAll { it.getAnnotation(Param) }
@@ -33,6 +37,14 @@ final class RecipeRun {
     }
 
     params.each { field -> set(script, field, bind(field, arguments, recipe)) }
+    fields.findAll { it.getAnnotation(Resource) }.each { field ->
+      if (!(field.type in [String, CharSequence, Object])) {
+        throw new IllegalArgumentException(
+        "${field.name} has the type ${field.type.simpleName}, which a resource cannot have")
+      }
+
+      set(script, field, resources[field.getAnnotation(Resource).value()])
+    }
     def ingredients = fields.findAll { it.getAnnotation(Injected) }.collect { field ->
       def injected = field.getAnnotation(Injected)
       def instance = newIngredient(injected.value(), injected.at())

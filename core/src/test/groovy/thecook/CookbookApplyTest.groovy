@@ -269,7 +269,7 @@ agents.connect([claude])
   @Test void appliesARecipePathWithModelsFromTheCookbookItDeclares() {
     def kitchen = kitchen()
     publishDirectory(kitchen, 'agents')
-    def recipe = recipe(kitchen, 'recipes/skills.groovy', """@help('Links one skill.')
+    recipe(kitchen, 'recipes/skills.groovy', """@help('Links one skill.')
 @cookbook('dev.thecook:0.1.0')
 import dev.thecook.agents.Agents
 import dev.thecook.agents.Claude
@@ -285,7 +285,7 @@ agents.connect([claude])
     new File(COOKBOOK, 'agents/skills/solid/SKILL.md').text
     assert new File(kitchen, 'cook.lock').text.contains("""  - name: "recipes/skills"
     source: "recipes/skills.groovy"
-    sha256: "${sha256(recipe)}"
+    sha256: "${sourcesSha256(kitchen, ['recipes/skills.groovy'])}"
 """)
     assert apply(kitchen, './recipes/skills.groovy', [:]).changes.empty
   }
@@ -313,6 +313,84 @@ agents.skills('solid')
     assert changed.recorded == sourcesSha256(new File(COOKBOOK, 'agents'))
     assert changed.current != changed.recorded
     assert again.after('cook.lock').contains(changed.current)
+  }
+
+  @Test void aRecipePathReadsAResourceBesideItAndHashesItWithTheRecipe() {
+    def kitchen = kitchen()
+    publishText(kitchen)
+    recipe(kitchen, 'recipes/setup.groovy', """@cookbook('acme:1.0.0')
+import acme.text.Text
+@resource('setup.md') String template
+@ingredient(Text) def text
+text.text = template
+""")
+    def template = recipe(kitchen, 'recipes/setup.md', 'first\n')
+
+    apply(kitchen, 'recipes/setup.groovy', [:]).commit()
+
+    assert new File(kitchen, 'OUT.md').text == 'first\n'
+    def recorded = sourcesSha256(kitchen, ['recipes/setup.groovy', 'recipes/setup.md'])
+    assert new File(kitchen, 'cook.lock').text.contains("sha256: \"${recorded}\"")
+
+    template.text = 'second\n'
+    def again = apply(kitchen, 'recipes/setup.groovy', [:])
+    assert again.changes == ['OUT.md', 'cook.lock']
+    assert again.after('OUT.md') == 'second\n'
+    assert !again.after('cook.lock').contains(recorded)
+    assert again.changedSources.empty
+  }
+
+  @Test void refusesAResourceOutsideTheKitchenMissingOrMistyped() {
+    def kitchen = kitchen()
+    publishText(kitchen)
+    def outside = 'the resource is outside the kitchen; move it into the kitchen'
+    new File(kitchen.parentFile, 'outside.md').text = 'outside\n'
+    recipe(kitchen, 'recipes/outside.md', 'outside\n')
+    Files.createSymbolicLink(new File(kitchen, 'recipes/linked.md').toPath(),
+        new File(kitchen.parentFile, 'outside.md').toPath())
+    [
+      ["@resource('../../outside.md') String template", outside],
+      ["@resource('linked.md') String template", outside],
+      ["@resource('missing.md') String template", 'Resource file not found: recipes/missing.md'],
+      ["@resource('outside' + '.md') String template", '@resource takes a constant path'],
+      ["@resource('outside.md') List template", 'template has the type List, which a resource cannot have'],
+    ].each { declaration, message ->
+      recipe(kitchen, 'recipes/setup.groovy', """@cookbook('acme:1.0.0')
+import acme.text.Text
+${declaration}
+@ingredient(Text) def text
+text.text = template.toString()
+""")
+
+      def error = shouldFail(IllegalArgumentException) { apply(kitchen, 'recipes/setup.groovy', [:]) }
+      assert error.message == "recipes/setup.groovy: ${message}"
+      assert !new File(kitchen, 'OUT.md').exists()
+    }
+  }
+
+  @Test void aRecipeByCoordinatesReadsAResourceFromItsArtifact() {
+    def kitchen = kitchen()
+    publishText(kitchen, [
+      'setup.groovy': """import acme.text.Text
+@resource('setup.md') String template
+@ingredient(Text) def text
+text.text = template
+""",
+      'setup.md': 'packaged\n',
+      'missing.groovy': """import acme.text.Text
+@resource('missing.md') String template
+@ingredient(Text) def text
+text.text = template
+""",
+    ])
+
+    apply(kitchen, 'acme:text:1.0.0:setup', [:]).commit()
+    assert new File(kitchen, 'OUT.md').text == 'packaged\n'
+
+    new File(kitchen, 'OUT.md').delete()
+    def error = shouldFail(IllegalArgumentException) { apply(kitchen, 'acme:text:1.0.0:missing', [:]) }
+    assert error.message == 'acme:text:1.0.0:missing: No file missing.md in acme:text:1.0.0'
+    assert !new File(kitchen, 'OUT.md').exists()
   }
 
   @Test void composesARecipePathWithCoordinatesUnderItsShortName() {
@@ -733,6 +811,18 @@ config.migrated = migrated
     publish(kitchen, "dev.thecook:${name}:0.1.0", files)
   }
 
+  private static File publishText(File kitchen, Map<String, Object> extra = [:]) {
+    publish(kitchen, 'acme:text:1.0.0', ['Text.groovy': '''package acme.text
+
+@Ingredient
+class Text {
+  String text
+  @File(path = 'OUT.md')
+  String file() { text }
+}
+'''] + extra)
+  }
+
   private static File publish(File kitchen, String address, Map<String, Object> files) {
     def coordinates = Coordinates.parse(address)
     def jar = new File(kitchen, "repository/${coordinates.jarPath}")
@@ -766,6 +856,10 @@ config.migrated = migrated
           .relativize(it.toPath())
           .toString()
     }
+    sourcesSha256(directory, paths)
+  }
+
+  private static String sourcesSha256(File directory, List<String> paths) {
     sha256(paths.sort()
         .collect {
           "${sha256(new File(directory, it))}  ${it}\n"

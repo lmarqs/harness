@@ -110,7 +110,8 @@ final class CookbookArtifact {
     }
   }
 
-  private static String sourcesSha256(Map<String, byte[]> files) {
+  /** The sha256 of `files`, keyed by path, as `sha256` defines it. */
+  static String sourcesSha256(Map<String, byte[]> files) {
     def paths = files.keySet().sort { a, b -> Arrays.compareUnsigned(a.getBytes('UTF-8'), b.getBytes('UTF-8')) }
     Repository.digest(paths.collect {
       "${Repository.digest(files[it])}  ${it}\n"

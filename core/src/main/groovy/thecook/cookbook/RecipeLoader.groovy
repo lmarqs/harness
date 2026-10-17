@@ -1,7 +1,6 @@
 package thecook.cookbook
 
 import groovy.transform.CompileStatic
-import thecook.filesystem.Repository
 
 import java.nio.file.Files
 import java.nio.file.Path
@@ -57,8 +56,18 @@ final class RecipeLoader {
       artifact.recipes.collect { coordinates.recipeAddress(it) }.join(', '))
     }
 
+    def source = artifact.recipeSource(recipe)
+    Map<String, String> resources = RecipeSource.resources(source, "${recipe}.groovy").collectEntries { path ->
+      def text = artifact.resource(path)
+
+      if (text == null) {
+        throw new IllegalArgumentException("No file ${path} in ${coordinates.artifactAddress}")
+      }
+
+      [(path): text]
+    }
     new LoadedRecipe(coordinates.recipeName, coordinates.recipeAddress(recipe),
-        artifact.sha256, artifact.recipeSource(recipe), recipe, models(coordinates))
+        artifact.sha256, source, recipe, models(coordinates), resources)
   }
 
   // A path's short name is its place in the kitchen, so moving the file renames the recipe.
@@ -77,9 +86,35 @@ final class RecipeLoader {
     def bytes = Files.readAllBytes(path)
     def source = new String(bytes, 'UTF-8')
     def file = path.fileName.toString()
+    Map<String, byte[]> sources = [(place): bytes]
+    Map<String, String> resources = RecipeSource.resources(source, file).collectEntries { declared ->
+      def resource = resource(path.parent, declared)
+      def content = Files.readAllBytes(resource)
+      sources[kitchen.relativize(resource).join('/')] = content
+      [(declared): new String(content, 'UTF-8')]
+    }
     def loaders = RecipeSource.cookbookArtifacts(source, file).collect { models(it) }
-    new LoadedRecipe(name(kitchen, operand), place, Repository.digest(bytes), source,
-        file.replaceAll(/\.groovy$/, ''), loaders.size() == 1 ? loaders.first() : new ModelLoaders(loaders))
+    new LoadedRecipe(name(kitchen, operand), place, CookbookArtifact.sourcesSha256(sources), source,
+        file.replaceAll(/\.groovy$/, ''), loaders.size() == 1 ? loaders.first() : new ModelLoaders(loaders), resources)
+  }
+
+  // A resource resolves from the recipe's directory and, like the recipe, stays inside the kitchen.
+  private Path resource(Path directory, String declared) {
+    def path = directory.resolve(declared).normalize()
+
+    if (!path.startsWith(kitchen)) {
+      throw new IllegalArgumentException('the resource is outside the kitchen; move it into the kitchen')
+    }
+
+    if (!Files.isRegularFile(path)) {
+      throw new IllegalArgumentException("Resource file not found: ${kitchen.relativize(path).join('/')}")
+    }
+
+    if (!path.toRealPath().startsWith(kitchen)) {
+      throw new IllegalArgumentException('the resource is outside the kitchen; move it into the kitchen')
+    }
+
+    path
   }
 
   private static String relative(Path kitchen, String operand) {
@@ -139,7 +174,8 @@ final class RecipeLoader {
 
 /**
  * A resolved recipe: its short name for markers and `cook.lock`, the address the lock records as its source and the
- * review shows, the source's sha256, its text and file name, and the class loader its model imports resolve from.
+ * review shows, the sha256 of its sources, its text and file name, the class loader its model imports resolve from,
+ * and the text of each file its `@resource` lines name, keyed by the path as written.
  */
 final class LoadedRecipe {
   final String name
@@ -148,13 +184,16 @@ final class LoadedRecipe {
   final String source
   final String fileName
   final ClassLoader models
+  final Map<String, String> resources
 
-  LoadedRecipe(String name, String address, String sha256, String source, String fileName, ClassLoader models) {
+  LoadedRecipe(String name, String address, String sha256, String source, String fileName, ClassLoader models,
+  Map<String, String> resources) {
     this.name = name
     this.address = address
     this.sha256 = sha256
     this.source = source
     this.fileName = fileName
     this.models = models
+    this.resources = resources
   }
 }
