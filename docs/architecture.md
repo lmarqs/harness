@@ -29,9 +29,11 @@ include Git's ignore file and Codex's configuration and skills. The ingredient c
 
 A recipe is trusted executable Groovy code that describes requested file operations using these models. Evaluating
 recipes produces the batch that Cook reviews and writes. The models describe program configuration; the engine
-handles the resulting file operations. Each recipe has a short name, such as `agentic/context`, that markers and the
-lock use to identify it. A recipe cooked by its coordinates is named by its address without the version, such as
-`dev.thecook:agents:instructions`, so cooking a new version keeps the same owner.
+handles the resulting file operations. Each recipe has a short name that markers and the lock use to identify it. A
+recipe cooked from a path is named by its place in the repository without `.groovy`, such as `recipes/setup`. A recipe
+cooked by its coordinates is named by its address without the version, such as `dev.thecook:agents:instructions`, so
+cooking a new version keeps the same owner. Moving a recipe file renames it: cooking the new name and discarding the
+old one moves the ownership ([discard](features/discard.md)).
 
 A cookbook repository holds and distributes ingredients and recipes. Cookbook distribution is separate from engine
 distribution: a cookbook releases by git tag, and may also publish jars of the same sources
@@ -194,9 +196,9 @@ recipes:
           id: "dev.thecook:agents:instructions#instructions"
 ```
 
-The source is a path relative to the repository root, an `https://` URL, or the recipe's coordinates. A key path is a
+The source is a path relative to the repository root or the recipe's coordinates. A key path is a
 list, so a key containing a dot stays one segment; `links` lists the symbolic links a recipe owns. The sha256 identifies
-the recipe version that produced the recorded ownership. For a path or URL it is the file's hash. For coordinates it is
+the recipe version that produced the recorded ownership. For a path it is the file's hash. For coordinates it is
 the hash of the artifact's sources, the same whichever repository supplied them: the sha256 of one line
 `<sha256 of the file>  <path>` per file, each ending in a newline, sorted by the UTF-8 bytes of the path. The path is
 relative to the artifact's directory and separated by `/`, and both hashes are written in lower-case hex. A file
@@ -246,27 +248,26 @@ Declared writes and deletions stay within that directory, including paths resolv
 reaches outside the destination through a symlink is outside the permitted output boundary (FR-21). See the
 [write boundary ADR](adrs/0012-write-boundary.md).
 
-Recipes come from three places: a path inside the destination repository, an `https://` URL, or coordinates resolved
-from the repositories the destination's `cook.toml` lists ([cookbook distribution](#cookbook-distribution)). Relative
-references to recipes and templates resolve from the referencing recipe's location: inside the repository for a local
-recipe, and against the source URL for a remote one. A local reference that resolves outside the repository is refused,
-as is a recipe operand outside it; move the file into the repository or serve it over HTTPS (FR-22).
+Recipes come from two places: a path inside the destination repository, or coordinates resolved from the
+repositories the destination's `cook.toml` lists ([cookbook distribution](#cookbook-distribution)). A URL is not a
+recipe operand; a recipe shared beyond one repository is published in a cookbook and cooked by its coordinates.
+Relative references to recipes and templates resolve from the referencing recipe's location inside the repository. A
+local reference that resolves outside the repository is refused, as is a recipe operand outside it; move the file into
+the repository (FR-22).
 
-For example, run either invocation from `/work/project`:
+For example, run this invocation from `/work/project`:
 
 ```sh
 cd /work/project
 ./cook cookbook/recipes/project.groovy
-./cook https://example.com/cookbook/recipes/project.groovy
 ```
 
-Suppose each recipe references `./base.groovy` and `../templates/settings.toml`, and declares `settings.toml` as an
-output. These are alternative invocations with the same destination:
+Suppose the recipe references `./base.groovy` and `../templates/settings.toml`, and declares `settings.toml` as an
+output:
 
 | Recipe origin | Referenced recipe | Referenced template | Declared output |
 | --- | --- | --- | --- |
 | `cookbook/recipes/project.groovy` | `cookbook/recipes/base.groovy` | `cookbook/templates/settings.toml` | `settings.toml` |
-| `https://example.com/cookbook/recipes/project.groovy` | `https://example.com/cookbook/recipes/base.groovy` | `https://example.com/cookbook/templates/settings.toml` | `settings.toml` |
 
 ## Command line and build boundary
 
@@ -295,7 +296,8 @@ The root README's [install section](../README.md#install) describes the current 
 A cookbook releases by git tag on the repository that holds it: `v<version>`, or `<dir>/v<version>` for a cookbook in
 the directory `<dir>`. The destination's committed `cook.toml` lists the repositories coordinates resolve from, in
 order: git repositories, and Maven-layout repositories holding jars of the same sources; without a `cook.toml`, Maven
-Central. Coordinates name exact releases only.
+Central. A path entry starting with `~/` is relative to the user's home, so a developer lists `~/.m2/repository`, last,
+to cook their own cookbooks published to Maven local. Coordinates name exact releases only.
 
 `cook.lock` records a hash of the artifact's sources, so one release has one hash from either kind of repository, and
 a different hash under a recorded version shows as a changed source before the diff. The
@@ -343,7 +345,7 @@ Other documents cite these requirements by number.
 ### Ownership and discard
 
 - **FR-14:** The repository commits `cook.lock`, a YAML file at its root. For each cooked recipe it records the short
-  name, the source as a repository-relative path, an `https://` URL or coordinates, the source's sha256 (for
+  name, the source as a repository-relative path or coordinates, the source's sha256 (for
   coordinates, of the artifact's sources), and the owned sections, keys, files and links. It records no recipe
   arguments.
 - **FR-15:** Discarding recipes removes what `cook.lock` lists for each, without evaluating them: a section with its
@@ -357,8 +359,9 @@ Other documents cite these requirements by number.
   `--help` alone, show the usage. `help` prints each recipe's help from its source without running it. A first operand
   of exactly `discard` or `help` selects that command; a recipe file with one of those names is supplied as a path,
   such as `./discard`.
-- **FR-18:** Recipe operands are paths inside the destination repository, `https://` URLs, or coordinates
-  `group:artifact:version[:recipe]` resolved from the repositories the destination's `cook.toml` lists. A word is a
+- **FR-18:** Recipe operands are paths inside the destination repository, or coordinates
+  `group:artifact:version[:recipe]` resolved from the repositories the destination's `cook.toml` lists. An operand
+  containing `://` is refused. A word is a
   recipe operand when it contains `/` or `:` or ends with `.groovy`, as `recipe.groovy` does; a recipe file with none
   of these marks is given with `./`, such as `./notes`.
 - **FR-19:** Batch options precede recipe operands. Recipe arguments follow their recipe
@@ -372,9 +375,8 @@ Other documents cite these requirements by number.
 
 - **FR-21:** The current working directory is the destination, regardless of the executable location. Declared writes
   and deletions stay within that directory, including paths resolved through symlinks.
-- **FR-22:** Relative references to recipes and templates resolve from the referencing recipe's location: inside the
-  repository for local recipes, against the source URL for remote ones. A local operand or reference outside the
-  repository is refused.
+- **FR-22:** Relative references to recipes and templates resolve from the referencing recipe's location inside the
+  repository. A local operand or reference outside the repository is refused.
 - **FR-25:** Cooking does not require `cook.lock`. Every invocation evaluates the supplied recipes against current
   content; nothing marks a recipe as already cooked. Without a lock entry, cooking removes nothing on a recipe's
   behalf.
