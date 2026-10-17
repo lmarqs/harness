@@ -43,8 +43,8 @@ updates. People need to see the actual requested changes and keep unrelated cont
 
 ## Reasons
 
-- **1.** The invocation directory makes the destination explicit even for recipes cooked by coordinates. Resolving symlink targets
-  within it prevents a declared path from redirecting a batch write elsewhere.
+- **1.** The invocation directory makes the destination explicit even for recipes cooked by coordinates. Resolving
+  symlink targets within it prevents a declared path from redirecting a batch write elsewhere.
 - **2.** Source origins have a different role from the destination: they locate inputs without moving outputs or
   changing relative resolution. Keeping local sources inside the
   repository means every local input is one a reviewer can see in the same repository; the trade is that a shared

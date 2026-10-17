@@ -64,8 +64,8 @@ separately.
 
 ### Only copied repository content may affect evaluation
 
-At its best, all source material is visible in one checkout. It loses because it prohibits cookbook
-releases cooked by coordinates and turns copying and merge management into engine responsibilities. Native output, the reviewed diff
+At its best, all source material is visible in one checkout. It loses because it prohibits cookbook releases cooked
+by coordinates and turns copying and merge management into engine responsibilities. Native output, the reviewed diff
 and captured consumed sources provide distinct views without forbidding composition.
 
 ### Add-only templates and three-way recipe merges
@@ -93,4 +93,5 @@ Must be maintained:
 
 - Review the acme example with shared setup and a repository-specific choice: does the batch change only declared
   targets, show later overrides in its final diff, and preserve unrelated configuration?
-- Review a batch with a local recipe and one cooked by coordinates: does `cook.lock` name each cooked recipe's source and sha256?
+- Review a batch with a local recipe and one cooked by coordinates: does `cook.lock` name each cooked recipe's source
+  and sha256?
