@@ -18,9 +18,5 @@
 /cookbook/recipes/**/build/
 /cookbook/targets/*/.gradle/
 /cookbook/targets/*/build/
-# cook:begin git/ignore
-/.cook/
-# cook:end git/ignore
-
 /.worktrees/
 /tasks/prd.json

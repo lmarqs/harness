@@ -10,7 +10,7 @@ The policy supplies instruction lines and command permissions for both harnesses
 ## Apply
 
 ```sh
-./cook dev.thecook:cook:0.1.0 dev.thecook:cook:0.1.0:setup
+./cook dev.thecook:cook:0.1.0:setup
 ```
 
 ## Writes
@@ -30,11 +30,6 @@ The policy supplies instruction lines and command permissions for both harnesses
 
 Claude reads the shared instructions through `CLAUDE.md` and skills through the relative links.
 Codex reads `AGENTS.md` and `.agents/skills/` natively.
-
-## With other recipes
-
-Apply `dev.thecook:cook:0.1.0` with this recipe to ignore the engine's local records.
-Both recipes own the `ignore` section of `.gitignore`; the last recipe's section wins.
 ''')
 @yield('''
 Review the rendered permissions against each harness's permission model; edit the shared policy and

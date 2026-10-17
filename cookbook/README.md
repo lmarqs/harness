@@ -48,9 +48,8 @@ The engine does not find recipes. People find them in a cookbook's repository, o
 teammate's link. Given the coordinates:
 
 ```sh
-./cook help dev.thecook:cook:0.1.0           # the artifact's front page
-./cook help dev.thecook:cook:0.1.0:cook      # the recipe's help, params and ingredients
-./cook dev.thecook:cook:0.1.0
+./cook help dev.thecook:agents:0.1.0                # the artifact's front page
+./cook help dev.thecook:agents:0.1.0:instructions   # the recipe's help, params and ingredients
 ./cook dev.thecook:agents:0.1.0:permissions --harness=claude dev.thecook:agents:0.1.0:instructions --harness=claude
 ```
 

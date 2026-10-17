@@ -1,2 +1,2 @@
-Configuration for working on the-cook with coding agents. It also keeps tool-local files out of the repository's
-tracked content.
+Configuration for working on the-cook with coding agents. It also keeps Claude's local settings file out of the
+repository's tracked content.
