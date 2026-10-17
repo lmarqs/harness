@@ -50,7 +50,7 @@ final class CookbookApply {
         }
         lock.record(name, recipe.address, recipe.sha256, declared.owned*.target)
         def texts = RecipeSource.texts(recipe.source, "${recipe.fileName}.groovy")
-        recipes.add(new Applied(recipe.address, texts?.confirm, texts?.yieldText))
+        recipes.add(new Applied(request, recipe.address, recipe.sha256, texts?.confirm, texts?.yieldText))
       } catch (Exception error) {
         def cause = error instanceof InvocationTargetException && error.cause instanceof Exception ? error.cause : error
         throw new IllegalArgumentException("${label}: ${cause.message ?: cause.class.simpleName}", cause)
@@ -119,14 +119,21 @@ final class RecipeRequest {
   }
 }
 
-/** A recipe that ran: its address, the consequence to confirm before the writes and what to do after them. */
+/**
+ * A recipe that ran: its request, its address and the sha256 of its source, the consequence to confirm before the
+ * writes and what to do after them.
+ */
 final class Applied {
+  final RecipeRequest request
   final String address
+  final String sha256
   final String confirm
   final String yieldText
 
-  Applied(String address, String confirm, String yieldText) {
+  Applied(RecipeRequest request, String address, String sha256, String confirm, String yieldText) {
+    this.request = request
     this.address = address
+    this.sha256 = sha256
     this.confirm = confirm
     this.yieldText = yieldText
   }
@@ -189,18 +196,22 @@ final class SeedOutcomes {
   }
 }
 
-/** The changes recipes propose, written by `commit`. */
+/** The changes a batch proposes, written by `commit`. */
 final class Proposal {
   private final Draft draft
   private final SeedOutcomes seeds
+  private final Map command
   final List<Applied> recipes
   final List<ChangedSource> changedSources
 
-  Proposal(Draft draft, List<Applied> recipes, List<ChangedSource> changedSources, SeedOutcomes seeds) {
+  /** `command` names the operation in the batch record, such as `[command: 'apply']`. */
+  Proposal(Draft draft, List<Applied> recipes, List<ChangedSource> changedSources, SeedOutcomes seeds,
+  Map command = [command: 'apply']) {
     this.draft = draft
     this.recipes = recipes
     this.changedSources = changedSources
     this.seeds = seeds
+    this.command = command
   }
 
   /** The paths that change, in path order. */
@@ -229,8 +240,34 @@ final class Proposal {
     draft.after(path)
   }
 
-  /** Writes the changes. */
-  void commit() {
-    draft.commit()
+  /**
+   * Saves the batch record, then writes the changes; a failed write leaves the files as they were and the failure in
+   * the record. Returns the batch ID, or `null` when nothing changes and no batch is recorded.
+   */
+  String commit() {
+    def paths = draft.changes
+    if (!paths) {
+      return null
+    }
+    def record = BatchRecord.create(draft.destination)
+    record.save(command + [recipes: recipes.collect { recorded(it) }, files: paths.collect { recorded(it) }],
+    paths.collectEntries { [(it): FilePatch.of(it, draft.before(it), draft.after(it))] })
+    try {
+      draft.commit()
+    } catch (Exception failure) {
+      record.failed(failure)
+      throw failure
+    }
+    record.written()
+    record.id
+  }
+
+  private static Map recorded(Applied recipe) {
+    [operand: recipe.request.operand, address: recipe.address, sha256: recipe.sha256,
+      arguments: recipe.request.arguments.collect { [name: it.name, value: it.value, form: it.form.name()] }]
+  }
+
+  private Map recorded(String path) {
+    [path: path, action: actions[path], before: draft.recordedBefore(path), after: draft.recordedAfter(path)]
   }
 }

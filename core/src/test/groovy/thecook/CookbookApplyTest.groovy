@@ -3,6 +3,7 @@ package thecook
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import org.yaml.snakeyaml.Yaml
 import thecook.cookbook.Argument
 import thecook.cookbook.Coordinates
 import thecook.cookbook.CookbookApply
@@ -465,6 +466,52 @@ config.migrated = migrated
     assert !new File(kitchen, 'old.cfg').exists()
   }
 
+  @Test void recordsEachBatchThatWritesBeforeItsWrites() {
+    def kitchen = kitchen()
+    publishConfig(kitchen, 'old.cfg')
+
+    def created = apply(kitchen, 'acme:config:1.0.0', [:]).commit()
+    def deleted = apply(kitchen, 'acme:config:1.0.0', [migrated: ['true']]).commit()
+
+    assert created != deleted
+    def first = batch(kitchen, created)
+    assert first.subMap(['id', 'command', 'result']) == [id: created, command: 'apply', result: 'written']
+    assert first.recipes == [
+      [operand: 'acme:config:1.0.0', address: 'acme:config:1.0.0:config',
+        sha256: first.recipes[0].sha256, arguments: []]
+    ]
+    assert first.files*.path == ['cook.lock', 'old.cfg']
+    assert first.files[1] == [path: 'old.cfg', action: 'create', before: null,
+      after: [kind: 'file', mode: 'rw-r--r--', newline: false]]
+    assert new File(kitchen, ".cook/batches/${created}/patches/old.cfg.patch").text ==
+    '--- /dev/null\n+++ b/old.cfg\n@@ -0,0 +1,1 @@\n+old\n'
+    def second = batch(kitchen, deleted)
+    assert second.recipes[0].arguments == [[name: 'migrated', value: 'true', form: 'INLINE']]
+    assert second.files.find { it.path == 'old.cfg' }.subMap(['action', 'after']) == [action: 'delete', after: null]
+    assert new File(kitchen, ".cook/batches/${deleted}/patches/cook.lock.patch").exists()
+  }
+
+  @Test void aFailedWriteLeavesTheFilesAsTheyWereAndTheFailureInTheRecord() {
+    def kitchen = kitchen()
+    publishConfig(kitchen, 'sub/old.cfg')
+    def proposal = apply(kitchen, 'acme:config:1.0.0', [:])
+    def blocked = new File(kitchen, 'sub')
+    blocked.mkdir()
+    blocked.setWritable(false)
+
+    try {
+      shouldFail(Exception) { proposal.commit() }
+    } finally {
+      blocked.setWritable(true)
+    }
+
+    assert !new File(kitchen, 'cook.lock').exists()
+    def batches = new File(kitchen, '.cook/batches').listFiles()
+    assert batches.size() == 1
+    assert batch(kitchen, batches[0].name).result == 'failed'
+    assert new File(batches[0], 'failure.log').text.contains('sub')
+  }
+
   @Test void namesTheRecipeWhoseModelFailsToConstruct() {
     def kitchen = kitchen()
     publish(kitchen, 'acme:broken:1.0.0', [
@@ -516,6 +563,32 @@ import acme.noisy.Noisy
     file.parentFile.mkdirs()
     file.text = text
     file
+  }
+
+  private static void publishConfig(File kitchen, String file) {
+    publish(kitchen, 'acme:config:1.0.0', [
+      'Config.groovy': """package acme.config
+
+@Ingredient
+class Config {
+  Boolean migrated
+  @File(path = '${file}')
+  String old() { migrated == false ? 'old' : null }
+  @Delete(path = '${file}')
+  Boolean gone() { migrated ?: null }
+}
+""",
+      'config.groovy': '''@help('Writes or retires a file.')
+import acme.config.Config
+@param(value = ['migrated'], doc = 'Whether the file is retired', default = ['false']) boolean migrated
+@ingredient(Config) def config
+config.migrated = migrated
+''',
+    ])
+  }
+
+  private static Map batch(File kitchen, String id) {
+    (Map) new Yaml().load(new File(kitchen, ".cook/batches/${id}/batch.yaml").text)
   }
 
   private static def apply(File kitchen, String operand, Map<String, List<String>> arguments) {

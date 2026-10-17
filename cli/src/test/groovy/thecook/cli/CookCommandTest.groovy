@@ -201,12 +201,14 @@ Models
       assert declined.toString('UTF-8').endsWith('\n\nApply these changes? [y/N] ')
       assert stderr.toString('UTF-8') == 'Nothing written.\n'
       assert !notes.exists()
+      assert !new File(repo, '.cook').exists()
 
       def accepted = new ByteArrayOutputStream()
       assert command(accepted, stderr, 'y\n').execute(['-C', repo.path, 'acme:notes:1.2.3', '--line=first'] as String[]) == 0
       assert accepted.toString('UTF-8').startsWith(review)
       assert accepted.toString('UTF-8').endsWith('Apply these changes? [y/N] Created NOTES.md\nCreated cook.lock\n\n' +
       'After applying acme:notes:1.2.3:notes\n  Read `NOTES.md`.\n')
+      assert new File(repo, '.cook/batches').list().size() == 1
 
       stdout.reset()
       assert cli.execute(['-C', repo.path, '--batch-approve', 'acme:notes:1.2.3', '--line=first', 'acme:notes:1.2.3:more'] as String[]) == 0 :
@@ -222,6 +224,7 @@ more
       stdout.reset()
       assert cli.execute(['-C', repo.path, 'acme:notes:1.2.3', '--line=first', 'acme:notes:1.2.3:more'] as String[]) == 0
       assert stdout.toString('UTF-8') == 'Already cooked.\n'
+      assert new File(repo, '.cook/batches').list().size() == 2
       stdout.reset()
       assert cli.execute(['-C', repo.path, '--batch-approve', 'acme:notes:1.2.3', '--line=second'] as String[]) == 0
       assert stdout.toString('UTF-8').contains('\n-first\n+second\n')
