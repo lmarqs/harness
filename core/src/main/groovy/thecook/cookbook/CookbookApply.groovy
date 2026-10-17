@@ -6,7 +6,7 @@ import thecook.filesystem.TargetPath
 import java.lang.reflect.InvocationTargetException
 
 /**
- * Applies recipes, by coordinates or by path, left to right, into one draft of the destination: each recipe withdraws what
+ * Cooks recipes, by coordinates or by path, left to right, into one draft of the destination: each recipe withdraws what
  * it owned and no longer declares, then writes what it declares, taking ownership from the recipes that held it.
  * `cook.lock` records the result.
  */
@@ -16,8 +16,8 @@ final class CookbookApply {
   private final ExistingSeed existing
 
   /**
-   * Coordinates resolve from `repositories`; `existing` decides what a recipe's first apply does with a file its
-   * `existing = 'fail'` seed writes.
+   * Coordinates resolve from `repositories`; `existing` decides what cooking a recipe the first time does with a
+   * file its `existing = 'fail'` seed writes.
    */
   CookbookApply(File destination, CookbookRepositories repositories, ExistingSeed existing = ExistingSeed.REFUSE) {
     this.destination = destination
@@ -113,7 +113,7 @@ final class CookbookApply {
   }
 }
 
-/** One recipe to apply: its operand as written, coordinates or a path in the kitchen, and its arguments in order. */
+/** One recipe to cook: its operand as written, coordinates or a path in the kitchen, and its arguments in order. */
 final class RecipeRequest {
   final String operand
   final List<Argument> arguments
