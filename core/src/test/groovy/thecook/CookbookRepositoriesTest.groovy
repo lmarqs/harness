@@ -82,7 +82,7 @@ class CookbookRepositoriesTest {
   }
 
   @Test void withoutCookTomlTheRepositoryIsMavenCentral() {
-    assert CookbookRepositories.at(folder.newFolder('kitchen')).uris == [CookbookRepositories.CENTRAL]
+    assert CookbookRepositories.at(folder.newFolder('kitchen')).repositories*.toString() == [CookbookRepositories.CENTRAL.toString()]
   }
 
   @Test void refusesRepositoriesThatAreNeitherHttpsNorPaths() {
