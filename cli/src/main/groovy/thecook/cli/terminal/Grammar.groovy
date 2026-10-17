@@ -35,7 +35,7 @@ abstract class KitchenScoped {
 
 @Command(
 name = 'cook',
-subcommands = [HelpArgs, DiscardArgs, RevertArgs, BatchArgs],
+subcommands = [HelpArgs, DiscardArgs],
 description = ["Applies a recipe: Cook's options come first, then the recipe, then the recipe's own arguments."],
 footer = [
   '',
@@ -79,27 +79,4 @@ class DiscardArgs extends KitchenScoped {
 
   @Parameters(paramLabel = 'RECIPE', description = ['A recipe as apply takes it: coordinates or a .groovy path.'])
   List<String> recipes = []
-}
-
-@Command(name = 'revert', description = ['Reverse one recorded batch against the current content, without running its recipes.'])
-class RevertArgs extends KitchenScoped {
-  @Option(names = ['--batch-approve'], description = ['Show the diff, then write without asking.'])
-  boolean batchApprove
-
-  @Parameters(paramLabel = 'BATCH', description = ['The batch ID, as ./cook batch list shows it.'])
-  String batch
-}
-
-@Command(name = 'batch', description = ['Read the recorded batches.'], subcommands = [BatchListArgs, BatchInspectArgs])
-class BatchArgs {
-}
-
-@Command(name = 'list', description = ['Show the recorded batches, oldest first.'])
-class BatchListArgs extends KitchenScoped {
-}
-
-@Command(name = 'inspect', description = ["Show one batch's recipes, arguments, files, patches and any failure."])
-class BatchInspectArgs extends KitchenScoped {
-  @Parameters(paramLabel = 'BATCH', description = ['The batch ID, as ./cook batch list shows it.'])
-  String batch
 }

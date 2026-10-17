@@ -34,6 +34,6 @@ final class CookbookDiscard {
     } else {
       draft.delete(CookLock.PATH)
     }
-    new Proposal(draft, [], [], new SeedOutcomes(), [:])
+    new Proposal(draft, [], [], new SeedOutcomes())
   }
 }

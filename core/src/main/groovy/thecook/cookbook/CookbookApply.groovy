@@ -55,7 +55,7 @@ final class CookbookApply {
         }
         lock.record(name, recipe.address, recipe.sha256, declared.owned*.target)
         def texts = RecipeSource.texts(recipe.source, "${recipe.fileName}.groovy")
-        recipes.add(new Applied(request, recipe.address, recipe.sha256, texts?.confirm, texts?.yieldText))
+        recipes.add(new Applied(recipe.address, texts?.confirm, texts?.yieldText))
       } catch (Exception error) {
         def cause = error instanceof InvocationTargetException && error.cause instanceof Exception ? error.cause : error
         throw new IllegalArgumentException("${label}: ${cause.message ?: cause.class.simpleName}", cause)
@@ -63,7 +63,7 @@ final class CookbookApply {
     }
     seeds.refuse()
     draft.write(CookLock.PATH, lock.render())
-    new Proposal(draft, recipes, changedSources, seeds, loader.sources)
+    new Proposal(draft, recipes, changedSources, seeds)
   }
 
   private static CookbookModel model(Class type, String at, ModelReads reads) {
@@ -124,21 +124,14 @@ final class RecipeRequest {
   }
 }
 
-/**
- * A recipe that ran: its request, its address and the sha256 of its source, the consequence to confirm before the
- * writes and what to do after them.
- */
+/** A recipe that ran: its address, the consequence to confirm before the writes and what to do after them. */
 final class Applied {
-  final RecipeRequest request
   final String address
-  final String sha256
   final String confirm
   final String yieldText
 
-  Applied(RecipeRequest request, String address, String sha256, String confirm, String yieldText) {
-    this.request = request
+  Applied(String address, String confirm, String yieldText) {
     this.address = address
-    this.sha256 = sha256
     this.confirm = confirm
     this.yieldText = yieldText
   }
@@ -205,31 +198,14 @@ final class SeedOutcomes {
 final class Proposal {
   private final Draft draft
   private final SeedOutcomes seeds
-  private final Map<String, String> sources
-  private final String reverts
-  private final Map<String, List<String>> patches = [:]
   final List<Applied> recipes
   final List<ChangedSource> changedSources
 
-  /** An apply's changes; `sources` holds each source the batch evaluated or read, by its origin. */
-  Proposal(Draft draft, List<Applied> recipes, List<ChangedSource> changedSources, SeedOutcomes seeds,
-  Map<String, String> sources) {
-    this(draft, recipes, changedSources, seeds, sources, null)
-  }
-
-  private Proposal(Draft draft, List<Applied> recipes, List<ChangedSource> changedSources, SeedOutcomes seeds,
-  Map<String, String> sources, String reverts) {
+  Proposal(Draft draft, List<Applied> recipes, List<ChangedSource> changedSources, SeedOutcomes seeds) {
     this.draft = draft
     this.recipes = recipes
     this.changedSources = changedSources
     this.seeds = seeds
-    this.sources = sources
-    this.reverts = reverts
-  }
-
-  /** The changes in `draft` that reverse the batch `batchId`, which run no recipe. */
-  static Proposal revert(Draft draft, String batchId) {
-    new Proposal(draft, [], [], new SeedOutcomes(), [:], batchId)
   }
 
   /** The paths that change, in path order. */
@@ -248,49 +224,23 @@ final class Proposal {
     }
   }
 
-  /** The text of a changed `path` before the apply; `null` when it is created. */
+  /** The text of a changed `path` before the batch; `null` when it is created. */
   String before(String path) {
     draft.before(path)
   }
 
-  /** The text of a changed `path` after the apply; `null` when it is deleted. */
+  /** The text of a changed `path` after the batch; `null` when it is deleted. */
   String after(String path) {
     draft.after(path)
   }
 
-  /** The unified diff of a changed `path`, as the review shows it and the batch record keeps it. */
+  /** The unified diff of a changed `path`, as the review shows it. */
   List<String> patch(String path) {
-    patches.computeIfAbsent(path) { FilePatch.of(path, draft.before(path), draft.after(path)) }
+    FilePatch.of(path, draft.before(path), draft.after(path))
   }
 
-  /**
-   * Saves the batch record, then writes the changes; a failed write leaves the files as they were and the failure in
-   * the record, whose place the error names. Returns the batch ID, or `null` when nothing changes and no batch is
-   * recorded.
-   */
-  String commit() {
-    def paths = draft.changes
-    if (!paths) {
-      return null
-    }
-    def actions = getActions()
-    def record = BatchRecord.create(draft.destination)
-    record.save(reverts ? 'revert' : 'apply', reverts, recipes.collect { new RecordedRecipe(it.request, it.address, it.sha256) },
-    paths.collect { new RecordedFile(it, actions[it], draft.recordedBefore(it), draft.recordedAfter(it)) },
-    paths.collectEntries { [(it): patch(it)] }, sources)
-    try {
-      draft.commit()
-    } catch (Exception failure) {
-      def kept = "record and failure kept in ${BatchRecord.DIRECTORY}/${record.id}/"
-      try {
-        record.failed(failure)
-      } catch (Exception recording) {
-        failure.addSuppressed(recording)
-        kept = "record kept in ${BatchRecord.DIRECTORY}/${record.id}/ without the failure: ${recording.message}"
-      }
-      throw new IllegalStateException("${failure.message ?: failure.class.simpleName}\n  ${kept}", failure)
-    }
-    record.written()
-    record.id
+  /** Writes the changes; a failed write leaves the files as they were. */
+  void commit() {
+    draft.commit()
   }
 }

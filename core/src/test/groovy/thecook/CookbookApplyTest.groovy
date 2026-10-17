@@ -3,7 +3,6 @@ package thecook
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
-import org.yaml.snakeyaml.Yaml
 import thecook.cookbook.Argument
 import thecook.cookbook.Coordinates
 import thecook.cookbook.CookbookApply
@@ -11,11 +10,8 @@ import thecook.cookbook.CookbookArtifact
 import thecook.cookbook.CookbookDiscard
 import thecook.cookbook.CookbookRepositories
 import thecook.cookbook.CookbookRepository
-import thecook.cookbook.Draft
 import thecook.cookbook.ExistingSeed
-import thecook.cookbook.Proposal
 import thecook.cookbook.RecipeRequest
-import thecook.cookbook.SeedOutcomes
 
 import java.nio.file.Files
 import java.security.MessageDigest
@@ -55,7 +51,6 @@ recipes:
           id: "dev.thecook:agents:instructions#instructions"
 """
     assert apply(kitchen, 'dev.thecook:agents:0.1.0:instructions', [harness: ['claude']]).changes == []
-    assert !new File(kitchen, '.cook/state.json').exists()
 
     def fewer = apply(kitchen, 'dev.thecook:agents:0.1.0:instructions', [:])
     assert fewer.changes == ['CLAUDE.md', 'cook.lock']
@@ -330,17 +325,7 @@ notes.add(line)
     ])
 
     assert proposal.recipes*.address == ['dev.thecook:agents:0.1.0:instructions', 'notes.groovy']
-    def id = proposal.commit()
-    def sources = batch(kitchen, id).sources.collectEntries { [(it.origin): new File(kitchen, ".cook/batches/${id}/${it.file}").text] }
-    assert sources.keySet().containsAll([
-      'dev.thecook:agents:0.1.0:instructions',
-      'dev.thecook:agents:0.1.0/AGENTS.template.md',
-      'acme:notes:1.0.0/Notes.groovy',
-      'notes.groovy'
-    ])
-    assert sources['notes.groovy'] == new File(kitchen, 'notes.groovy').text
-    assert sources['dev.thecook:agents:0.1.0/AGENTS.template.md'] == new File(COOKBOOK, 'agents/AGENTS.template.md').text
-    assert sources['dev.thecook:agents:0.1.0:instructions'] == new File(COOKBOOK, 'agents/instructions.groovy').text
+    proposal.commit()
     assert new File(kitchen, 'NOTES.md').text ==
     '<!-- cook:begin notes#notes -->\nfirst\n<!-- cook:end notes#notes -->\n'
     def lock = new File(kitchen, 'cook.lock').text
@@ -560,32 +545,7 @@ notes.set(test: 'new', other: 'mine')
     'notes is not in cook.lock, which lists no recipe'
   }
 
-  @Test void recordsEachBatchThatWritesBeforeItsWrites() {
-    def kitchen = kitchen()
-    publishConfig(kitchen, 'old.cfg')
-
-    def created = apply(kitchen, 'acme:config:1.0.0', [:]).commit()
-    def deleted = apply(kitchen, 'acme:config:1.0.0', [migrated: ['true']]).commit()
-
-    assert created != deleted
-    def first = batch(kitchen, created)
-    assert first.subMap(['id', 'command', 'result']) == [id: created, command: 'apply', result: 'written']
-    assert first.recipes == [
-      [operand: 'acme:config:1.0.0', address: 'acme:config:1.0.0:config',
-        sha256: first.recipes[0].sha256, arguments: []]
-    ]
-    assert first.files*.path == ['cook.lock', 'old.cfg']
-    assert first.files[1] == [path: 'old.cfg', action: 'create', before: null,
-      after: [kind: 'file', mode: 'rw-r--r--', newline: false]]
-    assert new File(kitchen, ".cook/batches/${created}/patches/old.cfg.patch").text ==
-    '--- /dev/null\n+++ b/old.cfg\n@@ -0,0 +1,1 @@\n+old\n\\ No newline at end of file\n'
-    def second = batch(kitchen, deleted)
-    assert second.recipes[0].arguments == [[name: 'migrated', value: 'true', form: 'INLINE']]
-    assert second.files.find { it.path == 'old.cfg' }.subMap(['action', 'after']) == [action: 'delete', after: null]
-    assert new File(kitchen, ".cook/batches/${deleted}/patches/cook.lock.patch").exists()
-  }
-
-  @Test void aFailedWriteLeavesTheFilesAsTheyWereAndTheFailureInTheRecord() {
+  @Test void aFailedWriteLeavesTheFilesAsTheyWere() {
     def kitchen = kitchen()
     publishConfig(kitchen, 'sub/old.cfg')
     def proposal = apply(kitchen, 'acme:config:1.0.0', [:])
@@ -593,33 +553,14 @@ notes.set(test: 'new', other: 'mine')
     blocked.mkdir()
     blocked.setWritable(false)
 
-    Throwable error
     try {
-      error = shouldFail(Exception) { proposal.commit() }
+      shouldFail(Exception) { proposal.commit() }
     } finally {
       blocked.setWritable(true)
     }
 
     assert !new File(kitchen, 'cook.lock').exists()
-    def batches = new File(kitchen, '.cook/batches').listFiles()
-    assert batches.size() == 1
-    assert batch(kitchen, batches[0].name).result == 'failed'
-    assert new File(batches[0], 'failure.log').text.contains('sub')
-    assert error.message.endsWith("\n  record and failure kept in .cook/batches/${batches[0].name}/")
-  }
-
-  @Test void refusesToKeepABatchRecordThroughALink() {
-    def kitchen = kitchen()
-    def elsewhere = folder.newFolder()
-    Files.createSymbolicLink(new File(kitchen, '.cook').toPath(), elsewhere.toPath())
-    def draft = new Draft(kitchen)
-    draft.write('notes.md', 'mine\n')
-
-    def error = shouldFail(IllegalStateException) { new Proposal(draft, [], [], new SeedOutcomes(), [:]).commit() }
-
-    assert error.message == '.cook is a symbolic link; batch records are kept only inside the kitchen'
-    assert !new File(kitchen, 'notes.md').exists()
-    assert elsewhere.list().length == 0
+    assert !new File(kitchen, 'sub/old.cfg').exists()
   }
 
   @Test void namesTheRecipeWhoseModelFailsToConstruct() {
@@ -703,10 +644,6 @@ import acme.config.Config
 config.migrated = migrated
 ''',
     ])
-  }
-
-  private static Map batch(File kitchen, String id) {
-    (Map) new Yaml().load(new File(kitchen, ".cook/batches/${id}/batch.yaml").text)
   }
 
   private static def apply(File kitchen, String operand, Map<String, List<String>> arguments) {

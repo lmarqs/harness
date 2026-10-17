@@ -74,24 +74,6 @@ final class Draft {
     shown(state(path))
   }
 
-  /** The directory the draft writes in. */
-  File getDestination() {
-    repository.directory
-  }
-
-  /**
-   * A changed `path` on the disk, as its batch record keeps it: `kind`, `file` or `symlink`, with a file's `mode` and
-   * whether its text ends with a newline, or a link's `target`; `null` when absent.
-   */
-  Map recordedBefore(String path) {
-    recorded(before[path])
-  }
-
-  /** A changed `path` as the draft leaves it, in the shape of `recordedBefore`. */
-  Map recordedAfter(String path) {
-    recorded(state(path))
-  }
-
   /** What happens to a changed `path`:`create` when it is absent from the disk, `delete` when the draft removes it, else `update`. */
   String action(String path) {
     if (!before[path].exists) {
@@ -132,14 +114,6 @@ final class Draft {
       before[path] = snapshot + [kind: snapshot.exists ? (snapshot.kind ?: 'file') : null]
     }
     after[path] ?: before[path]
-  }
-
-  private static Map recorded(Map state) {
-    if (!state.exists) {
-      return null
-    }
-    state.kind == 'symlink' ? [kind: 'symlink', target: state.content] :
-    [kind: 'file', mode: state.mode, newline: state.content.endsWith('\n')]
   }
 
   private static String shown(Map state) {

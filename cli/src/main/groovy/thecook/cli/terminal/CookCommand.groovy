@@ -2,8 +2,6 @@ package thecook.cli.terminal
 
 import picocli.CommandLine
 import thecook.cookbook.Argument
-import thecook.cookbook.BatchRecord
-import thecook.cookbook.BatchRevert
 import thecook.cookbook.CookbookApply
 import thecook.cookbook.CookbookArtifact
 import thecook.cookbook.CookbookDiscard
@@ -86,7 +84,7 @@ final class CookCommand {
     }
     RootArgs root = line.command
     def chosen = parsed.subcommand()
-    def command = (chosen?.subcommand() ?: chosen)?.commandSpec()?.userObject()
+    def command = chosen?.commandSpec()?.userObject()
     if (command != null && (root.dryRun || root.batchApprove || root.force || root.skip)) {
       throw new UsageError('--dry-run, --batch-approve, --force and --skip go before a recipe, not before a command')
     }
@@ -105,15 +103,6 @@ final class CookCommand {
         return help(kitchen, ((HelpArgs) command).recipes)
       case DiscardArgs:
         return discard(kitchen, (DiscardArgs) command)
-      case RevertArgs:
-        def revert = (RevertArgs) command
-        return { -> write(new BatchRevert(kitchen).propose(revert.batch), false, revert.batchApprove) }
-      case BatchArgs:
-        throw new UsageError('batch takes list or inspect <batchId>')
-      case BatchListArgs:
-        return { -> BatchReport.list(stdout, BatchRecord.list(kitchen)); true }
-      case BatchInspectArgs:
-        return { -> BatchReport.inspect(stdout, BatchRecord.read(kitchen, ((BatchInspectArgs) command).batch)); true }
       default:
         throw new IllegalStateException("Unhandled command: ${command}")
     }
